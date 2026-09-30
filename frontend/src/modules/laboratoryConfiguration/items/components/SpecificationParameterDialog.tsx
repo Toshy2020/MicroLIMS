@@ -137,12 +137,19 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // field disabled above, so it keeps showing that test regardless. A test
   // whose section isn't loaded yet, or whose lab list hasn't resolved yet,
   // is left visible rather than hidden - the server is still the real gate.
-  const selectableAssignedTests = isTestDisabled
-    ? assignedTests
-    : assignedTests.filter((t) => {
-        const sectionId = testDefs[t.testCode]?.sectionId;
-        return sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId);
-      });
+  // Memoized: the form-reset effect below depends on this list, so a fresh
+  // array on every render would reset the form on every render (an endless
+  // render loop that wipes the "Add Specification Parameter" form).
+  const selectableAssignedTests = useMemo(
+    () =>
+      isTestDisabled
+        ? assignedTests
+        : assignedTests.filter((t) => {
+            const sectionId = testDefs[t.testCode]?.sectionId;
+            return sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId);
+          }),
+    [isTestDisabled, assignedTests, testDefs, myLabSectionIds]
+  );
   const [testAnalyteId, setTestAnalyteId] = useState<number | "">("");
   const [resultBasis, setResultBasis] = useState<ResultBasis | "">("MgPerKg");
   const [sampleMatrix, setSampleMatrix] = useState<SampleMatrix | "">("Solid");

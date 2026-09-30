@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { laboratorySectionService, LaboratorySection } from "../services/laboratorySectionService";
 
@@ -36,10 +36,14 @@ export function useMyLabs(): { labs: LaboratorySection[]; codes: string[]; loadi
     };
   }, []);
 
-  const codes =
-    role === "SystemAdministrator"
-      ? ADMIN_LAB_CODES
-      : Array.from(new Set(labs.map((s) => s.sectionCode)));
+  // Memoized so callers can use it as a hook dependency.
+  const codes = useMemo(
+    () =>
+      role === "SystemAdministrator"
+        ? ADMIN_LAB_CODES
+        : Array.from(new Set(labs.map((s) => s.sectionCode))),
+    [role, labs]
+  );
 
   return { labs, codes, loading };
 }

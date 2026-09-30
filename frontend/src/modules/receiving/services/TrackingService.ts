@@ -5,6 +5,7 @@ import { PagedResult } from "./ReceiveService";
 // means "not requested" (see SampleTrackingService.ToRow).
 export interface TrackingLab {
   sectionId: number;
+  sectionCode: string;
   sectionName: string;
   stage: string;
 }
@@ -22,6 +23,7 @@ export interface TrackingRow {
 
 export interface TrackingFilter {
   labSectionId?: number;
+  labSectionCode?: string;
   overall?: string;
   from?: string;
   to?: string;
@@ -36,6 +38,7 @@ export const TrackingService = {
   async getTracking(filter: TrackingFilter = {}): Promise<PagedResult<TrackingRow>> {
     const params: Record<string, string | number> = {};
     if (filter.labSectionId != null) params.labSectionId = filter.labSectionId;
+    if (filter.labSectionCode) params.labSectionCode = filter.labSectionCode;
     if (filter.overall) params.overall = filter.overall;
     if (filter.from) params.from = filter.from;
     if (filter.to) params.to = filter.to;

@@ -1,328 +1,289 @@
-import { Fragment, useEffect, useState } from "react";
-import {
-  Paper, Stack, TextField, Select, MenuItem, Button, Typography, Alert, Box, Checkbox, FormControlLabel,
-  Table, TableHead, TableRow, TableCell, TableBody, IconButton, Collapse
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
-import { TestCodePicker } from "../../../components/TestCodePicker";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { ConfigMasterList, MasterListItem, SummaryTiles } from "../../../components/configHierarchy";
+import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { AfterCleaningConfigService } from "./services/AfterCleaningConfigService";
-import { tableHeadSx } from "../../../theme";
+import { Machine, MachinePart, PartConfig, acTestTypeLabel, isPathogenConfig } from "./acConfigTypes";
+import { AcPartCard } from "./components/AcPartCard";
+import { AcCountTestPanel, AcMachinePanel, AcPartPanel, AcPathogenPanel } from "./components/AcPanels";
 
-const TEST_TYPES = ["Swab", "Rinse", "Pathogen"];
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-// Test configurations for one machine part - previously captured via a
-// form but never shown anywhere, so there was no way to see, edit, or
-// delete what had been configured. Mirrors EMConfigPage's
-// RoomTestConfigSection.
-function PartConfigSection({ machinePartId }: { machinePartId: number }) {
-  const [configs, setConfigs] = useState<any[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<Record<string, any>>({ testType: "Swab", isPathogenTest: false });
-  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
-  const [error, setError] = useState<string | null>(null);
+type PendingDelete =
+  | { kind: "machine"; machine: Machine }
+  | { kind: "part"; part: MachinePart }
+  | { kind: "config"; config: PartConfig; part: MachinePart };
 
-  const load = () => AfterCleaningConfigService.getPartConfigurations(machinePartId).then(setConfigs);
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [machinePartId]);
+// Machines -> parts -> per-part tests: swab/rinse count tests with limits,
+// and any number of pathogen tests. Master/detail like the Water and EM
+// pages: machines on the left, the selected machine's parts as cards on
+// the right, every add/edit in a side panel.
+export function AfterCleaningConfigPage() {
+  const { options } = useTestDefinitions();
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [configsByPart, setConfigsByPart] = useState<Record<number, PartConfig[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const [selectedMachineId, setSelectedMachineId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
-  const startEdit = (c: any) => {
-    setEditingId(c.id);
-    setForm({ testType: c.testType, testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit, isPathogenTest: c.isPathogenTest, unit: c.unit });
-    setError(null);
-  };
-  const cancelEdit = () => { setEditingId(null); setForm({ testType: "Swab", isPathogenTest: false }); };
+  const [machinePanel, setMachinePanel] = useState<{ open: boolean; machine: Machine | null }>({ open: false, machine: null });
+  const [partPanel, setPartPanel] = useState<{ open: boolean; part: MachinePart | null }>({ open: false, part: null });
+  const [countPanel, setCountPanel] = useState<{ open: boolean; part: MachinePart | null; config: PartConfig | null }>({ open: false, part: null, config: null });
+  const [pathogenPanel, setPathogenPanel] = useState<{ open: boolean; part: MachinePart | null }>({ open: false, part: null });
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
-  const save = async () => {
-    setError(null);
-    if (!form.testCode) { setError("Test Code is required."); return; }
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      if (editingId) {
-        await AfterCleaningConfigService.updatePartConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
-      } else {
-        await AfterCleaningConfigService.createPartConfiguration(machinePartId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "");
-      }
-      cancelEdit();
-      load();
+      const list: Machine[] = await AfterCleaningConfigService.getMachines();
+      const parts = list.flatMap((m) => m.parts ?? []);
+      // No bulk endpoint - one request per part, in parallel.
+      const configs = await Promise.all(
+        parts.map((p) => AfterCleaningConfigService.getPartConfigurations(p.id).catch(() => [] as PartConfig[]))
+      );
+      setMachines(list);
+      setConfigsByPart(Object.fromEntries(parts.map((p, i) => [p.id, configs[i] ?? []])));
+      setLoadError(null);
+      setSelectedMachineId((current) => (current != null && list.some((m) => m.id === current) ? current : list[0]?.id ?? null));
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not save this configuration.");
+      setLoadError(e?.response?.data?.message ?? "Could not load the after-cleaning configuration.");
+    } finally {
+      setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const testName = useCallback(
+    (code: string) => {
+      const o = options.find((x) => x.code === code);
+      return o?.displayName && o.displayName !== code ? o.displayName : code;
+    },
+    [options]
+  );
+
+  const allParts = useMemo(() => machines.flatMap((m) => m.parts ?? []), [machines]);
+  const allConfigs = Object.values(configsByPart).flat();
+  const partsWithoutTests = allParts.filter((p) => (configsByPart[p.id] ?? []).length === 0).length;
+  const pathogenCount = allConfigs.filter(isPathogenConfig).length;
+
+  const q = search.trim().toLowerCase();
+  const matchesPart = (p: MachinePart) => !q || p.name.toLowerCase().includes(q);
+
+  const listItems: MasterListItem[] = machines
+    .filter((m) => !q || m.name.toLowerCase().includes(q) || (m.parts ?? []).some(matchesPart))
+    .map((m) => {
+      const parts = m.parts ?? [];
+      const empty = parts.filter((p) => (configsByPart[p.id] ?? []).length === 0).length;
+      return {
+        id: m.id,
+        title: m.name,
+        subtitle: parts.length === 0 ? "No parts yet" : plural(parts.length, "part"),
+        badge: parts.length === 0 ? undefined : empty > 0 ? { label: `${plural(empty, "part")} without tests`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
+      };
+    });
+
+  // Memoized: the panel resets its selection whenever this list changes.
+  const pathogenPanelConfigs = useMemo(
+    () => (pathogenPanel.part ? (configsByPart[pathogenPanel.part.id] ?? []).filter(isPathogenConfig) : []),
+    [pathogenPanel.part, configsByPart]
+  );
+
+  const selectedMachine = machines.find((m) => m.id === selectedMachineId) ?? null;
+  const machineParts = (selectedMachine?.parts ?? []).filter(matchesPart);
+
+  const closeAll = () => {
+    setMachinePanel({ open: false, machine: null });
+    setPartPanel({ open: false, part: null });
+    setCountPanel({ open: false, part: null, config: null });
+    setPathogenPanel({ open: false, part: null });
   };
 
-  const remove = async (id: number) => {
-    await AfterCleaningConfigService.deletePartConfiguration(id);
-    setPendingDelete(null);
+  const afterSave = (text: string, selectId?: number) => {
+    closeAll();
+    setMessage({ text, ok: true });
+    if (selectId != null) setSelectedMachineId(selectId);
     load();
   };
 
-  return (
-    <Box sx={{ p: 2, bgcolor: "background.default" }}>
-      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-      {configs.length > 0 ? (
-        <Table size="small" sx={{ mb: 1.5 }}>
-          <TableHead>
-            <TableRow sx={tableHeadSx}><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell>Pathogen</TableCell><TableCell /></TableRow>
-          </TableHead>
-          <TableBody>
-            {configs.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>{c.testType}</TableCell>
-                <TableCell>{c.testCode}</TableCell>
-                <TableCell>{c.alertLimit || "—"}</TableCell>
-                <TableCell>{c.actionLimit || "—"}</TableCell>
-                <TableCell>{c.specLimit || "—"}</TableCell>
-                <TableCell>{c.unit || "—"}</TableCell>
-                <TableCell>{c.isPathogenTest ? "Yes" : "—"}</TableCell>
-                <TableCell align="right">
-                  <IconButton size="small" onClick={() => startEdit(c)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setPendingDelete(c)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            mb: 1.5
-          }}>No test configurations yet for this part.</Typography>
-      )}
+  const confirmDelete = async () => {
+    const target = pendingDelete;
+    setPendingDelete(null);
+    if (!target) return;
+    setMessage(null);
+    try {
+      if (target.kind === "machine") {
+        await AfterCleaningConfigService.deleteMachine(target.machine.id);
+        setMessage({ text: `"${target.machine.name}" deleted.`, ok: true });
+      } else if (target.kind === "part") {
+        await AfterCleaningConfigService.deleteMachinePart(target.part.id);
+        setMessage({ text: `Part "${target.part.name}" deleted.`, ok: true });
+      } else {
+        await AfterCleaningConfigService.deletePartConfiguration(target.config.id);
+        setMessage({ text: `Test removed from ${target.part.name}.`, ok: true });
+      }
+      load();
+    } catch (e: any) {
+      setMessage({ text: e?.response?.data?.message ?? "Could not delete this record.", ok: false });
+    }
+  };
 
-      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>{editingId ? "Edit Configuration" : "Add Configuration"}</Typography>
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{
-          flexWrap: "wrap",
-          alignItems: "center"
-        }}>
-        <Select size="small" value={form.testType} onChange={(e) => setField("testType", e.target.value)} sx={{ minWidth: 120 }}>
-          {TEST_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-        </Select>
-        <TestCodePicker value={form.testCode ?? ""} onChange={(code) => setField("testCode", code)} label="Test Code" sx={{ minWidth: 200 }} />
-        <TextField size="small" placeholder="Alert" value={form.alertLimit ?? ""} onChange={(e) => setField("alertLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Action" value={form.actionLimit ?? ""} onChange={(e) => setField("actionLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Spec" value={form.specLimit ?? ""} onChange={(e) => setField("specLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Unit (e.g. 25cm²)" value={form.unit ?? ""} onChange={(e) => setField("unit", e.target.value)} sx={{ width: 120 }} />
-        <FormControlLabel
-          control={<Checkbox checked={!!form.isPathogenTest} onChange={(e) => setField("isPathogenTest", e.target.checked)} />}
-          label="Pathogen test"
-        />
-        {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
-        <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add"}</Button>
+  const deleteMessage = !pendingDelete
+    ? ""
+    : pendingDelete.kind === "machine"
+      ? `Delete machine "${pendingDelete.machine.name}"? This cannot be undone.`
+      : pendingDelete.kind === "part"
+        ? `Delete part "${pendingDelete.part.name}"? This cannot be undone.`
+        : `Remove the ${acTestTypeLabel(pendingDelete.config.testType)} / ${pendingDelete.config.testCode} test from ${pendingDelete.part.name}?`;
+
+  return (
+    <Box sx={{ pb: 4 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
+        <PageHeader title="After Cleaning" subtitle="Machines, their parts, and the swab, rinse and pathogen tests run on each part." />
+        <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
+          <Button variant="outlined" onClick={() => setMachinePanel({ open: true, machine: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
+            Add machine
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            disabled={machines.length === 0}
+            onClick={() => setPartPanel({ open: true, part: null })}
+            sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+          >
+            Add machine part
+          </Button>
+        </Stack>
       </Stack>
 
-      <ConfirmationDialog
-        open={pendingDelete != null}
-        message={pendingDelete ? `Delete the ${pendingDelete.testType} / ${pendingDelete.testCode} configuration for this part?` : ""}
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => pendingDelete && remove(pendingDelete.id)}
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
+          {loadError}
+        </Alert>
+      )}
+      {message && (
+        <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
+          {message.text}
+        </Alert>
+      )}
+
+      <SummaryTiles
+        tiles={[
+          { label: "Machines", value: machines.length },
+          { label: "Machine parts", value: allParts.length },
+          { label: "Pathogen tests", value: pathogenCount },
+          { label: "Parts without tests", value: plural(partsWithoutTests, "part"), tone: partsWithoutTests > 0 ? "inconclusive" : undefined }
+        ]}
       />
+
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px minmax(0, 1fr)" }, gap: 2.5, alignItems: "start" }}>
+        <ConfigMasterList
+          searchLabel="Find a machine or part"
+          searchPlaceholder="e.g. Filling needles"
+          search={search}
+          onSearchChange={setSearch}
+          items={listItems}
+          selectedId={selectedMachineId}
+          onSelect={setSelectedMachineId}
+          loading={loading}
+          emptyText={q ? "Nothing matches your search." : "No machines yet. Use “Add machine” to create one."}
+        />
+
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          {!selectedMachine ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography sx={{ fontWeight: 600 }}>{loading ? "Loading..." : "Select a machine"}</Typography>
+            </Box>
+          ) : (
+            <>
+              <Stack direction="row" sx={{ px: 2.75, py: 2.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedMachine.name}</Typography>
+                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedMachine.parts ?? []).length, "part")}</Typography>
+                </Box>
+                <Button variant="outlined" onClick={() => setMachinePanel({ open: true, machine: selectedMachine })} sx={{ textTransform: "none" }}>
+                  Rename
+                </Button>
+                <Tooltip title="Delete machine">
+                  <IconButton aria-label={`Delete ${selectedMachine.name}`} color="error" onClick={() => setPendingDelete({ kind: "machine", machine: selectedMachine })}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+
+              <Box sx={{ p: 2.75, display: "grid", gridTemplateColumns: { xs: "1fr", lg: "repeat(2, minmax(0, 1fr))" }, gap: 2 }}>
+                {machineParts.map((part) => {
+                  const configs = configsByPart[part.id] ?? [];
+                  return (
+                    <AcPartCard
+                      key={part.id}
+                      part={part}
+                      configs={configs}
+                      testName={testName}
+                      onEditPart={() => setPartPanel({ open: true, part: { ...part, machineId: selectedMachine.id } })}
+                      onDeletePart={() => setPendingDelete({ kind: "part", part })}
+                      onAddCount={() => setCountPanel({ open: true, part, config: null })}
+                      onEditCount={(config) => setCountPanel({ open: true, part, config })}
+                      onDeleteCount={(config) => setPendingDelete({ kind: "config", config, part })}
+                      onEditPathogens={() => setPathogenPanel({ open: true, part })}
+                    />
+                  );
+                })}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setPartPanel({ open: true, part: null })}
+                  sx={{ minHeight: 120, borderStyle: "dashed", borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                >
+                  Add part to {selectedMachine.name}
+                </Button>
+              </Box>
+              {q && machineParts.length === 0 && (
+                <Typography sx={{ px: 2.75, pb: 2.75, fontSize: 14, color: "text.secondary" }}>No parts here match your search.</Typography>
+              )}
+            </>
+          )}
+        </Paper>
+      </Box>
+
+      <AcMachinePanel open={machinePanel.open} machine={machinePanel.machine} onClose={() => setMachinePanel({ open: false, machine: null })} onSaved={afterSave} />
+      <AcPartPanel
+        open={partPanel.open}
+        part={partPanel.part}
+        defaultMachineId={selectedMachineId}
+        machines={machines}
+        onClose={() => setPartPanel({ open: false, part: null })}
+        onSaved={afterSave}
+      />
+      <AcCountTestPanel
+        open={countPanel.open}
+        part={countPanel.part}
+        config={countPanel.config}
+        onClose={() => setCountPanel({ open: false, part: null, config: null })}
+        onSaved={(text) => afterSave(text)}
+      />
+      <AcPathogenPanel
+        open={pathogenPanel.open}
+        part={pathogenPanel.part}
+        configs={pathogenPanelConfigs}
+        onClose={() => {
+          setPathogenPanel({ open: false, part: null });
+          // A partly failed save may already have added or removed some.
+          load();
+        }}
+        onSaved={(text) => afterSave(text)}
+      />
+
+      <ConfirmationDialog destructive open={pendingDelete != null} message={deleteMessage} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />
     </Box>
-  );
-}
-
-export function AfterCleaningConfigPage() {
-  const [machines, setMachines] = useState<any[]>([]);
-  const [machineName, setMachineName] = useState("");
-  const [editingMachineId, setEditingMachineId] = useState<number | null>(null);
-  const [pendingDeleteMachine, setPendingDeleteMachine] = useState<any | null>(null);
-
-  const [partName, setPartName] = useState("");
-  const [machineId, setMachineId] = useState("");
-  const [editingPartId, setEditingPartId] = useState<number | null>(null);
-  const [pendingDeletePart, setPendingDeletePart] = useState<any | null>(null);
-
-  const [expandedMachineId, setExpandedMachineId] = useState<number | null>(null);
-  const [expandedPartId, setExpandedPartId] = useState<number | null>(null);
-
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-
-  const load = () => AfterCleaningConfigService.getMachines().then(setMachines);
-  useEffect(() => { load(); }, []);
-
-  const cancelMachineEdit = () => { setEditingMachineId(null); setMachineName(""); };
-  const startMachineEdit = (m: any) => { setEditingMachineId(m.id); setMachineName(m.name); setMessage(null); };
-  const saveMachine = async () => {
-    setMessage(null);
-    try {
-      if (editingMachineId) {
-        await AfterCleaningConfigService.updateMachine(editingMachineId, machineName, machines.find((m) => m.id === editingMachineId)?.version);
-        setMessage({ text: "Machine updated.", ok: true });
-      } else {
-        await AfterCleaningConfigService.createMachine(machineName);
-        setMessage({ text: "Machine created.", ok: true });
-      }
-      cancelMachineEdit();
-      load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save this machine.", ok: false });
-    }
-  };
-  const deleteMachine = async (m: any) => {
-    setMessage(null);
-    try {
-      await AfterCleaningConfigService.deleteMachine(m.id);
-      setPendingDeleteMachine(null);
-      load();
-    } catch (e: any) {
-      setPendingDeleteMachine(null);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this machine.", ok: false });
-    }
-  };
-
-  const cancelPartEdit = () => { setEditingPartId(null); setPartName(""); setMachineId(""); };
-  const startPartEdit = (p: any) => { setEditingPartId(p.id); setPartName(p.name); setMachineId(String(p.machineId)); setMessage(null); };
-  const savePart = async () => {
-    setMessage(null);
-    try {
-      if (editingPartId) {
-        await AfterCleaningConfigService.updateMachinePart(editingPartId, partName, Number(machineId), machines.flatMap((m) => m.parts ?? []).find((p) => p.id === editingPartId)?.version);
-        setMessage({ text: "Part updated.", ok: true });
-      } else {
-        await AfterCleaningConfigService.createMachinePart(partName, Number(machineId));
-        setMessage({ text: "Part added.", ok: true });
-      }
-      cancelPartEdit();
-      load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save this part.", ok: false });
-    }
-  };
-  const deletePart = async (p: any) => {
-    setMessage(null);
-    try {
-      await AfterCleaningConfigService.deleteMachinePart(p.id);
-      setPendingDeletePart(null);
-      load();
-    } catch (e: any) {
-      setPendingDeletePart(null);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this part.", ok: false });
-    }
-  };
-
-  return (
-    <>
-      <PageHeader title="After Cleaning" subtitle="Machines, parts, and per-part test limits." />
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
-
-      <SectionTitle>{editingMachineId ? "Edit Machine" : "New Machine"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} sx={{
-          alignItems: "center"
-        }}>
-          <TextField size="small" label="Machine Name" value={machineName} onChange={(e) => setMachineName(e.target.value)} />
-          {editingMachineId && <Button onClick={cancelMachineEdit}>Cancel</Button>}
-          <Button variant="outlined" onClick={saveMachine}>{editingMachineId ? "Save Changes" : "Add Machine"}</Button>
-        </Stack>
-      </Paper>
-
-      <SectionTitle>{editingPartId ? "Edit Part" : "New Part"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-          <Select size="small" displayEmpty value={machineId} onChange={(e) => setMachineId(e.target.value)} sx={{ minWidth: 180 }}>
-            <MenuItem value=""><em>Machine</em></MenuItem>
-            {machines.map((m) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
-          </Select>
-          <TextField size="small" label="Part Name" value={partName} onChange={(e) => setPartName(e.target.value)} />
-          {editingPartId && <Button onClick={cancelPartEdit}>Cancel</Button>}
-          <Button variant="outlined" onClick={savePart}>{editingPartId ? "Save Changes" : "Add Part"}</Button>
-        </Stack>
-      </Paper>
-
-      <SectionTitle>Machines</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
-        <Table>
-          <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Machine</TableCell><TableCell /></TableRow></TableHead>
-          <TableBody>
-            {machines.map((m) => (
-              <Fragment key={m.id}>
-                <TableRow>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => setExpandedMachineId(expandedMachineId === m.id ? null : m.id)} title="Parts">
-                      {expandedMachineId === m.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{m.name}</TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" onClick={() => startMachineEdit(m)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => setPendingDeleteMachine(m)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ p: 0, border: 0 }} colSpan={3}>
-                    <Collapse in={expandedMachineId === m.id} unmountOnExit>
-                      <Box sx={{ p: 2, bgcolor: "background.default" }}>
-                        {(m.parts ?? []).length === 0 ? (
-                          <Typography variant="body2" sx={{
-                            color: "text.secondary"
-                          }}>No parts configured yet.</Typography>
-                        ) : (
-                          <Table size="small">
-                            <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Part</TableCell><TableCell /></TableRow></TableHead>
-                            <TableBody>
-                              {(m.parts ?? []).map((p: any) => (
-                                <Fragment key={p.id}>
-                                  <TableRow>
-                                    <TableCell>
-                                      <IconButton size="small" onClick={() => setExpandedPartId(expandedPartId === p.id ? null : p.id)} title="Test Configurations">
-                                        {expandedPartId === p.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                                      </IconButton>
-                                    </TableCell>
-                                    <TableCell>{p.name}</TableCell>
-                                    <TableCell align="right">
-                                      <IconButton size="small" onClick={() => startPartEdit({ ...p, machineId: m.id })} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                                      <IconButton size="small" color="error" onClick={() => setPendingDeletePart(p)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell sx={{ p: 0, border: 0 }} colSpan={3}>
-                                      <Collapse in={expandedPartId === p.id} unmountOnExit>
-                                        <PartConfigSection machinePartId={p.id} />
-                                      </Collapse>
-                                    </TableCell>
-                                  </TableRow>
-                                </Fragment>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        )}
-                      </Box>
-                    </Collapse>
-                  </TableCell>
-                </TableRow>
-              </Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
-
-      <ConfirmationDialog
-        open={pendingDeleteMachine != null}
-        message={pendingDeleteMachine ? `Delete machine "${pendingDeleteMachine.name}"? This cannot be undone.` : ""}
-        onCancel={() => setPendingDeleteMachine(null)}
-        onConfirm={() => pendingDeleteMachine && deleteMachine(pendingDeleteMachine)}
-      />
-      <ConfirmationDialog
-        open={pendingDeletePart != null}
-        message={pendingDeletePart ? `Delete part "${pendingDeletePart.name}"? This cannot be undone.` : ""}
-        onCancel={() => setPendingDeletePart(null)}
-        onConfirm={() => pendingDeletePart && deletePart(pendingDeletePart)}
-      />
-    </>
   );
 }

@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Alert } from "@mui/material";
+import { Button, Alert } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
 import { SignatureDialog } from "../../../components/SignatureDialog";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { LabPage } from "../../../components/lab";
 import { CryovialService } from "./services/CryovialService";
 import { CryovialItem, CryovialFilterState } from "./types/cryovialTypes";
 import { CryovialKpiCards } from "./components/CryovialKpiCards";
@@ -28,10 +26,6 @@ export function CryovialsPage() {
 
   // Filters state
   const [filters, setFilters] = useState<CryovialFilterState>(INITIAL_FILTERS);
-
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   // Dialog states
   const [isPrepareOpen, setIsPrepareOpen] = useState(false);
@@ -58,12 +52,10 @@ export function CryovialsPage() {
 
   const handleReset = () => {
     setFilters(INITIAL_FILTERS);
-    setPage(0);
   };
 
   const handleFilterChange = (newFilters: CryovialFilterState) => {
     setFilters(newFilters);
-    setPage(0);
   };
 
   // Filtered dataset driven by form filters
@@ -163,75 +155,46 @@ export function CryovialsPage() {
     loadData();
   };
 
+  const isFiltered = Object.values(filters).some((v) => v !== "");
+
   return (
     <>
-      {/* Top Header with Primary Action Button */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title="Cryovials"
-          subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material."
-        />
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setIsPrepareOpen(true)}
-          color="primary"
-          sx={{
-            px: 2.5,
-            py: 1,
-            fontWeight: 700,
-            fontSize: 13,
-            boxShadow: "0 2px 6px rgba(88, 28, 135, 0.25)"
-          }}
-        >
-          + Prepare Cryovial Batch
-        </Button>
-      </Box>
+      <LabPage
+        title="Cryovials"
+        subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material."
+        actions={
+          <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setIsPrepareOpen(true)} sx={{ whiteSpace: "nowrap" }}>
+            Prepare Cryovial Batch
+          </Button>
+        }
+        kpis={<CryovialKpiCards items={cryovials || []} loading={loading} />}
+        filters={
+          <CryovialFilterBar
+            items={cryovials || []}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={handleReset}
+            resultCount={filteredCryovials.length}
+            onRefresh={loadData}
+            refreshing={loading}
+          />
+        }
+      >
+        {message && (
+          <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>
+            {message.text}
+          </Alert>
+        )}
 
-      {message && (
-        <Alert
-          severity={message.ok ? "success" : "error"}
-          onClose={() => setMessage(null)}
-          sx={{ mb: 2 }}
-        >
-          {message.text}
-        </Alert>
-      )}
-
-      {/* KPI Cards: Operational Insights */}
-      <CryovialKpiCards items={cryovials || []} />
-
-      {/* Main Review Queue Section */}
-      <SectionTitle>Cryovial Review Queue</SectionTitle>
-
-      {/* Search & Filter Bar */}
-      <CryovialFilterBar
-        items={cryovials || []}
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onReset={handleReset}
-      />
-
-      {/* Register Table / Queue */}
-      {loading ? (
-        <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}>
-          <LoadingSpinner />
-        </Box>
-      ) : (
         <CryovialReviewTable
           items={filteredCryovials}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={setPage}
-          onRowsPerPageChange={(r) => {
-            setRowsPerPage(r);
-            setPage(0);
-          }}
+          loading={loading}
+          isFiltered={isFiltered}
           onApproveClick={handleApproveClick}
           onThawClick={(item) => setThawItem(item)}
           onDestroyClick={(item) => setDestroyItem(item)}
         />
-      )}
+      </LabPage>
 
       {/* Preparation Dialog */}
       <PrepareCryovialBatchDialog

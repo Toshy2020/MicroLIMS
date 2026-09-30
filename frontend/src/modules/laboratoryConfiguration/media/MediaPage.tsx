@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Alert, Paper } from "@mui/material";
+import { Box, Button, Alert } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { PageHeader } from "../../../components/PageHeader";
+import { LabPage } from "../../../components/lab";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
@@ -167,152 +166,122 @@ export function MediaPage() {
     }
   };
 
+  // Skeletons only on the first load; a refresh keeps the current rows visible.
+  const initialLoading = loading && lots.length === 0;
+  const isFiltered = Boolean(search || selectedMaterialId || selectedStatus);
+
+  const register = (compact: boolean) => (
+    <MediaLotRegisterTable
+      lots={visibleLots}
+      awaitingApprovalIds={awaitingApprovalIds}
+      selectedLotId={compact ? selectedLotId : null}
+      onSelectLot={handleSelectLot}
+      isCompact={compact}
+      loading={initialLoading}
+      isFiltered={isFiltered}
+      onViewRecord={handleViewRecord}
+      onViewAuditHistory={handleViewAuditHistory}
+      onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
+    />
+  );
+
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 1 }}>
-        <PageHeader
-          title="Media Preparation & Evaluation"
-          subtitle="Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics)."
-        />
-        <Box sx={{ display: "flex", gap: 1, pt: 0.5 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadData}
-            disabled={loading}
-            sx={{ borderColor: "divider", color: "text.secondary" }}
-          >
-            Refresh
+      <LabPage
+        title="Media Preparation & Evaluation"
+        subtitle="Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics)."
+        actions={
+          <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setPrepDialogOpen(true)} sx={{ whiteSpace: "nowrap" }}>
+            Prepare New Media Lot
           </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setPrepDialogOpen(true)}
-            sx={{ fontWeight: 700 }}
-          >
-            + Prepare New Media Lot
-          </Button>
-        </Box>
-      </Box>
+        }
+        kpis={
+          <MediaLotKpiCards
+            lots={lots}
+            awaitingApprovalIds={awaitingApprovalIds}
+            activeKpi={activeKpi}
+            onSelectKpi={handleKpiSelect}
+            loading={initialLoading}
+          />
+        }
+        filters={
+          <MediaLotFilterBar
+            search={search}
+            onSearchChange={setSearch}
+            selectedMaterialId={selectedMaterialId}
+            onMaterialChange={setSelectedMaterialId}
+            selectedStatus={selectedStatus}
+            onStatusChange={handleStatusFilterChange}
+            materials={materials}
+            onResetFilters={handleResetFilters}
+            resultCount={visibleLots.length}
+            onRefresh={loadData}
+            refreshing={loading}
+          />
+        }
+      >
+        {message && (
+          <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>
+            {message.text}
+          </Alert>
+        )}
 
-      {message && (
-        <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
-          {message.text}
-        </Alert>
-      )}
-
-      {/* KPI Cards */}
-      <MediaLotKpiCards
-        lots={lots}
-        awaitingApprovalIds={awaitingApprovalIds}
-        activeKpi={activeKpi}
-        onSelectKpi={handleKpiSelect}
-      />
-
-      {/* Compact Filter Bar */}
-      <MediaLotFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        selectedMaterialId={selectedMaterialId}
-        onMaterialChange={setSelectedMaterialId}
-        selectedStatus={selectedStatus}
-        onStatusChange={handleStatusFilterChange}
-        materials={materials}
-        onResetFilters={handleResetFilters}
-      />
-
-      {/* Main Workspace Layout */}
-      {selectedLot ? (
-        /* SPLIT-PANE LAYOUT: Left = Compact Media Lots, Right = Selected Media Lot Workspace */
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            gap: 2,
-            alignItems: "stretch",
-            minHeight: "calc(100vh - 280px)"
-          }}
-        >
-          {/* Left Panel: Compact Media Lots Register (approx 38% width) */}
+        {selectedLot ? (
+          /* SPLIT-PANE LAYOUT: Left = Compact Media Lots, Right = Selected Media Lot Workspace */
           <Box
             sx={{
-              width: { xs: "100%", md: "38%" },
               display: "flex",
-              flexDirection: "column",
-              gap: 1.5,
-              flexShrink: 0
+              flexDirection: { xs: "column", md: "row" },
+              gap: 2,
+              alignItems: "stretch",
+              minHeight: "calc(100vh - 280px)"
             }}
           >
-            <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
-
-            <Paper
-              elevation={0}
+            {/* Left Panel: Compact Media Lots Register (approx 38% width) */}
+            <Box
               sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
-                overflowY: "auto",
-                maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
-                bgcolor: "background.paper"
+                width: { xs: "100%", md: "38%" },
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+                flexShrink: 0
               }}
             >
-              <MediaLotRegisterTable
-                lots={visibleLots}
+              <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
+              {register(true)}
+            </Box>
+
+            {/* Right Panel: Selected Media Lot Workspace (approx 62% width) */}
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column",
+                maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
+              }}
+            >
+              <SelectedMediaLotWorkspace
+                lot={selectedLot}
                 awaitingApprovalIds={awaitingApprovalIds}
-                selectedLotId={selectedLotId}
-                onSelectLot={handleSelectLot}
-                isCompact={true}
+                onClose={handleDeselectLot}
                 onViewRecord={handleViewRecord}
                 onViewAuditHistory={handleViewAuditHistory}
+                onOpenEvaluation={handleOpenEvaluation}
                 onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
+                onMarkOutOfStock={(lot) => setOutOfStockLot(lot)}
+                evaluationsList={evaluations}
               />
-            </Paper>
+            </Box>
           </Box>
-
-          {/* Right Panel: Selected Media Lot Workspace (approx 62% width) */}
-          <Box
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-              maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
-            }}
-          >
-            <SelectedMediaLotWorkspace
-              lot={selectedLot}
-              awaitingApprovalIds={awaitingApprovalIds}
-              onClose={handleDeselectLot}
-              onViewRecord={handleViewRecord}
-              onViewAuditHistory={handleViewAuditHistory}
-              onOpenEvaluation={handleOpenEvaluation}
-              onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
-              onMarkOutOfStock={(lot) => setOutOfStockLot(lot)}
-              evaluationsList={evaluations}
-            />
-          </Box>
-        </Box>
-      ) : (
-        /* NORMAL STATE: Full-Width Media Lots Register */
-        <>
-          <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
-          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflowX: "auto" }}>
-            <MediaLotRegisterTable
-              lots={visibleLots}
-              awaitingApprovalIds={awaitingApprovalIds}
-              selectedLotId={null}
-              onSelectLot={handleSelectLot}
-              isCompact={false}
-              onViewRecord={handleViewRecord}
-              onViewAuditHistory={handleViewAuditHistory}
-              onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
-            />
-          </Paper>
-        </>
-      )}
+        ) : (
+          /* NORMAL STATE: Full-Width Media Lots Register */
+          <>
+            <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
+            {register(false)}
+          </>
+        )}
+      </LabPage>
 
       {/* Modal Dialogs */}
       <MediaPreparationDialog

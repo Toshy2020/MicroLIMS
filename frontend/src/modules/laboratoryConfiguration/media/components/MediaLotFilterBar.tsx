@@ -1,15 +1,6 @@
-import React from "react";
-import {
-  Paper,
-  Stack,
-  TextField,
-  Select,
-  MenuItem,
-  Button,
-  InputAdornment
-} from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import { Select, MenuItem, Button } from "@mui/material";
 import FilterAltOffOutlinedIcon from "@mui/icons-material/FilterAltOffOutlined";
+import { FilterBar } from "../../../../components/lab";
 
 interface Props {
   search: string;
@@ -20,6 +11,9 @@ interface Props {
   onStatusChange: (v: string) => void;
   materials: any[];
   onResetFilters: () => void;
+  resultCount?: number;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -38,99 +32,69 @@ export function MediaLotFilterBar({
   selectedStatus,
   onStatusChange,
   materials,
-  onResetFilters
+  onResetFilters,
+  resultCount,
+  onRefresh,
+  refreshing
 }: Props) {
   const hasActiveFilters = Boolean(search || selectedMaterialId || selectedStatus);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 1.5,
-        mb: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        bgcolor: "background.paper"
-      }}
+    <FilterBar
+      search={search}
+      onSearch={onSearchChange}
+      placeholder="Search by lot number, dehydrated material, batch…"
+      resultCount={resultCount}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
     >
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{
-          alignItems: "center",
-          flexWrap: "wrap",
-          rowGap: 1
-        }}>
-        <TextField
-          size="small"
-          placeholder="Search by lot number, dehydrated material, batch…"
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          sx={{ minWidth: 280, flex: 1 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                </InputAdornment>
-              )
-            }
-          }}
-        />
-
-        <Select
-          size="small"
-          displayEmpty
-          value={selectedMaterialId}
-          onChange={(e) => onMaterialChange(e.target.value)}
-          sx={{ minWidth: 180 }}
-        >
-          <MenuItem value="">
-            <em>All Materials</em>
+      <Select
+        size="small"
+        displayEmpty
+        value={selectedMaterialId}
+        onChange={(e) => onMaterialChange(e.target.value)}
+        sx={{ minWidth: 180 }}
+        inputProps={{ "aria-label": "Material" }}
+      >
+        <MenuItem value="">
+          <em>All Materials</em>
+        </MenuItem>
+        {materials.map((m) => (
+          <MenuItem key={m.id} value={String(m.id)}>
+            {m.materialName}
           </MenuItem>
-          {materials.map((m) => (
-            <MenuItem key={m.id} value={String(m.id)}>
-              {m.materialName}
-            </MenuItem>
-          ))}
-        </Select>
+        ))}
+      </Select>
 
-        <Select
-          size="small"
-          displayEmpty
-          value={selectedStatus}
-          onChange={(e) => onStatusChange(e.target.value)}
-          sx={{ minWidth: 180 }}
-        >
-          <MenuItem value="">
-            <em>All Statuses</em>
+      <Select
+        size="small"
+        displayEmpty
+        value={selectedStatus}
+        onChange={(e) => onStatusChange(e.target.value)}
+        sx={{ minWidth: 180 }}
+        inputProps={{ "aria-label": "Status" }}
+      >
+        <MenuItem value="">
+          <em>All Statuses</em>
+        </MenuItem>
+        {STATUS_OPTIONS.map((s) => (
+          <MenuItem key={s.value} value={s.value}>
+            {s.label}
           </MenuItem>
-          {STATUS_OPTIONS.map((s) => (
-            <MenuItem key={s.value} value={s.value}>
-              {s.label}
-            </MenuItem>
-          ))}
-        </Select>
+        ))}
+      </Select>
 
-        {hasActiveFilters && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={onResetFilters}
-            startIcon={<FilterAltOffOutlinedIcon fontSize="small" />}
-            sx={{
-              borderColor: "divider",
-              color: "text.secondary",
-              fontSize: 12,
-              fontWeight: 600,
-              "&:hover": { borderColor: "text.secondary", bgcolor: "background.default" }
-            }}
-          >
-            Reset Filters
-          </Button>
-        )}
-      </Stack>
-    </Paper>
+      {hasActiveFilters && (
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={onResetFilters}
+          startIcon={<FilterAltOffOutlinedIcon fontSize="small" />}
+          sx={{ borderColor: "divider", color: "text.secondary" }}
+        >
+          Reset Filters
+        </Button>
+      )}
+    </FilterBar>
   );
 }

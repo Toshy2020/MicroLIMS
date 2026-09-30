@@ -203,6 +203,24 @@ HplcMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,An
 HplcMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
 HplcMethodController.Update(Int32, SaveHplcMethodRequest): SystemAdministrator,SectionHead
+HplcWorkspaceController.Abandon(Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.AssignSamples(Int32, AssignHplcSamplesRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.Complete(Int32): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.ConfirmSst(Int32, ConfirmSstRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.SaveReplicates(Int32, SaveReplicatesRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.SaveSst(Int32, SaveSstRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.StartRun(StartHplcRunRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.UploadEvidence(Int32, IFormFile, HplcEvidenceContext, HplcEvidenceKind, Nullable`1): SystemAdministrator,SectionHead,Analyst
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead

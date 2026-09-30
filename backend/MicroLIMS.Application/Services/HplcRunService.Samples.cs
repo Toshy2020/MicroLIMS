@@ -14,6 +14,7 @@ public record EligibleTestDto(
 
 public record HplcReplicateResponseInput(int HplcMethodAnalyteId, decimal Response);
 public record HplcReplicateInput(decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses);
+public record AssignHplcSamplesRequest(List<int> TestOrderIds);
 public record SaveReplicatesRequest(List<HplcReplicateInput> Replicates);
 public record SubmitHplcSampleRequest(string Password, string? Comment);
 

@@ -12,6 +12,8 @@ public class ChromatographyColumn : IVersionedEntity
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? SerialNumber { get; set; }
+    // USP packing designation (e.g. "L1"); a run is refused unless it matches the method's column designation.
+    public string? UspDesignation { get; set; }
 
     public int SectionId { get; set; }
     public DocumentSection? Section { get; set; }

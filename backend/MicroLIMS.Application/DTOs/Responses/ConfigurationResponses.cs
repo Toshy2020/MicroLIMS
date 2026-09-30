@@ -102,6 +102,7 @@ public class ChromatographyColumnResponse
     public string Code { get; init; } = null!;
     public string Name { get; init; } = null!;
     public string? SerialNumber { get; init; }
+    public string? UspDesignation { get; init; }
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
     public bool IsActive { get; init; }
@@ -118,6 +119,7 @@ public class ChromatographyColumnResponse
         Code = e.Code,
         Name = e.Name,
         SerialNumber = e.SerialNumber,
+        UspDesignation = e.UspDesignation,
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
         IsActive = e.IsActive,

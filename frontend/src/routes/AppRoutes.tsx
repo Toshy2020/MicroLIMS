@@ -57,6 +57,9 @@ const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/ma
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
+const HplcWorkspacePage = lazy(() => import("../modules/hplcWorkspace/overview/HplcWorkspacePage").then((m) => ({ default: m.HplcWorkspacePage })));
+const HplcInstrumentWorkspace = lazy(() => import("../modules/hplcWorkspace/run/HplcInstrumentWorkspace").then((m) => ({ default: m.HplcInstrumentWorkspace })));
+const StartHplcRunWizard = lazy(() => import("../modules/hplcWorkspace/run/StartHplcRunWizard").then((m) => ({ default: m.StartHplcRunWizard })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -163,6 +166,16 @@ export function AppRoutes() {
               <Route path="/preparation/:id/edit" element={<PreparationWizardPage />} />
               <Route path="/preparation/:id" element={<PreparationRecordPage />} />
             </Route>
+
+            {/* HPLC Workspace (spec §5, Task S7a) */}
+            <Route path="/hplc-workspace" element={<HplcWorkspacePage />} />
+            <Route path="/hplc-workspace/:instrumentId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/new-run" element={<StartHplcRunWizard />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/sst" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/samples" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />

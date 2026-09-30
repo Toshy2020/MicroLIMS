@@ -25,6 +25,14 @@ const APP_ROUTES = {
   SOLUTION_PREPARATION_NEW: "/preparation/new",
   SOLUTION_PREPARATION_EDIT: (id: number | string) => `/preparation/${id}/edit`,
   SOLUTION_PREPARATION_DETAIL: (id: number | string) => `/preparation/${id}`,
+  HPLC_WORKSPACE: "/hplc-workspace",
+  HPLC_WORKSPACE_INSTRUMENT: (instrumentId: number | string) => `/hplc-workspace/${instrumentId}`,
+  HPLC_WORKSPACE_NEW_RUN: (instrumentId: number | string) => `/hplc-workspace/${instrumentId}/new-run`,
+  HPLC_WORKSPACE_RUN: (instrumentId: number | string, runId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}`,
+  HPLC_WORKSPACE_SST: (instrumentId: number | string, runId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}/sst`,
+  HPLC_WORKSPACE_SAMPLES: (instrumentId: number | string, runId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}/samples`,
+  HPLC_WORKSPACE_SAMPLE_ENTRY: (instrumentId: number | string, runId: number | string, runSampleId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}/sample/${runSampleId}`,
+  HPLC_WORKSPACE_HISTORY: (instrumentId: number | string) => `/hplc-workspace/${instrumentId}/history`,
 
   // Laboratory Configuration & Master Data
   MEDIA_PREPARATION: "/laboratory-configuration/media",
@@ -196,6 +204,9 @@ export function resolveTraceabilityRoute(
   if (type === "hplcmethod" || type === "hplcmethods") {
     return APP_ROUTES.HPLC_METHODS;
   }
+  if (type === "hplcrun" || type === "hplcworkspace" || target === "hplc-workspace") {
+    return APP_ROUTES.HPLC_WORKSPACE;
+  }
 
   return null;
 }
@@ -230,7 +241,8 @@ export const PERMISSIONS = {
   MEDIA_PREPARE: "Media.Prepare",
   MEDIA_RELEASE: "Media.Release",
   OOS_MANAGE: "Oos.Manage",
-  SOLUTIONS_PREPARE: "Solutions.Prepare"
+  SOLUTIONS_PREPARE: "Solutions.Prepare",
+  HPLC_OPERATE: "Hplc.Operate"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

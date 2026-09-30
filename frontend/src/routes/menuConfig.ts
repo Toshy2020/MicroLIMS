@@ -122,6 +122,7 @@ const physchemArea: MenuItem = {
     { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
     { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
     { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
+    { label: "HPLC Workspace", path: "/hplc-workspace" },
     { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
   ]

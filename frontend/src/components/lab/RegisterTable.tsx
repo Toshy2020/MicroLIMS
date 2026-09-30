@@ -20,6 +20,8 @@ export interface RegisterColumn<T> {
   width?: number | string;
   // Right-aligned with tabular figures.
   numeric?: boolean;
+  // Keeps identifiers (asset codes, lot numbers) on one line.
+  nowrap?: boolean;
 }
 
 export interface RegisterRowAction {
@@ -116,7 +118,9 @@ export function RegisterTable<T>({
 
   return (
     <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-      <TableContainer sx={{ maxHeight: "calc(100vh - 260px)" }}>
+      {/* No inner max height: the page is the one scroll container, so long
+          registers never show a second scrollbar. */}
+      <TableContainer>
         <Table size={dense ? "small" : "medium"} stickyHeader>
           <TableHead>
             <TableRow sx={tableHeadSx(theme)}>
@@ -190,7 +194,7 @@ export function RegisterTable<T>({
                       <TableCell
                         key={String(col.key)}
                         align={col.align ?? (col.numeric ? "right" : "left")}
-                        sx={{ py: cellPy, ...(col.numeric ? { fontVariantNumeric: "tabular-nums" } : null) }}
+                        sx={{ py: cellPy, ...(col.numeric ? { fontVariantNumeric: "tabular-nums" } : null), ...(col.nowrap ? { whiteSpace: "nowrap" } : null) }}
                       >
                         {content}
                       </TableCell>

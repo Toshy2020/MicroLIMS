@@ -169,10 +169,10 @@ export function EquipmentInventoryPage() {
   const columns: RegisterColumn<EquipmentItem>[] = [
     { key: "instrumentType", label: "Type", sortable: true, render: (eq) => <Box component="span" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{eq.instrumentType}</Box> },
     { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (eq) => eq.manufacturerName || "—" },
-    { key: "serialNumber", label: "Serial No.", sortable: true, render: (eq) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{eq.serialNumber || "—"}</Box> },
+    { key: "serialNumber", label: "Serial No.", sortable: true, nowrap: true, render: (eq) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{eq.serialNumber || "—"}</Box> },
     { key: "firmwareVersion", label: "Firmware", sortable: true, render: (eq) => eq.firmwareVersion || "—" },
     {
-      key: "code", label: "Code", sortable: true,
+      key: "code", label: "Code", sortable: true, nowrap: true,
       render: (eq) => <Box id={`equip-code-link-${eq.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{eq.code}</Box>
     },
     { key: "location", label: "Location", sortable: true, render: (eq) => eq.location },

@@ -260,7 +260,7 @@ export function MaterialsPage() {
     },
     { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (m) => m.manufacturerName || "—" },
     {
-      key: "batchNumber", label: "Batch/Lot No.", sortable: true,
+      key: "batchNumber", label: "Batch/Lot No.", sortable: true, nowrap: true,
       render: (m) => <Box id={`lot-${m.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.batchNumber}</Box>
     },
     { key: "receivingDate", label: "Received", sortable: true, render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{formatLabDate(m.receivingDate)}</Box> },
@@ -279,7 +279,7 @@ export function MaterialsPage() {
         </Box>
       )
     },
-    { key: "code", label: "Code", sortable: true, render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{m.code ?? "—"}</Box> },
+    { key: "code", label: "Code", sortable: true, nowrap: true, render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{m.code ?? "—"}</Box> },
     { key: "location", label: "Location", sortable: true, render: (m) => m.location },
     { key: "quantityReceived", label: "Qty Received", numeric: true, sortable: true, render: (m) => <NumericCell value={m.quantityReceived} unit={m.unit} /> },
     {

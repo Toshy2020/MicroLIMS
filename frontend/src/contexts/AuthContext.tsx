@@ -188,12 +188,15 @@ export function useAuth() {
   return ctx;
 }
 
-// Whether the signed-in user holds a permission code. Menus, route guards
-// and action buttons check this rather than the role name, so granting or
+// Whether the signed-in user holds a permission code (or any code in an array).
+// Menus, route guards and action buttons check this rather than the role name, so granting or
 // revoking a permission on the Roles screen changes what the user is
 // offered. It only decides what to show - every endpoint enforces its own
 // permission on the server.
-export function useHasPermission(code: string): boolean {
+export function useHasPermission(code: string | string[]): boolean {
   const { permissions } = useAuth();
+  if (Array.isArray(code)) {
+    return code.some((c) => permissions.includes(c));
+  }
   return permissions.includes(code);
 }

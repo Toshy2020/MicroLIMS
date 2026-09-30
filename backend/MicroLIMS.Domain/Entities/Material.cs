@@ -67,6 +67,12 @@ public class Material : IVersionedEntity
     // Required when MaterialType = ReferenceStandard, must be null otherwise (REQ-FP-012).
     public decimal? Purity { get; set; }
 
+    // Chemical, Indicator and ReferenceStandard lots reference their master entry (HPLC chain S1).
+    public int? MaterialMasterEntryId { get; set; }
+    public MaterialMasterEntry? MaterialMasterEntry { get; set; }
+    // Reference standards only: moisture content % (0 <= x < 100), used with Purity in assay calculations.
+    public decimal? MoisturePercent { get; set; }
+
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int LastModifiedByUserId { get; set; }

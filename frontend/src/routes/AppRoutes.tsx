@@ -51,6 +51,16 @@ const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfi
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
 const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/FpInstrumentsPage").then((m) => ({ default: m.FpInstrumentsPage })));
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
+const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
+const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
+const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
+const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
+const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
+const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
+const HplcWorkspacePage = lazy(() => import("../modules/hplcWorkspace/overview/HplcWorkspacePage").then((m) => ({ default: m.HplcWorkspacePage })));
+const HplcInstrumentWorkspace = lazy(() => import("../modules/hplcWorkspace/run/HplcInstrumentWorkspace").then((m) => ({ default: m.HplcInstrumentWorkspace })));
+const StartHplcRunWizard = lazy(() => import("../modules/hplcWorkspace/run/StartHplcRunWizard").then((m) => ({ default: m.StartHplcRunWizard })));
+const HplcSampleEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/HplcSampleEntryPage").then((m) => ({ default: m.HplcSampleEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -120,10 +130,10 @@ export function AppRoutes() {
 
             {/* Receiving area: the main receiving desk and the cross-lab
                 tracking board (design.md §3.1, §3.4) - gated on the
-                Samples.Receive / Samples.TrackAll privileges, not role or
+                Samples.Receive or Samples.ReceiveOwnLab / Samples.TrackAll privileges, not role or
                 lab membership. /receiving used to redirect into the
                 workspace; it now owns the Receiving page itself. */}
-            <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_RECEIVE} />}>
+            <Route element={<PermissionRoute code={[PERMISSIONS.SAMPLES_RECEIVE, PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB]} />}>
               <Route path="/receiving" element={<ReceivingPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_TRACK_ALL} />}>
@@ -151,6 +161,22 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
               <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
             </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.SOLUTIONS_PREPARE} />}>
+              <Route path="/preparation" element={<PreparationListPage />} />
+              <Route path="/preparation/new" element={<PreparationWizardPage />} />
+              <Route path="/preparation/:id/edit" element={<PreparationWizardPage />} />
+              <Route path="/preparation/:id" element={<PreparationRecordPage />} />
+            </Route>
+
+            {/* HPLC Workspace (spec §5, Task S7a) */}
+            <Route path="/hplc-workspace" element={<HplcWorkspacePage />} />
+            <Route path="/hplc-workspace/:instrumentId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/new-run" element={<StartHplcRunWizard />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/sst" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/samples" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+            <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />
@@ -176,6 +202,9 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/equipment" element={<EquipmentPage />} />
               <Route path="/laboratory-configuration/fp-instruments" element={<FpInstrumentsPage />} />
               <Route path="/laboratory-configuration/columns" element={<ChromatographyColumnsPage />} />
+              <Route path="/laboratory-configuration/material-master" element={<MaterialMasterPage />} />
+              <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
+              <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

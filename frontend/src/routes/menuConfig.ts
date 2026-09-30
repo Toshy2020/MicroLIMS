@@ -1,4 +1,5 @@
 import { ComponentType } from "react";
+import { SxProps, Theme } from "@mui/material";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
@@ -17,13 +18,13 @@ import { PERMISSIONS } from "./routes";
 export interface MenuItem {
   label: string;
   path?: string;
-  icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: any }>;
+  icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: SxProps<Theme> }>;
   group?: string;
   children?: MenuItem[];
-  // Shown only to users holding this permission code - the same code the
+  // Shown only to users holding this permission code (or any of the codes if an array) - the same code the
   // page's route guard and its main endpoint check, so a link never leads
   // to a page that bounces the user or answers 403.
-  permission?: string;
+  permission?: string | string[];
 }
 
 export interface MenuGroup {
@@ -47,7 +48,13 @@ const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error
 // Receiving area: the main receiving desk and the cross-lab tracking board,
 // gated on privileges rather than role or lab membership - any lab may
 // receive here (ReceiptLabGuard).
-const receiveSampleItem: MenuItem = { label: "Receive Sample", path: "/receiving", icon: ScienceOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_RECEIVE };
+const receiveSampleItem: MenuItem = {
+  label: "Receive Sample",
+  path: "/receiving",
+  icon: ScienceOutlinedIcon,
+  group: "RECEIVING",
+  permission: [PERMISSIONS.SAMPLES_RECEIVE, PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB]
+};
 const trackingBoardItem: MenuItem = { label: "Tracking Board", path: "/receiving/tracking", icon: FactCheckOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_TRACK_ALL };
 
 const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.USERS_MANAGE };
@@ -120,6 +127,8 @@ const physchemArea: MenuItem = {
     { label: "Workspace", path: "/physicochemical/workspace" },
     { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
     { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
+    { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
+    { label: "HPLC Workspace", path: "/hplc-workspace" },
     { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
   ]
@@ -134,7 +143,10 @@ const physchemConfigArea: MenuItem = {
     { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
     { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments" },
-    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
+    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master" },
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" }
   ]
 };
 
@@ -147,7 +159,12 @@ const receivingConfigItem: MenuItem = { label: "Receiving Configuration", path: 
 function visibleItems(items: MenuItem[], permissions: string[]): MenuItem[] {
   const result: MenuItem[] = [];
   for (const item of items) {
-    if (item.permission && !permissions.includes(item.permission)) continue;
+    if (item.permission) {
+      const allowed = Array.isArray(item.permission)
+        ? item.permission.some((p) => permissions.includes(p))
+        : permissions.includes(item.permission);
+      if (!allowed) continue;
+    }
     if (item.children) {
       const children = visibleItems(item.children, permissions);
       if (children.length === 0) continue;

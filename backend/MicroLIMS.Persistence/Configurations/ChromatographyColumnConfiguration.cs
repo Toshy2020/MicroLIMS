@@ -12,6 +12,7 @@ public class ChromatographyColumnConfiguration : IEntityTypeConfiguration<Chroma
         builder.Property(c => c.Code).IsRequired().HasMaxLength(50);
         builder.Property(c => c.Name).IsRequired().HasMaxLength(150);
         builder.Property(c => c.SerialNumber).HasMaxLength(100);
+        builder.Property(c => c.UspDesignation).HasMaxLength(10);
 
         builder.HasIndex(c => c.Code).IsUnique();
 

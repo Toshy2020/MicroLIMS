@@ -107,6 +107,27 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
 
     // Inventory module
     public DbSet<Material> Materials => Set<Material>();
+    public DbSet<MaterialMasterEntry> MaterialMasterEntries => Set<MaterialMasterEntry>();
+    public DbSet<SolutionMaster> SolutionMasters => Set<SolutionMaster>();
+    public DbSet<SolutionComponent> SolutionComponents => Set<SolutionComponent>();
+    public DbSet<HplcMethod> HplcMethods => Set<HplcMethod>();
+    public DbSet<HplcMethodAnalyte> HplcMethodAnalytes => Set<HplcMethodAnalyte>();
+    public DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases => Set<HplcMethodMobilePhase>();
+    public DbSet<HplcMethodGradientStep> HplcMethodGradientSteps => Set<HplcMethodGradientStep>();
+    public DbSet<SolutionPreparation> SolutionPreparations => Set<SolutionPreparation>();
+    public DbSet<SolutionPreparationComponent> SolutionPreparationComponents => Set<SolutionPreparationComponent>();
+    public DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories => Set<SolutionPreparationStatusHistory>();
+    public DbSet<TitrantStandardization> TitrantStandardizations => Set<TitrantStandardization>();
+    public DbSet<TitrantStandardizationReplicate> TitrantStandardizationReplicates => Set<TitrantStandardizationReplicate>();
+    public DbSet<HplcRun> HplcRuns => Set<HplcRun>();
+    public DbSet<HplcRunMobilePhase> HplcRunMobilePhases => Set<HplcRunMobilePhase>();
+    public DbSet<HplcSstRecord> HplcSstRecords => Set<HplcSstRecord>();
+    public DbSet<HplcSstAnalyte> HplcSstAnalytes => Set<HplcSstAnalyte>();
+    public DbSet<HplcSstInjection> HplcSstInjections => Set<HplcSstInjection>();
+    public DbSet<HplcRunSample> HplcRunSamples => Set<HplcRunSample>();
+    public DbSet<HplcSampleReplicate> HplcSampleReplicates => Set<HplcSampleReplicate>();
+    public DbSet<HplcReplicateResponse> HplcReplicateResponses => Set<HplcReplicateResponse>();
+    public DbSet<HplcEvidence> HplcEvidences => Set<HplcEvidence>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();

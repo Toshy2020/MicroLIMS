@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Button,
   Box,
@@ -19,13 +19,18 @@ import {
 import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
 import type { MediaProductOption } from "../../../../hooks/useMediaProducts";
-import { MaterialService } from "../services/MaterialService";
+import { MaterialService, SaveMaterialPayload } from "../services/MaterialService";
 import { EquipmentInventoryService } from "../../equipment/services/EquipmentInventoryService";
-import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit } from "../types/materialTypes";
+import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit, MATERIAL_UNITS } from "../types/materialTypes";
 import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
 import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { getMySections, LaboratorySection } from "../../../../services/laboratorySectionService";
+import {
+  MaterialMasterService,
+  MaterialMasterEntry,
+  MaterialMasterCategory
+} from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
 
 interface MaterialTypeOption {
   label: string;
@@ -36,24 +41,37 @@ interface MaterialTypeOption {
 
 const filterOptions = createFilterOptions<MaterialTypeOption>();
 
-const MATERIAL_UNITS: MaterialUnit[] = [
-  "Gram",
-  "Kilogram",
-  "Milliliter",
-  "Liter",
-  "Disc",
-  "Vial",
-  "Kit",
-  "Piece",
-  "Bottle",
-  "Pack"
-];
+const isMasterLinkedType = (type: MaterialType): boolean =>
+  type === "Chemical" || type === "Indicator" || type === "ReferenceStandard";
+
+const getMasterCategoryForType = (type: MaterialType): MaterialMasterCategory | null => {
+  switch (type) {
+    case "Chemical":
+      return "Reagent";
+    case "Indicator":
+      return "Indicator";
+    case "ReferenceStandard":
+      return "ReferenceStandard";
+    default:
+      return null;
+  }
+};
 
 interface AddMaterialDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (message: string) => void;
   editingItem: MaterialItem | null;
+}
+
+interface StorageEquipmentOption {
+  id: number;
+  code: string;
+  instrumentType?: string | null;
+  manufacturerName?: string | null;
+  location?: string | null;
+  status?: string | number | null;
+  sectionId?: number | null;
 }
 
 const INITIAL_FORM: MaterialFormState = {
@@ -70,21 +88,25 @@ const INITIAL_FORM: MaterialFormState = {
   unit: "Gram",
   minimumStockLevel: "",
   purity: "",
+  moisturePercent: "",
   atccNumber: "",
   organismId: null,
-  mediaProductId: null
+  mediaProductId: null,
+  materialMasterEntryId: null
 };
 
 export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: AddMaterialDialogProps) {
   const theme = useTheme();
   const [form, setForm] = useState<MaterialFormState>(INITIAL_FORM);
+  const [masterEntries, setMasterEntries] = useState<MaterialMasterEntry[]>([]);
+  const [masterEntriesLoading, setMasterEntriesLoading] = useState(false);
   const [typeOptionsData, setTypeOptionsData] = useState<{
     builtIn: MaterialType[];
     custom: string[];
   } | null>(null);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
-  const [equipmentList, setEquipmentList] = useState<any[]>([]);
+  const [equipmentList, setEquipmentList] = useState<StorageEquipmentOption[]>([]);
   const [equipmentLoading, setEquipmentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -105,9 +127,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         unit: editingItem.unit,
         minimumStockLevel: editingItem.minimumStockLevel ?? "",
         purity: editingItem.purity != null ? editingItem.purity : "",
+        moisturePercent: editingItem.moisturePercent != null ? editingItem.moisturePercent : "",
         atccNumber: editingItem.atccNumber ?? "",
         organismId: editingItem.organismId ?? null,
-        mediaProductId: editingItem.mediaProductId ?? null
+        mediaProductId: editingItem.mediaProductId ?? null,
+        materialMasterEntryId: editingItem.materialMasterEntryId ?? null
       });
       setSelectedSectionId("");
     } else {
@@ -135,7 +159,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
 
       setEquipmentLoading(true);
       EquipmentInventoryService.getAll()
-        .then((data: any[]) => setEquipmentList(data || []))
+        .then((data: StorageEquipmentOption[]) => setEquipmentList(data || []))
         .catch(() => setEquipmentList([]))
         .finally(() => setEquipmentLoading(false));
     }
@@ -196,27 +220,138 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   );
   const hasOtherOptions = Boolean(roomStorageOption || isFallbackLocation);
 
-  const onMaterialTypeChange = async (type: MaterialType) => {
-    try {
-      const defaultUnit = await MaterialService.getDefaultUnit(type);
-      setForm((f) => ({
-        ...f,
-        materialType: type,
-        customType: "",
-        unit: defaultUnit as MaterialUnit,
-        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
-        purity: type === "ReferenceStandard" ? f.purity : ""
-      }));
-    } catch {
-      setForm((f) => ({
-        ...f,
-        materialType: type,
-        customType: "",
-        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
-        purity: type === "ReferenceStandard" ? f.purity : ""
-      }));
+  useEffect(() => {
+    if (!open || !isMasterLinkedType(form.materialType)) {
+      setMasterEntries([]);
+      return;
     }
+
+    const category = getMasterCategoryForType(form.materialType);
+    if (!category) return;
+
+    let canceled = false;
+    setMasterEntriesLoading(true);
+
+    const activeOnly = !(editingItem && editingItem.materialMasterEntryId);
+
+    MaterialMasterService.getAll(category, activeOnly)
+      .then((data) => {
+        if (canceled) return;
+        setMasterEntries(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load material master entries:", err);
+        if (!canceled) setMasterEntries([]);
+      })
+      .finally(() => {
+        if (!canceled) setMasterEntriesLoading(false);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [open, form.materialType, editingItem]);
+
+  const availableMasterEntries = useMemo(() => {
+    if (!activeSectionId) return masterEntries;
+    return masterEntries.filter((e) => e.sectionId === activeSectionId || !e.sectionId);
+  }, [masterEntries, activeSectionId]);
+
+  const selectedMasterEntry = useMemo(() => {
+    if (!form.materialMasterEntryId) return null;
+    const found = masterEntries.find((e) => e.id === form.materialMasterEntryId);
+    if (found) return found;
+    if (editingItem && editingItem.materialMasterEntryId === form.materialMasterEntryId) {
+      return {
+        id: editingItem.materialMasterEntryId,
+        code: editingItem.materialMasterEntryCode || form.code || `#${editingItem.materialMasterEntryId}`,
+        name: form.materialName,
+        category: (getMasterCategoryForType(form.materialType) ?? "Reagent") as MaterialMasterCategory,
+        baseUnit: form.unit,
+        isActive: true,
+        sectionId: editingItem.sectionId
+      } as MaterialMasterEntry;
+    }
+    return null;
+  }, [masterEntries, form.materialMasterEntryId, form.code, form.materialName, form.materialType, form.unit, editingItem]);
+
+  const handleMasterEntryChange = (entry: MaterialMasterEntry | null) => {
+    if (!entry) {
+      if (editingItem && editingItem.materialMasterEntryId === null) {
+        setForm((f) => ({
+          ...f,
+          materialMasterEntryId: null,
+          materialName: editingItem.materialName,
+          code: editingItem.code ?? ""
+        }));
+      } else {
+        setForm((f) => ({
+          ...f,
+          materialMasterEntryId: null,
+          materialName: "",
+          code: ""
+        }));
+      }
+      return;
+    }
+
+    setForm((f) => ({
+      ...f,
+      materialMasterEntryId: entry.id,
+      materialName: entry.name,
+      code: entry.code,
+      unit: entry.baseUnit || f.unit
+    }));
   };
+
+  const onMaterialTypeChange = useCallback(
+    async (type: MaterialType) => {
+      const nextCategory = getMasterCategoryForType(type);
+
+      try {
+        const defaultUnit = await MaterialService.getDefaultUnit(type);
+        setForm((f) => {
+          const prevCategory = getMasterCategoryForType(f.materialType);
+          const keepMaster = Boolean(prevCategory && nextCategory && prevCategory === nextCategory);
+          return {
+            ...f,
+            materialType: type,
+            customType: "",
+            unit: defaultUnit as MaterialUnit,
+            mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
+            purity: type === "ReferenceStandard" ? f.purity : "",
+            moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
+            materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
+            ...(keepMaster
+              ? {}
+              : isMasterLinkedType(type) && !editingItem
+              ? { materialName: "", code: "" }
+              : {})
+          };
+        });
+      } catch {
+        setForm((f) => {
+          const prevCategory = getMasterCategoryForType(f.materialType);
+          const keepMaster = Boolean(prevCategory && nextCategory && prevCategory === nextCategory);
+          return {
+            ...f,
+            materialType: type,
+            customType: "",
+            mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
+            purity: type === "ReferenceStandard" ? f.purity : "",
+            moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
+            materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
+            ...(keepMaster
+              ? {}
+              : isMasterLinkedType(type) && !editingItem
+              ? { materialName: "", code: "" }
+              : {})
+          };
+        });
+      }
+    },
+    [editingItem]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -253,7 +388,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     if (!typeOptionsData.builtIn.includes(form.materialType)) {
       void onMaterialTypeChange(typeOptionsData.builtIn[0]);
     }
-  }, [typeOptionsData, editingItem, form.materialType]);
+  }, [typeOptionsData, editingItem, form.materialType, onMaterialTypeChange]);
 
   const typeOptionsList: MaterialTypeOption[] = useMemo(() => {
     const list: MaterialTypeOption[] = [];
@@ -423,6 +558,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       return;
     }
 
+    if (!editingItem && isMasterLinkedType(form.materialType) && !form.materialMasterEntryId) {
+      setError("Choose the material master entry for this lot.");
+      return;
+    }
+
     if (form.materialType === "ReferenceStandard") {
       if (form.purity === "" || form.purity == null) {
         setError("Purity percentage is required for reference standards.");
@@ -432,6 +572,13 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       if (isNaN(p) || p <= 0 || p > 100) {
         setError("Purity must be greater than 0 and less than or equal to 100.");
         return;
+      }
+      if (form.moisturePercent !== "" && form.moisturePercent != null) {
+        const m = Number(form.moisturePercent);
+        if (isNaN(m) || m < 0 || m >= 100) {
+          setError("Moisture content must be at least 0 and below 100.");
+          return;
+        }
       }
     }
 
@@ -457,7 +604,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       return;
     }
 
-    const payload = {
+    const payload: SaveMaterialPayload = {
       materialType: form.materialType,
       customType:
         form.materialType === "Other" && form.customType.trim()
@@ -477,6 +624,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
       mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null,
       purity: form.materialType === "ReferenceStandard" && form.purity !== "" ? Number(form.purity) : null,
+      moisturePercent:
+        form.materialType === "ReferenceStandard" && form.moisturePercent !== "" && form.moisturePercent != null
+          ? Number(form.moisturePercent)
+          : null,
+      materialMasterEntryId: isMasterLinkedType(form.materialType) ? form.materialMasterEntryId : null,
       ...(!editingItem && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
     };
 
@@ -490,8 +642,9 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         onSuccess("Material added to stock successfully.");
       }
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not save material stock.");
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not save material stock.");
     } finally {
       setSaving(false);
     }
@@ -647,6 +800,42 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           </Box>
         )}
 
+        {isMasterLinkedType(form.materialType) && (
+          <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+            <Autocomplete<MaterialMasterEntry>
+              size="small"
+              options={availableMasterEntries}
+              getOptionLabel={(option) => `${option.code} — ${option.name}${option.grade ? ` (${option.grade})` : ""}`}
+              isOptionEqualToValue={(option, val) => option.id === val.id}
+              value={selectedMasterEntry}
+              onChange={(_event, newValue) => handleMasterEntryChange(newValue)}
+              loading={masterEntriesLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  required={!editingItem}
+                  label={`${
+                    form.materialType === "Chemical"
+                      ? "Reagent"
+                      : form.materialType === "Indicator"
+                      ? "Indicator"
+                      : "Reference Standard"
+                  } Master Entry`}
+                  placeholder="Select master entry..."
+                  helperText={
+                    form.materialMasterEntryId
+                      ? `Selected: ${selectedMasterEntry?.code ?? form.code} (Base Unit: ${selectedMasterEntry?.baseUnit ?? form.unit})`
+                      : !editingItem
+                      ? "Required. Master entry sets the name, code, and base unit."
+                      : "Optional for legacy unlinked lots. Select an entry to link this lot."
+                  }
+                />
+              )}
+            />
+          </Box>
+        )}
+
         {!editingItem && mySections.length > 1 && (
           <FormControl size="small" fullWidth required sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
             <InputLabel id="dialog-section-label">Laboratory Section</InputLabel>
@@ -654,7 +843,21 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               labelId="dialog-section-label"
               label="Laboratory Section"
               value={selectedSectionId}
-              onChange={(e) => setSelectedSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) => {
+                const newSecId = e.target.value === "" ? "" : Number(e.target.value);
+                setSelectedSectionId(newSecId);
+                if (newSecId !== "" && form.materialMasterEntryId) {
+                  const match = masterEntries.find((m) => m.id === form.materialMasterEntryId);
+                  if (match && match.sectionId !== newSecId) {
+                    setForm((f) => ({
+                      ...f,
+                      materialMasterEntryId: null,
+                      materialName: "",
+                      code: ""
+                    }));
+                  }
+                }
+              }}
             >
               <MenuItem value="">
                 <em>Select Laboratory Section...</em>
@@ -675,7 +878,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder="e.g. Tryptic Soy Agar Powder"
           value={form.materialName}
           onChange={(e) => setForm({ ...form, materialName: e.target.value })}
-          disabled={form.materialType === "DehydratedMedia"}
+          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId)}
+          helperText={form.materialMasterEntryId ? "Populated from master entry" : undefined}
         />
 
         <TextField
@@ -692,7 +896,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder={form.materialType === "DehydratedMedia" ? "e.g. TSA" : "e.g. CM0131B"}
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
-          disabled={form.materialType === "DehydratedMedia"}
+          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId)}
+          helperText={form.materialMasterEntryId ? "Populated from master entry" : undefined}
         />
 
         {form.materialType === "LyophilizedMicroorganism" && (
@@ -714,19 +919,33 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         )}
 
         {form.materialType === "ReferenceStandard" && (
-          <TextField
-            size="small"
-            required
-            label="Purity (%)"
-            placeholder="e.g. 99.8"
-            type="number"
-            value={form.purity}
-            onChange={(e) => setForm({ ...form, purity: e.target.value })}
-            slotProps={{
-              htmlInput: { step: "0.001", min: "0.001", max: "100" }
-            }}
-            helperText="Purity percentage (0 < p ≤ 100)"
-          />
+          <>
+            <TextField
+              size="small"
+              required
+              label="Purity (%)"
+              placeholder="e.g. 99.8"
+              type="number"
+              value={form.purity}
+              onChange={(e) => setForm({ ...form, purity: e.target.value })}
+              slotProps={{
+                htmlInput: { step: "0.001", min: "0.001", max: "100" }
+              }}
+              helperText="Purity percentage (0 < p ≤ 100)"
+            />
+            <TextField
+              size="small"
+              label="Moisture Content (%)"
+              placeholder="e.g. 0.5"
+              type="number"
+              value={form.moisturePercent}
+              onChange={(e) => setForm({ ...form, moisturePercent: e.target.value })}
+              slotProps={{
+                htmlInput: { step: "0.001", min: "0", max: "99.999" }
+              }}
+              helperText="Moisture percentage (0 ≤ m < 100, optional)"
+            />
+          </>
         )}
       </Box>
 

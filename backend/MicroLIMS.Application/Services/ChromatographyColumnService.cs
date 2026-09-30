@@ -14,7 +14,8 @@ public record CreateChromatographyColumnRequest(
     string Name,
     string? SerialNumber = null,
     int? SectionId = null,
-    List<int>? CompatibleEquipmentIds = null);
+    List<int>? CompatibleEquipmentIds = null,
+    string? UspDesignation = null);
 
 public record UpdateChromatographyColumnRequest(
     string Code,
@@ -22,7 +23,8 @@ public record UpdateChromatographyColumnRequest(
     string? SerialNumber = null,
     bool? IsActive = null,
     int? SectionId = null,
-    List<int>? CompatibleEquipmentIds = null);
+    List<int>? CompatibleEquipmentIds = null,
+    string? UspDesignation = null);
 
 public class ChromatographyColumnService
 {
@@ -35,6 +37,14 @@ public class ChromatographyColumnService
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
+    }
+
+    private static string? NormalizeDesignation(string? value)
+    {
+        var d = value?.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(d)) return null;
+        if (d.Length > 10) throw new InvalidOperationException("USP designation cannot exceed 10 characters.");
+        return d;
     }
 
     public async Task<List<ChromatographyColumnResponse>> GetAllAsync(int currentUserId, bool? activeOnly = null, CancellationToken ct = default)
@@ -116,6 +126,7 @@ public class ChromatographyColumnService
             Code = normalizedCode,
             Name = request.Name.Trim(),
             SerialNumber = request.SerialNumber?.Trim(),
+            UspDesignation = NormalizeDesignation(request.UspDesignation),
             SectionId = sectionId,
             IsActive = true,
             CreatedByUserId = currentUserId,
@@ -186,6 +197,7 @@ public class ChromatographyColumnService
         column.Code = normalizedCode;
         column.Name = request.Name.Trim();
         column.SerialNumber = request.SerialNumber?.Trim();
+        column.UspDesignation = NormalizeDesignation(request.UspDesignation);
         if (request.IsActive.HasValue)
         {
             column.IsActive = request.IsActive.Value;

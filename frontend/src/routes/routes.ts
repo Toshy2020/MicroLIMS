@@ -21,6 +21,18 @@ const APP_ROUTES = {
   RECEIVING: "/receiving",
   RECEIVING_TRACKING: "/receiving/tracking",
   TESTING_WORKSPACE: "/receiving-testing",
+  SOLUTION_PREPARATION: "/preparation",
+  SOLUTION_PREPARATION_NEW: "/preparation/new",
+  SOLUTION_PREPARATION_EDIT: (id: number | string) => `/preparation/${id}/edit`,
+  SOLUTION_PREPARATION_DETAIL: (id: number | string) => `/preparation/${id}`,
+  HPLC_WORKSPACE: "/hplc-workspace",
+  HPLC_WORKSPACE_INSTRUMENT: (instrumentId: number | string) => `/hplc-workspace/${instrumentId}`,
+  HPLC_WORKSPACE_NEW_RUN: (instrumentId: number | string) => `/hplc-workspace/${instrumentId}/new-run`,
+  HPLC_WORKSPACE_RUN: (instrumentId: number | string, runId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}`,
+  HPLC_WORKSPACE_SST: (instrumentId: number | string, runId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}/sst`,
+  HPLC_WORKSPACE_SAMPLES: (instrumentId: number | string, runId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}/samples`,
+  HPLC_WORKSPACE_SAMPLE_ENTRY: (instrumentId: number | string, runId: number | string, runSampleId: number | string) => `/hplc-workspace/${instrumentId}/run/${runId}/sample/${runSampleId}`,
+  HPLC_WORKSPACE_HISTORY: (instrumentId: number | string) => `/hplc-workspace/${instrumentId}/history`,
 
   // Laboratory Configuration & Master Data
   MEDIA_PREPARATION: "/laboratory-configuration/media",
@@ -41,6 +53,9 @@ const APP_ROUTES = {
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
+  MATERIAL_MASTER: "/laboratory-configuration/material-master",
+  SOLUTION_MASTER: "/laboratory-configuration/solution-master",
+  HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
 
   // Inventory & Stock
@@ -115,6 +130,18 @@ export function resolveTraceabilityRoute(
   if (target === "columns" || target === "chromatography-columns") {
     return APP_ROUTES.CHROMATOGRAPHY_COLUMNS;
   }
+  if (target === "material-master" || target === "material-masters" || target === "reagents-standards") {
+    return APP_ROUTES.MATERIAL_MASTER;
+  }
+  if (target === "solution-master" || target === "solution-masters" || target === "solutions") {
+    return APP_ROUTES.SOLUTION_MASTER;
+  }
+  if (target === "preparation" || target === "solution-preparations" || target === "solutionpreparation") {
+    return APP_ROUTES.SOLUTION_PREPARATION;
+  }
+  if (target === "hplc-methods" || target === "hplc-method" || target === "hplcmethod") {
+    return APP_ROUTES.HPLC_METHODS;
+  }
   if (target === "items") {
     return APP_ROUTES.ITEMS;
   }
@@ -165,6 +192,21 @@ export function resolveTraceabilityRoute(
   if (type === "column" || type === "chromatographycolumn") {
     return APP_ROUTES.CHROMATOGRAPHY_COLUMNS;
   }
+  if (type === "materialmaster" || type === "materialmasterentry") {
+    return APP_ROUTES.MATERIAL_MASTER;
+  }
+  if (type === "solutionmaster" || type === "solution") {
+    return APP_ROUTES.SOLUTION_MASTER;
+  }
+  if (type === "solutionpreparation" || type === "preparation") {
+    return APP_ROUTES.SOLUTION_PREPARATION;
+  }
+  if (type === "hplcmethod" || type === "hplcmethods") {
+    return APP_ROUTES.HPLC_METHODS;
+  }
+  if (type === "hplcrun" || type === "hplcworkspace" || target === "hplc-workspace") {
+    return APP_ROUTES.HPLC_WORKSPACE;
+  }
 
   return null;
 }
@@ -179,6 +221,7 @@ export const PERMISSIONS = {
   SAMPLES_REVIEW: "Samples.Review",
   SAMPLES_APPROVE: "Samples.Approve",
   SAMPLES_RECEIVE: "Samples.Receive",
+  SAMPLES_RECEIVE_OWN_LAB: "Samples.ReceiveOwnLab",
   SAMPLES_TRACK_ALL: "Samples.TrackAll",
   SAMPLES_CORRECT: "Samples.Correct",
   SAMPLES_ASSIGN_ANALYST: "Samples.AssignAnalyst",
@@ -198,7 +241,9 @@ export const PERMISSIONS = {
   KPI_VIEW: "Kpi.View",
   MEDIA_PREPARE: "Media.Prepare",
   MEDIA_RELEASE: "Media.Release",
-  OOS_MANAGE: "Oos.Manage"
+  OOS_MANAGE: "Oos.Manage",
+  SOLUTIONS_PREPARE: "Solutions.Prepare",
+  HPLC_OPERATE: "Hplc.Operate"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

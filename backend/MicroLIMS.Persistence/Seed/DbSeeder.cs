@@ -495,6 +495,8 @@ public static class DbSeeder
             (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
             (PermissionConstants.SamplesCorrect, "Correct or void a sample record."),
             (PermissionConstants.SamplesAssignAnalyst, "Assign an analyst to a sample."),
+            (PermissionConstants.SolutionsPrepare, "Start, edit, complete, cancel or discard a solution preparation (HPLC chain)."),
+            (PermissionConstants.HplcOperate, "Operate the HPLC workspace: start runs, confirm system suitability, assign samples, enter replicates and submit for review."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -537,7 +539,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst
+                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -566,7 +569,8 @@ public static class DbSeeder
                     // the Roles screen instead of needing a code change.
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate,
-                    PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab
+                    PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate
                 })
             };
 

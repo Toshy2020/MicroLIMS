@@ -191,5 +191,32 @@ public static class UserReferenceRegistry
 
         // Shared Result Foundation (Slice F0)
         new UserReferenceEntry(typeof(TestAnalysis), nameof(TestAnalysis.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered test analysis result"),
+
+        // HPLC chain S1 - Material master
+        new UserReferenceEntry(typeof(MaterialMasterEntry), nameof(MaterialMasterEntry.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(MaterialMasterEntry), nameof(MaterialMasterEntry.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+
+        // HPLC chain S2 - Solution master
+        new UserReferenceEntry(typeof(SolutionMaster), nameof(SolutionMaster.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(SolutionMaster), nameof(SolutionMaster.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+
+        // HPLC chain S3 - HPLC method master
+        new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+
+        // HPLC chain S4 - Solution Preparation area
+        new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.StartedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the preparation"),
+        new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.PreparedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed completion"),
+        new UserReferenceEntry(typeof(SolutionPreparationStatusHistory), nameof(SolutionPreparationStatusHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, status transition provenance (null = automatic expiry)"),
+
+        // HPLC chain S5 - Titrant standardization
+        new UserReferenceEntry(typeof(TitrantStandardization), nameof(TitrantStandardization.StandardizedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the standardization"),
+
+        // HPLC chain S6 - HPLC Workspace
+        new UserReferenceEntry(typeof(HplcRun), nameof(HplcRun.AnalystUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the run"),
+        new UserReferenceEntry(typeof(HplcSstRecord), nameof(HplcSstRecord.ConfirmedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the system suitability confirmation"),
+        new UserReferenceEntry(typeof(HplcRunSample), nameof(HplcRunSample.AssignedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample assignment"),
+        new UserReferenceEntry(typeof(HplcRunSample), nameof(HplcRunSample.RemovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample removal"),
+        new UserReferenceEntry(typeof(HplcEvidence), nameof(HplcEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
     };
 }

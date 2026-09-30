@@ -102,6 +102,7 @@ public class ChromatographyColumnResponse
     public string Code { get; init; } = null!;
     public string Name { get; init; } = null!;
     public string? SerialNumber { get; init; }
+    public string? UspDesignation { get; init; }
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
     public bool IsActive { get; init; }
@@ -118,6 +119,7 @@ public class ChromatographyColumnResponse
         Code = e.Code,
         Name = e.Name,
         SerialNumber = e.SerialNumber,
+        UspDesignation = e.UspDesignation,
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
         IsActive = e.IsActive,
@@ -224,6 +226,7 @@ public class TestDefinitionResponse
     public int? WvCapsuleS2MaxOutside { get; init; }
     public decimal? HplcMaxPreparationRsdPercent { get; init; }
     public ResponseMode ResponseMode { get; init; }
+    public int? HplcMethodId { get; init; }
 
     public static TestDefinitionResponse From(TestDefinition e) => new()
     {
@@ -286,6 +289,7 @@ public class TestDefinitionResponse
         WvCapsuleS2MaxOutside = e.WvCapsuleS2MaxOutside,
         HplcMaxPreparationRsdPercent = e.HplcMaxPreparationRsdPercent,
         ResponseMode = e.ResponseMode,
+        HplcMethodId = e.HplcMethodId,
     };
 }
 
@@ -322,6 +326,7 @@ public class SpecificationResponse
     public string? LabelClaimUnit { get; init; }
     public decimal ConversionFactor { get; init; }
     public DosageForm? DosageForm { get; init; }
+    public int? HplcMethodAnalyteId { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -357,6 +362,7 @@ public class SpecificationResponse
         LabelClaimUnit = e.LabelClaimUnit,
         ConversionFactor = e.ConversionFactor,
         DosageForm = e.DosageForm,
+        HplcMethodAnalyteId = e.HplcMethodAnalyteId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

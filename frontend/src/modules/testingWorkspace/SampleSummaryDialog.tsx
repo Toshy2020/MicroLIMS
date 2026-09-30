@@ -61,6 +61,7 @@ import {
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { StandardComparisonCalculationData } from "./StandardComparisonPanel";
+import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { CloseTestingDialog } from "../approval/CloseTestingDialog";
@@ -622,9 +623,18 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
         analysis.parameterResults
           .filter((p) => p.calculationJson)
           .map((p) => <StandardComparisonCalcSummary key={`calc-${p.id}`} parameter={p} />)}
-      {analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (
-        <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
-      ))}
+      {analysis.analysisType === "HplcMethodAssay" &&
+        analysis.parameterResults.map((p) => (
+          <HplcReviewPanel
+            key={`hplc-review-${p.id}`}
+            parameter={p}
+            testOrderId={analysis.testOrderId}
+          />
+        ))}
+      {analysis.analysisType !== "HplcMethodAssay" &&
+        analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (
+          <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
+        ))}
     </Box>
   );
 }

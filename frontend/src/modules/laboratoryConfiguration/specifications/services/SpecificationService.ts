@@ -70,6 +70,7 @@ export interface SpecificationDto {
   // renders (read-only) with sectionName as a chip.
   canEdit?: boolean;
   sectionName?: string;
+  hplcMethodAnalyteId?: number | null;
 }
 
 export interface CreateSpecificationPayload {
@@ -103,6 +104,7 @@ export interface CreateSpecificationPayload {
   labelClaimUnit?: string | null;
   conversionFactor?: number | null;
   dosageForm?: DosageForm | null;
+  hplcMethodAnalyteId?: number | null;
 }
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;

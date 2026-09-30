@@ -58,6 +58,7 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
 
             if (request.EquationType != EquationType.StandardComparison && request.WorkflowType != WorkflowType.StandardComparison &&
+                request.EquationType != EquationType.HplcMethodAssay && request.WorkflowType != WorkflowType.HplcMethodAssay &&
                 !request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
                 !request.SstMaxTailingFactor.HasValue && !request.SstMinTheoreticalPlates.HasValue)
             {
@@ -315,6 +316,39 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
         }
 
+        // HPLC chain S3: HplcMethodAssay tests carry no analytes/SST criteria of
+        // their own - everything comes from the linked HplcMethod (spec 3.4).
+        if (request.EquationType == EquationType.HplcMethodAssay)
+        {
+            if (request.WorkflowType != WorkflowType.HplcMethodAssay)
+                throw new InvalidOperationException("Workflow type must be HplcMethodAssay when equation type is HplcMethodAssay.");
+        }
+        else if (request.WorkflowType == WorkflowType.HplcMethodAssay)
+        {
+            if (request.EquationType != EquationType.HplcMethodAssay)
+                throw new InvalidOperationException("Equation type must be HplcMethodAssay when workflow type is HplcMethodAssay.");
+        }
+
+        if (request.WorkflowType == WorkflowType.HplcMethodAssay)
+        {
+            if (!request.RequiresSystemSuitability)
+                throw new InvalidOperationException("HPLC method assay tests must require system suitability.");
+
+            if (!request.HplcMethodId.HasValue)
+                throw new InvalidOperationException("HPLC method is required for HPLC method assay tests.");
+
+            var hplcMethod = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == request.HplcMethodId.Value)
+                ?? throw new InvalidOperationException("HPLC method not found.");
+            if (hplcMethod.SectionId != sectionId)
+                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (!hplcMethod.IsActive)
+                throw new InvalidOperationException("The HPLC method is inactive.");
+        }
+        else if (request.HplcMethodId.HasValue)
+        {
+            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay tests.");
+        }
+
         if (!Enum.IsDefined(request.ResponseMode))
             throw new InvalidOperationException("Unknown response mode.");
         if (request.ResponseMode != ResponseMode.PeakArea && request.WorkflowType != WorkflowType.StandardComparison)
@@ -376,7 +410,8 @@ public class TestDefinitionMasterDataService
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
             HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.StandardComparison ? request.HplcMaxPreparationRsdPercent : null,
-            ResponseMode = request.ResponseMode
+            ResponseMode = request.ResponseMode,
+            HplcMethodId = request.WorkflowType == WorkflowType.HplcMethodAssay ? request.HplcMethodId : null
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -444,6 +479,7 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
 
             if (effectiveEquationType != EquationType.StandardComparison && effectiveWorkflowType != WorkflowType.StandardComparison &&
+                effectiveEquationType != EquationType.HplcMethodAssay && effectiveWorkflowType != WorkflowType.HplcMethodAssay &&
                 !effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
             {
                 throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
@@ -707,6 +743,44 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
         }
 
+        // HPLC chain S3: HplcMethodAssay tests carry no analytes/SST criteria of
+        // their own - everything comes from the linked HplcMethod (spec 3.4).
+        if (effectiveEquationType == EquationType.HplcMethodAssay)
+        {
+            if (effectiveWorkflowType != WorkflowType.HplcMethodAssay)
+                throw new InvalidOperationException("Workflow type must be HplcMethodAssay when equation type is HplcMethodAssay.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.HplcMethodAssay)
+        {
+            if (effectiveEquationType != EquationType.HplcMethodAssay)
+                throw new InvalidOperationException("Equation type must be HplcMethodAssay when workflow type is HplcMethodAssay.");
+        }
+
+        var effectiveHplcMethodId = request.HplcMethodId ?? entity.HplcMethodId;
+        if (effectiveWorkflowType == WorkflowType.HplcMethodAssay)
+        {
+            if (!effectiveRequiresSst)
+                throw new InvalidOperationException("HPLC method assay tests must require system suitability.");
+
+            if (!effectiveHplcMethodId.HasValue)
+                throw new InvalidOperationException("HPLC method is required for HPLC method assay tests.");
+
+            var hplcMethod = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == effectiveHplcMethodId.Value)
+                ?? throw new InvalidOperationException("HPLC method not found.");
+            if (hplcMethod.SectionId != entity.SectionId)
+                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+
+            // Active is only enforced when the method is actually changing -
+            // an existing test keeps working if its method is later deactivated.
+            var methodChanged = effectiveHplcMethodId != entity.HplcMethodId;
+            if (!hplcMethod.IsActive && methodChanged)
+                throw new InvalidOperationException("The HPLC method is inactive.");
+        }
+        else if (effectiveHplcMethodId.HasValue)
+        {
+            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay tests.");
+        }
+
         var effectiveResponseMode = request.ResponseMode ?? entity.ResponseMode;
         if (!Enum.IsDefined(effectiveResponseMode))
             throw new InvalidOperationException("Unknown response mode.");
@@ -793,6 +867,7 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.HplcMaxPreparationRsdPercent.HasValue) entity.HplcMaxPreparationRsdPercent = request.HplcMaxPreparationRsdPercent.Value;
         entity.ResponseMode = effectiveResponseMode;
+        if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
 
         await _db.SaveChangesAsync();
 

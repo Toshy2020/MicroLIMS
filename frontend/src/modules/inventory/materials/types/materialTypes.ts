@@ -24,6 +24,19 @@ export type MaterialUnit =
   | "Bottle"
   | "Pack";
 
+export const MATERIAL_UNITS: MaterialUnit[] = [
+  "Gram",
+  "Kilogram",
+  "Milliliter",
+  "Liter",
+  "Disc",
+  "Vial",
+  "Kit",
+  "Piece",
+  "Bottle",
+  "Pack"
+];
+
 export type StockStatus = "InStock" | "Depleted" | "Expired";
 
 export interface OrganismSummary {
@@ -62,6 +75,9 @@ export interface MaterialItem {
   minimumStockLevel: number | null;
   purity?: number | null;
   status: StockStatus;
+  materialMasterEntryId?: number | null;
+  materialMasterEntryCode?: string | null;
+  moisturePercent?: number | null;
 }
 
 export interface MaterialFormState {
@@ -78,9 +94,11 @@ export interface MaterialFormState {
   unit: MaterialUnit;
   minimumStockLevel: number | string;
   purity: number | string;
+  moisturePercent: number | string;
   atccNumber: string;
   organismId: number | null;
   mediaProductId: number | null;
+  materialMasterEntryId: number | null;
 }
 
 export type MaterialKpiFilter = "all" | "in_stock" | "low_stock" | "out_of_stock" | "expiring_soon";

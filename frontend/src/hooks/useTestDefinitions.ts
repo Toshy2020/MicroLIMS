@@ -68,6 +68,7 @@ export interface TestDefinitionOption {
   // StandardComparison only - how the assay measures its response (SC-5a).
   // Absent/undefined on non-StandardComparison tests.
   responseMode?: "PeakArea" | "TitrationVolume" | null;
+  hplcMethodId?: number | null;
   sectionId?: number;
   section?: {
     id: number;

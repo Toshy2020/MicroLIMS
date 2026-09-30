@@ -8,6 +8,8 @@ export interface ChromatographyColumnDto {
   code: string;
   name: string;
   serialNumber?: string | null;
+  // USP packing designation, e.g. "L1".
+  uspDesignation?: string | null;
   sectionId: number;
   section?: {
     id?: number;
@@ -38,6 +40,8 @@ export interface CreateChromatographyColumnRequest {
   code: string;
   name: string;
   serialNumber?: string | null;
+  // USP packing designation, e.g. "L1".
+  uspDesignation?: string | null;
   sectionId?: number | null;
   compatibleEquipmentIds?: number[] | null;
 }
@@ -46,6 +50,8 @@ export interface UpdateChromatographyColumnRequest {
   code: string;
   name: string;
   serialNumber?: string | null;
+  // USP packing designation, e.g. "L1".
+  uspDesignation?: string | null;
   isActive?: boolean | null;
   sectionId?: number | null;
   compatibleEquipmentIds?: number[] | null;

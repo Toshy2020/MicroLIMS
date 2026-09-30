@@ -135,9 +135,16 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
         services.AddScoped<IUserSectionScopeService, UserSectionScopeService>();
         services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
+        services.AddScoped<MaterialMasterService>();
+        services.AddScoped<SolutionMasterService>();
+        services.AddScoped<HplcMethodService>();
+        services.AddScoped<SolutionPreparationService>();
+        services.AddScoped<TitrantStandardizationService>();
+        services.AddScoped<HplcRunService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();

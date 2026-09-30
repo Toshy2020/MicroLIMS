@@ -199,6 +199,7 @@ export interface CreateTestDefinitionPayload {
   // StandardComparison only - "PeakArea" (HPLC) or "TitrationVolume". Rejected
   // by the backend for non-StandardComparison tests unless left as PeakArea.
   responseMode?: "PeakArea" | "TitrationVolume";
+  hplcMethodId?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -261,6 +262,7 @@ export interface UpdateTestDefinitionPayload {
   // StandardComparison only - cannot change once suitability runs exist
   // against the test (backend rejects the change with an error message).
   responseMode?: "PeakArea" | "TitrationVolume";
+  hplcMethodId?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

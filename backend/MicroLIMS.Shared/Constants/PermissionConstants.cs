@@ -90,6 +90,15 @@ public static class PermissionConstants
     public const string SamplesCorrect = "Samples.Correct";
     public const string SamplesAssignAnalyst = "Samples.AssignAnalyst";
 
+    // HPLC chain S4 - Solution Preparation area (spec 4). Gates every write
+    // on a SolutionPreparation (start, save, complete, cancel, discard).
+    public const string SolutionsPrepare = "Solutions.Prepare";
+
+    // HPLC chain S6 - HPLC Workspace (spec 5). Gates every write on an
+    // HplcRun (start, save/confirm SST, assign/remove samples, replicate
+    // entry, submission, evidence, abandon/complete).
+    public const string HplcOperate = "Hplc.Operate";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -107,7 +116,8 @@ public static class PermissionConstants
         DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage,
         DashboardsLabOverview, DashboardsReview, KpiView,
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
-        SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst
+        SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
+        SolutionsPrepare, HplcOperate
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -121,6 +131,7 @@ public static class PermissionConstants
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,
-        TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage
+        TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
+        SolutionsPrepare, HplcOperate
     };
 }

@@ -53,5 +53,11 @@ public class Specification : IVersionedEntity
     // Finished Product / Weight Variation
     public DosageForm? DosageForm { get; set; }
 
+    // HPLC chain S3 - HplcMethodAssay specification rows are keyed by
+    // method analyte instead of TestAnalyteId (spec 3.4).
+    public int? HplcMethodAnalyteId { get; set; }
+    [JsonIgnore]
+    public HplcMethodAnalyte? HplcMethodAnalyte { get; set; }
+
     public List<SpecificationStage> Stages { get; set; } = new();
 }

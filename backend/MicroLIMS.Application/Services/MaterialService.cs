@@ -13,7 +13,8 @@ public record SaveMaterialRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
-    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null);
+    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null,
+    int? MaterialMasterEntryId = null, decimal? MoisturePercent = null);
 
 // Type picker for one laboratory: its built-in types plus the custom type
 // names already used in its stock register.
@@ -77,6 +78,36 @@ public class MaterialService
         }
     }
 
+    // Chemical, Indicator and ReferenceStandard lots must reference a MaterialMasterEntry
+    // (HPLC chain S1, spec 3.1); existing rows stay unlinked (D9).
+    public static bool RequiresMasterEntry(MaterialType t) =>
+        t is MaterialType.Chemical or MaterialType.Indicator or MaterialType.ReferenceStandard;
+
+    private static MaterialMasterCategory CategoryFor(MaterialType t) => t switch
+    {
+        MaterialType.Indicator => MaterialMasterCategory.Indicator,
+        MaterialType.ReferenceStandard => MaterialMasterCategory.ReferenceStandard,
+        _ => MaterialMasterCategory.Reagent
+    };
+
+    // Loads and checks the entry; allowInactive is true only when the lot already points at it.
+    private async Task<MaterialMasterEntry> ResolveMasterEntryAsync(int entryId, MaterialType type, int sectionId, bool allowInactive)
+    {
+        var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == entryId)
+            ?? throw new InvalidOperationException($"Material master entry {entryId} not found.");
+        if (entry.SectionId != sectionId) throw new InvalidOperationException("That master entry belongs to another laboratory.");
+        if (!entry.IsActive && !allowInactive) throw new InvalidOperationException($"Master entry \"{entry.Code}\" is inactive.");
+        if (entry.Category != CategoryFor(type)) throw new InvalidOperationException($"Master entry \"{entry.Code}\" is a {entry.Category}, not a {CategoryFor(type)}.");
+        return entry;
+    }
+
+    public static void ValidateMoisture(MaterialType type, decimal? moisture)
+    {
+        if (!moisture.HasValue) return;
+        if (type != MaterialType.ReferenceStandard) throw new InvalidOperationException("Moisture content is only allowed for reference standards.");
+        if (moisture.Value < 0m || moisture.Value >= 100m) throw new InvalidOperationException("Moisture content must be at least 0 and below 100.");
+    }
+
     public async Task<List<MaterialResponse>> GetAllAsync(int currentUserId, MaterialType? type = null)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
@@ -116,9 +147,22 @@ public class MaterialService
         }
 
         ValidatePurity(r.MaterialType, r.Purity);
+        ValidateMoisture(r.MaterialType, r.MoisturePercent);
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId);
         var customType = await ResolveTypeAsync(sectionId, r.MaterialType, r.CustomType, checkAllowed: true);
+
+        int? masterEntryId = null;
+        if (RequiresMasterEntry(r.MaterialType))
+        {
+            if (!r.MaterialMasterEntryId.HasValue)
+                throw new InvalidOperationException("Choose the material master entry for this lot.");
+
+            var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType, sectionId, allowInactive: false);
+            masterEntryId = entry.Id;
+            materialName = entry.Name;
+            code = entry.Code;
+        }
 
         var entity = new Material
         {
@@ -126,6 +170,7 @@ public class MaterialService
             MaterialType = r.MaterialType,
             CustomType = customType,
             MediaProductId = mediaProductId,
+            MaterialMasterEntryId = masterEntryId,
             MaterialName = materialName,
             ManufacturerName = r.ManufacturerName,
             BatchNumber = r.BatchNumber,
@@ -140,6 +185,7 @@ public class MaterialService
             Unit = r.Unit,
             MinimumStockLevel = r.MinimumStockLevel,
             Purity = r.Purity,
+            MoisturePercent = r.MoisturePercent,
             CreatedByUserId = currentUserId,
             CreatedAt = _time.GetUtcNow().UtcDateTime,
             LastModifiedByUserId = currentUserId,
@@ -197,17 +243,31 @@ public class MaterialService
         }
 
         ValidatePurity(r.MaterialType, r.Purity);
+        ValidateMoisture(r.MaterialType, r.MoisturePercent);
 
         // An existing batch keeps its type even if the lab's list has since
         // changed; only a change of type is checked against the list.
         var customType = await ResolveTypeAsync(entity.SectionId, r.MaterialType, r.CustomType,
             checkAllowed: r.MaterialType != entity.MaterialType);
 
+        var masterEntryId = entity.MaterialMasterEntryId;
+        if (r.MaterialMasterEntryId.HasValue)
+        {
+            var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType, entity.SectionId,
+                allowInactive: r.MaterialMasterEntryId.Value == entity.MaterialMasterEntryId);
+            masterEntryId = entry.Id;
+            materialName = entry.Name;
+            code = entry.Code;
+        }
+        // else: no entry on the request - keep the lot's existing link (or
+        // none, for a legacy row created before S1). Never cleared here.
+
         var receivedDelta = r.QuantityReceived - entity.QuantityReceived;
 
         entity.MaterialType = r.MaterialType;
         entity.CustomType = customType;
         entity.MediaProductId = mediaProductId;
+        entity.MaterialMasterEntryId = masterEntryId;
         entity.MaterialName = materialName;
         entity.ManufacturerName = r.ManufacturerName;
         entity.BatchNumber = r.BatchNumber;
@@ -222,6 +282,7 @@ public class MaterialService
         entity.Unit = r.Unit;
         entity.MinimumStockLevel = r.MinimumStockLevel;
         entity.Purity = r.Purity;
+        entity.MoisturePercent = r.MoisturePercent;
         entity.LastModifiedByUserId = currentUserId;
         entity.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 

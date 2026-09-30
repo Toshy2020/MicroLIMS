@@ -105,7 +105,8 @@ public class SampleController : ControllerBase
     // so the Receiving page's lab picker only ever offers real choices.
     [HttpGet("receipt-labs")]
     public async Task<IActionResult> ReceiptLabs([FromQuery] int itemId) =>
-        Ok(ApiResponse<object>.Ok(await _receiptLabs.GetForItemAsync(itemId)));
+        Ok(ApiResponse<object>.Ok(await _receiptLabs.GetForItemAsync(itemId, CurrentUserId,
+            User.HasClaim("permission", PermissionConstants.SamplesReceive))));
 
     // Analysts record the work; correcting or voiding the sample record is
     // for a Reviewer, Section Head or System Administrator.

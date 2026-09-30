@@ -38,6 +38,7 @@ import {
 import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
+import { HplcMethodService, HplcMethodAnalyteResponse } from "../../masterDataSimple/services/HplcMethodService";
 
 export interface TestDefinitionSummary {
   id: number;
@@ -46,6 +47,7 @@ export interface TestDefinitionSummary {
   workflowType: string;
   equationType?: string;
   sectionId?: number | null;
+  hplcMethodId?: number | null;
 }
 
 interface SpecificationParameterDialogProps {
@@ -156,6 +158,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [conversionFactor, setConversionFactor] = useState("1");
   const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
   const [loadingAnalytes, setLoadingAnalytes] = useState(false);
+  const [hplcMethodAnalyteId, setHplcMethodAnalyteId] = useState<number | "">("");
+  const [methodAnalytes, setMethodAnalytes] = useState<HplcMethodAnalyteResponse[]>([]);
+  const [loadingMethodAnalytes, setLoadingMethodAnalytes] = useState(false);
 
   // Range
   const [lowerLimit, setLowerLimit] = useState("");
@@ -195,7 +200,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     } else {
       masterDataOptions
         .getTestDefinitions()
-        .then((defs: any[]) => {
+        .then((defs: TestDefinitionSummary[]) => {
           setTestDefs(Object.fromEntries(defs.map((d) => [d.code, d])));
         })
         .catch(() => {});
@@ -246,6 +251,29 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       });
   }, [usesAnalytePicker, currentTestDef?.id]);
 
+  const isHplcMethodAssay =
+    currentTestDef?.equationType === "HplcMethodAssay" ||
+    currentTestDef?.workflowType === "HplcMethodAssay" ||
+    workflowTypeByCode[testCode] === "HplcMethodAssay";
+
+  useEffect(() => {
+    if (!isHplcMethodAssay || !currentTestDef?.hplcMethodId) {
+      setMethodAnalytes([]);
+      return;
+    }
+    setLoadingMethodAnalytes(true);
+    HplcMethodService.getById(currentTestDef.hplcMethodId)
+      .then((res) => {
+        setMethodAnalytes(res.analytes ?? []);
+      })
+      .catch(() => {
+        setMethodAnalytes([]);
+      })
+      .finally(() => {
+        setLoadingMethodAnalytes(false);
+      });
+  }, [isHplcMethodAssay, currentTestDef?.hplcMethodId]);
+
   const getTestDisplayName = (code: string) => {
     const match = assignedTests.find((t) => t.testCode === code);
     return match?.displayName && match.displayName !== code
@@ -274,7 +302,13 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       }
 
       setTestAnalyteId(editingSpec.testAnalyteId ?? "");
-      setResultBasis((editingSpec.resultBasis as ResultBasis) || "MgPerKg");
+      setHplcMethodAnalyteId(editingSpec.hplcMethodAnalyteId ?? "");
+      const editDef = testDefs[editingSpec.testCode];
+      const isEditHplcAssay =
+        editDef?.equationType === "HplcMethodAssay" ||
+        editDef?.workflowType === "HplcMethodAssay" ||
+        workflowTypeByCode[editingSpec.testCode] === "HplcMethodAssay";
+      setResultBasis((editingSpec.resultBasis as ResultBasis) || (isEditHplcAssay ? "PercentLabelClaim" : "MgPerKg"));
       setSampleMatrix((editingSpec.sampleMatrix as SampleMatrix) || "Solid");
       setLabelClaim(formatTrimmedDecimal(editingSpec.labelClaim));
       setLabelClaimUnit(editingSpec.labelClaimUnit ?? "");
@@ -323,16 +357,18 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       const def = testDefs[initialCode];
       const isCal = def?.equationType === "CalibrationCurve";
       const isStdComp = def?.equationType === "StandardComparison" || def?.workflowType === "StandardComparison";
-      const defaultType = isCal || isStdComp ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
+      const isInitHplc = def?.equationType === "HplcMethodAssay" || def?.workflowType === "HplcMethodAssay" || workflowTypeByCode[initialCode] === "HplcMethodAssay";
+      const defaultType = isCal || isStdComp || isInitHplc ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
       setLimitType(defaultType);
 
       setReferenceStandard("");
-      setUnit(defaultType === "WeightVariation" ? "mg" : defaultType === "DisintegrationTime" ? "min" : "");
+      setUnit(isInitHplc ? "%" : defaultType === "WeightVariation" ? "mg" : defaultType === "DisintegrationTime" ? "min" : "");
       setDilutionFactor("");
       setDosageForm("");
 
       setTestAnalyteId("");
-      setResultBasis("MgPerKg");
+      setHplcMethodAnalyteId("");
+      setResultBasis(isInitHplc ? "PercentLabelClaim" : "MgPerKg");
       const existingMatrix = existingSpecs.find((s) => s.sampleMatrix)?.sampleMatrix as SampleMatrix | undefined;
       setSampleMatrix(existingMatrix || "Solid");
       setLabelClaim("");
@@ -372,13 +408,25 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     setParameterName(match?.displayName || newCode);
 
     const def = testDefs[newCode];
+    const isHplcAssay = def?.equationType === "HplcMethodAssay" || def?.workflowType === "HplcMethodAssay" || workflowTypeByCode[newCode] === "HplcMethodAssay";
     const isCal = def?.equationType === "CalibrationCurve";
     const isStdComp = def?.equationType === "StandardComparison" || def?.workflowType === "StandardComparison";
     const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
     const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
 
-    if (isCal) {
+    if (isHplcAssay) {
+      setLimitType("Range");
+      setHplcMethodAnalyteId("");
+      setTestAnalyteId("");
+      setDilutionFactor("");
+      setResultBasis("PercentLabelClaim");
+      setUnit("%");
+      setSampleMatrix("");
+      setConversionFactor("1");
+      setLabelClaim("");
+      setLabelClaimUnit("");
+    } else if (isCal) {
       setLimitType("Range");
       setTestAnalyteId("");
       setDilutionFactor("");
@@ -464,6 +512,28 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     if (!testCode) {
       setError("Assigned Test is required.");
       return;
+    }
+
+    if (isHplcMethodAssay) {
+      if (!hplcMethodAnalyteId) {
+        setError("Please select an analyte from the HPLC method.");
+        return;
+      }
+      if (!resultBasis || (resultBasis !== "PercentLabelClaim" && resultBasis !== "MgPerUnit")) {
+        setError("Please select a basis (Assay % or Amount per unit).");
+        return;
+      }
+      if (resultBasis === "MgPerUnit") {
+        const lcNum = Number(labelClaim);
+        if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
+          setError("Label claim must be greater than 0 for Amount per unit.");
+          return;
+        }
+        if (!labelClaimUnit.trim()) {
+          setError("Label claim unit is required for Amount per unit.");
+          return;
+        }
+      }
     }
 
     if (isCalibrationCurve || isStandardComparison) {
@@ -624,20 +694,27 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             }))
           : undefined,
       testAnalyteId: usesAnalytePicker && testAnalyteId !== "" ? Number(testAnalyteId) : null,
-      resultBasis: isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null,
-      sampleMatrix: isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null,
+      hplcMethodAnalyteId: isHplcMethodAssay && hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null,
+      resultBasis: isHplcMethodAssay && resultBasis
+        ? (resultBasis as ResultBasis)
+        : (isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null),
+      sampleMatrix: isHplcMethodAssay ? null : (isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null),
       labelClaim:
         limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
           : (limitType === "DissolutionQ"
             ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
-            : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null)),
+            : (isHplcMethodAssay && resultBasis === "MgPerUnit" && labelClaim.trim() !== ""
+              ? Number(labelClaim)
+              : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null))),
       labelClaimUnit:
         limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
           : (limitType === "DissolutionQ"
             ? "mg"
-            : (isCalibrationCurve ? labelClaimUnit.trim() || null : null)),
+            : (isHplcMethodAssay && resultBasis === "MgPerUnit"
+              ? labelClaimUnit.trim() || null
+              : (isCalibrationCurve ? labelClaimUnit.trim() || null : null))),
       conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
     };
 
@@ -861,6 +938,144 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             </Box>
           )}
 
+          {/* HPLC Method Assay Parameters Block */}
+          {isHplcMethodAssay && (
+            <Box
+              sx={{
+                border: "1px solid",
+                borderColor: "primary.main",
+                borderRadius: 1,
+                p: 2,
+                bgcolor: "action.hover"
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: "0.5px",
+                  color: "primary.main",
+                  textTransform: "uppercase",
+                  display: "block",
+                  mb: 1.5
+                }}
+              >
+                HPLC Method Assay Specification
+              </Typography>
+
+              <Stack spacing={2}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "1fr 1fr"
+                    },
+                    gap: 2
+                  }}
+                >
+                  <FormControl size="small" fullWidth required>
+                    <InputLabel id="hplc-method-analyte-label">Analyte *</InputLabel>
+                    <Select
+                      labelId="hplc-method-analyte-label"
+                      label="Analyte *"
+                      value={hplcMethodAnalyteId}
+                      onChange={(e) => {
+                        const id = Number(e.target.value);
+                        setHplcMethodAnalyteId(id);
+                        const chosen = methodAnalytes.find((a) => a.id === id);
+                        if (chosen) {
+                          const prevMatchesAnalyte = methodAnalytes.some((a) => a.name === parameterName);
+                          const prevMatchesTest = assignedTests.some(
+                            (t) => t.displayName === parameterName || t.testCode === parameterName
+                          );
+                          if (!parameterName.trim() || prevMatchesAnalyte || prevMatchesTest) {
+                            setParameterName(chosen.name);
+                          }
+                        }
+                      }}
+                      disabled={loadingMethodAnalytes}
+                    >
+                      {loadingMethodAnalytes ? (
+                        <MenuItem disabled value="">
+                          <em>Loading method analytes...</em>
+                        </MenuItem>
+                      ) : methodAnalytes.length === 0 ? (
+                        <MenuItem disabled value="">
+                          <em>No analytes found in HPLC method</em>
+                        </MenuItem>
+                      ) : (
+                        methodAnalytes.map((a) => (
+                          <MenuItem key={a.id} value={a.id}>
+                            {a.name}
+                            {a.wavelengthNm != null ? ` (${a.wavelengthNm} nm)` : ""}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl size="small" fullWidth required>
+                    <InputLabel id="hplc-result-basis-label">Basis *</InputLabel>
+                    <Select
+                      labelId="hplc-result-basis-label"
+                      label="Basis *"
+                      value={resultBasis}
+                      onChange={(e) => {
+                        const val = e.target.value as ResultBasis;
+                        setResultBasis(val);
+                        if (val === "PercentLabelClaim") {
+                          setUnit("%");
+                        } else if (val === "MgPerUnit") {
+                          if (labelClaimUnit) setUnit(labelClaimUnit);
+                        }
+                      }}
+                    >
+                      <MenuItem value="PercentLabelClaim">Assay %</MenuItem>
+                      <MenuItem value="MgPerUnit">Amount per unit</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                {resultBasis === "MgPerUnit" && (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                      gap: 2
+                    }}
+                  >
+                    <TextField
+                      size="small"
+                      label="Label Claim *"
+                      type="number"
+                      value={labelClaim}
+                      onChange={(e) => setLabelClaim(e.target.value)}
+                      required
+                      helperText="Target amount per unit"
+                      slotProps={{ htmlInput: { step: "any", min: "0" } }}
+                      fullWidth
+                    />
+
+                    <TextField
+                      size="small"
+                      label="Label Claim Unit *"
+                      value={labelClaimUnit}
+                      onChange={(e) => {
+                        setLabelClaimUnit(e.target.value);
+                        setUnit(e.target.value);
+                      }}
+                      required
+                      placeholder="e.g. mg, g, mcg"
+                      helperText="Unit for claim and result"
+                      fullWidth
+                    />
+                  </Box>
+                )}
+              </Stack>
+            </Box>
+          )}
+
           {/* Row 2: Limit Type */}
           <FormControl size="small" fullWidth>
             <InputLabel id="limit-type-label">Limit Type *</InputLabel>
@@ -876,7 +1091,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
                 : isDissolution
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
-                : usesAnalytePicker
+                : (usesAnalytePicker || isHplcMethodAssay)
                 ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                     ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
                   )
@@ -1348,7 +1563,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          {!usesAnalytePicker && limitType !== "WeightVariation" && (
+          {!usesAnalytePicker && !isHplcMethodAssay && limitType !== "WeightVariation" && (
             <TextField
               size="small"
               label="Dilution Factor"

@@ -53,5 +53,10 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
             .WithOne(a => a.TestDefinition)
             .HasForeignKey(a => a.TestDefinitionId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.HplcMethod)
+            .WithMany()
+            .HasForeignKey(t => t.HplcMethodId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

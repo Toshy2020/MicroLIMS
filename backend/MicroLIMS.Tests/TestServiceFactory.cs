@@ -180,6 +180,51 @@ public static class TestServiceFactory
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
 
+    public static MaterialMasterService MaterialMaster(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db));
+
+    public static SolutionMasterService SolutionMaster(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
+    public static HplcMethodService HplcMethod(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
+    public static SolutionPreparationService SolutionPreparation(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        MaterialService? materials = null,
+        IElectronicSignatureService? signatures = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            materials ?? new MaterialService(db, scope ?? new UserSectionScopeService(db)),
+            signatures ?? new ElectronicSignatureService(db),
+            clock);
+
+    public static TitrantStandardizationService TitrantStandardization(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            signatures ?? new ElectronicSignatureService(db),
+            clock);
+
+    public static HplcRunService HplcRun(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        IFileStorageService? storage = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            signatures ?? new ElectronicSignatureService(db),
+            storage ?? new InMemoryFileStorageService(),
+            clock);
+
     public static SystemSuitabilityService SystemSuitability(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,

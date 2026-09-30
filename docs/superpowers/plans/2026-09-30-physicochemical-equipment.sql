@@ -1,0 +1,63 @@
+-- Physicochemical laboratory equipment register (source: "physiochemical list of equipments.docx").
+-- Target: EquipmentInventories (Inventory > Equipment Inventory page). Section 2 = Physicochemical Laboratory.
+-- Idempotent: rows whose Code already exists are skipped. N.A / N/A / NA values are stored as NULL.
+-- Codes are kept as written except that stray spaces are removed (RUL- F-... -> RUL-F-...).
+INSERT INTO "EquipmentInventories"
+ ("Code","InstrumentType","ManufacturerName","SerialNumber","FirmwareVersion","Location","Status","SectionId",
+  "CreatedByUserId","CreatedAt","LastModifiedByUserId","LastModifiedAt")
+SELECT v.code, v.itype, v.man, v.sn, v.fw, v.loc, 0, 2, 4, now(), 4, now()
+FROM (VALUES
+ ('BLC-F-IL-F-09-046','Digital balance','Shimadzu','D449513937',NULL,'Instruments lab'),
+ ('UVS-F-IL-F-08-030','UV Spectrophotometer','Varian','EL08053182','Carry 50','Instruments lab'),
+ ('HPC-F-IL-F-08-028','HPLC','Agilent','DEAB816728','Open Lab ChemstationRev.C.01.07504(505)','Instruments lab'),
+ ('HPC-F-IL-F-08-041','HPLC','Waters','J04296004F','Empower 3','Instruments Lab'),
+ ('HPC-F-IL-F-08-057','HPLC','Waters','BO7296241M','Empower 3','Instruments Lab'),
+ ('HPC-F-IL-F-08067','HPLC','Shimadzu','L23006200412','LC Solution','Instruments Lab'),
+ ('ICP-F-IL-F-11-069','ICP','Perkinelmer','M79S2502062','syngestics','Instruments Lab'),
+ ('GCS-F-IL-F-11-068','GC','Shimadzu','C12656201987','LC Solution','Instruments Lab'),
+ ('DCL-F-PK-F-05-026','Digital Caliber','Mitutoyo','4399123',NULL,'Packaging material lab'),
+ ('MCM-F-PK-F-05-035','Micrometer','Mitutoyo','29382130',NULL,'Packaging material lab'),
+ ('DSS-F-WL-F-01-009','Dissolution Tester','Electrolab','804011',NULL,'Wet chemical lab'),
+ ('SOC-F-WL-F-01-065','Sonicator','DAIHAN Scientific','00833001674009',NULL,'Wet chemical lab'),
+ ('MIX-F-WL-F-01-016','Hot plate/Stirrer','Stuart','R000101386',NULL,'Wet chemical lab'),
+ ('MIX-F-WL-F-01-013','Magnetic stirrer','Fisher Scientific','202N0003',NULL,'Wet chemical lab'),
+ ('WES-F-WL-F-01-014','Weights set','Superfit','7893',NULL,'Wet chemical lab'),
+ ('BLC-F-WL-F-01-047','Digital balance','Shimadzu','D447110772',NULL,'Wet chemical lab'),
+ ('PHM-F-WL-F-01-001','PH meter','Jenway','65088',NULL,'Wet chemical lab'),
+ ('VIS-F-WL-F-01-003','Viscometer','BROOKFIELD','AP6524181',NULL,'Wet chemical lab'),
+ ('PHC-F-WL-F-01-007','PH/TDS/Conductivity meter','Adwa','A0037579',NULL,'Wet chemical lab'),
+ ('OVN-F-WL-F-01-011','Oven','Carbolite','20-500-195',NULL,'Wet chemical lab'),
+ ('RFM-F-WL-F-01-017','Refractometer','OPTIKA','454343',NULL,'Wet chemical lab'),
+ ('PLM-F-WL-F-01-018','Polarimeter','Anton paar','81687428',NULL,'Wet chemical lab'),
+ ('DST-F-WL-F-01-040','Disintegration tester','Pure enterprise','841',NULL,'Wet chemical lab'),
+ ('MLP-F-WL-F-01-042','Melting point apparatus','Stuart','R113001310',NULL,'Wet chemical lab'),
+ ('CNF-F-WL-F-01-021','Centrifuge','SCILOGEX','LD6M009388',NULL,'Wet chemical lab'),
+ ('PUP-F-WL-F-01-022','Vacuum Pump','VALUE',NULL,NULL,'Wet chemical lab'),
+ ('DSW-F-WL-F-01-45','Digital stopwatch','Chrono','CR2032',NULL,'Wet chemical lab'),
+ ('OVN-F-WL-F-01-053','Drying Cabinet','LTE Scientefic','J4106/2',NULL,'Wet chemical lab'),
+ ('MCW-F-IL-F-10-044','Digestion Microwave','Milestone','19064227',NULL,'Wet chemical lab'),
+ ('WDS-F-WL-F-01-043','Water Distiller','Boeco','841019012370',NULL,'Wet chemical lab'),
+ ('THE-F-WL-F-01-056','Glass Thermometer','',NULL,NULL,'Wet chemical lab'),
+ ('ATM-F-IL-F-11-063','Atomic Absorption spectra','Varian','EL07043595','Spectra AA','Instruments lab'),
+ ('KAF-F-WL-F-01-020','Karl fisher','Spectra lab','SR025',NULL,'Wet chemical lab'),
+ ('HOD-F-IL-F-10-032','Fumes Hood','',NULL,NULL,'Instruments lab'),
+ ('HOD-F-IL-F-11-034','Fumes Hood','CHIMNEY',NULL,NULL,'Instruments lab'),
+ ('HOD-F-WL-F-01-024','Fumes Hood','',NULL,NULL,'Wet chemical lab'),
+ ('CID-F-PK-F-05-051','X-Rite cap sure','X-Rite','0010102289',NULL,'Packaging material lab'),
+ ('COD-F-WL-F-01-049','Refrigerator','LG','109INPT30768',NULL,'Wet chemical lab'),
+ ('TRH-F-PK-F-05-037','Digital Thermometer/Hygrometer','',NULL,NULL,'Packaging material lab'),
+ ('TRH-F-WL-F-01-038','Digital Thermometer/Hygrometer','',NULL,NULL,'Wet chemical lab'),
+ ('TRH-F-IL-F-08-039','Digital Thermometer/Hygrometer','',NULL,NULL,'Instruments lab'),
+ ('OVN-F-WL-F-01-015','Muffle','Nabertherm GmbH','334067',NULL,'Instruments lab'),
+ ('THE-F-WL-F-01-006','Digital Thermometer','HTC',NULL,NULL,'Wet lab LG Refrigerator'),
+ ('THE-F-WL-F-01-050','Temperature data logger','Testo','58908085',NULL,'Wet lab LG Refrigerator (Freezer)'),
+ ('THE-F-WL-F-01-067','Temperature data logger','Testo','58908087',NULL,'Wet lab LG Refrigerator'),
+ ('RUL-F-PK-F-05-058','Ruler (30 cm)','',NULL,NULL,'Packaging material lab'),
+ ('RUL-F-PK-F-05-059','Ruler (30 cm)','',NULL,NULL,'Packaging material lab'),
+ ('RUL-F-PK-F-05-060','Ruler (50 cm)','',NULL,NULL,'Packaging material lab'),
+ ('RUL-F-PK-F-05-061','Ruler (100 cm)','',NULL,NULL,'Packaging material lab'),
+ ('RUL-F-PK-F-05-062','Ruler (100 cm)','',NULL,NULL,'Packaging material lab'),
+ ('KAF-F-PK-F-05-063','Karl fischer','Metrohm','16341','Tiamo','Packaging material lab'),
+ ('POT-F-PK-F-05-064','Potentiometer','Metrohm','45136','Tiamo','Packaging material lab')
+) AS v(code,itype,man,sn,fw,loc)
+WHERE NOT EXISTS (SELECT 1 FROM "EquipmentInventories" e WHERE e."Code" = v.code);

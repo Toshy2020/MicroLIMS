@@ -11,7 +11,8 @@ public record SaveMaterialHttpRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
-    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null);
+    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null,
+    int? MaterialMasterEntryId = null, decimal? MoisturePercent = null);
 
 // Inventory module - Materials Stock. Day-to-day updates (receiving,
 // stock count) are done by Analysts as well as Section Head/Admin,
@@ -60,7 +61,8 @@ public class MaterialController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateAsync(new SaveMaterialRequest(
             r.MaterialType, r.MaterialName, r.ManufacturerName, r.BatchNumber, r.ReceivingDate, r.ExpiryDate,
             r.Code, r.Location, r.QuantityReceived, r.Unit, r.MinimumStockLevel, r.AtccNumber, r.OrganismId,
-            r.MediaProductId, r.SectionId, r.Purity, r.CustomType), CurrentUserId)));
+            r.MediaProductId, r.SectionId, r.Purity, r.CustomType,
+            r.MaterialMasterEntryId, r.MoisturePercent), CurrentUserId)));
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, SaveMaterialHttpRequest r)
@@ -68,7 +70,8 @@ public class MaterialController : ControllerBase
         await _service.UpdateAsync(id, new SaveMaterialRequest(
             r.MaterialType, r.MaterialName, r.ManufacturerName, r.BatchNumber, r.ReceivingDate, r.ExpiryDate,
             r.Code, r.Location, r.QuantityReceived, r.Unit, r.MinimumStockLevel, r.AtccNumber, r.OrganismId,
-            r.MediaProductId, r.SectionId, r.Purity, r.CustomType), CurrentUserId);
+            r.MediaProductId, r.SectionId, r.Purity, r.CustomType,
+            r.MaterialMasterEntryId, r.MoisturePercent), CurrentUserId);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

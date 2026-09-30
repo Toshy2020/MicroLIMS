@@ -26,13 +26,13 @@ import { PERMISSIONS } from "../../../routes/routes";
 interface Props {
   sample: SampleRecord;
   onViewSummary: (sample: SampleRecord) => void;
-  onEdit: (sample: SampleRecord) => void;
+  onEdit?: (sample: SampleRecord) => void;
   onViewReport: (sample: SampleRecord) => void;
   onViewAuditHistory: (sample: SampleRecord) => void;
   onPrepareSample: (sample: SampleRecord) => void;
   onAssignAnalyst?: (sample: SampleRecord) => void;
   onVoid?: (sample: SampleRecord) => void;
-  // Receiving page only - adds a second laboratory's tests to the sample.
+  // Receiving page only - adds a second laboratory's tests to the sample (requires Samples.Receive).
   onAddLaboratory?: (sample: SampleRecord) => void;
 }
 
@@ -40,7 +40,7 @@ export function SampleActionMenu({
   sample,
   onViewSummary,
   onEdit,
-  onViewReport,
+  onViewReport: _onViewReport,
   onViewAuditHistory,
   onPrepareSample,
   onAssignAnalyst,
@@ -58,16 +58,21 @@ export function SampleActionMenu({
     setAnchorEl(event.currentTarget);
   };
 
-  const handleCloseMenu = (event?: any) => {
-    event?.stopPropagation?.();
+  const handleCloseMenu = (event?: unknown) => {
+    if (event && typeof event === "object" && "stopPropagation" in event) {
+      (event as { stopPropagation?: () => void }).stopPropagation?.();
+    }
     setAnchorEl(null);
   };
 
   // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
+  const canReceive = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE);
   const canManageSample = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
   const isEditable = Boolean(sample.canEditDetails);
-  const canVoid = canManageSample && sample.status !== "Voided";
+  const canEdit = canManageSample && Boolean(onEdit);
+  const canVoid = canManageSample && Boolean(onVoid) && sample.status !== "Voided";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
+  const canAddLab = canReceive && Boolean(onAddLaboratory) && !["Rejected", "Voided", "Cancelled"].includes(sample.status);
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
@@ -89,7 +94,7 @@ export function SampleActionMenu({
       </Tooltip>
 
       {/* Edit Sample Action (signed correction of the sample's details) */}
-      {canManageSample && (
+      {canEdit && (
         <Tooltip
           title={
             isEditable
@@ -103,7 +108,7 @@ export function SampleActionMenu({
               disabled={!isEditable}
               onClick={(e) => {
                 e.stopPropagation();
-                onEdit(sample);
+                if (onEdit) onEdit(sample);
               }}
               sx={{
                 color: isEditable ? "text.secondary" : "text.disabled",
@@ -123,11 +128,7 @@ export function SampleActionMenu({
             size="small"
             onClick={(e) => {
               e.stopPropagation();
-              if (onVoid) {
-                onVoid(sample);
-              } else {
-                onViewSummary(sample);
-              }
+              if (onVoid) onVoid(sample);
             }}
             sx={{
               color: "text.secondary",
@@ -182,11 +183,11 @@ export function SampleActionMenu({
           </MenuItem>
         )}
 
-        {onAddLaboratory && !["Rejected", "Voided", "Cancelled"].includes(sample.status) && (
+        {canAddLab && (
           <MenuItem
             onClick={() => {
               handleCloseMenu();
-              onAddLaboratory(sample);
+              if (onAddLaboratory) onAddLaboratory(sample);
             }}
           >
             <ListItemIcon>
@@ -218,11 +219,7 @@ export function SampleActionMenu({
           <MenuItem
             onClick={() => {
               handleCloseMenu();
-              if (onVoid) {
-                onVoid(sample);
-              } else {
-                onViewSummary(sample);
-              }
+              if (onVoid) onVoid(sample);
             }}
           >
             <ListItemIcon>

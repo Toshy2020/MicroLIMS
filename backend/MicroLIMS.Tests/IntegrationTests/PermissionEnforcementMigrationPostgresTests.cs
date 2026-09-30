@@ -23,6 +23,14 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst
     };
 
+    // Enforced codes that later migrations add and enforce themselves;
+    // this migration never sees them.
+    private static readonly string[] AddedByLaterMigrations =
+    {
+        PermissionConstants.SolutionsPrepare,
+        PermissionConstants.HplcOperate
+    };
+
     private readonly PostgresTestFixture _fixture;
 
     public PermissionEnforcementMigrationPostgresTests(PostgresTestFixture fixture) => _fixture = fixture;
@@ -68,7 +76,7 @@ public class PermissionEnforcementMigrationPostgresTests
         Assert.Contains(PermissionConstants.TestWorkflowSupervise, sectionHeadCodes);
 
         var enforced = await db.Permissions.Where(p => p.IsEnforced).Select(p => p.Code).ToListAsync();
-        Assert.Equal(PermissionConstants.Enforced.OrderBy(c => c), enforced.OrderBy(c => c));
+        Assert.Equal(PermissionConstants.Enforced.Except(AddedByLaterMigrations).OrderBy(c => c), enforced.OrderBy(c => c));
 
         var grantsBefore = await db.RolePermissions.CountAsync();
         var permissionsBefore = await db.Permissions.CountAsync();

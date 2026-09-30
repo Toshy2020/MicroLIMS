@@ -18,6 +18,7 @@ public enum SignatureMeaning
     CalibrationRunPerformed,
     CalibrationRunWithdrawn,
     TestingClosed,
-    LaboratoryAdded
+    LaboratoryAdded,
+    TitrantStandardized
 }
 

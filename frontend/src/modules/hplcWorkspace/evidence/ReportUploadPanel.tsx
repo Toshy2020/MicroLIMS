@@ -10,7 +10,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   Alert,
   CircularProgress,
   Stack,
@@ -27,6 +26,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { SupersedeEvidenceDialog } from "./SupersedeEvidenceDialog";
 import { tableHeadSx } from "../../../theme";
+import { StatusBadge } from "../../../components/StatusBadge";
 import type {
   HplcEvidenceDto,
   HplcEvidenceContext,
@@ -157,12 +157,9 @@ export function ReportUploadPanel({
               : "Upload instrument integration reports and chromatograms."}
           </Typography>
         </Box>
-        <Chip
+        <StatusBadge
+          status={currentCount > 0 ? "Active" : "Pending"}
           label={`${currentCount} current report${currentCount === 1 ? "" : "s"}`}
-          size="small"
-          color={currentCount > 0 ? "success" : "default"}
-          variant="outlined"
-          sx={{ fontWeight: 600 }}
         />
       </Box>
 
@@ -272,12 +269,7 @@ export function ReportUploadPanel({
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      label={item.isCurrent ? "Current" : "Superseded"}
-                      color={item.isCurrent ? "success" : "default"}
-                      sx={{ fontWeight: 600, fontSize: 11 }}
-                    />
+                    <StatusBadge status={item.isCurrent ? "Active" : "Superseded"} label={item.isCurrent ? "Current" : "Superseded"} />
                   </TableCell>
                   <TableCell>{item.uploadedByUserName ?? `User #${item.uploadedByUserId}`}</TableCell>
                   <TableCell>{new Date(item.uploadedAt).toLocaleString()}</TableCell>

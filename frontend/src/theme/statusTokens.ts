@@ -140,7 +140,11 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Suitable: "notDetected", NotSuitable: "detected", "Not Suitable": "detected",
   Conforms: "notDetected", DoesNotConform: "detected", "Does Not Conform": "detected",
   Prepared: "info", InUse: "action", "In Use": "action", Discarded: "pending",
-  Valid: "notDetected", Invalid: "detected"
+  Valid: "notDetected", Invalid: "detected",
+
+  // HPLC workspace (instrument state, run/sample status, review flags).
+  Abandoned: "pending", Available: "notDetected", Unavailable: "detected",
+  Removed: "pending", RequiresReview: "action"
 };
 
 export function statusTone(status: string): StatusTone {

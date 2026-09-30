@@ -8,7 +8,6 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  Chip,
   Table,
   TableBody,
   TableCell,
@@ -27,7 +26,9 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
-import { ReplicateEntryTable } from "./ReplicateEntryTable";
+import { NumericCell, ResultSection } from "../../../components/lab";
+import { StatusBadge } from "../../../components/StatusBadge";
+import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
 import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummaryCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
@@ -133,6 +134,9 @@ export function HplcSampleEntryPage() {
   }
 
   const isEditable = sampleEntry.editable && canOperate;
+  const methodWeights = sampleEntry.methodWeights || [];
+  // Every weight and response must be a positive number before saving.
+  const canSave = replicatesComplete(methodWeights, replicates);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -168,20 +172,13 @@ export function HplcSampleEntryPage() {
                 {sampleEntry.sampleNumber}
               </Typography>
               <HplcStatusBadge status={sampleEntry.status} />
-              <Chip
-                label={`Basis: ${sampleEntry.basis}`}
-                color="primary"
-                size="small"
-                variant="outlined"
-              />
-              <Chip
+              <StatusBadge status="Prepared" label={`Basis: ${sampleEntry.basis}`} />
+              <HplcStatusBadge
+                status={sampleEntry.sstStatus}
                 label={`SST: ${sampleEntry.sstCode} (${sampleEntry.sstStatus})`}
-                color={sampleEntry.sstStatus === "Passed" ? "success" : "warning"}
-                size="small"
-                variant="outlined"
               />
               {sampleEntry.submitted && (
-                <Chip label="Submitted for Review" color="success" size="small" />
+                <StatusBadge status="Completed" label="Submitted for Review" />
               )}
             </Box>
 
@@ -201,7 +198,7 @@ export function HplcSampleEntryPage() {
               color="primary"
               startIcon={<SaveIcon />}
               onClick={handleSaveReplicates}
-              disabled={!isEditable || saving}
+              disabled={!isEditable || saving || !canSave}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
               {saving ? "Saving..." : "Save Replicates"}
@@ -233,78 +230,95 @@ export function HplcSampleEntryPage() {
       </Paper>
 
       <Stack spacing={2.5}>
-        {/* Method Theoretical Weights snapshot */}
-        {sampleEntry.methodWeights && sampleEntry.methodWeights.length > 0 && (
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: 2,
-              border: `1px solid ${theme.palette.divider}`,
-              overflow: "hidden"
-            }}
-          >
-            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Method Theoretical Weights
-              </Typography>
-            </Box>
-            <TableContainer>
+        {/* 1. Method theoretical weights snapshot */}
+        <ResultSection step={1} title="Method & theoretical weights">
+          {methodWeights.length > 0 ? (
+            <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell>Analyte</TableCell>
-                    <TableCell>Theoretical Weight Std (mg)</TableCell>
-                    <TableCell>Theoretical Weight Test (mg)</TableCell>
+                    <TableCell align="right">Theoretical Weight Std</TableCell>
+                    <TableCell align="right">Theoretical Weight Test</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sampleEntry.methodWeights.map((mw) => (
+                  {methodWeights.map((mw) => (
                     <TableRow key={mw.hplcMethodAnalyteId}>
                       <TableCell sx={{ fontWeight: 600 }}>{mw.analyteName}</TableCell>
-                      <TableCell>{mw.theoreticalWeightStdMg}</TableCell>
-                      <TableCell>{mw.theoreticalWeightTestMg}</TableCell>
+                      <TableCell align="right">
+                        <NumericCell value={mw.theoreticalWeightStdMg} unit="mg" />
+                      </TableCell>
+                      <TableCell align="right">
+                        <NumericCell value={mw.theoreticalWeightTestMg} unit="mg" />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
-        )}
+          ) : (
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              No method theoretical weights are configured for this test.
+            </Typography>
+          )}
+        </ResultSection>
 
-        {/* Replicate Entry Table */}
-        <ReplicateEntryTable
-          methodWeights={sampleEntry.methodWeights || []}
-          replicates={replicates}
-          onChange={setReplicates}
-          requiredReplicates={sampleEntry.requiredReplicates}
-          disabled={!isEditable || saving}
-        />
-
-        {/* Results: Official results when submitted, otherwise Calculation Summary Preview */}
-        {sampleEntry.submitted ? (
-          <OfficialResultsCard
-            official={sampleEntry.official || []}
-            basis={sampleEntry.basis}
+        {/* 2. Replicate entry */}
+        <ResultSection step={2} title="Replicates">
+          <ReplicateEntryTable
+            methodWeights={methodWeights}
+            replicates={replicates}
+            onChange={setReplicates}
+            requiredReplicates={sampleEntry.requiredReplicates}
+            disabled={!isEditable || saving}
+            footer={
+              <Box
+                sx={{
+                  position: "sticky",
+                  bottom: 0,
+                  zIndex: 1,
+                  mt: 1.5,
+                  py: 1.25,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  gap: 1.5,
+                  bgcolor: "background.paper",
+                  borderTop: `1px solid ${theme.palette.divider}`
+                }}
+              >
+                {isEditable && !canSave && (
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    Enter a positive weight and response in every cell to save.
+                  </Typography>
+                )}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  onClick={handleSaveReplicates}
+                  disabled={!isEditable || saving || !canSave}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  {saving ? "Saving..." : "Save Replicates"}
+                </Button>
+              </Box>
+            }
           />
-        ) : (
-          <CalculationSummaryCard
-            preview={sampleEntry.preview || []}
-            basis={sampleEntry.basis}
-          />
-        )}
+        </ResultSection>
 
-        {/* Chromatogram / Evidence Upload Panel */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            border: `1px solid ${theme.palette.divider}`
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-            Sample Chromatograms & Reports
-          </Typography>
+        {/* 3. Results: Official when submitted, otherwise the server-calculated preview */}
+        <ResultSection step={3} title={sampleEntry.submitted ? "Results (official)" : "Results (preview)"}>
+          {sampleEntry.submitted ? (
+            <OfficialResultsCard official={sampleEntry.official || []} basis={sampleEntry.basis} />
+          ) : (
+            <CalculationSummaryCard preview={sampleEntry.preview || []} basis={sampleEntry.basis} />
+          )}
+        </ResultSection>
+
+        {/* 4. Chromatogram / evidence upload */}
+        <ResultSection step={4} title="Evidence: chromatograms & reports">
           <ReportUploadPanel
             runId={parsedRunId || sampleEntry.hplcRunId}
             runSampleId={sampleEntry.runSampleId}
@@ -313,7 +327,7 @@ export function HplcSampleEntryPage() {
             evidenceList={sampleEntry.evidence || []}
             onChanged={loadData}
           />
-        </Paper>
+        </ResultSection>
       </Stack>
 
       {/* Send for Review Dialog */}

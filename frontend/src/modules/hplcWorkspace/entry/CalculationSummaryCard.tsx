@@ -1,6 +1,5 @@
 import {
   Box,
-  Paper,
   Typography,
   Table,
   TableBody,
@@ -8,13 +7,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   Alert,
   useTheme
 } from "@mui/material";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import { StatusBadge } from "../../../components/StatusBadge";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { HplcPreviewResultDto, HplcOfficialResultDto } from "../types";
@@ -31,52 +27,13 @@ export function OfficialResultsCard({
   const theme = useTheme();
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        overflow: "hidden"
-      }}
-    >
-      <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1.5,
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}
-      >
-        <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Official Results
-            </Typography>
-            {basis && (
-              <Chip
-                icon={<ScienceOutlinedIcon fontSize="small" />}
-                label={`Basis: ${basis}`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            )}
-            <Chip
-              icon={<CheckCircleOutlinedIcon fontSize="small" />}
-              label="Official — Recorded for Review"
-              size="small"
-              color="success"
-              variant="filled"
-              sx={{ fontWeight: 700 }}
-            />
-          </Box>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            These are the recorded results sent for review.
-          </Typography>
-        </Box>
+    <Box>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
+        {basis && <StatusBadge status="Prepared" label={`Basis: ${basis}`} />}
+        <StatusBadge status="Completed" label="Official — Recorded for Review" />
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          These are the recorded results sent for review.
+        </Typography>
       </Box>
 
       {official.length === 0 ? (
@@ -93,7 +50,7 @@ export function OfficialResultsCard({
                 <TableCell>Parameter</TableCell>
                 <TableCell>Quantity</TableCell>
                 <TableCell>Replicate / Level</TableCell>
-                <TableCell>Result</TableCell>
+                <TableCell align="right">Result</TableCell>
                 <TableCell>Spec Limit</TableCell>
                 <TableCell>Status</TableCell>
               </TableRow>
@@ -122,17 +79,12 @@ export function OfficialResultsCard({
                     <TableCell>{quantityLabel}</TableCell>
                     <TableCell>
                       {isReported ? (
-                        <Chip
-                          label="Reported Result"
-                          size="small"
-                          color="info"
-                          variant="outlined"
-                        />
+                        <StatusBadge status="Assigned" label="Reported Result" />
                       ) : (
                         `Replicate #${o.replicateNo}`
                       )}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontFamily: "monospace" }}>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                       {o.display}
                     </TableCell>
                     <TableCell>{o.specLimit ?? "—"}</TableCell>
@@ -147,12 +99,7 @@ export function OfficialResultsCard({
         </TableContainer>
       )}
 
-      <Box sx={{ p: 1.5, backgroundColor: theme.palette.action.hover, borderTop: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-          * These are the recorded results sent for review.
-        </Typography>
-      </Box>
-    </Paper>
+    </Box>
   );
 }
 
@@ -176,50 +123,13 @@ export function CalculationSummaryCard({
   }
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        overflow: "hidden"
-      }}
-    >
-      <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1.5,
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}
-      >
-        <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Calculation Summary
-            </Typography>
-            <Chip
-              icon={<ScienceOutlinedIcon fontSize="small" />}
-              label={`Basis: ${basis}`}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
-            <Chip
-              icon={<VisibilityOutlinedIcon fontSize="small" />}
-              label="Preview — not the official result"
-              size="small"
-              color="warning"
-              variant="filled"
-              sx={{ fontWeight: 700 }}
-            />
-          </Box>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Calculations are computed server-side from current SST calibration and replicate inputs.
-          </Typography>
-        </Box>
+    <Box>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
+        <StatusBadge status="Prepared" label={`Basis: ${basis}`} />
+        <StatusBadge status="Pending Review" label="Preview — not the official result" />
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Calculations are computed server-side from current SST calibration and replicate inputs.
+        </Typography>
       </Box>
 
       {preview.length === 0 ? (
@@ -236,7 +146,7 @@ export function CalculationSummaryCard({
                 <TableCell>Parameter</TableCell>
                 <TableCell>Quantity</TableCell>
                 <TableCell>Replicate / Level</TableCell>
-                <TableCell>Value (Display)</TableCell>
+                <TableCell align="right">Value</TableCell>
                 <TableCell>Unit</TableCell>
                 <TableCell>Spec Limit</TableCell>
                 <TableCell>Status</TableCell>
@@ -266,17 +176,12 @@ export function CalculationSummaryCard({
                     <TableCell>{quantityLabel}</TableCell>
                     <TableCell>
                       {isReported ? (
-                        <Chip
-                          label="Reported Result"
-                          size="small"
-                          color="info"
-                          variant="outlined"
-                        />
+                        <StatusBadge status="Assigned" label="Reported Result" />
                       ) : (
                         `Replicate #${p.replicateNo}`
                       )}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontFamily: "monospace" }}>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                       {p.display}
                     </TableCell>
                     <TableCell>{p.unit || "—"}</TableCell>
@@ -293,12 +198,10 @@ export function CalculationSummaryCard({
       )}
 
       {preview.length > 0 && (
-        <Box sx={{ p: 1.5, backgroundColor: theme.palette.action.hover, borderTop: `1px solid ${theme.palette.divider}` }}>
-          <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-            * Preview results are provisional. Official results are finalized when signed and submitted for review.
-          </Typography>
-        </Box>
+        <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+          * Preview results are provisional. Official results are finalized when signed and submitted for review.
+        </Typography>
       )}
-    </Paper>
+    </Box>
   );
 }

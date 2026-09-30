@@ -27,6 +27,7 @@ import { ReportUploadPanel } from "./ReportUploadPanel";
 import { SupersedeEvidenceDialog } from "./SupersedeEvidenceDialog";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { tableHeadSx } from "../../../theme";
+import { StatusBadge } from "../../../components/StatusBadge";
 import type { HplcRunDto, HplcEvidenceDto } from "../types";
 
 export interface ChromatogramEvidencePanelProps {
@@ -162,11 +163,7 @@ export function ChromatogramEvidencePanel({
                         {new Date(e.uploadedAt).toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        {e.isCurrent ? (
-                          <Chip label="Current" size="small" color="success" />
-                        ) : (
-                          <Chip label="Superseded" size="small" color="default" />
-                        )}
+                        <StatusBadge status={e.isCurrent ? "Active" : "Superseded"} label={e.isCurrent ? "Current" : "Superseded"} />
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>

@@ -1,6 +1,7 @@
+import { useRef, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import {
   Box,
-  Paper,
   Typography,
   Button,
   Table,
@@ -10,14 +11,15 @@ import {
   TableHead,
   TableRow,
   TextField,
+  InputAdornment,
   IconButton,
-  Chip,
   Tooltip,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import { tableHeadSx } from "../../../theme";
+import { StatusBadge } from "../../../components/StatusBadge";
 import type { HplcMethodWeightDto, HplcReplicateDto } from "../types";
 
 export interface ReplicateEntryTableProps {
@@ -26,125 +28,131 @@ export interface ReplicateEntryTableProps {
   onChange: (replicates: HplcReplicateDto[]) => void;
   requiredReplicates?: number | null;
   disabled?: boolean;
+  // Rendered under the table (the page puts the sticky Save button here).
+  footer?: ReactNode;
 }
+
+const isPositive = (n: number | undefined) => typeof n === "number" && Number.isFinite(n) && n > 0;
+
+// True when every weight and every analyte response is a positive number.
+// A cleared cell is held as 0 in the model, so it counts as missing.
+export function replicatesComplete(methodWeights: HplcMethodWeightDto[], replicates: HplcReplicateDto[]): boolean {
+  if (replicates.length === 0) return false;
+  return replicates.every(
+    (rep) =>
+      isPositive(rep.actualWeightMg) &&
+      methodWeights.every((mw) =>
+        isPositive(rep.responses.find((r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId)?.response)
+      )
+  );
+}
+
+const parseDraft = (draft: string): number => {
+  if (draft.trim() === "") return 0;
+  const n = parseFloat(draft);
+  return Number.isNaN(n) ? 0 : n;
+};
 
 export function ReplicateEntryTable({
   methodWeights,
   replicates,
   onChange,
   requiredReplicates,
-  disabled = false
+  disabled = false,
+  footer
 }: ReplicateEntryTableProps) {
   const theme = useTheme();
+  const tableRef = useRef<HTMLDivElement>(null);
+  // Per-cell text as typed, so a cleared cell stays empty instead of showing 0.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const weightKey = (repNo: number) => `${repNo}:w`;
+  const respKey = (repNo: number, analyteId: number) => `${repNo}:a${analyteId}`;
+
+  // A draft is only shown while it still matches the model value; after a
+  // server refresh (or row removal) the model value wins.
+  const cellText = (key: string, modelValue: number): string => {
+    const draft = drafts[key];
+    if (draft !== undefined && parseDraft(draft) === modelValue) return draft;
+    return modelValue === 0 ? "" : String(modelValue);
+  };
+
+  const setDraft = (key: string, value: string) => setDrafts((d) => ({ ...d, [key]: value }));
 
   const handleAddRow = () => {
     const nextNo = replicates.length + 1;
-    const initialResponses = methodWeights.map((mw) => ({
-      hplcMethodAnalyteId: mw.hplcMethodAnalyteId,
-      response: 0
-    }));
-
     const newReplicate: HplcReplicateDto = {
       replicateNo: nextNo,
       actualWeightMg: 0,
-      responses: initialResponses
+      responses: methodWeights.map((mw) => ({ hplcMethodAnalyteId: mw.hplcMethodAnalyteId, response: 0 }))
     };
-
     onChange([...replicates, newReplicate]);
   };
 
   const handleRemoveRow = (indexToRemove: number) => {
+    setDrafts({});
     const updated = replicates
       .filter((_, idx) => idx !== indexToRemove)
-      .map((rep, idx) => ({
-        ...rep,
-        replicateNo: idx + 1
-      }));
+      .map((rep, idx) => ({ ...rep, replicateNo: idx + 1 }));
     onChange(updated);
   };
 
   const handleWeightChange = (index: number, rawVal: string) => {
-    const parsed = rawVal === "" ? 0 : parseFloat(rawVal);
-    const updated = replicates.map((rep, idx) => {
-      if (idx !== index) return rep;
-      return {
-        ...rep,
-        actualWeightMg: isNaN(parsed) ? 0 : parsed
-      };
-    });
-    onChange(updated);
+    setDraft(weightKey(replicates[index].replicateNo), rawVal);
+    const parsed = parseDraft(rawVal);
+    onChange(replicates.map((rep, idx) => (idx !== index ? rep : { ...rep, actualWeightMg: parsed })));
   };
 
-  const handleResponseChange = (
-    repIndex: number,
-    analyteId: number,
-    rawVal: string
-  ) => {
-    const parsed = rawVal === "" ? 0 : parseFloat(rawVal);
+  const handleResponseChange = (repIndex: number, analyteId: number, rawVal: string) => {
+    setDraft(respKey(replicates[repIndex].replicateNo, analyteId), rawVal);
+    const parsed = parseDraft(rawVal);
     const updated = replicates.map((rep, idx) => {
       if (idx !== repIndex) return rep;
-
-      const existingResp = rep.responses.find((r) => r.hplcMethodAnalyteId === analyteId);
-      const otherResponses = rep.responses.filter((r) => r.hplcMethodAnalyteId !== analyteId);
-
-      const newResp = {
-        hplcMethodAnalyteId: analyteId,
-        response: isNaN(parsed) ? 0 : parsed
-      };
-
-      const finalResponses = existingResp
-        ? rep.responses.map((r) => (r.hplcMethodAnalyteId === analyteId ? newResp : r))
-        : [...otherResponses, newResp];
-
+      const exists = rep.responses.some((r) => r.hplcMethodAnalyteId === analyteId);
+      const newResp = { hplcMethodAnalyteId: analyteId, response: parsed };
       return {
         ...rep,
-        responses: finalResponses
+        responses: exists
+          ? rep.responses.map((r) => (r.hplcMethodAnalyteId === analyteId ? newResp : r))
+          : [...rep.responses, newResp]
       };
     });
     onChange(updated);
   };
 
+  // Enter moves to the same column in the next replicate.
+  const handleEnter = (e: KeyboardEvent, col: string, rowIdx: number) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const next = tableRef.current?.querySelector<HTMLInputElement>(`input[data-cell="${col}-${rowIdx + 1}"]`);
+    next?.focus();
+    next?.select();
+  };
+
+  const helper = (value: number): string | undefined => {
+    if (disabled) return undefined;
+    if (value === 0) return "Required";
+    if (!(value > 0)) return "Must be > 0";
+    return undefined;
+  };
+
+  const cellSx = { width: "100%", maxWidth: 200, "& input": { textAlign: "right", fontVariantNumeric: "tabular-nums" } };
+
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        overflow: "hidden"
-      }}
-    >
-      <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1.5,
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}
-      >
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5, mb: 1.5 }}>
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Replicate Injections & Weigh-in
-            </Typography>
             {requiredReplicates !== undefined && requiredReplicates !== null && (
-              <Chip
+              <StatusBadge
+                status={replicates.length >= requiredReplicates ? "Completed" : "Pending"}
                 label={`Required: ${requiredReplicates}`}
-                size="small"
-                color={replicates.length >= requiredReplicates ? "success" : "default"}
-                variant="outlined"
               />
             )}
-            <Chip
-              label={`${replicates.length} entered`}
-              size="small"
-              variant="outlined"
-            />
+            <StatusBadge status="Pending" label={`${replicates.length} entered`} />
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Record actual test weight (mg) and peak response per analyte for each replicate injection.
+            Record actual test weight (mg) and peak response per analyte for each replicate injection. Press Enter to move to the next replicate.
           </Typography>
         </Box>
 
@@ -161,20 +169,18 @@ export function ReplicateEntryTable({
         </Button>
       </Box>
 
-      <TableContainer>
+      <TableContainer ref={tableRef} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
         <Table size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ width: 80 }}>Rep #</TableCell>
-              <TableCell sx={{ minWidth: 160 }}>Actual Weight (mg) *</TableCell>
+              <TableCell align="right" sx={{ minWidth: 160 }}>Actual Weight *</TableCell>
               {methodWeights.map((mw) => (
-                <TableCell key={mw.hplcMethodAnalyteId} sx={{ minWidth: 180 }}>
+                <TableCell key={mw.hplcMethodAnalyteId} align="right" sx={{ minWidth: 180 }}>
                   {mw.analyteName} Response *
                 </TableCell>
               ))}
-              <TableCell align="right" sx={{ width: 60 }}>
-                Action
-              </TableCell>
+              <TableCell align="right" sx={{ width: 60 }}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -190,46 +196,49 @@ export function ReplicateEntryTable({
             ) : (
               replicates.map((rep, repIdx) => (
                 <TableRow key={rep.replicateNo} hover>
-                  <TableCell sx={{ fontWeight: 700 }}>
-                    #{rep.replicateNo}
-                  </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>#{rep.replicateNo}</TableCell>
+                  <TableCell align="right">
                     <TextField
                       type="number"
                       size="small"
-                      fullWidth
-                      value={rep.actualWeightMg === 0 ? "" : rep.actualWeightMg}
+                      value={cellText(weightKey(rep.replicateNo), rep.actualWeightMg)}
                       onChange={(e) => handleWeightChange(repIdx, e.target.value)}
+                      onKeyDown={(e) => handleEnter(e, "w", repIdx)}
                       placeholder="0.00"
                       disabled={disabled}
-                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                      sx={{ maxWidth: 160 }}
+                      error={!disabled && !isPositive(rep.actualWeightMg)}
+                      helperText={helper(rep.actualWeightMg)}
+                      slotProps={{
+                        htmlInput: { min: 0, step: "any", "data-cell": `w-${repIdx}`, "aria-label": `Replicate ${rep.replicateNo} actual weight (mg)` },
+                        input: { endAdornment: <InputAdornment position="end">mg</InputAdornment> }
+                      }}
+                      sx={cellSx}
                     />
                   </TableCell>
                   {methodWeights.map((mw) => {
-                    const respObj = rep.responses.find(
-                      (r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId
-                    );
-                    const val = respObj ? respObj.response : 0;
-
+                    const val =
+                      rep.responses.find((r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId)?.response ?? 0;
                     return (
-                      <TableCell key={mw.hplcMethodAnalyteId}>
+                      <TableCell key={mw.hplcMethodAnalyteId} align="right">
                         <TextField
                           type="number"
                           size="small"
-                          fullWidth
-                          value={val === 0 ? "" : val}
-                          onChange={(e) =>
-                            handleResponseChange(
-                              repIdx,
-                              mw.hplcMethodAnalyteId,
-                              e.target.value
-                            )
-                          }
+                          value={cellText(respKey(rep.replicateNo, mw.hplcMethodAnalyteId), val)}
+                          onChange={(e) => handleResponseChange(repIdx, mw.hplcMethodAnalyteId, e.target.value)}
+                          onKeyDown={(e) => handleEnter(e, `a${mw.hplcMethodAnalyteId}`, repIdx)}
                           placeholder="0.00"
                           disabled={disabled}
-                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                          sx={{ maxWidth: 180 }}
+                          error={!disabled && !isPositive(val)}
+                          helperText={helper(val)}
+                          slotProps={{
+                            htmlInput: {
+                              min: 0,
+                              step: "any",
+                              "data-cell": `a${mw.hplcMethodAnalyteId}-${repIdx}`,
+                              "aria-label": `Replicate ${rep.replicateNo} ${mw.analyteName} response`
+                            }
+                          }}
+                          sx={cellSx}
                         />
                       </TableCell>
                     );
@@ -254,6 +263,7 @@ export function ReplicateEntryTable({
           </TableBody>
         </Table>
       </TableContainer>
-    </Paper>
+      {footer}
+    </Box>
   );
 }

@@ -1,320 +1,299 @@
-import { Fragment, useEffect, useState } from "react";
-import {
-  Paper, Stack, TextField, Select, MenuItem, Button, Typography, Alert, Box,
-  Table, TableHead, TableRow, TableCell, TableBody, IconButton, Collapse
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
-import { TestCodePickerMulti } from "../../../components/TestCodePickerMulti";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { ConfigMasterList, MasterListItem, SummaryTiles } from "../../../components/configHierarchy";
 import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { WaterConfigService } from "./services/WaterConfigService";
-import { tableHeadSx } from "../../../theme";
+import { WaterLocationList } from "./components/WaterLocationList";
+import { WaterDepartmentPanel } from "./components/WaterDepartmentPanel";
+import { WaterLocationPanel } from "./components/WaterLocationPanel";
+import { PointHealth, SamplingConfig, SamplingPoint, WaterDept, needsAttention, plural, pointHealth } from "./waterConfigTypes";
 
-interface SamplingPoint { id: number; version?: number; code: string; location: string; testingFrequency: string; assignedTestCodes: string[]; waterDepartmentId: number | null }
-interface WaterDept { id: number; version?: number; name: string; samplingPoints: SamplingPoint[] }
+type Filter = "all" | "attention";
 
-// Per-sample-location limit rows. Only CountTest-typed assigned tests
-// (TAMC-Water/TYMC) get Alert/Action/Spec - pathogens are presence/
-// absence. Mirrors EMConfigPage's RoomTestConfigSection.
-function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
+// Water systems -> sample locations -> assigned tests and per-count-test
+// limits, read by WaterWorkflowEngine on every water sample receipt
+// (assigned tests) and calculation (limits). Master/detail: systems on
+// the left, the selected system's locations on the right, every add/edit
+// in a side panel.
+export function WaterConfigPage() {
   const { options } = useTestDefinitions();
-  const [configs, setConfigs] = useState<any[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<Record<string, any>>({});
-  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<WaterDept[]>([]);
+  const [configsByPoint, setConfigsByPoint] = useState<Record<number, SamplingConfig[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const countTestCodes = point.assignedTestCodes.filter(
-    (code) => options.find((o) => o.code === code)?.workflowType === "CountTest"
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const [deptPanel, setDeptPanel] = useState<{ open: boolean; dept: WaterDept | null }>({ open: false, dept: null });
+  const [pointPanel, setPointPanel] = useState<{ open: boolean; point: SamplingPoint | null }>({ open: false, point: null });
+  const [pendingDeleteDept, setPendingDeleteDept] = useState<WaterDept | null>(null);
+  const [pendingDeletePoint, setPendingDeletePoint] = useState<SamplingPoint | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const depts: WaterDept[] = await WaterConfigService.getWaterDepartments();
+      const points = depts.flatMap((d) => d.samplingPoints ?? []);
+      // No bulk endpoint - one request per location, in parallel.
+      const configs = await Promise.all(
+        points.map((p) => WaterConfigService.getSamplingConfigurations(p.id).catch(() => [] as SamplingConfig[]))
+      );
+      setDepartments(depts);
+      setConfigsByPoint(Object.fromEntries(points.map((p, i) => [p.id, configs[i] ?? []])));
+      setLoadError(null);
+      setSelectedDeptId((current) => (current != null && depts.some((d) => d.id === current) ? current : depts[0]?.id ?? null));
+    } catch (e: any) {
+      setLoadError(e?.response?.data?.message ?? "Could not load the water configuration.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const isCountTest = useCallback(
+    (code: string) => options.find((o) => o.code === code)?.workflowType === "CountTest",
+    [options]
+  );
+  const testName = useCallback((code: string) => options.find((o) => o.code === code)?.displayName || code, [options]);
+
+  const allPoints = useMemo(() => departments.flatMap((d) => d.samplingPoints ?? []), [departments]);
+  const healthByPoint = useMemo(
+    () => Object.fromEntries(allPoints.map((p) => [p.id, pointHealth(p, configsByPoint[p.id] ?? [], isCountTest)])) as Record<number, PointHealth>,
+    [allPoints, configsByPoint, isCountTest]
   );
 
-  const load = () => WaterConfigService.getSamplingConfigurations(point.id).then(setConfigs);
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [point.id]);
+  const q = search.trim().toLowerCase();
+  const matchesPoint = (p: SamplingPoint) => !q || p.code.toLowerCase().includes(q) || (p.location ?? "").toLowerCase().includes(q);
 
-  const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const startEdit = (c: any) => {
-    setEditingId(c.id);
-    setForm({ testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit, unit: c.unit });
-    setError(null);
-  };
-  const cancelEdit = () => { setEditingId(null); setForm({}); };
+  const listItems: MasterListItem[] = departments
+    .filter((d) => !q || d.name.toLowerCase().includes(q) || (d.samplingPoints ?? []).some(matchesPoint))
+    .map((d) => {
+      const pts = d.samplingPoints ?? [];
+      const attention = pts.filter((p) => healthByPoint[p.id] && needsAttention(healthByPoint[p.id])).length;
+      return {
+        id: d.id,
+        title: d.name,
+        subtitle: pts.length === 0 ? "No locations yet" : plural(pts.length, "location"),
+        badge: pts.length === 0 ? undefined : attention > 0 ? { label: `${attention} need${attention === 1 ? "s" : ""} attention`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
+      };
+    });
 
-  const save = async () => {
-    setError(null);
-    if (!form.testCode) { setError("Select a count test."); return; }
-    try {
-      if (editingId) {
-        await WaterConfigService.updateSamplingConfiguration(editingId, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
-      } else {
-        await WaterConfigService.createSamplingConfiguration(point.id, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
-      }
-      cancelEdit();
-      load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not save this configuration.");
-    }
-  };
+  const selectedDept = departments.find((d) => d.id === selectedDeptId) ?? null;
+  const deptPoints = (selectedDept?.samplingPoints ?? []).filter(matchesPoint);
+  const attentionPoints = deptPoints.filter((p) => healthByPoint[p.id] && needsAttention(healthByPoint[p.id]));
+  const shownPoints = filter === "attention" ? attentionPoints : deptPoints;
 
-  const remove = async (id: number) => {
-    await WaterConfigService.deleteSamplingConfiguration(id);
-    setPendingDelete(null);
+  const missingLimitsCount = allPoints.filter((p) => (healthByPoint[p.id]?.missingLimitCodes.length ?? 0) > 0).length;
+  const noTestsCount = allPoints.filter((p) => healthByPoint[p.id]?.noTests).length;
+
+  const afterSave = (text: string, selectId?: number) => {
+    setDeptPanel({ open: false, dept: null });
+    setPointPanel({ open: false, point: null });
+    setMessage({ text, ok: true });
+    if (selectId != null) setSelectedDeptId(selectId);
     load();
   };
 
-  return (
-    <Box sx={{ p: 2, bgcolor: "background.default" }}>
-      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-      {configs.length > 0 ? (
-        <Table size="small" sx={{ mb: 1.5 }}>
-          <TableHead>
-            <TableRow sx={tableHeadSx}><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Specification</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
-          </TableHead>
-          <TableBody>
-            {configs.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>{c.testCode}</TableCell>
-                <TableCell>{c.alertLimit || "—"}</TableCell>
-                <TableCell>{c.actionLimit || "—"}</TableCell>
-                <TableCell>{c.specLimit || "—"}</TableCell>
-                <TableCell>{c.unit || "—"}</TableCell>
-                <TableCell align="right">
-                  <IconButton size="small" onClick={() => startEdit(c)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setPendingDelete(c)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            mb: 1.5
-          }}>No limits configured yet for this location.</Typography>
-      )}
-
-      {countTestCodes.length === 0 ? (
-        <Typography variant="body2" sx={{
-          color: "text.secondary"
-        }}>Assign a count test (e.g. TAMC-Water) to this location to set Alert/Action/Specification limits.</Typography>
-      ) : (
-        <>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>{editingId ? "Edit Limits" : "Add Limits"}</Typography>
-          <Stack
-            direction="row"
-            spacing={1.5}
-            sx={{
-              flexWrap: "wrap",
-              alignItems: "center"
-            }}>
-            <Select size="small" displayEmpty value={form.testCode ?? ""} onChange={(e) => setField("testCode", e.target.value)} sx={{ minWidth: 180 }}>
-              <MenuItem value=""><em>Count Test</em></MenuItem>
-              {countTestCodes.map((code) => <MenuItem key={code} value={code}>{code}</MenuItem>)}
-            </Select>
-            <TextField size="small" placeholder="Alert" value={form.alertLimit ?? ""} onChange={(e) => setField("alertLimit", e.target.value)} sx={{ width: 100 }} />
-            <TextField size="small" placeholder="Action" value={form.actionLimit ?? ""} onChange={(e) => setField("actionLimit", e.target.value)} sx={{ width: 100 }} />
-            <TextField size="small" placeholder="Specification" value={form.specLimit ?? ""} onChange={(e) => setField("specLimit", e.target.value)} sx={{ width: 120 }} />
-            <TextField size="small" placeholder="Unit (e.g. mL)" value={form.unit ?? ""} onChange={(e) => setField("unit", e.target.value)} sx={{ width: 110 }} />
-            {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
-            <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add"}</Button>
-          </Stack>
-        </>
-      )}
-
-      <ConfirmationDialog
-        open={pendingDelete != null}
-        message={pendingDelete ? `Delete the ${pendingDelete.testCode} limits for this location?` : ""}
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => pendingDelete && remove(pendingDelete.id)}
-      />
-    </Box>
-  );
-}
-
-// Sampling Points + their assigned tests + per-count-test limits - read
-// by WaterWorkflowEngine on every water sample receipt (assigned tests)
-// and calculation (limits). Mirrors EMConfigPage's Department -> Room ->
-// per-test-limits hierarchy.
-export function WaterConfigPage() {
-  const [departments, setDepartments] = useState<WaterDept[]>([]);
-  const [deptForm, setDeptForm] = useState<Record<string, any>>({});
-  const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
-  const [pendingDeleteDept, setPendingDeleteDept] = useState<WaterDept | null>(null);
-
-  const [pointForm, setPointForm] = useState<Record<string, any>>({ testCodes: [] });
-  const [editingPointId, setEditingPointId] = useState<number | null>(null);
-  const [pendingDeletePoint, setPendingDeletePoint] = useState<SamplingPoint | null>(null);
-
-  const [expandedDeptId, setExpandedDeptId] = useState<number | null>(null);
-  const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-
-  const load = () => WaterConfigService.getWaterDepartments().then(setDepartments).catch(() => setDepartments([]));
-  useEffect(() => { load(); }, []);
-
-  const cancelDeptEdit = () => { setEditingDeptId(null); setDeptForm({}); };
-  const startDeptEdit = (d: WaterDept) => { setEditingDeptId(d.id); setDeptForm({ name: d.name }); setMessage(null); };
-  const saveDept = async () => {
-    setMessage(null);
-    try {
-      if (editingDeptId) { await WaterConfigService.updateWaterDepartment(editingDeptId, deptForm.name, departments.find((d) => d.id === editingDeptId)?.version); setMessage({ text: "Department updated.", ok: true }); }
-      else { await WaterConfigService.createWaterDepartment(deptForm.name); setMessage({ text: "Department created.", ok: true }); }
-      cancelDeptEdit(); load();
-    } catch (e: any) { setMessage({ text: e?.response?.data?.message ?? "Could not save this department.", ok: false }); }
-  };
   const deleteDept = async (d: WaterDept) => {
+    setPendingDeleteDept(null);
     setMessage(null);
-    try { await WaterConfigService.deleteWaterDepartment(d.id); setPendingDeleteDept(null); load(); }
-    catch (e: any) { setPendingDeleteDept(null); setMessage({ text: e?.response?.data?.message ?? "Could not delete this department.", ok: false }); }
+    try {
+      await WaterConfigService.deleteWaterDepartment(d.id);
+      setMessage({ text: `"${d.name}" deleted.`, ok: true });
+      load();
+    } catch (e: any) {
+      setMessage({ text: e?.response?.data?.message ?? "Could not delete this water system.", ok: false });
+    }
   };
 
-  const cancelPointEdit = () => { setEditingPointId(null); setPointForm({ testCodes: [] }); };
-  const startPointEdit = (p: SamplingPoint) => { setEditingPointId(p.id); setPointForm({ code: p.code, location: p.location, frequency: p.testingFrequency, departmentId: p.waterDepartmentId, testCodes: p.assignedTestCodes }); setMessage(null); };
-  const savePoint = async () => {
-    setMessage(null);
-    if (!pointForm.code || !pointForm.departmentId) { setMessage({ text: "Point Code and Department are required.", ok: false }); return; }
-    try {
-      if (editingPointId) { await WaterConfigService.updateSamplingPoint(editingPointId, pointForm.code, pointForm.location ?? "", pointForm.frequency ?? "", pointForm.testCodes ?? [], Number(pointForm.departmentId), departments.flatMap((d) => d.samplingPoints ?? []).find((p) => p.id === editingPointId)?.version); setMessage({ text: "Sample location updated.", ok: true }); }
-      else { await WaterConfigService.createSamplingPoint(pointForm.code, pointForm.location ?? "", pointForm.frequency ?? "", pointForm.testCodes ?? [], Number(pointForm.departmentId)); setMessage({ text: "Sample location created.", ok: true }); }
-      cancelPointEdit(); load();
-    } catch (e: any) { setMessage({ text: e?.response?.data?.message ?? "Could not save this sample location.", ok: false }); }
-  };
   const deletePoint = async (p: SamplingPoint) => {
+    setPendingDeletePoint(null);
     setMessage(null);
-    try { await WaterConfigService.deleteSamplingPoint(p.id); setPendingDeletePoint(null); load(); }
-    catch (e: any) { setPendingDeletePoint(null); setMessage({ text: e?.response?.data?.message ?? "Could not delete this sample location.", ok: false }); }
+    try {
+      await WaterConfigService.deleteSamplingPoint(p.id);
+      setMessage({ text: `Sample location ${p.code} deleted.`, ok: true });
+      load();
+    } catch (e: any) {
+      setMessage({ text: e?.response?.data?.message ?? "Could not delete this sample location.", ok: false });
+    }
   };
 
   return (
-    <>
-      <PageHeader title="Water" subtitle="Departments, sample locations, assigned tests, and per-location limits." />
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
-
-      <SectionTitle>{editingDeptId ? "Edit Department" : "New Department"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-          <TextField size="small" label="Name" value={deptForm.name ?? ""} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} />
-          {editingDeptId && <Button onClick={cancelDeptEdit}>Cancel</Button>}
-          <Button variant="outlined" onClick={saveDept}>{editingDeptId ? "Save Changes" : "Add Department"}</Button>
+    <Box sx={{ pb: 4 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
+        <PageHeader title="Water" subtitle="Water systems, their sample locations, assigned tests and per-location limits." />
+        <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
+          <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
+            Add water system
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            disabled={departments.length === 0}
+            onClick={() => setPointPanel({ open: true, point: null })}
+            sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+          >
+            Add sample location
+          </Button>
         </Stack>
-      </Paper>
+      </Stack>
 
-      <SectionTitle>{editingPointId ? "Edit Sample Location" : "New Sample Location"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-          <TextField size="small" label="Point Code" value={pointForm.code ?? ""} onChange={(e) => setPointForm({ ...pointForm, code: e.target.value })} />
-          <TextField size="small" label="Point Name" value={pointForm.location ?? ""} onChange={(e) => setPointForm({ ...pointForm, location: e.target.value })} />
-          <TextField size="small" label="Testing Frequency" value={pointForm.frequency ?? ""} onChange={(e) => setPointForm({ ...pointForm, frequency: e.target.value })} placeholder="e.g. Weekly" />
-          <Select size="small" displayEmpty value={pointForm.departmentId ?? ""} onChange={(e) => setPointForm({ ...pointForm, departmentId: e.target.value })} sx={{ minWidth: 180 }}>
-            <MenuItem value=""><em>Department</em></MenuItem>
-            {departments.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
-          </Select>
-          <TestCodePickerMulti value={pointForm.testCodes ?? []} onChange={(codes) => setPointForm({ ...pointForm, testCodes: codes })} label="Assigned Tests" sx={{ minWidth: 280 }} />
-          {editingPointId && <Button onClick={cancelPointEdit}>Cancel</Button>}
-          <Button variant="outlined" onClick={savePoint}>{editingPointId ? "Save Changes" : "Add Sample Location"}</Button>
-        </Stack>
-      </Paper>
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
+          {loadError}
+        </Alert>
+      )}
+      {message && (
+        <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
+          {message.text}
+        </Alert>
+      )}
 
-      <SectionTitle>Departments</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
-        <Table>
-          <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Department</TableCell><TableCell /></TableRow></TableHead>
-          <TableBody>
-            {departments.map((d) => (
-              <Fragment key={d.id}>
-                <TableRow>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => setExpandedDeptId(expandedDeptId === d.id ? null : d.id)} title="Sample Locations">
-                      {expandedDeptId === d.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{d.name}</TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" onClick={() => startDeptEdit(d)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => setPendingDeleteDept(d)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ p: 0, border: 0 }} colSpan={3}>
-                    <Collapse in={expandedDeptId === d.id} unmountOnExit>
-                      <Box sx={{ p: 2, bgcolor: "background.default" }}>
-                        {(d.samplingPoints ?? []).length === 0 ? (
-                          <Typography variant="body2" sx={{
-                            color: "text.secondary"
-                          }}>No sample locations yet.</Typography>
-                        ) : (
-                          <Table size="small">
-                            <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Location Code</TableCell><TableCell>Point Name</TableCell><TableCell>Testing Frequency</TableCell><TableCell>Assigned Tests</TableCell><TableCell /></TableRow></TableHead>
-                            <TableBody>
-                              {(d.samplingPoints ?? []).map((p) => (
-                                <Fragment key={p.id}>
-                                  <TableRow>
-                                    <TableCell>
-                                      <IconButton size="small" onClick={() => setExpandedPointId(expandedPointId === p.id ? null : p.id)} title="Limits">
-                                        {expandedPointId === p.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                                      </IconButton>
-                                    </TableCell>
-                                    <TableCell>{p.code}</TableCell>
-                                    <TableCell>{p.location || "—"}</TableCell>
-                                    <TableCell>{p.testingFrequency || "—"}</TableCell>
-                                    <TableCell>{(p.assignedTestCodes ?? []).join(", ") || "—"}</TableCell>
-                                    <TableCell align="right">
-                                      <IconButton size="small" onClick={() => startPointEdit(p)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                                      <IconButton size="small" color="error" onClick={() => setPendingDeletePoint(p)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell sx={{ p: 0, border: 0 }} colSpan={6}>
-                                      <Collapse in={expandedPointId === p.id} unmountOnExit>
-                                        <SamplingPointTestConfigSection point={p} />
-                                      </Collapse>
-                                    </TableCell>
-                                  </TableRow>
-                                </Fragment>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        )}
-                      </Box>
-                    </Collapse>
-                  </TableCell>
-                </TableRow>
-              </Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+      <SummaryTiles
+        tiles={[
+          { label: "Water systems", value: departments.length },
+          { label: "Sample locations", value: allPoints.length },
+          { label: "Missing limits", value: plural(missingLimitsCount, "location"), tone: missingLimitsCount > 0 ? "inconclusive" : undefined },
+          { label: "No tests assigned", value: plural(noTestsCount, "location"), tone: noTestsCount > 0 ? "inconclusive" : undefined }
+        ]}
+      />
+
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px minmax(0, 1fr)" }, gap: 2.5, alignItems: "start" }}>
+        <ConfigMasterList
+          searchLabel="Find a system or location"
+          searchPlaceholder="e.g. PW-02 or WFI"
+          search={search}
+          onSearchChange={setSearch}
+          items={listItems}
+          selectedId={selectedDeptId}
+          onSelect={(id) => {
+            setSelectedDeptId(id);
+            setFilter("all");
+          }}
+          loading={loading}
+          emptyText={q ? "Nothing matches your search." : "No water systems yet. Use “Add water system” to create one."}
+        />
+
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          {!selectedDept ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography sx={{ fontWeight: 600 }}>{loading ? "Loading..." : "Select a water system"}</Typography>
+            </Box>
+          ) : (
+            <>
+              <Stack direction="row" sx={{ px: 2.75, py: 2.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedDept.name}</Typography>
+                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                    {plural((selectedDept.samplingPoints ?? []).length, "sample location")}
+                  </Typography>
+                </Box>
+                <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })} sx={{ textTransform: "none" }}>
+                  Rename
+                </Button>
+                <Tooltip title="Delete water system">
+                  <IconButton aria-label={`Delete ${selectedDept.name}`} color="error" onClick={() => setPendingDeleteDept(selectedDept)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+
+              <Box sx={{ px: 2.75, pt: 1.75, pb: 2.75 }}>
+                {deptPoints.length > 0 && (
+                  <Stack direction="row" spacing={1} sx={{ mb: 1.75 }}>
+                    <Button
+                      size="small"
+                      variant={filter === "all" ? "contained" : "outlined"}
+                      aria-pressed={filter === "all"}
+                      onClick={() => setFilter("all")}
+                      sx={{ borderRadius: 999, textTransform: "none" }}
+                    >
+                      All ({deptPoints.length})
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={filter === "attention" ? "contained" : "outlined"}
+                      aria-pressed={filter === "attention"}
+                      onClick={() => setFilter("attention")}
+                      sx={{ borderRadius: 999, textTransform: "none" }}
+                    >
+                      Needs attention ({attentionPoints.length})
+                    </Button>
+                  </Stack>
+                )}
+
+                {shownPoints.length === 0 && (
+                  <Typography sx={{ fontSize: 14, color: "text.secondary", mb: 1.5 }}>
+                    {filter === "attention"
+                      ? "Every location here has its tests and limits set."
+                      : q
+                        ? "No locations here match your search."
+                        : "No sample locations yet."}
+                  </Typography>
+                )}
+
+                <WaterLocationList
+                  points={shownPoints}
+                  configsByPoint={configsByPoint}
+                  healthByPoint={healthByPoint}
+                  isCountTest={isCountTest}
+                  testName={testName}
+                  onEdit={(p) => setPointPanel({ open: true, point: p })}
+                  onDelete={setPendingDeletePoint}
+                  onAdd={() => setPointPanel({ open: true, point: null })}
+                  addLabel={`Add sample location to ${selectedDept.name}`}
+                />
+              </Box>
+            </>
+          )}
+        </Paper>
+      </Box>
+
+      <WaterDepartmentPanel
+        open={deptPanel.open}
+        dept={deptPanel.dept}
+        onClose={() => setDeptPanel({ open: false, dept: null })}
+        onSaved={afterSave}
+      />
+      <WaterLocationPanel
+        open={pointPanel.open}
+        point={pointPanel.point}
+        defaultDepartmentId={selectedDeptId}
+        departments={departments}
+        configs={pointPanel.point ? configsByPoint[pointPanel.point.id] ?? [] : []}
+        isCountTest={isCountTest}
+        onClose={() => {
+          setPointPanel({ open: false, point: null });
+          // A partly failed save may have written the location already.
+          load();
+        }}
+        onSaved={(text) => afterSave(text)}
+      />
 
       <ConfirmationDialog
+        destructive
         open={pendingDeleteDept != null}
-        message={pendingDeleteDept ? `Delete department "${pendingDeleteDept.name}"? This cannot be undone.` : ""}
+        message={pendingDeleteDept ? `Delete water system "${pendingDeleteDept.name}"? This cannot be undone.` : ""}
         onCancel={() => setPendingDeleteDept(null)}
         onConfirm={() => pendingDeleteDept && deleteDept(pendingDeleteDept)}
       />
       <ConfirmationDialog
+        destructive
         open={pendingDeletePoint != null}
         message={pendingDeletePoint ? `Delete sample location "${pendingDeletePoint.code}"? This cannot be undone.` : ""}
         onCancel={() => setPendingDeletePoint(null)}
         onConfirm={() => pendingDeletePoint && deletePoint(pendingDeletePoint)}
       />
-    </>
+    </Box>
   );
 }

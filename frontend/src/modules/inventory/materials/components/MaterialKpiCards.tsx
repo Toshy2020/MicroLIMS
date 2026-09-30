@@ -1,26 +1,12 @@
-import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
-import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
-import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutlined";
-import { SvgIconComponent } from "@mui/icons-material";
+import { KpiStrip } from "../../../../components/lab";
+import type { SummaryTile } from "../../../../components/configHierarchy/SummaryTiles";
 import { MaterialItem, MaterialKpiFilter } from "../types/materialTypes";
-import { StatusTone } from "../../../../theme/statusTokens";
 
 interface MaterialKpiCardsProps {
   items: MaterialItem[];
   activeFilter: MaterialKpiFilter;
   onFilterSelect: (filter: MaterialKpiFilter) => void;
-}
-
-interface KpiCardDef {
-  key: MaterialKpiFilter;
-  label: string;
-  description: string;
-  count: number;
-  icon: SvgIconComponent;
-  tone: StatusTone;
+  loading?: boolean;
 }
 
 export function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
@@ -54,88 +40,18 @@ export function isMaterialInStock(item: MaterialItem): boolean {
   return true;
 }
 
-export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: MaterialKpiCardsProps) {
-  const theme = useTheme();
-  const totalCount = items.length;
-  const inStockCount = items.filter(isMaterialInStock).length;
-  const lowStockCount = items.filter(isMaterialLowStock).length;
-  const outOfStockCount = items.filter(isMaterialOutOfStock).length;
-  const expiringSoonCount = items.filter((m) => isMaterialExpiringSoon(m.expiryDate)).length;
+export function MaterialKpiCards({ items, activeFilter, onFilterSelect, loading }: MaterialKpiCardsProps) {
+  // Clicking the active tile again clears the shortcut (except "all").
+  const pick = (key: MaterialKpiFilter) => () => onFilterSelect(activeFilter === key && key !== "all" ? "all" : key);
+  const label = (text: string, key: MaterialKpiFilter) => (activeFilter === key && key !== "all" ? `${text} (filtered)` : text);
 
-  const cards: KpiCardDef[] = [
-    { key: "all", label: "Total Items", description: "All material stock records", count: totalCount, icon: Inventory2OutlinedIcon, tone: "purple" },
-    { key: "in_stock", label: "In Stock", description: "Sufficient quantity available", count: inStockCount, icon: CheckCircleOutlineIcon, tone: "notDetected" },
-    { key: "low_stock", label: "Low Stock", description: "Below minimum stock level", count: lowStockCount, icon: WarningAmberOutlinedIcon, tone: "inconclusive" },
-    { key: "out_of_stock", label: "Out of Stock", description: "No usable quantity remaining", count: outOfStockCount, icon: ErrorOutlineIcon, tone: "detected" },
-    { key: "expiring_soon", label: "Expiring Soon", description: "Within 30-day warning period", count: expiringSoonCount, icon: HourglassBottomOutlinedIcon, tone: "action" }
+  const tiles: SummaryTile[] = [
+    { label: label("Total Items", "all"), value: items.length, tone: "purple", onClick: pick("all") },
+    { label: label("In Stock", "in_stock"), value: items.filter(isMaterialInStock).length, tone: "notDetected", onClick: pick("in_stock") },
+    { label: label("Low Stock", "low_stock"), value: items.filter(isMaterialLowStock).length, tone: "inconclusive", onClick: pick("low_stock") },
+    { label: label("Out of Stock", "out_of_stock"), value: items.filter(isMaterialOutOfStock).length, tone: "detected", onClick: pick("out_of_stock") },
+    { label: label("Expiring Soon", "expiring_soon"), value: items.filter((m) => isMaterialExpiringSoon(m.expiryDate)).length, tone: "action", onClick: pick("expiring_soon") }
   ];
 
-  return (
-    <Grid container spacing={1.5} sx={{ mb: 2 }}>
-      {cards.map((card) => {
-        const isActive = activeFilter === card.key;
-        const tokens = theme.custom.status[card.tone];
-        return (
-          <Grid
-            key={card.key}
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 2.4
-            }}>
-            <Paper
-              onClick={() => onFilterSelect(isActive && card.key !== "all" ? "all" : card.key)}
-              sx={{
-                p: 1.75,
-                cursor: "pointer",
-                transition: "all 0.15s ease-in-out",
-                border: isActive ? `2px solid ${tokens.border}` : "1px solid",
-                borderColor: isActive ? tokens.border : "divider",
-                bgcolor: isActive ? tokens.bg : "background.paper",
-                boxShadow: isActive ? `0 2px 8px ${tokens.border}44` : "0 1px 3px rgba(0,0,0,0.05)",
-                "&:hover": {
-                  boxShadow: `0 4px 12px ${tokens.border}33`,
-                  borderColor: tokens.border,
-                  transform: "translateY(-1px)"
-                }
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
-                <Box
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 1.5,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: tokens.bg,
-                    color: tokens.text
-                  }}
-                >
-                  <card.icon sx={{ fontSize: 18 }} />
-                </Box>
-                <Typography
-                  sx={{
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: tokens.text,
-                    lineHeight: 1
-                  }}
-                >
-                  {card.count}
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", lineHeight: 1.2 }} noWrap>
-                {card.label}
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }} noWrap>
-                {card.description}
-              </Typography>
-            </Paper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
+  return <KpiStrip tiles={tiles} loading={loading} />;
 }

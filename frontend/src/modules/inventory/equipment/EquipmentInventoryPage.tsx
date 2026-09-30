@@ -1,30 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Paper,
-  Box,
-  Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  TablePagination,
-  Alert,
-  IconButton,
-  Tooltip,
-  Typography,
-  Tabs,
-  Tab,
-  Chip,
-  useTheme
-} from "@mui/material";
+import { Box, Button, Alert, Tabs, Tab, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import HistoryIcon from "@mui/icons-material/History";
-import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
+import { LabPage, RegisterTable } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
@@ -49,7 +29,6 @@ import { EquipmentFilterBar } from "./components/EquipmentFilterBar";
 import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
 import { EquipmentDetailsDialog } from "./components/EquipmentDetailsDialog";
 import { ActiveEquipmentView } from "./components/ActiveEquipmentView";
-import { tableHeadSx } from "../../../theme";
 
 const INITIAL_FILTERS: EquipmentFilterState = {
   search: "",
@@ -89,10 +68,6 @@ export function EquipmentInventoryPage() {
   const [kpiFilter, setKpiFilter] = useState<EquipmentKpiFilter>("all");
   const [filters, setFilters] = useState<EquipmentFilterState>(INITIAL_FILTERS);
 
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
-
   // Dialog states
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null);
@@ -129,17 +104,14 @@ export function EquipmentInventoryPage() {
   const handleReset = () => {
     setKpiFilter("all");
     setFilters(INITIAL_FILTERS);
-    setPage(0);
   };
 
   const handleKpiSelect = (newKpi: EquipmentKpiFilter) => {
     setKpiFilter(newKpi);
-    setPage(0);
   };
 
   const handleFilterChange = (newFilters: EquipmentFilterState) => {
     setFilters(newFilters);
-    setPage(0);
   };
 
   const filteredItems = useMemo(() => {
@@ -189,260 +161,158 @@ export function EquipmentInventoryPage() {
     });
   }, [items, kpiFilter, filters, labParam, sectionCodeById]);
 
-  const paginatedItems = useMemo(() => {
-    const start = page * rowsPerPage;
-    return filteredItems.slice(start, start + rowsPerPage);
-  }, [filteredItems, page, rowsPerPage]);
+  const openEdit = (eq: EquipmentItem) => {
+    setEditingItem(eq);
+    setIsRegisterOpen(true);
+  };
+
+  const columns: RegisterColumn<EquipmentItem>[] = [
+    { key: "instrumentType", label: "Type", sortable: true, render: (eq) => <Box component="span" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{eq.instrumentType}</Box> },
+    { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (eq) => eq.manufacturerName || "—" },
+    { key: "serialNumber", label: "Serial No.", sortable: true, render: (eq) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{eq.serialNumber || "—"}</Box> },
+    { key: "firmwareVersion", label: "Firmware", sortable: true, render: (eq) => eq.firmwareVersion || "—" },
+    {
+      key: "code", label: "Code", sortable: true,
+      render: (eq) => <Box id={`equip-code-link-${eq.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{eq.code}</Box>
+    },
+    { key: "location", label: "Location", sortable: true, render: (eq) => eq.location },
+    {
+      key: "calibrationDueDate", label: "Calibration Due", sortable: true,
+      render: (eq) => {
+        const isOverdue = isEquipmentCalibrationOverdue(eq);
+        const isDueSoon = isEquipmentCalibrationDueSoon(eq, 30);
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, whiteSpace: "nowrap" }}>
+            <Box
+              component="span"
+              sx={{
+                fontVariantNumeric: "tabular-nums",
+                fontWeight: isOverdue || isDueSoon ? 600 : "normal",
+                color: isOverdue
+                  ? theme.custom.status.detected.text
+                  : isDueSoon
+                  ? theme.custom.status.inconclusive.text
+                  : "inherit"
+              }}
+            >
+              {eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—"}
+            </Box>
+            {isOverdue && <StatusBadge status="Overdue" />}
+            {isDueSoon && <StatusBadge status="Due Soon" />}
+          </Box>
+        );
+      }
+    },
+    {
+      key: "sectionId", label: "Laboratory", sortable: true, sortValue: (eq) => (eq.sectionId != null ? sectionNameById.get(eq.sectionId) ?? "" : ""),
+      render: (eq) => (eq.sectionId != null ? sectionNameById.get(eq.sectionId) ?? "—" : <StatusBadge status="OnHold" label="Unassigned" />)
+    },
+    { key: "status", label: "Status", sortable: true, render: (eq) => <StatusBadge status={eq.status} /> }
+  ];
+
+  const registerButton = (
+    <Button
+      variant="contained"
+      color="primary"
+      startIcon={<AddIcon />}
+      onClick={() => {
+        setEditingItem(null);
+        setIsRegisterOpen(true);
+      }}
+      sx={{ whiteSpace: "nowrap" }}
+    >
+      Register Equipment
+    </Button>
+  );
+
+  const isFiltered = kpiFilter !== "all" || Object.values(filters).some((v) => v !== "");
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-        <PageHeader
+      <Box className="no-print">
+        <LabPage
           title="Equipment"
           subtitle="QC/Microbiology lab instrument register & active equipment traceability."
-        />
-        {activeTab === 0 && (
-          <Button
-            className="no-print"
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingItem(null);
-              setIsRegisterOpen(true);
-            }}
-            sx={{
-              px: 2.5,
-              py: 1,
-              fontWeight: 600,
-              whiteSpace: "nowrap"
-            }}
-          >
-            + Register Equipment
-          </Button>
-        )}
-      </Box>
-
-      {/* Tabs Navigation: Equipment Register vs Active Equipment */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }} className="no-print">
-        <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
-          <Tab label="Equipment Register" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
-          <Tab label="Active Equipment" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
-        </Tabs>
-      </Box>
-
-      {message && (
-        <Alert
-          className="no-print"
-          severity={message.ok ? "success" : "error"}
-          onClose={() => setMessage(null)}
-          sx={{ mb: 2 }}
+          actions={
+            activeTab === 0 ? (
+              <>
+                <PrintButton label="Print (excludes out-of-service / retired)" />
+                {registerButton}
+              </>
+            ) : undefined
+          }
+          kpis={
+            <>
+              {/* Tabs Navigation: Equipment Register vs Active Equipment */}
+              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
+                  <Tab label="Equipment Register" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
+                  <Tab label="Active Equipment" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
+                </Tabs>
+              </Box>
+              {activeTab === 0 && (
+                <EquipmentKpiCards
+                  items={items ?? []}
+                  activeFilter={kpiFilter}
+                  onFilterSelect={handleKpiSelect}
+                  loading={loading || !items}
+                />
+              )}
+            </>
+          }
+          filters={
+            activeTab === 0 ? (
+              <EquipmentFilterBar
+                items={items ?? []}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onReset={handleReset}
+                extraActive={kpiFilter !== "all"}
+                resultCount={filteredItems.length}
+                onRefresh={loadData}
+                refreshing={loading}
+              />
+            ) : undefined
+          }
         >
-          {message.text}
-        </Alert>
-      )}
+          {message && (
+            <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>
+              {message.text}
+            </Alert>
+          )}
 
-      {loading || !items ? (
-        <LoadingSpinner />
-      ) : activeTab === 0 ? (
-        <Box className="no-print">
-          <EquipmentKpiCards
-            items={items}
-            activeFilter={kpiFilter}
-            onFilterSelect={handleKpiSelect}
-          />
-
-          <EquipmentFilterBar
-            items={items}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onReset={handleReset}
-          />
-
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, mt: 3 }}>
-            <SectionTitle>
-              {`Equipment Register (${filteredItems.length}${filteredItems.length !== items.length ? ` filtered from ${items.length}` : ""})`}
-            </SectionTitle>
-            <PrintButton label="Print (excludes out-of-service / retired)" />
-          </Box>
-
-          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-            <TableContainer>
-              <Table size="small">
-                <TableHead sx={tableHeadSx}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Manufacturer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Serial No.</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Firmware</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Calibration Due</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Laboratory</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} sx={{ textAlign: "center", py: 4 }}>
-                        <Typography
-                          sx={{
-                            color: "text.secondary",
-                            fontSize: 14
-                          }}>
-                          No equipment matching the selected filter criteria.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedItems.map((eq) => {
-                      const isOverdue = isEquipmentCalibrationOverdue(eq);
-                      const isDueSoon = isEquipmentCalibrationDueSoon(eq, 30);
-                      return (
-                        <TableRow
-                          key={eq.id}
-                          hover
-                          sx={{
-                            bgcolor: isOverdue
-                              ? theme.custom.status.detected.bg
-                              : isDueSoon
-                              ? theme.custom.status.inconclusive.bg
-                              : undefined,
-                            "&:last-child td, &:last-child th": { border: 0 }
-                          }}
-                        >
-                          <TableCell sx={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
-                            {eq.instrumentType}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {eq.manufacturerName || "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace" }}>
-                            {eq.serialNumber || "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {eq.firmwareVersion || "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>
-                            <Typography
-                              component="span"
-                              id={`equip-code-link-${eq.id}`}
-                              onClick={() => setDetailsItem(eq)}
-                              sx={{
-                                fontSize: 12,
-                                fontFamily: "monospace",
-                                fontWeight: 700,
-                                color: "primary.main",
-                                cursor: "pointer",
-                                textDecoration: "underline",
-                                "&:hover": { color: "primary.dark" }
-                              }}
-                            >
-                              {eq.code}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {eq.location}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <span
-                                style={{
-                                  fontWeight: isOverdue || isDueSoon ? 600 : "normal",
-                                  color: isOverdue
-                                    ? theme.custom.status.detected.text
-                                    : isDueSoon
-                                    ? theme.custom.status.inconclusive.text
-                                    : "inherit"
-                                }}
-                              >
-                                {eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—"}
-                              </span>
-                              {isOverdue && <StatusBadge status="Overdue" />}
-                              {isDueSoon && <StatusBadge status="Due Soon" />}
-                            </Box>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {eq.sectionId != null ? (
-                              <Chip
-                                size="small"
-                                label={sectionNameById.get(eq.sectionId) ?? "—"}
-                                sx={{ fontSize: 11, height: 20 }}
-                              />
-                            ) : (
-                              <Chip
-                                size="small"
-                                label="Unassigned"
-                                color="warning"
-                                variant="outlined"
-                                sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ textAlign: "center" }}>
-                            <StatusBadge status={eq.status} />
-                          </TableCell>
-                          <TableCell sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                            <Tooltip title="Edit Equipment">
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  setEditingItem(eq);
-                                  setIsRegisterOpen(true);
-                                }}
-                                sx={{ color: "primary.main" }}
-                              >
-                                <EditOutlinedIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            {canSeeHistory && (
-                              <Tooltip title="Audit History">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setHistoryFor(eq.id)}
-                                  sx={{ color: "text.secondary" }}
-                                >
-                                  <HistoryIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            <TablePagination
-              rowsPerPageOptions={[15, 30, 50, 100]}
-              component="div"
-              count={filteredItems.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              sx={{ borderTop: "1px solid", borderColor: "divider" }}
+          {activeTab === 0 ? (
+            <RegisterTable
+              columns={columns}
+              rows={filteredItems}
+              getRowId={(eq) => eq.id}
+              loading={loading || !items}
+              pageSize={25}
+              onRowClick={(eq) => setDetailsItem(eq)}
+              rowActions={(eq) => [
+                { label: "Details and documents", onClick: () => setDetailsItem(eq) },
+                { label: "Edit equipment", onClick: () => openEdit(eq) },
+                ...(canSeeHistory ? [{ label: "Audit history", onClick: () => setHistoryFor(eq.id) }] : [])
+              ]}
+              empty={
+                isFiltered
+                  ? { title: "No equipment matching the selected filter criteria", description: "Reset the filters to see the whole register." }
+                  : { title: "No equipment registered", description: "Register the first instrument.", action: registerButton }
+              }
             />
-          </Paper>
-        </Box>
-      ) : (
-        /* Active Equipment View (Tab 1) */
-        <Box className="no-print">
-          <ActiveEquipmentView
-            onOpenDetails={(eqId) => {
-              const eq = items.find((e) => e.id === eqId);
-              if (eq) setDetailsItem(eq);
-            }}
-          />
-        </Box>
-      )}
+          ) : loading || !items ? (
+            <LoadingSpinner />
+          ) : (
+            /* Active Equipment View (Tab 1) */
+            <ActiveEquipmentView
+              onOpenDetails={(eqId) => {
+                const eq = items.find((e) => e.id === eqId);
+                if (eq) setDetailsItem(eq);
+              }}
+            />
+          )}
+        </LabPage>
+      </Box>
 
       {/* Equipment Details & Controlled Documents Dialog */}
       <EquipmentDetailsDialog

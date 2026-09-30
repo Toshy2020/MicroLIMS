@@ -102,6 +102,38 @@ function getBadgeConfig(status: string, customLabel?: string): BadgeConfig {
         icon: <RemoveCircleOutlinedIcon fontSize="small" />
       };
 
+    // Result / Comparison status
+    case "withinlimits":
+      return {
+        label: customLabel ?? "Within Limits",
+        color: "success",
+        icon: <CheckCircleIcon fontSize="small" />
+      };
+    case "outofspecification":
+      return {
+        label: customLabel ?? "OOS",
+        color: "error",
+        icon: <ErrorOutlinedIcon fontSize="small" />
+      };
+    case "actionlimitexceeded":
+      return {
+        label: customLabel ?? "Action Limit Exceeded",
+        color: "error",
+        icon: <ErrorOutlinedIcon fontSize="small" />
+      };
+    case "alertlimitexceeded":
+      return {
+        label: customLabel ?? "Alert Limit Exceeded",
+        color: "warning",
+        icon: <ErrorOutlinedIcon fontSize="small" />
+      };
+    case "requiresreview":
+      return {
+        label: customLabel ?? "Requires Review",
+        color: "warning",
+        icon: <ScheduleIcon fontSize="small" />
+      };
+
     default:
       return {
         label: customLabel ?? status,

@@ -2,6 +2,7 @@ import { CollapsibleTestCard, SecondaryToggle } from "./CollapsibleTestCard";
 import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } from "./SampleReportPage";
 import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
+import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 const isConforming = (status: string | null) => !status || CONFORMING_STATUSES.has(status);
@@ -202,7 +203,12 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
             <span>Entered at: <strong className="mono">{dt(a.enteredAt)}</strong></span>
           </div>
 
-          {a.parameterResults.map((p, idx) => {
+          {a.analysisType === "HplcMethodAssay" &&
+            a.parameterResults.map((p) => (
+              <HplcReviewPanel key={`hplc-review-${p.id}`} parameter={p} />
+            ))}
+
+          {a.analysisType !== "HplcMethodAssay" && a.parameterResults.map((p, idx) => {
             if (!p.readings || p.readings.length === 0) return null;
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";

@@ -60,6 +60,7 @@ const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/
 const HplcWorkspacePage = lazy(() => import("../modules/hplcWorkspace/overview/HplcWorkspacePage").then((m) => ({ default: m.HplcWorkspacePage })));
 const HplcInstrumentWorkspace = lazy(() => import("../modules/hplcWorkspace/run/HplcInstrumentWorkspace").then((m) => ({ default: m.HplcInstrumentWorkspace })));
 const StartHplcRunWizard = lazy(() => import("../modules/hplcWorkspace/run/StartHplcRunWizard").then((m) => ({ default: m.StartHplcRunWizard })));
+const HplcSampleEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/HplcSampleEntryPage").then((m) => ({ default: m.HplcSampleEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -174,7 +175,7 @@ export function AppRoutes() {
             <Route path="/hplc-workspace/:instrumentId/run/:runId" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/sst" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/samples" element={<HplcInstrumentWorkspace />} />
-            <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>

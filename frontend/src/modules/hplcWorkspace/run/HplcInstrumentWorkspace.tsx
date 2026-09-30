@@ -19,7 +19,6 @@ import {
   useTheme
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
@@ -31,9 +30,10 @@ import {
 import { WorkflowStepRail } from "../components/WorkflowStepRail";
 import { MethodReadOnlyPanel } from "./MethodReadOnlyPanel";
 import { WorkspaceRunHeader } from "./WorkspaceRunHeader";
-import { WorkspaceHistoryTab } from "./WorkspaceHistoryTab";
 import { SystemSuitabilityPanel } from "../sst/SystemSuitabilityPanel";
-import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
+import { SampleAssignmentPanel } from "../samples/SampleAssignmentPanel";
+import { ChromatogramEvidencePanel } from "../evidence/ChromatogramEvidencePanel";
+import { HplcRunHistoryTable } from "../history/HplcRunHistoryTable";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import { tableHeadSx } from "../../../theme";
 import type { HplcRunDto, HplcRunListItem } from "../types";
@@ -279,48 +279,27 @@ export function HplcInstrumentWorkspace() {
         />
       )}
 
-      {/* Tab 2: Samples (Placeholder + Gating check for S7a) */}
+      {/* Tab 2: Samples */}
       {activeTab === 2 && run && (
-        <Stack spacing={2}>
-          {!run.canAssignSamples ? (
-            <Alert severity="warning" icon={<LockOutlinedIcon />}>
-              <strong>Sample assignment is locked.</strong>{" "}
-              {run.canAssignSamplesReason || "Sample assignment is locked until system suitability passes."}
-            </Alert>
-          ) : (
-            <Alert severity="success">
-              System suitability is passed. Sample testing and assignment are active for this run.
-            </Alert>
-          )}
-
-          <Paper elevation={0} sx={{ p: 4, textAlign: "center", borderRadius: 2, border: `1px dashed ${theme.palette.divider}` }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "text.secondary" }}>
-              Sample Assignment & Replicate Entry
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
-              Assigned samples table, live assay preview calculation, and Send for Review will be completed in Part B (Task S7b).
-            </Typography>
-            <Button variant="contained" disabled sx={{ mt: 2, textTransform: "none" }}>
-              Assign Samples...
-            </Button>
-          </Paper>
-        </Stack>
+        <SampleAssignmentPanel
+          run={run}
+          canOperate={canOperate}
+          onRunUpdated={loadRunData}
+        />
       )}
 
       {/* Tab 3: Evidence */}
       {activeTab === 3 && run && (
-        <ReportUploadPanel
-          runId={run.id}
-          context="Run"
-          kind="Other"
-          evidenceList={run.evidence}
-          onChanged={loadRunData}
+        <ChromatogramEvidencePanel
+          run={run}
+          canOperate={canOperate}
+          onRunUpdated={loadRunData}
         />
       )}
 
       {/* Tab 4: History */}
       {activeTab === 4 && (
-        <WorkspaceHistoryTab
+        <HplcRunHistoryTable
           historyRuns={historyRuns}
           equipmentId={equipmentId}
           onSelectRun={(selectedRunId) => navigate(`/hplc-workspace/${equipmentId}/run/${selectedRunId}`)}

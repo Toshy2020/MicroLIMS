@@ -3,12 +3,10 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   FormControl,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
@@ -21,6 +19,8 @@ import {
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
+import type { CriteriaRow, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
@@ -491,6 +491,94 @@ export function WeightVariationPanel({
     }
   };
 
+  // Acceptance criteria text the panel already showed as prose, now in the criteria card.
+  const criteriaRows: CriteriaRow[] = spec
+    ? [
+        { parameter: "Specification", criterion: specLimitText, source: "Specification" },
+        {
+          parameter: `Stage 1 (${s1UnitsCount} units)`,
+          criterion: !isCapsule
+            ? "Not more than 2 tablets deviate from the average by more than the specified percentage, and none by more than twice that percentage"
+            : "Net content: not more than 2 units deviate from the average by > 10 % and none by > 25 %; 3 to 6 units > 10 % continue to Stage 2",
+          source: "USP <2091>"
+        },
+        ...(isCapsule
+          ? [
+              {
+                parameter: `Stage 2 (${s1UnitsCount + s2UnitsCount} units total)`,
+                criterion: `Not more than 6 of ${s1UnitsCount + s2UnitsCount} units deviate by > 10 % from the overall mean and none by > 25 %`,
+                source: "USP <2091>"
+              }
+            ]
+          : [])
+      ]
+    : [];
+
+  const renderReadingsTable = (rList: ResultReadingDetail[], capsule: boolean, lastHeader: string) => (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
+          {capsule ? (
+            <>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Gross (mg)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Shell (mg)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Net (mg)</TableCell>
+            </>
+          ) : (
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Weight (mg)</TableCell>
+          )}
+          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Deviation %</TableCell>
+          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rList.map((r) => (
+          <TableRow key={r.id}>
+            <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+            {capsule ? (
+              <>
+                <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                  <NumericCell value={r.value1 != null ? Number(r.value1) : null} unit="mg" />
+                </TableCell>
+                <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                  <NumericCell value={r.value2 != null ? Number(r.value2) : null} unit="mg" />
+                </TableCell>
+                <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                  <NumericCell
+                    value={
+                      r.computedValue != null
+                        ? Number(r.computedValue)
+                        : r.value1 != null && r.value2 != null
+                        ? Number(r.value1) - Number(r.value2)
+                        : null
+                    }
+                    unit="mg"
+                  />
+                </TableCell>
+              </>
+            ) : (
+              <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                <NumericCell
+                  value={
+                    r.value1 != null ? Number(r.value1) : r.computedValue != null ? Number(r.computedValue) : null
+                  }
+                  unit="mg"
+                />
+              </TableCell>
+            )}
+            <TableCell align="right" sx={{ fontSize: 12 }}>
+              <NumericCell value={r.value3 != null ? Number(r.value3) : null} decimals={2} unit="%" />
+            </TableCell>
+            <TableCell sx={{ fontSize: 12 }}>
+              {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   if (loading) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
@@ -512,26 +600,21 @@ export function WeightVariationPanel({
 
   if (isFinalized && !isNextStageRequired) {
     const finalStatus = outcome?.status ?? activeParam?.comparisonStatus;
-    const isOos =
-      finalStatus === "OutOfSpecification" || (outcome?.text ?? "").includes("Does not comply");
     const summaryText =
       outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? "Analysis Complete";
+    // Verdict comes only from the server's status field.
+    const verdict: Verdict =
+      finalStatus === "WithinLimits" ? "Pass" : finalStatus === "OutOfSpecification" ? "Fail" : "Pending";
 
     const hasCapsuleReadings = existingReadings.some((r) => r.value2 != null) || isCapsule;
 
     return (
-      <Box>
-        <Alert severity={isOos ? "error" : "success"} sx={{ mb: 2 }}>
-          {displayName}: <strong>{summaryText}</strong>
-          {finalStatus && ` (${finalStatus})`}
-        </Alert>
+      <Stack spacing={2}>
+        <VerdictBanner verdict={verdict} detail={`${displayName}: ${summaryText}${finalStatus ? ` (${finalStatus})` : ""}`} />
 
         {activeAnalysis && (
-          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-              Weight Variation Analysis Summary
-            </Typography>
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", mb: 2 }}>
+          <ResultSection title="Analysis summary">
+            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Specification
@@ -564,7 +647,7 @@ export function WeightVariationPanel({
                     {hasCapsuleReadings ? "Mean Net Content" : "Mean Weight"}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {activeParam.reportedValue} mg
+                    <NumericCell value={Number(activeParam.reportedValue)} unit="mg" />
                   </Typography>
                 </Box>
               )}
@@ -579,87 +662,24 @@ export function WeightVariationPanel({
                 </Box>
               )}
             </Stack>
+          </ResultSection>
+        )}
 
-            {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
-              <Box key={stg} sx={{ mt: 2 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                  Stage {stg} Readings ({rList.length} units)
-                </Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-                      {hasCapsuleReadings ? (
-                        <>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Gross (mg)</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Shell (mg)</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Net (mg)</TableCell>
-                        </>
-                      ) : (
-                        <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Weight (mg)</TableCell>
-                      )}
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Deviation %</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Stage Criterion</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rList.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
-                        {hasCapsuleReadings ? (
-                          <>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                              {r.value1 != null ? `${r.value1} mg` : "—"}
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                              {r.value2 != null ? `${r.value2} mg` : "—"}
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                              {r.computedValue != null
-                                ? `${r.computedValue} mg`
-                                : r.value1 != null && r.value2 != null
-                                ? `${Number(r.value1) - Number(r.value2)} mg`
-                                : "—"}
-                            </TableCell>
-                          </>
-                        ) : (
-                          <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                            {r.value1 != null
-                              ? `${r.value1} mg`
-                              : r.computedValue != null
-                              ? `${r.computedValue} mg`
-                              : "—"}
-                          </TableCell>
-                        )}
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.value3 != null ? `${Number(r.value3).toFixed(2)} %` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.passed === null ? (
-                            "—"
-                          ) : r.passed ? (
-                            <Chip
-                              size="small"
-                              color="success"
-                              label="Pass"
-                              sx={{ height: 20, fontSize: 10 }}
-                            />
-                          ) : (
-                            <Chip
-                              size="small"
-                              color="error"
-                              label="Fail"
-                              sx={{ height: 20, fontSize: 10 }}
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            ))}
-          </Paper>
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+
+        {activeAnalysis && readingsByStage.size > 0 && (
+          <ResultSection title="Raw replicate readings">
+            <Stack spacing={2}>
+              {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
+                <Box key={stg}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
+                    Stage {stg} Readings ({rList.length} units)
+                  </Typography>
+                  {renderReadingsTable(rList, hasCapsuleReadings, "Stage Criterion")}
+                </Box>
+              ))}
+            </Stack>
+          </ResultSection>
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -670,7 +690,7 @@ export function WeightVariationPanel({
             </Button>
           )}
         </Box>
-      </Box>
+      </Stack>
     );
   }
 
@@ -709,93 +729,33 @@ export function WeightVariationPanel({
 
       {/* PENDING STAGE (Stage 2 - Capsules only) */}
       {isNextStageRequired && activeParam ? (
-        <Box sx={{ mt: 2 }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>
+        <Stack spacing={2}>
+          <Alert severity="warning">
             <strong>Stage 2 required:</strong> Results from Stage 1 did not meet acceptance
             criteria. Staged testing continues to Stage 2.
           </Alert>
 
-          {/* Grouped read-only previous stage(s) */}
-          <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>
-            1. Previously Recorded Stage 1 Units
-          </Typography>
+          {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
-              <Paper key={stg} variant="outlined" sx={{ p: 2, bgcolor: "background.paper" }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                  Stage {stg} Units ({rList.length} units)
-                </Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Gross (mg)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Shell (mg)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Net (mg)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Deviation %</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Stage Criterion</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rList.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.value1 != null ? `${r.value1} mg` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.value2 != null ? `${r.value2} mg` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.computedValue != null
-                            ? `${r.computedValue} mg`
-                            : r.value1 != null && r.value2 != null
-                            ? `${Number(r.value1) - Number(r.value2)} mg`
-                            : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.value3 != null ? `${Number(r.value3).toFixed(2)} %` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.passed === null ? (
-                            "—"
-                          ) : r.passed ? (
-                            <Chip
-                              size="small"
-                              color="success"
-                              label="Pass"
-                              sx={{ height: 20, fontSize: 10 }}
-                            />
-                          ) : (
-                            <Chip
-                              size="small"
-                              color="error"
-                              label="Fail"
-                              sx={{ height: 20, fontSize: 10 }}
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Paper>
-            ))}
-          </Stack>
+          {/* Grouped read-only previous stage(s) */}
+          <ResultSection step={1} title="Previously recorded Stage 1 units">
+            <Stack spacing={2}>
+              {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
+                <Box key={stg}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
+                    Stage {stg} Units ({rList.length} units)
+                  </Typography>
+                  {renderReadingsTable(rList, true, "Stage Criterion")}
+                </Box>
+              ))}
+            </Stack>
+          </ResultSection>
 
           {/* Stage 2 Entry */}
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: "action.hover" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>
-              2. Stage 2 Unit Entry ({s2UnitsCount} additional units, Units {s1UnitsCount + 1}–
-              {s1UnitsCount + s2UnitsCount})
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-              Stage 2 acceptance (USP &lt;2091&gt; capsules): Weigh {s2UnitsCount} additional units.
-              The test complies if not more than 6 of the total {s1UnitsCount + s2UnitsCount} units
-              deviate by &gt; 10 % from the overall mean and none deviates by &gt; 25 %.
-            </Typography>
-
+          <ResultSection
+            step={2}
+            title={`Stage 2 unit entry (${s2UnitsCount} additional units, Units ${s1UnitsCount + 1}\u2013${s1UnitsCount + s2UnitsCount})`}
+          >
             <Box sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
               <UnitEntryGrid
                 rowCount={s2UnitsCount}
@@ -818,16 +778,15 @@ export function WeightVariationPanel({
                 Sign &amp; Record Stage 2 Result
               </Button>
             </Box>
-          </Paper>
-        </Box>
+          </ResultSection>
+        </Stack>
       ) : (
         /* STAGE 1 INITIAL FORM */
-        <Box sx={{ mt: 2 }}>
-          <Typography sx={{ fontWeight: 700, mb: 1.5 }}>
-            1. Analysis parameters &amp; conditions
-          </Typography>
+        <Stack spacing={2}>
+          {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <Stack spacing={2} sx={{ mb: 2.5 }}>
+          <ResultSection step={1} title="Analysis parameters & conditions">
+          <Stack spacing={2}>
             {/* Equipment and DateTime */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ flex: 1.5 }}>
@@ -898,18 +857,13 @@ export function WeightVariationPanel({
               </Box>
             )}
           </Stack>
+          </ResultSection>
 
           {/* Stage 1 Units */}
-          <Typography sx={{ fontWeight: 700, mb: 1 }}>
-            2. Stage 1 Unit {isCapsule ? "Gross & Shell Weights" : "Weights"} ({s1UnitsCount} units
-            &middot; {dosageForm})
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
-            {!isCapsule
-              ? `Stage 1 acceptance criteria (USP <2091>): Weigh ${s1UnitsCount} individual tablets and calculate average weight. Not more than 2 tablets may deviate from the average by more than the specified percentage, and none by more than twice that percentage.`
-              : `Stage 1 acceptance criteria (USP <2091>): Weigh ${s1UnitsCount} intact capsules, empty shells, and calculate net contents. Net content complies if not more than 2 units deviate from the average by > 10 % and none by > 25 %. If 3 to 6 units deviate by > 10 %, testing continues to Stage 2.`}
-          </Typography>
-
+          <ResultSection
+            step={2}
+            title={`Stage 1 unit ${isCapsule ? "gross & shell weights" : "weights"} (${s1UnitsCount} units \u00b7 ${dosageForm})`}
+          >
           <Box sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
             <UnitEntryGrid
               rowCount={s1UnitsCount}
@@ -931,7 +885,8 @@ export function WeightVariationPanel({
               Sign &amp; Record Stage 1 Result
             </Button>
           </Box>
-        </Box>
+          </ResultSection>
+        </Stack>
       )}
 
       {/* Signature Dialog */}

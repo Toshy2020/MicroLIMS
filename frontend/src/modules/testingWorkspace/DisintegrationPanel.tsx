@@ -4,13 +4,11 @@ import {
   Box,
   Button,
   Checkbox,
-  Chip,
   CircularProgress,
   FormControl,
   FormControlLabel,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
@@ -23,6 +21,8 @@ import {
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
+import type { CriteriaRow, Verdict } from "../../components/lab";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -386,24 +386,62 @@ export function DisintegrationPanel({
 
   const renderLiveHint = (row: UnitRowInput) => {
     if (row.notDisintegrated) {
-      return <Chip size="small" color="error" label="Fail" sx={{ height: 20, fontSize: 10 }} />;
+      return <StatusBadge status="Fail" />;
     }
     if (!row.minutes || row.minutes.trim() === "") {
       return "—";
     }
     const val = Number(row.minutes);
     if (isNaN(val) || val <= 0) {
-      return <Chip size="small" color="warning" label="Invalid" sx={{ height: 20, fontSize: 10 }} />;
+      return <StatusBadge status="Invalid" />;
     }
     if (limitMinutes != null) {
-      return val <= limitMinutes ? (
-        <Chip size="small" color="success" label="Pass" sx={{ height: 20, fontSize: 10 }} />
-      ) : (
-        <Chip size="small" color="error" label="Fail" sx={{ height: 20, fontSize: 10 }} />
-      );
+      return <StatusBadge status={val <= limitMinutes ? "Pass" : "Fail"} />;
     }
     return "—";
   };
+
+  // Acceptance criteria from the spec and stage counts the panel already loads.
+  const criteriaRows: CriteriaRow[] = spec
+    ? [
+        { parameter: "Disintegration time", criterion: specLimitText, unit: "min", source: "Specification" },
+        {
+          parameter: `Stage 1 (${s1UnitsCount} units)`,
+          criterion: `All ${s1UnitsCount} units within the limit; 1\u2013${maxS1Failures} failures proceed to Stage 2; more than ${maxS1Failures} fail`,
+          source: "Stage criteria"
+        },
+        {
+          parameter: `Stage 2 (${s1UnitsCount + s2UnitsCount} units total)`,
+          criterion: `At least ${minPassTotal} of ${s1UnitsCount + s2UnitsCount} units within the limit`,
+          source: "Stage criteria"
+        }
+      ]
+    : [];
+
+  const renderReadingsTable = (rList: ResultReadingDetail[], lastHeader: string) => (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Time (min)</TableCell>
+          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rList.map((r) => (
+          <TableRow key={r.id}>
+            <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+            <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+              {r.value1 != null ? <NumericCell value={Number(r.value1)} unit="min" /> : (r.text || "Not disintegrated")}
+            </TableCell>
+            <TableCell sx={{ fontSize: 12 }}>
+              {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 
   if (loading) {
     return (
@@ -426,22 +464,18 @@ export function DisintegrationPanel({
 
   if (isFinalized && !isNextStageRequired) {
     const finalStatus = outcome?.status ?? activeParam?.comparisonStatus;
-    const isOos = finalStatus === "OutOfSpecification" || (outcome?.text ?? "").includes("Does not comply");
     const summaryText = outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? "Analysis Complete";
+    // Verdict comes only from the server's status field.
+    const verdict: Verdict =
+      finalStatus === "WithinLimits" ? "Pass" : finalStatus === "OutOfSpecification" ? "Fail" : "Pending";
 
     return (
-      <Box>
-        <Alert severity={isOos ? "error" : "success"} sx={{ mb: 2 }}>
-          {displayName}: <strong>{summaryText}</strong>
-          {finalStatus && ` (${finalStatus})`}
-        </Alert>
+      <Stack spacing={2}>
+        <VerdictBanner verdict={verdict} detail={`${displayName}: ${summaryText}${finalStatus ? ` (${finalStatus})` : ""}`} />
 
         {activeAnalysis && (
-          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-              Disintegration Analysis Summary
-            </Typography>
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", mb: 2 }}>
+          <ResultSection title="Analysis summary">
+            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Specification
@@ -466,7 +500,7 @@ export function DisintegrationPanel({
                     Longest Time
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {activeParam.reportedValue} min
+                    <NumericCell value={Number(activeParam.reportedValue)} unit="min" />
                   </Typography>
                 </Box>
               )}
@@ -481,41 +515,24 @@ export function DisintegrationPanel({
                 </Box>
               )}
             </Stack>
+          </ResultSection>
+        )}
 
-            {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
-              <Box key={stg} sx={{ mt: 2 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>
-                  Stage {stg} ({rList.length} units)
-                </Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Time (min)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit Mark</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rList.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.value1 != null ? `${r.value1} min` : (r.text || "Not disintegrated")}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.passed === null ? "—" : r.passed ? (
-                            <Chip size="small" color="success" label="Pass" sx={{ height: 20, fontSize: 10 }} />
-                          ) : (
-                            <Chip size="small" color="error" label="Fail" sx={{ height: 20, fontSize: 10 }} />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            ))}
-          </Paper>
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+
+        {activeAnalysis && readingsByStage.size > 0 && (
+          <ResultSection title="Raw replicate readings">
+            <Stack spacing={2}>
+              {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
+                <Box key={stg}>
+                  <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>
+                    Stage {stg} ({rList.length} units)
+                  </Typography>
+                  {renderReadingsTable(rList, "Unit Mark")}
+                </Box>
+              ))}
+            </Stack>
+          </ResultSection>
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -526,7 +543,7 @@ export function DisintegrationPanel({
             </Button>
           )}
         </Box>
-      </Box>
+      </Stack>
     );
   }
 
@@ -560,61 +577,29 @@ export function DisintegrationPanel({
 
       {/* PENDING STAGE (Stage 2) */}
       {isNextStageRequired && activeParam ? (
-        <Box sx={{ mt: 2 }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>
+        <Stack spacing={2}>
+          <Alert severity="warning">
             <strong>Stage 2 required:</strong> Results from Stage 1 did not meet acceptance criteria. Staged testing continues to Stage 2.
           </Alert>
 
-          {/* Grouped read-only previous stage(s) */}
-          <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>
-            1. Previously Recorded Stage 1 Units
-          </Typography>
+          {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
-              <Paper key={stg} variant="outlined" sx={{ p: 2, bgcolor: "background.paper" }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                  Stage {stg} Units ({rList.length} units)
-                </Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Time (min)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Stage Criterion</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rList.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.value1 != null ? `${r.value1} min` : (r.text || "Not disintegrated")}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.passed === null ? "—" : r.passed ? (
-                            <Chip size="small" color="success" label="Pass" sx={{ height: 20, fontSize: 10 }} />
-                          ) : (
-                            <Chip size="small" color="error" label="Fail" sx={{ height: 20, fontSize: 10 }} />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Paper>
-            ))}
-          </Stack>
+          {/* Grouped read-only previous stage(s) */}
+          <ResultSection step={1} title="Previously recorded Stage 1 units">
+            <Stack spacing={2}>
+              {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
+                <Box key={stg}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
+                    Stage {stg} Units ({rList.length} units)
+                  </Typography>
+                  {renderReadingsTable(rList, "Stage Criterion")}
+                </Box>
+              ))}
+            </Stack>
+          </ResultSection>
 
           {/* Stage 2 Entry */}
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: "action.hover" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>
-              2. Stage 2 Unit Entry ({s2UnitsCount} additional units, Units {s1UnitsCount + 1}–{s1UnitsCount + s2UnitsCount})
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-              Stage 2 acceptance: At least {minPassTotal} of the total {s1UnitsCount + s2UnitsCount} units must disintegrate within the specification limit ({specLimitText}).
-            </Typography>
-
+          <ResultSection step={2} title={`Stage 2 unit entry (${s2UnitsCount} additional units, Units ${s1UnitsCount + 1}\u2013${s1UnitsCount + s2UnitsCount})`}>
             <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
               <TableHead>
                 <TableRow>
@@ -689,16 +674,15 @@ export function DisintegrationPanel({
                 Sign & Record Stage 2 Result
               </Button>
             </Box>
-          </Paper>
-        </Box>
+          </ResultSection>
+        </Stack>
       ) : (
         /* STAGE 1 INITIAL FORM */
-        <Box sx={{ mt: 2 }}>
-          <Typography sx={{ fontWeight: 700, mb: 1.5 }}>
-            1. Analysis parameters & conditions
-          </Typography>
+        <Stack spacing={2}>
+          {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <Stack spacing={2} sx={{ mb: 2.5 }}>
+          <ResultSection step={1} title="Analysis parameters & conditions">
+          <Stack spacing={2}>
             {/* Equipment and DateTime */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ flex: 1.5 }}>
@@ -755,14 +739,10 @@ export function DisintegrationPanel({
               </Box>
             )}
           </Stack>
+          </ResultSection>
 
           {/* Stage 1 Units */}
-          <Typography sx={{ fontWeight: 700, mb: 1 }}>
-            2. Stage 1 Unit Times ({s1UnitsCount} units)
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
-            Stage 1 acceptance criteria: All {s1UnitsCount} units must disintegrate within the specification limit ({specLimitText}). If 1–{maxS1Failures} fail, testing proceeds to Stage 2; more than {maxS1Failures} failures result in immediate failure.
-          </Typography>
+          <ResultSection step={2} title={`Stage 1 unit times (${s1UnitsCount} units)`}>
 
           <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
             <TableHead>
@@ -838,7 +818,8 @@ export function DisintegrationPanel({
               Sign & Record Stage 1 Result
             </Button>
           </Box>
-        </Box>
+          </ResultSection>
+        </Stack>
       )}
 
       {/* Signature Dialog */}

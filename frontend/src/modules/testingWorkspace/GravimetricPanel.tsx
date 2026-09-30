@@ -10,15 +10,12 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { CriteriaCard, ResultSection, VerdictBanner } from "../../components/lab";
+import type { CriteriaRow, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -319,24 +316,43 @@ export function GravimetricPanel({
     }
   };
 
+  // Acceptance criteria from the specs already loaded for this test.
+  const criteriaRows: CriteriaRow[] = specs.map((s) => ({
+    parameter: s.parameterName || s.testCode,
+    criterion:
+      s.specLimit ||
+      s.expectedResultText ||
+      (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} \u2013 ${s.upperLimit ?? ""}` : "\u2014"),
+    unit: s.unit || "%",
+    source: "Specification"
+  }));
+
   // Completion view
   if (current.allStepsComplete || outcome) {
-    const isOos = (outcome?.status ?? "").includes("OutOfSpecification");
-    const isReview = (outcome?.status ?? "").includes("RequiresReview");
-    const alertSeverity = isOos ? "error" : isReview ? "warning" : "success";
+    const serverStatus = outcome?.status ?? "";
+    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}`;
+    // Verdict comes only from the server's status field; when the status is not
+    // known (page reopened) the recorded result is shown with no verdict.
+    const verdict: Verdict | null = !serverStatus
+      ? null
+      : serverStatus.includes("OutOfSpecification")
+      ? "Fail"
+      : serverStatus.includes("RequiresReview")
+      ? "Pending"
+      : serverStatus.includes("WithinLimits")
+      ? "Pass"
+      : "Pending";
 
     return (
-      <Box>
-        <Alert severity={alertSeverity} sx={{ mb: 2 }}>
-          {displayName}: <strong>{outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}</strong>
-          {outcome?.status && ` (${outcome.status})`}
-        </Alert>
+      <Stack spacing={2}>
+        {verdict ? (
+          <VerdictBanner verdict={verdict} detail={`${headline} (${serverStatus})`} />
+        ) : (
+          <Typography sx={{ fontWeight: 600 }}>{headline}</Typography>
+        )}
 
         {testDef && (
-          <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.paper" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-              Gravimetric Analysis Summary
-            </Typography>
+          <ResultSection title="Analysis summary">
             <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
@@ -346,16 +362,18 @@ export function GravimetricPanel({
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicates Recorded</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{replicateCount}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{replicateCount}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Tare Mode</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{usesTare ? "Container Tare" : "Direct"}</Typography>
               </Box>
             </Stack>
-          </Box>
+          </ResultSection>
         )}
-      </Box>
+
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+      </Stack>
     );
   }
 
@@ -384,19 +402,20 @@ export function GravimetricPanel({
       )}
 
       <Stack spacing={2.5}>
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+
         {/* Section 1: Analysis Configuration */}
-        <Box sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, color: "text.primary" }}>
-              1. Analysis Configuration
-            </Typography>
+        <ResultSection
+          step={1}
+          title="Analysis configuration"
+          actions={
             <Stack direction="row" spacing={1}>
               <Chip size="small" variant="outlined" label={isResidue ? "Ash / Residue" : "Loss on Drying"} />
               <Chip size="small" variant="outlined" label={`Replicates: ${replicateCount}`} />
               {usesTare && <Chip size="small" color="primary" variant="outlined" label="Uses Tare" />}
             </Stack>
-          </Box>
-
+          }
+        >
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField
               size="small"
@@ -450,39 +469,7 @@ export function GravimetricPanel({
               </Box>
             </Box>
           )}
-        </Box>
-
-        {/* Section 2: Specification Limits */}
-        <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            2. Specification Limits ({specs.length} parameter{specs.length === 1 ? "" : "s"})
-          </Typography>
-
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "action.hover" }}>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Parameter</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification Limit</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Unit</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {specs.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell sx={{ fontSize: 13, fontWeight: 500 }}>
-                    {s.parameterName || s.testCode}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13 }}>
-                    {s.specLimit || s.expectedResultText || (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} – ${s.upperLimit ?? ""}` : "—")}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13, color: "text.secondary" }}>
-                    {s.unit || "%"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Box>
+        </ResultSection>
 
         {/* Section 3: Gravimetric Replicates Grid per Specification */}
         {specs.map((s) => {
@@ -490,10 +477,11 @@ export function GravimetricPanel({
           const readOnlyPreviews = specRows.map((r) => ({ preview: computePreview(r) }));
 
           return (
-            <Box key={s.id} sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-                3. Gravimetric Weights &middot; {s.parameterName || s.testCode} ({replicateCount} replicate{replicateCount === 1 ? "" : "s"})
-              </Typography>
+            <ResultSection
+              key={s.id}
+              step={2}
+              title={`Gravimetric weights \u00b7 ${s.parameterName || s.testCode} (${replicateCount} replicate${replicateCount === 1 ? "" : "s"})`}
+            >
 
               <UnitEntryGrid
                 rowCount={replicateCount}
@@ -503,7 +491,7 @@ export function GravimetricPanel({
                 onChange={(next) => handleReplicatesChange(s.id!, next)}
                 readOnlyValues={readOnlyPreviews}
               />
-            </Box>
+            </ResultSection>
           );
         })}
 

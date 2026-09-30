@@ -111,8 +111,20 @@ public class AfterCleaningMasterDataService
     public async Task<List<MachinePartConfigurationResponse>> GetMachinePartConfigurationsAsync(int machinePartId) =>
         (await _db.MachinePartConfigurations.AsNoTracking().Where(c => c.MachinePartId == machinePartId).ToListAsync()).Select(MachinePartConfigurationResponse.From).ToList();
 
+    // A part may carry several tests (e.g. a swab count plus several
+    // pathogens), but the same test type + test code only once - a
+    // duplicate would put the part in the same TestOrder twice.
+    private async Task EnsureNotDuplicateAsync(int machinePartId, string testType, string testCode, int? exceptId)
+    {
+        var duplicate = await _db.MachinePartConfigurations.AnyAsync(c =>
+            c.MachinePartId == machinePartId && c.TestType == testType && c.TestCode == testCode && c.Id != exceptId);
+        if (duplicate)
+            throw new InvalidOperationException($"{testCode} ({testType}) is already configured for this part.");
+    }
+
     public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request)
     {
+        await EnsureNotDuplicateAsync(request.MachinePartId, request.TestType, request.TestCode, null);
         var entity = new MachinePartConfiguration
         {
             MachinePartId = request.MachinePartId, TestType = request.TestType, TestCode = request.TestCode,
@@ -130,6 +142,7 @@ public class AfterCleaningMasterDataService
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        await EnsureNotDuplicateAsync(entity.MachinePartId, request.TestType, request.TestCode, entity.Id);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
@@ -141,12 +154,17 @@ public class AfterCleaningMasterDataService
         return MachinePartConfigurationResponse.From(entity);
     }
 
-    // No downstream dependents (TestOrder.TestCode is a copied string,
-    // not an FK to this row) - always safe to hard-delete.
+    // TestOrder.TestCode is a copied string, but SampleLocation keeps a
+    // restricted FK to this row - refuse with a clear message rather than
+    // a raw FK error once samples have used it.
     public async Task<object> DeleteMachinePartConfigurationAsync(int id)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
+        var usedBy = await _db.SampleLocations.CountAsync(l => l.MachinePartConfigurationId == id);
+        if (usedBy > 0)
+            throw new InvalidOperationException(
+                $"{entity.TestCode} has already been tested on this part ({usedBy} sample location(s)), so it cannot be removed.");
         _db.MachinePartConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return new { };

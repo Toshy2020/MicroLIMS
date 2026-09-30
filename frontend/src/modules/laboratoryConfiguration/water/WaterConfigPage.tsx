@@ -14,6 +14,8 @@ import { PointHealth, SamplingConfig, SamplingPoint, WaterDept, needsAttention, 
 
 type Filter = "all" | "attention";
 
+const NO_CONFIGS: SamplingConfig[] = [];
+
 // Water systems -> sample locations -> assigned tests and per-count-test
 // limits, read by WaterWorkflowEngine on every water sample receipt
 // (assigned tests) and calculation (limits). Master/detail: systems on
@@ -87,6 +89,12 @@ export function WaterConfigPage() {
         badge: pts.length === 0 ? undefined : attention > 0 ? { label: `${attention} need${attention === 1 ? "s" : ""} attention`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
       };
     });
+
+  // Memoized: the panel resets its form whenever this list changes.
+  const pointPanelConfigs = useMemo(
+    () => (pointPanel.point ? configsByPoint[pointPanel.point.id] ?? NO_CONFIGS : NO_CONFIGS),
+    [pointPanel.point, configsByPoint]
+  );
 
   const selectedDept = departments.find((d) => d.id === selectedDeptId) ?? null;
   const deptPoints = (selectedDept?.samplingPoints ?? []).filter(matchesPoint);
@@ -270,7 +278,7 @@ export function WaterConfigPage() {
         point={pointPanel.point}
         defaultDepartmentId={selectedDeptId}
         departments={departments}
-        configs={pointPanel.point ? configsByPoint[pointPanel.point.id] ?? [] : []}
+        configs={pointPanelConfigs}
         isCountTest={isCountTest}
         onClose={() => {
           setPointPanel({ open: false, point: null });

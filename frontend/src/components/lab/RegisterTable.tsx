@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { tableHeadSx } from "../../theme";
+import type { StatusTone } from "../../theme/statusTokens";
 import { EmptyState } from "./EmptyState";
 
 export interface RegisterColumn<T> {
@@ -42,6 +43,9 @@ interface RegisterTableProps<T> {
   dense?: boolean;
   // Sort applied before the user clicks a header.
   defaultSort?: { key: string; direction: "asc" | "desc" };
+  // Tints the row (and marks its first cell with a left border) so GMP warnings
+  // such as low stock or overdue calibration stay visible at a glance.
+  rowTone?: (row: T) => StatusTone | undefined;
 }
 
 const PAGE_SIZES = [25, 50, 100];
@@ -57,7 +61,7 @@ function compareValues(a: unknown, b: unknown): number {
 }
 
 export function RegisterTable<T>({
-  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort
+  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone
 }: RegisterTableProps<T>) {
   const theme = useTheme();
   const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(defaultSort ?? null);
@@ -159,14 +163,26 @@ export function RegisterTable<T>({
                 </TableCell>
               </TableRow>
             ) : (
-              paged.map((row) => (
+              paged.map((row) => {
+                const tone = rowTone?.(row);
+                const toneTokens = tone ? theme.custom.status[tone] : undefined;
+                return (
                 <TableRow
                   key={getRowId(row)}
                   hover={!!onRowClick}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   onKeyDown={onRowClick ? (e) => handleRowKey(e, row) : undefined}
                   tabIndex={onRowClick ? 0 : undefined}
-                  sx={onRowClick ? { cursor: "pointer", "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 } } : undefined}
+                  sx={{
+                    ...(onRowClick ? { cursor: "pointer", "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 } } : null),
+                    ...(toneTokens
+                      ? {
+                          bgcolor: toneTokens.bg,
+                          "& > td:first-of-type": { borderLeft: `3px solid ${toneTokens.border}` },
+                          "&.MuiTableRow-hover:hover": { filter: "brightness(0.97)" }
+                        }
+                      : null)
+                  }}
                 >
                   {columns.map((col) => {
                     const content = col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
@@ -190,7 +206,8 @@ export function RegisterTable<T>({
                     </TableCell>
                   )}
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

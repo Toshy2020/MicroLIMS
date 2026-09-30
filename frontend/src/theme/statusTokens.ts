@@ -144,7 +144,10 @@ const STATUS_TONE: Record<string, StatusTone> = {
 
   // HPLC workspace (instrument state, run/sample status, review flags).
   Abandoned: "pending", Available: "notDetected", Unavailable: "detected",
-  Removed: "pending", RequiresReview: "action"
+  Removed: "pending", RequiresReview: "action",
+
+  // Calibration runs withdrawn after the fact.
+  Withdrawn: "inconclusive"
 };
 
 export function statusTone(status: string): StatusTone {

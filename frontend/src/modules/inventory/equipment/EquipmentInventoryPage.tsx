@@ -289,6 +289,7 @@ export function EquipmentInventoryPage() {
               loading={loading || !items}
               pageSize={25}
               onRowClick={(eq) => setDetailsItem(eq)}
+              rowTone={(eq) => (isEquipmentCalibrationOverdue(eq) ? "detected" : isEquipmentCalibrationDueSoon(eq, 30) ? "inconclusive" : undefined)}
               rowActions={(eq) => [
                 { label: "Details and documents", onClick: () => setDetailsItem(eq) },
                 { label: "Edit equipment", onClick: () => openEdit(eq) },

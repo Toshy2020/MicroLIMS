@@ -60,7 +60,7 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
               </TableCell>
             )}
             {columns.map((col) => (
-              <TableCell key={String(col.key)} align={col.align}>{col.label}</TableCell>
+              <TableCell key={String(col.key)} align={col.align} sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{col.label}</TableCell>
             ))}
           </TableRow>
         </TableHead>
@@ -111,7 +111,7 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
                     </TableCell>
                   )}
                   {columns.map((col) => (
-                    <TableCell key={String(col.key)} align={col.align}>
+                    <TableCell key={String(col.key)} align={col.align} sx={{ py: 0.75 }}>
                       {col.render ? col.render(row) : String(row[col.key])}
                     </TableCell>
                   ))}

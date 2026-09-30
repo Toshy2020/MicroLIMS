@@ -633,7 +633,7 @@ export function CalibrationRunsPage() {
               <span><StatusBadge status="Fail" label="Failed" /></span>
             </Tooltip>
           )}
-          {r.status === "Withdrawn" && <StatusBadge status="OnHold" label="Withdrawn" />}
+          {r.status === "Withdrawn" && <StatusBadge status="Withdrawn" label="Withdrawn" />}
         </Stack>
       )
     },

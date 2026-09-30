@@ -63,6 +63,12 @@ export const baseThemeOptions: ThemeOptions = {
       styleOverrides: {
         root: { fontWeight: 700, fontSize: 11 }
       }
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: { fontVariantNumeric: "tabular-nums" },
+        head: { fontWeight: 600, whiteSpace: "nowrap" }
+      }
     }
   }
 };

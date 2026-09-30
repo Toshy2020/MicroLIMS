@@ -362,6 +362,7 @@ export function MaterialsPage() {
             getRowId={(m) => m.id}
             loading={loading || !items}
             onRowClick={(m) => setLotDetailsFor(m)}
+            rowTone={(m) => (m.status === "Expired" ? "detected" : isMaterialLowStock(m) ? "inconclusive" : undefined)}
             rowActions={(m) => [
               { label: "Lot details and documents", onClick: () => setLotDetailsFor(m) },
               { label: "Edit material", onClick: () => openEdit(m) },

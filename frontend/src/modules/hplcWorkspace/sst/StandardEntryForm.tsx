@@ -58,17 +58,6 @@ export function StandardEntryForm({
   // Responses array
   const responses = useMemo(() => formValue.responses ?? [], [formValue.responses]);
 
-  // Live mean & RSD preview
-  const stats = useMemo(() => {
-    const valid = responses.filter((r) => typeof r === "number" && !isNaN(r) && r > 0);
-    if (valid.length === 0) return { mean: null, rsd: null };
-    const mean = valid.reduce((a, b) => a + b, 0) / valid.length;
-    if (valid.length < 2 || mean === 0) return { mean, rsd: null };
-    const variance = valid.reduce((a, b) => a + (b - mean) ** 2, 0) / (valid.length - 1);
-    const rsd = (Math.sqrt(variance) / mean) * 100;
-    return { mean, rsd };
-  }, [responses]);
-
   const handleResponseChange = (idx: number, rawVal: string) => {
     const val = rawVal === "" ? 0 : Number(rawVal);
     const next = [...responses];
@@ -183,12 +172,9 @@ export function StandardEntryForm({
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               Standard Injections (n = {injectionCount}):
             </Typography>
-            {stats.mean !== null && (
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Preview Mean: <strong>{stats.mean.toLocaleString(undefined, { maximumFractionDigits: 1 })}</strong>
-                {stats.rsd !== null && ` · Preview %RSD: ${stats.rsd.toFixed(2)}%`}
-              </Typography>
-            )}
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Mean and %RSD are calculated on save (see the values table).
+            </Typography>
           </Box>
 
           <Grid container spacing={1.5}>

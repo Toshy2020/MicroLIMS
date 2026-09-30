@@ -18,6 +18,7 @@ import ScienceIcon from "@mui/icons-material/Science";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcInstrumentDto } from "../types";
 
 export interface HplcInstrumentCardProps {
@@ -67,7 +68,7 @@ export function HplcInstrumentCard({
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, lineHeight: 1.3 }}>
               {instrument.name}
             </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: 12 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: 12, fontFamily: monospaceFontFamily }}>
               {instrument.code}
             </Typography>
           </Box>
@@ -93,7 +94,7 @@ export function HplcInstrumentCard({
             }}
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main", fontFamily: monospaceFontFamily }}>
                 {instrument.activeRun.code}
               </Typography>
               <HplcStatusBadge status={instrument.activeRun.sstStatus} label={`SST: ${instrument.activeRun.sstStatus}`} size="small" />
@@ -116,7 +117,7 @@ export function HplcInstrumentCard({
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <ScienceIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                <Typography variant="body2" sx={{ fontSize: 13 }}>
+                <Typography variant="body2" sx={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
                   Assigned Samples: <strong>{instrument.activeRun.sampleCount}</strong>
                 </Typography>
               </Box>

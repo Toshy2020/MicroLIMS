@@ -12,7 +12,7 @@ import {
   Alert,
   useTheme
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { StatusBadge } from "../../../components/StatusBadge";
 import type { ChromatographyColumnDto } from "../../laboratoryConfiguration/masterDataSimple/services/ChromatographyColumnService";
 
 export interface WizardColumnStepProps {
@@ -117,13 +117,7 @@ export function WizardColumnStep({
                           sx={{ fontWeight: 600, fontSize: 11 }}
                         />
                       )}
-                      <Chip
-                        size="small"
-                        color="success"
-                        icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
-                        label="Compatible"
-                        sx={{ fontWeight: 600 }}
-                      />
+                      <StatusBadge status="Suitable" label="Compatible" />
                     </Stack>
                   </Box>
                 </Card>

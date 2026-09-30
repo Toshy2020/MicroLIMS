@@ -1,19 +1,9 @@
-import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  useTheme
-} from "@mui/material";
+import { Button } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
-import { tableHeadSx } from "../../../theme";
+import { RegisterTable, ResultSection } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcRunListItem } from "../types";
 
 export interface HplcRunHistoryTableProps {
@@ -26,77 +16,65 @@ export function HplcRunHistoryTable({
   historyRuns,
   onSelectRun
 }: HplcRunHistoryTableProps) {
-  const theme = useTheme();
+  const columns: RegisterColumn<HplcRunListItem>[] = [
+    {
+      key: "code",
+      label: "Run Code",
+      sortable: true,
+      render: (hr) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{hr.code}</span>
+    },
+    { key: "methodAbbreviation", label: "Method", sortable: true },
+    { key: "analystUserName", label: "Analyst", sortable: true },
+    {
+      key: "startedAt",
+      label: "Started At",
+      sortable: true,
+      sortValue: (hr) => new Date(hr.startedAt).getTime(),
+      render: (hr) => new Date(hr.startedAt).toLocaleString()
+    },
+    {
+      key: "closedAt",
+      label: "Closed At",
+      sortable: true,
+      sortValue: (hr) => (hr.closedAt ? new Date(hr.closedAt).getTime() : null),
+      render: (hr) => (hr.closedAt ? new Date(hr.closedAt).toLocaleString() : "—")
+    },
+    { key: "status", label: "Run Status", sortable: true, render: (hr) => <HplcStatusBadge status={hr.status} /> },
+    { key: "sstStatus", label: "SST Status", sortable: true, render: (hr) => <HplcStatusBadge status={hr.sstStatus} /> },
+    {
+      key: "action",
+      label: "Action",
+      align: "right",
+      render: (hr) => (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<VisibilityIcon fontSize="small" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectRun(hr.id);
+          }}
+          sx={{ textTransform: "none" }}
+        >
+          View
+        </Button>
+      )
+    }
+  ];
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        overflow: "hidden"
-      }}
-    >
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          Instrument Run History ({historyRuns.length})
-        </Typography>
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Historical record of completed, abandoned, and past HPLC runs on this instrument.
-        </Typography>
-      </Box>
-      <TableContainer>
-        <Table size="small">
-          <TableHead sx={tableHeadSx(theme)}>
-            <TableRow>
-              <TableCell>Run Code</TableCell>
-              <TableCell>Method</TableCell>
-              <TableCell>Analyst</TableCell>
-              <TableCell>Started At</TableCell>
-              <TableCell>Closed At</TableCell>
-              <TableCell>Run Status</TableCell>
-              <TableCell>SST Status</TableCell>
-              <TableCell align="right">Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {historyRuns.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                  No past runs recorded for this instrument.
-                </TableCell>
-              </TableRow>
-            ) : (
-              historyRuns.map((hr) => (
-                <TableRow key={hr.id} hover>
-                  <TableCell sx={{ fontWeight: 600 }}>{hr.code}</TableCell>
-                  <TableCell>{hr.methodAbbreviation}</TableCell>
-                  <TableCell>{hr.analystUserName}</TableCell>
-                  <TableCell>{new Date(hr.startedAt).toLocaleString()}</TableCell>
-                  <TableCell>{hr.closedAt ? new Date(hr.closedAt).toLocaleString() : "—"}</TableCell>
-                  <TableCell>
-                    <HplcStatusBadge status={hr.status} />
-                  </TableCell>
-                  <TableCell>
-                    <HplcStatusBadge status={hr.sstStatus} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<VisibilityIcon fontSize="small" />}
-                      onClick={() => onSelectRun(hr.id)}
-                      sx={{ textTransform: "none" }}
-                    >
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
+    <ResultSection title={`Instrument run history (${historyRuns.length})`}>
+      <RegisterTable
+        columns={columns}
+        rows={historyRuns}
+        getRowId={(hr) => hr.id}
+        onRowClick={(hr) => onSelectRun(hr.id)}
+        defaultSort={{ key: "startedAt", direction: "desc" }}
+        empty={{
+          title: "No past runs recorded",
+          description: "Completed, abandoned, and past HPLC runs on this instrument appear here."
+        }}
+      />
+    </ResultSection>
   );
 }

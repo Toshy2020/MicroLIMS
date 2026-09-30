@@ -74,7 +74,6 @@ export function WizardMethodStep({
                 <Chip
                   size="small"
                   label={`${opt.eligibleTestOrderCount} eligible tests`}
-                  color={opt.eligibleTestOrderCount > 0 ? "success" : "default"}
                   variant="outlined"
                   sx={{ fontWeight: 600 }}
                 />

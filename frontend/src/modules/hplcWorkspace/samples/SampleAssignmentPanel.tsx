@@ -2,34 +2,26 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Paper,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
   Alert,
   Stack,
-  Tooltip,
-  useTheme
+  Tooltip
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import { toast } from "sonner";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { EligibleSampleTable } from "./EligibleSampleTable";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
-import { tableHeadSx } from "../../../theme";
+import { RegisterTable } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import { StatusBadge } from "../../../components/StatusBadge";
+import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcRunDto, HplcRunSampleSummaryDto } from "../types";
 
 export interface SampleAssignmentPanelProps {
@@ -43,7 +35,6 @@ export function SampleAssignmentPanel({
   canOperate,
   onRunUpdated
 }: SampleAssignmentPanelProps) {
-  const theme = useTheme();
   const navigate = useNavigate();
 
   const [eligibleDialogOpen, setEligibleDialogOpen] = useState(false);
@@ -80,8 +71,68 @@ export function SampleAssignmentPanel({
 
   const canAssign = run.canAssignSamples && canOperate && run.status === "Open";
 
+  const columns: RegisterColumn<HplcRunSampleSummaryDto>[] = [
+    {
+      key: "sampleNumber",
+      label: "Sample Number",
+      sortable: true,
+      render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span>
+    },
+    { key: "batchNumber", label: "Batch", sortable: true, render: (s) => s.batchNumber ?? "—" },
+    { key: "productName", label: "Product", sortable: true, render: (s) => s.productName ?? "—" },
+    {
+      key: "testCode",
+      label: "Test Code",
+      sortable: true,
+      render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.testCode}</span>
+    },
+    { key: "status", label: "Run Status", sortable: true, render: (s) => <HplcStatusBadge status={s.status} /> },
+    {
+      key: "submitted",
+      label: "Submission",
+      sortable: true,
+      sortValue: (s) => (s.submitted ? 1 : 0),
+      render: (s) => (s.submitted ? <StatusBadge status="Completed" label="Submitted" /> : <StatusBadge status="Pending" />)
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      align: "right",
+      render: (s) => {
+        const canRemove = canOperate && run.status === "Open" && s.status === "Assigned" && !s.submitted;
+        return (
+          <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
+            <Button
+              size="small"
+              variant={s.submitted ? "outlined" : "contained"}
+              color="primary"
+              startIcon={s.submitted ? <VisibilityIcon fontSize="small" /> : <EditNoteIcon fontSize="small" />}
+              onClick={() => navigate(`/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`)}
+              sx={{ textTransform: "none", py: 0.25 }}
+            >
+              {s.submitted ? "View Entry" : "Enter Replicates"}
+            </Button>
+
+            {canRemove && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteOutlineIcon fontSize="small" />}
+                onClick={() => handleOpenRemoveDialog(s)}
+                sx={{ textTransform: "none", py: 0.25 }}
+              >
+                Remove
+              </Button>
+            )}
+          </Stack>
+        );
+      }
+    }
+  ];
+
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={2}>
       {/* Gating Alert */}
       {!run.canAssignSamples ? (
         <Alert severity="warning" icon={<LockOutlinedIcon />}>
@@ -94,155 +145,60 @@ export function SampleAssignmentPanel({
         </Alert>
       )}
 
-      {/* Main Panel */}
-      <Paper
-        elevation={0}
+      <Box
         sx={{
-          borderRadius: 2,
-          border: `1px solid ${theme.palette.divider}`,
-          overflow: "hidden"
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 1.5
         }}
       >
-        <Box
-          sx={{
-            p: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 1.5,
-            borderBottom: `1px solid ${theme.palette.divider}`
-          }}
-        >
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Assigned Run Samples ({run.samples.length})
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Samples linked to this HPLC run for testing and replicate entry.
-            </Typography>
-          </Box>
-
-          <Tooltip
-            title={
-              !run.canAssignSamples
-                ? run.canAssignSamplesReason || "System suitability must pass first"
-                : run.status !== "Open"
-                ? "Run is no longer open"
-                : !canOperate
-                ? "Permission required"
-                : ""
-            }
-          >
-            <span>
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                startIcon={<AddIcon />}
-                disabled={!canAssign}
-                onClick={() => setEligibleDialogOpen(true)}
-                sx={{ textTransform: "none", fontWeight: 600 }}
-              >
-                Assign Samples...
-              </Button>
-            </span>
-          </Tooltip>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Assigned Run Samples ({run.samples.length})
+          </Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Samples linked to this HPLC run for testing and replicate entry.
+          </Typography>
         </Box>
 
-        <TableContainer>
-          <Table size="small">
-            <TableHead sx={tableHeadSx(theme)}>
-              <TableRow>
-                <TableCell>Sample Number</TableCell>
-                <TableCell>Batch</TableCell>
-                <TableCell>Product</TableCell>
-                <TableCell>Test Code</TableCell>
-                <TableCell>Run Status</TableCell>
-                <TableCell>Submission</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {run.samples.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} sx={{ textAlign: "center", py: 5, color: "text.secondary" }}>
-                    No samples currently assigned to this run. Click &ldquo;Assign Samples...&rdquo; to add test orders.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                run.samples.map((s) => {
-                  const isAssigned = s.status === "Assigned";
-                  const canRemove =
-                    canOperate && run.status === "Open" && isAssigned && !s.submitted;
+        <Tooltip
+          title={
+            !run.canAssignSamples
+              ? run.canAssignSamplesReason || "System suitability must pass first"
+              : run.status !== "Open"
+              ? "Run is no longer open"
+              : !canOperate
+              ? "Permission required"
+              : ""
+          }
+        >
+          <span>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              startIcon={<AddIcon />}
+              disabled={!canAssign}
+              onClick={() => setEligibleDialogOpen(true)}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              Assign Samples...
+            </Button>
+          </span>
+        </Tooltip>
+      </Box>
 
-                  return (
-                    <TableRow key={s.id} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>{s.sampleNumber}</TableCell>
-                      <TableCell>{s.batchNumber ?? "—"}</TableCell>
-                      <TableCell>{s.productName ?? "—"}</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>{s.testCode}</TableCell>
-                      <TableCell>
-                        <HplcStatusBadge status={s.status} />
-                      </TableCell>
-                      <TableCell>
-                        {s.submitted ? (
-                          <Chip
-                            icon={<CheckCircleOutlinedIcon fontSize="small" />}
-                            label="Submitted"
-                            color="success"
-                            size="small"
-                            variant="outlined"
-                          />
-                        ) : (
-                          <Chip
-                            icon={<HourglassEmptyIcon fontSize="small" />}
-                            label="Pending"
-                            color="default"
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-                          <Button
-                            size="small"
-                            variant={s.submitted ? "outlined" : "contained"}
-                            color="primary"
-                            startIcon={s.submitted ? <VisibilityIcon fontSize="small" /> : <EditNoteIcon fontSize="small" />}
-                            onClick={() =>
-                              navigate(
-                                `/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`
-                              )
-                            }
-                            sx={{ textTransform: "none", py: 0.25 }}
-                          >
-                            {s.submitted ? "View Entry" : "Enter Replicates"}
-                          </Button>
-
-                          {canRemove && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              startIcon={<DeleteOutlineIcon fontSize="small" />}
-                              onClick={() => handleOpenRemoveDialog(s)}
-                              sx={{ textTransform: "none", py: 0.25 }}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <RegisterTable
+        columns={columns}
+        rows={run.samples}
+        getRowId={(s) => s.id}
+        empty={{
+          title: "No samples assigned",
+          description: "Click “Assign Samples...” to add test orders to this run."
+        }}
+      />
 
       {/* Eligible Samples Dialog */}
       <EligibleSampleTable

@@ -9,13 +9,6 @@ import {
   Stack,
   Alert,
   CircularProgress,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   useTheme
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -35,8 +28,27 @@ import { SampleAssignmentPanel } from "../samples/SampleAssignmentPanel";
 import { ChromatogramEvidencePanel } from "../evidence/ChromatogramEvidencePanel";
 import { HplcRunHistoryTable } from "../history/HplcRunHistoryTable";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
-import { tableHeadSx } from "../../../theme";
-import type { HplcRunDto, HplcRunListItem } from "../types";
+import { monospaceFontFamily } from "../../../theme/palette";
+import { RegisterTable, ResultSection } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../types";
+
+const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
+  { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },
+  { key: "solutionMasterName", label: "Solution", sortable: true },
+  {
+    key: "solutionPreparationCode",
+    label: "Preparation Code",
+    render: (mp) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{mp.solutionPreparationCode ?? "—"}</span>
+  },
+  {
+    key: "expiresAt",
+    label: "Expiry Date",
+    render: (mp) => (mp.expiresAt ? new Date(mp.expiresAt).toLocaleDateString() : "—"),
+    sortable: true,
+    sortValue: (mp) => mp.expiresAt ?? null
+  }
+];
 
 export function HplcInstrumentWorkspace() {
   const theme = useTheme();
@@ -234,67 +246,58 @@ export function HplcInstrumentWorkspace() {
         <Tab label="Run History" />
       </Tabs>
 
-      {/* Tab 0: Overview */}
+      {/* Tab 0: Run setup */}
       {activeTab === 0 && run && (
-        <Stack spacing={3}>
-          <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-              Assigned Mobile Phases
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead sx={tableHeadSx(theme)}>
-                  <TableRow>
-                    <TableCell>Channel</TableCell>
-                    <TableCell>Solution</TableCell>
-                    <TableCell>Preparation Code</TableCell>
-                    <TableCell>Expiry Date</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {run.mobilePhases.map((mp) => (
-                    <TableRow key={mp.id}>
-                      <TableCell sx={{ fontWeight: 700 }}>Channel {mp.channel}</TableCell>
-                      <TableCell>{mp.solutionMasterName}</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>{mp.solutionPreparationCode ?? "—"}</TableCell>
-                      <TableCell>{mp.expiresAt ? new Date(mp.expiresAt).toLocaleDateString() : "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-
-          {method && <MethodReadOnlyPanel method={method} />}
+        <Stack spacing={2}>
+          <ResultSection step={1} title="Run setup">
+            <Stack spacing={2}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                Assigned Mobile Phases
+              </Typography>
+              <RegisterTable
+                columns={MOBILE_PHASE_COLUMNS}
+                rows={run.mobilePhases}
+                getRowId={(mp) => mp.id}
+                empty={{ title: "No mobile phases assigned" }}
+              />
+              {method && <MethodReadOnlyPanel method={method} />}
+            </Stack>
+          </ResultSection>
         </Stack>
       )}
 
       {/* Tab 1: System Suitability */}
       {activeTab === 1 && run && (
-        <SystemSuitabilityPanel
-          run={run}
-          method={method}
-          canOperate={canOperate}
-          onRunUpdated={loadRunData}
-        />
+        <ResultSection step={2} title="System suitability" status={run.sst?.status}>
+          <SystemSuitabilityPanel
+            run={run}
+            method={method}
+            canOperate={canOperate}
+            onRunUpdated={loadRunData}
+          />
+        </ResultSection>
       )}
 
       {/* Tab 2: Samples */}
       {activeTab === 2 && run && (
-        <SampleAssignmentPanel
-          run={run}
-          canOperate={canOperate}
-          onRunUpdated={loadRunData}
-        />
+        <ResultSection step={3} title="Sample assignment">
+          <SampleAssignmentPanel
+            run={run}
+            canOperate={canOperate}
+            onRunUpdated={loadRunData}
+          />
+        </ResultSection>
       )}
 
       {/* Tab 3: Evidence */}
       {activeTab === 3 && run && (
-        <ChromatogramEvidencePanel
-          run={run}
-          canOperate={canOperate}
-          onRunUpdated={loadRunData}
-        />
+        <ResultSection step={4} title="Testing & evidence">
+          <ChromatogramEvidencePanel
+            run={run}
+            canOperate={canOperate}
+            onRunUpdated={loadRunData}
+          />
+        </ResultSection>
       )}
 
       {/* Tab 4: History */}

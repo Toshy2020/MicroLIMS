@@ -25,6 +25,7 @@ import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import { toast } from "sonner";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { tableHeadSx } from "../../../theme";
+import { monospaceFontFamily } from "../../../theme/palette";
 import type { EligibleTestDto } from "../types";
 
 export interface EligibleSampleTableProps {
@@ -210,10 +211,10 @@ export function EligibleSampleTable({
                             disabled={assigning}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{t.sampleNumber}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.sampleNumber}</TableCell>
                         <TableCell>{t.batchNumber ?? "—"}</TableCell>
                         <TableCell>{t.productName ?? "—"}</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{t.testCode}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.testCode}</TableCell>
                         <TableCell>{t.stageName ?? "—"}</TableCell>
                         <TableCell>
                           {t.receivedAt ? new Date(t.receivedAt).toLocaleDateString() : "—"}

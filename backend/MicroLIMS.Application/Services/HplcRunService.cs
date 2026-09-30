@@ -15,7 +15,7 @@ namespace MicroLIMS.Application.Services;
 
 public record HplcActiveRunSummaryDto(int RunId, string Code, string MethodAbbreviation, string AnalystName, int SampleCount, HplcSstStatus SstStatus);
 public record HplcInstrumentDto(int EquipmentId, string Code, string Name, string State, string? Reason, HplcActiveRunSummaryDto? ActiveRun);
-public record HplcMethodOptionDto(int Id, string Abbreviation, string Name, int EligibleTestOrderCount);
+public record HplcMethodOptionDto(int Id, string Abbreviation, string Name, string ColumnDesignation, int EligibleTestOrderCount);
 
 // ---- Start run ----
 
@@ -43,7 +43,7 @@ public record HplcEvidenceDto(
 public record HplcRunMobilePhaseDto(int Id, string Channel, int SolutionPreparationId, string? SolutionPreparationCode, string SolutionMasterName, DateTime? ExpiresAt);
 public record HplcSstInjectionDto(int InjectionNo, decimal Response);
 public record HplcSstAnalyteDto(
-    int Id, int HplcMethodAnalyteId, string AnalyteName,
+    int Id, int HplcMethodAnalyteId, string AnalyteName, int StandardEntryId,
     int? StandardMaterialId, string? StandardMaterialBatch, decimal? StandardPurityPercent, decimal? StandardMoisturePercent, decimal? StandardWeightMg,
     List<HplcSstInjectionDto> Injections,
     decimal? ReportedRsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
@@ -95,6 +95,11 @@ public partial class HplcRunService
     };
 
     private static readonly JsonSerializerOptions JsonOptions = SnapshotJson.Options;
+
+    private const string MissingStandardReportReason = "Upload the standard report before confirming system suitability.";
+
+    private static bool IsCurrentSstStandardReport(HplcEvidence e) =>
+        e.Context == HplcEvidenceContext.Sst && e.Kind == HplcEvidenceKind.StandardReport && e.SupersededByEvidenceId == null;
 
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
@@ -188,7 +193,7 @@ public partial class HplcRunService
                     codes.Contains(o.TestCode) && !o.IsSuperseded && o.CurrentStep != WorkflowStep.Ready
                     && o.Sample != null && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled, ct);
             }
-            result.Add(new HplcMethodOptionDto(m.Id, m.Abbreviation, m.Name, count));
+            result.Add(new HplcMethodOptionDto(m.Id, m.Abbreviation, m.Name, m.ColumnDesignation, count));
         }
 
         return result;
@@ -257,6 +262,11 @@ public partial class HplcRunService
 
         if (!column.CompatibleEquipment.Any(e => e.Id == equipment.Id))
             throw new InvalidOperationException($"Column \"{column.Name}\" is not compatible with \"{equipment.Name}\".");
+
+        if (string.IsNullOrWhiteSpace(column.UspDesignation))
+            throw new InvalidOperationException($"Column {column.Code} has no USP designation; set it in the column master.");
+        if (!string.Equals(column.UspDesignation.Trim(), method.ColumnDesignation?.Trim(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Column {column.Code} is USP {column.UspDesignation}; method {method.Abbreviation} requires {method.ColumnDesignation}.");
 
         var inputs = r.MobilePhases ?? new List<HplcMobilePhaseAssignmentInput>();
         if (inputs.Count != method.MobilePhases.Count)
@@ -390,6 +400,10 @@ public partial class HplcRunService
             var responses = input.Responses ?? new List<decimal>();
             for (var i = 0; i < responses.Count; i++)
                 analyteRow.Injections.Add(new HplcSstInjection { InjectionNo = i + 1, Response = responses[i] });
+
+            // Shown while entering; Passed/FailureReasons stay untouched until confirmation.
+            analyteRow.MeanResponse = responses.Count > 0 ? responses.Average() : null;
+            analyteRow.ComputedRsdPercent = StandardComparisonCalculator.CalculatePreparationRsd(responses, null).RsdPercent;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -406,10 +420,8 @@ public partial class HplcRunService
         if (run.Sst == null || run.Sst.Status != HplcSstStatus.Pending)
             throw new InvalidOperationException("System suitability has already been confirmed.");
 
-        var hasCurrentReport = run.Evidence.Any(e =>
-            e.Context == HplcEvidenceContext.Sst && e.Kind == HplcEvidenceKind.StandardReport && e.SupersededByEvidenceId == null);
-        if (!hasCurrentReport)
-            throw new InvalidOperationException("Upload the standard report before confirming system suitability.");
+        if (!run.Evidence.Any(IsCurrentSstStandardReport))
+            throw new InvalidOperationException(MissingStandardReportReason);
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         foreach (var mp in run.MobilePhases)
@@ -573,6 +585,29 @@ public partial class HplcRunService
         return (content, evidence.ContentType, evidence.FileName);
     }
 
+    // What a reviewer needs for one test order: the current sample evidence of
+    // every run it was assigned to plus each such run's SST standard report.
+    public async Task<List<HplcEvidenceDto>> GetTestOrderEvidenceAsync(int testOrderId, int userId, CancellationToken ct = default)
+    {
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+
+        var runSamples = await _db.HplcRunSamples.AsNoTracking()
+            .Where(s => s.TestOrderId == testOrderId).Select(s => new { s.Id, s.HplcRunId }).ToListAsync(ct);
+        var sampleIds = runSamples.Select(s => s.Id).ToList();
+        var runIds = runSamples.Select(s => s.HplcRunId).Distinct().ToList();
+
+        var rows = await _db.HplcEvidences.AsNoTracking()
+            .Where(e => e.SupersededByEvidenceId == null
+                && ((e.HplcRunSampleId != null && sampleIds.Contains(e.HplcRunSampleId.Value))
+                    || (runIds.Contains(e.HplcRunId) && e.Context == HplcEvidenceContext.Sst && e.Kind == HplcEvidenceKind.StandardReport)))
+            .OrderByDescending(e => e.UploadedAt).ThenByDescending(e => e.Id)
+            .ToListAsync(ct);
+
+        var uploaderIds = rows.Select(e => e.UploadedByUserId).Distinct().ToList();
+        var names = await _db.Users.Where(u => uploaderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+        return rows.Select(e => ToEvidenceDto(e, names.GetValueOrDefault(e.UploadedByUserId))).ToList();
+    }
+
     private static void ValidateEvidenceFile(string fileName, string contentType, byte[] content)
     {
         if (content == null || content.Length == 0)
@@ -679,11 +714,19 @@ public partial class HplcRunService
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
         string? NameOf(int? id) => id.HasValue && names.TryGetValue(id.Value, out var n) ? n : null;
 
+        var standardEntryByAnalyte = new Dictionary<int, int>();
+        if (run.Sst != null)
+        {
+            var analyteIds = run.Sst.Analytes.Select(a => a.HplcMethodAnalyteId).ToList();
+            standardEntryByAnalyte = await _db.HplcMethodAnalytes.AsNoTracking()
+                .Where(a => analyteIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, a => a.StandardEntryId, ct);
+        }
+
         var sstDto = run.Sst == null ? null : new HplcSstRecordDto(
             run.Sst.Id, run.Sst.Code, run.Sst.Status, run.Sst.FailureReasons,
             run.Sst.ConfirmedByUserId, NameOf(run.Sst.ConfirmedByUserId), run.Sst.ConfirmedAt,
             run.Sst.Analytes.OrderBy(a => a.Id).Select(a => new HplcSstAnalyteDto(
-                a.Id, a.HplcMethodAnalyteId, a.AnalyteName, a.StandardMaterialId, a.StandardMaterial?.BatchNumber,
+                a.Id, a.HplcMethodAnalyteId, a.AnalyteName, standardEntryByAnalyte.GetValueOrDefault(a.HplcMethodAnalyteId), a.StandardMaterialId, a.StandardMaterial?.BatchNumber,
                 a.StandardPurityPercent, a.StandardMoisturePercent, a.StandardWeightMg,
                 a.Injections.OrderBy(i => i.InjectionNo).Select(i => new HplcSstInjectionDto(i.InjectionNo, i.Response)).ToList(),
                 a.ReportedRsdPercent, a.Resolution, a.TailingFactor, a.TheoreticalPlates, a.RetentionFactor, a.SignalToNoise, a.PeakToValley,
@@ -699,12 +742,15 @@ public partial class HplcRunService
             e.Id, e.HplcRunId, e.HplcRunSampleId, e.Context, e.Kind, e.FileName, e.ContentType,
             e.UploadedByUserId, NameOf(e.UploadedByUserId), e.UploadedAt, e.SupersededByEvidenceId == null, e.SupersedeReason)).ToList();
 
-        var canConfirmSst = run.Status == HplcRunStatus.Open && run.Sst?.Status == HplcSstStatus.Pending;
+        var hasStandardReport = run.Evidence.Any(IsCurrentSstStandardReport);
+        var canConfirmSst = run.Status == HplcRunStatus.Open && run.Sst?.Status == HplcSstStatus.Pending && hasStandardReport;
         string? canConfirmSstReason = run.Status != HplcRunStatus.Open
             ? "The run is closed."
             : run.Sst?.Status != HplcSstStatus.Pending
                 ? "System suitability has already been confirmed."
-                : null;
+                : !hasStandardReport
+                    ? MissingStandardReportReason
+                    : null;
 
         var canAssignSamples = run.Status == HplcRunStatus.Open && run.Sst?.Status == HplcSstStatus.Passed;
         string? canAssignSamplesReason = canAssignSamples

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -24,12 +25,15 @@ public record HplcPreviewResultDto(
     int HplcMethodAnalyteId, string ParameterName, string Quantity, int? ReplicateNo,
     decimal Value, string Display, string Unit, ResultStatus Status, string? SpecLimit);
 
+public record HplcOfficialResultDto(
+    string ParameterName, string Quantity, int? ReplicateNo, string Display, ResultStatus Status, string? SpecLimit);
+
 public record HplcSampleEntryDto(
     int RunSampleId, int HplcRunId, string RunCode, string SstCode, HplcSstStatus SstStatus,
     int TestOrderId, string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, string? StageName,
     HplcRunSampleStatus Status, string Basis, int? RequiredReplicates,
     List<HplcMethodWeightDto> MethodWeights, List<HplcReplicateDto> Replicates,
-    List<HplcPreviewResultDto> Preview, List<HplcEvidenceDto> Evidence,
+    List<HplcPreviewResultDto> Preview, List<HplcOfficialResultDto> Official, List<HplcEvidenceDto> Evidence,
     bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason);
 
 // HPLC Workspace Part B: sample assignment after SST passes, replicate entry
@@ -252,6 +256,8 @@ public partial class HplcRunService
                 !string.IsNullOrWhiteSpace(row.Spec.SpecLimit) ? row.Spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(row.Spec))).ToList();
         }
 
+        var official = c.Submitted ? await LoadOfficialResultsAsync(c.Order.Id, ct) : new List<HplcOfficialResultDto>();
+
         var evidenceRows = c.Run.Evidence.Where(e => e.HplcRunSampleId == c.RunSample.Id).OrderByDescending(e => e.UploadedAt).ToList();
         var uploaderIds = evidenceRows.Select(e => e.UploadedByUserId).Distinct().ToList();
         var names = await _db.Users.Where(u => uploaderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
@@ -270,8 +276,38 @@ public partial class HplcRunService
             c.RunSample.Id, c.Run.Id, c.Run.Code, c.Run.Sst?.Code ?? string.Empty, c.Run.Sst?.Status ?? HplcSstStatus.Pending,
             c.Order.Id, c.Sample.ReferenceNumber, c.Sample.BatchNumber, c.Sample.Item?.Name, c.Order.TestCode, c.StageName,
             c.RunSample.Status, individual ? "Individual" : "Mean", c.Replicates.SampleReplicates,
-            weights, replicates, preview, evidence,
+            weights, replicates, preview, official, evidence,
             editableReason == null, editableReason, c.Submitted, problem == null, problem);
+    }
+
+    // What HplcMethodAssayRecorder stored; Quantity and replicate number come
+    // from its calculation payload, tolerating rows without one.
+    private async Task<List<HplcOfficialResultDto>> LoadOfficialResultsAsync(int testOrderId, CancellationToken ct)
+    {
+        var rows = await _db.ParameterResults.AsNoTracking()
+            .Where(p => p.TestOrderId == testOrderId && p.IsActive)
+            .OrderBy(p => p.Id).ToListAsync(ct);
+        return rows.Select(p =>
+        {
+            var quantity = "AssayPercent";
+            int? replicateNo = null;
+            if (!string.IsNullOrWhiteSpace(p.CalculationJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(p.CalculationJson);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        if (doc.RootElement.TryGetProperty("quantity", out var q) && q.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(q.GetString()))
+                            quantity = q.GetString()!;
+                        if (doc.RootElement.TryGetProperty("replicateNo", out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetInt32(out var no))
+                            replicateNo = no;
+                    }
+                }
+                catch (JsonException) { }
+            }
+            return new HplcOfficialResultDto(p.ParameterName, quantity, replicateNo, p.ReportedDisplay, p.ComparisonStatus, p.SpecLimit);
+        }).ToList();
     }
 
     private async Task<List<HplcRunSampleSummaryDto>> BuildSampleSummariesAsync(HplcRun run, CancellationToken ct)

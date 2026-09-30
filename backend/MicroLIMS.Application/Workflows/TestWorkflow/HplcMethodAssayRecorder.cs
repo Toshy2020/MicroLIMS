@@ -60,11 +60,14 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                     actualWeightMg = input.Reps.First(x => x.ReplicateNo == r.ReplicateNo).ActualWeightMg,
                     response = r.Response,
                     assayPercent = r.AssayPercent,
+                    assayPercentDisplay = HplcSampleAssayEvaluator.FormatPercent(r.AssayPercent),
                 }),
                 reportedValue = row.Value,
                 runCode = c.Run.Code,
                 sstCode = sst.Code,
                 hplcMethodId = c.Run.HplcMethodId,
+                hplcRunId = c.Run.Id,
+                hplcRunSampleId = c.RunSample.Id,
             }, JsonOptions);
 
             var parameterResult = new ParameterResult

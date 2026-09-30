@@ -189,12 +189,13 @@ public partial class HplcRunServiceTests
     }
 
     private static async Task<ChromatographyColumn> AddColumnAsync(
-        MicroLimsDbContext db, int sectionId, Equipment compatibleEquipment, string code = "COL-01", bool isActive = true)
+        MicroLimsDbContext db, int sectionId, Equipment compatibleEquipment, string code = "COL-01", bool isActive = true, string? uspDesignation = "L1")
     {
         var column = new ChromatographyColumn
         {
             Code = code,
             Name = "C18",
+            UspDesignation = uspDesignation,
             SectionId = sectionId,
             IsActive = isActive,
             CreatedByUserId = 1,
@@ -552,6 +553,10 @@ public partial class HplcRunServiceTests
         var s = await SeedScenarioAsync(db, clock);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
+
+        Assert.False(run.CanConfirmSst);
+        await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", PdfBytes(), s.UserId);
+        run = await service.GetRunAsync(run.Id, s.UserId);
 
         Assert.True(run.CanConfirmSst);
         Assert.False(run.CanAssignSamples);

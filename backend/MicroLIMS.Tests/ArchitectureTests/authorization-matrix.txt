@@ -214,6 +214,7 @@ HplcWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Revi
 HplcWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.SaveReplicates(Int32, SaveReplicatesRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.SaveSst(Int32, SaveSstRequest): SystemAdministrator,SectionHead,Analyst

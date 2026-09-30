@@ -38,7 +38,7 @@ public static class HplcSampleAssayEvaluator
             {
                 foreach (var r in calc.Replicates)
                     rows.Add(new HplcAssayRow(a.AnalyteId, $"{a.Name} – replicate {r.ReplicateNo}", a.AssaySpec,
-                        ResultBasis.PercentLabelClaim, r.ReplicateNo, r.AssayPercent, Percent(r.AssayPercent), "%",
+                        ResultBasis.PercentLabelClaim, r.ReplicateNo, r.AssayPercent, FormatPercent(r.AssayPercent), "%",
                         SpecificationEvaluator.Evaluate(a.AssaySpec, r.AssayPercent),
                         readings.Where(x => x.ReplicateNo == r.ReplicateNo).ToList()));
                 continue;
@@ -46,7 +46,7 @@ public static class HplcSampleAssayEvaluator
 
             var mean = calc.MeanAssayPercent!.Value;
             rows.Add(new HplcAssayRow(a.AnalyteId, a.Name, a.AssaySpec, ResultBasis.PercentLabelClaim, null,
-                mean, Percent(mean), "%", SpecificationEvaluator.Evaluate(a.AssaySpec, mean), readings));
+                mean, FormatPercent(mean), "%", SpecificationEvaluator.Evaluate(a.AssaySpec, mean), readings));
 
             if (HplcAssayCalculator.JudgesAmountPerUnit(stageRole) && a.AmountSpec?.LabelClaim is decimal claim)
             {
@@ -60,6 +60,6 @@ public static class HplcSampleAssayEvaluator
         return rows;
     }
 
-    private static string Percent(decimal v) =>
+    public static string FormatPercent(decimal v) =>
         $"{Math.Round(v, 1, MidpointRounding.AwayFromZero).ToString("0.0", CultureInfo.InvariantCulture)} %";
 }

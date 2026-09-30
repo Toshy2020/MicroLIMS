@@ -127,13 +127,25 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<List<RoomTestConfigurationResponse>> GetRoomTestConfigurationsAsync(int roomId) =>
         (await _db.RoomTestConfigurations.AsNoTracking().Where(c => c.RoomId == roomId).ToListAsync()).Select(RoomTestConfigurationResponse.From).ToList();
 
+    // Unknown types would have no unit at result entry (DeriveBatchLocationUnit
+    // throws), and the configured-unit types report the unit entered here.
+    private static void ValidateRoomTestConfiguration(string testType, string? unit)
+    {
+        if (!RoomTestTypes.IsKnown(testType))
+            throw new InvalidOperationException(
+                $"Unknown test type '{testType}'. Allowed: {string.Join(", ", RoomTestTypes.All)}.");
+        if (RoomTestTypes.UsesConfiguredUnit(testType) && string.IsNullOrWhiteSpace(unit))
+            throw new InvalidOperationException($"Unit is required for {testType} test configurations.");
+    }
+
     public async Task<RoomTestConfigurationResponse> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
     {
+        ValidateRoomTestConfiguration(request.TestType, request.Unit);
         var entity = new RoomTestConfiguration
         {
             RoomId = request.RoomId, TestType = request.TestType, TestCode = request.TestCode,
             AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
-            Unit = request.Unit ?? string.Empty
+            Unit = request.Unit?.Trim() ?? string.Empty
         };
         _db.RoomTestConfigurations.Add(entity);
         await _db.SaveChangesAsync();
@@ -145,12 +157,13 @@ public class EnvironmentalMonitoringMasterDataService
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        ValidateRoomTestConfiguration(request.TestType, request.Unit);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
         entity.ActionLimit = request.ActionLimit;
         entity.SpecLimit = request.SpecLimit;
-        entity.Unit = request.Unit ?? string.Empty;
+        entity.Unit = request.Unit?.Trim() ?? string.Empty;
         await _db.SaveChangesAsync();
         return RoomTestConfigurationResponse.From(entity);
     }

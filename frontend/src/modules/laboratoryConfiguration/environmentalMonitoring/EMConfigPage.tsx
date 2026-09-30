@@ -14,7 +14,16 @@ import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { EMConfigService } from "./services/EMConfigService";
 import { tableHeadSx } from "../../../theme";
 
-const TEST_TYPES = ["PassiveAirSample", "SurfaceAirSample"];
+// Mirrors backend RoomTestTypes. Passive and surface samples report a fixed
+// unit; the others report the unit entered here, which the backend requires.
+const TEST_TYPES: { value: string; label: string; unitHint: string; needsUnit: boolean }[] = [
+  { value: "PassiveAirSample", label: "Passive air sample", unitHint: "e.g. CFU/plate/4 hours", needsUnit: false },
+  { value: "ActiveAirSample", label: "Active air sample", unitHint: "e.g. CFU/m³", needsUnit: true },
+  { value: "SurfaceAirSample", label: "Surface sample", unitHint: "e.g. CFU/25 cm2", needsUnit: false },
+  { value: "CompressedAir", label: "Compressed air", unitHint: "e.g. CFU/m³", needsUnit: true },
+  { value: "Drains", label: "Drains", unitHint: "e.g. CFU/swab", needsUnit: true }
+];
+const testTypeLabel = (value: string) => TEST_TYPES.find((t) => t.value === value)?.label ?? value;
 
 // Room-scoped test configurations (Alert/Action/Spec limits per Room x
 // TestType) - previously captured via a form but never shown anywhere,
@@ -32,6 +41,7 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [roomId]);
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const selectedType = TEST_TYPES.find((t) => t.value === form.testType);
 
   const startEdit = (c: any) => {
     setEditingId(c.id);
@@ -43,6 +53,7 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
   const save = async () => {
     setError(null);
     if (!form.testCode) { setError("Test Code is required."); return; }
+    if (selectedType?.needsUnit && !(form.unit ?? "").trim()) { setError(`Unit is required for ${selectedType.label}.`); return; }
     try {
       if (editingId) {
         await EMConfigService.updateRoomTestConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
@@ -73,7 +84,7 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
           <TableBody>
             {configs.map((c) => (
               <TableRow key={c.id}>
-                <TableCell>{c.testType}</TableCell>
+                <TableCell>{testTypeLabel(c.testType)}</TableCell>
                 <TableCell>{c.testCode}</TableCell>
                 <TableCell>{c.alertLimit || "—"}</TableCell>
                 <TableCell>{c.actionLimit || "—"}</TableCell>
@@ -104,21 +115,28 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
           flexWrap: "wrap",
           alignItems: "center"
         }}>
-        <Select size="small" value={form.testType} onChange={(e) => setField("testType", e.target.value)} sx={{ minWidth: 160 }}>
-          {TEST_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+        <Select size="small" value={form.testType} onChange={(e) => setField("testType", e.target.value)} inputProps={{ "aria-label": "Test type" }} sx={{ minWidth: 180 }}>
+          {TEST_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
         </Select>
         <TestCodePicker value={form.testCode ?? ""} onChange={(code) => setField("testCode", code)} label="Test Code" sx={{ minWidth: 200 }} />
         <TextField size="small" placeholder="Alert" value={form.alertLimit ?? ""} onChange={(e) => setField("alertLimit", e.target.value)} sx={{ width: 90 }} />
         <TextField size="small" placeholder="Action" value={form.actionLimit ?? ""} onChange={(e) => setField("actionLimit", e.target.value)} sx={{ width: 90 }} />
         <TextField size="small" placeholder="Spec" value={form.specLimit ?? ""} onChange={(e) => setField("specLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Unit (e.g. plate/4h)" value={form.unit ?? ""} onChange={(e) => setField("unit", e.target.value)} sx={{ width: 120 }} />
+        <TextField
+          size="small"
+          label={selectedType?.needsUnit ? "Unit *" : "Unit"}
+          placeholder={selectedType?.unitHint}
+          value={form.unit ?? ""}
+          onChange={(e) => setField("unit", e.target.value)}
+          sx={{ width: 170 }}
+        />
         {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
         <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add"}</Button>
       </Stack>
 
       <ConfirmationDialog
         open={pendingDelete != null}
-        message={pendingDelete ? `Delete the ${pendingDelete.testType} / ${pendingDelete.testCode} configuration for this room?` : ""}
+        message={pendingDelete ? `Delete the ${testTypeLabel(pendingDelete.testType)} / ${pendingDelete.testCode} configuration for this room?` : ""}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && remove(pendingDelete.id)}
       />

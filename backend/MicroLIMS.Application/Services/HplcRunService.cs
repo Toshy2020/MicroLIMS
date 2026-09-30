@@ -53,8 +53,9 @@ public record HplcSstRecordDto(
     int Id, string Code, HplcSstStatus Status, string? FailureReasons,
     int? ConfirmedByUserId, string? ConfirmedByUserName, DateTime? ConfirmedAt,
     List<HplcSstAnalyteDto> Analytes);
-// Placeholder summary - extended in Part B (assignment/entry/submission) which is not yet built.
-public record HplcRunSampleSummaryDto(int Id, int TestOrderId, HplcRunSampleStatus Status);
+public record HplcRunSampleSummaryDto(
+    int Id, int TestOrderId, HplcRunSampleStatus Status,
+    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, bool Submitted);
 
 public record HplcRunDto(
     int Id, uint Version, string Code, int SectionId,
@@ -72,14 +73,14 @@ public record HplcRunListItem(int Id, string Code, string MethodAbbreviation, st
 // record per run (analyte rows + injections), and evidence. Sample
 // assignment, replicate entry and submission are Part B, built on top of
 // this service (HplcRunSample/HplcSampleReplicate rows already exist in the
-// model; their write paths are not implemented here).
+// model; their write paths live in HplcRunService.Samples.cs).
 //
 // Sign-first pattern throughout (ConfirmSstAsync): ElectronicSignatureService
 // .SignAsync SAVES its own audit row immediately on a failed password, so
 // every mutation happens only after signing succeeds - same ordering as
 // SolutionPreparationService.CompleteAsync and TitrantStandardizationService
 // .StandardizeAsync.
-public class HplcRunService
+public partial class HplcRunService
 {
     private const string InstrumentStateRunning = "Running";
     private const string InstrumentStateUnavailable = "Unavailable";
@@ -692,7 +693,7 @@ public class HplcRunService
             mp.Id, mp.Channel, mp.SolutionPreparationId, mp.SolutionPreparation?.Code,
             mp.SolutionPreparation?.SolutionMaster?.Name ?? string.Empty, mp.SolutionPreparation?.ExpiresAt)).ToList();
 
-        var samples = run.Samples.Select(s => new HplcRunSampleSummaryDto(s.Id, s.TestOrderId, s.Status)).ToList();
+        var samples = await BuildSampleSummariesAsync(run, ct);
 
         var evidence = run.Evidence.OrderByDescending(e => e.UploadedAt).Select(e => new HplcEvidenceDto(
             e.Id, e.HplcRunId, e.HplcRunSampleId, e.Context, e.Kind, e.FileName, e.ContentType,

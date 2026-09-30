@@ -12,7 +12,7 @@ namespace MicroLIMS.Tests.UnitTests;
 // HPLC Workspace Part A (HPLC chain S6, plan Task A3): instruments, method
 // options, StartRunAsync, GetRunAsync gates, SaveSstAsync/ConfirmSstAsync,
 // evidence, abandon and history.
-public class HplcRunServiceTests
+public partial class HplcRunServiceTests
 {
     private const string Password = "ValidPassword123!";
 

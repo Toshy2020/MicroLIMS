@@ -1,35 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Box,
-  Paper,
-  Typography,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Stack,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-  useTheme
-} from "@mui/material";
+import { Button, FormControl, InputLabel, Select, MenuItem, Alert, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { PageHeader } from "../../components/PageHeader";
-import { tableHeadSx } from "../../theme";
-import { PreparationStatusBadge } from "./components/PreparationStatusBadge";
+import { LabPage, FilterBar, RegisterTable } from "../../components/lab";
+import type { RegisterColumn } from "../../components/lab";
+import { StatusBadge } from "../../components/StatusBadge";
+import { monospaceFontFamily } from "../../theme/palette";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
 import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
 import type {
@@ -40,7 +16,6 @@ import type {
 
 export function PreparationListPage() {
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const [items, setItems] = useState<SolutionPreparationListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,33 +60,76 @@ export function PreparationListPage() {
     });
   }, [items, searchQuery]);
 
+  const openRecord = (item: SolutionPreparationListItem) =>
+    navigate(item.effectiveStatus === "InProgress" ? `/preparation/${item.id}/edit` : `/preparation/${item.id}`);
+
+  const columns: RegisterColumn<SolutionPreparationListItem>[] = [
+    {
+      key: "code",
+      label: "Code",
+      sortable: true,
+      sortValue: (i) => i.code ?? "",
+      render: (i) => i.code ? (
+        <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{i.code}</Typography>
+      ) : (
+        <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>(In Progress)</Typography>
+      )
+    },
+    { key: "type", label: "Type", sortable: true },
+    {
+      key: "solutionMasterName",
+      label: "Solution Recipe",
+      sortable: true,
+      render: (i) => <Typography variant="body2" sx={{ fontWeight: 600 }}>{i.solutionMasterName}</Typography>
+    },
+    { key: "hplcMethodAbbreviation", label: "HPLC Method", sortable: true, render: (i) => i.hplcMethodAbbreviation || "—" },
+    {
+      key: "effectiveStatus",
+      label: "Status",
+      sortable: true,
+      render: (i) => <StatusBadge status={i.effectiveStatus} />
+    },
+    {
+      key: "preparedAt",
+      label: "Prepared At",
+      sortable: true,
+      sortValue: (i) => i.preparedAt ?? "",
+      render: (i) => (i.preparedAt ? formatLabDateTime(i.preparedAt) : "—")
+    },
+    {
+      key: "expiresAt",
+      label: "Expires At",
+      sortable: true,
+      sortValue: (i) => i.expiresAt ?? "",
+      render: (i) => (i.expiresAt ? formatLabDate(i.expiresAt) : "—")
+    },
+    {
+      key: "preparedByUserName",
+      label: "Prepared By",
+      sortable: true,
+      sortValue: (i) => i.preparedByUserName ?? "",
+      render: (i) => i.preparedByUserName || "—"
+    }
+  ];
+
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title="Solution Preparation"
-        subtitle="Manage and execute preparations for mobile phases, diluents, and volumetric titrants"
-      >
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate("/preparation/new")}
-          sx={{ textTransform: "none", fontWeight: 700 }}
-        >
+    <LabPage
+      title="Solution Preparation"
+      subtitle="Manage and execute preparations for mobile phases, diluents, and volumetric titrants"
+      actions={
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/preparation/new")} sx={{ textTransform: "none", fontWeight: 700 }}>
           Start Preparation
         </Button>
-      </PageHeader>
-
-      {/* Filter Toolbar */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "center" }}>
-          <TextField
-            size="small"
-            placeholder="Search code, recipe, method, preparer..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ flex: 1, minWidth: 200 }}
-          />
-
+      }
+      filters={
+        <FilterBar
+          search={searchQuery}
+          onSearch={setSearchQuery}
+          placeholder="Search code, recipe, method, preparer..."
+          resultCount={filteredItems.length}
+          onRefresh={loadData}
+          refreshing={loading}
+        >
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="status-filter-label">Status</InputLabel>
             <Select
@@ -128,7 +146,6 @@ export function PreparationListPage() {
               <MenuItem value="Cancelled">Cancelled</MenuItem>
             </Select>
           </FormControl>
-
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="type-filter-label">Type</InputLabel>
             <Select
@@ -143,126 +160,27 @@ export function PreparationListPage() {
               <MenuItem value="Titrant">Titrant</MenuItem>
             </Select>
           </FormControl>
-
-          <Tooltip title="Refresh">
-            <IconButton onClick={loadData} disabled={loading}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Paper>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Preparations Table */}
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <TableHead sx={tableHeadSx(theme)}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Solution Recipe</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>HPLC Method</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Prepared At</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Expires At</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Prepared By</TableCell>
-              <TableCell sx={{ fontWeight: 700, width: 90, textAlign: "right" }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                  <CircularProgress size={24} />
-                </TableCell>
-              </TableRow>
-            ) : filteredItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                  No solution preparations found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredItems.map((item) => {
-                const isInProgress = item.effectiveStatus === "InProgress";
-                return (
-                  <TableRow
-                    key={item.id}
-                    hover
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => navigate(isInProgress ? `/preparation/${item.id}/edit` : `/preparation/${item.id}`)}
-                  >
-                    <TableCell>
-                      {item.code ? (
-                        <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                          {item.code}
-                        </Typography>
-                      ) : (
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                          (In Progress)
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{item.type}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {item.solutionMasterName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {item.hplcMethodAbbreviation || "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <PreparationStatusBadge status={item.effectiveStatus} />
-                    </TableCell>
-                    <TableCell>
-                      {item.preparedAt ? formatLabDateTime(item.preparedAt) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {item.expiresAt ? formatLabDate(item.expiresAt) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {item.preparedByUserName || "—"}
-                    </TableCell>
-                    <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                        {isInProgress ? (
-                          <Tooltip title="Resume Preparation">
-                            <IconButton
-                              size="small"
-                              onClick={() => navigate(`/preparation/${item.id}/edit`)}
-                            >
-                              <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip title="View Record">
-                            <IconButton
-                              size="small"
-                              onClick={() => navigate(`/preparation/${item.id}`)}
-                            >
-                              <VisibilityOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+        </FilterBar>
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
+      <RegisterTable
+        columns={columns}
+        rows={filteredItems}
+        getRowId={(i) => i.id}
+        loading={loading}
+        onRowClick={openRecord}
+        rowActions={(i) => [
+          i.effectiveStatus === "InProgress"
+            ? { label: "Resume Preparation", onClick: () => navigate(`/preparation/${i.id}/edit`) }
+            : { label: "View Record", onClick: () => navigate(`/preparation/${i.id}`) }
+        ]}
+        empty={{
+          title: "No solution preparations found",
+          description: "Start a preparation or adjust the filters.",
+          action: <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/preparation/new")}>Start Preparation</Button>
+        }}
+      />
+    </LabPage>
   );
 }

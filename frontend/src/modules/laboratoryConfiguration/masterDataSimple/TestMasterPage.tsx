@@ -1,6 +1,5 @@
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Paper,
   TextField,
   Button,
   Table,
@@ -13,7 +12,6 @@ import {
   IconButton,
   Select,
   MenuItem,
-  Collapse,
   Box,
   Typography,
   Checkbox,
@@ -29,15 +27,13 @@ import { getMySections, getSections, LaboratorySection } from "../../../services
 import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AddIcon from "@mui/icons-material/Add";
-import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
+import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
+import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { FloatingDialog } from "../../../components/FloatingDialog";
@@ -1945,6 +1941,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const mySections = allMySections.filter((s) => fpSectionId !== null && inLab(s.sectionId));
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     getMySections()
@@ -2503,50 +2500,13 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     }
   };
 
-  return (
-    <>
-      <PageHeader
-        title={isFp ? "Physicochemical Test Master" : "Microbiology Test Master"}
-        subtitle={isFp
-          ? "Physicochemical tests: HPLC methods, equation type and system suitability criteria."
-          : "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."}
-      >
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
-          Add Test
-        </Button>
-      </PageHeader>
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
-
-      <Stack direction="row" spacing={1.5} sx={{ justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-        <SectionTitle>All Tests</SectionTitle>
-        <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={openCreateDialog}>
-          Add Test
-        </Button>
-      </Stack>
-
-      <Paper sx={{ p: 2.5 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={tableHeadSx}>
-              <TableCell />
-              <TableCell>Code</TableCell>
-              <TableCell>Display Name</TableCell>
-              <TableCell>Section</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {options.map((t) => (
-              <Fragment key={t.id}>
-                <TableRow sx={{ opacity: t.isActive ? 1 : 0.6 }}>
-                  <TableCell sx={{ width: 40 }}>
-                    <IconButton size="small" onClick={() => setExpandedId(expandedId === t.id ? null : t.id)} title="Details & Workflow Steps">
-                      {expandedId === t.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{t.code}</TableCell>
-                  <TableCell>
+  const columns: RegisterColumn<TestDefinitionOption>[] = [
+    { key: "code", label: "Code", sortable: true, render: (t) => <span style={{ fontFamily: monospaceFontFamily }}>{t.code}</span> },
+    {
+      key: "displayName",
+      label: "Display Name",
+      sortable: true,
+      render: (t) => (
                     <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       <span>{t.displayName}</span>
                       {t.workflowType === "HplcMethodAssay" && (
@@ -2635,30 +2595,73 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                         </Tooltip>
                       )}
                     </Stack>
-                  </TableCell>
-                  <TableCell>{t.section?.name ?? "—"}</TableCell>
-                  <TableCell><StatusBadge status={t.isActive ? "Active" : "Frozen"} /></TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" onClick={() => startEdit(t)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => toggleFreeze(t)} title={t.isActive ? "Freeze" : "Unfreeze"}>
-                      {t.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ p: 0, border: 0 }} colSpan={6}>
-                    <Collapse in={expandedId === t.id} unmountOnExit>
-                      <WorkflowStepsSection test={t} workflowTypes={workflowTypes} onWorkflowTypeChanged={reload} />
-                    </Collapse>
-                  </TableCell>
-                </TableRow>
-              </Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+      )
+    },
+    { key: "section", label: "Section", sortable: true, sortValue: (t) => t.section?.name ?? "", render: (t) => t.section?.name ?? "—" },
+    {
+      key: "isActive",
+      label: "Status",
+      sortable: true,
+      sortValue: (t) => (t.isActive ? "Active" : "Frozen"),
+      render: (t) => <StatusBadge status={t.isActive ? "Active" : "Frozen"} />
+    }
+  ];
 
-      {/* Test Master Create / Edit Dialog */}
+  const q = search.trim().toLowerCase();
+  const visibleOptions = q
+    ? options.filter((t) => t.code.toLowerCase().includes(q) || t.displayName.toLowerCase().includes(q) || (t.section?.name ?? "").toLowerCase().includes(q))
+    : options;
+  const detailsTest = expandedId !== null ? options.find((t) => t.id === expandedId) ?? null : null;
+
+  return (
+    <>
+      <LabPage
+        title={isFp ? "Physicochemical Test Master" : "Microbiology Test Master"}
+        subtitle={isFp
+          ? "Physicochemical tests: HPLC methods, equation type and system suitability criteria."
+          : "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."}
+        actions={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>Add Test</Button>}
+        filters={
+          <FilterBar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search code, name, section"
+            resultCount={visibleOptions.length}
+            onRefresh={() => { void reload(); }}
+          />
+        }
+      >
+        {message && <Alert severity={message.ok ? "success" : "error"}>{message.text}</Alert>}
+        <RegisterTable
+          columns={columns}
+          rows={visibleOptions}
+          getRowId={(t) => t.id}
+          loading={fpSectionId === null}
+          onRowClick={(t) => setExpandedId(t.id)}
+          rowActions={(t) => [
+            { label: "Details & Workflow Steps", onClick: () => setExpandedId(t.id) },
+            { label: "Edit", onClick: () => startEdit(t) },
+            { label: t.isActive ? "Freeze" : "Unfreeze", onClick: () => { void toggleFreeze(t); }, danger: t.isActive }
+          ]}
+          empty={{
+            title: "No tests found",
+            description: q ? "No test matches your search." : "Add a test to get started.",
+            action: q ? undefined : <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>Add Test</Button>
+          }}
+        />
+      </LabPage>
+
+      <FloatingDialog
+        open={detailsTest !== null}
+        title={detailsTest ? `Details & Workflow Steps: ${detailsTest.code}` : ""}
+        onClose={() => setExpandedId(null)}
+        maxWidth="lg"
+      >
+        {detailsTest && (
+          <WorkflowStepsSection test={detailsTest} workflowTypes={workflowTypes} onWorkflowTypeChanged={reload} />
+        )}
+      </FloatingDialog>
+
       <FloatingDialog
         open={dialogOpen}
         title={editingId ? "Edit Test" : "Add Test"}

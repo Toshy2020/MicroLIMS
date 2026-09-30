@@ -15,7 +15,7 @@ namespace MicroLIMS.Application.Services;
 // definition (HPLC chain S6 Part B).
 public sealed class HplcSampleEntryContext
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOptions = SnapshotJson.Options;
 
     public required HplcRunSample RunSample { get; init; }
     public required HplcRun Run { get; init; }

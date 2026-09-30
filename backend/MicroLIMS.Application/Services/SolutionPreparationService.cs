@@ -26,7 +26,7 @@ public record LotOption(int MaterialId, string BatchNumber, DateTime? ExpiryDate
 // SolutionPreparationExpiryWorker (API layer) every 5 minutes.
 public class SolutionPreparationService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOptions = SnapshotJson.Options;
 
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;

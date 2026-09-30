@@ -34,7 +34,7 @@ public record TitrantSettingsSnapshot(
 // nothing else persisted.
 public class TitrantStandardizationService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOptions = SnapshotJson.Options;
 
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;

@@ -43,7 +43,7 @@ public class HplcMethodService
     private const string ActivatedActionCode = "HplcMethod.Activated";
     private const string RecordType = "HplcMethod";
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions JsonOptions = SnapshotJson.Options;
 
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;

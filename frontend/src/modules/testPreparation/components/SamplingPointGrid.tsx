@@ -212,7 +212,7 @@ export function SamplingPointGrid({
                   >
                     <Typography
                       sx={{
-                        fontSize: 10.5,
+                        fontSize: 11,
                         fontWeight: 700,
                         textTransform: "uppercase",
                         color: "text.secondary",
@@ -233,7 +233,7 @@ export function SamplingPointGrid({
                               fontSize: 11,
                               fontWeight: 600,
                               height: 20,
-                              bgcolor: isSelected ? "#ffffff" : "background.default",
+                              bgcolor: isSelected ? "background.paper" : "background.default",
                               border: "1px solid",
                               borderColor: "divider"
                             }}

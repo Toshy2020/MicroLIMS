@@ -58,6 +58,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Select
             label="Result Type" value={draft.resultKind ?? ""}
             onChange={(e) => onChange({ resultKind: (e.target.value || undefined) as ResultRecordSearchParams["resultKind"] })}
+            inputProps={{ "aria-label": "Result Type" }}
           >
             <MenuItem value="">All</MenuItem>
             <MenuItem value="Quantitative">Quantitative</MenuItem>
@@ -70,6 +71,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Select
             label="Category" value={draft.category ?? ""}
             onChange={(e) => onChange({ category: (e.target.value || undefined) as ResultRecordSearchParams["category"] })}
+            inputProps={{ "aria-label": "Category" }}
           >
             <MenuItem value="">All</MenuItem>
             {(filterOptions?.categories ?? []).map((c) => (
@@ -83,6 +85,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Select
             label="Test" value={draft.testCode ?? ""}
             onChange={(e) => onChange({ testCode: e.target.value || undefined })}
+            inputProps={{ "aria-label": "Test" }}
           >
             <MenuItem value="">All</MenuItem>
             {(filterOptions?.testCodes ?? []).map((t) => (
@@ -103,7 +106,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
                   onClick={() => onChange({ resultLevel: (seg.value || undefined) as ResultRecordSearchParams["resultLevel"] })}
                   sx={{
                     fontSize: 11.5, minWidth: 0, px: 1.25, py: 0.5, textTransform: "none",
-                    color: selected ? "#fff" : color,
+                    color: selected ? "common.white" : color,
                     bgcolor: selected ? color : "transparent",
                     border: `1px solid ${color}`,
                     "&:hover": { bgcolor: selected ? color : `${color}1a` }
@@ -121,6 +124,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Select
             label="Status" value={draft.sampleStatus ?? ""}
             onChange={(e) => onChange({ sampleStatus: (e.target.value || undefined) as ResultRecordSearchParams["sampleStatus"] })}
+            inputProps={{ "aria-label": "Status" }}
           >
             <MenuItem value="">All</MenuItem>
             {SAMPLE_STATUS_OPTIONS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
@@ -132,6 +136,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Select
             label="Approval Status" value={draft.approvalStatus ?? ""}
             onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as ResultRecordSearchParams["approvalStatus"] })}
+            inputProps={{ "aria-label": "Approval Status" }}
           >
             <MenuItem value="">All</MenuItem>
             {APPROVAL_STATUS_OPTIONS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
@@ -144,14 +149,14 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
             <TextField
               size="small" type="date" fullWidth value={isoToDateInput(draft.fromDate)}
               onChange={(e) => onChange({ fromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
-              slotProps={{
+              slotProps={{ htmlInput: { "aria-label": "From date" },
                 inputLabel: { shrink: true }
               }}
             />
             <TextField
               size="small" type="date" fullWidth value={isoToDateInput(draft.toDate)}
               onChange={(e) => onChange({ toDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
-              slotProps={{
+              slotProps={{ htmlInput: { "aria-label": "To date" },
                 inputLabel: { shrink: true }
               }}
             />
@@ -163,6 +168,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Select
             label="Location / Point" value={draft.subjectName ?? ""}
             onChange={(e) => onChange({ subjectName: e.target.value || undefined })}
+            inputProps={{ "aria-label": "Location / Point" }}
           >
             <MenuItem value="">All</MenuItem>
             {(filterOptions?.subjectNames ?? []).map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}

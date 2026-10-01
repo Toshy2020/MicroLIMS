@@ -17,7 +17,8 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  TableContainer
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -419,28 +420,30 @@ export function DisintegrationPanel({
     : [];
 
   const renderReadingsTable = (rList: ResultReadingDetail[], lastHeader: string) => (
-    <Table size="small">
-      <TableHead>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Time (min)</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rList.map((r) => (
-          <TableRow key={r.id}>
-            <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
-            <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-              {r.value1 != null ? <NumericCell value={Number(r.value1)} unit="min" /> : (r.text || "Not disintegrated")}
-            </TableCell>
-            <TableCell sx={{ fontSize: 12 }}>
-              {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
-            </TableCell>
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Time (min)</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHead>
+        <TableBody>
+          {rList.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+              <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                {r.value1 != null ? <NumericCell value={Number(r.value1)} unit="min" /> : (r.text || "Not disintegrated")}
+              </TableCell>
+              <TableCell sx={{ fontSize: 12 }}>
+                {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 
   if (loading) {
@@ -475,7 +478,7 @@ export function DisintegrationPanel({
 
         {activeAnalysis && (
           <ResultSection title="Analysis summary">
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Specification
@@ -536,7 +539,7 @@ export function DisintegrationPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
               Done / Close
@@ -600,64 +603,66 @@ export function DisintegrationPanel({
 
           {/* Stage 2 Entry */}
           <ResultSection step={2} title={`Stage 2 unit entry (${s2UnitsCount} additional units, Units ${s1UnitsCount + 1}\u2013${s1UnitsCount + s2UnitsCount})`}>
-            <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Unit</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Time (min)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Live Hint</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stage2Units.map((u, i) => (
-                  <TableRow key={i}>
-                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                      Unit {s1UnitsCount + i + 1}
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        type="number"
-                        placeholder="Minutes"
-                        value={u.notDisintegrated ? "" : u.minutes}
-                        disabled={u.notDisintegrated}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setStage2Units((prev) =>
-                            prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
-                          );
-                        }}
-                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
-                        sx={{ width: 140 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            size="small"
-                            checked={u.notDisintegrated}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setStage2Units((prev) =>
-                                prev.map((row, idx) =>
-                                  idx === i ? { minutes: checked ? "" : row.minutes, notDisintegrated: checked } : row
-                                )
-                              );
-                            }}
-                          />
-                        }
-                        label={<Typography sx={{ fontSize: 12 }}>Not disintegrated</Typography>}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>
-                      {renderLiveHint(u)}
-                    </TableCell>
+            <TableContainer>
+              <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Unit</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Time (min)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Live Hint</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {stage2Units.map((u, i) => (
+                    <TableRow key={i}>
+                      <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                        Unit {s1UnitsCount + i + 1}
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          type="number"
+                          placeholder="Minutes"
+                          value={u.notDisintegrated ? "" : u.minutes}
+                          disabled={u.notDisintegrated}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setStage2Units((prev) =>
+                              prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
+                            );
+                          }}
+                          slotProps={{ htmlInput: { "aria-label": `Unit ${s1UnitsCount + i + 1} disintegration time (minutes)`, min: 0.01, step: "any" } }}
+                          sx={{ width: 140 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              size="small"
+                              checked={u.notDisintegrated}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setStage2Units((prev) =>
+                                  prev.map((row, idx) =>
+                                    idx === i ? { minutes: checked ? "" : row.minutes, notDisintegrated: checked } : row
+                                  )
+                                );
+                              }}
+                            />
+                          }
+                          label={<Typography sx={{ fontSize: 12 }}>Not disintegrated</Typography>}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>
+                        {renderLiveHint(u)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
             <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
               * Live pass/fail hint is based on {specLimitText}; the server&apos;s staged evaluation verdict is authoritative.
             </Typography>
@@ -696,7 +701,7 @@ export function DisintegrationPanel({
                   <MenuItem value=""><em>Select apparatus (optional)</em></MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code} — {eq.name} ({eq.type})
+                      {eq.code}: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>
@@ -720,7 +725,7 @@ export function DisintegrationPanel({
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                   Test Conditions
                 </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
+                <Stack useFlexGap direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
                   {conditionLabels.map((label) => (
                     <TextField
                       key={label}
@@ -744,64 +749,66 @@ export function DisintegrationPanel({
           {/* Stage 1 Units */}
           <ResultSection step={2} title={`Stage 1 unit times (${s1UnitsCount} units)`}>
 
-          <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Unit</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Time (min)</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Live Hint</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {stage1Units.map((u, i) => (
-                <TableRow key={i}>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                    Unit {i + 1}
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      type="number"
-                      placeholder="Minutes"
-                      value={u.notDisintegrated ? "" : u.minutes}
-                      disabled={u.notDisintegrated}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setStage1Units((prev) =>
-                          prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
-                        );
-                      }}
-                      slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
-                      sx={{ width: 140 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={u.notDisintegrated}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setStage1Units((prev) =>
-                              prev.map((row, idx) =>
-                                idx === i ? { minutes: checked ? "" : row.minutes, notDisintegrated: checked } : row
-                              )
-                            );
-                          }}
-                        />
-                      }
-                      label={<Typography sx={{ fontSize: 12 }}>Not disintegrated</Typography>}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>
-                    {renderLiveHint(u)}
-                  </TableCell>
+          <TableContainer>
+            <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Unit</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Time (min)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Live Hint</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {stage1Units.map((u, i) => (
+                  <TableRow key={i}>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                      Unit {i + 1}
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        type="number"
+                        placeholder="Minutes"
+                        value={u.notDisintegrated ? "" : u.minutes}
+                        disabled={u.notDisintegrated}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setStage1Units((prev) =>
+                            prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
+                          );
+                        }}
+                        slotProps={{ htmlInput: { "aria-label": `Unit ${i + 1} disintegration time (minutes)`, min: 0.01, step: "any" } }}
+                        sx={{ width: 140 }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={u.notDisintegrated}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setStage1Units((prev) =>
+                                prev.map((row, idx) =>
+                                  idx === i ? { minutes: checked ? "" : row.minutes, notDisintegrated: checked } : row
+                                )
+                              );
+                            }}
+                          />
+                        }
+                        label={<Typography sx={{ fontSize: 12 }}>Not disintegrated</Typography>}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>
+                      {renderLiveHint(u)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
           <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
             * Live pass/fail hint is based on {specLimitText}; the server&apos;s staged evaluation verdict is authoritative.
           </Typography>

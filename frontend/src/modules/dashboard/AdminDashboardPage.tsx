@@ -13,18 +13,37 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { DashboardSummary, KpiDeltas } from "./types/dashboard";
 import { brandColors } from "../../theme";
+import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+
+// Configuration shortcuts per laboratory, matching the sidebar's
+// laboratory configuration areas; Items and Specifications are shared.
+const MICRO_CONFIG_LINKS = [
+  { label: "Test Master", path: "/laboratory-configuration/test-master" },
+  { label: "Specifications", path: "/laboratory-configuration/specifications" },
+  { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
+  { label: "Organisms", path: "/laboratory-configuration/organisms" },
+  { label: "Items & Materials", path: "/laboratory-configuration/items" },
+  { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" }
+];
+
+const FP_CONFIG_LINKS = [
+  { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
+  { label: "Specifications", path: "/laboratory-configuration/specifications" },
+  { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" },
+  { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
+  { label: "Items & Materials", path: "/laboratory-configuration/items" },
+  { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" }
+];
 
 export function AdminDashboardPage() {
   const theme = useTheme();
-  const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "System Administrator";
+  const lab = useDashboardLab();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [kpis, setKpis] = useState<KpiDeltas | null>(null);
@@ -41,7 +60,7 @@ export function AdminDashboardPage() {
     // The summary IS this page, so its failure surfaces as an error with a
     // retry. The KPI deltas are supplementary - a failure there degrades that
     // one panel rather than taking the whole dashboard down.
-    Promise.all([DashboardService.getSummary(), DashboardService.getKpiDeltas().catch(() => null)])
+    Promise.all([DashboardService.getSummary(lab.code), DashboardService.getKpiDeltas(lab.code).catch(() => null)])
       .then(([sumData, kpiData]) => {
         if (cancelled) return;
         setSummary(sumData);
@@ -55,7 +74,7 @@ export function AdminDashboardPage() {
       });
 
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, lab.code]);
 
   if (!summary) {
     return (
@@ -67,41 +86,37 @@ export function AdminDashboardPage() {
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title={`Administrator Command Center — ${displayName}`}
-          subtitle="System administration, access control, audit compliance, and laboratory operations."
-        />
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={reload}
-            disabled={loading}
-            startIcon={<RefreshIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
-          <Button
-            component={Link}
-            to="/audit-search"
-            variant="outlined"
-            startIcon={<SearchOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Audit Search
-          </Button>
-          <Button
-            component={Link}
-            to="/users"
-            variant="contained"
-            startIcon={<PeopleAltOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Manage Users
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title="Administrator Command Center"
+        subtitle={lab.code
+          ? `System administration, access control, audit compliance and ${LAB_LABELS[lab.code]} operations.`
+          : "System administration, access control, audit compliance, and laboratory operations."}
+      >
+        <Button
+          variant="outlined"
+          onClick={reload}
+          disabled={loading}
+          startIcon={<RefreshIcon />}
+        >
+          Refresh
+        </Button>
+        <Button
+          component={Link}
+          to="/audit-search"
+          variant="outlined"
+          startIcon={<SearchOutlinedIcon />}
+        >
+          Audit Search
+        </Button>
+        <Button
+          component={Link}
+          to="/users"
+          variant="contained"
+          startIcon={<PeopleAltOutlinedIcon />}
+        >
+          Manage Users
+        </Button>
+      </PageHeader>
 
       {/* Tier 1: Administrative Control Pillars */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
@@ -286,7 +301,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?status=Active"
+              to={lab.workspace("?status=Active")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -312,7 +327,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?status=UnderReview"
+              to={lab.workspace("?status=UnderReview")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -328,7 +343,7 @@ export function AdminDashboardPage() {
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
                 {summary.reviewerQueue}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples</Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           <Grid
@@ -339,7 +354,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?status=UnderApproval"
+              to={lab.workspace("?status=UnderApproval")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -355,7 +370,7 @@ export function AdminDashboardPage() {
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.ok }}>
                 {summary.approvalQueue}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples</Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           {summary.pendingPreparationConfigApproval > 0 && (
@@ -394,7 +409,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?urgency=overdue"
+              to={lab.workspace("?urgency=overdue")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -421,14 +436,7 @@ export function AdminDashboardPage() {
           Master Data & System Configuration
         </Typography>
         <Grid container spacing={1.5}>
-          {[
-            { label: "Test Master", path: "/laboratory-configuration/test-master" },
-            { label: "Specifications", path: "/laboratory-configuration/specifications" },
-            { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
-            { label: "Organisms", path: "/laboratory-configuration/organisms" },
-            { label: "Items & Materials", path: "/laboratory-configuration/items" },
-            { label: "Equipment Inventory", path: "/inventory/equipment" }
-          ].map((item, idx) => (
+          {(lab.isPhyschem ? FP_CONFIG_LINKS : MICRO_CONFIG_LINKS).map((item, idx) => (
             <Grid
               key={idx}
               size={{

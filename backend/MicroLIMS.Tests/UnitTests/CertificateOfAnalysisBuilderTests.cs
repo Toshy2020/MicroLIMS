@@ -72,7 +72,7 @@ public class CertificateOfAnalysisBuilderTests
             Located(1, "TAMC", ("1", ResultStatus.WithinLimits, 2m), ("2", null, null))));
 
         Assert.False(coa.Sample.Complies);
-        Assert.Equal("Cannot certify — no result is recorded for: TAMC at Room 2.", coa.Sample.ConclusionText);
+        Assert.Equal("Cannot certify because no result is recorded for: TAMC at Room 2.", coa.Sample.ConclusionText);
         var cell = coa.Sample.Matrix!.Rows.Single(r => r.LocationKey == "2").Cells.Single()!;
         Assert.False(cell.Conform);
         Assert.Equal("—", cell.Result);
@@ -85,7 +85,7 @@ public class CertificateOfAnalysisBuilderTests
             Located(1, "TAMC", ("1", ResultStatus.LimitsNotConfigured, 5m))));
 
         Assert.False(coa.Sample.Complies);
-        Assert.Equal("Cannot certify — limits are not configured for: TAMC at Room 1.", coa.Sample.ConclusionText);
+        Assert.Equal("Cannot certify because limits are not configured for: TAMC at Room 1.", coa.Sample.ConclusionText);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class CertificateOfAnalysisBuilderTests
 
         Assert.Equal(
             "This sample does not comply with the specified requirements. Exceptions: TAMC at Room 1. " +
-            "Additionally, cannot certify — no result is recorded for: TAMC at Room 2.",
+            "Additionally, cannot certify because no result is recorded for: TAMC at Room 2.",
             coa.Sample.ConclusionText);
     }
 
@@ -156,7 +156,7 @@ public class CertificateOfAnalysisBuilderTests
 
         Assert.False(coa.Sample.Complies);
         Assert.True(coa.Sample.Simple!.Rows.Single().NoResult);
-        Assert.Equal("Cannot certify — one or more tests has no recorded result.", coa.Sample.ConclusionText);
+        Assert.Equal("Cannot certify because one or more tests has no recorded result.", coa.Sample.ConclusionText);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public class CertificateOfAnalysisBuilderTests
         var coa = CertificateOfAnalysisBuilder.Build(summary);
 
         Assert.False(coa.Sample.Complies);
-        Assert.Equal("Rejected — Microbiology", coa.Sample.ConclusionText);
+        Assert.Equal("Rejected: Microbiology", coa.Sample.ConclusionText);
     }
 
     [Fact]

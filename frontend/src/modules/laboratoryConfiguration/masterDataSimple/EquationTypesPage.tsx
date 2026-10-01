@@ -53,7 +53,7 @@ const columns: RegisterColumn<EquationTypeDto>[] = [
     width: 280,
     render: (type) =>
       type.requiredInputs && type.requiredInputs.length > 0 ? (
-        <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5, alignItems: "center" }}>
+        <Stack useFlexGap direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5, alignItems: "center" }}>
           {type.requiredInputs.map((input) => (
             <Chip key={input} size="small" label={input} color="default" sx={{ fontSize: "0.75rem" }} />
           ))}

@@ -85,6 +85,14 @@ const STATUS_TONE: Record<string, StatusTone> = {
   DueSoon: "action", DueToday: "action", DueTomorrow: "notDetected",
   Passed: "notDetected", Failed: "detected", Pending: "pending",
   Returned: "action",
+  // Sample-level workflow states (SampleStatus) and the workflow gate that
+  // stops a test from progressing. Before these entries they fell through to
+  // the grey default, so a sample waiting on the Section Head looked the same
+  // as one nobody had touched.
+  InTesting: "info", "In Testing": "info",
+  UnderReview: "action", "Under Review": "action",
+  UnderApproval: "action", "Under Approval": "action",
+  Blocked: "inconclusive",
 
   // Document Control lifecycle. Before this block every DC status fell
   // through statusTone()'s "pending" default, so Draft, Effective, Void and

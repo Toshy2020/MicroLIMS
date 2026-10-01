@@ -117,7 +117,7 @@ export function ReturnToAnalystDialog({
               Test Order
             </Typography>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary", mt: 0.25 }}>
-              {testCode} — {testDisplayName}
+              {testCode}: {testDisplayName}
             </Typography>
           </Box>
 

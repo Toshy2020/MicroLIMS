@@ -110,7 +110,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
         }}
       >
         {onBack && (
-          <IconButton onClick={onBack} size="small" sx={{ mr: 0.5, display: { md: "none" } }}>
+          <IconButton aria-label="Back to conversations" onClick={onBack} size="small" sx={{ mr: 0.5, display: { md: "none" } }}>
             <ArrowBackIcon fontSize="small" />
           </IconButton>
         )}
@@ -194,7 +194,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
                     borderTopRightRadius: isMine ? 0.5 : 2.5,
                     borderTopLeftRadius: !isMine ? 0.5 : 2.5,
                     bgcolor: isMine ? "primary.main" : "background.paper",
-                    color: isMine ? "#fff" : "text.primary",
+                    color: isMine ? "common.white" : "text.primary",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                     border: isMine ? "none" : "1px solid",
                     borderColor: "divider",
@@ -206,7 +206,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
                   </Typography>
                 </Box>
 
-                <Typography sx={{ fontSize: 10, color: "text.disabled", mt: 0.25, px: 0.75 }}>
+                <Typography sx={{ fontSize: 11, color: "text.disabled", mt: 0.25, px: 0.75 }}>
                   {time}
                 </Typography>
               </Box>
@@ -234,14 +234,15 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
               borderRadius: 2
             }
           }}
+          slotProps={{ htmlInput: { "aria-label": "Message" } }}
         />
-        <IconButton
+        <IconButton aria-label="Send message"
           color="primary"
           onClick={handleSend}
           disabled={!text.trim() || sending}
           sx={{
             bgcolor: "primary.main",
-            color: "#fff",
+            color: "common.white",
             "&:hover": { bgcolor: "primary.dark" },
             "&.Mui-disabled": { bgcolor: "action.disabledBackground", color: "action.disabled" },
             p: 1.25

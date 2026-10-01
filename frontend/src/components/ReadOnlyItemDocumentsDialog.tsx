@@ -274,7 +274,7 @@ function ReadOnlyDocumentCard({
           alignItems: "flex-start"
         }}>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1}
             sx={{
@@ -292,7 +292,7 @@ function ReadOnlyDocumentCard({
               sx={{ fontWeight: 700, fontSize: 11, height: 20 }}
             />
             {isHistorical && (
-              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 10, height: 18 }} />
+              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 11, height: 20 }} />
             )}
           </Stack>
 

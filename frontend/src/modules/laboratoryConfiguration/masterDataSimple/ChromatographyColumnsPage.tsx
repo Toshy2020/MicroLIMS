@@ -288,7 +288,7 @@ export function ChromatographyColumnsPage() {
       label: "Compatible HPLC Instruments",
       render: (col) =>
         col.compatibleEquipment && col.compatibleEquipment.length > 0 ? (
-          <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+          <Stack useFlexGap direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
             {col.compatibleEquipment.map((eq) => (
               <Tooltip key={eq.id} title={`${eq.code}: ${eq.name}`}>
                 <Chip label={eq.code} size="small" color="primary" variant="outlined" sx={{ fontSize: 11, height: 22 }} />

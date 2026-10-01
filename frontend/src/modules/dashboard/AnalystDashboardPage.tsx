@@ -19,17 +19,19 @@ import { IncubationObservationPanel } from "./components/IncubationObservationPa
 import { TodaysWorkTable } from "./components/TodaysWorkTable";
 import { CompletedTodayPanel } from "./components/CompletedTodayPanel";
 import { AnalystPerformancePanel } from "./components/AnalystPerformancePanel";
+import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 export function AnalystDashboardPage() {
   const { username, fullName } = useAuth();
   const displayName = fullName ?? username ?? "Analyst";
+  const lab = useDashboardLab();
 
   // useApi already tracks the error; this page used to destructure only
   // `data` and gate on `!summary`, so a failed request left the screen as a
   // spinner forever.
-  const { data: summary, loading: summaryLoading, error: summaryError, reload: reloadSummary } = useDashboardSummary();
-  const { data: tasks, loading: tasksLoading, reload: reloadTasks } = useMyTasks();
-  const { data: todaysWork, reload: reloadTodaysWork } = useTodaysWork();
+  const { data: summary, loading: summaryLoading, error: summaryError, reload: reloadSummary } = useDashboardSummary(lab.code);
+  const { data: tasks, loading: tasksLoading, reload: reloadTasks } = useMyTasks(lab.code);
+  const { data: todaysWork, reload: reloadTodaysWork } = useTodaysWork(lab.code);
 
   const [incubations, setIncubations] = useState<IncubationOverviewRow[]>([]);
   const [metrics, setMetrics] = useState<AnalystMetrics | null>(null);
@@ -52,9 +54,10 @@ export function AnalystDashboardPage() {
     // than blanking the dashboard - but it is NOT silent. Swallowing them into
     // [] and null made a dead endpoint look like "nothing is incubating",
     // which on a GMP board is worse than an error.
+    // Incubations are Microbiology work; a Physicochemical view skips them.
     Promise.allSettled([
-      DashboardService.getIncubationOverview(true),
-      DashboardService.getAnalystMetrics()
+      lab.isPhyschem ? Promise.resolve([] as IncubationOverviewRow[]) : DashboardService.getIncubationOverview(true, lab.code),
+      DashboardService.getAnalystMetrics(lab.code)
     ]).then(([incResult, metResult]) => {
       if (cancelled) return;
       setIncubations(incResult.status === "fulfilled" ? incResult.value : []);
@@ -64,7 +67,7 @@ export function AnalystDashboardPage() {
     });
 
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, lab.code, lab.isPhyschem]);
 
   if (!summary) {
     return (
@@ -76,32 +79,27 @@ export function AnalystDashboardPage() {
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title={`Welcome back, ${displayName}`}
-          subtitle="Here is your prioritized microbiological workspace for today."
-        />
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={reload}
-            disabled={loading}
-            startIcon={<RefreshIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
-          <Button
-            component={Link}
-            to="/receiving-testing"
-            variant="contained"
-            startIcon={<ScienceOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Open Testing Workspace
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title={`Welcome back, ${displayName}`}
+        subtitle={lab.code ? `Your prioritized work in the ${LAB_LABELS[lab.code]} for today.` : "Your prioritized work for today."}
+      >
+        <Button
+          variant="outlined"
+          onClick={reload}
+          disabled={loading}
+          startIcon={<RefreshIcon />}
+        >
+          Refresh
+        </Button>
+        <Button
+          component={Link}
+          to={lab.workspace()}
+          variant="contained"
+          startIcon={<ScienceOutlinedIcon />}
+        >
+          Open Testing Workspace
+        </Button>
+      </PageHeader>
 
       {partialFailure && (
         <Alert
@@ -113,7 +111,9 @@ export function AnalystDashboardPage() {
             </Button>
           }
         >
-          Some panels could not be loaded, so the incubation and throughput figures below may be incomplete.
+          {lab.isPhyschem
+            ? "Some panels could not be loaded, so the throughput figures below may be incomplete."
+            : "Some panels could not be loaded, so the incubation and throughput figures below may be incomplete."}
         </Alert>
       )}
 
@@ -126,22 +126,24 @@ export function AnalystDashboardPage() {
       {/* Tier 2: Action Required by Analyst */}
       <ActionRequiredPanel tasks={tasks} loading={tasksLoading} />
 
-      {/* Tier 3: Attention Required & Incubation Monitoring */}
+      {/* Tier 3: Attention Required & (Microbiology) Incubation Monitoring */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid
           size={{
             xs: 12,
-            md: 6
+            md: lab.isPhyschem ? 12 : 6
           }}>
           <AttentionRequiredPanel />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            md: 6
-          }}>
-          <IncubationObservationPanel rows={incubations} loading={loading} />
-        </Grid>
+        {!lab.isPhyschem && (
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}>
+            <IncubationObservationPanel rows={incubations} loading={loading} />
+          </Grid>
+        )}
       </Grid>
 
       {/* Tier 4: My Active Work Table */}

@@ -107,7 +107,6 @@ export function HplcWorkspacePage() {
           startIcon={<RefreshIcon />}
           onClick={loadInstruments}
           disabled={loading}
-          sx={{ textTransform: "none" }}
         >
           Refresh
         </Button>

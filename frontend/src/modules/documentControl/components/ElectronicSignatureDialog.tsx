@@ -108,12 +108,9 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
             icon={<LockIcon fontSize="inherit" />}
             sx={{
               mb: 2.5,
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "#332714" : "#FFF9E6",
+              bgcolor: (theme) => theme.custom.status.inconclusive.bg,
               border: "1px solid",
-              borderColor: (theme) =>
-                theme.palette.mode === "dark" ? "#664D28" : "#FFE299"
-            }}
+              borderColor: (theme) => theme.custom.status.inconclusive.border}}
           >
             <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
               21 CFR Part 11 Statutory Notice:
@@ -127,7 +124,7 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
           </Alert>
 
           {/* Signature Manifest Card */}
-          <Paper variant="outlined" sx={{ p: 2, mb: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#1A2027" : "#F8FAFC" }}>
+          <Paper variant="outlined" sx={{ p: 2, mb: 2.5, bgcolor: "background.default"}}>
             <Typography
               variant="caption"
               sx={{

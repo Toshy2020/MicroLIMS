@@ -118,7 +118,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
                     size="small"
                     color={STATUS_COLORS[doc.status]}
                     variant={doc.status === "Current" ? "filled" : "outlined"}
-                    sx={{ fontSize: 10, height: 18 }}
+                    sx={{ fontSize: 11, height: 20 }}
                   />
                 </Box>
 

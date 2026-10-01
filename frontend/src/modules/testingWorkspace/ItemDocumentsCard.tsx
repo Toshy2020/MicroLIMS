@@ -19,13 +19,19 @@ export function ItemDocumentsCard({ itemId, itemName }: ItemDocumentsCardProps) 
   const theme = useTheme();
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [loading, setLoading] = useState(false);
+  // A failed load used to fall through to "No controlled SOP ... attached".
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     if (itemId) {
       setLoading(true);
+      setLoadFailed(false);
       ItemDocumentService.getDocumentsForItem(itemId)
         .then(setDocuments)
-        .catch(() => setDocuments([]))
+        .catch(() => {
+          setDocuments([]);
+          setLoadFailed(true);
+        })
         .finally(() => setLoading(false));
     }
   }, [itemId]);
@@ -64,7 +70,11 @@ export function ItemDocumentsCard({ itemId, itemName }: ItemDocumentsCardProps) 
         Item Controlled Documents
       </Typography>
 
-      {!currentSop && !currentVr ? (
+      {loadFailed ? (
+        <Typography variant="caption" role="alert" sx={{ color: "error.main" }}>
+          The controlled documents for this item could not be loaded. Reopen this record to try again.
+        </Typography>
+      ) : !currentSop && !currentVr ? (
         <Typography variant="caption" sx={{ color: "text.secondary" }}>
           No controlled SOP or Verification Report attached to this item.
         </Typography>
@@ -122,7 +132,7 @@ function ItemDocRow({
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12, color: "text.primary" }}>
             {title}
           </Typography>
-          <Chip label={doc.version} size="small" color="primary" sx={{ fontWeight: 700, fontSize: 10, height: 18 }} />
+          <Chip label={doc.version} size="small" color="primary" sx={{ fontWeight: 700, fontSize: 11, height: 20 }} />
         </Stack>
         <Typography variant="caption" noWrap component="div" sx={{ color: "text.secondary", fontSize: 11, mt: 0.25 }}>
           {doc.originalFileName}

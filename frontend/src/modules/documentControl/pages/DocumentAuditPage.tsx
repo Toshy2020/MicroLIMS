@@ -134,6 +134,7 @@ export function DocumentAuditPage() {
               setPage(0);
             }}
             sx={{ minWidth: 260, flexGrow: 1 }}
+            slotProps={{ htmlInput: { "aria-label": "Search Event UID, Action, Reason, Entity" } }}
           />
 
           <TextField
@@ -196,8 +197,8 @@ export function DocumentAuditPage() {
       </Paper>
 
       {/* Audit Log Table */}
-      <TableContainer component={Paper}>
-        <Table size="small">
+      <TableContainer component={Paper} sx={{ maxHeight: { md: "calc(100vh - 240px)" } }}>
+        <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Timestamp (UTC)</TableCell>

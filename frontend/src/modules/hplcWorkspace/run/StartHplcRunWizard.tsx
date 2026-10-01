@@ -212,7 +212,7 @@ export function StartHplcRunWizard() {
       </Button>
 
       <PageHeader
-        title={`Start HPLC Run — ${instrument?.name || `Instrument #${equipmentId}`}`}
+        title={`Start HPLC Run: ${instrument?.name || `Instrument #${equipmentId}`}`}
         subtitle={`Set up method, column, and mobile phases for ${instrument?.code || ""}`}
       />
 
@@ -279,7 +279,6 @@ export function StartHplcRunWizard() {
         <Button
           disabled={activeStep === 0 || starting}
           onClick={() => setActiveStep((prev) => prev - 1)}
-          sx={{ textTransform: "none" }}
         >
           Back
         </Button>

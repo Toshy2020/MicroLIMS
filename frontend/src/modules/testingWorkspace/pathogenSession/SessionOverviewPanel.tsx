@@ -10,7 +10,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
@@ -180,7 +181,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               <Chip
                 label="Master Data Driven"
                 size="small"
-                sx={{ bgcolor: brandColors.sectionTitle, color: "#ffffff", fontWeight: 700, fontSize: 11 }}
+                sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700, fontSize: 11 }}
               />
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
                 Workflow Configured from Test Master
@@ -224,44 +225,46 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               sx={{ fontSize: 11, fontWeight: 600 }}
             />
           </Stack>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Test Code</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Display Name</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Workflow</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>TSB</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {session.assignedTests.map((t) => (
-                <TableRow key={t.testCode} hover>
-                  <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                    {t.testCode}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13 }}>{t.displayName}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={t.workflowType}
-                      size="small"
-                      sx={{ fontSize: 11, height: 20, bgcolor: "background.default" }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {t.requiresTsb ? (
-                      <Chip
-                        label="Required"
-                        size="small"
-                        sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
-                      />
-                    ) : (
-                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
-                    )}
-                  </TableCell>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Test Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Display Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Workflow</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>TSB</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {session.assignedTests.map((t) => (
+                  <TableRow key={t.testCode} hover>
+                    <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+                      {t.testCode}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 13 }}>{t.displayName}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={t.workflowType}
+                        size="small"
+                        sx={{ fontSize: 11, height: 20, bgcolor: "background.default" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {t.requiresTsb ? (
+                        <Chip
+                          label="Required"
+                          size="small"
+                          sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
+                        />
+                      ) : (
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
 
         {/* Sampling Locations List */}
@@ -284,36 +287,38 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             />
           </Stack>
           <Box sx={{ maxHeight: 320, overflowY: "auto" }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>#</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Location Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Type</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Grade</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {session.locations.map((loc, idx) => (
-                  <TableRow key={loc.id} hover>
-                    <TableCell sx={{ color: "text.secondary", fontSize: 12 }}>{idx + 1}</TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>{loc.locationName}</TableCell>
-                    <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>{loc.locationType}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>
-                      {loc.gradeClassification ? (
-                        <Chip
-                          label={`Grade ${loc.gradeClassification}`}
-                          size="small"
-                          sx={{ fontSize: 10, height: 18, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
-                        />
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
+            <TableContainer>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Location Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Grade</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {session.locations.map((loc, idx) => (
+                    <TableRow key={loc.id} hover>
+                      <TableCell sx={{ color: "text.secondary", fontSize: 12 }}>{idx + 1}</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>{loc.locationName}</TableCell>
+                      <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>{loc.locationType}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>
+                        {loc.gradeClassification ? (
+                          <Chip
+                            label={`Grade ${loc.gradeClassification}`}
+                            size="small"
+                            sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         </Paper>
       </Box>

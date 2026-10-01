@@ -1,6 +1,7 @@
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Checkbox, Skeleton } from "@mui/material";
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Checkbox, Skeleton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { tableHeadSx } from "../theme";
+import { EmptyState } from "./lab/EmptyState";
 
 export interface Column<T> {
   key: keyof T;
@@ -37,13 +38,22 @@ interface DataTableProps<T> {
 
 // Reusable table used across every module (Testing Workspace, Review,
 // Approval, Reports) so behavior stays consistent everywhere.
+// Above this many rows the body scrolls inside a bounded region so the
+// column headers stay visible (same rule as RegisterTable).
+const STICKY_HEADER_MIN_ROWS = 15;
+
 export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, loading, emptyMessage }: DataTableProps<T>) {
   const theme = useTheme();
   const colSpan = columns.length + (selection ? 1 : 0);
+  const bounded = !loading && rows.length > STICKY_HEADER_MIN_ROWS;
 
   return (
-    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-      <Table size="small">
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, ...(bounded ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : null) }}
+    >
+      <Table size="small" stickyHeader>
         <TableHead>
           <TableRow sx={tableHeadSx(theme)}>
             {selection && (
@@ -60,7 +70,7 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
               </TableCell>
             )}
             {columns.map((col) => (
-              <TableCell key={String(col.key)} align={col.align} sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{col.label}</TableCell>
+              <TableCell key={String(col.key)} align={col.align}>{col.label}</TableCell>
             ))}
           </TableRow>
         </TableHead>
@@ -82,8 +92,10 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
             ))
           ) : rows.length === 0 && emptyMessage ? (
             <TableRow>
-              <TableCell colSpan={colSpan} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                {emptyMessage}
+              <TableCell colSpan={colSpan} sx={{ p: 0, borderBottom: "none" }}>
+                {typeof emptyMessage === "string" ? <EmptyState title={emptyMessage} /> : (
+                  <Box sx={{ py: 4, px: 2, textAlign: "center", color: "text.secondary" }}>{emptyMessage}</Box>
+                )}
               </TableCell>
             </TableRow>
           ) : (
@@ -95,7 +107,15 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
                   hover={!!onRowClick}
                   selected={isSelected}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  sx={onRowClick ? { cursor: "pointer" } : undefined}
+                  // Clickable rows are reachable and operable from the keyboard too.
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={onRowClick ? (e) => {
+                    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      onRowClick(row);
+                    }
+                  } : undefined}
+                  sx={onRowClick ? { cursor: "pointer", "&:focus-visible": { outlineOffset: -2 } } : undefined}
                 >
                   {selection && (
                     <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>

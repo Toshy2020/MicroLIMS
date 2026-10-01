@@ -20,7 +20,8 @@ import {
   Paper,
   Checkbox,
   FormControlLabel,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -30,6 +31,8 @@ import { CryovialService } from "../services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
@@ -62,22 +65,26 @@ export function PrepareCryovialBatchDialog({
   const [panel, setPanel] = useState<PanelRow[]>([emptyRow()]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   useEffect(() => {
     if (open) {
       setError(null);
       setForm({});
       setPanel([emptyRow()]);
-      MaterialService.getAll("LyophilizedMicroorganism").then(setMaterials);
-      masterDataOptions.getReleasedMedia().then(setReleasedMedia);
-      masterDataOptions.getEquipment("Incubator").then(setIncubators);
+      resetFailures();
+      // These three had no catch at all: a failure was an unhandled
+      // rejection and left the pickers silently empty.
+      MaterialService.getAll("LyophilizedMicroorganism").then(setMaterials).catch(fail("lyophilized microorganism stock", () => setMaterials([])));
+      masterDataOptions.getReleasedMedia().then(setReleasedMedia).catch(fail("released media", () => setReleasedMedia([])));
+      masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(fail("incubators", () => setIncubators([])));
       setEquipmentLoading(true);
       EquipmentInventoryService.getAll()
         .then((data: any[]) => setEquipmentList(data || []))
-        .catch(() => setEquipmentList([]))
+        .catch(fail("storage equipment", () => setEquipmentList([])))
         .finally(() => setEquipmentLoading(false));
     }
-  }, [open]);
+  }, [open, fail, resetFailures]);
 
   const usableMaterials = materials.filter((m) => m.status === "InStock");
   const selectedMaterial = usableMaterials.find((m) => m.id === form.materialId);
@@ -132,7 +139,7 @@ export function PrepareCryovialBatchDialog({
     setError(null);
     try {
       const storageConditionValue = selectedStorageEquipment
-        ? `${selectedStorageEquipment.instrumentType} — ${selectedStorageEquipment.manufacturerName} (${selectedStorageEquipment.code})`
+        ? `${selectedStorageEquipment.instrumentType}, ${selectedStorageEquipment.manufacturerName} (${selectedStorageEquipment.code})`
         : "";
 
       const payload: PrepareCryovialPayload = {
@@ -208,6 +215,7 @@ export function PrepareCryovialBatchDialog({
       }
     >
       <Stack spacing={3}>
+        <LoadFailuresAlert failed={failedLists} />
         {error && <Alert severity="error">{error}</Alert>}
 
         {/* SECTION 1: Source / Batch Information */}
@@ -230,7 +238,7 @@ export function PrepareCryovialBatchDialog({
                 </MenuItem>
                 {usableMaterials.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.materialName} — batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)
+                    {m.materialName}, batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)
                   </MenuItem>
                 ))}
               </Select>
@@ -249,7 +257,7 @@ export function PrepareCryovialBatchDialog({
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   Organism:{" "}
                   <span style={{ color: theme.palette.primary.main, fontWeight: 700 }}>
-                    {selectedMaterial.organism?.scientificName ?? "— (set an Organism on this Material first)"}
+                    {selectedMaterial.organism?.scientificName ?? "Not set (set an Organism on this Material first)"}
                   </span>
                   {selectedMaterial.organism?.atccNumber ? ` (ATCC ${selectedMaterial.organism.atccNumber})` : ""}
                   {" · "}
@@ -334,7 +342,7 @@ export function PrepareCryovialBatchDialog({
                 </MenuItem>
                 {eligibleFreezers.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
-                    {eq.instrumentType} — {eq.manufacturerName} ({eq.code})
+                    {eq.instrumentType}, {eq.manufacturerName} ({eq.code})
                   </MenuItem>
                 ))}
               </Select>
@@ -369,7 +377,7 @@ export function PrepareCryovialBatchDialog({
             />
           </Box>
 
-          {eligibleFreezers.length === 0 && !equipmentLoading && (
+          {eligibleFreezers.length === 0 && !equipmentLoading && !failedLists.includes("storage equipment") && (
             <Alert severity="warning" sx={{ mt: 1.5 }}>
               No available freezer/deep freezer is currently in service.
             </Alert>
@@ -398,15 +406,15 @@ export function PrepareCryovialBatchDialog({
                 }}
               >
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Storage Equipment
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
-                    {selectedStorageEquipment.instrumentType} — {selectedStorageEquipment.manufacturerName || "Asset"}
+                    {selectedStorageEquipment.instrumentType}, {selectedStorageEquipment.manufacturerName || "Asset"}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Code
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -414,7 +422,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Location
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -422,7 +430,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Status
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
@@ -447,97 +455,104 @@ export function PrepareCryovialBatchDialog({
             </Typography>
           </Box>
 
-          <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-            <TableHead sx={tableHeadSx}>
-              <TableRow>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
-                <TableCell sx={{ width: 40 }}></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {panel.map((row, i) => (
-                <TableRow key={i}>
-                  <TableCell sx={{ py: 1 }}>
-                    <Select
-                      size="small"
-                      fullWidth
-                      displayEmpty
-                      value={row.mediaId}
-                      onChange={(e) => updateRow(i, "mediaId", e.target.value)}
-                    >
-                      <MenuItem value="">
-                        <em>Select Media</em>
-                      </MenuItem>
-                      {releasedMedia.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.lotNumber} ({m.material?.materialName || m.mediaType?.class || "Media"})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <Select
-                      size="small"
-                      fullWidth
-                      displayEmpty
-                      value={row.incubatorEquipmentId}
-                      onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}
-                    >
-                      <MenuItem value="">
-                        <em>Select Incubator</em>
-                      </MenuItem>
-                      {incubators.map((i2) => (
-                        <MenuItem key={i2.id} value={i2.id}>
-                          {i2.name} ({i2.code})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={row.incubationStart}
-                      onChange={(e) => updateRow(i, "incubationStart", e.target.value)}
-                      fullWidth
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={row.incubationEnd}
-                      onChange={(e) => updateRow(i, "incubationEnd", e.target.value)}
-                      fullWidth
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <TextField
-                      size="small"
-                      placeholder="Observation notes"
-                      value={row.observationText}
-                      onChange={(e) => updateRow(i, "observationText", e.target.value)}
-                      fullWidth
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => removeRow(i)}
-                      disabled={panel.length <= 1}
-                      sx={{ color: panel.length <= 1 ? "text.disabled" : "error.main" }}
-                    >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
+          <TableContainer>
+            <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
+              <TableHead sx={tableHeadSx}>
+                <TableRow>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
+                  <TableCell sx={{ width: 40 }}></TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {panel.map((row, i) => (
+                  <TableRow key={i}>
+                    <TableCell sx={{ py: 1 }}>
+                      <Select
+                        size="small"
+                        fullWidth
+                        displayEmpty
+                        value={row.mediaId}
+                        onChange={(e) => updateRow(i, "mediaId", e.target.value)}
+                        inputProps={{ "aria-label": "Media" }}
+                      >
+                        <MenuItem value="">
+                          <em>Select Media</em>
+                        </MenuItem>
+                        {releasedMedia.map((m) => (
+                          <MenuItem key={m.id} value={m.id}>
+                            {m.lotNumber} ({m.material?.materialName || m.mediaType?.class || "Media"})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <Select
+                        size="small"
+                        fullWidth
+                        displayEmpty
+                        value={row.incubatorEquipmentId}
+                        onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}
+                        inputProps={{ "aria-label": "Incubator" }}
+                      >
+                        <MenuItem value="">
+                          <em>Select Incubator</em>
+                        </MenuItem>
+                        {incubators.map((i2) => (
+                          <MenuItem key={i2.id} value={i2.id}>
+                            {i2.name} ({i2.code})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        size="small"
+                        type="date"
+                        value={row.incubationStart}
+                        onChange={(e) => updateRow(i, "incubationStart", e.target.value)}
+                        fullWidth
+                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation start` } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        size="small"
+                        type="date"
+                        value={row.incubationEnd}
+                        onChange={(e) => updateRow(i, "incubationEnd", e.target.value)}
+                        fullWidth
+                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation end` } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        size="small"
+                        placeholder="Observation notes"
+                        value={row.observationText}
+                        onChange={(e) => updateRow(i, "observationText", e.target.value)}
+                        fullWidth
+                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} observation notes` } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <IconButton aria-label={`Remove row ${i + 1}`}
+                        size="small"
+                        onClick={() => removeRow(i)}
+                        disabled={panel.length <= 1}
+                        sx={{ color: panel.length <= 1 ? "text.disabled" : "error.main" }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
           <Button
             size="small"

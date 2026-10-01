@@ -322,7 +322,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             <Typography sx={{ fontSize: 13, color: theme.palette.primary.main, fontWeight: 600 }}>
               {step === 1
                 ? "Step 1 of 2: Choose Item Type"
-                : `Step 2 of 2: Enter Sample Details — ${currentCategoryDef?.label || ""}`}
+                : `Step 2 of 2: Enter Sample Details for ${currentCategoryDef?.label || ""}`}
             </Typography>
           </Box>
           <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>

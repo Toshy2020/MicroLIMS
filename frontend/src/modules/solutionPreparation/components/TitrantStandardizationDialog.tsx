@@ -51,6 +51,8 @@ export function TitrantStandardizationDialog({
   const [rows, setRows] = useState<ReplicateRowState[]>([]);
   const [standardLots, setStandardLots] = useState<LotOption[]>([]);
   const [referenceOptions, setReferenceOptions] = useState<SolutionPreparationListItem[]>([]);
+  // A failed load is not "no usable lots in inventory".
+  const [optionsLoadFailed, setOptionsLoadFailed] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -81,6 +83,7 @@ export function TitrantStandardizationDialog({
     );
 
     setOptionsLoading(true);
+    setOptionsLoadFailed(false);
     if (isPrimary) {
       SolutionPreparationService.getStandardLotOptions(preparation.id)
         .then((lots) => {
@@ -92,7 +95,10 @@ export function TitrantStandardizationDialog({
             );
           }
         })
-        .catch(() => setStandardLots([]))
+        .catch(() => {
+          setStandardLots([]);
+          setOptionsLoadFailed(true);
+        })
         .finally(() => setOptionsLoading(false));
     } else {
       SolutionPreparationService.getReferenceOptions(preparation.id)
@@ -104,7 +110,10 @@ export function TitrantStandardizationDialog({
             );
           }
         })
-        .catch(() => setReferenceOptions([]))
+        .catch(() => {
+          setReferenceOptions([]);
+          setOptionsLoadFailed(true);
+        })
         .finally(() => setOptionsLoading(false));
     }
   }, [open, preparation.id, replicateCount, isPrimary]);
@@ -252,6 +261,10 @@ export function TitrantStandardizationDialog({
 
             {optionsLoading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}><CircularProgress size={24} /></Box>
+            ) : optionsLoadFailed ? (
+              <Alert severity="error">
+                The {isPrimary ? "standard lots" : "reference solution preparations"} could not be loaded. Close and reopen this dialog to try again.
+              </Alert>
             ) : isPrimary && standardLots.length === 0 ? (
               <Alert severity="warning">No usable standard lots found for this titrant in inventory.</Alert>
             ) : !isPrimary && referenceOptions.length === 0 ? (

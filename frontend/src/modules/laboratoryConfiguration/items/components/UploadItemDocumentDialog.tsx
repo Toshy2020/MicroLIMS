@@ -103,6 +103,7 @@ export function UploadItemDocumentDialog({
             value={docType}
             onChange={(e) => setDocType(e.target.value as ItemDocumentType)}
             fullWidth
+            inputProps={{ "aria-label": "Document Type" }}
           >
             <MenuItem value={ItemDocumentType.Sop}>SOP</MenuItem>
             <MenuItem value={ItemDocumentType.VerificationReport}>Verification Report</MenuItem>

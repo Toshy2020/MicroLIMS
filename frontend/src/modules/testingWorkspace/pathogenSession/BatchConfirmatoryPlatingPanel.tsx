@@ -419,7 +419,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   if (!loadingEligible && eligibleLocations.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-        <CheckCircleOutlineIcon sx={{ fontSize: 48, color: "#059669", mb: 1.5 }} />
+        <CheckCircleOutlineIcon sx={{ fontSize: 48, color: (t) => t.custom.status.notDetected.text, mb: 1.5 }} />
         <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", mb: 1 }}>
           Confirmatory Plating Not Required
         </Typography>
@@ -523,7 +523,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   alignItems: "center"
                 }}>
                   <span>{p.testDisplayName} ({p.testCode})</span>
-                  <Chip label={`${p.locations.length} loc`} size="small" sx={{ fontSize: 10, height: 18 }} />
+                  <Chip label={`${p.locations.length} loc`} size="small" sx={{ fontSize: 11, height: 20 }} />
                 </Stack>
               }
             />
@@ -547,7 +547,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 height: 36,
                 borderRadius: 1.5,
                 bgcolor: brandColors.sectionTitle,
-                color: "#ffffff",
+                color: "common.white",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
@@ -557,7 +557,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             </Box>
             <Box>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
-                Shared Media & Incubation Setup — {currentPathogen.testDisplayName}
+                Shared Media & Incubation Setup: {currentPathogen.testDisplayName}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 {currentPathogen.requiredMediaCount} confirmatory media required by Test Master specification for {currentPathogen.testCode}.
@@ -617,7 +617,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   >
                     {releasedMedia.map((m: any) => (
                       <MenuItem key={m.id} value={m.id}>
-                        {m.lotNumber} — {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                        {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
                       </MenuItem>
                     ))}
                   </TextField>
@@ -636,7 +636,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               >
                 {incubators.map((inc: any) => (
                   <MenuItem key={inc.id} value={inc.id}>
-                    {inc.code} — {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
+                    {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
                   </MenuItem>
                 ))}
               </TextField>
@@ -708,7 +708,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 justifyContent: "space-between",
                 alignItems: { md: "center" }
               }}>
-              <Stack
+              <Stack useFlexGap
                 direction="row"
                 spacing={1.5}
                 sx={{
@@ -844,7 +844,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                               >
                                 <FormControlLabel
                                   value={GrowthObservation.NoGrowth}
-                                  control={<Radio size="small" sx={{ color: "#059669", "&.Mui-checked": { color: "#059669" } }} />}
+                                  control={<Radio size="small" sx={{ color: (t) => t.custom.status.notDetected.text, "&.Mui-checked": { color: (t) => t.custom.status.notDetected.text } }} />}
                                   label={<Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.notDetected.text }}>No Growth</Typography>}
                                 />
                                 <FormControlLabel
@@ -906,7 +906,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             <Card sx={{ bgcolor: theme.custom.status.inconclusive.bg, border: "1px solid", borderColor: theme.custom.status.inconclusive.border, borderRadius: 2 }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.custom.status.inconclusive.text, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
-                  🧪 Biochemical Supporting Observation (Optional)
+                  <span aria-hidden="true">🧪</span> Biochemical Supporting Observation (Optional)
                 </Typography>
                 <Typography sx={{ fontSize: 11.5, color: theme.custom.status.inconclusive.text, mb: 1.5, display: "block" }}>
                   Add any biochemical confirmation, species identification, or supporting remarks for the <strong>{stats.detected} Detected (+)</strong> location(s) above. This comment will be contemporaneously recorded in the audit trail.
@@ -916,6 +916,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   multiline
                   rows={3}
                   placeholder="E.g. 'Indole test positive; confirms E. coli detection' or 'Oxidase negative; gram-negative rod; consistent with Enterobacteriaceae family'"
+                  slotProps={{ htmlInput: { "aria-label": "Biochemical supporting observation" } }}
                   value={biochemicalComment}
                   onChange={(e) => setBiochemicalComment(e.target.value)}
                   size="small"

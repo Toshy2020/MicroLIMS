@@ -30,7 +30,7 @@ export function OfficialResultsCard({
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
         {basis && <StatusBadge status="Prepared" label={`Basis: ${basis}`} />}
-        <StatusBadge status="Completed" label="Official — Recorded for Review" />
+        <StatusBadge status="Completed" label="Official, Recorded for Review" />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           These are the recorded results sent for review.
         </Typography>
@@ -126,7 +126,7 @@ export function CalculationSummaryCard({
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
         <StatusBadge status="Prepared" label={`Basis: ${basis}`} />
-        <StatusBadge status="Pending Review" label="Preview — not the official result" />
+        <StatusBadge status="Pending Review" label="Preview, not the official result" />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Calculations are computed server-side from current SST calibration and replicate inputs.
         </Typography>

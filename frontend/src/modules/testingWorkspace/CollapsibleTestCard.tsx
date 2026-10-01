@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { clickable } from "../../utils/clickable";
 
 const ChevronIcon = ({ className }: { className: string }) => (
   <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
@@ -35,7 +36,7 @@ export function CollapsibleTestCard({
 
   return (
     <div className={`test-card ${isSuperseded ? "is-superseded" : ""} ${open ? "is-open" : ""}`}>
-      <div className="test-card-header no-print" onClick={() => setOpen((o) => !o)}>
+      <div className="test-card-header no-print" onClick={() => setOpen((o) => !o)} {...clickable(() => setOpen((o) => !o), { expanded: open })}>
         <ChevronIcon className="test-card-chev" />
         <div className={`test-icon ${iconTone}`}>{icon}</div>
         <div className="test-card-flex">

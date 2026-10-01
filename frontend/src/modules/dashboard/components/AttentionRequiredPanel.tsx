@@ -8,7 +8,10 @@ import { Link } from "react-router-dom";
 import { NotificationItem, MediaExpiryLot } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { useLoadFailures } from "../../../hooks/useLoadFailures";
 import { DashboardService } from "../services/DashboardService";
+import { LoadFailuresAlert } from "../../../components/LoadErrorAlert";
+import { useDashboardLab } from "../DashboardLabContext";
 
 function timeAgo(timestamp: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60_000));
@@ -27,29 +30,37 @@ interface AttentionRequiredPanelProps {
 
 export function AttentionRequiredPanel({ notifications: propNotifications, expiringMedia: propExpiringMedia, loading }: AttentionRequiredPanelProps) {
   const theme = useTheme();
+  const lab = useDashboardLab();
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [expiringMedia, setExpiringMedia] = useState<MediaExpiryLot[]>([]);
+  // A failed load used to end in "No active attention alerts. All conditions
+  // normal." - the one message this panel must never show on a failure.
+  const { failed: failedLists, fail } = useLoadFailures();
 
   useEffect(() => {
     if (propNotifications) {
       setNotifications(propNotifications.filter((n) => n.type !== "ReviewWaiting" && n.type !== "ApprovalWaiting"));
     } else {
-      DashboardService.getNotifications()
+      // The server keeps only this laboratory's notifications (lab=...).
+      DashboardService.getNotifications(lab.code)
         .then((items) => setNotifications(items.filter((n) => n.type !== "ReviewWaiting" && n.type !== "ApprovalWaiting")))
-        .catch(() => setNotifications([]));
+        .catch(fail("notifications", () => setNotifications([])));
     }
-  }, [propNotifications]);
+  }, [propNotifications, fail, lab.code]);
 
   useEffect(() => {
     if (propExpiringMedia) {
       setExpiringMedia(propExpiringMedia);
+    } else if (lab.isPhyschem) {
+      // Prepared media are Microbiology material.
+      setExpiringMedia([]);
     } else {
       DashboardService.getMediaExpiry(5)
         .then(setExpiringMedia)
-        .catch(() => setExpiringMedia([]));
+        .catch(fail("expiring media", () => setExpiringMedia([])));
     }
-  }, [propExpiringMedia]);
+  }, [propExpiringMedia, fail, lab.isPhyschem]);
 
   return (
     <Paper sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
@@ -59,6 +70,8 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
         <LoadingSpinner />
       ) : (
         <Stack spacing={1.5} sx={{ flex: 1 }}>
+          <LoadFailuresAlert failed={failedLists} retryHint="Refresh the dashboard to try again." />
+
           {/* Expiring media alerts */}
           {expiringMedia.map((lot) => (
             <Box
@@ -91,7 +104,7 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
                   Expires in {lot.daysRemaining} day{lot.daysRemaining === 1 ? "" : "s"}
                 </Typography>
               </Box>
-              <Chip size="small" label="Expiring" sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
+              <Chip size="small" label="Expiring" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
             </Box>
           ))}
 
@@ -128,7 +141,7 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
             </Box>
           ))}
 
-          {expiringMedia.length === 0 && notifications.length === 0 && (
+          {failedLists.length === 0 && expiringMedia.length === 0 && notifications.length === 0 && (
             <Box sx={{ py: 3, textAlign: "center" }}>
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                 No active attention alerts. All conditions normal.

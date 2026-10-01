@@ -69,7 +69,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
               height: 36,
               borderRadius: 1.5,
               bgcolor: brandColors.sectionTitle,
-              color: "#ffffff",
+              color: "common.white",
               display: "flex",
               alignItems: "center",
               justifyContent: "center"

@@ -221,7 +221,7 @@ export function ComplianceDashboardPage() {
                       gap: 0.5
                     }}>
                     <ErrorOutlineIcon fontSize="inherit" />
-                    Action required — click to filter matrix
+                    Action required. Click to filter matrix
                   </Typography>
                 </CardContent>
               </Card>
@@ -247,7 +247,7 @@ export function ComplianceDashboardPage() {
                     variant="h3"
                     sx={{
                       fontWeight: "bold",
-                      color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100",
+                      color: (t) => t.palette.mode === "dark" ? "warning.light" : "warning.dark",
                       my: 0.5
                     }}>
                     {kpis.supersededGapCount}

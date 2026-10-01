@@ -125,6 +125,7 @@ export function EligibleSampleTable({
             onChange={(e) => setSearchTerm(e.target.value)}
             disabled={loading || assigning}
             slotProps={{
+              htmlInput: { "aria-label": "Search eligible samples" },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -137,7 +138,6 @@ export function EligibleSampleTable({
                       type="submit"
                       size="small"
                       disabled={loading || assigning}
-                      sx={{ textTransform: "none" }}
                     >
                       Search
                     </Button>
@@ -173,6 +173,7 @@ export function EligibleSampleTable({
                     <Checkbox
                       size="small"
                       checked={allSelected}
+                      slotProps={{ input: { "aria-label": "Select all eligible samples" } }}
                       indeterminate={someSelected}
                       onChange={handleToggleSelectAll}
                       disabled={eligibleTests.length === 0 || assigning}
@@ -209,6 +210,7 @@ export function EligibleSampleTable({
                             size="small"
                             checked={isSelected}
                             disabled={assigning}
+                            slotProps={{ input: { "aria-label": `Select ${t.sampleNumber} - ${t.testCode}` } }}
                           />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.sampleNumber}</TableCell>
@@ -238,7 +240,6 @@ export function EligibleSampleTable({
         <Button
           onClick={onClose}
           disabled={assigning}
-          sx={{ textTransform: "none" }}
         >
           Cancel
         </Button>

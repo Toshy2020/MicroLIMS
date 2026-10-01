@@ -341,7 +341,7 @@ export function DocumentConfigurationPage() {
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "primary.main" }}>
-                            {dept.code} — {dept.name}
+                            {dept.code}: {dept.name}
                           </Typography>
                           {dept.isActive ? (
                             <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />

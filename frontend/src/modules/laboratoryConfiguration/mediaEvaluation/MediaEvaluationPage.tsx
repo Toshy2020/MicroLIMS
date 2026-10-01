@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Select, MenuItem, Button, Alert,
-  TextField, Typography, Stack
+  TextField, Typography, Stack,
+  TableContainer
 } from "@mui/material";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
@@ -121,27 +122,29 @@ export function MediaEvaluationPage() {
 
       <SectionTitle>Evaluations</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
-        <Select size="small" displayEmpty value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ mb: 2, minWidth: 200 }}>
+        <Select size="small" displayEmpty value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ mb: 2, minWidth: 200 }} inputProps={{ "aria-label": "Status" }}>
           <MenuItem value=""><em>All Statuses</em></MenuItem>
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </Select>
-        <Table size="small">
-          <TableHead><TableRow sx={tableHeadSx}>
-            <TableCell>Lot</TableCell><TableCell>Media Type</TableCell><TableCell>Evaluation Type</TableCell>
-            <TableCell>Status</TableCell><TableCell>Outcome</TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {evaluations.map((e) => (
-              <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => openDetail(e.id)}>
-                <TableCell>{e.media?.lotNumber}</TableCell>
-                <TableCell>{mediaClassLabel(e.media?.mediaType?.class)}</TableCell>
-                <TableCell>{evaluationTypeLabel(e.evaluationType)}</TableCell>
-                <TableCell><StatusBadge status={e.status} /></TableCell>
-                <TableCell>{e.outcome ? <StatusBadge status={e.outcome} /> : "—"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TableContainer>
+          <Table size="small">
+            <TableHead><TableRow sx={tableHeadSx}>
+              <TableCell>Lot</TableCell><TableCell>Media Type</TableCell><TableCell>Evaluation Type</TableCell>
+              <TableCell>Status</TableCell><TableCell>Outcome</TableCell>
+            </TableRow></TableHead>
+            <TableBody>
+              {evaluations.map((e) => (
+                <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => openDetail(e.id)}>
+                  <TableCell>{e.media?.lotNumber}</TableCell>
+                  <TableCell>{mediaClassLabel(e.media?.mediaType?.class)}</TableCell>
+                  <TableCell>{evaluationTypeLabel(e.evaluationType)}</TableCell>
+                  <TableCell><StatusBadge status={e.status} /></TableCell>
+                  <TableCell>{e.outcome ? <StatusBadge status={e.outcome} /> : "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
 
       <FloatingDialog
@@ -151,7 +154,7 @@ export function MediaEvaluationPage() {
         title={
           selected ? (
             <Box>
-              {selected.media?.lotNumber} — {evaluationTypeLabel(selected.evaluationType)}
+              {selected.media?.lotNumber}: {evaluationTypeLabel(selected.evaluationType)}
               <Box sx={{ mt: 0.5, display: "flex", gap: 1 }}>
                 <StatusBadge status={selected.status} />
                 {selected.outcome && <StatusBadge status={selected.outcome} />}
@@ -195,7 +198,7 @@ export function MediaEvaluationPage() {
                             <Stack direction="row" spacing={1} sx={{
                               alignItems: "center"
                             }}>
-                              <Select size="small" displayEmpty value={form.cryovialId ?? ""} onChange={(e) => setField(c.id, "cryovialId", e.target.value)} sx={{ minWidth: 240 }}>
+                              <Select size="small" displayEmpty value={form.cryovialId ?? ""} onChange={(e) => setField(c.id, "cryovialId", e.target.value)} sx={{ minWidth: 240 }} inputProps={{ "aria-label": "Cryovial batch" }}>
                                 <MenuItem value=""><em>Cryovial batch</em></MenuItem>
                                 {options.map((o: any) => <MenuItem key={o.id} value={o.id}>{o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials)</MenuItem>)}
                               </Select>
@@ -209,7 +212,7 @@ export function MediaEvaluationPage() {
                       {c.incubation ? (
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
-                          {" — "}
+                          {", "}
                           {isReadyToRead(c) ? "ready to read" : `earliest reading ${new Date(c.incubation.expectedReadingAt).toLocaleString()}`}
                         </Typography>
                       ) : (
@@ -220,7 +223,7 @@ export function MediaEvaluationPage() {
                             alignItems: "center",
                             mb: 1
                           }}>
-                          <Select size="small" displayEmpty value={form.incubatorEquipmentId ?? ""} onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)} sx={{ minWidth: 200 }}>
+                          <Select size="small" displayEmpty value={form.incubatorEquipmentId ?? ""} onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)} sx={{ minWidth: 200 }} inputProps={{ "aria-label": "Incubator" }}>
                             <MenuItem value=""><em>Incubator</em></MenuItem>
                             {incubators.map((i: any) => <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>)}
                           </Select>
@@ -232,7 +235,7 @@ export function MediaEvaluationPage() {
                       {c.outcome ? (
                         <Box sx={{ mt: 1 }}>
                           {selected.evaluationType === "GrowthPromotion" && (
-                            <Typography variant="body2">Old {c.oldMediaCount} / New {c.newMediaCount} — Recovery {c.recoveryPercent}%</Typography>
+                            <Typography variant="body2">Old {c.oldMediaCount} / New {c.newMediaCount}, Recovery {c.recoveryPercent}%</Typography>
                           )}
                           {c.challengeRole === "Inhibition" && (
                             <Typography variant="body2">Growth Observed: {c.growthObserved ? "Yes" : "No"}</Typography>
@@ -260,7 +263,7 @@ export function MediaEvaluationPage() {
                             </>
                           )}
                           {c.challengeRole === "Inhibition" && (
-                            <Select size="small" displayEmpty value={form.growthObserved ?? ""} onChange={(e) => setField(c.id, "growthObserved", e.target.value)}>
+                            <Select size="small" displayEmpty value={form.growthObserved ?? ""} onChange={(e) => setField(c.id, "growthObserved", e.target.value)} inputProps={{ "aria-label": "Growth Observed?" }}>
                               <MenuItem value=""><em>Growth Observed?</em></MenuItem>
                               <MenuItem value="yes">Yes</MenuItem>
                               <MenuItem value="no">No</MenuItem>
@@ -275,7 +278,7 @@ export function MediaEvaluationPage() {
                                   color: "text.secondary",
                                   gridColumn: "span 2"
                                 }}>Expected: {c.expectedDescription ?? "—"}</Typography>
-                              <Select size="small" displayEmpty value={form.manualConform ?? ""} onChange={(e) => setField(c.id, "manualConform", e.target.value)}>
+                              <Select size="small" displayEmpty value={form.manualConform ?? ""} onChange={(e) => setField(c.id, "manualConform", e.target.value)} inputProps={{ "aria-label": "Judgment" }}>
                                 <MenuItem value=""><em>Judgment</em></MenuItem>
                                 <MenuItem value="conform">Conform</MenuItem>
                                 <MenuItem value="nonconform">NonConform</MenuItem>
@@ -283,7 +286,7 @@ export function MediaEvaluationPage() {
                             </>
                           )}
                           {selected.evaluationType === "EnrichmentCharacteristics" && (
-                            <Select size="small" displayEmpty value={form.isTurbid ?? ""} onChange={(e) => setField(c.id, "isTurbid", e.target.value)}>
+                            <Select size="small" displayEmpty value={form.isTurbid ?? ""} onChange={(e) => setField(c.id, "isTurbid", e.target.value)} inputProps={{ "aria-label": "Turbid or Clear?" }}>
                               <MenuItem value=""><em>Turbid or Clear?</em></MenuItem>
                               <MenuItem value="yes">Turbid</MenuItem>
                               <MenuItem value="no">Clear</MenuItem>

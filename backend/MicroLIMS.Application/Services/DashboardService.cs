@@ -331,44 +331,66 @@ public class DashboardService
             .ToList();
     }
 
-    public async Task<AnalystMetricsDto> GetAnalystMetricsAsync(int userId)
+    // `lab` (a laboratory dashboard) limits every figure to that laboratory:
+    // tests by their section, media lots by their Material's section, and
+    // incubations by their test's section - plus, for Microbiology only,
+    // media-evaluation incubations, which have no test order. Without it the
+    // figures span every laboratory, as before.
+    public async Task<AnalystMetricsDto> GetAnalystMetricsAsync(int userId, DashboardLabScope? lab = null)
     {
         var todayStart = _time.GetUtcNow().UtcDateTime.Date;
         var sevenDaysAgo = _time.GetUtcNow().UtcDateTime.Date.AddDays(-7);
+        var sections = lab?.LabCode != null ? lab.SectionIds : null;
+        var includeUnlinkedIncubations = sections == null || lab!.IsMicrobiology;
 
-        var completedResultsToday = await _db.Results
-            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart)
+        var results = _db.Results.Where(r => r.EnteredByUserId == userId);
+        var readings = _db.CountTestReadings.Where(r => r.EnteredByUserId == userId && r.IsActive);
+        var media = _db.Media.Where(m => m.PreparedByUserId == userId);
+        var orders = _db.TestOrders.Where(t => t.AssignedAnalystId == userId);
+        var incubations = _db.Incubations.Where(i => i.TestOrder!.AssignedAnalystId == userId || i.StartedByUserId == userId);
+        if (sections != null)
+        {
+            results = results.Where(r => sections.Contains(r.TestOrder!.SectionId));
+            readings = readings.Where(r => sections.Contains(r.TestOrder!.SectionId));
+            media = media.Where(m => sections.Contains(m.Material!.SectionId));
+            orders = orders.Where(t => sections.Contains(t.SectionId));
+            incubations = incubations.Where(i =>
+                (i.TestOrderId != null && sections.Contains(i.TestOrder!.SectionId))
+                || (i.TestOrderId == null && includeUnlinkedIncubations));
+        }
+
+        var completedResultsToday = await results
+            .Where(r => r.EnteredAt >= todayStart)
             .Select(r => r.TestOrderId)
             .ToListAsync();
 
-        var completedReadingsToday = await _db.CountTestReadings
-            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart && r.IsActive)
+        var completedReadingsToday = await readings
+            .Where(r => r.EnteredAt >= todayStart)
             .Select(r => r.TestOrderId)
             .ToListAsync();
 
         var testsCompletedToday = completedResultsToday.Concat(completedReadingsToday).Distinct().Count();
 
-        var mediaLotsPreparedToday = await _db.Media
-            .CountAsync(m => m.PreparedByUserId == userId && m.PreparedAt >= todayStart);
+        var mediaLotsPreparedToday = await media
+            .CountAsync(m => m.PreparedAt >= todayStart);
 
-        var activeAssignedOrders = await _db.TestOrders
-            .CountAsync(t => t.AssignedAnalystId == userId && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress || t.Status == ApprovalStatus.RetestRequested));
+        var activeAssignedOrders = await orders
+            .CountAsync(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress || t.Status == ApprovalStatus.RetestRequested);
 
-        var completedResults7d = await _db.Results
-            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= sevenDaysAgo)
+        var completedResults7d = await results
+            .Where(r => r.EnteredAt >= sevenDaysAgo)
             .Select(r => r.TestOrderId)
             .ToListAsync();
 
-        var completedReadings7d = await _db.CountTestReadings
-            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= sevenDaysAgo && r.IsActive)
+        var completedReadings7d = await readings
+            .Where(r => r.EnteredAt >= sevenDaysAgo)
             .Select(r => r.TestOrderId)
             .ToListAsync();
 
         var trailing7DayVolume = completedResults7d.Concat(completedReadings7d).Distinct().Count();
 
-        var completedIncubations = await _db.Incubations
-            .Where(i => (i.TestOrder!.AssignedAnalystId == userId || i.StartedByUserId == userId)
-                        && i.CompletedAt != null && i.ExpectedReadingAt != null)
+        var completedIncubations = await incubations
+            .Where(i => i.CompletedAt != null && i.ExpectedReadingAt != null)
             .Select(i => new { i.CompletedAt, i.ExpectedReadingAt })
             .ToListAsync();
 

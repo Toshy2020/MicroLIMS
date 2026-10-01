@@ -15,6 +15,7 @@ import {
   Chip,
   Stack,
   Paper,
+  TableContainer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -139,130 +140,134 @@ export function MediaConfigurationsSection({
           </Typography>
         </Paper>
       ) : (
-        <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-          <TableHead>
-            <TableRow sx={tableHeadSx}>
-              <TableCell sx={{ width: 40 }} />
-              <TableCell>Evaluation Type</TableCell>
-              <TableCell>Incubation</TableCell>
-              <TableCell>Temperature</TableCell>
-              <TableCell>Recovery</TableCell>
-              <TableCell>Challenge Organisms</TableCell>
-              {isManager && <TableCell align="right">Actions</TableCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {configurations.map((config) => {
-              const isExpanded = !!expandedRows[config.id];
-              const challengeCount = config.challenges?.length ?? 0;
+        <TableContainer>
+          <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+            <TableHead>
+              <TableRow sx={tableHeadSx}>
+                <TableCell sx={{ width: 40 }} />
+                <TableCell>Evaluation Type</TableCell>
+                <TableCell>Incubation</TableCell>
+                <TableCell>Temperature</TableCell>
+                <TableCell>Recovery</TableCell>
+                <TableCell>Challenge Organisms</TableCell>
+                {isManager && <TableCell align="right">Actions</TableCell>}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {configurations.map((config) => {
+                const isExpanded = !!expandedRows[config.id];
+                const challengeCount = config.challenges?.length ?? 0;
 
-              return (
-                <Fragment key={config.id}>
-                  <TableRow hover sx={{ "& > *": { borderBottom: isExpanded ? "unset" : undefined } }}>
-                    <TableCell sx={{ width: 40, p: 0.5 }}>
-                      {challengeCount > 0 && (
-                        <IconButton size="small" onClick={() => toggleRow(config.id)}>
-                          {isExpanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-                        </IconButton>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      <Chip
-                        size="small"
-                        label={evaluationTypeLabel(config.evaluationType)}
-                        variant="outlined"
-                        sx={{ fontSize: 12 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {config.incubationMinHours}–{config.incubationMaxHours} h
-                    </TableCell>
-                    <TableCell>
-                      {config.temperatureMin}–{config.temperatureMax} °C
-                    </TableCell>
-                    <TableCell>
-                      {config.recoveryPercentMin != null && config.recoveryPercentMax != null
-                        ? `${config.recoveryPercentMin}–${config.recoveryPercentMax}%`
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {challengeCount > 0 ? (
+                return (
+                  <Fragment key={config.id}>
+                    <TableRow hover sx={{ "& > *": { borderBottom: isExpanded ? "unset" : undefined } }}>
+                      <TableCell sx={{ width: 40, p: 0.5 }}>
+                        {challengeCount > 0 && (
+                          <IconButton aria-label={isExpanded ? "Collapse configuration details" : "Expand configuration details"} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(config.id)}>
+                            {isExpanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                          </IconButton>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>
                         <Chip
                           size="small"
-                          label={`${challengeCount} organism${challengeCount > 1 ? "s" : ""}`}
-                          onClick={() => toggleRow(config.id)}
-                          sx={{ cursor: "pointer", fontWeight: 600, fontSize: 11 }}
+                          label={evaluationTypeLabel(config.evaluationType)}
+                          variant="outlined"
+                          sx={{ fontSize: 12 }}
                         />
-                      ) : (
-                        <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
-                          —
-                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {config.incubationMinHours}–{config.incubationMaxHours} h
+                      </TableCell>
+                      <TableCell>
+                        {config.temperatureMin}–{config.temperatureMax} °C
+                      </TableCell>
+                      <TableCell>
+                        {config.recoveryPercentMin != null && config.recoveryPercentMax != null
+                          ? `${config.recoveryPercentMin}–${config.recoveryPercentMax}%`
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {challengeCount > 0 ? (
+                          <Chip
+                            size="small"
+                            label={`${challengeCount} organism${challengeCount > 1 ? "s" : ""}`}
+                            onClick={() => toggleRow(config.id)}
+                            sx={{ cursor: "pointer", fontWeight: 600, fontSize: 11 }}
+                          />
+                        ) : (
+                          <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+                      {isManager && (
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                            <Tooltip title="Edit configuration">
+                              <IconButton size="small" onClick={() => handleOpenEdit(config)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete configuration">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => setPendingDeleteConfig(config)}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
                       )}
-                    </TableCell>
-                    {isManager && (
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                          <Tooltip title="Edit configuration">
-                            <IconButton size="small" onClick={() => handleOpenEdit(config)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete configuration">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => setPendingDeleteConfig(config)}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    )}
-                  </TableRow>
-
-                  {challengeCount > 0 && (
-                    <TableRow>
-                      <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={isManager ? 7 : 6}>
-                        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                          <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1, my: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, fontSize: 12 }}>
-                              Challenge Organisms
-                            </Typography>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow sx={tableHeadSx}>
-                                  <TableCell>Scientific Name</TableCell>
-                                  <TableCell>ATCC Number</TableCell>
-                                  <TableCell>Role</TableCell>
-                                  <TableCell>Expected Description</TableCell>
-                                  <TableCell>Initial Inoculum</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {config.challenges.map((c) => (
-                                  <TableRow key={c.id}>
-                                    <TableCell sx={{ fontWeight: 500 }}>
-                                      {c.organism?.scientificName ?? `Organism #${c.organismId}`}
-                                    </TableCell>
-                                    <TableCell>{c.organism?.atccNumber ?? "—"}</TableCell>
-                                    <TableCell>{c.challengeRole ?? "—"}</TableCell>
-                                    <TableCell>{c.expectedDescription ?? "—"}</TableCell>
-                                    <TableCell>{c.initialInoculum ?? "—"}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </Box>
-                        </Collapse>
-                      </TableCell>
                     </TableRow>
-                  )}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
+
+                    {challengeCount > 0 && (
+                      <TableRow>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={isManager ? 7 : 6}>
+                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                            <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1, my: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, fontSize: 12 }}>
+                                Challenge Organisms
+                              </Typography>
+                              <TableContainer>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow sx={tableHeadSx}>
+                                      <TableCell>Scientific Name</TableCell>
+                                      <TableCell>ATCC Number</TableCell>
+                                      <TableCell>Role</TableCell>
+                                      <TableCell>Expected Description</TableCell>
+                                      <TableCell>Initial Inoculum</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {config.challenges.map((c) => (
+                                      <TableRow key={c.id}>
+                                        <TableCell sx={{ fontWeight: 500 }}>
+                                          {c.organism?.scientificName ?? `Organism #${c.organismId}`}
+                                        </TableCell>
+                                        <TableCell>{c.organism?.atccNumber ?? "—"}</TableCell>
+                                        <TableCell>{c.challengeRole ?? "—"}</TableCell>
+                                        <TableCell>{c.expectedDescription ?? "—"}</TableCell>
+                                        <TableCell>{c.initialInoculum ?? "—"}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       {/* Confirmation Dialog for Delete */}

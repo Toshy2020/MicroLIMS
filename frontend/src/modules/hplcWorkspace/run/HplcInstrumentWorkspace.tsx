@@ -32,6 +32,7 @@ import { monospaceFontFamily } from "../../../theme/palette";
 import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../types";
+import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 
 const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
   { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },
@@ -134,11 +135,16 @@ export function HplcInstrumentWorkspace() {
     }
   }, [equipmentId, runId, navigate, loadRunData]);
 
+  // A failed load showed the History tab as if this instrument had no runs.
+  const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
+  const [historyReloadKey, setHistoryReloadKey] = useState(0);
+
   useEffect(() => {
     if (activeTab === 4 && equipmentId) {
-      HplcWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns).catch(() => {});
+      setHistoryLoadFailed(false);
+      HplcWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns).catch(() => setHistoryLoadFailed(true));
     }
-  }, [activeTab, equipmentId]);
+  }, [activeTab, equipmentId, historyReloadKey]);
 
   const handleTabChange = (_: React.SyntheticEvent | null, newTab: number) => {
     setActiveTab(newTab);
@@ -301,7 +307,13 @@ export function HplcInstrumentWorkspace() {
       )}
 
       {/* Tab 4: History */}
-      {activeTab === 4 && (
+      {activeTab === 4 && historyLoadFailed && (
+        <LoadErrorAlert
+          message="The run history for this instrument could not be loaded."
+          onRetry={() => setHistoryReloadKey((k) => k + 1)}
+        />
+      )}
+      {activeTab === 4 && !historyLoadFailed && (
         <HplcRunHistoryTable
           historyRuns={historyRuns}
           equipmentId={equipmentId}

@@ -110,13 +110,16 @@ export function SampleReportPage() {
   const [summary, setSummary] = useState<SampleSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [archivedCopies, setArchivedCopies] = useState<ArchivedRecordSummary[]>([]);
+  const [archivedCopiesError, setArchivedCopiesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     SampleSummaryService.getSummary(Number(id))
       .then(setSummary)
       .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the sample report."));
-    ArchivedRecordsService.getForEntity("Sample", Number(id)).then(setArchivedCopies).catch(() => setArchivedCopies([]));
+    ArchivedRecordsService.getForEntity("Sample", Number(id))
+      .then(setArchivedCopies)
+      .catch(() => setArchivedCopiesError("The archived copies of this record could not be loaded. Reload the page to try again."));
   }, [id]);
 
   useEffect(() => {
@@ -175,7 +178,7 @@ export function SampleReportPage() {
               <span className="key">Quantity</span><span className="value">{s.sampleQuantity ?? "—"}</span>
               {s.waterSamplingPointCode && (
                 <><span className="key">Sampling point</span>
-                <span className="value">{s.waterSamplingPointCode} — {s.waterSamplingPointLocation}</span></>
+                <span className="value">{s.waterSamplingPointCode}, {s.waterSamplingPointLocation}</span></>
               )}
               {s.storageCondition && (
                 <><span className="key">Storage</span>
@@ -296,6 +299,7 @@ export function SampleReportPage() {
 
         <ArchivedCopiesSection
           copies={archivedCopies}
+          error={archivedCopiesError}
           onDownload={(archiveId, fileName) => ArchivedRecordsService.download(archiveId, fileName)}
         />
 

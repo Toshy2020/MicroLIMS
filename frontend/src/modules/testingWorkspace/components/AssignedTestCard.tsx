@@ -18,6 +18,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { TestOrderSummary, SampleCard as WorkspaceSampleCard } from "../types/workspaceTypes";
 import { useTestStepQuickAction } from "../hooks/useTestStepQuickAction";
+import { clickable } from "../../../utils/clickable";
 
 interface AssignedTestCardProps {
   test: TestOrderSummary;
@@ -44,10 +45,10 @@ function formatDuration(seconds: number): string {
 // test has no next step, so these win over every incubation/step rule below.
 const CLOSED_TEST_STATES: Record<string, { status: string; label: string; text: string }> = {
   REJECTED: { status: "Rejected", label: "Rejected", text: "✗ Rejected" },
-  VOIDED: { status: "Voided", label: "Voided", text: "Voided — struck from the record" },
+  VOIDED: { status: "Voided", label: "Voided", text: "Voided: struck from the record" },
   CANCELLED: { status: "Cancelled", label: "Cancelled", text: "Cancelled" },
-  SUPERSEDED: { status: "Superseded", label: "Superseded", text: "Superseded — retested on a new sample" },
-  ON_HOLD: { status: "OnHold", label: "On Hold", text: "On hold — awaiting retest outcome" }
+  SUPERSEDED: { status: "Superseded", label: "Superseded", text: "Superseded: retested on a new sample" },
+  ON_HOLD: { status: "OnHold", label: "On Hold", text: "On hold, awaiting retest outcome" }
 };
 
 export function AssignedTestCard({
@@ -170,7 +171,7 @@ export function AssignedTestCard({
       return { status: "Approved", label: "Approved" };
     }
     if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return { status: "Reviewed", label: "Reviewed — Pending Approval" };
+      return { status: "Reviewed", label: "Reviewed, Pending Approval" };
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
       return { status: "PendingReview", label: "Pending Review" };
@@ -263,16 +264,16 @@ export function AssignedTestCard({
       return closed.text;
     }
     if (test.workflowState === "WINDOW_NOT_CONFIGURED") {
-      return "Blocked — incubation window not configured in Test Master";
+      return "Blocked: incubation window not configured in Test Master";
     }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return "✓ Approved & Complete";
     }
     if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return "✓ Reviewed — Pending Approval";
+      return "✓ Reviewed, Pending Approval";
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
-      return "Result Recorded — Pending Review";
+      return "Result Recorded, Pending Review";
     }
 
     if (effectiveIsIncubating) {
@@ -289,7 +290,7 @@ export function AssignedTestCard({
       const endUtc = optimisticDetails?.endUtc || incubationEndUtc || activeIncubation?.incubationEndUtc;
       if (endUtc && nowMs >= new Date(endUtc).getTime()) {
         if (test.workflowState === "TSB_INCUBATING" || test.usesSharedTsb || step?.stepType === "BrothEnrichment" || step?.stepType === "SelectiveBroth") {
-          return `✓ ${mediaLabel}${tempRange} · Incubation Complete — Ready for Downstream Setup${incSuffix}`;
+          return `✓ ${mediaLabel}${tempRange} · Incubation Complete, Ready for Downstream Setup${incSuffix}`;
         }
         return `⏳ ${mediaLabel}${tempRange} · Incubation Complete${incSuffix}`;
       }
@@ -452,6 +453,7 @@ export function AssignedTestCard({
           bgcolor: theme.custom.status.purple.bg
         }
       }}
+      {...clickable(handleCardClick, { containsControls: true })}
     >
       {/* 1. Ultra-Compact Single-Line Horizontal Row (~46px) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.25, width: "100%" }}>
@@ -597,6 +599,7 @@ export function AssignedTestCard({
                   bgcolor: "background.paper",
                   "& .MuiSelect-select": { py: 0.5, px: 1 }
                 }}
+                inputProps={{ "aria-label": "Media lot" }}
               >
                 <MenuItem value="" sx={{ fontSize: 11.5 }}>
                   <em>Select Media Lot ({permittedMaterialNames || "Approved"})</em>
@@ -628,6 +631,7 @@ export function AssignedTestCard({
                   bgcolor: "background.paper",
                   "& .MuiSelect-select": { py: 0.5, px: 1 }
                 }}
+                inputProps={{ "aria-label": "Incubator" }}
               >
                 <MenuItem value="" sx={{ fontSize: 11.5 }}>
                   <em>Incubator ({stage1TempMin}–{stage1TempMax}°C)</em>

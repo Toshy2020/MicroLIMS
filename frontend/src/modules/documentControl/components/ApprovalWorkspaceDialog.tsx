@@ -179,7 +179,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Approval Workspace — {dossier?.master.companyDocumentCode} Rev {dossier?.revision.revisionNumber}
+              Approval Workspace: {dossier?.master.companyDocumentCode} Rev {dossier?.revision.revisionNumber}
             </Typography>
             <Typography variant="caption" sx={{
               color: "text.secondary"
@@ -224,21 +224,18 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   severity="success"
                   icon={<VerifiedUserIcon fontSize="inherit" />}
                   sx={{
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "#142D1B" : "#EDF7ED",
+                    bgcolor: (theme) => theme.custom.status.notDetected.bg,
                     border: "1px solid",
-                    borderColor: (theme) =>
-                      theme.palette.mode === "dark" ? "#2E5A36" : "#B7DFB9"
-                  }}
+                    borderColor: (theme) => theme.custom.status.notDetected.border}}
                 >
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     21 CFR Part 11 Electronic Signature Applied
                   </Typography>
                   <Typography variant="caption" sx={{ display: "block" }}>
                     Signed by <strong>{dossier.activeSignature.userFullNameSnapshot}</strong> ({dossier.activeSignature.usernameSnapshot})
-                    {" — "}Role: <strong>{dossier.activeSignature.roleSnapshot}</strong>
-                    {" — "}Meaning: <strong>{dossier.activeSignature.meaningOfSignature}</strong>
-                    {" — "}Timestamp: <strong>{new Date(dossier.activeSignature.signedAt).toUTCString()}</strong>
+                    {", "}Role: <strong>{dossier.activeSignature.roleSnapshot}</strong>
+                    {", "}Meaning: <strong>{dossier.activeSignature.meaningOfSignature}</strong>
+                    {", "}Timestamp: <strong>{new Date(dossier.activeSignature.signedAt).toUTCString()}</strong>
                   </Typography>
                 </Alert>
               </Box>
@@ -248,12 +245,9 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   severity="info"
                   icon={<LockIcon fontSize="inherit" />}
                   sx={{
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "#102A43" : "#F0F4F8",
+                    bgcolor: (theme) => theme.custom.status.info.bg,
                     border: "1px solid",
-                    borderColor: (theme) =>
-                      theme.palette.mode === "dark" ? "#244E72" : "#D9E2EC"
-                  }}
+                    borderColor: (theme) => theme.custom.status.info.border}}
                 >
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                     Approval Governed by 21 CFR Part 11 Electronic Signature
@@ -273,12 +267,9 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   severity="warning"
                   icon={<WarningAmberIcon fontSize="inherit" />}
                   sx={{
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "#2E2415" : "#FFF8E1",
+                    bgcolor: (theme) => theme.custom.status.inconclusive.bg,
                     border: "1px solid",
-                    borderColor: (theme) =>
-                      theme.palette.mode === "dark" ? "#664D03" : "#FFE082"
-                  }}
+                    borderColor: (theme) => theme.custom.status.inconclusive.border}}
                 >
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "warning.dark" }}>
                     Obsolescence Approval Dossier (DC-URS-052)
@@ -342,7 +333,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                         Document Code / Title:
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {dossier.master.companyDocumentCode} — {dossier.master.title}
+                        {dossier.master.companyDocumentCode}: {dossier.master.title}
                       </Typography>
                     </Grid>
                     <Grid size={3}>
@@ -440,11 +431,8 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                     variant="outlined"
                     sx={{
                       p: 2,
-                      bgcolor: (theme) =>
-                        theme.palette.mode === "dark" ? "#142D1B" : "#F4FAF5",
-                      borderColor: (theme) =>
-                        theme.palette.mode === "dark" ? "#2E5A36" : "#A3D9A5"
-                    }}
+                      bgcolor: (theme) => theme.custom.status.notDetected.bg,
+                      borderColor: (theme) => theme.custom.status.notDetected.border}}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                       <VerifiedUserIcon color="success" />
@@ -696,7 +684,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   ) : (
                     <Alert severity="error" icon={<CancelIcon fontSize="inherit" />}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Approval Blocked — Prerequisites Incomplete
+                        Approval Blocked: Prerequisites Incomplete
                       </Typography>
                       <Typography variant="caption">
                         The following items must be resolved before this revision can be approved:
@@ -820,7 +808,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                 </Grid>
 
                 {decisionMode === "Approve" && (
-                  <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#1B2A1E" : "#F4FAF5" }}>
+                  <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.custom.status.notDetected.bg}}>
                     <Typography
                       variant="subtitle2"
                       sx={{
@@ -864,7 +852,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                 )}
 
                 {decisionMode === "ReturnForCorrection" && (
-                  <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#2E2415" : "#FFFBF2" }}>
+                  <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.custom.status.inconclusive.bg}}>
                     <Typography
                       variant="subtitle2"
                       sx={{
@@ -895,7 +883,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                 )}
 
                 {decisionMode === "Decline" && (
-                  <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#2F1919" : "#FFF5F5" }}>
+                  <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.custom.status.detected.bg}}>
                     <Typography
                       variant="subtitle2"
                       sx={{

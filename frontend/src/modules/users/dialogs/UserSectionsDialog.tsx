@@ -149,7 +149,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
       open={open}
       onClose={onClose}
       maxWidth="md"
-      title={`Laboratory Sections — ${user?.fullName ?? ""}`}
+      title={`Laboratory Sections: ${user?.fullName ?? ""}`}
       actions={
         <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
           <Button onClick={onClose} disabled={saving} color="inherit">
@@ -214,7 +214,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
                   }
                   label={
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>
-                      {dept.departmentName} ({dept.departmentCode}) — <em>All sections (entire department)</em>
+                      {dept.departmentName} ({dept.departmentCode}): <em>All sections (entire department)</em>
                     </Typography>
                   }
                 />

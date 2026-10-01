@@ -21,6 +21,8 @@ import { MaterialService } from "../../../inventory/materials/services/MaterialS
 import { MaterialItem } from "../../../inventory/materials/types/materialTypes";
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 
 interface Props {
   open: boolean;
@@ -36,16 +38,18 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   useEffect(() => {
     if (open) {
       setError(null);
       setForm({});
       setAutoclavePrograms([]);
-      masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(() => setAutoclaves([]));
-      MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(() => setDehydratedMedia([]));
+      resetFailures();
+      masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(fail("autoclaves", () => setAutoclaves([])));
+      MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(fail("dehydrated media stock", () => setDehydratedMedia([])));
     }
-  }, [open]);
+  }, [open, fail, resetFailures]);
 
   const usableStock = dehydratedMedia.filter((m) => m.status === "InStock");
   const selectedMaterial = usableStock.find((m) => m.id === form.materialId);
@@ -77,7 +81,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       setForm((f) => ({
         ...f,
         autoclaveProgramId: prog.id,
-        autoclaveProgram: `${prog.programCode} — ${prog.programName}`,
+        autoclaveProgram: `${prog.programCode}: ${prog.programName}`,
         loadType: prog.loadType,
         temperature: prog.temperature,
         cycleTime: prog.cycleTimeMinutes
@@ -189,6 +193,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
         </DialogTitle>
 
         <DialogContent dividers>
+          <LoadFailuresAlert failed={failedLists} sx={{ mb: 2 }} />
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -210,15 +215,16 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                     fullWidth
                     value={form.materialId ?? ""}
                     onChange={(e) => setField("materialId", e.target.value)}
+                    inputProps={{ "aria-label": "Dehydrated Media Stock (Inventory)" }}
                   >
                     <MenuItem value="">
                       <em>Dehydrated Media Stock (Inventory) *</em>
                     </MenuItem>
                     {usableStock.map((m) => {
-                      const codePrefix = m.code ? `${m.code} — ` : "";
+                      const codePrefix = m.code ? `${m.code}: ` : "";
                       const label = m.mediaProductId == null
-                        ? `${codePrefix}${m.materialName} — batch ${m.batchNumber} (not linked to a media product - edit it in Inventory > Materials Stock)`
-                        : `${codePrefix}${m.materialName} — batch ${m.batchNumber} (${m.quantityRemaining} ${m.unit} left)`;
+                        ? `${codePrefix}${m.materialName}, batch ${m.batchNumber} (not linked to a media product - edit it in Inventory > Materials Stock)`
+                        : `${codePrefix}${m.materialName}, batch ${m.batchNumber} (${m.quantityRemaining} ${m.unit} left)`;
 
                       return (
                         <MenuItem key={m.id} value={m.id} disabled={m.mediaProductId == null}>
@@ -282,13 +288,14 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   displayEmpty
                   value={form.autoclaveEquipmentId ?? ""}
                   onChange={(e) => handleAutoclaveChange(e.target.value)}
+                  inputProps={{ "aria-label": "Autoclave" }}
                 >
                   <MenuItem value="">
                     <em>Select Autoclave *</em>
                   </MenuItem>
                   {autoclaves.map((a) => (
                     <MenuItem key={a.id} value={a.id}>
-                      {a.code} — {a.name}
+                      {a.code}: {a.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -299,13 +306,14 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   disabled={!form.autoclaveEquipmentId || !Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0}
                   value={form.autoclaveProgramId ?? ""}
                   onChange={(e) => handleProgramChange(e.target.value)}
+                  inputProps={{ "aria-label": "Autoclave program" }}
                 >
                   <MenuItem value="">
                     <em>{!Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0 ? "No active programs for autoclave" : "Select Program / Load *"}</em>
                   </MenuItem>
                   {Array.isArray(autoclavePrograms) && autoclavePrograms.map((p) => (
                     <MenuItem key={p.id} value={p.id}>
-                      {p.programCode} — {p.programName} ({p.temperature}°C, {p.cycleTimeMinutes} min)
+                      {p.programCode}: {p.programName} ({p.temperature}°C, {p.cycleTimeMinutes} min)
                     </MenuItem>
                   ))}
                 </Select>

@@ -22,13 +22,13 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { ReviewerDashboard } from "./types/dashboard";
 import { brandColors, tableHeadSx } from "../../theme";
+import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 function formatAge(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -41,8 +41,7 @@ function formatAge(minutes: number): string {
 
 export function ReviewerDashboardPage() {
   const theme = useTheme();
-  const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "Reviewer";
+  const lab = useDashboardLab();
 
   const [data, setData] = useState<ReviewerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +54,7 @@ export function ReviewerDashboardPage() {
     setLoading(true);
     setError(null);
 
-    DashboardService.getReviewerDashboard()
+    DashboardService.getReviewerDashboard(lab.code)
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -68,7 +67,7 @@ export function ReviewerDashboardPage() {
       });
 
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, lab.code]);
 
   if (!data) {
     return (
@@ -80,32 +79,29 @@ export function ReviewerDashboardPage() {
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title={`Reviewer Command Center — ${displayName}`}
-          subtitle="What results are waiting for your scientific review today?"
-        />
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={reload}
-            disabled={loading}
-            startIcon={<RefreshIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
-          <Button
-            component={Link}
-            to="/receiving-testing"
-            variant="contained"
-            startIcon={<ScienceOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Open Testing Workspace
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title="Reviewer Command Center"
+        subtitle={lab.code
+          ? `Results in the ${LAB_LABELS[lab.code]} waiting for your scientific review today.`
+          : "What results are waiting for your scientific review today?"}
+      >
+        <Button
+          variant="outlined"
+          onClick={reload}
+          disabled={loading}
+          startIcon={<RefreshIcon />}
+        >
+          Refresh
+        </Button>
+        <Button
+          component={Link}
+          to={lab.workspace()}
+          variant="contained"
+          startIcon={<ScienceOutlinedIcon />}
+        >
+          Open Testing Workspace
+        </Button>
+      </PageHeader>
 
       {/* Tier 1: Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
@@ -117,7 +113,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?status=UnderReview"
+            to={lab.workspace("?status=UnderReview")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -152,7 +148,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?status=UnderReview&workload=reviewOverdue"
+            to={lab.workspace("?status=UnderReview&workload=reviewOverdue")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -187,7 +183,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?status=UnderReview"
+            to={lab.workspace("?status=UnderReview")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -222,7 +218,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?workload=retestInProgress"
+            to={lab.workspace("?workload=retestInProgress")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -310,7 +306,7 @@ export function ReviewerDashboardPage() {
                   <Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                       <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                        {item.referenceNumber} — {item.subjectName}
+                        {item.referenceNumber}: {item.subjectName}
                       </Typography>
                       {item.testCodes.map((code) => (
                         <Chip key={code} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
@@ -322,7 +318,7 @@ export function ReviewerDashboardPage() {
                   </Box>
                   <Button
                     component={Link}
-                    to={`/receiving-testing?sampleId=${item.sampleId}&openSummary=true`}
+                    to={lab.workspace(`?sampleId=${item.sampleId}&openSummary=true`)}
                     variant="outlined"
                     color="error"
                     size="small"
@@ -357,7 +353,7 @@ export function ReviewerDashboardPage() {
               </Box>
               <Button
                 component={Link}
-                to="/receiving-testing?status=UnderReview"
+                to={lab.workspace("?status=UnderReview")}
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600 }}
@@ -398,7 +394,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}`}
+                            to={lab.workspace(`?sampleId=${row.sampleId}`)}
                             sx={{
                               fontSize: 12,
                               fontWeight: 700,
@@ -414,7 +410,7 @@ export function ReviewerDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 10, height: 18, mt: 0.5, display: "inline-flex" }}
+                              sx={{ fontSize: 11, height: 20, mt: 0.5, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
@@ -437,8 +433,8 @@ export function ReviewerDashboardPage() {
                               label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
-                                fontSize: 10,
-                                height: 18,
+                                fontSize: 11,
+                                height: 20,
                                 bgcolor:
                                   row.worstResultLevel === "OutOfSpecification"
                                     ? brandColors.err + "22"
@@ -474,7 +470,7 @@ export function ReviewerDashboardPage() {
                             label={row.priority}
                             size="small"
                             sx={{
-                              fontSize: 10,
+                              fontSize: 11,
                               height: 20,
                               fontWeight: 700,
                               bgcolor:
@@ -495,7 +491,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&openSummary=true`}
+                            to={lab.workspace(`?sampleId=${row.sampleId}&openSummary=true`)}
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
@@ -540,7 +536,7 @@ export function ReviewerDashboardPage() {
                   <Paper
                     key={rec.sampleId}
                     component={Link}
-                    to={`/receiving-testing?sampleId=${rec.sampleId}`}
+                    to={lab.workspace(`?sampleId=${rec.sampleId}`)}
                     variant="outlined"
                     sx={{
                       p: 1.5,
@@ -563,14 +559,14 @@ export function ReviewerDashboardPage() {
                       <Chip
                         label={rec.status}
                         size="small"
-                        sx={{ fontSize: 10, height: 18, fontWeight: 700 }}
+                        sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
                       />
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
                       <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         Tests: {rec.testCode}
                       </Typography>
-                      <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         {new Date(rec.reviewedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </Typography>
                     </Box>

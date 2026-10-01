@@ -207,7 +207,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
                       label={`${formatEvidenceKind(e.kind)} (${e.context})`}
                       size="small"
                       variant="outlined"
-                      sx={{ fontSize: 10, height: 20 }}
+                      sx={{ fontSize: 11, height: 20 }}
                     />
                   </TableCell>
                   <TableCell sx={{ fontSize: 11 }}>
@@ -307,7 +307,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
           Method Snapshot & Standard Calibration
         </Typography>
-        <Stack direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap" }}>
+        <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap" }}>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
               Theoretical Weights

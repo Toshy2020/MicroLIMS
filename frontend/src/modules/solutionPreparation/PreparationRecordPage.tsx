@@ -18,8 +18,8 @@ import { useTitrantStandardization } from "./record/useTitrantStandardization";
 import { TitrantStandardizationDialog } from "./components/TitrantStandardizationDialog";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
 import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
-import { toast } from "sonner";
 import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
+import { toast } from "sonner";
 
 export function PreparationRecordPage() {
   const { id } = useParams<{ id: string }>();
@@ -147,7 +147,6 @@ export function PreparationRecordPage() {
             size="small"
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate("/preparation")}
-            sx={{ textTransform: "none" }}
           >
             Back to List
           </Button>
@@ -160,7 +159,7 @@ export function PreparationRecordPage() {
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>Code</Typography>
             <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-              {preparation.code || "— (In Progress)"}
+              {preparation.code || "In progress (no code yet)"}
             </Typography>
           </Box>
           <Box>
@@ -283,7 +282,6 @@ export function PreparationRecordPage() {
                 color="error"
                 startIcon={<CancelOutlinedIcon />}
                 onClick={() => handleOpenAction("cancel")}
-                sx={{ textTransform: "none" }}
               >
                 Cancel Preparation
               </Button>
@@ -304,7 +302,6 @@ export function PreparationRecordPage() {
               color="error"
               startIcon={<DeleteOutlineOutlinedIcon />}
               onClick={() => handleOpenAction("discard")}
-              sx={{ textTransform: "none" }}
             >
               Discard Solution
             </Button>

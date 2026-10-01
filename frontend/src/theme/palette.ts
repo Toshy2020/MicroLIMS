@@ -47,28 +47,116 @@ const chartSequentialByMode = {
 export const monospaceFontFamily =
   "'Cascadia Mono', Consolas, 'SF Mono', 'Roboto Mono', ui-monospace, monospace";
 
+// Type scale. One step per job, so pages never pick sizes ad hoc:
+//   h5        page title (PageHeader / LabPage)
+//   h6        section / card title (SectionTitle, panel headers)
+//   subtitle1 subsection title          subtitle2 field-group label
+//   body1     form input text (kept at 16px so iOS does not zoom on focus)
+//   body2     default reading text, table cells
+//   caption   metadata, helper text     overline  sidebar group labels, KPI labels
+// Two weights carry hierarchy (600 for headings/labels, 400 for text); 700 is
+// reserved for the page title and numeric KPI values.
+const typography: ThemeOptions["typography"] = {
+  fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  h4: { fontSize: "1.5rem", fontWeight: 600, lineHeight: 1.3 },
+  h5: { fontSize: "1.375rem", fontWeight: 700, lineHeight: 1.3 },
+  h6: { fontSize: "1.0625rem", fontWeight: 600, lineHeight: 1.4 },
+  subtitle1: { fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.45 },
+  subtitle2: { fontSize: "0.8125rem", fontWeight: 600, lineHeight: 1.45 },
+  body2: { fontSize: "0.875rem", lineHeight: 1.5 },
+  caption: { fontSize: "0.75rem", lineHeight: 1.45 },
+  overline: { fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.6 },
+  button: { textTransform: "none", fontWeight: 600 }
+};
+
 export const baseThemeOptions: ThemeOptions = {
-  typography: {
-    fontFamily: "'Segoe UI', Roboto, Arial, sans-serif"
-  },
+  typography,
   shape: { borderRadius: 8 },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        // Users who ask the OS for less motion get none: collapses, drawer
+        // slides and skeleton shimmer all finish instantly instead.
+        "@media (prefers-reduced-motion: reduce)": {
+          "*, *::before, *::after": {
+            animationDuration: "0.01ms !important",
+            animationIterationCount: "1 !important",
+            transitionDuration: "0.01ms !important",
+            scrollBehavior: "auto !important"
+          }
+        }
+      }
+    },
     MuiButton: {
-      defaultProps: { size: "large" },
+      // Medium, not large: a data-dense LIMS screen with large buttons spent
+      // a row of height on every toolbar. Medium still clears the 24px
+      // WCAG 2.2 target size comfortably.
+      defaultProps: { size: "medium", disableElevation: true },
       styleOverrides: {
         root: { textTransform: "none", borderRadius: 8, fontWeight: 600 }
       }
     },
     MuiChip: {
       styleOverrides: {
-        root: { fontWeight: 700, fontSize: 11 }
+        root: { fontWeight: 600, fontSize: 12 }
       }
     },
     MuiTableCell: {
       styleOverrides: {
         root: { fontVariantNumeric: "tabular-nums" },
-        head: { fontWeight: 600, whiteSpace: "nowrap" }
+        head: { fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.8125rem", lineHeight: 1.4 },
+        sizeSmall: { padding: "6px 12px" }
       }
+    },
+    MuiTabs: {
+      styleOverrides: { root: { minHeight: 44 } }
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: { textTransform: "none", fontWeight: 600, fontSize: "0.875rem", minHeight: 44 }
+      }
+    },
+    MuiToggleButton: {
+      styleOverrides: { root: { textTransform: "none", fontWeight: 600 } }
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        // Required fields are marked with an asterisk in the error color so
+        // the marker is visible before a validation failure, not only after.
+        asterisk: ({ theme }) => ({ color: theme.palette.error.main })
+      }
+    },
+    MuiDialog: {
+      styleOverrides: {
+        // On a phone the default 32px margins plus a fixed max width pushed
+        // dialog actions off-screen; keep every dialog inside the viewport.
+        paper: ({ theme }) => ({
+          [theme.breakpoints.down("sm")]: {
+            margin: 12,
+            width: "calc(100% - 24px)",
+            maxWidth: "calc(100% - 24px)",
+            maxHeight: "calc(100% - 24px)"
+          }
+        })
+      }
+    },
+    MuiDialogTitle: {
+      styleOverrides: { root: { fontSize: "1.0625rem", fontWeight: 600, lineHeight: 1.4 } }
+    },
+    MuiDialogActions: {
+      styleOverrides: { root: { padding: "12px 24px", gap: 4, flexWrap: "wrap" } }
+    },
+    MuiAlert: {
+      styleOverrides: { root: { borderRadius: 8, alignItems: "flex-start" } }
+    },
+    MuiTooltip: {
+      styleOverrides: { tooltip: { fontSize: 12, lineHeight: 1.4 } }
+    },
+    MuiMenuItem: {
+      styleOverrides: { root: { fontSize: "0.875rem" } }
+    },
+    MuiLink: {
+      styleOverrides: { root: { textUnderlineOffset: "2px" } }
     }
   }
 };
@@ -121,7 +209,16 @@ export const lightThemeOptions: ThemeOptions = {
         // keeps native form-control chrome (password input backgrounds,
         // autofill tint, etc.) rendering with dark UA defaults regardless of
         // the correct light palette colors MUI itself is applying.
-        root: { borderRadius: 10, boxShadow: "0 1px 3px rgba(20,30,45,0.08), 0 1px 2px rgba(20,30,45,0.06)", colorScheme: "light" }
+        root: {
+          borderRadius: 8,
+          boxShadow: "0 1px 2px rgba(20,30,45,0.06), 0 1px 1px rgba(20,30,45,0.04)",
+          colorScheme: "light",
+          // Floating surfaces (menus, popovers, dialogs) need real elevation
+          // to separate from the page they cover; cards stay nearly flat.
+          "&.MuiPopover-paper, &.MuiDialog-paper": {
+            boxShadow: "0 8px 24px rgba(20,30,45,0.14), 0 2px 6px rgba(20,30,45,0.08)"
+          }
+        }
       }
     }
   },
@@ -173,7 +270,14 @@ export const darkThemeOptions: ThemeOptions = {
         // comment) - a no-op today since dark is already the ambient
         // <html> color-scheme, but keeps this theme self-consistent if a
         // future PinnedDarkTheme-style nesting is ever added.
-        root: { borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4)", colorScheme: "dark" }
+        root: {
+          borderRadius: 8,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4)",
+          colorScheme: "dark",
+          "&.MuiPopover-paper, &.MuiDialog-paper": {
+            boxShadow: "0 8px 24px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.45)"
+          }
+        }
       }
     }
   },

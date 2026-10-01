@@ -126,7 +126,7 @@ export function DiscussionsFeedPage() {
             }}
             size="small"
             sx={{ flex: 1, minWidth: 260 }}
-            slotProps={{
+            slotProps={{ htmlInput: { "aria-label": "Search discussions by title or content" },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">

@@ -48,7 +48,6 @@ export function WizardMobilePhasesStep({
           startIcon={<RefreshIcon />}
           onClick={onRefreshPreparations}
           disabled={loadingPreps}
-          sx={{ textTransform: "none" }}
         >
           Refresh Preparations
         </Button>
@@ -87,7 +86,6 @@ export function WizardMobilePhasesStep({
                 target="_blank"
                 rel="noopener noreferrer"
                 endIcon={<OpenInNewIcon fontSize="small" />}
-                sx={{ textTransform: "none" }}
               >
                 Prepare New
               </Button>

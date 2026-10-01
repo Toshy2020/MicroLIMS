@@ -4,6 +4,7 @@ import { MediaGptFilterPanel } from "./components/MediaGptFilterPanel";
 import { MediaGptResultsTable } from "./components/MediaGptResultsTable";
 import { MediaGptSummaryCard } from "./components/MediaGptSummaryCard";
 import { MediaGptReportService } from "./services/MediaGptReportService";
+import { LoadErrorAlert } from "../../components/LoadErrorAlert";
 import {
   MediaGptFilterOptions,
   MediaGptSearchParams,
@@ -32,6 +33,9 @@ function baseParams(fromDate?: string, toDate?: string): MediaGptSearchParams {
 
 export function MediaGptReportTab({ fromDate, toDate }: MediaGptReportTabProps) {
   const [filterOptions, setFilterOptions] = useState<MediaGptFilterOptions | null>(null);
+  // Without this a failed load left every filter dropdown empty with no
+  // explanation, as if no media, strains or products existed.
+  const [filterOptionsFailed, setFilterOptionsFailed] = useState(false);
   const [draft, setDraft] = useState<MediaGptSearchParams>(baseParams(fromDate, toDate));
   const [applied, setApplied] = useState<MediaGptSearchParams>(baseParams(fromDate, toDate));
   const [results, setResults] = useState<MediaGptSearchResponse | null>(null);
@@ -43,7 +47,7 @@ export function MediaGptReportTab({ fromDate, toDate }: MediaGptReportTabProps) 
   useEffect(() => {
     MediaGptReportService.getFilterOptions()
       .then(setFilterOptions)
-      .catch(() => setFilterOptions(null));
+      .catch(() => { setFilterOptions(null); setFilterOptionsFailed(true); });
   }, []);
 
   // Quick period change
@@ -77,8 +81,11 @@ export function MediaGptReportTab({ fromDate, toDate }: MediaGptReportTabProps) 
   };
 
   return (
-    <Box sx={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 2, alignItems: "start" }}>
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px 1fr" }, gap: 2, alignItems: "start" }}>
       <Stack spacing={2}>
+        {filterOptionsFailed && (
+          <LoadErrorAlert message="The filter options could not be loaded, so the filter lists are empty. Reload the page to try again." />
+        )}
         <MediaGptFilterPanel
           filterOptions={filterOptions}
           draft={draft}

@@ -102,16 +102,16 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
               </Typography>
               {cell.confirmatoryPlates.map((plate) => (
                 <Box key={plate.id} sx={{ pl: 1, mt: 0.25 }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                     • Medium #{plate.mediumIndex + 1} ({plate.mediumName ?? "Selective Agar"}):{" "}
                     <strong>{plate.observation}</strong>
                   </Typography>
                   {plate.expectedAppearanceSnapshot && (
-                    <Typography sx={{ fontSize: 10, color: "text.secondary", pl: 1.25 }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1.25 }}>
                       Expected: <em>{plate.expectedAppearanceSnapshot}</em>
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: 10, color: "text.secondary", pl: 1.25 }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1.25 }}>
                     Read at {formatDate(plate.recordedAtUtc)} by {plate.recordedByUserName ?? "Analyst"}
                   </Typography>
                 </Box>
@@ -119,7 +119,7 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
             </Box>
           ) : (
             <Box>
-              <Typography sx={{ fontSize: 10.5, color: "text.secondary", pl: 1 }}>
+              <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1 }}>
                 2. Confirmatory Plating: <em>Not required (resolved at primary plate)</em>
               </Typography>
             </Box>
@@ -155,7 +155,7 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
       <Divider sx={{ my: 0.75, borderColor: "divider" }} />
 
       {/* Audit Stamp */}
-      <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
+      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
         Entered by: <strong>{cell.enteredByUserName ?? "Analyst"}</strong> at {formatDate(cell.enteredAt)}
       </Typography>
     </Box>
@@ -246,12 +246,12 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                 mb: 1
               }}>
               <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
-                Testing Session Review — {session.sampleReferenceNumber}
+                Testing Session Review: {session.sampleReferenceNumber}
               </Typography>
               <Chip
                 label={session.overallSessionStatusDisplay ?? session.overallSessionStatus}
                 size="small"
-                sx={{ bgcolor: brandColors.sectionTitle, color: "#ffffff", fontWeight: 700 }}
+                sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700 }}
               />
             </Stack>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>

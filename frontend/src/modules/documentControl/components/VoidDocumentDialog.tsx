@@ -103,6 +103,7 @@ export function VoidDocumentDialog({
             disabled={loading}
             helperText={`${reason.trim().length}/10 characters minimum`}
             error={reason.length > 0 && !isValid}
+            slotProps={{ htmlInput: { "aria-label": "State the regulatory / administrative justification for voiding this document" } }}
           />
         </Box>
       </DialogContent>

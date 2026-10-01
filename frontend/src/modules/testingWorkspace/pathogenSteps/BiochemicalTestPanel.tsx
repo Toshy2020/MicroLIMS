@@ -112,7 +112,7 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
       {confirmatoryOutcome === "Inconclusive" && (
         <Alert severity="warning">
           Confirmatory plating was <strong>Inconclusive</strong> and has been flagged for investigation in the
-          audit trail. Biochemical identification can still resolve it — record the result below.
+          audit trail. Biochemical identification can still resolve it; record the result below.
         </Alert>
       )}
       {(() => {
@@ -135,8 +135,8 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
         onChange={(e) => setText(e.target.value)}
       />
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        Based on this result, is the organism Detected or Not Detected? This decision — not the free-text
-        result alone — determines the final workflow result.
+        Based on this result, is the organism Detected or Not Detected? This decision, not the free-text
+        result alone, determines the final workflow result.
       </Typography>
       <ToggleButtonGroup
         exclusive

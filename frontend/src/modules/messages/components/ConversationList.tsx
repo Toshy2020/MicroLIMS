@@ -62,7 +62,7 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
           onChange={(e) => setFilter(e.target.value)}
           size="small"
           fullWidth
-          slotProps={{
+          slotProps={{ htmlInput: { "aria-label": "Filter conversations" },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -140,7 +140,7 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
                       >
                         {displayTitle}
                       </Typography>
-                      <Typography sx={{ fontSize: 10.5, color: "text.secondary", flexShrink: 0 }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary", flexShrink: 0 }}>
                         {formatTimestamp(c.lastMessageAt)}
                       </Typography>
                     </Box>

@@ -52,10 +52,11 @@ export function ReplicateRowInputCard({
               label="Standard Lot"
               value={row.standardMaterialId ?? ""}
               onChange={(e) => onChange({ standardMaterialId: Number(e.target.value) || null })}
+              inputProps={{ "aria-label": "Standard Lot" }}
             >
               {standardLots.map((lot) => (
                 <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
-                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){!lot.usable ? ` — ${lot.reason}` : ""}
+                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){!lot.usable ? `, ${lot.reason}` : ""}
                 </MenuItem>
               ))}
             </Select>
@@ -67,6 +68,7 @@ export function ReplicateRowInputCard({
               label="Reference Solution"
               value={row.referencePreparationId ?? ""}
               onChange={(e) => onChange({ referencePreparationId: Number(e.target.value) || null })}
+              inputProps={{ "aria-label": "Reference Solution" }}
             >
               {referenceOptions.map((ref) => (
                 <MenuItem key={ref.id} value={ref.id}>

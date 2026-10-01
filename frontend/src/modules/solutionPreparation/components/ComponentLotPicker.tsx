@@ -107,7 +107,7 @@ export function ComponentLotPicker({
                   const blockedText = !lot.usable ? ` [Blocked: ${lot.reason ?? "Not usable"}]` : "";
                   return (
                     <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
-                      {lot.batchNumber} — {lot.quantityRemaining} {lot.unit} remaining{expText}{blockedText}
+                      {lot.batchNumber}, {lot.quantityRemaining} {lot.unit} remaining{expText}{blockedText}
                     </MenuItem>
                   );
                 })}

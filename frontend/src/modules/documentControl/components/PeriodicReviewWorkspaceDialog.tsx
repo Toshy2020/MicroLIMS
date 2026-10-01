@@ -184,7 +184,7 @@ export function PeriodicReviewWorkspaceDialog({
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                {workspace?.master.companyDocumentCode} — {workspace?.master.title} (Rev {workspace?.revision.revisionNumber})
+                {workspace?.master.companyDocumentCode}: {workspace?.master.title} (Rev {workspace?.revision.revisionNumber})
               </Typography>
             </Box>
           </Box>
@@ -477,13 +477,13 @@ export function PeriodicReviewWorkspaceDialog({
                     sx={{ maxWidth: 350 }}
                   >
                     <MenuItem value="RemainsValid">
-                      <strong>Remains Valid</strong> — No changes required; advances next review date
+                      <strong>Remains Valid</strong>: No changes required; advances next review date
                     </MenuItem>
                     <MenuItem value="RevisionRequired">
-                      <strong>Revision Required</strong> — Findings transferred into new revision
+                      <strong>Revision Required</strong>: Findings transferred into new revision
                     </MenuItem>
                     <MenuItem value="ObsolescenceRecommended">
-                      <strong>Obsolescence Recommended</strong> — Route to quality approval workflow
+                      <strong>Obsolescence Recommended</strong>: Route to quality approval workflow
                     </MenuItem>
                   </TextField>
 

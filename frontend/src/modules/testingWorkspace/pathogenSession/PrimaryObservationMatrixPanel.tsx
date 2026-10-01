@@ -347,7 +347,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
             alignItems: { md: "center" }
           }}>
           <Box sx={{ flex: 1 }}>
-            <Stack
+            <Stack useFlexGap
               direction="row"
               spacing={1.5}
               sx={{
@@ -404,7 +404,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
             />
           </Box>
 
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1.5}
             sx={{
@@ -455,7 +455,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       )}
 
       {/* Filter and Search Bar */}
-      <Stack
+      <Stack useFlexGap
         direction="row"
         spacing={2}
         sx={{
@@ -469,6 +469,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           onChange={(e) => setSearchQuery(e.target.value)}
           sx={{ width: { xs: "100%", sm: 300 } }}
           slotProps={{
+            htmlInput: { "aria-label": "Filter locations by name" },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -567,8 +568,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           label={t.testSessionStateDisplay}
                           size="small"
                           sx={{
-                            fontSize: 10,
-                            height: 18,
+                            fontSize: 11,
+                            height: 20,
                             bgcolor: isLocked ? theme.custom.status.detected.bg : theme.custom.status.info.bg,
                             color: isLocked ? theme.custom.status.detected.text : theme.custom.status.info.text,
                             fontWeight: 700
@@ -579,8 +580,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             label={`${confMediaCount}x Media`}
                             size="small"
                             sx={{
-                              fontSize: 10,
-                              height: 18,
+                              fontSize: 11,
+                              height: 20,
                               bgcolor: theme.custom.status.purple.bg,
                               color: theme.custom.status.purple.text,
                               fontWeight: 700,
@@ -628,7 +629,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         <Chip
                           label={`Grade ${loc.gradeClassification}`}
                           size="small"
-                          sx={{ fontSize: 9, height: 16, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
+                          sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                         />
                       )}
                     </Stack>
@@ -772,7 +773,11 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                                 endAdornment: <InputAdornment position="end">CFU</InputAdornment>
                               },
 
-                              htmlInput: { min: 0, max: 10000, step: 1 }
+                              htmlInput: {
+                                min: 0, max: 10000, step: 1,
+                                // A grid cell has no visible label of its own.
+                                "aria-label": `${t.displayName} count (CFU) for ${loc.locationName}`
+                              }
                             }} />
                         ) : (
                           <TextField
@@ -780,6 +785,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             size="small"
                             value={val?.observation ?? ""}
                             onChange={(e) => handleObservationChange(slocId, t.testCode, e.target.value as GrowthObservation)}
+                            slotProps={{ htmlInput: { "aria-label": `${t.displayName} observation for ${loc.locationName}` } }}
                             sx={{
                               width: 175,
                               "& .MuiInputBase-root": {

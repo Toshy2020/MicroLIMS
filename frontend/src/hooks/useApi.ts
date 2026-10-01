@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "../services/apiClient";
+import { getErrorMessage } from "../utils/errorMessage";
 
 // Small shared data-fetching hook used across module pages.
 //
@@ -21,7 +22,7 @@ export function useApi<T>(url: string) {
 
     apiClient.get(url)
       .then((res) => { if (!cancelled) setData(res.data.data); })
-      .catch(() => { if (!cancelled) setError("Failed to load data."); })
+      .catch((err) => { if (!cancelled) setError(getErrorMessage(err, "The data could not be loaded. Try again.")); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };

@@ -14,6 +14,7 @@ import {
   Chip,
   Stack,
   Paper,
+  TableContainer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -129,96 +130,98 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
           </Typography>
         </Paper>
       ) : (
-        <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-          <TableHead>
-            <TableRow sx={tableHeadSx}>
-              <TableCell>Incubation</TableCell>
-              <TableCell>Temperature</TableCell>
-              <TableCell>Used by</TableCell>
-              {isManager && <TableCell align="right">Actions</TableCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {conditions.map((condition) => {
-              const inUse = condition.configurationCount + condition.stepMediaCount > 0;
-              const usedByParts: string[] = [];
+        <TableContainer>
+          <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+            <TableHead>
+              <TableRow sx={tableHeadSx}>
+                <TableCell>Incubation</TableCell>
+                <TableCell>Temperature</TableCell>
+                <TableCell>Used by</TableCell>
+                {isManager && <TableCell align="right">Actions</TableCell>}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {conditions.map((condition) => {
+                const inUse = condition.configurationCount + condition.stepMediaCount > 0;
+                const usedByParts: string[] = [];
 
-              if (condition.configurationCount > 0) {
-                usedByParts.push(
-                  `${condition.configurationCount} configuration${
-                    condition.configurationCount === 1 ? "" : "s"
-                  }`
-                );
-              }
+                if (condition.configurationCount > 0) {
+                  usedByParts.push(
+                    `${condition.configurationCount} configuration${
+                      condition.configurationCount === 1 ? "" : "s"
+                    }`
+                  );
+                }
 
-              if (condition.stepMediaCount > 0) {
-                usedByParts.push(
-                  `${condition.stepMediaCount} ${
-                    condition.stepMediaCount === 1 ? "step medium" : "step media"
-                  }`
-                );
-              }
+                if (condition.stepMediaCount > 0) {
+                  usedByParts.push(
+                    `${condition.stepMediaCount} ${
+                      condition.stepMediaCount === 1 ? "step medium" : "step media"
+                    }`
+                  );
+                }
 
-              return (
-                <TableRow key={condition.id} hover>
-                  <TableCell>
-                    {condition.incubationMinHours}–{condition.incubationMaxHours} h
-                  </TableCell>
-                  <TableCell>
-                    {condition.temperatureMin}–{condition.temperatureMax} °C
-                  </TableCell>
-                  <TableCell>
-                    {usedByParts.length === 0 ? (
-                      <Chip size="small" variant="outlined" label="Not used" />
-                    ) : (
-                      usedByParts.join(" · ")
-                    )}
-                  </TableCell>
-                  {isManager && (
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                        {inUse ? (
-                          <Tooltip title="In use - add a new condition instead">
-                            <span>
-                              <IconButton size="small" disabled>
+                return (
+                  <TableRow key={condition.id} hover>
+                    <TableCell>
+                      {condition.incubationMinHours}–{condition.incubationMaxHours} h
+                    </TableCell>
+                    <TableCell>
+                      {condition.temperatureMin}–{condition.temperatureMax} °C
+                    </TableCell>
+                    <TableCell>
+                      {usedByParts.length === 0 ? (
+                        <Chip size="small" variant="outlined" label="Not used" />
+                      ) : (
+                        usedByParts.join(" · ")
+                      )}
+                    </TableCell>
+                    {isManager && (
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                          {inUse ? (
+                            <Tooltip title="In use - add a new condition instead">
+                              <span>
+                                <IconButton aria-label="In use - add a new condition instead" size="small" disabled>
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title="Edit condition">
+                              <IconButton size="small" onClick={() => handleOpenEdit(condition)}>
                                 <EditIcon fontSize="small" />
                               </IconButton>
-                            </span>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip title="Edit condition">
-                            <IconButton size="small" onClick={() => handleOpenEdit(condition)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {inUse ? (
-                          <Tooltip title="In use - add a new condition instead">
-                            <span>
-                              <IconButton size="small" color="error" disabled>
+                            </Tooltip>
+                          )}
+                          {inUse ? (
+                            <Tooltip title="In use - add a new condition instead">
+                              <span>
+                                <IconButton aria-label="In use - add a new condition instead" size="small" color="error" disabled>
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title="Delete condition">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => setPendingDeleteCondition(condition)}
+                              >
                                 <DeleteOutlineIcon fontSize="small" />
                               </IconButton>
-                            </span>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip title="Delete condition">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => setPendingDeleteCondition(condition)}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                            </Tooltip>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <ConfirmationDialog

@@ -15,7 +15,8 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  TableContainer
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -515,68 +516,70 @@ export function WeightVariationPanel({
     : [];
 
   const renderReadingsTable = (rList: ResultReadingDetail[], capsule: boolean, lastHeader: string) => (
-    <Table size="small">
-      <TableHead>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-          {capsule ? (
-            <>
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Gross (mg)</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Shell (mg)</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Net (mg)</TableCell>
-            </>
-          ) : (
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Weight (mg)</TableCell>
-          )}
-          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Deviation %</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rList.map((r) => (
-          <TableRow key={r.id}>
-            <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
             {capsule ? (
               <>
-                <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-                  <NumericCell value={r.value1 != null ? Number(r.value1) : null} unit="mg" />
-                </TableCell>
-                <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-                  <NumericCell value={r.value2 != null ? Number(r.value2) : null} unit="mg" />
-                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Gross (mg)</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Shell (mg)</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Net (mg)</TableCell>
+              </>
+            ) : (
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Weight (mg)</TableCell>
+            )}
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Deviation %</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rList.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+              {capsule ? (
+                <>
+                  <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                    <NumericCell value={r.value1 != null ? Number(r.value1) : null} unit="mg" />
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                    <NumericCell value={r.value2 != null ? Number(r.value2) : null} unit="mg" />
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                    <NumericCell
+                      value={
+                        r.computedValue != null
+                          ? Number(r.computedValue)
+                          : r.value1 != null && r.value2 != null
+                          ? Number(r.value1) - Number(r.value2)
+                          : null
+                      }
+                      unit="mg"
+                    />
+                  </TableCell>
+                </>
+              ) : (
                 <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
                   <NumericCell
                     value={
-                      r.computedValue != null
-                        ? Number(r.computedValue)
-                        : r.value1 != null && r.value2 != null
-                        ? Number(r.value1) - Number(r.value2)
-                        : null
+                      r.value1 != null ? Number(r.value1) : r.computedValue != null ? Number(r.computedValue) : null
                     }
                     unit="mg"
                   />
                 </TableCell>
-              </>
-            ) : (
-              <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-                <NumericCell
-                  value={
-                    r.value1 != null ? Number(r.value1) : r.computedValue != null ? Number(r.computedValue) : null
-                  }
-                  unit="mg"
-                />
+              )}
+              <TableCell align="right" sx={{ fontSize: 12 }}>
+                <NumericCell value={r.value3 != null ? Number(r.value3) : null} decimals={2} unit="%" />
               </TableCell>
-            )}
-            <TableCell align="right" sx={{ fontSize: 12 }}>
-              <NumericCell value={r.value3 != null ? Number(r.value3) : null} decimals={2} unit="%" />
-            </TableCell>
-            <TableCell sx={{ fontSize: 12 }}>
-              {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              <TableCell sx={{ fontSize: 12 }}>
+                {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 
   if (loading) {
@@ -614,7 +617,7 @@ export function WeightVariationPanel({
 
         {activeAnalysis && (
           <ResultSection title="Analysis summary">
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Specification
@@ -683,7 +686,7 @@ export function WeightVariationPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
               Done / Close
@@ -802,7 +805,7 @@ export function WeightVariationPanel({
                   </MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code} — {eq.name} ({eq.type})
+                      {eq.code}: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>
@@ -834,7 +837,7 @@ export function WeightVariationPanel({
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                   Test Conditions
                 </Typography>
-                <Stack
+                <Stack useFlexGap
                   direction={{ xs: "column", sm: "row" }}
                   spacing={2}
                   sx={{ flexWrap: "wrap" }}

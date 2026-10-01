@@ -193,7 +193,6 @@ export function SendForReviewDialog({
           <Button
             onClick={onClose}
             disabled={submitting}
-            sx={{ textTransform: "none" }}
           >
             Cancel
           </Button>

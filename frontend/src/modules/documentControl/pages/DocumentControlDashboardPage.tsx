@@ -327,8 +327,8 @@ export function DocumentControlDashboardPage() {
             </Button>
           </Box>
 
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ maxHeight: { md: "calc(100vh - 240px)" } }}>
+            <Table stickyHeader size="small">
               <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700 }}>Company Code</TableCell>

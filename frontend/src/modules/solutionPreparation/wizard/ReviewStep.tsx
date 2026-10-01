@@ -99,7 +99,7 @@ export function ReviewStep({
         {validationErrors.length > 0 ? (
           <Alert severity="error" icon={<ErrorOutlinedIcon />} sx={{ mb: 3 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Cannot complete preparation — please correct the following:
+              Cannot complete preparation. Please correct the following:
             </Typography>
             <Stack spacing={0.5} component="ul" sx={{ pl: 2, m: 0 }}>
               {validationErrors.map((err, idx) => (
@@ -242,7 +242,6 @@ export function ReviewStep({
             variant="outlined"
             onClick={onBack}
             startIcon={<ArrowBackIcon />}
-            sx={{ textTransform: "none" }}
           >
             Back to Edit
           </Button>

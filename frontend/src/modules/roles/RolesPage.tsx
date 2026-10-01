@@ -8,7 +8,9 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../components/PageHeader";
 import { RoleService, RoleRecord } from "./services/RoleService";
+import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserService, UserRecord } from "../users/services/UserService";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 
 export function RolesPage() {
   const navigate = useNavigate();
@@ -18,12 +20,14 @@ export function RolesPage() {
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState<string | null>((location.state as { message?: string } | null)?.message ?? null);
 
+  const { failed: failedLists, fail } = useLoadFailures();
+
   useEffect(() => {
-    RoleService.getAll().then(setRoles).catch(() => {});
+    RoleService.getAll().then(setRoles).catch(fail("roles"));
     // Reused rather than adding a backend user-count endpoint - UsersPage
     // already fetches the same list for its own table, same
     // SystemAdministrator-only gating as this page.
-    UserService.getAll().then(setUsers).catch(() => {});
+    UserService.getAll().then(setUsers).catch(fail("users (for the per-role counts)"));
     if (location.state) navigate(location.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -40,6 +44,7 @@ export function RolesPage() {
     <>
       <PageHeader title="Roles" subtitle="System Administrator, Section Head, Reviewer, Analyst, and any custom roles." />
       {message && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message}</Alert>}
+      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
 
       <Paper sx={{ p: 2, mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <TextField
@@ -48,7 +53,7 @@ export function RolesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 260 }}
-          slotProps={{
+          slotProps={{ htmlInput: { "aria-label": "Search by role name" },
             input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }
           }}
         />
@@ -85,7 +90,7 @@ export function RolesPage() {
                 <TableCell>
                   <Chip label={r.isActive ? "Active" : "Inactive"} size="small" color={r.isActive ? "success" : "default"} />
                 </TableCell>
-                <TableCell align="right">{userCountByRoleId.get(r.id) ?? 0}</TableCell>
+                <TableCell align="right">{failedLists.some((f) => f.startsWith("users")) ? "—" : userCountByRoleId.get(r.id) ?? 0}</TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (

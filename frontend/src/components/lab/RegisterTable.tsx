@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import {
-  IconButton, ListItemText, Menu, MenuItem, Paper, Skeleton, Table, TableBody, TableCell, TableContainer,
-  TableHead, TablePagination, TableRow, TableSortLabel, useTheme
+  Box, IconButton, ListItemText, Menu, MenuItem, Paper, Select, Skeleton, Stack, Table, TableBody, TableCell, TableContainer,
+  TableHead, TablePagination, TableRow, TableSortLabel, Typography, useMediaQuery, useTheme
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { tableHeadSx } from "../../theme";
@@ -52,6 +52,10 @@ interface RegisterTableProps<T> {
 
 const PAGE_SIZES = [25, 50, 100];
 const SKELETON_ROWS = 5;
+// Above this many rows on a page the table body scrolls inside a bounded
+// region on desktop, so the column headers stay in view. Shorter pages keep
+// the page itself as the only scroll container (no second scrollbar).
+const STICKY_HEADER_MIN_ROWS = 15;
 
 function compareValues(a: unknown, b: unknown): number {
   // Empty values sort last in ascending order.
@@ -66,6 +70,9 @@ export function RegisterTable<T>({
   columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone
 }: RegisterTableProps<T>) {
   const theme = useTheme();
+  // Phones get one card per record instead of a table whose columns would be
+  // cut off or need sideways scrolling to read a single record.
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(defaultSort ?? null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(pageSize);
@@ -115,12 +122,152 @@ export function RegisterTable<T>({
   };
 
   const menuActions = menu && rowActions ? rowActions(menu.row) : [];
+  const cellText = (row: T, col: RegisterColumn<T>): ReactNode =>
+    col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
+  const sortableColumns = columns.filter((c) => c.sortable);
+  const boundedBody = !isPhone && paged.length > STICKY_HEADER_MIN_ROWS;
+
+  if (isPhone) {
+    const [titleCol, ...detailCols] = columns;
+    return (
+      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
+        {sortableColumns.length > 0 && rows.length > 1 && (
+          <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>Sort by</Typography>
+            <Select
+              size="small"
+              value={sort ? `${sort.key}:${sort.direction}` : ""}
+              displayEmpty
+              onChange={(e) => {
+                const v = String(e.target.value);
+                if (!v) { setSort(null); return; }
+                const [key, direction] = v.split(":");
+                setSort({ key, direction: direction as "asc" | "desc" });
+              }}
+              inputProps={{ "aria-label": "Sort records by" }}
+              sx={{ flex: 1, fontSize: 14 }}
+            >
+              <MenuItem value="">Default order</MenuItem>
+              {sortableColumns.flatMap((c) => [
+                <MenuItem key={`${String(c.key)}:asc`} value={`${String(c.key)}:asc`}>{c.label} (ascending)</MenuItem>,
+                <MenuItem key={`${String(c.key)}:desc`} value={`${String(c.key)}:desc`}>{c.label} (descending)</MenuItem>
+              ])}
+            </Select>
+          </Box>
+        )}
+        {loading ? (
+          <Stack divider={<Box sx={{ borderTop: "1px solid", borderColor: "divider" }} />}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Box key={i} sx={{ p: 1.5 }}>
+                <Skeleton variant="text" width="60%" height={24} />
+                <Skeleton variant="text" width="90%" />
+                <Skeleton variant="text" width="80%" />
+              </Box>
+            ))}
+          </Stack>
+        ) : rows.length === 0 ? (
+          <EmptyState title={empty.title} description={empty.description} action={empty.action} />
+        ) : (
+          <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0 }}>
+            {paged.map((row) => {
+              const tone = rowTone?.(row);
+              const toneTokens = tone ? theme.custom.status[tone] : undefined;
+              const actions = rowActions ? rowActions(row) : [];
+              return (
+                <Box
+                  component="li"
+                  key={getRowId(row)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onKeyDown={onRowClick ? (e: KeyboardEvent<HTMLLIElement>) => {
+                    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      onRowClick(row);
+                    }
+                  } : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  sx={{
+                    p: 1.5,
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                    "&:last-of-type": { borderBottom: 0 },
+                    cursor: onRowClick ? "pointer" : undefined,
+                    bgcolor: toneTokens?.bg,
+                    borderLeft: toneTokens ? `3px solid ${toneTokens.border}` : undefined,
+                    "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 }
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: detailCols.length ? 0.75 : 0 }}>
+                    <Box sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 15, overflowWrap: "anywhere" }}>
+                      {titleCol ? cellText(row, titleCol) : null}
+                    </Box>
+                    {actions.length > 0 && (
+                      <IconButton size="small" aria-label="Row actions" onClick={(e) => openMenu(e, row)} sx={{ mt: -0.5, mr: -0.5 }}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
+                  <Box
+                    component="dl"
+                    sx={{ m: 0, display: "grid", gridTemplateColumns: "minmax(96px, auto) 1fr", columnGap: 1.5, rowGap: 0.5, fontSize: 14 }}
+                  >
+                    {detailCols.map((col) => (
+                      <Box key={String(col.key)} sx={{ display: "contents" }}>
+                        <Box component="dt" sx={{ color: "text.secondary", fontSize: 13 }}>{col.label}</Box>
+                        <Box component="dd" sx={{ m: 0, minWidth: 0, overflowWrap: "anywhere", ...(col.numeric ? { fontVariantNumeric: "tabular-nums" } : null) }}>
+                          {cellText(row, col)}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+        {showPagination && (
+          <TablePagination
+            component="div"
+            count={rows.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={PAGE_SIZES}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(Number(e.target.value));
+              setPage(0);
+            }}
+          />
+        )}
+        {renderMenu()}
+      </Paper>
+    );
+  }
+
+  function renderMenu() {
+    return (
+      <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)} onClick={(e) => e.stopPropagation()}>
+        {menuActions.map((a) => (
+          <MenuItem
+            key={a.label}
+            disabled={a.disabled}
+            onClick={() => {
+              setMenu(null);
+              a.onClick();
+            }}
+            sx={a.danger ? { color: "error.main" } : undefined}
+          >
+            <ListItemText>{a.label}</ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+    );
+  }
 
   return (
     <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-      {/* No inner max height: the page is the one scroll container, so long
-          registers never show a second scrollbar. */}
-      <TableContainer>
+      {/* stickyHeader needs a bounded scroll region to stick within; only long
+          pages get one (see STICKY_HEADER_MIN_ROWS). */}
+      <TableContainer sx={boundedBody ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : undefined}>
         <Table size={dense ? "small" : "medium"} stickyHeader>
           <TableHead>
             <TableRow sx={tableHeadSx(theme)}>
@@ -189,7 +336,7 @@ export function RegisterTable<T>({
                   }}
                 >
                   {columns.map((col) => {
-                    const content = col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
+                    const content = cellText(row, col);
                     return (
                       <TableCell
                         key={String(col.key)}
@@ -230,21 +377,7 @@ export function RegisterTable<T>({
           }}
         />
       )}
-      <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)} onClick={(e) => e.stopPropagation()}>
-        {menuActions.map((a) => (
-          <MenuItem
-            key={a.label}
-            disabled={a.disabled}
-            onClick={() => {
-              setMenu(null);
-              a.onClick();
-            }}
-            sx={a.danger ? { color: "error.main" } : undefined}
-          >
-            <ListItemText>{a.label}</ListItemText>
-          </MenuItem>
-        ))}
-      </Menu>
+      {renderMenu()}
     </Paper>
   );
 }

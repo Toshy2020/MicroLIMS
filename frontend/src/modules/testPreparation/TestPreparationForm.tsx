@@ -65,7 +65,7 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
       {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
         <TextField label="Sample Amount" value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} disabled={isAssignedToOther} />
-        <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)} disabled={isAssignedToOther}>
+        <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)} disabled={isAssignedToOther} inputProps={{ "aria-label": "Technique" }}>
           <MenuItem value="PourPlate">Pour Plate</MenuItem>
           <MenuItem value="Filtration">Filtration</MenuItem>
         </Select>

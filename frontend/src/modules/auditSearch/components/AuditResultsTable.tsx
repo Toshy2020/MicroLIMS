@@ -62,8 +62,8 @@ export function AuditResultsTable({
 
   return (
     <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-      <TableContainer>
-        <Table size="small">
+      <TableContainer sx={{ maxHeight: { md: "calc(100vh - 240px)" } }}>
+        <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Date / Time</TableCell>
@@ -96,7 +96,7 @@ export function AuditResultsTable({
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                       {formatLabDateTime(item.timestamp)}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                       UTC
                     </Typography>
                   </TableCell>
@@ -106,10 +106,10 @@ export function AuditResultsTable({
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                       {item.userName}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: "primary.main", fontWeight: 600 }}>
+                    <Typography sx={{ fontSize: 11, color: "primary.main", fontWeight: 600 }}>
                       {item.userRole ?? "User"}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: "text.secondary", fontFamily: "monospace" }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary", fontFamily: "monospace" }}>
                       ID: #{item.userId}
                     </Typography>
                   </TableCell>
@@ -130,7 +130,7 @@ export function AuditResultsTable({
                       label={item.action.toUpperCase()}
                       size="small"
                       color={ACTION_COLORS[item.action] ?? "default"}
-                      sx={{ fontSize: 10, fontWeight: 700, height: 20 }}
+                      sx={{ fontSize: 11, fontWeight: 700, height: 20 }}
                     />
                   </TableCell>
 
@@ -150,7 +150,7 @@ export function AuditResultsTable({
                   <TableCell sx={{ fontSize: 11 }}>
                     {item.sampleReferenceNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Sample:</Typography>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Sample:</Typography>
                         <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.sampleReferenceNumber}
                         </Typography>
@@ -158,7 +158,7 @@ export function AuditResultsTable({
                     )}
                     {item.batchNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Batch:</Typography>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Batch:</Typography>
                         <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.batchNumber}
                         </Typography>
@@ -166,7 +166,7 @@ export function AuditResultsTable({
                     )}
                     {item.mediaLotNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Media Lot:</Typography>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Media Lot:</Typography>
                         <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.mediaLotNumber}
                         </Typography>
@@ -174,7 +174,7 @@ export function AuditResultsTable({
                     )}
                     {item.cryovialCode && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Cryovial:</Typography>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Cryovial:</Typography>
                         <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.cryovialCode}
                         </Typography>

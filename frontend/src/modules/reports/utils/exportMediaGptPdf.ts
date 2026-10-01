@@ -64,7 +64,7 @@ export function exportMediaGptPdf(records: MediaGptListItem[], options: MediaGpt
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${escapeHtml(title)} — MicroLIMS</title>
+  <title>${escapeHtml(title)} · MicroLIMS</title>
   <style>
     @page {
       size: A4 landscape;
@@ -231,7 +231,7 @@ export function exportMediaGptPdf(records: MediaGptListItem[], options: MediaGpt
   </table>
 
   <div class="footer">
-    <div>Media & GPT Report — Generated for microbiological quality control and media qualification review.</div>
+    <div>Media & GPT Report. Generated for microbiological quality control and media qualification review.</div>
     <div>MicroLIMS Quality Assurance</div>
   </div>
 

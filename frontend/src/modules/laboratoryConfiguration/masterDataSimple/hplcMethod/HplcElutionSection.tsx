@@ -15,7 +15,8 @@ import {
   TableBody,
   IconButton,
   Tooltip,
-  Alert
+  Alert,
+  TableContainer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -141,123 +142,125 @@ export function HplcElutionSection({
               </Alert>
             )}
 
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 600, width: 60 }}>Step</TableCell>
-                  <TableCell sx={{ fontWeight: 600, minWidth: 100 }}>Time (min)</TableCell>
-                  <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% A</TableCell>
-                  <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% B</TableCell>
-                  <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% C</TableCell>
-                  <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% D</TableCell>
-                  <TableCell sx={{ fontWeight: 600, width: 80 }}>Total %</TableCell>
-                  <TableCell align="right" sx={{ width: 60 }} />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {gradientSteps.map((step, idx) => {
-                  const pa = Number(step.percentA || 0);
-                  const pb = Number(step.percentB || 0);
-                  const pc = Number(step.percentC || 0);
-                  const pd = Number(step.percentD || 0);
-                  const sum = pa + pb + pc + pd;
-                  const is100 = Math.abs(sum - 100) <= 0.01;
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, width: 60 }}>Step</TableCell>
+                    <TableCell sx={{ fontWeight: 600, minWidth: 100 }}>Time (min)</TableCell>
+                    <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% A</TableCell>
+                    <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% B</TableCell>
+                    <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% C</TableCell>
+                    <TableCell sx={{ fontWeight: 600, minWidth: 80 }}>% D</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: 80 }}>Total %</TableCell>
+                    <TableCell align="right" sx={{ width: 60 }} />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {gradientSteps.map((step, idx) => {
+                    const pa = Number(step.percentA || 0);
+                    const pb = Number(step.percentB || 0);
+                    const pc = Number(step.percentC || 0);
+                    const pd = Number(step.percentD || 0);
+                    const sum = pa + pb + pc + pd;
+                    const is100 = Math.abs(sum - 100) <= 0.01;
 
-                  return (
-                    <TableRow key={idx}>
-                      <TableCell sx={{ fontWeight: 500 }}>#{idx + 1}</TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={step.timeMin}
-                          onChange={(e) => onGradientStepChange(idx, "timeMin", e.target.value)}
-                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                          disabled={idx === 0}
-                          error={Boolean(errors[`gradient.${idx}.timeMin`])}
-                          helperText={errors[`gradient.${idx}.timeMin`] ?? (idx === 0 ? "Initial (0 min)" : undefined)}
-                          sx={{ width: 110 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={step.percentA}
-                          onChange={(e) => onGradientStepChange(idx, "percentA", e.target.value)}
-                          disabled={!hasChannel("A")}
-                          error={Boolean(errors[`gradient.${idx}.percentA`])}
-                          helperText={errors[`gradient.${idx}.percentA`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
-                          sx={{ width: 85 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={step.percentB}
-                          onChange={(e) => onGradientStepChange(idx, "percentB", e.target.value)}
-                          disabled={!hasChannel("B")}
-                          error={Boolean(errors[`gradient.${idx}.percentB`])}
-                          helperText={errors[`gradient.${idx}.percentB`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
-                          sx={{ width: 85 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={step.percentC}
-                          onChange={(e) => onGradientStepChange(idx, "percentC", e.target.value)}
-                          disabled={!hasChannel("C")}
-                          error={Boolean(errors[`gradient.${idx}.percentC`])}
-                          helperText={errors[`gradient.${idx}.percentC`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
-                          sx={{ width: 85 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={step.percentD}
-                          onChange={(e) => onGradientStepChange(idx, "percentD", e.target.value)}
-                          disabled={!hasChannel("D")}
-                          error={Boolean(errors[`gradient.${idx}.percentD`])}
-                          helperText={errors[`gradient.${idx}.percentD`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
-                          sx={{ width: 85 }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: is100 ? "success.main" : "error.main" }}>
-                        {sum.toFixed(1)}%
-                        {errors[`gradient.${idx}.total`] && (
-                          <Typography variant="caption" color="error" sx={{ display: "block", fontWeight: 400 }}>
-                            {errors[`gradient.${idx}.total`]}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="Remove step">
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => onRemoveGradientStep(idx)}
-                              disabled={gradientSteps.length <= 2}
-                              color="error"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    return (
+                      <TableRow key={idx}>
+                        <TableCell sx={{ fontWeight: 500 }}>#{idx + 1}</TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={step.timeMin}
+                            onChange={(e) => onGradientStepChange(idx, "timeMin", e.target.value)}
+                            slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} time (min)`, min: 0, step: "any" } }}
+                            disabled={idx === 0}
+                            error={Boolean(errors[`gradient.${idx}.timeMin`])}
+                            helperText={errors[`gradient.${idx}.timeMin`] ?? (idx === 0 ? "Initial (0 min)" : undefined)}
+                            sx={{ width: 110 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={step.percentA}
+                            onChange={(e) => onGradientStepChange(idx, "percentA", e.target.value)}
+                            disabled={!hasChannel("A")}
+                            error={Boolean(errors[`gradient.${idx}.percentA`])}
+                            helperText={errors[`gradient.${idx}.percentA`]}
+                            slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % A`, min: 0, max: 100, step: "any" } }}
+                            sx={{ width: 85 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={step.percentB}
+                            onChange={(e) => onGradientStepChange(idx, "percentB", e.target.value)}
+                            disabled={!hasChannel("B")}
+                            error={Boolean(errors[`gradient.${idx}.percentB`])}
+                            helperText={errors[`gradient.${idx}.percentB`]}
+                            slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % B`, min: 0, max: 100, step: "any" } }}
+                            sx={{ width: 85 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={step.percentC}
+                            onChange={(e) => onGradientStepChange(idx, "percentC", e.target.value)}
+                            disabled={!hasChannel("C")}
+                            error={Boolean(errors[`gradient.${idx}.percentC`])}
+                            helperText={errors[`gradient.${idx}.percentC`]}
+                            slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % C`, min: 0, max: 100, step: "any" } }}
+                            sx={{ width: 85 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={step.percentD}
+                            onChange={(e) => onGradientStepChange(idx, "percentD", e.target.value)}
+                            disabled={!hasChannel("D")}
+                            error={Boolean(errors[`gradient.${idx}.percentD`])}
+                            helperText={errors[`gradient.${idx}.percentD`]}
+                            slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % D`, min: 0, max: 100, step: "any" } }}
+                            sx={{ width: 85 }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: is100 ? "success.main" : "error.main" }}>
+                          {sum.toFixed(1)}%
+                          {errors[`gradient.${idx}.total`] && (
+                            <Typography variant="caption" color="error" sx={{ display: "block", fontWeight: 400 }}>
+                              {errors[`gradient.${idx}.total`]}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Tooltip title="Remove step">
+                            <span>
+                              <IconButton aria-label="Remove step"
+                                size="small"
+                                onClick={() => onRemoveGradientStep(idx)}
+                                disabled={gradientSteps.length <= 2}
+                                color="error"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         )}
       </Stack>

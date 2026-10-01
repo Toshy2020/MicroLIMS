@@ -41,13 +41,16 @@ export function FilterBar({ search, onSearch, placeholder = "Search", children, 
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1.5 }}>
+      {/* useFlexGap: spacing by gap, not child margins - with margins a
+          control that wrapped to a new line kept its left margin and sat
+          indented under the search box. */}
+      <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
         <TextField
           size="small"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder}
-          sx={{ minWidth: 260 }}
+          sx={{ minWidth: { xs: "100%", sm: 260 } }}
           slotProps={{
             htmlInput: { "aria-label": placeholder },
             input: {

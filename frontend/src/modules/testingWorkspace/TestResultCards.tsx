@@ -49,7 +49,7 @@ function ElementalAssayCard({ test }: { test: TestOrderSummaryDetail }) {
     <CollapsibleTestCard
       icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
       iconTone={tone}
-      title={`${test.testCode} — ${test.testDisplayName}`}
+      title={`${test.testCode}: ${test.testDisplayName}`}
       subtitle={
         <>
           {test.isSuperseded && <strong>Superseded by retest · </strong>}
@@ -79,7 +79,7 @@ function ElementalAssayCard({ test }: { test: TestOrderSummaryDetail }) {
               return (
                 <div className="plate-stat" key={idx}>
                   <div className="stat-label">
-                    <strong>{elem.parameterName} ({elem.element})</strong> — Run: {elem.runCode} ({elem.runAnalytePassed ? "passed" : "failed"})
+                    <strong>{elem.parameterName} ({elem.element})</strong>, Run: {elem.runCode} ({elem.runAnalytePassed ? "passed" : "failed"})
                     {flags ? ` [${flags}]` : ""}
                     {elem.mgPerUnit !== null && ` · ${elem.mgPerUnit.toFixed(4)} mg/unit`}
                     {elem.resultClaim !== null && ` · Claim: ${elem.resultClaim.toFixed(4)}`}
@@ -129,7 +129,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
     <CollapsibleTestCard
       icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
       iconTone={tone}
-      title={`${test.testCode} — ${test.testDisplayName}`}
+      title={`${test.testCode}: ${test.testDisplayName}`}
       subtitle={
         <>
           {test.isSuperseded && <strong>Superseded by retest · </strong>}
@@ -474,7 +474,7 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
     <CollapsibleTestCard
       icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
       iconTone={tone}
-      title={`${test.testCode} — ${test.testDisplayName}`}
+      title={`${test.testCode}: ${test.testDisplayName}`}
       subtitle={subtitle(test, incubation)}
       locationCount={hasLocations ? test.locations.length : undefined}
       badgeText={badgeText}
@@ -582,7 +582,7 @@ function CountTestCard({ test }: { test: TestOrderSummaryDetail }) {
     <CollapsibleTestCard
       icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
       iconTone={tone}
-      title={`${test.testCode} — ${test.testDisplayName}`}
+      title={`${test.testCode}: ${test.testDisplayName}`}
       subtitle={subtitle(test, incubation)}
       locationCount={hasLocations ? test.locations.length : undefined}
       badgeText={badgeText}

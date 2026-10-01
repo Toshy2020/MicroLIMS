@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { FormControl, InputLabel, Select, MenuItem, Typography } from "@mui/material";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 
 // Only these three categories have a real Department/Area -> Sampling
@@ -80,10 +80,13 @@ interface LocationCascadeFilterProps {
 // sets for categories that don't have this hierarchy.
 export function LocationCascadeFilter({ category, subjectName, onSubjectNameChange }: LocationCascadeFilterProps) {
   const [groups, setGroups] = useState<Level2Group[]>([]);
+  // An empty location picker otherwise reads as "nothing configured".
+  const [loadFailed, setLoadFailed] = useState(false);
   const [level2Id, setLevel2Id] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadFailed(false);
     setGroups([]);
     setLevel2Id(null);
 
@@ -110,7 +113,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
           onSubjectNameChange(firstWithItems.items[0].name);
         }
       })
-      .catch(() => {});
+      .catch(() => { if (!cancelled) setLoadFailed(true); });
 
     return () => {
       cancelled = true;
@@ -123,6 +126,11 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
 
   return (
     <>
+      {loadFailed && (
+        <Typography role="alert" sx={{ fontSize: 12, color: "error.main" }}>
+          The location list could not be loaded. Reload the page to try again.
+        </Typography>
+      )}
       <FormControl fullWidth size="small">
         <InputLabel>{labels.level2}</InputLabel>
         <Select
@@ -134,6 +142,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
             const group = groups.find((g) => g.id === id);
             if (group && group.items[0]) onSubjectNameChange(group.items[0].name);
           }}
+          inputProps={{ "aria-label": labels.level2 }}
         >
           {groups.map((g) => (
             <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>
@@ -147,6 +156,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
           label={labels.level3}
           value={subjectName}
           onChange={(e) => onSubjectNameChange(e.target.value)}
+          inputProps={{ "aria-label": labels.level3 }}
         >
           {(selectedGroup?.items ?? []).map((item) => (
             <MenuItem key={item.id} value={item.name}>{item.name}</MenuItem>

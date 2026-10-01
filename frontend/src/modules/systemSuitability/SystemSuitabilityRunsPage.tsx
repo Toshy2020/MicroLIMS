@@ -71,7 +71,7 @@ const analyteLines = (
   <Stack spacing={0.25}>
     {analytes.map((a) => (
       <Typography key={a.id} sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-        <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+        <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>{a.analyteName}: </Typography>
         {render(a)}
       </Typography>
     ))}
@@ -127,6 +127,8 @@ export function SystemSuitabilityRunsPage() {
   const [columns, setColumns] = useState<ChromatographyColumnDto[]>([]);
   const [standards, setStandards] = useState<ReferenceStandard[]>([]);
   const [analyteRows, setAnalyteRows] = useState<AnalyteRunRow[]>([]);
+  // Kept apart from an empty list: a failed load is not "no analytes configured".
+  const [analyteLoadError, setAnalyteLoadError] = useState<string | null>(null);
 
   const sstMethods = useMemo(() => tests.filter((t) => t.requiresSystemSuitability), [tests]);
   const method: TestDefinitionOption | undefined = sstMethods.find((t) => String(t.id) === form.testDefinitionId);
@@ -141,6 +143,7 @@ export function SystemSuitabilityRunsPage() {
   // CreateAsync: exactly one row per active TestAnalyte, no more, no fewer).
   useEffect(() => {
     if (!dialogOpen) return;
+    setAnalyteLoadError(null);
     if (!method || method.workflowType !== "StandardComparison") {
       setAnalyteRows([]);
       return;
@@ -170,7 +173,7 @@ export function SystemSuitabilityRunsPage() {
           weighInJustification: ""
         })));
       })
-      .catch(() => setAnalyteRows([]));
+      .catch((e) => setAnalyteLoadError(errorMessage(e, "The analytes for this test could not be loaded.")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogOpen, method?.id]);
 
@@ -342,17 +345,17 @@ export function SystemSuitabilityRunsPage() {
               : "";
             const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
             const weighIn = a.theoreticalWeightMg != null
-              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
+              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? ", OUT OF WINDOW" : ""})`
               : "";
             const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
-            const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
+            const justification = a.weighInJustification ? `, justification: ${a.weighInJustification}` : "";
             return (
               <Tooltip
                 key={a.id}
-                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
+                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? `; ${a.failureReasons}` : ""}${justification}`}
               >
                 <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: a.passed ? "text.primary" : "error.main" }}>
-                  <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+                  <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>{a.analyteName}: </Typography>
                   {a.referenceStandardName ?? "—"}{a.referenceStandardBatch ? ` (${a.referenceStandardBatch})` : ""}
                 </Typography>
               </Tooltip>
@@ -432,7 +435,7 @@ export function SystemSuitabilityRunsPage() {
         >
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>Result</InputLabel>
-            <Select label="Result" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+            <Select label="Result" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} inputProps={{ "aria-label": "Result" }}>
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="passed">Passed</MenuItem>
               <MenuItem value="failed">Failed</MenuItem>
@@ -440,7 +443,7 @@ export function SystemSuitabilityRunsPage() {
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel>Method</InputLabel>
-            <Select label="Method" value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}>
+            <Select label="Method" value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)} inputProps={{ "aria-label": "Method" }}>
               <MenuItem value="all">All methods</MenuItem>
               {sstMethods.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.displayName}</MenuItem>)}
             </Select>
@@ -496,6 +499,7 @@ export function SystemSuitabilityRunsPage() {
               <Select
                 label="Method" value={form.testDefinitionId}
                 onChange={(e) => setForm({ ...emptyForm, testDefinitionId: e.target.value })}
+                inputProps={{ "aria-label": "Method" }}
               >
                 {sstMethods.map((t) => (
                   <MenuItem key={t.id} value={String(t.id)}>{t.displayName} ({t.methodAbbreviation})</MenuItem>
@@ -509,15 +513,15 @@ export function SystemSuitabilityRunsPage() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" fullWidth disabled={!method}>
                 <InputLabel>{isTitrationRun ? "Titrator" : "HPLC instrument"}</InputLabel>
-                <Select label={isTitrationRun ? "Titrator" : "HPLC instrument"} value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)}>
-                  {sectionInstruments.map((i) => <MenuItem key={i.id} value={String(i.id)}>{i.code} — {i.name}</MenuItem>)}
+                <Select label={isTitrationRun ? "Titrator" : "HPLC instrument"} value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)} inputProps={{ "aria-label": isTitrationRun ? "Titrator" : "HPLC instrument" }}>
+                  {sectionInstruments.map((i) => <MenuItem key={i.id} value={String(i.id)}>{i.code}: {i.name}</MenuItem>)}
                 </Select>
               </FormControl>
               {!isTitrationRun && (
                 <FormControl size="small" fullWidth disabled={!method}>
                   <InputLabel>Column</InputLabel>
-                  <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)}>
-                    {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</MenuItem>)}
+                  <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)} inputProps={{ "aria-label": "Column" }}>
+                    {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code}: {c.name}</MenuItem>)}
                   </Select>
                 </FormControl>
               )}
@@ -531,9 +535,9 @@ export function SystemSuitabilityRunsPage() {
             {!isMulti && (
               <FormControl size="small" fullWidth disabled={!method}>
                 <InputLabel>Reference standard</InputLabel>
-                <Select label="Reference standard" value={form.standardId} onChange={(e) => set("standardId")(e.target.value)}>
+                <Select label="Reference standard" value={form.standardId} onChange={(e) => set("standardId")(e.target.value)} inputProps={{ "aria-label": "Reference standard" }}>
                   {sectionStandards.map((s) => (
-                    <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — batch {s.batchNumber} (purity {s.purity}%)</MenuItem>
+                    <MenuItem key={s.id} value={String(s.id)}>{s.materialName}, batch {s.batchNumber} (purity {s.purity}%)</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -573,7 +577,12 @@ export function SystemSuitabilityRunsPage() {
                 <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 1 }}>
                   Per-analyte standards (one card per active analyte, from the CDS report{isTitrationRun ? " / titrator" : ""})
                 </Typography>
-                {analyteRows.length === 0 && (
+                {analyteLoadError && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {analyteLoadError} Close the dialog and open it again to retry.
+                  </Alert>
+                )}
+                {!analyteLoadError && analyteRows.length === 0 && (
                   <Alert severity="warning" sx={{ mb: 1 }}>
                     No active analytes are configured for this test. Configure them in Test Master first.
                   </Alert>
@@ -596,9 +605,10 @@ export function SystemSuitabilityRunsPage() {
                               label="Reference standard"
                               value={a.referenceStandardMaterialId}
                               onChange={(e) => updateAnalyteRow(idx, { referenceStandardMaterialId: e.target.value })}
+                              inputProps={{ "aria-label": "Reference standard" }}
                             >
                               {sectionStandards.map((s) => (
-                                <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — {s.batchNumber} (purity {s.purity}%)</MenuItem>
+                                <MenuItem key={s.id} value={String(s.id)}>{s.materialName}, {s.batchNumber} (purity {s.purity}%)</MenuItem>
                               ))}
                             </Select>
                           </FormControl>
@@ -625,7 +635,7 @@ export function SystemSuitabilityRunsPage() {
                         {deviation !== null && (
                           <Typography variant="caption" sx={{ display: "block", mb: outOfWindow ? 0.5 : 1.5, color: outOfWindow ? "warning.main" : "text.secondary" }}>
                             Weigh-in deviation from Th.Wt.std: {deviation.toFixed(2)}%
-                            {outOfWindow ? ` — outside ±${WEIGH_IN_TOLERANCE_PERCENT}%, justification required` : ""}
+                            {outOfWindow ? `, outside ±${WEIGH_IN_TOLERANCE_PERCENT}%, justification required` : ""}
                           </Typography>
                         )}
                         {outOfWindow && (
@@ -656,7 +666,7 @@ export function SystemSuitabilityRunsPage() {
                                 value={resp}
                                 onChange={(e) => updateResponse(idx, respIdx, e.target.value)}
                               />
-                              <IconButton
+                              <IconButton aria-label={`Remove response ${respIdx + 1}`}
                                 size="small"
                                 disabled={a.responses.length <= 1}
                                 onClick={() => removeResponseRow(idx, respIdx)}
@@ -672,7 +682,7 @@ export function SystemSuitabilityRunsPage() {
                         </Stack>
                         <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: "text.secondary" }}>
                           Mean: {mean !== null ? mean.toFixed(2) : "—"} · Computed RSD: {rsd !== null ? `${rsd.toFixed(2)}%` : "—"}
-                          {a.sstMaxRsdPercent != null ? ` (max ${a.sstMaxRsdPercent})` : ""} — informational; the server recomputes and decides pass/fail.
+                          {a.sstMaxRsdPercent != null ? ` (max ${a.sstMaxRsdPercent})` : ""}. Informational only; the server recomputes and decides pass/fail.
                         </Typography>
 
                         {!isTitrationRun && (

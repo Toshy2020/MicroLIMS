@@ -69,7 +69,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
   };
 
   return (
-    <FloatingDialog open={open} title={`${testCode} Results — ${displayName}`} onClose={onClose}>
+    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
       {!rows && !error && <LoadingSpinner />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (
@@ -101,7 +101,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {detectedCount}/{rows.length} locations detected — overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
+            {detectedCount}/{rows.length} locations detected; overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
           </Typography>
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>

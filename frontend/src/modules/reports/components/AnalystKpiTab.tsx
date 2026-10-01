@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Box, Paper, Typography, Grid, FormControl, InputLabel, Select, MenuItem,
   Button, Table, TableHead, TableRow, TableCell, TableBody, TableSortLabel,
-  Stack, Chip, Tooltip, useTheme
+  Stack, Chip, Tooltip, useTheme,
+  TableContainer
 } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -61,7 +62,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
           {Math.abs(data.deltaPercent)}%
         </Box>
-        <Typography sx={{ fontSize: 10.5, color: "text.secondary" }} noWrap>
+        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
           {data.comparisonLabel}
         </Typography>
       </Box>
@@ -108,6 +109,7 @@ export function AnalystKpiTab() {
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [testCodeOptions, setTestCodeOptions] = useState<{ testCode: string; testDisplayName: string }[]>([]);
+  const [filterOptionsFailed, setFilterOptionsFailed] = useState(false);
 
   useEffect(() => {
     UserService.getEligibleAnalysts()
@@ -121,7 +123,7 @@ export function AnalystKpiTab() {
           setTestCodeOptions(opts.testCodes ?? []);
         }
       })
-      .catch(() => {});
+      .catch(() => setFilterOptionsFailed(true));
   }, []);
 
   const loadData = () => {
@@ -233,6 +235,7 @@ export function AnalystKpiTab() {
                 label="Date Range"
                 value={filters.dateRange}
                 onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as any }))}
+                inputProps={{ "aria-label": "Date Range" }}
               >
                 <MenuItem value="7d">Last 7 Days</MenuItem>
                 <MenuItem value="30d">Last 30 Days</MenuItem>
@@ -259,6 +262,7 @@ export function AnalystKpiTab() {
                   setFilters((f) => ({ ...f, analystId: e.target.value as any }));
                   if (e.target.value !== "All") setSelectedAnalystId(Number(e.target.value));
                 }}
+                inputProps={{ "aria-label": "Analyst" }}
               >
                 {!isAnalyst && <MenuItem value="All">All Analysts</MenuItem>}
                 {analysts.map((a) => (
@@ -269,7 +273,12 @@ export function AnalystKpiTab() {
               </Select>
             </FormControl>
             {analystsError && (
-              <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>{analystsError}</Typography>
+              <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.5 }}>{analystsError}</Typography>
+            )}
+            {filterOptionsFailed && (
+              <Typography role="alert" sx={{ fontSize: 12, color: "error.main", mt: 0.5 }}>
+                The category, location and test lists could not be loaded. Reload the page to try again.
+              </Typography>
             )}
           </Grid>
 
@@ -285,6 +294,7 @@ export function AnalystKpiTab() {
                 label="Category"
                 value={filters.category}
                 onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value as any }))}
+                inputProps={{ "aria-label": "Category" }}
               >
                 <MenuItem value="All">All Categories</MenuItem>
                 {categoryOptions.map((cat) => (
@@ -306,6 +316,7 @@ export function AnalystKpiTab() {
                 label="Location / Subject"
                 value={filters.location}
                 onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value as any }))}
+                inputProps={{ "aria-label": "Location / Subject" }}
               >
                 <MenuItem value="All">All Locations</MenuItem>
                 {locationOptions.map((loc) => (
@@ -327,6 +338,7 @@ export function AnalystKpiTab() {
                 label="Test Code"
                 value={filters.testCode}
                 onChange={(e) => setFilters((f) => ({ ...f, testCode: e.target.value as any }))}
+                inputProps={{ "aria-label": "Test Code" }}
               >
                 <MenuItem value="All">All Tests</MenuItem>
                 {testCodeOptions.map((t) => (
@@ -567,7 +579,7 @@ export function AnalystKpiTab() {
                 </ResponsiveContainer>
                 <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
                   <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.palette.primary.main }}>{categoryTotal.toLocaleString()}</Typography>
-                  <Typography sx={{ fontSize: 9, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
               <Box sx={{ width: "50%", pl: 1 }}>
@@ -630,7 +642,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.workflowBottleneck.testingQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid size={4}>
@@ -639,7 +651,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.purple.text }}>
                     {data.workflowBottleneck.reviewQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid size={4}>
@@ -648,7 +660,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                     {data.workflowBottleneck.approvalQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -662,43 +674,43 @@ export function AnalystKpiTab() {
           }}>
           <Paper sx={{ p: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-              TAT Stage Summary (Days) — Segregated by Responsibility
+              TAT Stage Summary (Days), Segregated by Responsibility
             </Typography>
             <Grid container spacing={1}>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.info.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Testing (Analyst)</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Testing (Analyst)</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.info.text }}>
                     {data.tatSummary.testingTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Assignment → Submitted</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Assignment → Submitted</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Review Stage</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Review Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.reviewTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Submitted → Reviewed</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Submitted → Reviewed</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Approval Stage</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approval Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.approvalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Reviewed → Decided</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Reviewed → Decided</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Total Lifecycle</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Lifecycle</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.tatSummary.totalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Full turnaround</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Full turnaround</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -720,105 +732,107 @@ export function AnalystKpiTab() {
           <Chip size="small" label={`${sortedRows.length} Analysts`} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
         </Box>
 
-        <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Analyst</TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "assigned"} direction={orderBy === "assigned" ? order : "asc"} onClick={() => handleRequestSort("assigned")}>
-                  Assigned
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "completed"} direction={orderBy === "completed" ? order : "asc"} onClick={() => handleRequestSort("completed")}>
-                  Completed
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <Tooltip title="Configured Workload Units: Normalized metric based on test complexity weights">
-                  <TableSortLabel active={orderBy === "workloadUnits"} direction={orderBy === "workloadUnits" ? order : "asc"} onClick={() => handleRequestSort("workloadUnits")}>
-                    Workload Units
+        <TableContainer>
+          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Analyst</TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "assigned"} direction={orderBy === "assigned" ? order : "asc"} onClick={() => handleRequestSort("assigned")}>
+                    Assigned
                   </TableSortLabel>
-                </Tooltip>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "completionRatePercent"} direction={orderBy === "completionRatePercent" ? order : "asc"} onClick={() => handleRequestSort("completionRatePercent")}>
-                  Completion %
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "onTimePercent"} direction={orderBy === "onTimePercent" ? order : "asc"} onClick={() => handleRequestSort("onTimePercent")}>
-                  On-Time %
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "avgTestingTatDays"} direction={orderBy === "avgTestingTatDays" ? order : "asc"} onClick={() => handleRequestSort("avgTestingTatDays")}>
-                  Avg Result Turnaround
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "reviewReturns"} direction={orderBy === "reviewReturns" ? order : "asc"} onClick={() => handleRequestSort("reviewReturns")}>
-                  Review Returns
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "docCorrections"} direction={orderBy === "docCorrections" ? order : "asc"} onClick={() => handleRequestSort("docCorrections")}>
-                  Doc Corrections
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">Pending</TableCell>
-              <TableCell align="right">Overdue</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedRows.map((row) => {
-              const isSelected = selectedAnalystId === row.analystId;
-              return (
-                <TableRow
-                  key={row.analystId}
-                  hover
-                  selected={isSelected}
-                  sx={{ cursor: "pointer", bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit" }}
-                  onClick={() => setSelectedAnalystId(row.analystId)}
-                >
-                  <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                    {row.analystName} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({row.username})</Typography>
-                  </TableCell>
-                  <TableCell align="right">{row.assigned}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>{row.completed}</TableCell>
-                  <TableCell align="right">
-                    <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
-                  </TableCell>
-                  <TableCell align="right">{row.completionRatePercent}%</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title={row.onTimePercent != null
-                      ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
-                      : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "completed"} direction={orderBy === "completed" ? order : "asc"} onClick={() => handleRequestSort("completed")}>
+                    Completed
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <Tooltip title="Configured Workload Units: Normalized metric based on test complexity weights">
+                    <TableSortLabel active={orderBy === "workloadUnits"} direction={orderBy === "workloadUnits" ? order : "asc"} onClick={() => handleRequestSort("workloadUnits")}>
+                      Workload Units
+                    </TableSortLabel>
+                  </Tooltip>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "completionRatePercent"} direction={orderBy === "completionRatePercent" ? order : "asc"} onClick={() => handleRequestSort("completionRatePercent")}>
+                    Completion %
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "onTimePercent"} direction={orderBy === "onTimePercent" ? order : "asc"} onClick={() => handleRequestSort("onTimePercent")}>
+                    On-Time %
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "avgTestingTatDays"} direction={orderBy === "avgTestingTatDays" ? order : "asc"} onClick={() => handleRequestSort("avgTestingTatDays")}>
+                    Avg Result Turnaround
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "reviewReturns"} direction={orderBy === "reviewReturns" ? order : "asc"} onClick={() => handleRequestSort("reviewReturns")}>
+                    Review Returns
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "docCorrections"} direction={orderBy === "docCorrections" ? order : "asc"} onClick={() => handleRequestSort("docCorrections")}>
+                    Doc Corrections
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">Pending</TableCell>
+                <TableCell align="right">Overdue</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedRows.map((row) => {
+                const isSelected = selectedAnalystId === row.analystId;
+                return (
+                  <TableRow
+                    key={row.analystId}
+                    hover
+                    selected={isSelected}
+                    sx={{ cursor: "pointer", bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit" }}
+                    onClick={() => setSelectedAnalystId(row.analystId)}
+                  >
+                    <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+                      {row.analystName} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({row.username})</Typography>
+                    </TableCell>
+                    <TableCell align="right">{row.assigned}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>{row.completed}</TableCell>
+                    <TableCell align="right">
+                      <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
+                    </TableCell>
+                    <TableCell align="right">{row.completionRatePercent}%</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title={row.onTimePercent != null
+                        ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
+                        : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
+                        <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                          {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
+                    <TableCell align="right">
                       <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                        {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
+                        {row.reviewReturns != null ? row.reviewReturns : "—"}
                       </Typography>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
-                  <TableCell align="right">
-                    <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                      {row.reviewReturns != null ? row.reviewReturns : "—"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                      {row.docCorrections != null ? row.docCorrections : "—"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">{row.pending}</TableCell>
-                  <TableCell align="right" sx={{ color: row.overdue > 0 ? theme.custom.status.detected.text : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
-                    {row.overdue}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                        {row.docCorrections != null ? row.docCorrections : "—"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">{row.pending}</TableCell>
+                    <TableCell align="right" sx={{ color: row.overdue > 0 ? theme.custom.status.detected.text : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
+                      {row.overdue}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
 
       {/* Detailed Analyst Drill-Down (4 Panels) */}

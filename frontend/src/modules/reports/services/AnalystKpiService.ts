@@ -237,7 +237,7 @@ export const AnalystKpiService = {
         comparisonLabel: testingAvgDays != null
           ? "Testing stage: analyst assignment → submitted for review"
           : "No completed testing-stage samples in range",
-        tooltip: "Wall-clock time from analyst assignment (SamplePreparation.PreparedAt, or a later reassignment) to submission for review, excluding any retest loop's earlier rounds — per the confirmed Rule #1-2 stage SLA definition."
+        tooltip: "Wall-clock time from analyst assignment (SamplePreparation.PreparedAt, or a later reassignment) to submission for review, excluding any retest loop's earlier rounds, per the confirmed Rule #1-2 stage SLA definition."
       },
       pendingOverdue: {
         title: "Pending / Overdue",
@@ -252,7 +252,7 @@ export const AnalystKpiService = {
         value: outOfSpecCount,
         deltaPercent: 0,
         deltaDirection: "down",
-        comparisonLabel: "Laboratory Quality Metric — Not an Analyst Performance Penalty",
+        comparisonLabel: "Laboratory Quality Metric: Not an Analyst Performance Penalty",
         variant: "error",
         tooltip: "GMP Principle: An analyst reporting an OOS is executing protocol correctly. Not counted as a penalty."
       },

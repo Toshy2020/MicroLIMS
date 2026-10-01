@@ -126,7 +126,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 sm: 4
               }}>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Test Code & Name</Typography>
-              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{record.testCode} — {record.testDisplayName}</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{record.testCode}: {record.testDisplayName}</Typography>
             </Grid>
 
             <Grid

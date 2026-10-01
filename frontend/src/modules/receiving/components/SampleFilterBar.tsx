@@ -80,7 +80,7 @@ export function SampleFilterBar({
                 bgcolor: "background.default"
               }
             }}
-            slotProps={{
+            slotProps={{ htmlInput: { "aria-label": "Search by item, reference number, control number, batch number" },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">

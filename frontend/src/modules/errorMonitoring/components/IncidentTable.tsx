@@ -29,8 +29,8 @@ export function IncidentTable({
 }: Props) {
   return (
     <Paper>
-      <TableContainer sx={{ overflowX: "auto" }}>
-        <Table size="small">
+      <TableContainer sx={{ maxHeight: { md: "calc(100vh - 240px)" }, overflowX: "auto" }}>
+        <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx}>
             <TableRow>
               <TableCell sx={{ width: 48 }} />

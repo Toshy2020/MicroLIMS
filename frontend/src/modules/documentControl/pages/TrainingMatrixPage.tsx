@@ -216,7 +216,7 @@ export function TrainingMatrixPage() {
         );
       case "TrainedOnSupersededOnly":
         return (
-          <Tooltip title="Qualified on Prior Revision Only — Retraining Gap">
+          <Tooltip title="Qualified on Prior Revision Only: Retraining Gap">
             <Chip
               icon={<WarningIcon sx={{ fontSize: "14px !important" }} />}
               label="Trained on Superseded Only"
@@ -375,16 +375,16 @@ export function TrainingMatrixPage() {
               sm: 6,
               md: 2.4
             }}>
-            <Card variant="outlined" sx={{ bgcolor: (t) => t.palette.mode === "dark" ? "rgba(237, 108, 2, 0.15)" : "#fff3e0" }}>
+            <Card variant="outlined" sx={{ bgcolor: (t) => t.custom.status.action.bg}}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100", fontWeight: "bold" }}>
+                <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "warning.dark", fontWeight: "bold" }}>
                   SUPERSEDED GAPS
                 </Typography>
                 <Typography
                   variant="h5"
                   sx={{
                     fontWeight: "bold",
-                    color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100"
+                    color: (t) => t.palette.mode === "dark" ? "warning.light" : "warning.dark"
                   }}>
                   {gridData.totalSupersededGapCells}
                 </Typography>
@@ -506,7 +506,7 @@ export function TrainingMatrixPage() {
                   }}
                   onClick={() => handleDocClick(doc)}
                 >
-                  <Tooltip title={`${doc.companyDocumentCode} — ${doc.title} (Current Rev: ${doc.currentEffectiveRevisionNumber || "None"})`}>
+                  <Tooltip title={`${doc.companyDocumentCode}: ${doc.title} (Current Rev: ${doc.currentEffectiveRevisionNumber || "None"})`}>
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <Typography
                         variant="caption"
@@ -729,7 +729,7 @@ export function TrainingMatrixPage() {
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
-              {selectedDoc?.companyDocumentCode} — {selectedDoc?.title}
+              {selectedDoc?.companyDocumentCode}: {selectedDoc?.title}
             </Typography>
           </Box>
           <IconButton aria-label="Close document training details" size="small" onClick={() => setSelectedDoc(null)}>

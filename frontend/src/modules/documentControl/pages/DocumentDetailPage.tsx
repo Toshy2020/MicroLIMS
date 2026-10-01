@@ -538,9 +538,9 @@ export function DocumentDetailPage() {
             icon={<EventRepeatIcon />}
             sx={{
               mt: 2,
-              bgcolor: (t) => (t.palette.mode === "dark" ? "#102A43" : "#E3F2FD"),
+              bgcolor: (t) => t.custom.status.info.bg,
               border: "1px solid",
-              borderColor: (t) => (t.palette.mode === "dark" ? "#244E72" : "#90CAF9")
+              borderColor: (t) => t.custom.status.info.border
             }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "info.light" : "primary.main" }}>
@@ -612,7 +612,7 @@ export function DocumentDetailPage() {
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>Department & Section</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} — {document.sectionName}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} / {document.sectionName}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{

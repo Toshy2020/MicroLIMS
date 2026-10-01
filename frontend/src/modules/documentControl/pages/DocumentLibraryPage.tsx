@@ -52,6 +52,7 @@ import type {
   DocumentDepartmentDto,
   DocumentRevisionStatus
 } from "../types/documentControlTypes";
+import { clickable } from "../../../utils/clickable";
 
 export function DocumentLibraryPage() {
   const theme = useTheme();
@@ -117,6 +118,9 @@ export function DocumentLibraryPage() {
     title: ""
   });
 
+  // Kept apart from `error`, which every library fetch clears.
+  const [filtersFailed, setFiltersFailed] = useState(false);
+
   // Load types and departments
   useEffect(() => {
     Promise.all([
@@ -125,7 +129,7 @@ export function DocumentLibraryPage() {
     ]).then(([t, d]) => {
       setTypes(t);
       setDepartments(d);
-    }).catch(() => {});
+    }).catch(() => setFiltersFailed(true));
   }, []);
 
   const fetchLibrary = useCallback(async () => {
@@ -215,6 +219,11 @@ export function DocumentLibraryPage() {
         )}
       </Box>
 
+      {filtersFailed && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          The document types and departments could not be loaded, so those filters are empty. Reload the page to try again.
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -233,7 +242,7 @@ export function DocumentLibraryPage() {
               setPage(0);
             }}
             sx={{ minWidth: 280, flexGrow: 1 }}
-            slotProps={{
+            slotProps={{ htmlInput: { "aria-label": "Search code, title, or keywords" },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -258,7 +267,7 @@ export function DocumentLibraryPage() {
             <MenuItem value="">All Types</MenuItem>
             {types.map((t) => (
               <MenuItem key={t.id} value={t.id}>
-                {t.code} — {t.name}
+                {t.code}: {t.name}
               </MenuItem>
             ))}
           </TextField>
@@ -277,7 +286,7 @@ export function DocumentLibraryPage() {
             <MenuItem value="">All Departments</MenuItem>
             {departments.map((d) => (
               <MenuItem key={d.id} value={d.id}>
-                {d.code} — {d.name}
+                {d.code}: {d.name}
               </MenuItem>
             ))}
           </TextField>
@@ -351,8 +360,8 @@ export function DocumentLibraryPage() {
       </Paper>
 
       {/* Library Table */}
-      <TableContainer component={Paper}>
-        <Table size="small">
+      <TableContainer component={Paper} sx={{ maxHeight: { md: "calc(100vh - 240px)" } }}>
+        <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Company Code</TableCell>
@@ -417,6 +426,7 @@ export function DocumentLibraryPage() {
                         "&:hover": { textDecoration: "underline" }
                       }}
                       onClick={() => navigate(`/document-control/documents/${doc.id}`)}
+                      {...clickable(() => navigate(`/document-control/documents/${doc.id}`))}
                     >
                       {doc.companyDocumentCode}
                     </Typography>

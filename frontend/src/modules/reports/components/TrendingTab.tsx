@@ -62,6 +62,8 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
   // Export menu
   const [exportMenuAnchor, setExportMenuAnchor] = useState<HTMLElement | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Without this the criteria pickers stayed empty with no explanation.
+  const [filterOptionsFailed, setFilterOptionsFailed] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
           }
         }
       })
-      .catch(() => {});
+      .catch(() => setFilterOptionsFailed(true));
   }, [initialTestCode]);
 
   const fetchAnalysis = () => {
@@ -190,6 +192,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
         <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main, mb: 2 }}>
           Analysis Criteria
         </Typography>
+        {filterOptionsFailed && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            The test and location lists could not be loaded. Reload the page to try again.
+          </Alert>
+        )}
 
         <Stack spacing={2}>
           <FormControl fullWidth size="small">
@@ -198,6 +205,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label="Parameter / Test"
               value={criteria.testCode}
               onChange={(e) => setCriteria((c) => ({ ...c, testCode: e.target.value }))}
+              inputProps={{ "aria-label": "Parameter / Test" }}
             >
               {filterOptions.testCodes.length > 0 ? (
                 filterOptions.testCodes.map((t) => (
@@ -229,6 +237,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 label="Product / Item"
                 value={criteria.subjectName}
                 onChange={(e) => setCriteria((c) => ({ ...c, subjectName: e.target.value }))}
+                inputProps={{ "aria-label": "Product / Item" }}
               >
                 {filterOptions.subjectNames.length > 0 ? (
                   filterOptions.subjectNames.map((s) => (
@@ -255,6 +264,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label="Category"
               value={criteria.category ?? ""}
               onChange={(e) => setCriteria((c) => ({ ...c, category: (e.target.value || "") as any }))}
+              inputProps={{ "aria-label": "Category" }}
             >
               {filterOptions.categories.length > 0 ? (
                 filterOptions.categories.map((cat) => (
@@ -279,6 +289,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label="Date Range"
               value={criteria.dateRange}
               onChange={(e) => setCriteria((c) => ({ ...c, dateRange: e.target.value as any }))}
+              inputProps={{ "aria-label": "Date Range" }}
             >
               <MenuItem value="30d">Last 30 Days</MenuItem>
               <MenuItem value="3m">Last 3 Months</MenuItem>
@@ -306,6 +317,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   setCompareDialogOpen(true);
                 }
               }}
+              inputProps={{ "aria-label": "Compare With" }}
             >
               <MenuItem value="None">None</MenuItem>
               <MenuItem value="Previous Period">Previous Period</MenuItem>
@@ -330,7 +342,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 Trend Chart
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                {analysis?.testDisplayName || criteria.testCode} — {analysis?.subjectName || criteria.subjectName} ({criteria.dateRange === "12m" ? "Last 12 Months" : criteria.dateRange})
+                {analysis?.testDisplayName || criteria.testCode}: {analysis?.subjectName || criteria.subjectName} ({criteria.dateRange === "12m" ? "Last 12 Months" : criteria.dateRange})
               </Typography>
             </Box>
             <Chip
@@ -387,7 +399,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                             <Typography>Ref: <strong>{pt.referenceNumber}</strong></Typography>
                             <Typography>Result: <strong>{pt.reportedValue} {analysis.unit}</strong></Typography>
                             <Typography>Level: <strong>{pt.resultLevel}</strong></Typography>
-                            <Typography sx={{ fontSize: 10, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
+                            <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
                           </Paper>
                         );
                       }}
@@ -493,7 +505,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                               </td>
                               <td style={{ padding: "8px 12px" }}>{ev.resultEnteredByName}</td>
                               <td style={{ padding: "8px 12px" }}>
-                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 10, height: 20 }} />
+                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 11, height: 20 }} />
                               </td>
                             </tr>
                           ))}

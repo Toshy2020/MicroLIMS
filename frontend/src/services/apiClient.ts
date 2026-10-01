@@ -124,6 +124,41 @@ async function decodeBlobErrorBody(error: AxiosError): Promise<void> {
   }
 }
 
+// What a laboratory user is told when the server gave no message of its own.
+// Screens show `err.response?.data?.message ?? err.message`; without this,
+// err.message was axios's own text - "Request failed with status code 500",
+// "Network Error" - which tells an analyst nothing about what to do next.
+function friendlyTransportMessage(error: AxiosError): string | null {
+  const status = error.response?.status;
+  if (!error.response) {
+    if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
+      return "The server took too long to respond. Check your connection and try again.";
+    }
+    return "Could not reach the MicroLIMS server. Check your network connection and try again.";
+  }
+  if (status === 400) return "The request could not be processed. Check the entered values and try again.";
+  if (status === 401) return "Your sign-in is no longer valid. Please sign in again.";
+  if (status === 403) return "You do not have permission to perform this action.";
+  if (status === 404) return "The requested record could not be found. It may have been removed.";
+  if (status === 409) return "This record was changed by someone else. Reload it and make your change again.";
+  if (status === 413) return "The file is too large to upload.";
+  if (status === 429) return "Too many requests in a short time. Wait a moment and try again.";
+  if (status !== undefined && status >= 500) {
+    return "The server could not complete the request. Try again; if it keeps happening, contact your system administrator.";
+  }
+  return null;
+}
+
+// Keeps the technical text for the error reporter and the browser console,
+// and puts a readable explanation where screens look for one.
+function humanizeError(error: AxiosError): void {
+  if (axios.isCancel(error)) return;
+  const friendly = friendlyTransportMessage(error);
+  if (!friendly) return;
+  (error as AxiosError & { technicalMessage?: string }).technicalMessage = error.message;
+  error.message = friendly;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -134,6 +169,7 @@ apiClient.interceptors.response.use(
     const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");
 
     if (error.response?.status !== 401 || !config || config._retry || isAuthEndpoint) {
+      humanizeError(error);
       return Promise.reject(error);
     }
 
@@ -141,6 +177,7 @@ apiClient.interceptors.response.use(
     const newToken = await refreshAccessToken();
     if (!newToken) {
       clearAuthStorageAndRedirect();
+      humanizeError(error);
       return Promise.reject(error);
     }
 

@@ -16,7 +16,8 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -54,6 +55,7 @@ import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
+import { toast } from "sonner";
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
 
@@ -121,6 +123,16 @@ interface Props {
   lab: WorkspaceLab;
 }
 
+// A sample opened from a link or notification that is not on the current
+// page is fetched on its own; if that fails the workspace used to open with
+// nothing selected and no explanation. Both lookups below can fail for the
+// same sample, so the toast id keeps it to one message.
+function notifySampleLoadFailed(sampleId: number) {
+  toast.error(`Sample #${sampleId} could not be opened. It may not belong to this laboratory, or the server could not be reached.`, {
+    id: `workspace-sample-${sampleId}`
+  });
+}
+
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
@@ -181,6 +193,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         } else {
           ReceiveService.getSample(sampleId, lab.sectionId).then((fetched) => {
             if (fetched) checkedSamplesCache.current.set(sampleId, fetched);
+          // Cache warm-up only; the selection itself is already recorded.
           }).catch(() => {});
         }
       } else {
@@ -405,7 +418,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               }
             }
           }
-        }).catch(() => {});
+        }).catch(() => notifySampleLoadFailed(sId));
       }
     } else if (tId && records) {
       for (const sample of records) {
@@ -449,7 +462,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     if (extraSelectedSample?.sampleId === selectedSampleId) return;
     ReceiveService.getSample(selectedSampleId, lab.sectionId).then((sample) => {
       if (sample) setExtraSelectedSample(sample);
-    }).catch(() => {});
+    }).catch(() => notifySampleLoadFailed(selectedSampleId));
   }, [selectedSampleId, records, extraSelectedSample, lab.sectionId]);
 
   // Workload tiles are a toggle: clicking the active one clears it.
@@ -655,39 +668,41 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           bgcolor: "background.paper"
         }}
       >
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
-              <TableCell>Item / Reference</TableCell>
-              <TableCell sx={{ width: 65 }}>Type</TableCell>
-              <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
-              <TableCell sx={{ width: 85 }}>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {displayRecords.map((s) => (
-              <SampleTableRow
-                key={s.sampleId}
-                sample={s as unknown as WorkspaceSampleCard}
-                isSelected={selectedSampleId === s.sampleId}
-                isChecked={checkedSampleIds.has(s.sampleId)}
-                onToggleCheck={handleToggleCheckSample}
-                onSelectSample={(sample) => handleSelectSample(sample)}
-                isCompact={true}
-                visibleColumns={new Set(["category", "batch", "control", "status"])}
-                colSpan={4}
-                onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
-              />
-            ))}
-            {displayRecords.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
-                  No matching samples found.
-                </TableCell>
+        <TableContainer>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
+                <TableCell>Item / Reference</TableCell>
+                <TableCell sx={{ width: 65 }}>Type</TableCell>
+                <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
+                <TableCell sx={{ width: 85 }}>Status</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {displayRecords.map((s) => (
+                <SampleTableRow
+                  key={s.sampleId}
+                  sample={s as unknown as WorkspaceSampleCard}
+                  isSelected={selectedSampleId === s.sampleId}
+                  isChecked={checkedSampleIds.has(s.sampleId)}
+                  onToggleCheck={handleToggleCheckSample}
+                  onSelectSample={(sample) => handleSelectSample(sample)}
+                  isCompact={true}
+                  visibleColumns={new Set(["category", "batch", "control", "status"])}
+                  colSpan={4}
+                  onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
+                />
+              ))}
+              {displayRecords.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
+                    No matching samples found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
         {!showSelectedOnly && totalCount > 0 && (
           <TablePagination
             component="div"
@@ -719,7 +734,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       {/* Header Section */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
         <PageHeader
-          title={`${lab.name} — Workspace`}
+          title={`${lab.name} Workspace`}
           subtitle="Manage incoming samples, assignments, testing progress, review, and laboratory workflow execution from one workspace."
         />
 

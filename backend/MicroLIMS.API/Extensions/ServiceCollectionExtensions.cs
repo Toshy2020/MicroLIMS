@@ -87,6 +87,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
+        services.AddScoped<DashboardLabScopeService>();
         services.AddScoped<GroupedTestActionService>();
         services.AddScoped<CurrentStepViewService>();
         services.AddScoped<TestWorkflowQueryService>();

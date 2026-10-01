@@ -111,7 +111,7 @@ public class MediaSummaryService
                     OrganismName = c.Organism?.ScientificName ?? string.Empty,
                     ChallengeRole = c.ChallengeRole?.ToString(),
                     CryovialCode = c.Cryovial?.Code,
-                    LyophilizedDiskLabel = c.LyophilizedDisk == null ? null : $"{c.LyophilizedDisk.MaterialName} — batch {c.LyophilizedDisk.BatchNumber}",
+                    LyophilizedDiskLabel = c.LyophilizedDisk == null ? null : $"{c.LyophilizedDisk.MaterialName}, batch {c.LyophilizedDisk.BatchNumber}",
                     InitialInoculum = c.InitialInoculum,
                     IncubatorName = c.Incubation?.IncubatorEquipment?.Name,
                     Temperature = c.Incubation?.Temperature,

@@ -170,7 +170,7 @@ export function OosTrackingPage() {
                   onClick={() => toggleGroup(group.oosGroupCode)}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
+                    <IconButton aria-label={isExpanded ? "Collapse OOS group" : "Expand OOS group"} aria-expanded={Boolean(isExpanded)} size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
                       {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
 
@@ -485,7 +485,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
   return (
     <FloatingDialog
       open={open}
-      title={`Lab Investigation Documents — ${group.oosGroupCode}`}
+      title={`Lab Investigation Documents: ${group.oosGroupCode}`}
       onClose={onClose}
       actions={
         <Button onClick={onClose} disabled={submitting}>
@@ -639,24 +639,24 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                   <TableRow key={doc.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                     <TableCell>
                       {isCurrent && (
-                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
+                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
                       )}
                       {isSuperseded && (
-                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 10, bgcolor: "action.selected" }} />
+                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 11, bgcolor: "action.selected" }} />
                       )}
                       {(!isCurrent && !isSuperseded) && (
-                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 10 }} />
+                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
                       )}
                     </TableCell>
                     <TableCell>
                       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{doc.originalFileName}</Typography>
                       {doc.supersessionReason && (
-                        <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                           Superseded: {doc.supersessionReason}
                         </Typography>
                       )}
                       {doc.voidReason && (
-                        <Typography sx={{ fontSize: 10.5, color: "error.main" }}>
+                        <Typography sx={{ fontSize: 11, color: "error.main" }}>
                           Voided: {doc.voidReason}
                         </Typography>
                       )}

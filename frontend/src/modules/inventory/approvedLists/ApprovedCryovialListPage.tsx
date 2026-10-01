@@ -345,7 +345,7 @@ export function ApprovedCryovialListPage() {
                   bgcolor: "background.default"
                 }
               }}
-              slotProps={{
+              slotProps={{ htmlInput: { "aria-label": "Search by cryovial code, organism, ATCC no., manufacturer" },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
@@ -822,7 +822,7 @@ export function ApprovedCryovialListPage() {
                                   {formatLabDate(c.expiryDate)}
                                 </Typography>
                                 {expiring && (
-                                  <Typography sx={{ fontSize: 10, color: action.text, fontWeight: 600 }}>
+                                  <Typography sx={{ fontSize: 11, color: action.text, fontWeight: 600 }}>
                                     Expiring soon
                                   </Typography>
                                 )}

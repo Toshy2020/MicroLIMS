@@ -192,7 +192,6 @@ export function HplcInstrumentCard({
             size="small"
             disabled
             variant="outlined"
-            sx={{ textTransform: "none" }}
           >
             Unavailable
           </Button>

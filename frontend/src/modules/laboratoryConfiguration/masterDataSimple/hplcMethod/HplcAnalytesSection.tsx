@@ -118,7 +118,7 @@ export function HplcAnalytesSection({
                 <Stack direction="row" spacing={0.5}>
                   <Tooltip title="Move up">
                     <span>
-                      <IconButton
+                      <IconButton aria-label="Move up"
                         size="small"
                         onClick={() => onMoveAnalyte(idx, "up")}
                         disabled={idx === 0}
@@ -129,7 +129,7 @@ export function HplcAnalytesSection({
                   </Tooltip>
                   <Tooltip title="Move down">
                     <span>
-                      <IconButton
+                      <IconButton aria-label="Move down"
                         size="small"
                         onClick={() => onMoveAnalyte(idx, "down")}
                         disabled={idx === analytes.length - 1}
@@ -140,7 +140,7 @@ export function HplcAnalytesSection({
                   </Tooltip>
                   <Tooltip title="Remove analyte">
                     <span>
-                      <IconButton
+                      <IconButton aria-label="Remove analyte"
                         size="small"
                         onClick={() => onRemoveAnalyte(idx)}
                         disabled={analytes.length <= 1}

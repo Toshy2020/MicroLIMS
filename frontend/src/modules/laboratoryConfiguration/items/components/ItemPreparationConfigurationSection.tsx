@@ -139,7 +139,7 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
         <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
             <TextField label="Sample Amount" value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} />
-            <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)}>
+            <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)} inputProps={{ "aria-label": "Technique" }}>
               <MenuItem value="PourPlate">Pour Plate</MenuItem>
               <MenuItem value="Filtration">Filtration</MenuItem>
             </Select>

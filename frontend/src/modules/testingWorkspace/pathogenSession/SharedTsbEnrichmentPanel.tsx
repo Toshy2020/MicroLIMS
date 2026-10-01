@@ -127,7 +127,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                 // done/locked stay solid (mode-invariant) fills - matches the
                 // intentional pattern in DownstreamWorkflowsPanel.tsx.
                 bgcolor: "#64748b",
-                color: "#ffffff",
+                color: "common.white",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
@@ -137,7 +137,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             </Box>
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-                LOCKED — Execution in Progress
+                LOCKED: Execution in Progress
               </Typography>
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                 Shared TSB Enrichment parameters are locked and cannot be modified while execution is active.
@@ -185,7 +185,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               height: 36,
               borderRadius: 1.5,
               bgcolor: brandColors.sectionTitle,
-              color: "#ffffff",
+              color: "common.white",
               display: "flex",
               alignItems: "center",
               justifyContent: "center"
@@ -251,7 +251,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             >
               {mediaLots.map((m: any) => (
                 <MenuItem key={m.id} value={m.id}>
-                  {m.lotNumber} — {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                  {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
                 </MenuItem>
               ))}
             </TextField>
@@ -267,7 +267,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             >
               {incubators.map((inc: any) => (
                 <MenuItem key={inc.id} value={inc.id}>
-                  {inc.code} — {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
+                  {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
                 </MenuItem>
               ))}
             </TextField>

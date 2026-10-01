@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Grid, Paper, Typography, Box, Stack, Button, Table, TableHead, TableRow, TableCell, TableBody, Chip, Tooltip, useTheme } from "@mui/material";
+import { Grid, Paper, Typography, Box, Stack, Button, Table, TableHead, TableRow, TableCell, TableBody, Chip, Tooltip, useTheme, TableContainer } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import SearchIcon from "@mui/icons-material/Search";
@@ -223,7 +223,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                     <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", lineHeight: 1 }}>
                       {data.totalTests.value}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: "text.secondary", fontWeight: 600 }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
                       TOTAL
                     </Typography>
                   </Box>
@@ -334,7 +334,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
                     {data.locationDistribution.reduce((acc, x) => acc + x.count, 0).toLocaleString()}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
 
@@ -373,46 +373,48 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
               </Typography>
               <Button size="small" onClick={() => onNavigateTab(1)}>View in Search</Button>
             </Box>
-            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Subject / Ref</TableCell>
-                  <TableCell>Test</TableCell>
-                  <TableCell>Date Entered</TableCell>
-                  <TableCell>Entered By</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {data.recentResults.map((r) => (
-                  <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => onNavigateTab(1)}>
-                    <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                      {r.subjectName}
-                      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10.5 }}>
-                        {r.referenceNumber}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{r.testDisplayName}</TableCell>
-                    <TableCell sx={{ color: "text.secondary" }}>{r.dateEntered}</TableCell>
-                    <TableCell>{r.enteredBy}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={r.approvalStatus}
-                        color={
-                          r.approvalStatus === "Approved"
-                            ? "success"
-                            : r.approvalStatus === "Rejected"
-                            ? "error"
-                            : "warning"
-                        }
-                        sx={{ fontSize: 10, height: 20, fontWeight: 700 }}
-                      />
-                    </TableCell>
+            <TableContainer>
+              <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Subject / Ref</TableCell>
+                    <TableCell>Test</TableCell>
+                    <TableCell>Date Entered</TableCell>
+                    <TableCell>Entered By</TableCell>
+                    <TableCell>Status</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {data.recentResults.map((r) => (
+                    <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => onNavigateTab(1)}>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                        {r.subjectName}
+                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                          {r.referenceNumber}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{r.testDisplayName}</TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>{r.dateEntered}</TableCell>
+                      <TableCell>{r.enteredBy}</TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={r.approvalStatus}
+                          color={
+                            r.approvalStatus === "Approved"
+                              ? "success"
+                              : r.approvalStatus === "Rejected"
+                              ? "error"
+                              : "warning"
+                          }
+                          sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Paper>
         </Grid>
 

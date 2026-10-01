@@ -165,7 +165,7 @@ export const OverviewService = {
           deltaDirection: outOfSpecCount > 0 ? "up" : "down",
           comparisonLabel: "quality signal (independent of analyst)",
           variant: outOfSpecCount > 0 ? "error" : "default",
-          tooltip: "Laboratory Quality Metric — Evaluated independently of analyst performance"
+          tooltip: "Laboratory Quality Metric: Evaluated independently of analyst performance"
         },
         alertActionLevel: {
           title: "Alert / Action Level",

@@ -111,7 +111,6 @@ export function SupersedeEvidenceDialog({
                 component="span"
                 size="small"
                 startIcon={<CloudUploadIcon />}
-                sx={{ textTransform: "none" }}
               >
                 Select Replacement File
               </Button>
@@ -141,7 +140,6 @@ export function SupersedeEvidenceDialog({
         <Button
           onClick={handleClose}
           disabled={superseding}
-          sx={{ textTransform: "none" }}
         >
           Cancel
         </Button>

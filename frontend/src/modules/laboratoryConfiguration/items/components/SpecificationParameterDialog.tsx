@@ -199,6 +199,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Without the definitions the dialog cannot tell which fields a test needs.
+  const [testDefsFailed, setTestDefsFailed] = useState(false);
 
   useEffect(() => {
     if (testDefinitionByCode && Object.keys(testDefinitionByCode).length > 0) {
@@ -208,8 +210,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         .getTestDefinitions()
         .then((defs: TestDefinitionSummary[]) => {
           setTestDefs(Object.fromEntries(defs.map((d) => [d.code, d])));
+          setTestDefsFailed(false);
         })
-        .catch(() => {});
+        .catch(() => setTestDefsFailed(true));
     }
   }, [testDefinitionByCode]);
 
@@ -774,6 +777,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       </DialogTitle>
 
       <DialogContent dividers sx={{ pt: 2 }}>
+        {testDefsFailed && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            The test definitions could not be loaded, so test-specific fields may be missing. Close and reopen this dialog to try again.
+          </Alert>
+        )}
         {error && (
           <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
             {error}
@@ -1416,7 +1424,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       }
                       fullWidth
                     />
-                    <IconButton
+                    <IconButton aria-label={`Remove stage ${idx + 1}`}
                       size="small"
                       color="error"
                       onClick={() => handleRemoveStage(idx)}
@@ -1603,7 +1611,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               value={dilutionFactor}
               onChange={(e) => setDilutionFactor(e.target.value)}
               disabled={limitType !== "CountTiered"}
-              helperText="DILUTION FACTOR — editable only for Count-Tiered parameters"
+              helperText="DILUTION FACTOR: editable only for Count-Tiered parameters"
               placeholder={limitType === "CountTiered" ? "e.g. 10" : "—"}
               slotProps={{ htmlInput: { step: "1", min: "1" } }}
               fullWidth

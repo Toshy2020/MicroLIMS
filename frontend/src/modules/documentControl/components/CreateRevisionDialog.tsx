@@ -115,7 +115,7 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 600 }}>
-        Create New Revision — {companyDocumentCode}
+        Create New Revision: {companyDocumentCode}
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>

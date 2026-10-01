@@ -53,7 +53,7 @@ export function SidePanel({ open, overline, title, onClose, onSave, saving, save
         {children}
       </Box>
       <Stack direction="row" spacing={1.25} sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider", justifyContent: "flex-end" }}>
-        <Button onClick={onClose} disabled={saving} sx={{ textTransform: "none" }}>
+        <Button onClick={onClose} disabled={saving}>
           Cancel
         </Button>
         <Button type="submit" form="config-side-panel-form" variant="contained" disabled={saving} sx={{ textTransform: "none", fontWeight: 700 }}>

@@ -1,6 +1,7 @@
 import {
   Button, Box, Typography,
-  Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, useTheme
+  Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, useTheme,
+  TableContainer
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -149,7 +150,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
             }}>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared By</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {detail.preparedByName} — {formatDateTime(detail.preparedAt)}
+              {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
           </Grid>
           <Grid
@@ -180,109 +181,111 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
           </Typography>
         </Box>
 
-        <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
-          <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Organism / ATCC</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Strain Source</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Inoculum</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Actual Results</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Acceptance Criteria</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Outcome</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Analyst / Read Date</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {detail.challenges.map((c) => {
-              const isConform = c.outcome === "Conform";
-              const isNonConform = c.outcome === "NonConform";
+        <TableContainer>
+          <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
+            <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Organism / ATCC</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Strain Source</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Inoculum</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Actual Results</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Acceptance Criteria</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Outcome</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Analyst / Read Date</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {detail.challenges.map((c) => {
+                const isConform = c.outcome === "Conform";
+                const isNonConform = c.outcome === "NonConform";
 
-              return (
-                <TableRow key={c.id} hover>
-                  <TableCell>
-                    <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>{c.organismName}</Typography>
-                    {c.atccNumber && (
-                      <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                        ATCC {c.atccNumber} {c.challengeRole ? `(${c.challengeRole})` : ""}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>
-                    {c.strainSource || "—"}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>
-                    {c.initialInoculum}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>
-                    {/* GPT: Recovery % */}
-                    {c.recoveryPercent !== null && (
-                      <Box>
-                        <strong>{c.recoveryPercent}%</strong> Recovery
-                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10.5 }}>
-                          New: {c.newMediaCount} / Old: {c.oldMediaCount} (Ref: {c.referenceMediaLot || "—"})
+                return (
+                  <TableRow key={c.id} hover>
+                    <TableCell>
+                      <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>{c.organismName}</Typography>
+                      {c.atccNumber && (
+                        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                          ATCC {c.atccNumber} {c.challengeRole ? `(${c.challengeRole})` : ""}
                         </Typography>
-                      </Box>
-                    )}
-                    {/* Inhibition: Growth observed */}
-                    {c.growthObserved !== null && (
-                      <Box>
-                        Growth: <strong>{c.growthObserved ? "Observed" : "No Growth"}</strong>
-                      </Box>
-                    )}
-                    {/* Indication: Observed Description */}
-                    {c.observedDescription && (
-                      <Box>
-                        Observed: <em>{c.observedDescription}</em>
-                      </Box>
-                    )}
-                    {/* Enrichment: Turbid */}
-                    {c.isTurbid !== null && (
-                      <Box>
-                        Appearance: <strong>{c.isTurbid ? "Turbid" : "Clear"}</strong>
-                      </Box>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 11.5, color: "text.secondary" }}>
-                    {c.expectedMinRecoveryPercent !== null && c.expectedMaxRecoveryPercent !== null && (
-                      <span>{c.expectedMinRecoveryPercent}% – {c.expectedMaxRecoveryPercent}%</span>
-                    )}
-                    {c.growthObserved !== null && <span>No growth expected</span>}
-                    {c.expectedDescription && <span>Expected: {c.expectedDescription}</span>}
-                    {c.isTurbid !== null && <span>Turbid growth expected</span>}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      icon={isConform ? <CheckCircleIcon sx={{ "&&": { fontSize: 14 } }} /> : isNonConform ? <CancelIcon sx={{ "&&": { fontSize: 14 } }} /> : undefined}
-                      label={c.outcome || "Pending"}
-                      color={isConform ? "success" : isNonConform ? "error" : "default"}
-                      sx={{ fontWeight: 700, fontSize: 10.5, height: 22 }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 11.5 }}>
-                    {c.readByName ? (
-                      <>
-                        <div>{c.readByName}</div>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10.5 }}>
-                          {formatDateTime(c.readAt)}
-                        </Typography>
-                      </>
-                    ) : (
-                      <Typography component="span" sx={{ color: "text.secondary" }}>Pending</Typography>
-                    )}
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>
+                      {c.strainSource || "—"}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>
+                      {c.initialInoculum}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>
+                      {/* GPT: Recovery % */}
+                      {c.recoveryPercent !== null && (
+                        <Box>
+                          <strong>{c.recoveryPercent}%</strong> Recovery
+                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                            New: {c.newMediaCount} / Old: {c.oldMediaCount} (Ref: {c.referenceMediaLot || "—"})
+                          </Typography>
+                        </Box>
+                      )}
+                      {/* Inhibition: Growth observed */}
+                      {c.growthObserved !== null && (
+                        <Box>
+                          Growth: <strong>{c.growthObserved ? "Observed" : "No Growth"}</strong>
+                        </Box>
+                      )}
+                      {/* Indication: Observed Description */}
+                      {c.observedDescription && (
+                        <Box>
+                          Observed: <em>{c.observedDescription}</em>
+                        </Box>
+                      )}
+                      {/* Enrichment: Turbid */}
+                      {c.isTurbid !== null && (
+                        <Box>
+                          Appearance: <strong>{c.isTurbid ? "Turbid" : "Clear"}</strong>
+                        </Box>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 11.5, color: "text.secondary" }}>
+                      {c.expectedMinRecoveryPercent !== null && c.expectedMaxRecoveryPercent !== null && (
+                        <span>{c.expectedMinRecoveryPercent}% – {c.expectedMaxRecoveryPercent}%</span>
+                      )}
+                      {c.growthObserved !== null && <span>No growth expected</span>}
+                      {c.expectedDescription && <span>Expected: {c.expectedDescription}</span>}
+                      {c.isTurbid !== null && <span>Turbid growth expected</span>}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        icon={isConform ? <CheckCircleIcon sx={{ "&&": { fontSize: 14 } }} /> : isNonConform ? <CancelIcon sx={{ "&&": { fontSize: 14 } }} /> : undefined}
+                        label={c.outcome || "Pending"}
+                        color={isConform ? "success" : isNonConform ? "error" : "default"}
+                        sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 11.5 }}>
+                      {c.readByName ? (
+                        <>
+                          <div>{c.readByName}</div>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11 }}>
+                            {formatDateTime(c.readAt)}
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography component="span" sx={{ color: "text.secondary" }}>Pending</Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {detail.challenges.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
+                    No challenge organism entries recorded for this lot.
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {detail.challenges.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
-                  No challenge organism entries recorded for this lot.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     </FloatingDialog>
   );

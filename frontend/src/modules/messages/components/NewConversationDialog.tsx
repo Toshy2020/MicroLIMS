@@ -43,17 +43,22 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
   const [loadingDirectory, setLoadingDirectory] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [directoryLoadFailed, setDirectoryLoadFailed] = useState(false);
 
   useEffect(() => {
     if (open) {
       setLoadingDirectory(true);
+      setDirectoryLoadFailed(false);
       messageService
         .getUserDirectory()
         .then((users) => {
           // Exclude self from recipient list
           setDirectory(users.filter((u) => u.id !== currentUserId && u.isActive));
         })
-        .catch(() => setDirectory([]))
+        .catch(() => {
+          setDirectory([]);
+          setDirectoryLoadFailed(true);
+        })
         .finally(() => setLoadingDirectory(false));
     }
   }, [open, currentUserId]);
@@ -106,6 +111,9 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
         New Message
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
+        {directoryLoadFailed && (
+          <Alert severity="error">The user directory could not be loaded, so no recipients can be listed. Close and reopen this dialog to try again.</Alert>
+        )}
         {error && <Alert severity="error">{error}</Alert>}
 
         <FormControl component="fieldset">
@@ -220,7 +228,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
                       label={option.fullName}
                       size="small"
                       avatar={
-                        <Avatar sx={{ width: 20, height: 20, fontSize: 10, bgcolor: brandColors.sectionTitle }}>
+                        <Avatar sx={{ width: 20, height: 20, fontSize: 11, bgcolor: brandColors.sectionTitle }}>
                           {option.fullName.charAt(0).toUpperCase()}
                         </Avatar>
                       }

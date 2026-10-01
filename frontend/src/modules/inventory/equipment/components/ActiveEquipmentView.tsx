@@ -17,6 +17,7 @@ import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
 } from "../services/EquipmentInventoryService";
 import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { clickable } from "../../../../utils/clickable";
 
 interface ActiveEquipmentViewProps {
   onOpenDetails: (equipmentId: number) => void;
@@ -180,7 +181,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
             <Typography variant="subtitle1" sx={{
               fontWeight: 700
             }}>
-              Where is it? — Global Traceability Search
+              Where is it? Global Traceability Search
             </Typography>
           </Stack>
           <Box component="form" onSubmit={handleWhereIsItSearch} sx={{ display: "flex", gap: 1.5 }}>
@@ -190,6 +191,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
               placeholder="Search by item code, sample reference, or media lot (e.g. TSB/08/26, PT-0021)..."
               value={whereQuery}
               onChange={(e) => setWhereQuery(e.target.value)}
+              slotProps={{ htmlInput: { "aria-label": "Search by item code, sample reference, or media lot" } }}
             />
             <Button
               type="submit"
@@ -230,7 +232,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                           fontWeight: 700,
                           color: "success.dark"
                         }}>
-                        CURRENT LOCATION: {whereResult.currentEquipmentCode} — {whereResult.currentEquipmentName}
+                        CURRENT LOCATION: {whereResult.currentEquipmentCode}, {whereResult.currentEquipmentName}
                       </Typography>
                       <Typography variant="body2">
                         Activity: <strong>{whereResult.currentActivity.activityType}</strong> | Item: <strong>{whereResult.currentActivity.itemName} (@{whereResult.currentActivity.itemCode})</strong>
@@ -300,7 +302,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                 display: "block",
                 mb: 2
               }}>
-              {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use — select any equipment to view its traceability history
+              {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use. Select any equipment to view its traceability history
             </Typography>
 
             {loadingActive ? (
@@ -333,6 +335,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         transition: "all 0.15s ease-in-out",
                         "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover", opacity: 1 }
                       }}
+                      {...clickable(() => setSelectedEqId(eq.id), { pressed: selectedEqId === eq.id })}
                     >
                       <Stack
                         direction="row"
@@ -381,7 +384,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     <Typography variant="h6" sx={{
                       fontWeight: 700
                     }}>
-                      {selectedEquipment.code} — {selectedEquipment.instrumentType}
+                      {selectedEquipment.code}: {selectedEquipment.instrumentType}
                     </Typography>
                     <Typography variant="body2" sx={{
                       color: "text.secondary"
@@ -517,7 +520,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     <Typography variant="subtitle1" sx={{
                       fontWeight: 700
                     }}>
-                      Search Activity History — {selectedEquipment.code}
+                      Search Activity History: {selectedEquipment.code}
                     </Typography>
                   </Stack>
 

@@ -277,26 +277,28 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     Expected appearance of a target-positive colony: <strong>{m.expectedAppearance}</strong>
                   </Alert>
                 )}
-                <Stack direction="row" spacing={1} sx={{
+                <Stack useFlexGap direction="row" spacing={1} sx={{
                   flexWrap: "wrap"
                 }}>
                   <Select
                     displayEmpty size="small" value={row.mediaLotId} disabled={!row.checked}
                     onChange={(e) => setLot(m.stepMediaId, Number(e.target.value))}
                     sx={{ minWidth: 220 }}
+                    inputProps={{ "aria-label": `${m.mediaName} media lot` }}
                   >
                     <MenuItem value=""><em>Media Lot</em></MenuItem>
                     {m.availableLots.map((l) => (
-                      <MenuItem key={l.id} value={l.id}>{l.lotNumber} — expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+                      <MenuItem key={l.id} value={l.id}>{l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
                     ))}
                   </Select>
                   <Select
                     displayEmpty size="small" value={row.equipmentId} disabled={!row.checked}
                     onChange={(e) => setEquipment(m.stepMediaId, Number(e.target.value))}
                     sx={{ minWidth: 220 }}
+                    inputProps={{ "aria-label": `${m.mediaName} incubator (${m.tempMin}-${m.tempMax} °C)` }}
                   >
                     <MenuItem value=""><em>Incubator ({m.tempMin}-{m.tempMax} °C)</em></MenuItem>
-                    {row.incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setTemperature}°C</MenuItem>)}
+                    {row.incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setTemperature}°C</MenuItem>)}
                   </Select>
                 </Stack>
               </Box>
@@ -364,7 +366,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
 
           {minReadyAt && (
             <Alert severity="warning">
-              Not ready yet — available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
+              Not ready yet. Available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
             </Alert>
           )}
 
@@ -430,7 +432,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                   />
                   <FormControlLabel
                     value="GrowthConforming" control={<Radio />} disabled={!checked}
-                    label="Growth matching expected appearance — conforming"
+                    label="Growth matching expected appearance: conforming"
                   />
                 </RadioGroup>
               </Box>
@@ -483,7 +485,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
 
       <ConfirmationDialog
         open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
         onConfirm={confirmSkipWait}
         onCancel={() => setSkipDialogOpen(false)}
       />

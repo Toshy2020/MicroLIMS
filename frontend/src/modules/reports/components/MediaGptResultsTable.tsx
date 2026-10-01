@@ -126,7 +126,7 @@ export function MediaGptResultsTable({
       <Chip
         size="small"
         label={r.evaluationType === "GrowthPromotion" ? "GPT" : r.evaluationType}
-        sx={{ fontSize: 10, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
+        sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
       />
     ) },
     { key: "evaluationOutcome", label: "Outcome", render: (r) => {
@@ -138,10 +138,10 @@ export function MediaGptResultsTable({
             size="small"
             label={r.evaluationOutcome || r.evaluationStatus}
             color={isConform ? "success" : isNonConform ? "error" : "warning"}
-            sx={{ fontSize: 10.5, height: 20, fontWeight: 700 }}
+            sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
           />
           {r.challengeCount > 0 && (
-            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10 }}>
+            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
               {r.conformedChallengeCount}/{r.challengeCount} Challenges
             </Typography>
           )}
@@ -154,10 +154,10 @@ export function MediaGptResultsTable({
           size="small"
           label={r.approvalStatus}
           color={r.approvalStatus === "Approved" ? "success" : r.approvalStatus === "Rejected" ? "error" : "default"}
-          sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
+          sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
         />
         {r.isReleasedForUse && (
-          <Typography variant="caption" sx={{ display: "block", color: "success.main", fontWeight: 700, fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "success.main", fontWeight: 700, fontSize: 11 }}>
             Released
           </Typography>
         )}
@@ -168,7 +168,7 @@ export function MediaGptResultsTable({
       <Box sx={{ fontSize: 11.5 }}>
         {r.approvedByName || "—"}
         {r.approvedAt && (
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
             {formatDate(r.approvedAt)}
           </Typography>
         )}
@@ -272,6 +272,7 @@ export function MediaGptResultsTable({
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               sx={{ fontSize: 12, height: 32 }}
+              inputProps={{ "aria-label": "Rows per page" }}
             >
               {ROWS_PER_PAGE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>{opt}</MenuItem>
@@ -286,14 +287,14 @@ export function MediaGptResultsTable({
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Page {page} of {totalPages}
           </Typography>
-          <IconButton
+          <IconButton aria-label="Previous page"
             size="small"
             disabled={page <= 1 || loading}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeftIcon />
           </IconButton>
-          <IconButton
+          <IconButton aria-label="Next page"
             size="small"
             disabled={page >= totalPages || loading}
             onClick={() => onPageChange(page + 1)}

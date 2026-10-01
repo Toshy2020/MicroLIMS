@@ -105,7 +105,7 @@ export function BrothWaitingPanel({
       {/* Not ready yet warning banner */}
       {!isTimeReady && minReadyAt && (
         <Alert severity="warning">
-          Not ready yet — available from {minReadyAt.toLocaleString()}.
+          Not ready yet. Available from {minReadyAt.toLocaleString()}.
         </Alert>
       )}
       {alreadyOverridden && (
@@ -136,7 +136,7 @@ export function BrothWaitingPanel({
 
       <ConfirmationDialog
         open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
         onConfirm={confirmSkipWait}
         onCancel={() => setSkipDialogOpen(false)}
       />

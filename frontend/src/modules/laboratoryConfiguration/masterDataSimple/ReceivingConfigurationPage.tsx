@@ -224,7 +224,7 @@ function NameListCard({
             <Typography sx={{ p: 2, fontSize: 13, color: "text.secondary" }}>Loading…</Typography>
           ) : list.length === 0 ? (
             <Typography sx={{ p: 2, fontSize: 13, color: "text.secondary", fontStyle: "italic" }}>
-              None configured yet — add the first one above.
+              None configured yet. Add the first one above.
             </Typography>
           ) : (
             list.map((o, idx) => {
@@ -307,7 +307,7 @@ export function ReceivingConfigurationPage() {
         <NameListCard
           title="Samplers"
           usedFor="Offered as suggestions in the “Sampled By” field. Analysts can still type a name that isn’t listed."
-          deleteNote="Samples already recorded with this name keep it — only the suggestion list changes."
+          deleteNote="Samples already recorded with this name keep it; only the suggestion list changes."
           inputLabel="Sampler name"
           addPlaceholder="e.g. Ahmed Reda"
           icon={<PersonOutlineIcon sx={{ fontSize: 19 }} />}

@@ -82,7 +82,7 @@ export function SummaryMatrix({ testOrders }: { testOrders: TestOrderSummaryDeta
     <div className="matrix-section">
       <div className="matrix-header">
         <div>
-          <h3>Results Summary — All Tests × All Locations</h3>
+          <h3>Results Summary: All Tests × All Locations</h3>
           <div className="matrix-sub">
             {locatedTests.length} test{locatedTests.length === 1 ? "" : "s"} · {rows.length} sampling location{rows.length === 1 ? "" : "s"} · {totalCount} result{totalCount === 1 ? "" : "s"}
             {exceptionCount > 0 ? `, ${exceptionCount} exception${exceptionCount === 1 ? "" : "s"}` : ""}
@@ -123,7 +123,7 @@ export function SummaryMatrix({ testOrders }: { testOrders: TestOrderSummaryDeta
       </div>
       <div className="matrix-legend">
         <span><span className="legend-dot" style={{ background: "var(--color-positive)" }} />ND = Not Detected / Conform</span>
-        <span>Detail per test available below — expand only if investigating a result</span>
+        <span>Detail per test available below. Expand only if investigating a result</span>
       </div>
     </div>
   );

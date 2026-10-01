@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Box, Typography, IconButton, Badge, Menu, MenuItem, Divider,
-  ListItemText, Tooltip, Switch, useTheme, useMediaQuery, Button
+  Box, Typography, IconButton, Badge, Menu, MenuItem, Divider, Avatar, ButtonBase,
+  ListItemIcon, ListItemText, Tooltip, Switch, useTheme, useMediaQuery, Button
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutlined";
+import LockResetIcon from "@mui/icons-material/LockReset";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { apiClient } from "../services/apiClient";
 import { useThemeMode } from "../theme/ThemeModeContext";
+import { useAuth } from "../contexts/AuthContext";
+import { formatRoleFallback, userInitials } from "../utils/userDisplay";
 
 interface NotificationDto {
   id: number | null;
@@ -52,21 +60,66 @@ const FIRST_LOAD_DELAY_MS = 5_000;
 interface HeaderProps {
   onToggleSidebar?: () => void;
   sidebarCollapsed?: boolean;
+  // Lab membership, for the job-title fallback ("Microbiology Analyst").
+  labCodes: string[];
 }
 
-export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
+const ROLE_LABELS: Record<string, string> = {
+  SectionHead: "Section Head",
+  SystemAdministrator: "System Administrator"
+};
+
+export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderProps) {
   const { mode, toggleMode } = useThemeMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const showIdentityText = useMediaQuery(theme.breakpoints.up("sm"));
   const navigate = useNavigate();
+  const { username, fullName, jobTitle, role, logout } = useAuth();
+
+  const displayName = fullName ?? username ?? "User";
+  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes);
 
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [bellAnchor, setBellAnchor] = useState<HTMLElement | null>(null);
+  const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
+
+  const loadUnreadMessages = () => {
+    apiClient.get("/messages/unread-count")
+      .then((r) => setUnreadMessages(r.data?.data?.unreadCount ?? 0))
+      // Badge only: keep the last known count and let the next poll retry.
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadUnreadMessages();
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      loadUnreadMessages();
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSignOut = () => {
+    setProfileAnchor(null);
+    logout();
+    navigate("/login");
+  };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  // Set while the latest poll failed and nothing has loaded since. Without it
+  // the bell said "No notifications - you are up to date" during an outage.
+  const [notificationsFailed, setNotificationsFailed] = useState(false);
+
   const loadNotifications = () => {
-    apiClient.get("/dashboard/notifications").then((r) => setNotifications(r.data.data)).catch(() => {});
+    apiClient.get("/dashboard/notifications")
+      .then((r) => {
+        setNotifications(r.data.data);
+        setNotificationsFailed(false);
+      })
+      .catch(() => setNotificationsFailed(true));
   };
 
   useEffect(() => {
@@ -86,6 +139,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
   const handleNotificationClick = (notification: NotificationDto) => {
     setBellAnchor(null);
     if (notification.id !== null) {
+      // Fire-and-forget: shown as read at once; if the call failed, the next
+      // poll brings the true state back.
       apiClient.post(`/dashboard/notifications/${notification.id}/read`).catch(() => {});
       setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
     }
@@ -95,6 +150,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
 
   const handleMarkAllRead = () => {
     if (unreadCount === 0) return;
+    // Fire-and-forget, as for a single notification above.
     apiClient.post("/dashboard/notifications/read-all").catch(() => {});
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
@@ -105,7 +161,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
       className="no-print"
       sx={{
         background: theme.custom.chrome.topbarBg,
-        color: "#fff",
+        color: "common.white",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -124,7 +180,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           <Tooltip title={isMobile ? "Toggle navigation menu" : (sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")}>
             <IconButton
               onClick={onToggleSidebar}
-              sx={{ color: "#fff", p: 0.75, mr: 0.5 }}
+              sx={{ color: "common.white", p: 0.75, mr: 0.5 }}
               aria-label="Toggle navigation menu"
             >
               <MenuIcon />
@@ -145,7 +201,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
             checkedIcon={<DarkModeIcon sx={{ fontSize: 15, color: "#2E3542", p: "1.5px" }} />}
             sx={{
               "& .MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28)", opacity: 1 },
-              "& .MuiSwitch-thumb": { backgroundColor: "#fff" },
+              "& .MuiSwitch-thumb": { backgroundColor: "common.white" },
               "& .Mui-checked+.MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28) !important", opacity: 1 }
             }}
             slotProps={{
@@ -156,7 +212,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
         <Tooltip title="Notifications">
           <IconButton
             onClick={(e) => setBellAnchor(e.currentTarget)}
-            sx={{ color: "#fff" }}
+            sx={{ color: "common.white" }}
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-controls={bellAnchor ? "header-notifications-menu" : undefined}
             aria-haspopup="true"
@@ -172,7 +228,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           anchorEl={bellAnchor}
           open={Boolean(bellAnchor)}
           onClose={() => setBellAnchor(null)}
-          slotProps={{ paper: { sx: { width: 360, maxHeight: 420 } } }}
+          slotProps={{ paper: { sx: { width: { xs: "calc(100vw - 24px)", sm: 360 }, maxWidth: 360, maxHeight: 420 } } }}
         >
           {notifications.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2, py: 0.75 }}>
@@ -188,9 +244,18 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
             </Box>
           )}
           {notifications.length > 0 && <Divider />}
-          {notifications.length === 0 && (
+          {notificationsFailed && (
+            <MenuItem disabled sx={{ whiteSpace: "normal", "&.Mui-disabled": { opacity: 1 } }}>
+              <ListItemText
+                primary="Notifications could not be loaded"
+                secondary={notifications.length > 0 ? "The list below may be out of date. Retrying automatically." : "Retrying automatically every minute."}
+                slotProps={{ primary: { sx: { color: "error.main", fontSize: 13, fontWeight: 600 } } }}
+              />
+            </MenuItem>
+          )}
+          {notifications.length === 0 && !notificationsFailed && (
             <MenuItem disabled>
-              <ListItemText primary="Nothing pending." />
+              <ListItemText primary="No notifications" secondary="You are up to date - nothing needs your attention." />
             </MenuItem>
           )}
           {notifications.map((n, i) => {
@@ -212,6 +277,90 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
               </MenuItem>
             );
           })}
+        </Menu>
+
+        <Tooltip title="Account">
+          <ButtonBase
+            onClick={(e) => setProfileAnchor(e.currentTarget)}
+            aria-label={`Account menu for ${displayName}${unreadMessages > 0 ? `, ${unreadMessages} unread messages` : ""}`}
+            aria-controls={profileAnchor ? "header-account-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={Boolean(profileAnchor)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              pl: 0.5,
+              pr: showIdentityText ? 1 : 0.5,
+              py: 0.5,
+              ml: 0.5,
+              borderRadius: 2,
+              color: "common.white",
+              textAlign: "left",
+              bgcolor: profileAnchor ? "rgba(255,255,255,0.14)" : "transparent",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              "&.Mui-focusVisible": { outline: "2px solid #fff", outlineOffset: 2 }
+            }}
+          >
+            <Badge badgeContent={unreadMessages} color="error" overlap="circular">
+              <Avatar sx={{ width: 32, height: 32, bgcolor: "common.white", color: "primary.main", fontWeight: 700, fontSize: 13 }}>
+                {userInitials(fullName, username)}
+              </Avatar>
+            </Badge>
+            {showIdentityText && (
+              <Box sx={{ minWidth: 0, maxWidth: 220 }}>
+                <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{displayName}</Typography>
+                <Typography noWrap sx={{ fontSize: 11.5, lineHeight: 1.25, color: "rgba(255,255,255,0.82)" }}>
+                  {username ? `${username} · ${displayTitle}` : displayTitle}
+                </Typography>
+              </Box>
+            )}
+            {showIdentityText && <ExpandMoreIcon sx={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />}
+          </ButtonBase>
+        </Tooltip>
+        <Menu
+          id="header-account-menu"
+          anchorEl={profileAnchor}
+          open={Boolean(profileAnchor)}
+          onClose={() => setProfileAnchor(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+          slotProps={{ paper: { sx: { minWidth: 260, mt: 0.5 } } }}
+        >
+          <Box sx={{ px: 2, py: 1.25 }}>
+            <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{displayName}</Typography>
+            <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{displayTitle}</Typography>
+            <Box component="dl" sx={{ m: 0, mt: 0.75, display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 1, fontSize: 12, color: "text.secondary", "& dd": { m: 0, color: "text.primary" } }}>
+              {username && (<><dt>User ID</dt><dd>{username}</dd></>)}
+              {role && (<><dt>Role</dt><dd>{ROLE_LABELS[role] ?? role}</dd></>)}
+            </Box>
+          </Box>
+          <Divider />
+          <MenuItem component={Link} to="/profile" onClick={() => setProfileAnchor(null)}>
+            <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="My Profile" />
+          </MenuItem>
+          <MenuItem component={Link} to="/messages" onClick={() => setProfileAnchor(null)}>
+            <ListItemIcon>
+              <Badge badgeContent={unreadMessages} color="error">
+                <MailOutlineIcon fontSize="small" />
+              </Badge>
+            </ListItemIcon>
+            <ListItemText primary={unreadMessages > 0 ? `Messages (${unreadMessages} unread)` : "Messages"} />
+          </MenuItem>
+          <MenuItem component={Link} to="/discussions" onClick={() => setProfileAnchor(null)}>
+            <ListItemIcon><ForumOutlinedIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Discussions" />
+          </MenuItem>
+          <MenuItem component={Link} to="/change-password" onClick={() => setProfileAnchor(null)}>
+            <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Change Password" />
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleSignOut}>
+            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Sign Out" />
+          </MenuItem>
         </Menu>
       </Box>
     </Box>

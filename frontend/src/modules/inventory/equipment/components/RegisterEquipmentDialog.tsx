@@ -242,6 +242,7 @@ export function RegisterEquipmentDialog({
             label="Laboratory"
             value={form.sectionId}
             onChange={(e) => setForm({ ...form, sectionId: e.target.value === "" ? "" : Number(e.target.value) })}
+            inputProps={{ "aria-label": "Laboratory" }}
           >
             {myLabSections.length === 0 && (
               <MenuItem disabled value="">

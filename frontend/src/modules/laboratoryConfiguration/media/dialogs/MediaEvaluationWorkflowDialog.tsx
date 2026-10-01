@@ -17,6 +17,8 @@ import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEval
 import { CryovialService } from "../../cryovials/services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 
 interface Props {
   open: boolean;
@@ -34,6 +36,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   const [referenceLotOptions, setReferenceLotOptions] = useState<any[]>([]);
   const [forms, setForms] = useState<Record<number, any>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   const loadData = async () => {
     if (!evaluationId) return;
@@ -50,9 +53,10 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   useEffect(() => {
     if (open && evaluationId) {
       loadData();
-      CryovialService.getAll().then(setCryovials).catch(() => setCryovials([]));
-      MaterialService.getAll("LyophilizedMicroorganism").then(setDisks).catch(() => setDisks([]));
-      masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(() => setIncubators([]));
+      resetFailures();
+      CryovialService.getAll().then(setCryovials).catch(fail("reference cryovials", () => setCryovials([])));
+      MaterialService.getAll("LyophilizedMicroorganism").then(setDisks).catch(fail("lyophilized microorganism disks", () => setDisks([])));
+      masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(fail("incubators", () => setIncubators([])));
     } else {
       setEvaluation(null);
       setMessage(null);
@@ -71,7 +75,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       masterDataOptions
         .getReleasedMedia(evaluation.media.materialId, { includeExpired: true, excludeId: evaluation.media.id })
         .then(setReferenceLotOptions)
-        .catch(() => setReferenceLotOptions([]));
+        .catch(fail("prior released lots for the reference-lot suggestion", () => setReferenceLotOptions([])));
     } else {
       setReferenceLotOptions([]);
     }
@@ -192,7 +196,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1, flex: 1, minWidth: 0 }}>
             <Box>
               <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-                {evaluation.media?.lotNumber} — {evaluationTypeLabel(evaluation.evaluationType)}
+                {evaluation.media?.lotNumber}: {evaluationTypeLabel(evaluation.evaluationType)}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 Evaluation ID #{evaluation.id} · Status: {evaluation.status}
@@ -214,6 +218,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     >
       {evaluation && (
         <>
+            <LoadFailuresAlert failed={failedLists} sx={{ mb: 2 }} />
             {message && (
               <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>
                 {message.text}
@@ -260,7 +265,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           REFERENCE LOT (FOR RECOVERY% COMPARISON)
                         </Typography>
-                        <Stack
+                        <Stack useFlexGap
                           direction="row"
                           spacing={1}
                           sx={{
@@ -281,10 +286,11 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 }
                               }}
                               sx={{ minWidth: 320 }}
+                              inputProps={{ "aria-label": "Reference lot" }}
                             >
                               {referenceLotOptions.map((m: any) => (
                                 <MenuItem key={m.id} value={m.id}>
-                                  {m.lotNumber} — prepared {new Date(m.preparedAt).toLocaleDateString()}
+                                  {m.lotNumber}, prepared {new Date(m.preparedAt).toLocaleDateString()}
                                 </MenuItem>
                               ))}
                               <MenuItem value="freetext">
@@ -313,7 +319,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       </Typography>
                     ) : c.lyophilizedDisk ? (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        Source: <strong>{c.lyophilizedDisk.materialName} — batch {c.lyophilizedDisk.batchNumber}</strong>
+                        Source: <strong>{c.lyophilizedDisk.materialName}, batch {c.lyophilizedDisk.batchNumber}</strong>
                       </Typography>
                     ) : (
                       <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
@@ -334,18 +340,19 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               value={form.sourceSelection ?? ""}
                               onChange={(e) => setField(c.id, "sourceSelection", e.target.value)}
                               sx={{ minWidth: 320 }}
+                              inputProps={{ "aria-label": "Cryovial or Disk" }}
                             >
                               <MenuItem value="">
                                 <em>Select Cryovial or Disk</em>
                               </MenuItem>
                               {options.map((o: any) => (
                                 <MenuItem key={`cv:${o.id}`} value={`cv:${o.id}`}>
-                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left) — Cryovial
+                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left), Cryovial
                                 </MenuItem>
                               ))}
                               {diskOpts.map((d: any) => (
                                 <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
-                                  {d.materialName} — batch {d.batchNumber} ({d.quantityRemaining} left) — Lyophilized Disk
+                                  {d.materialName}, batch {d.batchNumber} ({d.quantityRemaining} left), Lyophilized Disk
                                 </MenuItem>
                               ))}
                             </Select>
@@ -367,7 +374,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     {c.incubation ? (
                       <Typography variant="body2" sx={{ mb: 1 }}>
                         Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
-                        {" — "}
+                        {", "}
                         {isReadyToRead(c) ? (
                           <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Ready to read</span>
                         ) : (
@@ -388,6 +395,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             value={form.incubatorEquipmentId ?? ""}
                             onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)}
                             sx={{ minWidth: 220 }}
+                            inputProps={{ "aria-label": "Incubator" }}
                           >
                             <MenuItem value="">
                               <em>Select Incubator</em>
@@ -419,7 +427,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         </Typography>
                         {evaluation.evaluationType === "GrowthPromotion" && (
                           <Typography variant="body2">
-                            Old Count: <strong>{c.oldMediaCount}</strong> / New Count: <strong>{c.newMediaCount}</strong> — Recovery: <strong>{c.recoveryPercent}%</strong>
+                            Old Count: <strong>{c.oldMediaCount}</strong> / New Count: <strong>{c.newMediaCount}</strong>, Recovery: <strong>{c.recoveryPercent}%</strong>
                           </Typography>
                         )}
                         {evaluation.evaluationType === "GrowthPromotion" && (
@@ -446,7 +454,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     ) : !isReadyToRead(c) ? (
                       <Alert severity="info" sx={{ mt: 1 }}>
                         {c.incubation
-                          ? `Incubation still in progress — result entry opens at ${new Date(c.incubation.expectedReadingAt).toLocaleString()}.`
+                          ? `Incubation still in progress; result entry opens at ${new Date(c.incubation.expectedReadingAt).toLocaleString()}.`
                           : "Record incubation before a result can be entered."}
                       </Alert>
                     ) : (
@@ -485,6 +493,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               displayEmpty
                               value={form.growthObserved ?? ""}
                               onChange={(e) => setField(c.id, "growthObserved", e.target.value)}
+                              inputProps={{ "aria-label": "Growth Observed?" }}
                             >
                               <MenuItem value="">
                                 <em>Growth Observed?</em>
@@ -516,6 +525,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 displayEmpty
                                 value={form.manualConform ?? ""}
                                 onChange={(e) => setField(c.id, "manualConform", e.target.value)}
+                                inputProps={{ "aria-label": "Judgment" }}
                               >
                                 <MenuItem value="">
                                   <em>Judgment</em>
@@ -532,6 +542,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               displayEmpty
                               value={form.isTurbid ?? ""}
                               onChange={(e) => setField(c.id, "isTurbid", e.target.value)}
+                              inputProps={{ "aria-label": "Turbid or Clear?" }}
                             >
                               <MenuItem value="">
                                 <em>Turbid or Clear?</em>

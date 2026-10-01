@@ -133,7 +133,7 @@ export function ReferenceStrainResultsTable({
       <Box sx={{ fontSize: 12 }}>
         {r.manufacturerName || "—"}
         {r.sourceMaterialBatchNumber && (
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
             Batch: {r.sourceMaterialBatchNumber}
           </Typography>
         )}
@@ -157,10 +157,10 @@ export function ReferenceStrainResultsTable({
           size="small"
           label={r.approvalStatus}
           color={r.approvalStatus === "Approved" ? "success" : r.approvalStatus === "Rejected" ? "error" : "warning"}
-          sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
+          sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
         />
         {r.isDestroyed && (
-          <Typography variant="caption" sx={{ display: "block", color: "error.main", fontWeight: 700, fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "error.main", fontWeight: 700, fontSize: 11 }}>
             Destroyed
           </Typography>
         )}
@@ -171,7 +171,7 @@ export function ReferenceStrainResultsTable({
       <Box sx={{ fontSize: 11.5 }}>
         {r.approvedByName || "—"}
         {r.approvedAt && (
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
             {formatDate(r.approvedAt)}
           </Typography>
         )}
@@ -181,7 +181,7 @@ export function ReferenceStrainResultsTable({
       <Chip
         size="small"
         label={`${r.directUsageCount} GPT`}
-        sx={{ fontSize: 10, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
+        sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
       />
     ) },
     { key: "id", label: "Actions", align: "center", render: (r) => (
@@ -282,6 +282,7 @@ export function ReferenceStrainResultsTable({
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               sx={{ fontSize: 12, height: 32 }}
+              inputProps={{ "aria-label": "Rows per page" }}
             >
               {ROWS_PER_PAGE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>{opt}</MenuItem>
@@ -296,14 +297,14 @@ export function ReferenceStrainResultsTable({
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Page {page} of {totalPages}
           </Typography>
-          <IconButton
+          <IconButton aria-label="Previous page"
             size="small"
             disabled={page <= 1 || loading}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeftIcon />
           </IconButton>
-          <IconButton
+          <IconButton aria-label="Next page"
             size="small"
             disabled={page >= totalPages || loading}
             onClick={() => onPageChange(page + 1)}

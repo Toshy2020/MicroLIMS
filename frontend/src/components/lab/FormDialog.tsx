@@ -37,14 +37,13 @@ export function FormDialog({ open, title, onClose, onSubmit, submitLabel, submit
       maxWidth={maxWidth}
       actions={
         <>
-          <Button onClick={onClose} disabled={submitting} sx={{ textTransform: "none" }}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting}>Cancel</Button>
           <Button
             type="submit"
             form={formId}
             variant="contained"
             disabled={submitting || submitDisabled}
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
-            sx={{ textTransform: "none" }}
           >
             {submitLabel}
           </Button>

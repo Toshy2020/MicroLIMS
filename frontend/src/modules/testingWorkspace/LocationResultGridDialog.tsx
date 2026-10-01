@@ -139,7 +139,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
   };
 
   return (
-    <FloatingDialog open={open} title={`${testCode} Results — ${displayName}`} onClose={onClose}>
+    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
       {!rows && !error && <LoadingSpinner />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (
@@ -175,8 +175,9 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
                               size="small" type="number" sx={{ width: 90 }}
                               value={v}
                               onChange={(e) => updateReading(r.id, i, e.target.value)}
+                              slotProps={{ htmlInput: { "aria-label": `${r.locationName} reading ${i + 1}` } }}
                             />
-                            <IconButton size="small" onClick={() => removeReading(r.id, i)}><CloseIcon fontSize="small" /></IconButton>
+                            <IconButton aria-label={`Remove reading ${i + 1}`} size="small" onClick={() => removeReading(r.id, i)}><CloseIcon fontSize="small" /></IconButton>
                           </Stack>
                         ))}
                         <Button size="small" startIcon={<AddIcon />} onClick={() => addReading(r.id)} sx={{ alignSelf: "flex-start" }}>
@@ -192,7 +193,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {conformCount}/{rows.length} locations within spec — worst status: <StatusBadge status={worstStatus} />
+            {conformCount}/{rows.length} locations within spec; worst status: <StatusBadge status={worstStatus} />
           </Typography>
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>

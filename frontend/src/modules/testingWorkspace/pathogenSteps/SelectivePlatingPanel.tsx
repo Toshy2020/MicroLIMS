@@ -156,11 +156,12 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             size="small"
             value={mediaLotId}
             onChange={(e) => setMediaLotId(Number(e.target.value))}
+            inputProps={{ "aria-label": "Media lot" }}
           >
             <MenuItem value=""><em>Media Lot</em></MenuItem>
             {medium.availableLots.map((l) => (
               <MenuItem key={l.id} value={l.id}>
-                {l.lotNumber} — expires {new Date(l.expiryDate).toLocaleDateString()}
+                {l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}
               </MenuItem>
             ))}
           </Select>
@@ -170,11 +171,12 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             size="small"
             value={equipmentId}
             onChange={(e) => setEquipmentId(Number(e.target.value))}
+            inputProps={{ "aria-label": `Incubator (${medium.tempMin}-${medium.tempMax} °C)` }}
           >
             <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
             {incubators.map((i) => (
               <MenuItem key={i.id} value={i.id}>
-                {i.name} ({i.code}) — {i.setTemperature}°C
+                {i.name} ({i.code}), {i.setTemperature}°C
               </MenuItem>
             ))}
           </Select>
@@ -239,7 +241,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
 
           {minReadyAt && (
             <Alert severity="warning">
-              Not ready yet — available from {minReadyAt.toLocaleString()}.
+              Not ready yet. Available from {minReadyAt.toLocaleString()}.
             </Alert>
           )}
 
@@ -266,7 +268,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
         <>
           <Alert severity="success">
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              ✓ Incubation complete — ready for observation.
+              ✓ Incubation complete, ready for observation.
             </Typography>
             {incubationStartUtc && (
               <Typography variant="body2">
@@ -288,17 +290,17 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             <FormControlLabel
               value="NoGrowth"
               control={<Radio />}
-              label="No growth — target absent"
+              label="No growth: target absent"
             />
             <FormControlLabel
               value="GrowthNonConforming"
               control={<Radio />}
-              label="Growth present, does not match expected appearance — target absent"
+              label="Growth present, does not match expected appearance: target absent"
             />
             <FormControlLabel
               value="GrowthConforming"
               control={<Radio />}
-              label="Growth matching expected appearance — presumptive positive"
+              label="Growth matching expected appearance: presumptive positive"
             />
           </RadioGroup>
 
@@ -329,7 +331,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
 
       <ConfirmationDialog
         open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
         onConfirm={confirmSkipWait}
         onCancel={() => setSkipDialogOpen(false)}
       />

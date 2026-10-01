@@ -14,6 +14,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 const LoginPage = lazy(() => import("../pages/Login").then((m) => ({ default: m.LoginPage })));
 const AdminPasswordRecovery = lazy(() => import("../pages/AdminPasswordRecovery").then((m) => ({ default: m.AdminPasswordRecovery })));
 const DashboardPage = lazy(() => import("../modules/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const NotFoundPage = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 const ProfilePage = lazy(() => import("../pages/Profile").then((m) => ({ default: m.ProfilePage })));
 const ChangePasswordPage = lazy(() => import("../pages/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
 const ReportsPage = lazy(() => import("../pages/Reports").then((m) => ({ default: m.ReportsPage })));
@@ -244,6 +245,8 @@ export function AppRoutes() {
               <Route path="/roles/new" element={<CreateRolePage />} />
               <Route path="/roles/:id" element={<RoleDetailPage />} />
             </Route>
+
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
       </Routes>

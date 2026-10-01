@@ -8,7 +8,8 @@ import {
   TableHead,
   TableBody,
   TableRow,
-  TableCell
+  TableCell,
+  TableContainer
 } from "@mui/material";
 import { formatLabDate, formatLabDateTime } from "../../../utils/formatDate";
 import type { TitrantStandardizationResponse, RecipeSnapshot } from "../types";
@@ -88,28 +89,30 @@ export function StandardizationResultView({ result, recipe, blankRequired }: Pro
       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
         Replicates Evaluated
       </Typography>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Rep #</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Titrant Vol (mL)</TableCell>
-            {blankRequired && <TableCell sx={{ fontWeight: 700 }}>Blank (mL)</TableCell>}
-            <TableCell sx={{ fontWeight: 700 }}>Calculated Factor</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.replicates.map((r) => (
-            <TableRow key={r.id || r.replicateNo}>
-              <TableCell sx={{ fontWeight: 600 }}>{r.replicateNo}</TableCell>
-              <TableCell>{r.titrantVolumeMl}</TableCell>
-              {blankRequired && <TableCell>{r.blankMl != null ? r.blankMl : "0"}</TableCell>}
-              <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                {r.factor.toFixed(4)}
-              </TableCell>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 700 }}>Rep #</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Titrant Vol (mL)</TableCell>
+              {blankRequired && <TableCell sx={{ fontWeight: 700 }}>Blank (mL)</TableCell>}
+              <TableCell sx={{ fontWeight: 700 }}>Calculated Factor</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {result.replicates.map((r) => (
+              <TableRow key={r.id || r.replicateNo}>
+                <TableCell sx={{ fontWeight: 600 }}>{r.replicateNo}</TableCell>
+                <TableCell>{r.titrantVolumeMl}</TableCell>
+                {blankRequired && <TableCell>{r.blankMl != null ? r.blankMl : "0"}</TableCell>}
+                <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                  {r.factor.toFixed(4)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Stack>
   );
 }

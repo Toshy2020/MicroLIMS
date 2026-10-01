@@ -259,7 +259,7 @@ export function MeasurementPanel({
 
         {testDef && (
           <ResultSection title="Measurement analysis summary">
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Evaluation Basis</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{testDef.evaluationBasis ?? "Mean"}</Typography>

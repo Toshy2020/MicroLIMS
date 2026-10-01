@@ -30,7 +30,7 @@ export function TestCodePicker({ value, onChange, label = "Test", size = "small"
       sx={sx}
       options={activeOptions}
       value={selected}
-      getOptionLabel={(o) => (typeof o === "string" ? o : "inputValue" in o ? o.inputValue : `${o.code} — ${o.displayName}`)}
+      getOptionLabel={(o) => (typeof o === "string" ? o : "inputValue" in o ? o.inputValue : `${o.code}: ${o.displayName}`)}
       filterOptions={(opts, params) => {
         const filtered = filter(opts, params);
         // Checked against the full Test Master (not just the active
@@ -54,7 +54,7 @@ export function TestCodePicker({ value, onChange, label = "Test", size = "small"
       }}
       renderOption={(props, option) => (
         <li {...props} key={"code" in option ? option.code : option.inputValue}>
-          {"isNew" in option ? `+ Add "${option.inputValue}" to Test Master` : `${option.code} — ${option.displayName}`}
+          {"isNew" in option ? `+ Add "${option.inputValue}" to Test Master` : `${option.code}: ${option.displayName}`}
         </li>
       )}
       renderInput={(params) => <TextField {...params} label={label} placeholder="e.g. TAMC, PATHOGEN_ECOLI" />}

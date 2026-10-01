@@ -11,8 +11,8 @@ interface SectionTitleProps {
 export function SectionTitle({ children, tabs }: SectionTitleProps) {
   const theme = useTheme();
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mt: 3.5, mb: 1.25 }}>
-      <Typography sx={{ fontSize: 18, color: theme.palette.primary.main, fontWeight: 600 }}>{children}</Typography>
+    <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1.25, mt: 3, mb: 1.25 }}>
+      <Typography component="h2" variant="h6" sx={{ color: theme.palette.primary.main }}>{children}</Typography>
       {tabs?.map((t) =>
         t.to ? (
           <MuiLink

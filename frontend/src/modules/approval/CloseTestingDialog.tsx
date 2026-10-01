@@ -88,7 +88,7 @@ export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rej
             </Box>
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-                Close Testing{sectionName ? ` — ${sectionName}` : ""}
+                Close Testing{sectionName ? `: ${sectionName}` : ""}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 Stops your laboratory's remaining tests on this sample - signed with your password

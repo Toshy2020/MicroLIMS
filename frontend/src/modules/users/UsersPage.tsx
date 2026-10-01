@@ -26,7 +26,9 @@ import { SectionTitle } from "../../components/SectionTitle";
 import { UserService, UserRecord } from "./services/UserService";
 import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 
 export function UsersPage() {
   const theme = useTheme();
@@ -74,11 +76,17 @@ export function UsersPage() {
 
   const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
 
+  // A failed load used to leave the user table (or the role picker) empty
+  // with no explanation.
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
   const load = () => {
-    UserService.getAll().then(setUsers).catch(() => {});
-    RoleService.getAll().then(setRoles).catch(() => {});
+    resetFailures();
+    UserService.getAll().then(setUsers).catch(fail("users"));
+    RoleService.getAll().then(setRoles).catch(fail("roles"));
   };
 
+  // Mount-only: load is redefined each render and only runs set-state calls.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
   const handleCreateUser = async () => {
@@ -283,6 +291,7 @@ export function UsersPage() {
   return (
     <>
       <PageHeader title="User Management" subtitle="Manage system users, role assignments, security status, and account access." />
+      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
       <SectionTitle>Create New User</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
         <Box
@@ -344,6 +353,7 @@ export function UsersPage() {
             value={roleId}
             onChange={(e) => setRoleId(e.target.value)}
             fullWidth
+            inputProps={{ "aria-label": "Role" }}
           >
             <MenuItem value=""><em>Select Role *</em></MenuItem>
             {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
@@ -380,7 +390,7 @@ export function UsersPage() {
                 <TableRow key={u.id} hover>
                   <TableCell>
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{u.fullName}</Typography>
-                    <Typography sx={{ color: "text.secondary", fontSize: 12 }}>@{u.username} {isSelf && <Chip label="You" size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}</Typography>
+                    <Typography sx={{ color: "text.secondary", fontSize: 12 }}>@{u.username} {isSelf && <Chip label="You" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 11 }} />}</Typography>
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 13, fontStyle: u.email ? "normal" : "italic", color: u.email ? "text.primary" : "text.secondary" }}>
@@ -425,7 +435,7 @@ export function UsersPage() {
 
                       <Tooltip title={isSelf ? "System Administrators cannot change their own role" : "Change Role"}>
                         <span>
-                          <IconButton size="small" color="primary" disabled={isSelf} onClick={() => openChangeRole(u)}>
+                          <IconButton aria-label={isSelf ? "System Administrators cannot change their own role" : "Change Role"} size="small" color="primary" disabled={isSelf} onClick={() => openChangeRole(u)}>
                             <PersonOutlineIcon fontSize="small" />
                           </IconButton>
                         </span>
@@ -433,7 +443,7 @@ export function UsersPage() {
 
                       <Tooltip title={isSelf && u.isActive ? "System Administrators cannot disable their own account" : (u.isActive ? "Disable Account" : "Enable Account")}>
                         <span>
-                          <IconButton size="small" color={u.isActive ? "error" : "success"} disabled={isSelf && u.isActive} onClick={() => openStatusDialog(u)}>
+                          <IconButton aria-label={isSelf && u.isActive ? "System Administrators cannot disable their own account" : (u.isActive ? "Disable Account" : "Enable Account")} size="small" color={u.isActive ? "error" : "success"} disabled={isSelf && u.isActive} onClick={() => openStatusDialog(u)}>
                             <BlockIcon fontSize="small" />
                           </IconButton>
                         </span>
@@ -451,7 +461,7 @@ export function UsersPage() {
 
                       <Tooltip title={isSelf ? "Cannot use admin recovery on own account" : (!u.isActive ? "Enable user first to perform recovery" : "Admin-Assisted Password Recovery")}>
                         <span>
-                          <IconButton size="small" color="warning" disabled={isSelf || !u.isActive} onClick={() => openAdminRecoveryDialog(u)}>
+                          <IconButton aria-label={isSelf ? "Cannot use admin recovery on own account" : (!u.isActive ? "Enable user first to perform recovery" : "Admin-Assisted Password Recovery")} size="small" color="warning" disabled={isSelf || !u.isActive} onClick={() => openAdminRecoveryDialog(u)}>
                             <KeyIcon fontSize="small" />
                           </IconButton>
                         </span>
@@ -463,7 +473,7 @@ export function UsersPage() {
 
                       <Tooltip title={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"}>
                         <span>
-                          <IconButton size="small" color="error" disabled={isSelf} onClick={() => openDeleteDialog(u)}>
+                          <IconButton aria-label={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"} size="small" color="error" disabled={isSelf} onClick={() => openDeleteDialog(u)}>
                             <DeleteForeverIcon fontSize="small" />
                           </IconButton>
                         </span>
@@ -482,7 +492,7 @@ export function UsersPage() {
         open={Boolean(editProfileUser)}
         onClose={() => setEditProfileUser(null)}
         maxWidth="xs"
-        title={`Edit Profile — ${editProfileUser?.username}`}
+        title={`Edit Profile: ${editProfileUser?.username}`}
         actions={
           <>
             <Button onClick={() => setEditProfileUser(null)}>Cancel</Button>
@@ -502,7 +512,7 @@ export function UsersPage() {
         open={Boolean(roleDialogUser)}
         onClose={() => setRoleDialogUser(null)}
         maxWidth="xs"
-        title={`Change Role — ${roleDialogUser?.username}`}
+        title={`Change Role: ${roleDialogUser?.username}`}
         actions={
           <>
             <Button onClick={() => setRoleDialogUser(null)}>Cancel</Button>
@@ -512,7 +522,7 @@ export function UsersPage() {
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2">Current Role: <strong>{roleDialogUser?.role?.name ?? "None"}</strong></Typography>
-          <Select size="small" value={newRoleId} onChange={(e) => setNewRoleId(Number(e.target.value))} fullWidth displayEmpty>
+          <Select size="small" value={newRoleId} onChange={(e) => setNewRoleId(Number(e.target.value))} fullWidth displayEmpty inputProps={{ "aria-label": "New Role" }}>
             <MenuItem value=""><em>Select New Role</em></MenuItem>
             {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
           </Select>
@@ -724,7 +734,7 @@ export function UsersPage() {
         <Stack spacing={2} sx={{ mt: 1 }}>
           {deleteError && <Alert severity="error">{deleteError}</Alert>}
           <Alert severity="warning" icon={<WarningAmberIcon />}>
-            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system — if this fails, deactivate the account instead.
+            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system. If this fails, deactivate the account instead.
           </Alert>
           <Typography variant="body2">
             Permanently delete <strong>{deleteDialogUser?.fullName} (@{deleteDialogUser?.username})</strong>?

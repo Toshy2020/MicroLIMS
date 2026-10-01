@@ -122,7 +122,7 @@ export function EventTimelineSection({ events }: { events: TimelineEventLike[] }
           events.map((e, i) => (
             <div className="observation-item" key={i}>
               <span className="obs-step">
-                {humanize(e.eventType)}{e.decision ? ` — ${humanize(e.decision)}` : ""}
+                {humanize(e.eventType)}{e.decision ? `: ${humanize(e.decision)}` : ""}
               </span>
               <span>
                 <strong>{e.performedByName}</strong>
@@ -157,11 +157,21 @@ function formatBytes(n: number): string {
 // screen only; the print stylesheet's .no-print rule hides it so it
 // never appears inside the archived copy it links to.
 export function ArchivedCopiesSection({
-  copies, onDownload
+  copies, onDownload, error
 }: {
   copies: ArchivedCopyLike[];
   onDownload: (id: number, fileName: string) => void;
+  // Set when the list failed to load. An empty list hides the section, so
+  // without this a failure looked exactly like "no copy was ever issued".
+  error?: string | null;
 }) {
+  if (error) {
+    return (
+      <div className="no-print" role="alert" style={{ marginBottom: 24, padding: "10px 14px", border: "1px solid #E8B9B9", background: "#FCEAEA", color: "#A21C1C", borderRadius: 6, fontSize: 13 }}>
+        {error}
+      </div>
+    );
+  }
   if (copies.length === 0) return null;
   return (
     <div className="no-print" style={{ marginBottom: 24 }}>
@@ -179,12 +189,14 @@ export function ArchivedCopiesSection({
               {c.reason}
               <span className="obs-meta"> · {c.generatedByNameSnapshot} · {dt(c.generatedAt)} · {formatBytes(c.sizeBytes)}</span>
             </span>
-            <span
-              style={{ cursor: "pointer", color: "#2563eb", fontWeight: 600 }}
+            <button
+              type="button"
+              style={{ cursor: "pointer", color: "#2563eb", fontWeight: 600, background: "none", border: "none", padding: 0, font: "inherit" }}
               onClick={() => onDownload(c.id, c.fileName)}
+              aria-label={`Download ${c.fileName}`}
             >
               Download
-            </span>
+            </button>
           </div>
         ))}
       </div>

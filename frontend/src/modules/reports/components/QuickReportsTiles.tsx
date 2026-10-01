@@ -1,6 +1,7 @@
 import { Box, Paper, Typography, useTheme } from "@mui/material";
 import { brandColors } from "../../../theme";
 import { SampleCategory } from "../types/reportingTypes";
+import { clickable } from "../../../utils/clickable";
 
 interface Tile {
   label: string;
@@ -60,6 +61,7 @@ export function QuickReportsTiles({
               cursor: "pointer", bgcolor: "transparent",
               "&:hover": { bgcolor: brandColors.causeBadgeBg }
             }}
+            {...clickable(() => handleClick(tile))}
           >
             {tile.label}
           </Box>

@@ -60,7 +60,7 @@ public class MaterialDocumentFileValidator
 
         // 4. Magic byte / content signature
         if (firstBytes.Length < 3)
-            return "The file content could not be validated — it is too short.";
+            return "The file content could not be validated because it is too short.";
 
         // Special case: WEBP uses RIFF container. Bytes 0-3 are "RIFF", bytes 8-11 are "WEBP".
         if (ext == ".webp")

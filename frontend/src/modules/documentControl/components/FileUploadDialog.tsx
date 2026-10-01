@@ -19,6 +19,7 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import { documentControlService } from "../services/documentControlService";
 import type { FileRole } from "../types/documentControlTypes";
+import { clickable } from "../../../utils/clickable";
 
 interface FileUploadDialogProps {
   open: boolean;
@@ -163,6 +164,7 @@ export function FileUploadDialog({
             transition: "all 0.2s"
           }}
           onClick={() => document.getElementById("file-input-control")?.click()}
+          {...clickable(() => document.getElementById("file-input-control")?.click(), { label: "Choose a file to upload" })}
         >
           <input
             id="file-input-control"

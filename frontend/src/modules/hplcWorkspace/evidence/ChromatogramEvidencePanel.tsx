@@ -174,6 +174,7 @@ export function ChromatogramEvidencePanel({
                                 color="primary"
                                 onClick={() => handleView(e.id)}
                                 disabled={viewingId === e.id}
+                                aria-label={`View ${e.fileName} in a new tab`}
                               >
                                 {viewingId === e.id ? (
                                   <CircularProgress size={16} />
@@ -190,6 +191,7 @@ export function ChromatogramEvidencePanel({
                                 size="small"
                                 color="warning"
                                 onClick={() => handleOpenSupersede(e)}
+                                aria-label={`Supersede ${e.fileName} with a replacement file`}
                               >
                                 <SwapHorizIcon fontSize="small" />
                               </IconButton>

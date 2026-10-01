@@ -192,7 +192,7 @@ export function EMConfigPage() {
                     <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedDept.rooms ?? []).length, "room")}</Typography>
                   </Stack>
                 </Box>
-                <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })} sx={{ textTransform: "none" }}>
+                <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })}>
                   Edit department
                 </Button>
                 <Tooltip title="Delete department">

@@ -110,7 +110,7 @@ export function HplcMethodDialog({
         maxWidth="md"
         actions={
           <>
-            <Button onClick={onClose} disabled={saving} sx={{ textTransform: "none" }}>
+            <Button onClick={onClose} disabled={saving}>
               Cancel
             </Button>
             <Button

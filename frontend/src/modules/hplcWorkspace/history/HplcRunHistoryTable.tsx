@@ -54,7 +54,6 @@ export function HplcRunHistoryTable({
             e.stopPropagation();
             onSelectRun(hr.id);
           }}
-          sx={{ textTransform: "none" }}
         >
           View
         </Button>

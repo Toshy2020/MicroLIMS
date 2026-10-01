@@ -206,7 +206,7 @@ export function WaterConfigPage() {
                     {plural((selectedDept.samplingPoints ?? []).length, "sample location")}
                   </Typography>
                 </Box>
-                <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })} sx={{ textTransform: "none" }}>
+                <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })}>
                   Rename
                 </Button>
                 <Tooltip title="Delete water system">

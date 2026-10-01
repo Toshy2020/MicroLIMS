@@ -81,7 +81,7 @@ export function HplcMethodHistoryDialog({
       onClose={onClose}
       maxWidth="md"
       actions={
-        <Button onClick={onClose} sx={{ textTransform: "none" }}>
+        <Button onClick={onClose}>
           Close
         </Button>
       }

@@ -67,41 +67,35 @@ export function AdminDashboardPage() {
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title={`Administrator Command Center — ${displayName}`}
-          subtitle="System administration, access control, audit compliance, and laboratory operations."
-        />
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={reload}
-            disabled={loading}
-            startIcon={<RefreshIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
-          <Button
-            component={Link}
-            to="/audit-search"
-            variant="outlined"
-            startIcon={<SearchOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Audit Search
-          </Button>
-          <Button
-            component={Link}
-            to="/users"
-            variant="contained"
-            startIcon={<PeopleAltOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Manage Users
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title={`Administrator Command Center — ${displayName}`}
+        subtitle="System administration, access control, audit compliance, and laboratory operations."
+      >
+        <Button
+          variant="outlined"
+          onClick={reload}
+          disabled={loading}
+          startIcon={<RefreshIcon />}
+        >
+          Refresh
+        </Button>
+        <Button
+          component={Link}
+          to="/audit-search"
+          variant="outlined"
+          startIcon={<SearchOutlinedIcon />}
+        >
+          Audit Search
+        </Button>
+        <Button
+          component={Link}
+          to="/users"
+          variant="contained"
+          startIcon={<PeopleAltOutlinedIcon />}
+        >
+          Manage Users
+        </Button>
+      </PageHeader>
 
       {/* Tier 1: Administrative Control Pillars */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>

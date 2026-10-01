@@ -76,32 +76,27 @@ export function AnalystDashboardPage() {
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title={`Welcome back, ${displayName}`}
-          subtitle="Here is your prioritized microbiological workspace for today."
-        />
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={reload}
-            disabled={loading}
-            startIcon={<RefreshIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
-          <Button
-            component={Link}
-            to="/receiving-testing"
-            variant="contained"
-            startIcon={<ScienceOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Open Testing Workspace
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title={`Welcome back, ${displayName}`}
+        subtitle="Here is your prioritized microbiological workspace for today."
+      >
+        <Button
+          variant="outlined"
+          onClick={reload}
+          disabled={loading}
+          startIcon={<RefreshIcon />}
+        >
+          Refresh
+        </Button>
+        <Button
+          component={Link}
+          to="/receiving-testing"
+          variant="contained"
+          startIcon={<ScienceOutlinedIcon />}
+        >
+          Open Testing Workspace
+        </Button>
+      </PageHeader>
 
       {partialFailure && (
         <Alert

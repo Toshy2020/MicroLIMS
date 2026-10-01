@@ -210,7 +210,7 @@ export function AfterCleaningConfigPage() {
                   <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedMachine.name}</Typography>
                   <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedMachine.parts ?? []).length, "part")}</Typography>
                 </Box>
-                <Button variant="outlined" onClick={() => setMachinePanel({ open: true, machine: selectedMachine })} sx={{ textTransform: "none" }}>
+                <Button variant="outlined" onClick={() => setMachinePanel({ open: true, machine: selectedMachine })}>
                   Rename
                 </Button>
                 <Tooltip title="Delete machine">

@@ -279,7 +279,6 @@ export function StartHplcRunWizard() {
         <Button
           disabled={activeStep === 0 || starting}
           onClick={() => setActiveStep((prev) => prev - 1)}
-          sx={{ textTransform: "none" }}
         >
           Back
         </Button>

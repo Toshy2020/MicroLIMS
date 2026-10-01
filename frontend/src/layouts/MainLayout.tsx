@@ -1,19 +1,35 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, useMediaQuery, useTheme } from "@mui/material";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
+import { AppBreadcrumbs } from "../components/AppBreadcrumbs";
+import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
 import { useIdleTimeout } from "../hooks/useIdleTimeout";
+import { useMyLabs } from "../hooks/useMyLabs";
+import { getGroupedMenu } from "../routes/menuConfig";
+import { accountPageTrail, findNavTrail } from "../routes/navigation";
+
+const MAIN_CONTENT_ID = "main-content";
 
 const CHANGE_PASSWORD_PATH = "/change-password";
 
 export function MainLayout() {
-  const { logout, mustChangePassword } = useAuth();
+  const { logout, mustChangePassword, role, permissions } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // One menu, one lab lookup and one "where am I" answer for the sidebar,
+  // the breadcrumb and the tab title.
+  const { codes: labCodes } = useMyLabs();
+  const groups = useMemo(() => getGroupedMenu({ role, permissions, labCodes }), [role, permissions, labCodes]);
+  const activeTrail = useMemo(
+    () => findNavTrail(groups, location.pathname, location.search) ?? accountPageTrail(location.pathname),
+    [groups, location.pathname, location.search]
+  );
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("microlims_sidebar_collapsed") === "true");
@@ -53,22 +69,49 @@ export function MainLayout() {
   return (
     <Box
       sx={{
+        // dvh where supported: on mobile browsers 100vh includes the area
+        // under the address bar, which cut off the bottom of every page.
         height: "100vh",
         maxHeight: "100vh",
+        "@supports (height: 100dvh)": { height: "100dvh", maxHeight: "100dvh" },
         bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden"
       }}
     >
-      <Header onToggleSidebar={handleToggleSidebar} sidebarCollapsed={collapsed} />
+      {/* Keyboard users land here first and can jump past the navigation. */}
+      <Box
+        component="a"
+        href={`#${MAIN_CONTENT_ID}`}
+        className="no-print"
+        sx={{
+          position: "absolute",
+          left: 8,
+          top: -48,
+          zIndex: 2000,
+          px: 2,
+          py: 1,
+          borderRadius: 1,
+          bgcolor: "background.paper",
+          color: "primary.main",
+          fontWeight: 600,
+          fontSize: 14,
+          boxShadow: 3,
+          "&:focus": { top: 8 }
+        }}
+      >
+        Skip to main content
+      </Box>
+
+      <Header onToggleSidebar={handleToggleSidebar} sidebarCollapsed={collapsed} labCodes={labCodes} />
 
       <Box
         component="div"
         sx={{
           display: "flex",
           flex: 1,
-          height: "calc(100vh - 56px)",
+          minHeight: 0,
           overflow: "hidden",
           position: "relative"
         }}
@@ -78,11 +121,16 @@ export function MainLayout() {
           onMobileClose={() => setMobileOpen(false)}
           collapsed={collapsed}
           onToggleCollapse={handleToggleCollapse}
+          groups={groups}
+          activeTrail={activeTrail}
         />
 
         <Box
           component="main"
+          id={MAIN_CONTENT_ID}
+          tabIndex={-1}
           sx={{
+            outline: "none",
             flexGrow: 1,
             height: "100%",
             overflowY: "auto",
@@ -94,7 +142,10 @@ export function MainLayout() {
           }}
         >
           <Box sx={{ maxWidth: 1600, mx: "auto" }}>
-            <Outlet />
+            <AppBreadcrumbs trail={activeTrail} />
+            <AppErrorBoundary inline key={location.pathname}>
+              <Outlet />
+            </AppErrorBoundary>
           </Box>
         </Box>
       </Box>

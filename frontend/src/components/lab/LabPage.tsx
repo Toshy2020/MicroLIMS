@@ -1,5 +1,6 @@
-import { Box, Stack, Typography, useTheme } from "@mui/material";
+import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
+import { PageHeader } from "../PageHeader";
 
 interface LabPageProps {
   title: string;
@@ -11,24 +12,17 @@ interface LabPageProps {
   children: ReactNode;
 }
 
-// Page anatomy for every physicochemical page: header -> KPIs -> filters ->
-// content. Padding and gaps live here so pages never set their own.
+// Page anatomy for register-style pages: header -> KPIs -> filters ->
+// content. Gaps live here so pages never set their own; the outer padding
+// comes from MainLayout's <main>, like every other page (this used to add
+// its own p: 3 on top, so these pages sat 24px further in than the rest).
 export function LabPage({ title, subtitle, actions, kpis, filters, children }: LabPageProps) {
-  const theme = useTheme();
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack spacing={2}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
-          <Box>
-            <Typography component="h1" variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{title}</Typography>
-            {subtitle && <Typography sx={{ color: "text.secondary", mt: 0.5, fontSize: 14 }}>{subtitle}</Typography>}
-          </Box>
-          {actions && <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>{actions}</Stack>}
-        </Box>
-        {kpis}
-        {filters}
-        {children}
-      </Stack>
-    </Box>
+    <Stack spacing={2}>
+      <PageHeader title={title} subtitle={subtitle}>{actions}</PageHeader>
+      {kpis}
+      {filters}
+      {children}
+    </Stack>
   );
 }

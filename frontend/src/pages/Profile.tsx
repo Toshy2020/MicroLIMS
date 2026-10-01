@@ -8,9 +8,9 @@ import { CurrentUserInfo } from "../modules/authentication/types/authTypes";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <Box sx={{ mb: 1.5 }}>
-      <Typography sx={{ fontSize: 11, color: "#9ca3af" }}>{label}</Typography>
-      <Typography sx={{ fontWeight: 600 }}>{value}</Typography>
+    <Box sx={{ mb: 1.5, "&:last-of-type": { mb: 0 } }}>
+      <Typography component="dt" variant="caption" sx={{ color: "text.secondary" }}>{label}</Typography>
+      <Typography component="dd" sx={{ m: 0, fontWeight: 600 }}>{value}</Typography>
     </Box>
   );
 }
@@ -30,11 +30,11 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="Profile" />
+      <PageHeader title="My Profile" subtitle="Your account details. Name and role changes are made by an administrator in the Users module." />
       <SectionTitle>Account</SectionTitle>
-      <Paper sx={{ p: 2.5, maxWidth: 400 }}>
+      <Paper component="dl" sx={{ p: 2.5, maxWidth: 440, m: 0 }}>
         <Field label="Full Name" value={info.fullName} />
-        <Field label="Username" value={info.username} />
+        <Field label="User ID" value={info.username} />
         <Field label="Role" value={info.role} />
         <Field label="Last Login" value={info.lastLoginAt ? new Date(info.lastLoginAt).toLocaleString() : "Never"} />
         <Field label="Password Last Changed" value={info.passwordChangedAt ? new Date(info.passwordChangedAt).toLocaleString() : "Never"} />

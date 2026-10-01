@@ -2,42 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
   Collapse, Tooltip, IconButton, useMediaQuery, useTheme, MenuItem, MenuList, Divider,
-  Popper, Paper, ClickAwayListener, Avatar, Badge, Menu
+  Popper, Paper, ClickAwayListener
 } from "@mui/material";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
-import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
-import MailOutlineIcon from "@mui/icons-material/MailOutlined";
-import LockResetIcon from "@mui/icons-material/LockReset";
-import LogoutIcon from "@mui/icons-material/Logout";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useNavigate, useLocation, Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { apiClient } from "../services/apiClient";
-import { getGroupedMenu, MenuItem as MenuItemType } from "../routes/menuConfig";
-import { useMyLabs } from "../hooks/useMyLabs";
+import { Link } from "react-router-dom";
+import { MenuGroup, MenuItem as MenuItemType } from "../routes/menuConfig";
+import { NavTrail } from "../routes/navigation";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
-
-function formatRoleFallback(role: string | null, labCodes: string[]): string {
-  if (!role) return "Staff";
-  let prefix = "";
-  if (labCodes.length === 1) {
-    if (labCodes[0] === "MICRO") prefix = "Microbiology";
-    else if (labCodes[0] === "FP") prefix = "Physicochemical";
-  }
-  switch (role) {
-    case "Analyst": return prefix ? `${prefix} Analyst` : "Analyst";
-    case "SectionHead": return prefix ? `${prefix} Section Head` : "Section Head";
-    case "Reviewer": return "Quality Reviewer";
-    case "SystemAdministrator": return "System Administrator";
-    default: return role;
-  }
-}
 
 // How long to keep a flyout open after the pointer leaves it, so moving the
 // mouse from the rail icon into the flyout panel itself doesn't close it
@@ -49,44 +25,16 @@ interface SidebarProps {
   onMobileClose: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  // Built once in MainLayout from the user's permissions and labs, shared
+  // with the breadcrumb so both describe the same location.
+  groups: MenuGroup[];
+  activeTrail: NavTrail | null;
 }
 
-export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse, groups, activeTrail }: SidebarProps) {
   const theme = useTheme();
   const chrome = theme.custom.chrome;
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { username, fullName, jobTitle, role, permissions, logout } = useAuth();
-  const { codes: labCodes } = useMyLabs();
-  const groups = getGroupedMenu({ role, permissions, labCodes });
-
-  const initial = (fullName ?? username ?? "U").charAt(0).toUpperCase();
-  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes);
-
-  const [unreadMessages, setUnreadMessages] = useState<number>(0);
-  const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);
-
-  const loadUnreadMessages = () => {
-    apiClient.get("/messages/unread-count")
-      .then((r) => setUnreadMessages(r.data?.data?.unreadCount ?? 0))
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    loadUnreadMessages();
-    const interval = setInterval(() => {
-      if (document.hidden) return;
-      loadUnreadMessages();
-    }, 60_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSignOut = () => {
-    setProfileAnchor(null);
-    logout();
-    navigate("/login");
-  };
 
   // Rail (icon-only) mode only ever applies on desktop - the mobile temporary
   // Drawer always renders the full labeled nav regardless of the persisted
@@ -94,10 +42,17 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   // inside a full-width touch drawer.
   const effectiveCollapsed = collapsed && !isMobile;
 
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-    Inventory: false,
-    "Laboratory Configuration": false
-  });
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+
+  // Opening a deep link (or navigating from a notification) used to leave
+  // the area holding the current page folded shut, so the active highlight
+  // was invisible. Unfold it whenever the location moves into a new area;
+  // areas the user opened or closed by hand are left as they are.
+  const activeParentLabel = activeTrail?.parent?.label;
+  useEffect(() => {
+    if (!activeParentLabel) return;
+    setOpenSubmenus((prev) => (prev[activeParentLabel] ? prev : { ...prev, [activeParentLabel]: true }));
+  }, [activeParentLabel]);
 
   // Which parent item's flyout submenu is open in rail mode, and the icon
   // element it's anchored to. Only one can be open at a time.
@@ -126,20 +81,20 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   };
 
   const handleItemClick = (item: MenuItemType, anchorEl: HTMLElement) => {
-    if (item.children) {
-      if (effectiveCollapsed) {
-        openFlyout(item.label, anchorEl);
-      } else {
-        toggleSubmenu(item.label);
-      }
-    } else if (item.path) {
-      navigate(item.path);
-      if (isMobile) onMobileClose();
+    if (!item.children) return;
+    if (effectiveCollapsed) {
+      openFlyout(item.label, anchorEl);
+    } else {
+      toggleSubmenu(item.label);
     }
   };
 
+  // Active = the menu link that owns the current location (see
+  // findNavTrail), so query-string links and pages below a link (a run, a
+  // record) highlight too; a parent is active when it holds that link.
+  const isLinkActive = (item: MenuItemType): boolean => activeTrail?.item === item;
   const isItemActive = (item: MenuItemType): boolean =>
-    item.path ? location.pathname === item.path : !!item.children?.some((c) => c.path === location.pathname);
+    isLinkActive(item) || (!!item.children && activeTrail?.parent === item);
 
   const drawerContent = (
     <Box
@@ -172,10 +127,10 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   px: 2.5,
                   pt: groupIdx === 0 ? 0.75 : 1.75,
                   pb: 0.5,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1.1,
-                  color: "rgba(255, 255, 255, 0.6)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  color: "rgba(255, 255, 255, 0.72)",
                   textTransform: "uppercase"
                 }}
               >
@@ -195,11 +150,16 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   <ListItemButton
                     {...(hasChildren
                       ? {
-                          onClick: (e: React.MouseEvent<HTMLElement>) => handleItemClick(item, e.currentTarget)
+                          onClick: (e: React.MouseEvent<HTMLElement>) => handleItemClick(item, e.currentTarget),
+                          "aria-expanded": effectiveCollapsed ? flyoutOpen : isSubOpen,
+                          "aria-haspopup": effectiveCollapsed ? true : undefined,
+                          "aria-label": effectiveCollapsed ? item.label : undefined
                         }
                       : {
                           component: Link,
                           to: item.path!,
+                          "aria-current": active ? "page" : undefined,
+                          "aria-label": effectiveCollapsed ? item.label : undefined,
                           onClick: () => {
                             if (isMobile) onMobileClose();
                           }
@@ -241,9 +201,10 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       <ListItemText
                         primary={item.label}
                         slotProps={{
+                          // Wraps rather than truncating: "Physicochemical
+                          // Configuration" clipped to "Physicochemical Conf…".
                           primary: {
-                            noWrap: true,
-                            sx: { fontSize: 13, fontWeight: active ? 700 : 500 }
+                            sx: { fontSize: 13.5, fontWeight: active ? 600 : 500, lineHeight: 1.3 }
                           }
                         }}
                       />
@@ -269,25 +230,28 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       <Collapse in={isSubOpen} timeout="auto" unmountOnExit>
                         <List disablePadding sx={{ pl: 2.5 }}>
                           {item.children!.map((child) => {
-                            const childActive = location.pathname === child.path;
+                            const childActive = isLinkActive(child);
                             return (
                               <ListItemButton
                                 key={child.path}
                                 component={Link}
                                 to={child.path!}
+                                aria-current={childActive ? "page" : undefined}
                                 onClick={() => {
                                   if (isMobile) onMobileClose();
                                 }}
                                 sx={{
-                                  minHeight: 32,
+                                  minHeight: 34,
                                   py: 0.5,
                                   px: 1.75,
                                   my: 0.25,
+                                  mr: 1,
                                   borderRadius: 1,
                                   bgcolor: childActive
                                     ? (theme.palette.mode === "dark" ? chrome.sidebarActiveBg : "rgba(255, 255, 255, 0.2)")
                                     : "transparent",
-                                  color: childActive ? chrome.sidebarActiveText : "rgba(255, 255, 255, 0.8)",
+                                  color: childActive ? chrome.sidebarActiveText : "rgba(255, 255, 255, 0.85)",
+                                  boxShadow: childActive ? `inset 3px 0 0 ${chrome.sidebarActiveBorder}` : "none",
                                   "&:hover": {
                                     bgcolor: "rgba(255, 255, 255, 0.1)",
                                     color: "#fff"
@@ -298,8 +262,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                   primary={child.label}
                                   slotProps={{
                                     primary: {
-                                      noWrap: true,
-                                      sx: { fontSize: 12, fontWeight: childActive ? 700 : 400 }
+                                      sx: { fontSize: 13, fontWeight: childActive ? 600 : 400, lineHeight: 1.3 }
                                     }
                                   }}
                                 />
@@ -343,7 +306,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                             <Divider sx={{ mb: 0.5 }} />
                             <MenuList dense>
                               {item.children!.map((child) => {
-                                const childActive = location.pathname === child.path;
+                                const childActive = isLinkActive(child);
                                 const ChildIcon = child.icon;
                                 return (
                                   <MenuItem
@@ -351,6 +314,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                     component={Link}
                                     to={child.path!}
                                     selected={childActive}
+                                    aria-current={childActive ? "page" : undefined}
                                     onClick={() => {
                                       setFlyoutItem(null);
                                     }}
@@ -380,131 +344,15 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
         ))}
       </Box>
 
-      {/* User Profile Section at Bottom-Left */}
-      <Box
-        sx={{
-          p: effectiveCollapsed ? 1 : 1.25,
-          borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-          flexShrink: 0
-        }}
-      >
-        {effectiveCollapsed ? (
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Tooltip title={`${fullName ?? username} (${displayTitle})`} placement="right">
-              <IconButton
-                onClick={(e) => setProfileAnchor(e.currentTarget)}
-                sx={{
-                  p: 0.5,
-                  "&:hover": { bgcolor: "rgba(255, 255, 255, 0.1)" }
-                }}
-              >
-                <Badge badgeContent={unreadMessages} color="error" overlap="circular">
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: theme.palette.primary.main, fontWeight: 700, fontSize: 13 }}>
-                    {initial}
-                  </Avatar>
-                </Badge>
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ) : (
-          <Box
-            onClick={(e) => setProfileAnchor(e.currentTarget)}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.25,
-              cursor: "pointer",
-              p: 0.75,
-              borderRadius: 1.5,
-              bgcolor: profileAnchor ? "rgba(255, 255, 255, 0.1)" : "transparent",
-              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.08)" }
-            }}
-          >
-            <Badge badgeContent={unreadMessages} color="error" overlap="circular">
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: theme.palette.primary.main, fontWeight: 700, fontSize: 13 }}>
-                {initial}
-              </Avatar>
-            </Badge>
-            <Box sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-              <Typography sx={{ fontWeight: 700, fontSize: 12.5, color: "#fff", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {fullName ?? username}
-              </Typography>
-              <Typography sx={{ fontSize: 10.5, color: "rgba(255, 255, 255, 0.7)", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {displayTitle}
-              </Typography>
-            </Box>
-            <MoreVertIcon sx={{ fontSize: 18, color: "rgba(255, 255, 255, 0.6)" }} />
-          </Box>
-        )}
-
-        <Menu
-          anchorEl={profileAnchor}
-          open={Boolean(profileAnchor)}
-          onClose={() => setProfileAnchor(null)}
-          anchorOrigin={{
-            vertical: "top",
-            horizontal: effectiveCollapsed ? "right" : "left"
-          }}
-          transformOrigin={{
-            vertical: "bottom",
-            horizontal: "left"
-          }}
-          slotProps={{ paper: { sx: { minWidth: 230, py: 0.5, mb: 1 } } }}
-        >
-          <Box sx={{ px: 2, py: 1 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{fullName ?? username}</Typography>
-            <Typography sx={{ fontSize: 11.5, color: "text.secondary", fontWeight: 500 }}>{displayTitle}</Typography>
-            <Typography sx={{ fontSize: 10.5, color: "text.disabled" }}>Role: {role}</Typography>
-          </Box>
-          <Divider />
-          <MenuItem component={Link} to="/profile" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
-            <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="My Profile" slotProps={{
-              primary: { sx: { fontSize: 13 } }
-            }} />
-          </MenuItem>
-          <MenuItem component={Link} to="/discussions" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
-            <ListItemIcon><ForumOutlinedIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Discussions" slotProps={{
-              primary: { sx: { fontSize: 13 } }
-            }} />
-          </MenuItem>
-          <MenuItem component={Link} to="/messages" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
-            <ListItemIcon>
-              <Badge badgeContent={unreadMessages} color="error">
-                <MailOutlineIcon fontSize="small" />
-              </Badge>
-            </ListItemIcon>
-            <ListItemText primary="Messages" slotProps={{
-              primary: { sx: { fontSize: 13 } }
-            }} />
-            {unreadMessages > 0 && (
-              <Typography sx={{ fontSize: 11, bgcolor: "error.main", color: "#fff", px: 0.75, py: 0.1, borderRadius: 1, fontWeight: 700 }}>
-                {unreadMessages}
-              </Typography>
-            )}
-          </MenuItem>
-          <MenuItem component={Link} to="/change-password" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
-            <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Change Password" slotProps={{
-              primary: { sx: { fontSize: 13 } }
-            }} />
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleSignOut}>
-            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Sign Out" slotProps={{
-              primary: { sx: { fontSize: 13 } }
-            }} />
-          </MenuItem>
-        </Menu>
-      </Box>
-
       {/* Collapse/Expand Toggle on Desktop */}
       {!isMobile && (
         <Box sx={{ p: 1, borderTop: "1px solid rgba(255, 255, 255, 0.12)", textAlign: "center", flexShrink: 0 }}>
           <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            <IconButton onClick={onToggleCollapse} sx={{ color: "rgba(255, 255, 255, 0.8)", "&:hover": { color: "#fff" } }}>
+            <IconButton
+              onClick={onToggleCollapse}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              sx={{ color: "rgba(255, 255, 255, 0.8)", "&:hover": { color: "#fff" } }}
+            >
               {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
             </IconButton>
           </Tooltip>
@@ -536,6 +384,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
       ) : (
         <Box
           component="nav"
+          aria-label="Main navigation"
           className="no-print"
           sx={{
             width: collapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,

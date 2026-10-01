@@ -57,7 +57,6 @@ export function WorkspaceRunHeader({
               size="small"
               startIcon={<CancelOutlinedIcon />}
               onClick={onAbandon}
-              sx={{ textTransform: "none" }}
             >
               Abandon Run...
             </Button>

@@ -102,32 +102,27 @@ export function SectionHeadDashboardPage() {
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
-        <PageHeader
-          title={`Section Head Command Center — ${displayName}`}
-          subtitle="Laboratory-wide operational overview, workflow bottlenecks, and intervention tracking."
-        />
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={reload}
-            disabled={loading}
-            startIcon={<RefreshIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
-          <Button
-            component={Link}
-            to="/receiving-testing"
-            variant="contained"
-            startIcon={<ScienceOutlinedIcon />}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Receiving & Testing Workspace
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title={`Section Head Command Center — ${displayName}`}
+        subtitle="Laboratory-wide operational overview, workflow bottlenecks, and intervention tracking."
+      >
+        <Button
+          variant="outlined"
+          onClick={reload}
+          disabled={loading}
+          startIcon={<RefreshIcon />}
+        >
+          Refresh
+        </Button>
+        <Button
+          component={Link}
+          to="/receiving-testing"
+          variant="contained"
+          startIcon={<ScienceOutlinedIcon />}
+        >
+          Receiving & Testing Workspace
+        </Button>
+      </PageHeader>
 
       {/* Tier 1: Laboratory Overview KPI Strip */}
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>

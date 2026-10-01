@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box, TextField, Button, Typography, Alert, Link, Stack, useTheme,
   IconButton, InputAdornment, CircularProgress
@@ -63,11 +63,17 @@ export function LoginPage() {
     }
   };
 
+  // The tab otherwise keeps the title of the page the user signed out from.
+  useEffect(() => {
+    document.title = "Sign in · MicroLIMS";
+  }, []);
+
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.default" }}>
+    <Box component="main" sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.default", p: 2 }}>
       <Box
         sx={{
-          width: 380,
+          width: "100%",
+          maxWidth: 380,
           borderRadius: 2.5,
           overflow: "hidden",
           boxShadow:
@@ -77,8 +83,9 @@ export function LoginPage() {
         }}
       >
         <Box sx={{ background: theme.custom.chrome.topbarBg, color: "#fff", px: 3, py: 2.5, textAlign: "center" }}>
-          <Typography sx={{ fontSize: 22, fontWeight: 700 }}>
+          <Typography component="h1" sx={{ fontSize: 22, fontWeight: 700 }}>
             Micro<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandAccent }}>LIMS</Box>
+            <Box component="span" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}> sign in</Box>
           </Typography>
         </Box>
 
@@ -113,7 +120,7 @@ export function LoginPage() {
                 component={RouterLink}
                 to="/admin-recovery"
                 underline="hover"
-                sx={{ fontSize: 13, color: "warning.main" }}
+                sx={{ fontSize: 13, color: theme.palette.mode === "dark" ? "warning.light" : "warning.dark" }}
               >
                 Have a recovery code from your admin?
               </Link>
@@ -142,7 +149,7 @@ export function LoginPage() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label="toggle password visibility"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                         onClick={() => setShowPassword((prev) => !prev)}
                         edge="end"
                         size="small"
@@ -161,7 +168,7 @@ export function LoginPage() {
               disabled={isSubmitting}
               startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
             >
-              {isSubmitting ? "Authenticating..." : "Login"}
+              {isSubmitting ? "Signing in…" : "Sign In"}
             </Button>
             <Stack spacing={1} sx={{
               textAlign: "center"
@@ -173,7 +180,7 @@ export function LoginPage() {
                 component={RouterLink}
                 to="/admin-recovery"
                 underline="hover"
-                sx={{ fontSize: 13, color: "warning.main" }}
+                sx={{ fontSize: 13, color: theme.palette.mode === "dark" ? "warning.light" : "warning.dark" }}
               >
                 Admin-Assisted Password Recovery
               </Link>

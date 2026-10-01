@@ -56,7 +56,7 @@ export function ReasonDialog({
       maxWidth="sm"
       actions={
         <>
-          <Button onClick={onClose} disabled={loading} sx={{ textTransform: "none" }}>
+          <Button onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button

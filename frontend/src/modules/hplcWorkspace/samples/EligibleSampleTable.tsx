@@ -137,7 +137,6 @@ export function EligibleSampleTable({
                       type="submit"
                       size="small"
                       disabled={loading || assigning}
-                      sx={{ textTransform: "none" }}
                     >
                       Search
                     </Button>
@@ -238,7 +237,6 @@ export function EligibleSampleTable({
         <Button
           onClick={onClose}
           disabled={assigning}
-          sx={{ textTransform: "none" }}
         >
           Cancel
         </Button>

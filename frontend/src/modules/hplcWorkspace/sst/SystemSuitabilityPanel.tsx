@@ -286,7 +286,6 @@ export function SystemSuitabilityPanel({
             color="error"
             startIcon={<CancelOutlinedIcon />}
             onClick={() => setAbandonOpen(true)}
-            sx={{ textTransform: "none" }}
           >
             Abandon Run...
           </Button>

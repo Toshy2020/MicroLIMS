@@ -242,7 +242,6 @@ export function ReviewStep({
             variant="outlined"
             onClick={onBack}
             startIcon={<ArrowBackIcon />}
-            sx={{ textTransform: "none" }}
           >
             Back to Edit
           </Button>

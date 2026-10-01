@@ -96,7 +96,11 @@ export function reportClientError(input: {
     const error = input.error;
     const asError = error instanceof Error ? error : undefined;
 
+    // apiClient swaps axios's own text for a user-facing one; the admin
+    // error log wants the original.
+    const technicalMessage = (error as { technicalMessage?: unknown } | null)?.technicalMessage;
     const message =
+      clamp(typeof technicalMessage === "string" ? technicalMessage : undefined, MESSAGE_MAX) ??
       clamp(asError?.message, MESSAGE_MAX) ??
       clamp(typeof error === "string" ? error : undefined, MESSAGE_MAX) ??
       "Unknown client error";

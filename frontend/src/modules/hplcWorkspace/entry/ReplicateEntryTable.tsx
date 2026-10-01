@@ -163,7 +163,6 @@ export function ReplicateEntryTable({
           startIcon={<AddIcon />}
           onClick={handleAddRow}
           disabled={disabled}
-          sx={{ textTransform: "none" }}
         >
           Add Replicate
         </Button>

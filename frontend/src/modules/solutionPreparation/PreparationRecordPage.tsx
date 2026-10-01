@@ -147,7 +147,6 @@ export function PreparationRecordPage() {
             size="small"
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate("/preparation")}
-            sx={{ textTransform: "none" }}
           >
             Back to List
           </Button>
@@ -283,7 +282,6 @@ export function PreparationRecordPage() {
                 color="error"
                 startIcon={<CancelOutlinedIcon />}
                 onClick={() => handleOpenAction("cancel")}
-                sx={{ textTransform: "none" }}
               >
                 Cancel Preparation
               </Button>
@@ -304,7 +302,6 @@ export function PreparationRecordPage() {
               color="error"
               startIcon={<DeleteOutlineOutlinedIcon />}
               onClick={() => handleOpenAction("discard")}
-              sx={{ textTransform: "none" }}
             >
               Discard Solution
             </Button>

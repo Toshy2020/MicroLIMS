@@ -416,7 +416,6 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   variant="outlined"
                   startIcon={<UploadFileIcon fontSize="small" />}
                   onClick={() => openUploadDialog(ItemDocumentType.Sop)}
-                  sx={{ textTransform: "none" }}
                 >
                   + Upload SOP
                 </Button>
@@ -477,7 +476,6 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   variant="outlined"
                   startIcon={<UploadFileIcon fontSize="small" />}
                   onClick={() => openUploadDialog(ItemDocumentType.VerificationReport)}
-                  sx={{ textTransform: "none" }}
                 >
                   + Upload Verification Report
                 </Button>
@@ -541,7 +539,6 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
               variant="contained"
               startIcon={<HistoryIcon />}
               onClick={() => setAuditDialogOpen(true)}
-              sx={{ textTransform: "none" }}
             >
               Open Audit History Log
             </Button>

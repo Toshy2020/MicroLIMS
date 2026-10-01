@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Button,
   Box,
   Typography,
   Chip,
-  Divider,
-  CircularProgress,
   Stack,
   useTheme
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import { formatLabDateTime } from "../utils/formatDate";
 import { FloatingDialog } from "./FloatingDialog";
+import { LoadingSpinner } from "./LoadingSpinner";
+import { EmptyState } from "./lab/EmptyState";
+import { getErrorMessage } from "../utils/errorMessage";
 import { AuditSearchService } from "../modules/auditSearch/services/AuditSearchService";
 import type { AuditLogItem } from "../modules/auditSearch/types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../modules/auditSearch/types/auditTypes";
@@ -40,18 +42,23 @@ export function AuditHistoryDialog({
   const theme = useTheme();
   const [entries, setEntries] = useState<AuditLogItem[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expandedRawId, setExpandedRawId] = useState<number | null>(null);
+  // A failed load used to be stored as an empty list, so the dialog stated
+  // "No audit log entries recorded" for a record whose trail simply could
+  // not be fetched - a false statement about a GMP record.
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (open && entityId != null) {
       setLoading(true);
       setEntries(null);
+      setError(null);
       AuditSearchService.getForEntity(entityName, entityId)
         .then((res) => setEntries(res))
-        .catch(() => setEntries([]))
+        .catch((err) => setError(getErrorMessage(err, "The audit history could not be loaded.")))
         .finally(() => setLoading(false));
     }
-  }, [open, entityName, entityId]);
+  }, [open, entityName, entityId, reloadKey]);
 
   const friendlyEntity = ENTITY_DISPLAY_NAMES[entityName] ?? entityName;
 
@@ -76,23 +83,27 @@ export function AuditHistoryDialog({
       }
     >
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress size={24} />
-        </Box>
+        <LoadingSpinner label="Loading audit history…" showLabel />
+      ) : error ? (
+        <Alert
+          severity="error"
+          action={<Button color="inherit" size="small" onClick={() => setReloadKey((k) => k + 1)}>Retry</Button>}
+        >
+          {error}
+        </Alert>
       ) : !entries || entries.length === 0 ? (
-        <Typography
-          sx={{
-            color: "text.secondary",
-            textAlign: "center",
-            py: 3,
-            fontStyle: "italic"
-          }}>
-          No audit log entries recorded for this entity.
-        </Typography>
+        <EmptyState
+          icon={<HistoryIcon />}
+          title="No audit entries recorded"
+          description="No changes have been recorded for this record yet."
+        />
       ) : (
-        <Stack divider={<Divider sx={{ my: 2 }} />} spacing={2}>
+        // Newest first as the server returns them. Each entry answers who,
+        // what (action + field changes) and when, in that order.
+        <Stack component="ol" spacing={1.5} sx={{ listStyle: "none", m: 0, p: 0 }}>
           {entries.map((entry) => (
             <Box
+              component="li"
               key={entry.id}
               sx={{
                 p: 2,
@@ -102,7 +113,7 @@ export function AuditHistoryDialog({
                 borderColor: "divider"
               }}
             >
-              {/* Event header */}
+              {/* Event header: action, who, when */}
               <Box
                 sx={{
                   display: "flex",
@@ -113,22 +124,23 @@ export function AuditHistoryDialog({
                   gap: 1
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                   <Chip
-                    label={entry.action.toUpperCase()}
+                    label={entry.action}
                     size="small"
                     color={ACTION_COLORS[entry.action] ?? "default"}
-                    sx={{ fontWeight: 700, fontSize: 10, height: 20 }}
+                    variant="outlined"
+                    sx={{ height: 22 }}
                   />
-                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                     {entry.userName}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", fontFamily: "monospace" }}>
-                    (User #{entry.userId})
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", fontFamily: "monospace" }}>
+                    User #{entry.userId}
                   </Typography>
                 </Box>
 
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography component="time" dateTime={entry.timestamp} sx={{ fontSize: 12.5, color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
                   {formatLabDateTime(entry.timestamp)} UTC
                 </Typography>
               </Box>

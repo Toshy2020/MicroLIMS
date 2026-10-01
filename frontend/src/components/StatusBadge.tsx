@@ -28,6 +28,9 @@ const statusLabelMap: Record<string, string> = {
   DueToday: "Due Today",
   DueTomorrow: "Due Tomorrow",
   Returned: "Returned",
+  InTesting: "In Testing",
+  UnderReview: "Under Review",
+  UnderApproval: "Under Approval",
 
   // Document Control. The specs mandate the spaced display strings for the
   // three multi-word revision states (ML-DC-FRS-1B-001 §3.3:234,273;
@@ -61,6 +64,28 @@ export function statusColor(status: string, theme: Theme): string {
   return theme.custom.status[statusTone(status)].bg;
 }
 
+// One pill shape for every status/category/cause badge in the app, so the
+// three badge kinds can never drift apart in size, weight or padding. 12px
+// semibold: status is the most important word in a laboratory row, so it is
+// not set smaller than the table text around it. Text is always present, so
+// status is never communicated by color alone.
+function Pill({ tone, children }: { tone: StatusTone; children: string }) {
+  const theme = useTheme();
+  const tokens = theme.custom.status[tone];
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-block", px: 1, py: 0.125, borderRadius: 5,
+        fontSize: 12, fontWeight: 600, lineHeight: 1.5, whiteSpace: "nowrap", verticalAlign: "middle",
+        color: tokens.text, bgcolor: tokens.bg, border: `1px solid ${tokens.border}`
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 // .type-badge pill from the design, driven off a status string. `label`
 // overrides the display text while `status` still drives the color
 // lookup - for cases like TaskUrgency where the raw enum value ("DueSoon")
@@ -68,44 +93,12 @@ export function statusColor(status: string, theme: Theme): string {
 // text and border all come from theme.custom.status[tone] so light/dark
 // values are dedicated tokens, not one color faded for the other mode.
 export function StatusBadge({ status, label }: { status: string; label?: string }) {
-  const theme = useTheme();
-  const tokens = theme.custom.status[statusTone(status)];
-  const text = label ?? statusLabelMap[status] ?? status;
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-block", px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700,
-        color: tokens.text, bgcolor: tokens.bg, border: `1px solid ${tokens.border}`
-      }}
-    >
-      {text}
-    </Box>
-  );
+  return <Pill tone={statusTone(status)}>{label ?? statusLabelMap[status] ?? status}</Pill>;
 }
 
 // .cause-badge pill from the design (purple tone).
 export function CauseBadge({ label }: { label: string }) {
-  const theme = useTheme();
-  const tokens = theme.custom.status.purple;
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-block",
-        px: 1,
-        py: 0.25,
-        borderRadius: 5,
-        fontSize: 11,
-        fontWeight: 700,
-        bgcolor: tokens.bg,
-        color: tokens.text,
-        border: `1px solid ${tokens.border}`
-      }}
-    >
-      {label}
-    </Box>
-  );
+  return <Pill tone="purple">{label}</Pill>;
 }
 
 // .badge-RM / badge-Product / badge-PM from the design. Backend sends
@@ -130,35 +123,10 @@ const categoryToneMap: Record<string, StatusTone> = {
   ReferenceStrain: "pale"
 };
 
-function categoryTone(category: string): StatusTone {
-  return categoryToneMap[category] ?? "pending";
-}
-
 export function categoryLabel(category: string): string {
   return categoryDisplayMap[category] ?? category;
 }
 
 export function CategoryBadge({ category }: { category: string }) {
-  const theme = useTheme();
-  const tone = categoryTone(category);
-  const tokens = theme.custom.status[tone];
-  const label = categoryDisplayMap[category] ?? category;
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-block",
-        px: 1,
-        py: 0.25,
-        borderRadius: 5,
-        fontSize: 11,
-        fontWeight: 700,
-        color: tokens.text,
-        bgcolor: tokens.bg,
-        border: `1px solid ${tokens.border}`
-      }}
-    >
-      {label}
-    </Box>
-  );
+  return <Pill tone={categoryToneMap[category] ?? "pending"}>{categoryLabel(category)}</Pill>;
 }

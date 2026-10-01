@@ -183,7 +183,6 @@ export function LotsStep({
             onClick={handleSaveDraft}
             disabled={saving}
             startIcon={saving ? <CircularProgress size={14} /> : <SaveOutlinedIcon />}
-            sx={{ textTransform: "none" }}
           >
             Save Draft
           </Button>

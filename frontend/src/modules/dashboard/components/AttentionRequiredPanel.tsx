@@ -8,6 +8,8 @@ import { Link } from "react-router-dom";
 import { NotificationItem, MediaExpiryLot } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { useLoadFailures } from "../../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../../components/LoadErrorAlert";
 import { DashboardService } from "../services/DashboardService";
 
 function timeAgo(timestamp: string): string {
@@ -30,6 +32,9 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [expiringMedia, setExpiringMedia] = useState<MediaExpiryLot[]>([]);
+  // A failed load used to end in "No active attention alerts. All conditions
+  // normal." - the one message this panel must never show on a failure.
+  const { failed: failedLists, fail } = useLoadFailures();
 
   useEffect(() => {
     if (propNotifications) {
@@ -37,9 +42,9 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
     } else {
       DashboardService.getNotifications()
         .then((items) => setNotifications(items.filter((n) => n.type !== "ReviewWaiting" && n.type !== "ApprovalWaiting")))
-        .catch(() => setNotifications([]));
+        .catch(fail("notifications", () => setNotifications([])));
     }
-  }, [propNotifications]);
+  }, [propNotifications, fail]);
 
   useEffect(() => {
     if (propExpiringMedia) {
@@ -47,9 +52,9 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
     } else {
       DashboardService.getMediaExpiry(5)
         .then(setExpiringMedia)
-        .catch(() => setExpiringMedia([]));
+        .catch(fail("expiring media", () => setExpiringMedia([])));
     }
-  }, [propExpiringMedia]);
+  }, [propExpiringMedia, fail]);
 
   return (
     <Paper sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
@@ -59,6 +64,8 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
         <LoadingSpinner />
       ) : (
         <Stack spacing={1.5} sx={{ flex: 1 }}>
+          <LoadFailuresAlert failed={failedLists} retryHint="Refresh the dashboard to try again." />
+
           {/* Expiring media alerts */}
           {expiringMedia.map((lot) => (
             <Box
@@ -128,7 +135,7 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
             </Box>
           ))}
 
-          {expiringMedia.length === 0 && notifications.length === 0 && (
+          {failedLists.length === 0 && expiringMedia.length === 0 && notifications.length === 0 && (
             <Box sx={{ py: 3, textAlign: "center" }}>
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                 No active attention alerts. All conditions normal.

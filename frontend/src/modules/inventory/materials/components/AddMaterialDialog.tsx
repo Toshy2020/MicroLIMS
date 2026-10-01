@@ -25,6 +25,8 @@ import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit, MATERIAL_U
 import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
 import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { getMySections, LaboratorySection } from "../../../../services/laboratorySectionService";
 import {
   MaterialMasterService,
@@ -105,6 +107,9 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     custom: string[];
   } | null>(null);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
+  // Without this, a failed storage-equipment load showed "No in-service
+  // refrigerator configured" - a statement about the lab, not the network.
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
   const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
   const [equipmentList, setEquipmentList] = useState<StorageEquipmentOption[]>([]);
   const [equipmentLoading, setEquipmentLoading] = useState(false);
@@ -144,6 +149,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     setError(null);
 
     if (open) {
+      resetFailures();
       getMySections()
         .then((secs) => {
           setMySections(secs);
@@ -155,15 +161,15 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             }
           }
         })
-        .catch(() => setMySections([]));
+        .catch(fail("your laboratory sections", () => setMySections([])));
 
       setEquipmentLoading(true);
       EquipmentInventoryService.getAll()
         .then((data: StorageEquipmentOption[]) => setEquipmentList(data || []))
-        .catch(() => setEquipmentList([]))
+        .catch(fail("storage equipment", () => setEquipmentList([])))
         .finally(() => setEquipmentLoading(false));
     }
-  }, [editingItem, open]);
+  }, [editingItem, open, fail, resetFailures]);
 
   const activeSectionId = editingItem
     ? editingItem.sectionId
@@ -681,6 +687,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         </Box>
       }
     >
+      <LoadFailuresAlert failed={failedLists} sx={{ mb: 2.5 }} />
       {error && (
         <Alert severity="error" sx={{ mb: 2.5 }}>
           {error}

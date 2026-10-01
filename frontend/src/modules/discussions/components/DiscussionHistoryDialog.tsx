@@ -14,6 +14,7 @@ import {
 import HistoryIcon from "@mui/icons-material/History";
 import { discussionService } from "../services/discussionService";
 import { DiscussionVersion } from "../types/discussionTypes";
+import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { DiscussionCategoryBadge } from "./DiscussionCategoryBadge";
 
 interface Props {
@@ -26,17 +27,24 @@ interface Props {
 export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Props) {
   const [history, setHistory] = useState<DiscussionVersion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  // A failed load used to read "No prior edits recorded".
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (open) {
       setLoading(true);
+      setLoadFailed(false);
       discussionService
         .getHistory(postId)
         .then((res) => setHistory(res))
-        .catch(() => setHistory([]))
+        .catch(() => {
+          setHistory([]);
+          setLoadFailed(true);
+        })
         .finally(() => setLoading(false));
     }
-  }, [open, postId]);
+  }, [open, postId, reloadKey]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -50,6 +58,11 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={32} />
           </Box>
+        ) : loadFailed ? (
+          <LoadErrorAlert
+            message="The version history of this post could not be loaded."
+            onRetry={() => setReloadKey((k) => k + 1)}
+          />
         ) : history.length === 0 ? (
           <Typography sx={{ color: "text.secondary", textAlign: "center", py: 4 }}>
             No prior edits recorded. This post is on its initial version.

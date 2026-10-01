@@ -165,6 +165,8 @@ export function EquipmentPage() {
   const [newSetPoint, setNewSetPoint] = useState("");
   const [setPointReason, setSetPointReason] = useState("");
   const [setPointHistory, setSetPointHistory] = useState<IncubatorSetPointHistory[]>([]);
+  // Kept apart from an empty history: "no set-point changes" is a GMP claim.
+  const [setPointHistoryFailed, setSetPointHistoryFailed] = useState(false);
 
   // Autoclave Program Edit State
   const [programDialogOpen, setProgramDialogOpen] = useState(false);
@@ -263,11 +265,15 @@ export function EquipmentPage() {
 
   // Load history when selected equipment changes
   useEffect(() => {
+    setSetPointHistoryFailed(false);
     if (selectedEquipment) {
       if (selectedEquipment.type === "Incubator" || selectedEquipment.type === 0) {
         EquipmentConfigurationService.getSetPointHistory(selectedEquipment.id)
           .then((history) => setSetPointHistory(Array.isArray(history) ? history : []))
-          .catch(() => setSetPointHistory([]));
+          .catch(() => {
+            setSetPointHistory([]);
+            setSetPointHistoryFailed(true);
+          });
       }
     } else {
       setSetPointHistory([]);
@@ -904,8 +910,10 @@ export function EquipmentPage() {
                           ))}
                           {safeSetPointHistory.length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={5} align="center" sx={{ color: "text.secondary", py: 3 }}>
-                                No set point changes recorded yet.
+                              <TableCell colSpan={5} align="center" sx={{ color: setPointHistoryFailed ? "error.main" : "text.secondary", py: 3 }}>
+                                {setPointHistoryFailed
+                                  ? "The set point history could not be loaded. Select the incubator again to retry."
+                                  : "No set point changes recorded yet."}
                               </TableCell>
                             </TableRow>
                           )}
@@ -1137,8 +1145,10 @@ export function EquipmentPage() {
                   ))}
                   {safeSetPointHistory.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        Select an incubator equipment item under Configured Equipment to view its configuration history.
+                      <TableCell colSpan={6} align="center" sx={{ py: 3, color: setPointHistoryFailed ? "error.main" : "text.secondary" }}>
+                        {setPointHistoryFailed
+                          ? "The set point history could not be loaded. Select the incubator again to retry."
+                          : "Select an incubator equipment item under Configured Equipment to view its configuration history."}
                       </TableCell>
                     </TableRow>
                   )}

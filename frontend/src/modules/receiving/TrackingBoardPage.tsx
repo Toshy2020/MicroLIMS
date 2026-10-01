@@ -113,6 +113,7 @@ export function TrackingBoardPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [items, setItems] = useState<{ id: number; name: string }[]>([]);
+  const [itemsLoadFailed, setItemsLoadFailed] = useState(false);
   const [productFilter, setProductFilter] = useState<{ id: number; name: string } | null>(null);
 
   const [page, setPage] = useState(0);
@@ -120,7 +121,10 @@ export function TrackingBoardPage() {
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
 
   useEffect(() => {
-    masterDataOptions.getItems().then(setItems).catch(() => setItems([]));
+    masterDataOptions.getItems().then(setItems).catch(() => {
+      setItems([]);
+      setItemsLoadFailed(true);
+    });
   }, []);
 
   const loadRows = async () => {
@@ -217,7 +221,15 @@ export function TrackingBoardPage() {
             value={productFilter}
             onChange={(_, v) => { setProductFilter(v); setPage(0); }}
             isOptionEqualToValue={(a, b) => a.id === b.id}
-            renderInput={(params) => <TextField {...params} label="Product / Item" />}
+            noOptionsText={itemsLoadFailed ? "Product list could not be loaded" : undefined}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Product / Item"
+                error={itemsLoadFailed}
+                helperText={itemsLoadFailed ? "Product list unavailable - reload the page to retry." : undefined}
+              />
+            )}
           />
 
           <TextField

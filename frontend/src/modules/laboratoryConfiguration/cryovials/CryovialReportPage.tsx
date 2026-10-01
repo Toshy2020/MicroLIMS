@@ -29,13 +29,16 @@ export function CryovialReportPage() {
   const [summary, setSummary] = useState<CryovialSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [archivedCopies, setArchivedCopies] = useState<ArchivedRecordSummary[]>([]);
+  const [archivedCopiesError, setArchivedCopiesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     apiClient.get(`/cryovials/${id}/summary`)
       .then((r) => setSummary(r.data.data))
       .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the cryovial batch record."));
-    ArchivedRecordsService.getForEntity("Cryovial", Number(id)).then(setArchivedCopies).catch(() => setArchivedCopies([]));
+    ArchivedRecordsService.getForEntity("Cryovial", Number(id))
+      .then(setArchivedCopies)
+      .catch(() => setArchivedCopiesError("The archived copies of this record could not be loaded. Reload the page to try again."));
   }, [id]);
 
   useEffect(() => {
@@ -176,6 +179,7 @@ export function CryovialReportPage() {
         <SignatureSection signatures={s.signatures} />
         <ArchivedCopiesSection
           copies={archivedCopies}
+          error={archivedCopiesError}
           onDownload={(archiveId, fileName) => ArchivedRecordsService.download(archiveId, fileName)}
         />
         <ReportFooter documentId={s.code} />

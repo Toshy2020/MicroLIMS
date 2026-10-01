@@ -21,6 +21,8 @@ import { MaterialService } from "../../../inventory/materials/services/MaterialS
 import { MaterialItem } from "../../../inventory/materials/types/materialTypes";
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 
 interface Props {
   open: boolean;
@@ -36,16 +38,18 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   useEffect(() => {
     if (open) {
       setError(null);
       setForm({});
       setAutoclavePrograms([]);
-      masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(() => setAutoclaves([]));
-      MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(() => setDehydratedMedia([]));
+      resetFailures();
+      masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(fail("autoclaves", () => setAutoclaves([])));
+      MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(fail("dehydrated media stock", () => setDehydratedMedia([])));
     }
-  }, [open]);
+  }, [open, fail, resetFailures]);
 
   const usableStock = dehydratedMedia.filter((m) => m.status === "InStock");
   const selectedMaterial = usableStock.find((m) => m.id === form.materialId);
@@ -189,6 +193,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
         </DialogTitle>
 
         <DialogContent dividers>
+          <LoadFailuresAlert failed={failedLists} sx={{ mb: 2 }} />
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}

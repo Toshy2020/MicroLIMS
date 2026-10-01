@@ -30,6 +30,8 @@ import { CryovialService } from "../services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
@@ -62,22 +64,26 @@ export function PrepareCryovialBatchDialog({
   const [panel, setPanel] = useState<PanelRow[]>([emptyRow()]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   useEffect(() => {
     if (open) {
       setError(null);
       setForm({});
       setPanel([emptyRow()]);
-      MaterialService.getAll("LyophilizedMicroorganism").then(setMaterials);
-      masterDataOptions.getReleasedMedia().then(setReleasedMedia);
-      masterDataOptions.getEquipment("Incubator").then(setIncubators);
+      resetFailures();
+      // These three had no catch at all: a failure was an unhandled
+      // rejection and left the pickers silently empty.
+      MaterialService.getAll("LyophilizedMicroorganism").then(setMaterials).catch(fail("lyophilized microorganism stock", () => setMaterials([])));
+      masterDataOptions.getReleasedMedia().then(setReleasedMedia).catch(fail("released media", () => setReleasedMedia([])));
+      masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(fail("incubators", () => setIncubators([])));
       setEquipmentLoading(true);
       EquipmentInventoryService.getAll()
         .then((data: any[]) => setEquipmentList(data || []))
-        .catch(() => setEquipmentList([]))
+        .catch(fail("storage equipment", () => setEquipmentList([])))
         .finally(() => setEquipmentLoading(false));
     }
-  }, [open]);
+  }, [open, fail, resetFailures]);
 
   const usableMaterials = materials.filter((m) => m.status === "InStock");
   const selectedMaterial = usableMaterials.find((m) => m.id === form.materialId);
@@ -208,6 +214,7 @@ export function PrepareCryovialBatchDialog({
       }
     >
       <Stack spacing={3}>
+        <LoadFailuresAlert failed={failedLists} />
         {error && <Alert severity="error">{error}</Alert>}
 
         {/* SECTION 1: Source / Batch Information */}
@@ -369,7 +376,7 @@ export function PrepareCryovialBatchDialog({
             />
           </Box>
 
-          {eligibleFreezers.length === 0 && !equipmentLoading && (
+          {eligibleFreezers.length === 0 && !equipmentLoading && !failedLists.includes("storage equipment") && (
             <Alert severity="warning" sx={{ mt: 1.5 }}>
               No available freezer/deep freezer is currently in service.
             </Alert>

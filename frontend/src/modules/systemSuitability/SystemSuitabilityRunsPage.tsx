@@ -127,6 +127,8 @@ export function SystemSuitabilityRunsPage() {
   const [columns, setColumns] = useState<ChromatographyColumnDto[]>([]);
   const [standards, setStandards] = useState<ReferenceStandard[]>([]);
   const [analyteRows, setAnalyteRows] = useState<AnalyteRunRow[]>([]);
+  // Kept apart from an empty list: a failed load is not "no analytes configured".
+  const [analyteLoadError, setAnalyteLoadError] = useState<string | null>(null);
 
   const sstMethods = useMemo(() => tests.filter((t) => t.requiresSystemSuitability), [tests]);
   const method: TestDefinitionOption | undefined = sstMethods.find((t) => String(t.id) === form.testDefinitionId);
@@ -141,6 +143,7 @@ export function SystemSuitabilityRunsPage() {
   // CreateAsync: exactly one row per active TestAnalyte, no more, no fewer).
   useEffect(() => {
     if (!dialogOpen) return;
+    setAnalyteLoadError(null);
     if (!method || method.workflowType !== "StandardComparison") {
       setAnalyteRows([]);
       return;
@@ -170,7 +173,7 @@ export function SystemSuitabilityRunsPage() {
           weighInJustification: ""
         })));
       })
-      .catch(() => setAnalyteRows([]));
+      .catch((e) => setAnalyteLoadError(errorMessage(e, "The analytes for this test could not be loaded.")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogOpen, method?.id]);
 
@@ -573,7 +576,12 @@ export function SystemSuitabilityRunsPage() {
                 <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 1 }}>
                   Per-analyte standards (one card per active analyte, from the CDS report{isTitrationRun ? " / titrator" : ""})
                 </Typography>
-                {analyteRows.length === 0 && (
+                {analyteLoadError && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {analyteLoadError} Close the dialog and open it again to retry.
+                  </Alert>
+                )}
+                {!analyteLoadError && analyteRows.length === 0 && (
                   <Alert severity="warning" sx={{ mb: 1 }}>
                     No active analytes are configured for this test. Configure them in Test Master first.
                   </Alert>

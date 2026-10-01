@@ -1135,6 +1135,7 @@ function ApprovalSignaturesCard({
   selectedTestOrderIds,
   setSelectedTestOrderIds,
   analysts,
+  analystsLoadFailed,
   newSampleAnalystOneId,
   setNewSampleAnalystOneId,
   newSampleAnalystTwoId,
@@ -1166,6 +1167,9 @@ function ApprovalSignaturesCard({
   selectedTestOrderIds: number[];
   setSelectedTestOrderIds: (ids: number[]) => void;
   analysts: UserRecord[];
+  // The eligible-analyst list failed to load, so the pickers are empty for
+  // that reason - not because no analyst is eligible.
+  analystsLoadFailed: boolean;
   newSampleAnalystOneId: number | "";
   setNewSampleAnalystOneId: (id: number | "") => void;
   newSampleAnalystTwoId: number | "";
@@ -1523,6 +1527,11 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
                 Two different analysts are required, and neither may be whoever tested the original sample.
               </Typography>
+              {analystsLoadFailed && (
+                <Alert severity="error" sx={{ mb: 1 }}>
+                  The list of eligible analysts could not be loaded. Close and reopen this sample to try again.
+                </Alert>
+              )}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <FormControl fullWidth size="small">
                   <InputLabel>New Sample 1 - Analyst</InputLabel>
@@ -1632,6 +1641,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [certificateRemarks, setCertificateRemarks] = useState("");
   const [selectedTestOrderIds, setSelectedTestOrderIds] = useState<number[]>([]);
   const [analysts, setAnalysts] = useState<UserRecord[]>([]);
+  const [analystsLoadFailed, setAnalystsLoadFailed] = useState(false);
   const [newSampleAnalystOneId, setNewSampleAnalystOneId] = useState<number | "">("");
   const [newSampleAnalystTwoId, setNewSampleAnalystTwoId] = useState<number | "">("");
   const [confirmingReview, setConfirmingReview] = useState(false);
@@ -1720,7 +1730,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           setLoadError(e?.response?.data?.message ?? "Failed to load sample summary.");
         });
       if (canAssignAnalyst) {
-        UserService.getEligibleAnalysts().then(setAnalysts).catch(() => setAnalysts([]));
+        setAnalystsLoadFailed(false);
+        UserService.getEligibleAnalysts()
+          .then(setAnalysts)
+          .catch(() => {
+            setAnalysts([]);
+            setAnalystsLoadFailed(true);
+          });
       }
     }
   }, [open, sampleId, canAssignAnalyst]);
@@ -2036,6 +2052,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               selectedTestOrderIds={selectedTestOrderIds}
               setSelectedTestOrderIds={setSelectedTestOrderIds}
               analysts={analysts}
+              analystsLoadFailed={analystsLoadFailed}
               newSampleAnalystOneId={newSampleAnalystOneId}
               setNewSampleAnalystOneId={setNewSampleAnalystOneId}
               newSampleAnalystTwoId={newSampleAnalystTwoId}

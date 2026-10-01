@@ -17,6 +17,8 @@ import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEval
 import { CryovialService } from "../../cryovials/services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 
 interface Props {
   open: boolean;
@@ -34,6 +36,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   const [referenceLotOptions, setReferenceLotOptions] = useState<any[]>([]);
   const [forms, setForms] = useState<Record<number, any>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   const loadData = async () => {
     if (!evaluationId) return;
@@ -50,9 +53,10 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   useEffect(() => {
     if (open && evaluationId) {
       loadData();
-      CryovialService.getAll().then(setCryovials).catch(() => setCryovials([]));
-      MaterialService.getAll("LyophilizedMicroorganism").then(setDisks).catch(() => setDisks([]));
-      masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(() => setIncubators([]));
+      resetFailures();
+      CryovialService.getAll().then(setCryovials).catch(fail("reference cryovials", () => setCryovials([])));
+      MaterialService.getAll("LyophilizedMicroorganism").then(setDisks).catch(fail("lyophilized microorganism disks", () => setDisks([])));
+      masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(fail("incubators", () => setIncubators([])));
     } else {
       setEvaluation(null);
       setMessage(null);
@@ -71,7 +75,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       masterDataOptions
         .getReleasedMedia(evaluation.media.materialId, { includeExpired: true, excludeId: evaluation.media.id })
         .then(setReferenceLotOptions)
-        .catch(() => setReferenceLotOptions([]));
+        .catch(fail("prior released lots for the reference-lot suggestion", () => setReferenceLotOptions([])));
     } else {
       setReferenceLotOptions([]);
     }
@@ -214,6 +218,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     >
       {evaluation && (
         <>
+            <LoadFailuresAlert failed={failedLists} sx={{ mb: 2 }} />
             {message && (
               <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>
                 {message.text}

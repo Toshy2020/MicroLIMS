@@ -33,13 +33,16 @@ export function MediaReportPage() {
   const [summary, setSummary] = useState<MediaSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [archivedCopies, setArchivedCopies] = useState<ArchivedRecordSummary[]>([]);
+  const [archivedCopiesError, setArchivedCopiesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     apiClient.get(`/media/${id}/summary`)
       .then((r) => setSummary(r.data.data))
       .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the media lot record."));
-    ArchivedRecordsService.getForEntity("Media", Number(id)).then(setArchivedCopies).catch(() => setArchivedCopies([]));
+    ArchivedRecordsService.getForEntity("Media", Number(id))
+      .then(setArchivedCopies)
+      .catch(() => setArchivedCopiesError("The archived copies of this record could not be loaded. Reload the page to try again."));
   }, [id]);
 
   useEffect(() => {
@@ -184,6 +187,7 @@ export function MediaReportPage() {
         <SignatureSection signatures={s.signatures} />
         <ArchivedCopiesSection
           copies={archivedCopies}
+          error={archivedCopiesError}
           onDownload={(archiveId, fileName) => ArchivedRecordsService.download(archiveId, fileName)}
         />
         <ReportFooter documentId={s.lotNumber} />

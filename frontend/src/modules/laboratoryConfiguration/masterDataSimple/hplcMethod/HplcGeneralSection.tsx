@@ -1,11 +1,13 @@
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from "@mui/material";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcGeneralSectionProps {
   name: string;
   abbreviation: string;
   effectiveDate: string;
   sectionId: number | "";
+  errors: HplcMethodErrors;
   editingId: number | null;
   mySections: LaboratorySection[];
   sections: LaboratorySection[];
@@ -20,6 +22,7 @@ export function HplcGeneralSection({
   abbreviation,
   effectiveDate,
   sectionId,
+  errors,
   editingId,
   mySections,
   sections,
@@ -38,6 +41,8 @@ export function HplcGeneralSection({
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           required
+          error={Boolean(errors.name)}
+          helperText={errors.name}
           fullWidth
         />
         <TextField
@@ -47,7 +52,8 @@ export function HplcGeneralSection({
           value={abbreviation}
           onChange={(e) => onAbbreviationChange(e.target.value.toUpperCase())}
           required
-          helperText="2–20 characters (A–Z, 0–9, -)"
+          error={Boolean(errors.abbreviation)}
+          helperText={errors.abbreviation ?? "2–20 characters (A–Z, 0–9, -)"}
           slotProps={{ htmlInput: { maxLength: 20 } }}
           fullWidth
         />
@@ -58,13 +64,15 @@ export function HplcGeneralSection({
           value={effectiveDate}
           onChange={(e) => onEffectiveDateChange(e.target.value)}
           required
+          error={Boolean(errors.effectiveDate)}
+          helperText={errors.effectiveDate}
           slotProps={{ inputLabel: { shrink: true } }}
           fullWidth
         />
       </Box>
 
       {!editingId && mySections.length > 1 && (
-        <FormControl size="small" fullWidth required>
+        <FormControl size="small" fullWidth required error={Boolean(errors.sectionId)}>
           <InputLabel id="method-section-label">Laboratory Section *</InputLabel>
           <Select
             labelId="method-section-label"
@@ -78,6 +86,7 @@ export function HplcGeneralSection({
               </MenuItem>
             ))}
           </Select>
+          {errors.sectionId && <FormHelperText>{errors.sectionId}</FormHelperText>}
         </FormControl>
       )}
     </Box>

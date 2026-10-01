@@ -22,6 +22,8 @@ import {
 } from "@mui/material";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
+import type { CriteriaRow } from "../../components/lab";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CalibrationRunService, CalibrationRunView, CalibrationRunAnalyteView } from "../calibrationRuns/services/CalibrationRunService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -89,6 +91,7 @@ export function ElementalAssayPanel({
   const [unitAmount, setUnitAmount] = useState("");
   const [analysisTime, setAnalysisTime] = useState(() => getLocalIsoString());
   const [rows, setRows] = useState<ElementRowState[]>([]);
+  const [specs, setSpecs] = useState<SpecificationDto[]>([]);
   const [optionsByAnalyteId, setOptionsByAnalyteId] = useState<Record<number, UsableAnalyteOption[]>>({});
   const [comment, setComment] = useState("");
   const [signing, setSigning] = useState(false);
@@ -137,6 +140,8 @@ export function ElementalAssayPanel({
           setLoading(false);
           return;
         }
+
+        if (active) setSpecs(specs);
 
         const matrix = (specs[0].sampleMatrix as "Solid" | "Liquid") || "Solid";
         if (active) {
@@ -298,29 +303,45 @@ export function ElementalAssayPanel({
     }
   };
 
+  // Acceptance criteria from the specifications already loaded; once the
+  // server's recorded elements are available their spec limit is the fallback.
+  const criteriaRows: CriteriaRow[] = specs.length > 0
+    ? specs.map((sp) => ({
+        parameter: sp.parameterName || "Element",
+        criterion:
+          sp.specLimit ||
+          (sp.lowerLimit != null || sp.upperLimit != null ? `${sp.lowerLimit ?? ""} – ${sp.upperLimit ?? ""}` : "—"),
+        unit: sp.unit || undefined,
+        source: "Specification"
+      }))
+    : (recordedElements ?? []).map((e) => ({
+        parameter: e.parameterName || e.element,
+        criterion: e.specLimit ?? "—",
+        unit: e.unit ?? undefined,
+        source: "Specification"
+      }));
+
   // Completion view
   if (current.allStepsComplete || outcome) {
-    const isOos = (outcome?.status ?? "").includes("OutOfSpecification");
-    const isReview = (outcome?.status ?? "").includes("RequiresReview");
-    const alertSeverity = isOos ? "error" : isReview ? "warning" : "success";
+    // The banner shows only the server's overall status. A reopened test has
+    // none, and aggregating the per-element statuses here would be a client
+    // verdict - so it falls back to the recorded result text instead.
+    const finalStatus = outcome?.status;
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`;
 
     return (
-      <Box>
-        <Alert severity={alertSeverity} sx={{ mb: 2 }}>
-          {displayName}: <strong>{outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}</strong>
-          {outcome?.status && ` (${outcome.status})`}
-        </Alert>
+      <Stack spacing={2}>
+        {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
+
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {recordedElements && recordedElements.length > 0 ? (
-          <Box sx={{ mb: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-              Reported Elemental Results (Calculated by Server)
-            </Typography>
+          <ResultSection title="Reported elemental results (calculated by server)">
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ bgcolor: "action.hover" }}>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Element</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Run Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Calibration run</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="right">Reported (ppm)</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Display</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification</TableCell>
@@ -334,18 +355,13 @@ export function ElementalAssayPanel({
                       {elem.element} {elem.parameterName !== elem.element && `(${elem.parameterName})`}
                     </TableCell>
                     <TableCell sx={{ fontSize: 13 }}>
-                      {elem.runCode}
-                      <Chip
-                        size="small"
-                        color={elem.runAnalytePassed ? "success" : "default"}
-                        label={elem.runAnalytePassed ? "Passed" : "Failed"}
-                        sx={{ height: 18, fontSize: 10, ml: 1 }}
-                      />
+                      {elem.runCode}{" "}
+                      <StatusBadge status={elem.runAnalytePassed ? "Passed" : "Failed"} />
                     </TableCell>
                     <TableCell sx={{ fontSize: 13 }} align="right">
-                      {elem.overRange ? "Over range" : elem.belowLoq ? "< LOQ" : elem.reportedPpm}
+                      {elem.overRange ? "Over range" : elem.belowLoq ? "< LOQ" : <NumericCell value={elem.reportedPpm} />}
                     </TableCell>
-                    <TableCell sx={{ fontSize: 13, fontWeight: 700, color: "primary.main" }}>
+                    <TableCell sx={{ fontSize: 13, fontWeight: 700, color: "primary.main", fontVariantNumeric: "tabular-nums" }}>
                       {elem.reportedDisplay}
                     </TableCell>
                     <TableCell sx={{ fontSize: 13 }}>{elem.specLimit ?? "—"}</TableCell>
@@ -356,7 +372,7 @@ export function ElementalAssayPanel({
                 ))}
               </TableBody>
             </Table>
-          </Box>
+          </ResultSection>
         ) : null}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -367,7 +383,7 @@ export function ElementalAssayPanel({
             </Button>
           )}
         </Box>
-      </Box>
+      </Stack>
     );
   }
 
@@ -399,11 +415,7 @@ export function ElementalAssayPanel({
 
       <Stack spacing={2.5}>
         {/* Header fields: Unit Amount & Analysis Time */}
-        <Box sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            1. Sample & Run Configuration &middot; Matrix: {sampleMatrix}
-          </Typography>
-
+        <ResultSection step={1} title={`Sample & run configuration · Matrix: ${sampleMatrix}`}>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField
               size="small"
@@ -420,7 +432,7 @@ export function ElementalAssayPanel({
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time *"
+              label="Analysis time"
               value={analysisTime}
               onChange={(e) => setAnalysisTime(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
@@ -428,14 +440,13 @@ export function ElementalAssayPanel({
               fullWidth
             />
           </Box>
-        </Box>
+        </ResultSection>
+
+        {/* Acceptance criteria above the entry rows */}
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {/* Element parameters rows */}
-        <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            2. Elemental Results ({rows.length} parameters)
-          </Typography>
-
+        <ResultSection step={2} title={`Elemental results (${rows.length} parameters)`}>
           <Stack spacing={2}>
             {rows.map((row, idx) => {
               const options = (row.testAnalyteId != null ? optionsByAnalyteId[row.testAnalyteId] : []) || [];
@@ -483,7 +494,7 @@ export function ElementalAssayPanel({
                       <InputLabel id={`cal-run-label-${idx}`}>Calibration Run *</InputLabel>
                       <Select
                         labelId={`cal-run-label-${idx}`}
-                        label="Calibration Run *"
+                        label="Calibration Run"
                         value={row.calibrationRunAnalyteId}
                         onChange={(e) =>
                           handleRowChange(idx, {
@@ -545,7 +556,7 @@ export function ElementalAssayPanel({
               );
             })}
           </Stack>
-        </Box>
+        </ResultSection>
 
         {/* Comment */}
         <TextField

@@ -3,12 +3,10 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   FormControl,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
@@ -21,6 +19,8 @@ import {
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
+import type { CriteriaRow, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
@@ -430,6 +430,49 @@ export function DissolutionPanel({
     );
   }
 
+  const qVal = spec?.lowerLimit != null ? Number(spec.lowerLimit) : 0;
+  const s1Offset = testDef?.dissolutionS1Offset ?? 5;
+  const s2MinOffset = testDef?.dissolutionS2MinOffset ?? 15;
+  const s3MinOffset = testDef?.dissolutionS3MinOffset ?? 25;
+  const s3MaxBelow = testDef?.dissolutionS3MaxBelowS2Min ?? 2;
+
+  // Acceptance criteria from the spec and stage offsets the panel already loads.
+  const criteriaRows: CriteriaRow[] = [];
+  if (spec) {
+    criteriaRows.push({ parameter: "Q (specification)", criterion: `Q = ${qVal}`, unit: "%", source: "Specification" });
+    criteriaRows.push({ parameter: "Stage 1 (S1, 6 units)", criterion: `Each unit ≥ Q + ${s1Offset}% (≥ ${qVal + s1Offset}%)`, unit: "%", source: "Stage criteria" });
+    criteriaRows.push({ parameter: "Stage 2 (S2, 12 units)", criterion: `Average ≥ Q (${qVal}%); no unit < Q − ${s2MinOffset}% (${qVal - s2MinOffset}%)`, unit: "%", source: "Stage criteria" });
+    criteriaRows.push({ parameter: "Stage 3 (S3, 24 units)", criterion: `Average ≥ Q (${qVal}%); not more than ${s3MaxBelow} units < Q − ${s2MinOffset}% (${qVal - s2MinOffset}%); no unit < Q − ${s3MinOffset}% (${qVal - s3MinOffset}%)`, unit: "%", source: "Stage criteria" });
+  }
+
+  const readingStatusBadge = (passed: boolean | null | undefined) =>
+    passed === null || passed === undefined ? "—" : <StatusBadge status={passed ? "Pass" : "BelowSpec"} />;
+
+  const renderReadingsTable = (rList: ResultReadingDetail[], firstHeader: string, lastHeader: string) => (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{firstHeader}</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Peak Area</TableCell>
+          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>% Dissolved</TableCell>
+          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rList.map((r) => (
+          <TableRow key={r.id}>
+            <TableCell sx={{ fontSize: 12 }}>Vessel {r.index}</TableCell>
+            <TableCell align="right" sx={{ fontSize: 12 }}><NumericCell value={r.value1 != null ? Number(r.value1) : null} /></TableCell>
+            <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+              <NumericCell value={r.computedValue != null ? Number(r.computedValue) : null} unit="%" />
+            </TableCell>
+            <TableCell sx={{ fontSize: 12 }}>{readingStatusBadge(r.passed)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   // Finalized view
   const isFinalized =
     current.allStepsComplete ||
@@ -440,22 +483,18 @@ export function DissolutionPanel({
 
   if (isFinalized && !isNextStageRequired) {
     const finalStatus = outcome?.status ?? activeParam?.comparisonStatus;
-    const isOos = finalStatus === "OutOfSpecification" || (outcome?.text ?? "").includes("Does not comply");
     const summaryText = outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? "Analysis Complete";
+    // Verdict comes only from the server's status field.
+    const verdict: Verdict =
+      finalStatus === "WithinLimits" ? "Pass" : finalStatus === "OutOfSpecification" ? "Fail" : "Pending";
 
     return (
-      <Box>
-        <Alert severity={isOos ? "error" : "success"} sx={{ mb: 2 }}>
-          {displayName}: <strong>{summaryText}</strong>
-          {finalStatus && ` (${finalStatus})`}
-        </Alert>
+      <Stack spacing={2}>
+        <VerdictBanner verdict={verdict} detail={`${displayName}: ${summaryText}${finalStatus ? ` (${finalStatus})` : ""}`} />
 
         {activeAnalysis && (
-          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-              Dissolution Analysis Summary
-            </Typography>
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", mb: 2 }}>
+          <ResultSection title="Analysis summary">
+            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               {spec?.lowerLimit && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Specification</Typography>
@@ -481,43 +520,24 @@ export function DissolutionPanel({
                 </Box>
               )}
             </Stack>
+          </ResultSection>
+        )}
 
-            {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
-              <Box key={stg} sx={{ mt: 2 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>
-                  Stage {stg} ({rList.length} units)
-                </Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Vessel</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Peak Area</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>% Dissolved</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit Mark</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rList.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell sx={{ fontSize: 12 }}>Vessel {r.index}</TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>{r.value1 != null ? String(r.value1) : "—"}</TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.computedValue != null ? `${r.computedValue} %` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.passed === null ? "—" : r.passed ? (
-                            <Chip size="small" color="success" label="Pass" sx={{ height: 20, fontSize: 10 }} />
-                          ) : (
-                            <Chip size="small" color="error" label="Below Spec" sx={{ height: 20, fontSize: 10 }} />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            ))}
-          </Paper>
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+
+        {activeAnalysis && readingsByStage.size > 0 && (
+          <ResultSection title="Raw replicate readings">
+            <Stack spacing={2}>
+              {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
+                <Box key={stg}>
+                  <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>
+                    Stage {stg} ({rList.length} units)
+                  </Typography>
+                  {renderReadingsTable(rList, "Vessel", "Unit Mark")}
+                </Box>
+              ))}
+            </Stack>
+          </ResultSection>
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -528,15 +548,9 @@ export function DissolutionPanel({
             </Button>
           )}
         </Box>
-      </Box>
+      </Stack>
     );
   }
-
-  const qVal = spec?.lowerLimit != null ? Number(spec.lowerLimit) : 0;
-  const s1Offset = testDef?.dissolutionS1Offset ?? 5;
-  const s2MinOffset = testDef?.dissolutionS2MinOffset ?? 15;
-  const s3MinOffset = testDef?.dissolutionS3MinOffset ?? 25;
-  const s3MaxBelow = testDef?.dissolutionS3MaxBelowS2Min ?? 2;
 
   return (
     <Box>
@@ -567,10 +581,12 @@ export function DissolutionPanel({
       )}
 
       {/* Suitability Run Link Block */}
-      <Typography sx={{ fontWeight: 700, mb: 1 }}>1. System suitability run</Typography>
+      <Stack spacing={2}>
+      <ResultSection step={1} title="System suitability run">
       {linkedRun && !changingRun ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2.5, flexWrap: "wrap" }}>
-          <Chip color="success" label={`${linkedRun.code} · Passed`} />
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{linkedRun.code}</Typography>
+          <StatusBadge status="Passed" />
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
             {linkedRun.equipmentCode} / {linkedRun.columnCode} · standard {linkedRun.referenceStandardName} ({linkedRun.standardPurityPercent}%)
           </Typography>
@@ -581,7 +597,7 @@ export function DissolutionPanel({
           )}
         </Stack>
       ) : (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2.5, flexWrap: "wrap" }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Select
             size="small"
             displayEmpty
@@ -609,68 +625,36 @@ export function DissolutionPanel({
           Perform a passing System Suitability run for this method first (Laboratory → System Suitability).
         </Alert>
       )}
+      </ResultSection>
+
+      {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
       {/* PENDING STAGE (Stage 2 or 3) */}
       {isNextStageRequired && activeParam ? (
-        <Box sx={{ mt: 2 }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>
+        <Stack spacing={2}>
+          <Alert severity="warning">
             <strong>Stage {nextStage} required:</strong> Results from Stage {nextStage - 1} did not meet acceptance criteria. Staged testing continues to Stage {nextStage}.
           </Alert>
 
           {/* Grouped read-only previous stages */}
-          <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>
-            2. Previously Recorded Stages
-          </Typography>
-
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
-              <Paper key={stg} variant="outlined" sx={{ p: 2, bgcolor: "background.paper" }}>
-                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                  Stage {stg} Units ({rList.length} vessels)
-                </Typography>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Peak Area</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>% Dissolved</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Stage Criterion</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rList.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell sx={{ fontSize: 12 }}>Vessel {r.index}</TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>{r.value1 != null ? String(r.value1) : "—"}</TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                          {r.computedValue != null ? `${r.computedValue} %` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ fontSize: 12 }}>
-                          {r.passed === null ? "—" : r.passed ? (
-                            <Chip size="small" color="success" label="Pass" sx={{ height: 20, fontSize: 10 }} />
-                          ) : (
-                            <Chip size="small" color="error" label="Below Spec" sx={{ height: 20, fontSize: 10 }} />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Paper>
-            ))}
-          </Stack>
+          <ResultSection step={2} title="Previously recorded stages">
+            <Stack spacing={2}>
+              {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
+                <Box key={stg}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
+                    Stage {stg} Units ({rList.length} vessels)
+                  </Typography>
+                  {renderReadingsTable(rList, "Unit", "Stage Criterion")}
+                </Box>
+              ))}
+            </Stack>
+          </ResultSection>
 
           {/* Next Stage Entry */}
-          <Paper variant="outlined" sx={{ p: 2, bgcolor: "action.hover" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>
-              3. Stage {nextStage} Vessel Area Entry ({nextStage === 2 ? "6 additional units, Vessels 7–12" : "12 additional units, Vessels 13–24"})
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-              {nextStage === 2
-                ? `Stage 2 acceptance: Average of 12 units (S1+S2) ≥ Q (${qVal}%), and no unit < Q − ${s2MinOffset}% (${qVal - s2MinOffset}%).`
-                : `Stage 3 acceptance: Average of 24 units (S1+S2+S3) ≥ Q (${qVal}%), not more than ${s3MaxBelow} units < Q − ${s2MinOffset}% (${qVal - s2MinOffset}%), and no unit < Q − ${s3MinOffset}% (${qVal - s3MinOffset}%).`}
-            </Typography>
-
+          <ResultSection
+            step={3}
+            title={`Stage ${nextStage} vessel area entry (${nextStage === 2 ? "6 additional units, Vessels 7–12" : "12 additional units, Vessels 13–24"})`}
+          >
             <UnitEntryGrid
               rowCount={nextStage === 2 ? 6 : 12}
               rowLabel={(i) => `Vessel ${i + (nextStage === 2 ? 7 : 13)}`}
@@ -691,16 +675,13 @@ export function DissolutionPanel({
                 Sign & Record Stage {nextStage} Result
               </Button>
             </Box>
-          </Paper>
-        </Box>
+          </ResultSection>
+        </Stack>
       ) : (
         /* STAGE 1 INITIAL FORM */
-        <Box sx={{ mt: 2 }}>
-          <Typography sx={{ fontWeight: 700, mb: 1.5 }}>
-            2. Analysis parameters & conditions
-          </Typography>
-
-          <Stack spacing={2} sx={{ mb: 2.5 }}>
+        <>
+          <ResultSection step={2} title="Analysis parameters & conditions">
+          <Stack spacing={2}>
             {/* Equipment and DateTime */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ flex: 1.5 }}>
@@ -723,7 +704,7 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="datetime-local"
-                label="Analysis Time (Local) *"
+                label="Analysis Time (Local)"
                 value={analysedAt}
                 onChange={(e) => setAnalysedAt(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
@@ -762,7 +743,7 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="number"
-                label="Medium Volume (mL) *"
+                label="Medium Volume (mL)"
                 placeholder="e.g. 900"
                 value={mediumVolumeMl}
                 onChange={(e) => setMediumVolumeMl(e.target.value)}
@@ -773,7 +754,7 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="number"
-                label="Sample Dilution Factor *"
+                label="Sample Dilution Factor"
                 placeholder="1"
                 value={dilutionFactor}
                 onChange={(e) => setDilutionFactor(e.target.value)}
@@ -784,14 +765,10 @@ export function DissolutionPanel({
               />
             </Stack>
           </Stack>
+          </ResultSection>
 
           {/* Stage 1 Vessels */}
-          <Typography sx={{ fontWeight: 700, mb: 1 }}>
-            3. Stage 1 Vessel Peak Areas (6 units)
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
-            Stage 1 acceptance criteria: Each of the 6 units must be ≥ Q + {s1Offset}% (≥ {qVal + s1Offset}%). If any unit is below, testing automatically proceeds to Stage 2.
-          </Typography>
+          <ResultSection step={3} title="Stage 1 vessel peak areas (6 units)">
 
           <UnitEntryGrid
             rowCount={6}
@@ -813,8 +790,10 @@ export function DissolutionPanel({
               Sign & Record Stage 1 Result
             </Button>
           </Box>
-        </Box>
+          </ResultSection>
+        </>
       )}
+      </Stack>
 
       {/* Signature Dialog */}
       <SignatureDialog

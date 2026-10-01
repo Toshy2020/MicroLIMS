@@ -12,7 +12,8 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  Collapse
+  Collapse,
+  FormHelperText
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -23,10 +24,12 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
 import { AnalyteRowState } from "./hplcMethodForm";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcAnalytesSectionProps {
   analytes: AnalyteRowState[];
   availableStandards: MaterialMasterEntry[];
+  errors: HplcMethodErrors;
   onAnalyteChange: (index: number, field: keyof AnalyteRowState, val: string | number) => void;
   onAddAnalyte: () => void;
   onRemoveAnalyte: (index: number) => void;
@@ -36,6 +39,7 @@ export interface HplcAnalytesSectionProps {
 export function HplcAnalytesSection({
   analytes,
   availableStandards,
+  errors,
   onAnalyteChange,
   onAddAnalyte,
   onRemoveAnalyte,
@@ -71,7 +75,10 @@ export function HplcAnalytesSection({
 
       <Stack spacing={2}>
         {analytes.map((a, idx) => {
-          const isSstExpanded = Boolean(expandedSstIndices[idx]);
+          const err = (field: string) => errors[`analytes.${idx}.${field}`];
+          // An SST criterion with an error forces the optional block open so the field is visible.
+          const hasSstError = Object.keys(errors).some((k) => k.startsWith(`analytes.${idx}.sst`));
+          const isSstExpanded = Boolean(expandedSstIndices[idx]) || hasSstError;
           const hasSstConfigured = Boolean(
             a.sstMaxRsdPercent !== "" ||
             a.sstMinResolution !== "" ||
@@ -155,6 +162,8 @@ export function HplcAnalytesSection({
                   value={a.name}
                   onChange={(e) => onAnalyteChange(idx, "name", e.target.value)}
                   required
+                  error={Boolean(err("name"))}
+                  helperText={err("name")}
                   fullWidth
                 />
                 <TextField
@@ -164,11 +173,12 @@ export function HplcAnalytesSection({
                   value={a.wavelengthNm}
                   onChange={(e) => onAnalyteChange(idx, "wavelengthNm", e.target.value)}
                   required
-                  helperText="190–900"
+                  error={Boolean(err("wavelengthNm"))}
+                  helperText={err("wavelengthNm") ?? "190–900"}
                   slotProps={{ htmlInput: { min: 190, max: 900, step: "any" } }}
                   fullWidth
                 />
-                <FormControl size="small" fullWidth required>
+                <FormControl size="small" fullWidth required error={Boolean(err("standardEntryId"))}>
                   <InputLabel id={`analyte-std-label-${idx}`}>Reference Standard *</InputLabel>
                   <Select
                     labelId={`analyte-std-label-${idx}`}
@@ -188,6 +198,7 @@ export function HplcAnalytesSection({
                       ))
                     )}
                   </Select>
+                  {err("standardEntryId") && <FormHelperText>{err("standardEntryId")}</FormHelperText>}
                 </FormControl>
               </Box>
 
@@ -200,7 +211,8 @@ export function HplcAnalytesSection({
                   value={a.theoreticalWeightStdMg}
                   onChange={(e) => onAnalyteChange(idx, "theoreticalWeightStdMg", e.target.value)}
                   required
-                  helperText="Theoretical standard weight in mg"
+                  error={Boolean(err("theoreticalWeightStdMg"))}
+                  helperText={err("theoreticalWeightStdMg") ?? "Theoretical standard weight in mg"}
                   slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                   fullWidth
                 />
@@ -211,7 +223,8 @@ export function HplcAnalytesSection({
                   value={a.theoreticalWeightTestMg}
                   onChange={(e) => onAnalyteChange(idx, "theoreticalWeightTestMg", e.target.value)}
                   required
-                  helperText="Theoretical sample weight in mg"
+                  error={Boolean(err("theoreticalWeightTestMg"))}
+                  helperText={err("theoreticalWeightTestMg") ?? "Theoretical sample weight in mg"}
                   slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                   fullWidth
                 />
@@ -222,7 +235,8 @@ export function HplcAnalytesSection({
                   value={a.standardInjections}
                   onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
                   required
-                  helperText="e.g. 5 or 6 replicate injections"
+                  error={Boolean(err("standardInjections"))}
+                  helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
                   slotProps={{ htmlInput: { min: 1, step: 1 } }}
                   fullWidth
                 />
@@ -232,6 +246,7 @@ export function HplcAnalytesSection({
               <Button
                 size="small"
                 onClick={() => toggleSstExpand(idx)}
+                disabled={hasSstError}
                 endIcon={isSstExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 sx={{ textTransform: "none", fontWeight: 600, px: 0.5 }}
               >
@@ -252,6 +267,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 2.0"
                       value={a.sstMaxRsdPercent}
                       onChange={(e) => onAnalyteChange(idx, "sstMaxRsdPercent", e.target.value)}
+                      error={Boolean(err("sstMaxRsdPercent"))}
+                      helperText={err("sstMaxRsdPercent")}
                       slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                     />
                     <TextField
@@ -261,6 +278,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 1.5"
                       value={a.sstMinResolution}
                       onChange={(e) => onAnalyteChange(idx, "sstMinResolution", e.target.value)}
+                      error={Boolean(err("sstMinResolution"))}
+                      helperText={err("sstMinResolution")}
                       slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                     />
                     <TextField
@@ -270,6 +289,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 2.0"
                       value={a.sstMaxTailingFactor}
                       onChange={(e) => onAnalyteChange(idx, "sstMaxTailingFactor", e.target.value)}
+                      error={Boolean(err("sstMaxTailingFactor"))}
+                      helperText={err("sstMaxTailingFactor")}
                       slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                     />
                     <TextField
@@ -279,6 +300,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 2000"
                       value={a.sstMinTheoreticalPlates}
                       onChange={(e) => onAnalyteChange(idx, "sstMinTheoreticalPlates", e.target.value)}
+                      error={Boolean(err("sstMinTheoreticalPlates"))}
+                      helperText={err("sstMinTheoreticalPlates")}
                       slotProps={{ htmlInput: { min: 1, step: "any" } }}
                     />
                     <TextField
@@ -288,6 +311,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 2.0"
                       value={a.sstMinRetentionFactor}
                       onChange={(e) => onAnalyteChange(idx, "sstMinRetentionFactor", e.target.value)}
+                      error={Boolean(err("sstMinRetentionFactor"))}
+                      helperText={err("sstMinRetentionFactor")}
                       slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                     />
                     <TextField
@@ -297,6 +322,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 10"
                       value={a.sstMinSignalToNoise}
                       onChange={(e) => onAnalyteChange(idx, "sstMinSignalToNoise", e.target.value)}
+                      error={Boolean(err("sstMinSignalToNoise"))}
+                      helperText={err("sstMinSignalToNoise")}
                       slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                     />
                     <TextField
@@ -306,6 +333,8 @@ export function HplcAnalytesSection({
                       placeholder="e.g. 1.1"
                       value={a.sstMinPeakToValley}
                       onChange={(e) => onAnalyteChange(idx, "sstMinPeakToValley", e.target.value)}
+                      error={Boolean(err("sstMinPeakToValley"))}
+                      helperText={err("sstMinPeakToValley")}
                       slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                     />
                   </Box>

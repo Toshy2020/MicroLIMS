@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select,
-  Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography
+  Alert, Box, Button, FormControl, IconButton, InputLabel, MenuItem, Select,
+  Stack, TextField, Tooltip, Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import { PageHeader } from "../../components/PageHeader";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
-import { tableHeadSx } from "../../theme";
+import { LabPage, FilterBar, RegisterTable, NumericCell } from "../../components/lab";
+import type { RegisterColumn } from "../../components/lab";
+import { StatusBadge } from "../../components/StatusBadge";
+import { monospaceFontFamily } from "../../theme/palette";
 import { useTestDefinitions, TestDefinitionOption } from "../../hooks/useTestDefinitions";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { EquipmentConfigurationService } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
@@ -114,6 +114,7 @@ export function SystemSuitabilityRunsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -313,22 +314,122 @@ export function SystemSuitabilityRunsPage() {
   const criterion = (label: string, limit?: number | null) =>
     limit === null || limit === undefined ? `${label} (not checked)` : label;
 
-  return (
-    <>
-      <PageHeader
-        title="System Suitability Runs"
-        subtitle="Signed suitability runs for HPLC methods. Only a passed run can be linked to samples."
-      >
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={load} disabled={loading}>Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openDialog}>New Run</Button>
+  const openReport = (r: SystemSuitabilityRun) => window.open(`/laboratory/system-suitability/${r.id}/report`, "_blank", "noopener");
+
+  const filteredRuns = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return runs;
+    return runs.filter((r) => [r.code, r.testName, r.sectionName, r.equipmentCode, r.columnCode, r.referenceStandardName, r.referenceStandardBatch, r.performedByName]
+      .some((v) => (v ?? "").toLowerCase().includes(q)));
+  }, [runs, search]);
+
+  const isMultiRun = (r: SystemSuitabilityRun) => !!(r.analytes && r.analytes.length > 0);
+
+  const tableColumns: RegisterColumn<SystemSuitabilityRun>[] = [
+    { key: "code", label: "Code", sortable: true, render: (r) => <Box component="span" sx={{ fontWeight: 600, whiteSpace: "nowrap", fontFamily: monospaceFontFamily }}>{r.code}</Box> },
+    { key: "testName", label: "Method", sortable: true, render: (r) => (<>{r.testName}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.sectionName}</Typography></>) },
+    { key: "equipmentCode", label: "Instrument / Column", sortable: true, render: (r) => (<>{r.equipmentCode}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.columnCode ?? "—"}</Typography></>) },
+    {
+      key: "referenceStandardName", label: "Reference standard",
+      render: (r) => isMultiRun(r) ? (
+        // Standard-Comparison run: standard weight, mean peak area, RSD,
+        // resolution, tailing and plates all live per analyte - stack one line
+        // per analyte in each column instead of the run-level (unused) fields.
+        <Stack spacing={0.25}>
+          {r.analytes!.map((a) => {
+            const respLabel = a.responses && a.responses.length > 0
+              ? ` [${a.responses.map((resp) => resp.response).join(", ")}]`
+              : "";
+            const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
+            const weighIn = a.theoreticalWeightMg != null
+              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
+              : "";
+            const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
+            const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
+            return (
+              <Tooltip
+                key={a.id}
+                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
+              >
+                <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: a.passed ? "text.primary" : "error.main" }}>
+                  <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+                  {a.referenceStandardName ?? "—"}{a.referenceStandardBatch ? ` (${a.referenceStandardBatch})` : ""}
+                </Typography>
+              </Tooltip>
+            );
+          })}
         </Stack>
-      </PageHeader>
+      ) : (
+        <>
+          {r.referenceStandardName}
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            Batch {r.referenceStandardBatch} · purity {r.standardPurityPercent}%
+          </Typography>
+        </>
+      )
+    },
+    {
+      key: "standardWeightMg", label: "Std weight (mg)", numeric: true,
+      render: (r) => isMultiRun(r) ? analyteLines(r.analytes!, (a) => fmt(a.standardWeightMg)) : <NumericCell value={r.standardWeightMg} />
+    },
+    // Standard dilution isn't part of the Standard-Comparison formula (see
+    // StandardComparisonCalculator) so it is shown as "—" for those runs.
+    { key: "standardDilution", label: "Std dilution", numeric: true, render: (r) => isMultiRun(r) ? "—" : <NumericCell value={r.standardDilution} /> },
+    {
+      key: "standardMeanArea", label: "Mean peak area", numeric: true,
+      render: (r) => isMultiRun(r) ? analyteLines(r.analytes!, (a) => fmt(a.standardMeanArea)) : <NumericCell value={r.standardMeanArea} />
+    },
+    {
+      key: "rsdPercent", label: "RSD %", numeric: true,
+      render: (r) => isMultiRun(r) ? analyteLines(r.analytes!, (a) => fmt(a.computedRsdPercent ?? a.rsdPercent)) : <NumericCell value={r.rsdPercent} />
+    },
+    {
+      key: "resolution", label: "Resolution", numeric: true,
+      render: (r) => isMultiRun(r) ? analyteLines(r.analytes!, (a) => fmt(a.resolution)) : <NumericCell value={r.resolution} />
+    },
+    {
+      key: "tailingFactor", label: "Tailing", numeric: true,
+      render: (r) => isMultiRun(r) ? analyteLines(r.analytes!, (a) => fmt(a.tailingFactor)) : <NumericCell value={r.tailingFactor} />
+    },
+    {
+      key: "theoreticalPlates", label: "Plates", numeric: true,
+      render: (r) => isMultiRun(r) ? analyteLines(r.analytes!, (a) => fmt(a.theoreticalPlates)) : <NumericCell value={r.theoreticalPlates} />
+    },
+    {
+      key: "passed", label: "Result", sortable: true, sortValue: (r) => (r.passed ? 1 : 0),
+      render: (r) => r.passed ? (
+        <StatusBadge status="Pass" label="Passed" />
+      ) : (
+        <Tooltip title={r.failureReasons ?? ""}><span><StatusBadge status="Fail" label="Failed" /></span></Tooltip>
+      )
+    },
+    {
+      key: "performedAt", label: "Performed", sortable: true, sortValue: (r) => new Date(r.performedAt).getTime(),
+      render: (r) => (
+        <Box sx={{ whiteSpace: "nowrap" }}>
+          {r.performedByName}
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{new Date(r.performedAt).toLocaleString()}</Typography>
+        </Box>
+      )
+    }
+  ];
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+  const newRunButton = <Button variant="contained" startIcon={<AddIcon />} onClick={openDialog}>New Run</Button>;
 
-      <Paper sx={{ p: 2.5 }}>
-        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+  return (
+    <LabPage
+      title="System Suitability Runs"
+      subtitle="Signed suitability runs for HPLC methods. Only a passed run can be linked to samples."
+      actions={newRunButton}
+      filters={
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search code, method, instrument, standard or analyst"
+          resultCount={filteredRuns.length}
+          onRefresh={load}
+          refreshing={loading}
+        >
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>Result</InputLabel>
             <Select label="Result" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
@@ -344,133 +445,24 @@ export function SystemSuitabilityRunsPage() {
               {sstMethods.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.displayName}</MenuItem>)}
             </Select>
           </FormControl>
-        </Stack>
+        </FilterBar>
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
 
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}><CircularProgress size={32} /></Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={tableHeadSx}>
-                <TableCell>Code</TableCell>
-                <TableCell>Method</TableCell>
-                <TableCell>Instrument / Column</TableCell>
-                <TableCell>Reference standard</TableCell>
-                <TableCell align="right">Std weight (mg)</TableCell>
-                <TableCell align="right">Std dilution</TableCell>
-                <TableCell align="right">Mean peak area</TableCell>
-                <TableCell align="right">RSD %</TableCell>
-                <TableCell align="right">Resolution</TableCell>
-                <TableCell align="right">Tailing</TableCell>
-                <TableCell align="right">Plates</TableCell>
-                <TableCell>Result</TableCell>
-                <TableCell>Performed</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {runs.map((r) => {
-                const runIsMulti = !!(r.analytes && r.analytes.length > 0);
-                return (
-                <TableRow key={r.id}>
-                  <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{r.code}</TableCell>
-                  <TableCell>{r.testName}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.sectionName}</Typography></TableCell>
-                  <TableCell>{r.equipmentCode}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.columnCode ?? "—"}</Typography></TableCell>
-                  {runIsMulti ? (
-                    // Standard-Comparison run: standard weight, mean peak area, RSD,
-                    // resolution, tailing and plates all live per analyte
-                    // (SystemSuitabilityRunAnalyteView) - stack one line per analyte in
-                    // each column instead of the run-level (unused) fields. Standard
-                    // dilution isn't part of this formula at all (see
-                    // StandardComparisonCalculator) so it's shown as "—".
-                    <>
-                      <TableCell>
-                        <Stack spacing={0.25}>
-                          {r.analytes!.map((a) => {
-                            const respLabel = a.responses && a.responses.length > 0
-                              ? ` [${a.responses.map((resp) => resp.response).join(", ")}]`
-                              : "";
-                            const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
-                            const weighIn = a.theoreticalWeightMg != null
-                              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
-                              : "";
-                            const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
-                            const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
-                            return (
-                              <Tooltip
-                                key={a.id}
-                                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
-                              >
-                                <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: a.passed ? "text.primary" : "error.main" }}>
-                                  <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
-                                  {a.referenceStandardName ?? "—"}{a.referenceStandardBatch ? ` (${a.referenceStandardBatch})` : ""}
-                                </Typography>
-                              </Tooltip>
-                            );
-                          })}
-                        </Stack>
-                      </TableCell>
-                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.standardWeightMg))}</TableCell>
-                      <TableCell align="right">—</TableCell>
-                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.standardMeanArea))}</TableCell>
-                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.computedRsdPercent ?? a.rsdPercent))}</TableCell>
-                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.resolution))}</TableCell>
-                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.tailingFactor))}</TableCell>
-                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.theoreticalPlates))}</TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell>
-                        {r.referenceStandardName}
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          Batch {r.referenceStandardBatch} · purity {r.standardPurityPercent}%
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">{fmt(r.standardWeightMg)}</TableCell>
-                      <TableCell align="right">{fmt(r.standardDilution)}</TableCell>
-                      <TableCell align="right">{fmt(r.standardMeanArea)}</TableCell>
-                      <TableCell align="right">{fmt(r.rsdPercent)}</TableCell>
-                      <TableCell align="right">{fmt(r.resolution)}</TableCell>
-                      <TableCell align="right">{fmt(r.tailingFactor)}</TableCell>
-                      <TableCell align="right">{fmt(r.theoreticalPlates)}</TableCell>
-                    </>
-                  )}
-                  <TableCell>
-                    {r.passed ? (
-                      <Chip size="small" color="success" label="Passed" />
-                    ) : (
-                      <Tooltip title={r.failureReasons ?? ""}>
-                        <Chip size="small" color="error" label="Failed" />
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {r.performedByName}
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{new Date(r.performedAt).toLocaleString()}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="small"
-                      startIcon={<DescriptionOutlinedIcon />}
-                      href={`/laboratory/system-suitability/${r.id}/report`}
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Report
-                    </Button>
-                  </TableCell>
-                </TableRow>
-                );
-              })}
-              {runs.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={14} align="center" sx={{ py: 3, color: "text.secondary" }}>No suitability runs yet.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </Paper>
+      <RegisterTable
+        columns={tableColumns}
+        rows={filteredRuns}
+        getRowId={(r) => r.id}
+        loading={loading}
+        onRowClick={openReport}
+        rowActions={(r) => [{ label: "Open report", onClick: () => openReport(r) }]}
+        empty={
+          search || statusFilter !== "all" || methodFilter !== "all"
+            ? { title: "No matching suitability runs", description: "Try different filters or search terms." }
+            : { title: "No suitability runs yet", description: "Record the first signed run for an HPLC method.", action: newRunButton }
+        }
+      />
 
       <FloatingDialog
         open={dialogOpen}
@@ -719,6 +711,6 @@ export function SystemSuitabilityRunsPage() {
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />
-    </>
+    </LabPage>
   );
 }

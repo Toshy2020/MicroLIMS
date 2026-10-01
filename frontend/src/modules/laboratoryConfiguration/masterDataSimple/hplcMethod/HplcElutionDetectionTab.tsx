@@ -3,6 +3,7 @@ import { ElutionMode, HplcDetectorType } from "../services/HplcMethodService";
 import { GradientStepRowState, MobilePhaseRowState } from "./hplcMethodForm";
 import { HplcElutionSection } from "./HplcElutionSection";
 import { HplcDetectionSection } from "./HplcDetectionSection";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcElutionDetectionTabProps {
   elutionMode: ElutionMode;
@@ -13,6 +14,7 @@ export interface HplcElutionDetectionTabProps {
   detectorType: HplcDetectorType;
   injectionVolumeUl: string | number;
   runTimeMin: string | number;
+  errors: HplcMethodErrors;
   onElutionModeChange: (val: ElutionMode) => void;
   onFlowRateMlPerMinChange: (val: string) => void;
   onEquilibrationMinChange: (val: string) => void;
@@ -31,6 +33,7 @@ export function HplcElutionDetectionTab({
   detectorType,
   injectionVolumeUl,
   runTimeMin,
+  errors,
   onElutionModeChange,
   onFlowRateMlPerMinChange,
   onEquilibrationMinChange,
@@ -66,6 +69,7 @@ export function HplcElutionDetectionTab({
         equilibrationMin={equilibrationMin}
         gradientSteps={gradientSteps}
         mobilePhaseChannels={mobilePhases.map((p) => p.channel)}
+        errors={errors}
         onElutionModeChange={onElutionModeChange}
         onFlowRateMlPerMinChange={onFlowRateMlPerMinChange}
         onEquilibrationMinChange={onEquilibrationMinChange}
@@ -78,6 +82,7 @@ export function HplcElutionDetectionTab({
         detectorType={detectorType}
         injectionVolumeUl={injectionVolumeUl}
         runTimeMin={runTimeMin}
+        errors={errors}
         onDetectorTypeChange={onDetectorTypeChange}
         onInjectionVolumeUlChange={onInjectionVolumeUlChange}
         onRunTimeMinChange={onRunTimeMinChange}

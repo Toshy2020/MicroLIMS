@@ -189,6 +189,7 @@ export function hplcMethodEntityToFormState(m: HplcMethodResponse): HplcMethodFo
 }
 
 export { validateHplcMethodForm } from "./hplcMethodValidation";
+export type { HplcMethodErrors } from "./hplcMethodValidation";
 
 export function formToSaveRequest(
   form: HplcMethodFormState,

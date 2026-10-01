@@ -1,169 +1,37 @@
-import { Chip, ChipProps } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
-import PlayCircleOutlinedIcon from "@mui/icons-material/PlayCircleOutlined";
-import HourglassTopIcon from "@mui/icons-material/HourglassTop";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import CancelIcon from "@mui/icons-material/Cancel";
-import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
-import BlockIcon from "@mui/icons-material/Block";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import RemoveCircleOutlinedIcon from "@mui/icons-material/RemoveCircleOutlined";
-import HelpOutlinedIcon from "@mui/icons-material/HelpOutlined";
+import { StatusBadge } from "../../../components/StatusBadge";
 
 export interface HplcStatusBadgeProps {
   status: string;
   label?: string;
+  // Kept for call-site compatibility; StatusBadge has a single size.
   size?: "small" | "medium";
   variant?: "filled" | "outlined";
 }
 
-interface BadgeConfig {
-  label: string;
-  color: ChipProps["color"];
-  icon: React.ReactElement;
-}
+// Raw API value (case-insensitive) -> canonical STATUS_TONE key + display label.
+const STATUS_MAP: Record<string, { key: string; label: string }> = {
+  // A run in progress, not an issue to act on - shares the InProgress (info)
+  // tone rather than STATUS_TONE.Open, which is the action tone for findings.
+  open: { key: "InProgress", label: "Open" },
+  completed: { key: "Completed", label: "Completed" },
+  abandoned: { key: "Abandoned", label: "Abandoned" },
+  pending: { key: "Pending", label: "Pending" },
+  passed: { key: "Passed", label: "Passed" },
+  failed: { key: "Failed", label: "Failed" },
+  available: { key: "Available", label: "Available" },
+  running: { key: "Running", label: "Running" },
+  unavailable: { key: "Unavailable", label: "Unavailable" },
+  assigned: { key: "Assigned", label: "Assigned" },
+  removed: { key: "Removed", label: "Removed" },
+  withinlimits: { key: "WithinLimits", label: "Within Limits" },
+  outofspecification: { key: "OutOfSpecification", label: "OOS" },
+  actionlimitexceeded: { key: "ActionLimitExceeded", label: "Action Limit Exceeded" },
+  alertlimitexceeded: { key: "AlertLimitExceeded", label: "Alert Limit Exceeded" },
+  requiresreview: { key: "RequiresReview", label: "Requires Review" }
+};
 
-function getBadgeConfig(status: string, customLabel?: string): BadgeConfig {
-  const norm = status.trim().toLowerCase();
-
-  switch (norm) {
-    // Run status
-    case "open":
-      return {
-        label: customLabel ?? "Open",
-        color: "primary",
-        icon: <HourglassTopIcon fontSize="small" />
-      };
-    case "completed":
-      return {
-        label: customLabel ?? "Completed",
-        color: "success",
-        icon: <CheckCircleIcon fontSize="small" />
-      };
-    case "abandoned":
-      return {
-        label: customLabel ?? "Abandoned",
-        color: "default",
-        icon: <CancelIcon fontSize="small" />
-      };
-
-    // SST status
-    case "pending":
-      return {
-        label: customLabel ?? "Pending",
-        color: "warning",
-        icon: <ScheduleIcon fontSize="small" />
-      };
-    case "passed":
-      return {
-        label: customLabel ?? "Passed",
-        color: "success",
-        icon: <CheckCircleIcon fontSize="small" />
-      };
-    case "failed":
-      return {
-        label: customLabel ?? "Failed",
-        color: "error",
-        icon: <ErrorOutlinedIcon fontSize="small" />
-      };
-
-    // Instrument state
-    case "available":
-      return {
-        label: customLabel ?? "Available",
-        color: "success",
-        icon: <CheckCircleOutlinedIcon fontSize="small" />
-      };
-    case "running":
-      return {
-        label: customLabel ?? "Running",
-        color: "info",
-        icon: <PlayCircleOutlinedIcon fontSize="small" />
-      };
-    case "unavailable":
-      return {
-        label: customLabel ?? "Unavailable",
-        color: "error",
-        icon: <BlockIcon fontSize="small" />
-      };
-
-    // Sample status
-    case "assigned":
-      return {
-        label: customLabel ?? "Assigned",
-        color: "primary",
-        icon: <AssignmentIcon fontSize="small" />
-      };
-    case "removed":
-      return {
-        label: customLabel ?? "Removed",
-        color: "default",
-        icon: <RemoveCircleOutlinedIcon fontSize="small" />
-      };
-
-    // Result / Comparison status
-    case "withinlimits":
-      return {
-        label: customLabel ?? "Within Limits",
-        color: "success",
-        icon: <CheckCircleIcon fontSize="small" />
-      };
-    case "outofspecification":
-      return {
-        label: customLabel ?? "OOS",
-        color: "error",
-        icon: <ErrorOutlinedIcon fontSize="small" />
-      };
-    case "actionlimitexceeded":
-      return {
-        label: customLabel ?? "Action Limit Exceeded",
-        color: "error",
-        icon: <ErrorOutlinedIcon fontSize="small" />
-      };
-    case "alertlimitexceeded":
-      return {
-        label: customLabel ?? "Alert Limit Exceeded",
-        color: "warning",
-        icon: <ErrorOutlinedIcon fontSize="small" />
-      };
-    case "requiresreview":
-      return {
-        label: customLabel ?? "Requires Review",
-        color: "warning",
-        icon: <ScheduleIcon fontSize="small" />
-      };
-
-    default:
-      return {
-        label: customLabel ?? status,
-        color: "default",
-        icon: <HelpOutlinedIcon fontSize="small" />
-      };
-  }
-}
-
-export function HplcStatusBadge({
-  status,
-  label,
-  size = "small",
-  variant = "filled"
-}: HplcStatusBadgeProps) {
-  const config = getBadgeConfig(status, label);
-
-  return (
-    <Chip
-      size={size}
-      variant={variant}
-      color={config.color}
-      icon={config.icon}
-      label={config.label}
-      sx={{
-        fontWeight: 600,
-        "& .MuiChip-icon": {
-          fontSize: size === "small" ? 16 : 18
-        }
-      }}
-    />
-  );
+export function HplcStatusBadge({ status, label }: HplcStatusBadgeProps) {
+  const mapped = STATUS_MAP[status.trim().toLowerCase()];
+  if (!mapped) return <StatusBadge status={status} label={label} />;
+  return <StatusBadge status={mapped.key} label={label ?? mapped.label} />;
 }

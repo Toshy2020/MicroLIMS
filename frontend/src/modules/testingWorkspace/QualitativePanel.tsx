@@ -295,7 +295,7 @@ export function QualitativePanel({
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time *"
+              label="Analysis time"
               value={analysedAt}
               onChange={(e) => setAnalysedAt(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}

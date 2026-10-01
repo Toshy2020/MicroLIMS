@@ -9,11 +9,13 @@ import {
 } from "@mui/material";
 import { HplcDetectorType } from "../services/HplcMethodService";
 import { DETECTOR_TYPE_OPTIONS } from "./hplcMethodForm";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcDetectionSectionProps {
   detectorType: HplcDetectorType;
   injectionVolumeUl: string | number;
   runTimeMin: string | number;
+  errors: HplcMethodErrors;
   onDetectorTypeChange: (val: HplcDetectorType) => void;
   onInjectionVolumeUlChange: (val: string) => void;
   onRunTimeMinChange: (val: string) => void;
@@ -23,6 +25,7 @@ export function HplcDetectionSection({
   detectorType,
   injectionVolumeUl,
   runTimeMin,
+  errors,
   onDetectorTypeChange,
   onInjectionVolumeUlChange,
   onRunTimeMinChange
@@ -61,7 +64,8 @@ export function HplcDetectionSection({
           onChange={(e) => onInjectionVolumeUlChange(e.target.value)}
           required
           placeholder="e.g. 10 or 20"
-          helperText="Autosampler injection volume"
+          error={Boolean(errors["detection.injectionVolumeUl"])}
+          helperText={errors["detection.injectionVolumeUl"] ?? "Autosampler injection volume"}
           slotProps={{ htmlInput: { min: 0.1, step: "any" } }}
           fullWidth
         />
@@ -74,7 +78,8 @@ export function HplcDetectionSection({
           onChange={(e) => onRunTimeMinChange(e.target.value)}
           required
           placeholder="e.g. 15 or 30"
-          helperText="Total run time per injection"
+          error={Boolean(errors["detection.runTimeMin"])}
+          helperText={errors["detection.runTimeMin"] ?? "Total run time per injection"}
           slotProps={{ htmlInput: { min: 0.5, step: "any" } }}
           fullWidth
         />

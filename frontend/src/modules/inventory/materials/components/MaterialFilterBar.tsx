@@ -1,9 +1,8 @@
 import { useMemo } from "react";
-import { Paper, Box, TextField, Select, MenuItem, FormControl, InputLabel, Button, InputAdornment, Divider } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import { Select, MenuItem, FormControl, InputLabel, Button, Divider } from "@mui/material";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import { MaterialItem, MaterialFilterState, MaterialType } from "../types/materialTypes";
-import { brandColors } from "../../../../theme";
+import { FilterBar } from "../../../../components/lab";
 
 export const MATERIAL_TYPE_OPTIONS: { label: string; value: MaterialType }[] = [
   { label: "Dehydrated Media", value: "DehydratedMedia" },
@@ -25,9 +24,14 @@ interface MaterialFilterBarProps {
   filters: MaterialFilterState;
   onFilterChange: (newFilters: MaterialFilterState) => void;
   onReset: () => void;
+  // True when a filter outside this bar (the KPI shortcut) is active, so Reset stays reachable.
+  extraActive?: boolean;
+  resultCount?: number;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: MaterialFilterBarProps) {
+export function MaterialFilterBar({ items, filters, onFilterChange, onReset, extraActive, resultCount, onRefresh, refreshing }: MaterialFilterBarProps) {
   // Extract unique dynamic dropdown options from current dataset
   const customTypes = useMemo(() => {
     const set = new Set<string>();
@@ -57,154 +61,127 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: M
     onFilterChange({ ...filters, [field]: value });
   };
 
+  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+
   return (
-    <Paper sx={{ p: 2, mb: 2, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr auto"
-          },
-          gap: 1.5,
-          alignItems: "center"
-        }}
-      >
-        <TextField
+    <FilterBar
+      search={filters.search}
+      onSearch={(value) => updateField("search", value)}
+      placeholder="Search by name, lot no., code..."
+      resultCount={resultCount}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+    >
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="material-type-filter-label">Type</InputLabel>
+        <Select
+          labelId="material-type-filter-label"
+          label="Type"
+          value={filters.materialType}
+          onChange={(e) => updateField("materialType", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Types</em>
+          </MenuItem>
+          {MATERIAL_TYPE_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+          {customTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}
+          {customTypes.map((ct) => (
+            <MenuItem key={`custom:${ct}`} value={`custom:${ct}`}>
+              {ct}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel id="material-mfg-filter-label">Manufacturer</InputLabel>
+        <Select
+          labelId="material-mfg-filter-label"
+          label="Manufacturer"
+          value={filters.manufacturer}
+          onChange={(e) => updateField("manufacturer", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Manufacturers</em>
+          </MenuItem>
+          {manufacturers.map((mfg) => (
+            <MenuItem key={mfg} value={mfg}>
+              {mfg}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel id="material-loc-filter-label">Location</InputLabel>
+        <Select
+          labelId="material-loc-filter-label"
+          label="Location"
+          value={filters.location}
+          onChange={(e) => updateField("location", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Locations</em>
+          </MenuItem>
+          {locations.map((loc) => (
+            <MenuItem key={loc} value={loc}>
+              {loc}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 130 }}>
+        <InputLabel id="material-status-filter-label">Status</InputLabel>
+        <Select
+          labelId="material-status-filter-label"
+          label="Status"
+          value={filters.status}
+          onChange={(e) => updateField("status", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Statuses</em>
+          </MenuItem>
+          <MenuItem value="InStock">In Stock</MenuItem>
+          <MenuItem value="LowStock">Low Stock</MenuItem>
+          <MenuItem value="Depleted">Depleted</MenuItem>
+          <MenuItem value="Expired">Expired</MenuItem>
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="material-expiry-filter-label">Expiry</InputLabel>
+        <Select
+          labelId="material-expiry-filter-label"
+          label="Expiry"
+          value={filters.expiryRange}
+          onChange={(e) => updateField("expiryRange", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Expiry</em>
+          </MenuItem>
+          <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
+          <MenuItem value="expiring_60">Expiring in 60 Days</MenuItem>
+          <MenuItem value="expired">Expired</MenuItem>
+          <MenuItem value="valid">Valid / Unexpired</MenuItem>
+        </Select>
+      </FormControl>
+
+      {(hasActiveFilters || extraActive) && (
+        <Button
           size="small"
-          placeholder="Search by name, lot no., code..."
-          value={filters.search}
-          onChange={(e) => updateField("search", e.target.value)}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                </InputAdornment>
-              )
-            }
-          }}
-        />
-
-        <FormControl size="small" fullWidth>
-          <InputLabel id="material-type-filter-label">Type</InputLabel>
-          <Select
-            labelId="material-type-filter-label"
-            label="Type"
-            value={filters.materialType}
-            onChange={(e) => updateField("materialType", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Types</em>
-            </MenuItem>
-            {MATERIAL_TYPE_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
-            {customTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}
-            {customTypes.map((ct) => (
-              <MenuItem key={`custom:${ct}`} value={`custom:${ct}`}>
-                {ct}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" fullWidth>
-          <InputLabel id="material-mfg-filter-label">Manufacturer</InputLabel>
-          <Select
-            labelId="material-mfg-filter-label"
-            label="Manufacturer"
-            value={filters.manufacturer}
-            onChange={(e) => updateField("manufacturer", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Manufacturers</em>
-            </MenuItem>
-            {manufacturers.map((mfg) => (
-              <MenuItem key={mfg} value={mfg}>
-                {mfg}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" fullWidth>
-          <InputLabel id="material-loc-filter-label">Location</InputLabel>
-          <Select
-            labelId="material-loc-filter-label"
-            label="Location"
-            value={filters.location}
-            onChange={(e) => updateField("location", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Locations</em>
-            </MenuItem>
-            {locations.map((loc) => (
-              <MenuItem key={loc} value={loc}>
-                {loc}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" fullWidth>
-          <InputLabel id="material-status-filter-label">Status</InputLabel>
-          <Select
-            labelId="material-status-filter-label"
-            label="Status"
-            value={filters.status}
-            onChange={(e) => updateField("status", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Statuses</em>
-            </MenuItem>
-            <MenuItem value="InStock">In Stock</MenuItem>
-            <MenuItem value="LowStock">Low Stock</MenuItem>
-            <MenuItem value="Depleted">Depleted</MenuItem>
-            <MenuItem value="Expired">Expired</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" fullWidth>
-          <InputLabel id="material-expiry-filter-label">Expiry</InputLabel>
-          <Select
-            labelId="material-expiry-filter-label"
-            label="Expiry"
-            value={filters.expiryRange}
-            onChange={(e) => updateField("expiryRange", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Expiry</em>
-            </MenuItem>
-            <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-            <MenuItem value="expiring_60">Expiring in 60 Days</MenuItem>
-            <MenuItem value="expired">Expired</MenuItem>
-            <MenuItem value="valid">Valid / Unexpired</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "flex-end", md: "flex-start" } }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={onReset}
-            startIcon={<RotateLeftIcon fontSize="small" />}
-            sx={{ borderColor: "divider", color: "text.secondary", minWidth: 90 }}
-          >
-            Reset
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            sx={{ bgcolor: brandColors.sectionTitle, minWidth: 90, "&:hover": { bgcolor: brandColors.pageTitle } }}
-          >
-            Search
-          </Button>
-        </Box>
-      </Box>
-    </Paper>
+          variant="outlined"
+          onClick={onReset}
+          startIcon={<RotateLeftIcon fontSize="small" />}
+          sx={{ borderColor: "divider", color: "text.secondary" }}
+        >
+          Reset
+        </Button>
+      )}
+    </FilterBar>
   );
 }

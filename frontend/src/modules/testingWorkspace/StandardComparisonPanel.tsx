@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   MenuItem,
   Select,
@@ -18,6 +17,8 @@ import {
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
+import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService, StandardComparisonContext } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
@@ -128,7 +129,7 @@ function ResultsTable({ analysis }: { analysis: AnalysisDetail }) {
               <TableCell sx={{ fontSize: 13, fontWeight: 600 }}>{p.parameterName}</TableCell>
               <TableCell sx={{ fontSize: 13, fontWeight: 700 }}>{p.reportedDisplay}</TableCell>
               <TableCell sx={{ fontSize: 13 }}>{p.specLimit ? `${p.specLimit}${p.unit ? ` ${p.unit}` : ""}` : "—"}</TableCell>
-              <TableCell sx={{ fontSize: 13 }}>
+              <TableCell sx={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
                 {calc?.preparationRsdPercent != null ? `${calc.preparationRsdPercent.toFixed(2)} %` : "—"}
                 {calc?.reviewReason && (
                   <Typography sx={{ fontSize: 11, color: "warning.main", mt: 0.25 }}>{calc.reviewReason}</Typography>
@@ -142,6 +143,55 @@ function ResultsTable({ analysis }: { analysis: AnalysisDetail }) {
         })}
       </TableBody>
     </Table>
+  );
+}
+
+// Raw sample preparations as stored by the server (calculationJson), read-only.
+// Skipped for parameters whose stored calculation is missing.
+function PreparationsReadOnly({ analysis }: { analysis: AnalysisDetail }) {
+  const items = analysis.parameterResults
+    .map((p) => ({ p, calc: parseCalc(p.calculationJson) }))
+    .filter((x) => x.calc && x.calc.preparations?.length > 0);
+  if (items.length === 0) return null;
+  return (
+    <ResultSection title="Raw preparations (read-only)">
+      <Stack spacing={2}>
+        {items.map(({ p, calc }) => (
+          <Box key={p.id}>
+            <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>{p.parameterName}</Typography>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Preparation</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Th.Wt.test (mg)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Act.Wt.test (mg)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Deviation</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">{calc!.responseMode === "TitrationVolume" ? "Titre (mL)" : "Peak area"}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">%Assay</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {calc!.preparations.map((pr) => (
+                  <TableRow key={pr.preparationIndex}>
+                    <TableCell sx={{ fontSize: 12 }}>
+                      P{pr.preparationIndex}
+                      {pr.weighInOutOfWindow && pr.weighInJustification && (
+                        <Typography sx={{ fontSize: 11, color: "warning.main" }}>{pr.weighInJustification}</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.theoreticalWeightMg} /></TableCell>
+                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.actualWeightMg} /></TableCell>
+                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.weighInDeviationPercent} decimals={2} unit="%" /></TableCell>
+                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.testResponse} /></TableCell>
+                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.percentAssay} decimals={2} unit="%" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        ))}
+      </Stack>
+    </ResultSection>
   );
 }
 
@@ -486,34 +536,47 @@ export function StandardComparisonPanel({
     }
   };
 
+  // Acceptance criteria from the specifications already loaded. The fallback
+  // specs built from the suitability run carry no limit and are left out.
+  const criteriaRows: CriteriaRow[] = specs
+    .map((sp) => ({
+      parameter: sp.parameterName || "Analyte",
+      criterion:
+        sp.specLimit ||
+        sp.expectedResultText ||
+        (sp.lowerLimit != null || sp.upperLimit != null ? `${sp.lowerLimit ?? ""} – ${sp.upperLimit ?? ""}` : ""),
+      unit: sp.unit || undefined,
+      source: "Specification"
+    }))
+    .filter((r) => r.criterion !== "");
+
   // Completion view
   if (current.allStepsComplete || outcome) {
-    const isOos = (outcome?.status ?? "").includes("OutOfSpecification");
-    const isReview = (outcome?.status ?? "").includes("RequiresReview");
-    const severity = isOos ? "error" : isReview ? "warning" : "success";
+    // The banner shows only the server's overall status. A reopened test has
+    // none, and aggregating the per-parameter statuses here would be a client
+    // verdict - so it falls back to the recorded result text instead.
+    const finalStatus = outcome?.status;
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results recorded"}${finalStatus ? ` (${finalStatus})` : ""}${linked ? ` · Suitability run ${linked.code}` : ""}`;
 
     return (
-      <Box>
-        <Alert severity={severity} sx={{ mb: 2 }}>
-          {displayName}: <strong>{outcome?.outcomeSummary ?? current.finalResult ?? "Results recorded"}</strong>
-          {outcome?.status && ` (${outcome.status})`}
-        </Alert>
-        {linked && <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>Suitability run {linked.code}</Typography>}
+      <Stack spacing={2}>
+        {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
+
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {activeAnalysis && activeAnalysis.parameterResults.length > 0 && (
-          <Box sx={{ mb: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-              Standard-Comparison Assay Results
-            </Typography>
+          <ResultSection title="Standard-comparison assay results">
             <ResultsTable analysis={activeAnalysis} />
-          </Box>
+          </ResultSection>
         )}
+
+        {activeAnalysis && <PreparationsReadOnly analysis={activeAnalysis} />}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
           {onClose && <Button variant="contained" onClick={onClose}>Done / Close</Button>}
         </Box>
-      </Box>
+      </Stack>
     );
   }
 
@@ -546,17 +609,19 @@ export function StandardComparisonPanel({
         </Alert>
       )}
 
-      <Typography sx={{ fontWeight: 700, mb: 1 }}>1. System suitability run</Typography>
+      <Stack spacing={2}>
+      <ResultSection step={1} title="System suitability run">
       {linked && !changingRun ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1, flexWrap: "wrap" }}>
-          <Chip color="success" label={`${linked.code} · Passed`} />
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{linked.code}</Typography>
+          <StatusBadge status="Passed" />
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
             {linked.equipmentCode} / {linked.columnCode} · {linked.analytes?.length ?? 0} analyte row(s)
           </Typography>
           {selectable.length > 1 && <Button size="small" onClick={() => setChangingRun(true)}>Change</Button>}
         </Stack>
       ) : (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <Select size="small" displayEmpty value={runChoice} onChange={(e) => setRunChoice(e.target.value as number)} sx={{ minWidth: 320 }}>
             <MenuItem value="" disabled>{selectable.length ? "Choose a passed run" : "No passed run for this method yet"}</MenuItem>
             {selectable.map((r) => (
@@ -576,7 +641,7 @@ export function StandardComparisonPanel({
       )}
 
       {linked && specs.length > 0 && (
-        <Box sx={{ mb: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 1.5 }}>
+        <Box sx={{ mt: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 1.5 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1 }}>Linked run — standard values (read-only)</Typography>
           <Table size="small">
             <TableHead>
@@ -616,10 +681,12 @@ export function StandardComparisonPanel({
         </Box>
       )}
 
-      <Typography sx={{ fontWeight: 700, mb: 1, color: linked ? "text.primary" : "text.disabled" }}>
-        2. Sample preparations & responses
-      </Typography>
-      <Stack spacing={2} sx={{ opacity: linked ? 1 : 0.5, pointerEvents: linked ? "auto" : "none", mb: 2.5 }}>
+      </ResultSection>
+
+      {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+
+      <ResultSection step={2} title="Sample preparations & responses">
+      <Stack spacing={2} sx={{ opacity: linked ? 1 : 0.5, pointerEvents: linked ? "auto" : "none" }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <Select
             size="small"
@@ -636,7 +703,7 @@ export function StandardComparisonPanel({
           <TextField
             size="small"
             type="datetime-local"
-            label="Analysis Time (Local) *"
+            label="Analysis Time (Local)"
             value={analysedAt}
             onChange={(e) => setAnalysedAt(e.target.value)}
             slotProps={{ inputLabel: { shrink: true } }}
@@ -735,7 +802,7 @@ export function StandardComparisonPanel({
                       {Array.from({ length: expectedPreps }, (_, i) => {
                         const val = previewAssay(a, i, responses[rowIdx]?.[prepKey(i + 1)] ?? "");
                         return (
-                          <TableCell key={i} sx={{ fontSize: 12 }}>
+                          <TableCell key={i} sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                             {val != null ? `${val.toFixed(2)} %` : "—"}
                           </TableCell>
                         );
@@ -752,6 +819,8 @@ export function StandardComparisonPanel({
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Button variant="contained" disabled={!readyToSign} onClick={() => setSigning(true)}>Sign and calculate</Button>
         </Box>
+      </Stack>
+      </ResultSection>
       </Stack>
 
       <SignatureDialog

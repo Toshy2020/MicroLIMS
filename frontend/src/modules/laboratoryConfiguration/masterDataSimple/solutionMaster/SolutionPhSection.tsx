@@ -10,12 +10,15 @@ import {
   FormHelperText
 } from "@mui/material";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
+import type { SolutionFieldKey } from "./solutionForm";
 
 export interface SolutionPhSectionProps {
   phTarget: string | number;
   phTolerance: string | number;
   phAdjustingEntryId: string | number;
   availablePhAdjustingEntries: MaterialMasterEntry[];
+  // Client-side validation messages, shown on the field.
+  errors?: Partial<Record<SolutionFieldKey, string>>;
   onPhTargetChange: (value: string) => void;
   onPhToleranceChange: (value: string) => void;
   onPhAdjustingEntryIdChange: (value: string | number) => void;
@@ -26,6 +29,7 @@ export function SolutionPhSection({
   phTolerance,
   phAdjustingEntryId,
   availablePhAdjustingEntries,
+  errors = {},
   onPhTargetChange,
   onPhToleranceChange,
   onPhAdjustingEntryIdChange
@@ -46,7 +50,8 @@ export function SolutionPhSection({
           size="small"
           placeholder="e.g. 7.00"
           slotProps={{ htmlInput: { min: "0", max: "14", step: "0.01" } }}
-          helperText="Range: 0.00 – 14.00"
+          error={!!errors.phTarget}
+          helperText={errors.phTarget ?? "Range: 0.00 – 14.00"}
         />
 
         <TextField
@@ -58,10 +63,11 @@ export function SolutionPhSection({
           disabled={!hasPhTarget}
           placeholder="e.g. 0.05"
           slotProps={{ htmlInput: { min: "0.01", step: "0.01" } }}
-          helperText={!hasPhTarget ? "Requires target pH" : "Acceptable ± deviation"}
+          error={!!errors.phTolerance}
+          helperText={errors.phTolerance ?? (!hasPhTarget ? "Requires target pH" : "Acceptable ± deviation")}
         />
 
-        <FormControl size="small" disabled={!hasPhTarget}>
+        <FormControl size="small" disabled={!hasPhTarget} error={!!errors.phAdjuster}>
           <InputLabel id="ph-adjusting-reagent-select-label">pH Adjusting Reagent</InputLabel>
           <Select
             labelId="ph-adjusting-reagent-select-label"
@@ -78,7 +84,7 @@ export function SolutionPhSection({
               </MenuItem>
             ))}
           </Select>
-          <FormHelperText>Reagents in current section</FormHelperText>
+          <FormHelperText>{errors.phAdjuster ?? "Reagents in current section"}</FormHelperText>
         </FormControl>
       </Box>
     </Paper>

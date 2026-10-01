@@ -1,34 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Paper,
-  Box,
-  Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  TablePagination,
-  Alert,
-  IconButton,
-  Tooltip,
-  Typography,
-  ButtonBase,
-  Chip,
-  useTheme
-} from "@mui/material";
+import { Box, Button, Alert, Typography, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import HistoryIcon from "@mui/icons-material/History";
-import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
+import { LabPage, RegisterTable, NumericCell } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
@@ -49,7 +29,6 @@ import {
 import { MaterialFilterBar, MATERIAL_TYPE_OPTIONS } from "./components/MaterialFilterBar";
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
-import { tableHeadSx } from "../../../theme";
 
 const MATERIAL_TYPE_LABEL_MAP = new Map<string, string>(
   MATERIAL_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])
@@ -133,10 +112,6 @@ export function MaterialsPage() {
   const [kpiFilter, setKpiFilter] = useState<MaterialKpiFilter>("all");
   const [filters, setFilters] = useState<MaterialFilterState>(INITIAL_FILTERS);
 
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
-
   // Dialog states
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MaterialItem | null>(null);
@@ -166,17 +141,14 @@ export function MaterialsPage() {
   const handleReset = () => {
     setKpiFilter("all");
     setFilters(INITIAL_FILTERS);
-    setPage(0);
   };
 
   const handleKpiSelect = (newKpi: MaterialKpiFilter) => {
     setKpiFilter(newKpi);
-    setPage(0);
   };
 
   const handleFilterChange = (newFilters: MaterialFilterState) => {
     setFilters(newFilters);
-    setPage(0);
   };
 
   // Filtered dataset combining KPI shortcuts + form filters
@@ -249,285 +221,161 @@ export function MaterialsPage() {
     });
   }, [items, kpiFilter, filters, labParam, sectionCodeById]);
 
-  // Paginated slice
-  const paginatedItems = useMemo(() => {
-    const start = page * rowsPerPage;
-    return filteredItems.slice(start, start + rowsPerPage);
-  }, [filteredItems, page, rowsPerPage]);
+  const openEdit = (m: MaterialItem) => {
+    setEditingItem(m);
+    setIsAddOpen(true);
+  };
+
+  const columns: RegisterColumn<MaterialItem>[] = [
+    { key: "materialType", label: "Type", sortable: true, sortValue: (m) => getMaterialTypeDisplay(m), render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{getMaterialTypeDisplay(m)}</Box> },
+    {
+      key: "materialName", label: "Material Name", sortable: true,
+      // Material Name + optional organism/ATCC secondary line
+      render: (m) => {
+        // Canonical ATCC: organism.atccNumber first, material.atccNumber as fallback
+        const canonicalAtcc = m.organism?.atccNumber ?? m.atccNumber;
+        const organism = m.organism?.scientificName;
+        return (
+          <>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", fontWeight: 600 }}>
+              <span>{m.materialName}</span>
+              {m.materialType === "DehydratedMedia" && m.mediaProductId == null && (
+                <StatusBadge status="OnHold" label="Not linked to a media product" />
+              )}
+              {m.materialType === "ReferenceStandard" && m.purity != null && (
+                <StatusBadge status="Assigned" label={`Purity: ${m.purity}%`} />
+              )}
+            </Box>
+            {(organism || canonicalAtcc) && (
+              <Typography
+                component="div"
+                sx={{ fontSize: 11, color: "text.secondary", fontWeight: 400, fontStyle: organism ? "italic" : "normal", mt: 0.25 }}
+              >
+                {organism && canonicalAtcc ? `${organism} · ATCC ${canonicalAtcc}` : organism ? organism : `ATCC ${canonicalAtcc}`}
+              </Typography>
+            )}
+          </>
+        );
+      }
+    },
+    { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (m) => m.manufacturerName || "—" },
+    {
+      key: "batchNumber", label: "Batch/Lot No.", sortable: true, nowrap: true,
+      render: (m) => <Box id={`lot-${m.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.batchNumber}</Box>
+    },
+    { key: "receivingDate", label: "Received", sortable: true, render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{formatLabDate(m.receivingDate)}</Box> },
+    {
+      key: "expiryDate", label: "Expiry", sortable: true,
+      render: (m) => (
+        <Box
+          component="span"
+          sx={{
+            whiteSpace: "nowrap",
+            color: isMaterialExpiringSoon(m.expiryDate) ? theme.custom.status.detected.text : "inherit",
+            fontWeight: isMaterialExpiringSoon(m.expiryDate) ? 600 : "normal"
+          }}
+        >
+          {m.expiryDate ? formatLabDate(m.expiryDate) : "—"}
+        </Box>
+      )
+    },
+    { key: "code", label: "Code", sortable: true, nowrap: true, render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{m.code ?? "—"}</Box> },
+    { key: "location", label: "Location", sortable: true, render: (m) => m.location },
+    { key: "quantityReceived", label: "Qty Received", numeric: true, sortable: true, render: (m) => <NumericCell value={m.quantityReceived} unit={m.unit} /> },
+    {
+      key: "quantityRemaining", label: "Qty Remaining", numeric: true, sortable: true,
+      render: (m) => (
+        <Box
+          component="span"
+          sx={{
+            fontWeight: 700,
+            color: m.quantityRemaining <= 0
+              ? theme.custom.status.detected.text
+              : isMaterialLowStock(m)
+              ? theme.custom.status.action.text
+              : theme.custom.status.notDetected.text
+          }}
+        >
+          <NumericCell value={m.quantityRemaining} unit={m.unit} />
+        </Box>
+      )
+    },
+    { key: "minimumStockLevel", label: "Min Stock", numeric: true, sortable: true, render: (m) => <NumericCell value={m.minimumStockLevel} unit={m.unit} /> },
+    {
+      key: "status", label: "Status", sortable: true,
+      render: (m) => (isMaterialLowStock(m) ? <StatusBadge status="LowStock" label="Low Stock" /> : <StatusBadge status={m.status} />)
+    }
+  ];
+
+  const addButton = (
+    <Button
+      variant="contained"
+      color="primary"
+      startIcon={<AddIcon />}
+      onClick={() => {
+        setEditingItem(null);
+        setIsAddOpen(true);
+      }}
+      sx={{ whiteSpace: "nowrap" }}
+    >
+      Add to Stock
+    </Button>
+  );
+
+  const isFiltered = kpiFilter !== "all" || Object.values(filters).some((v) => v !== "");
 
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-        <PageHeader
+      <Box className="no-print">
+        <LabPage
           title="Materials Stock"
           subtitle="Media, discs, kits, reagents, chemicals, disposables — receiving, expiry, and quantity received/remaining."
-        />
-        <Button
-          className="no-print"
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setEditingItem(null);
-            setIsAddOpen(true);
-          }}
-          sx={{
-            px: 2.5,
-            py: 1,
-            fontWeight: 600,
-            whiteSpace: "nowrap"
-          }}
-        >
-          + Add to Stock
-        </Button>
-      </Box>
-
-      {message && (
-        <Alert
-          className="no-print"
-          severity={message.ok ? "success" : "error"}
-          onClose={() => setMessage(null)}
-          sx={{ mb: 2 }}
-        >
-          {message.text}
-        </Alert>
-      )}
-
-      {loading || !items ? (
-        <LoadingSpinner />
-      ) : (
-        <Box className="no-print">
-          {/* KPI Shortcut Cards */}
-          <MaterialKpiCards
-            items={items}
-            activeFilter={kpiFilter}
-            onFilterSelect={handleKpiSelect}
-          />
-
-          {/* Compact Search & Filter Bar */}
-          <MaterialFilterBar
-            items={items}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onReset={handleReset}
-          />
-
-          {/* Materials Register Section */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, mt: 3 }}>
-            <SectionTitle>
-              {`Materials in Stock (${filteredItems.length}${filteredItems.length !== items.length ? ` filtered from ${items.length}` : ""})`}
-            </SectionTitle>
-            <PrintButton label="Print (excludes expired / depleted)" />
-          </Box>
-
-          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-            <TableContainer>
-              <Table size="small">
-                <TableHead sx={tableHeadSx}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Material Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Manufacturer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Batch/Lot No.</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Received</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Expiry</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Qty Received</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Qty Remaining</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Min Stock</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={15} sx={{ textAlign: "center", py: 4 }}>
-                        <Typography
-                          sx={{
-                            color: "text.secondary",
-                            fontSize: 14
-                          }}>
-                          No materials matching the selected filter criteria.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedItems.map((m) => {
-                      const isLow = isMaterialLowStock(m);
-                      return (
-                        <TableRow
-                          key={m.id}
-                          hover
-                          sx={{
-                            bgcolor: isLow ? theme.custom.status.inconclusive.bg : undefined,
-                            "&:last-child td, &:last-child th": { border: 0 }
-                          }}
-                        >
-                          <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                            {getMaterialTypeDisplay(m)}
-                          </TableCell>
-                          {/* Material Name + optional organism/ATCC secondary line */}
-                          <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                              <span>{m.materialName}</span>
-                              {m.materialType === "DehydratedMedia" && m.mediaProductId == null && (
-                                <Chip
-                                  label="Not linked to a media product"
-                                  size="small"
-                                  color="warning"
-                                  sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
-                                />
-                              )}
-                              {m.materialType === "ReferenceStandard" && m.purity != null && (
-                                <Chip
-                                  label={`Purity: ${m.purity}%`}
-                                  size="small"
-                                  color="primary"
-                                  variant="outlined"
-                                  sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
-                                />
-                              )}
-                            </Box>
-                            {(() => {
-                              // Canonical ATCC: organism.atccNumber first, material.atccNumber as fallback
-                              const canonicalAtcc = m.organism?.atccNumber ?? m.atccNumber;
-                              const organism = m.organism?.scientificName;
-                              if (!organism && !canonicalAtcc) return null;
-                              return (
-                                <Typography
-                                  component="div"
-                                  sx={{ fontSize: 11, color: "text.secondary", fontWeight: 400, fontStyle: organism ? "italic" : "normal", mt: 0.25 }}
-                                >
-                                  {organism && canonicalAtcc
-                                    ? `${organism} · ATCC ${canonicalAtcc}`
-                                    : organism
-                                    ? organism
-                                    : `ATCC ${canonicalAtcc}`}
-                                </Typography>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {m.manufacturerName || "—"}
-                          </TableCell>
-                          {/* Clickable lot number — opens lot details dialog */}
-                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, p: 0 }}>
-                            <ButtonBase
-                              id={`lot-${m.id}`}
-                              onClick={() => setLotDetailsFor(m)}
-                              sx={{
-                                px: 1, py: 0.75,
-                                color: "primary.main",
-                                fontFamily: "monospace",
-                                fontWeight: 700,
-                                fontSize: 12,
-                                borderRadius: 1,
-                                textDecoration: "underline",
-                                textDecorationStyle: "dotted",
-                                "&:hover": { bgcolor: "primary.50", textDecorationStyle: "solid" }
-                              }}
-                            >
-                              {m.batchNumber}
-                            </ButtonBase>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                            {formatLabDate(m.receivingDate)}
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontSize: 12,
-                              whiteSpace: "nowrap",
-                              color: isMaterialExpiringSoon(m.expiryDate) ? theme.custom.status.detected.text : "inherit",
-                              fontWeight: isMaterialExpiringSoon(m.expiryDate) ? 600 : "normal"
-                            }}
-                          >
-                            {m.expiryDate ? formatLabDate(m.expiryDate) : "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {m.code ?? "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {m.location}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, textAlign: "right", whiteSpace: "nowrap" }}>
-                            {m.quantityReceived} {m.unit}
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontSize: 12,
-                              textAlign: "right",
-                              whiteSpace: "nowrap",
-                              fontWeight: 700,
-                              color: m.quantityRemaining <= 0
-                                ? theme.custom.status.detected.text
-                                : isLow
-                                ? theme.custom.status.action.text
-                                : theme.custom.status.notDetected.text
-                            }}
-                          >
-                            {m.quantityRemaining} {m.unit}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, textAlign: "right", whiteSpace: "nowrap" }}>
-                            {m.minimumStockLevel != null ? `${m.minimumStockLevel} ${m.unit}` : "—"}
-                          </TableCell>
-                          <TableCell sx={{ textAlign: "center" }}>
-                            {isLow ? (
-                              <StatusBadge status="LowStock" label="Low Stock" />
-                            ) : (
-                              <StatusBadge status={m.status} />
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                            <Tooltip title="Edit Material">
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  setEditingItem(m);
-                                  setIsAddOpen(true);
-                                }}
-                                sx={{ color: "primary.main" }}
-                              >
-                                <EditOutlinedIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            {canSeeHistory && (
-                              <Tooltip title="Audit History">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setHistoryFor(m.id)}
-                                  sx={{ color: "text.secondary" }}
-                                >
-                                  <HistoryIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            <TablePagination
-              rowsPerPageOptions={[10, 25, 50, 100]}
-              component="div"
-              count={filteredItems.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              sx={{ borderTop: "1px solid", borderColor: "divider" }}
+          actions={
+            <>
+              <PrintButton label="Print (excludes expired / depleted)" />
+              {addButton}
+            </>
+          }
+          kpis={<MaterialKpiCards items={items ?? []} activeFilter={kpiFilter} onFilterSelect={handleKpiSelect} loading={loading || !items} />}
+          filters={
+            <MaterialFilterBar
+              items={items ?? []}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onReset={handleReset}
+              extraActive={kpiFilter !== "all"}
+              resultCount={filteredItems.length}
+              onRefresh={loadData}
+              refreshing={loading}
             />
-          </Paper>
-        </Box>
-      )}
+          }
+        >
+          {message && (
+            <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>
+              {message.text}
+            </Alert>
+          )}
+
+          <RegisterTable
+            columns={columns}
+            rows={filteredItems}
+            getRowId={(m) => m.id}
+            loading={loading || !items}
+            onRowClick={(m) => setLotDetailsFor(m)}
+            rowTone={(m) => (m.status === "Expired" ? "detected" : isMaterialLowStock(m) ? "inconclusive" : undefined)}
+            rowActions={(m) => [
+              { label: "Lot details and documents", onClick: () => setLotDetailsFor(m) },
+              { label: "Edit material", onClick: () => openEdit(m) },
+              ...(canSeeHistory ? [{ label: "Audit history", onClick: () => setHistoryFor(m.id) }] : [])
+            ]}
+            empty={
+              isFiltered
+                ? { title: "No materials matching the selected filter criteria", description: "Reset the filters to see all stock." }
+                : { title: "No materials in stock", description: "Receive the first material lot.", action: addButton }
+            }
+          />
+        </LabPage>
+      </Box>
 
       {/* Add / Edit Modal Dialog */}
       <AddMaterialDialog

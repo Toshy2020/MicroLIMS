@@ -7,6 +7,7 @@ import {
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcRunDto } from "../types";
 
 export interface WorkspaceRunHeaderProps {
@@ -34,13 +35,16 @@ export function WorkspaceRunHeader({
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              {run.equipmentName} ({run.equipmentCode})
+              {run.equipmentName}{" "}
+              <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.7em", color: "text.secondary" }}>
+                {run.equipmentCode}
+              </Box>
             </Typography>
             <HplcStatusBadge status={run.status} size="medium" />
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            <strong>Run Code:</strong> {run.code} · <strong>Method:</strong> {run.hplcMethodAbbreviation} ·{" "}
-            <strong>Column:</strong> {run.chromatographyColumnCode} · <strong>Analyst:</strong> {run.analystUserName ?? "Analyst"} ·{" "}
+            <strong>Run Code:</strong> <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{run.code}</Box> · <strong>Method:</strong> {run.hplcMethodAbbreviation} ·{" "}
+            <strong>Column:</strong> <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{run.chromatographyColumnCode}</Box> · <strong>Analyst:</strong> {run.analystUserName ?? "Analyst"} ·{" "}
             <strong>Started:</strong> {new Date(run.startedAt).toLocaleString()}
           </Typography>
         </Box>

@@ -16,12 +16,12 @@ import {
   CircularProgress,
   useTheme
 } from "@mui/material";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import LinkIcon from "@mui/icons-material/Link";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import { StatusBadge } from "../../../components/StatusBadge";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { ParameterResultDetail } from "../../testingWorkspace/types/sampleSummaryTypes";
@@ -284,18 +284,8 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
             HPLC Assay Review · {calc.analyte}
           </Typography>
-          <Chip
-            icon={<ScienceOutlinedIcon fontSize="small" />}
-            label={`Basis: ${calc.basis}`}
-            size="small"
-            color="primary"
-            variant="outlined"
-          />
-          <Chip
-            label={calc.quantity === "AmountPerUnit" ? "Amount per unit" : "% Assay"}
-            size="small"
-            variant="outlined"
-          />
+          <StatusBadge status="Prepared" label={`Basis: ${calc.basis}`} />
+          <StatusBadge status="Draft" label={calc.quantity === "AmountPerUnit" ? "Amount per unit" : "% Assay"} />
         </Box>
 
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -362,18 +352,18 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
                 <TableCell sx={{ fontSize: 11 }}>Replicate</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Actual Weight (mg)</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Peak Response</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Calculated % Assay</TableCell>
+                <TableCell align="right" sx={{ fontSize: 11 }}>Actual Weight (mg)</TableCell>
+                <TableCell align="right" sx={{ fontSize: 11 }}>Peak Response</TableCell>
+                <TableCell align="right" sx={{ fontSize: 11 }}>Calculated % Assay</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {calc.replicates.map((r) => (
                 <TableRow key={r.replicateNo} hover>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>#{r.replicateNo}</TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>{r.actualWeightMg}</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontFamily: "monospace" }}>{r.response}</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, fontFamily: "monospace" }}>
+                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.actualWeightMg}</TableCell>
+                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.response}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                     {formatReplicateAssay(r)}
                   </TableCell>
                 </TableRow>

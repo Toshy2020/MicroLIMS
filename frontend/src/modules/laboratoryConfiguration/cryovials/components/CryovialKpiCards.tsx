@@ -1,22 +1,10 @@
-import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
-import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
-import { SvgIconComponent } from "@mui/icons-material";
+import { KpiStrip } from "../../../../components/lab";
+import type { SummaryTile } from "../../../../components/configHierarchy/SummaryTiles";
 import { CryovialItem } from "../types/cryovialTypes";
-import { StatusTone } from "../../../../theme/statusTokens";
 
 interface CryovialKpiCardsProps {
   items: CryovialItem[];
-}
-
-interface KpiCardDef {
-  label: string;
-  description: string;
-  count: number;
-  icon: SvgIconComponent;
-  tone: StatusTone;
+  loading?: boolean;
 }
 
 function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
@@ -28,8 +16,7 @@ function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: num
   return diffDays <= daysThreshold;
 }
 
-export function CryovialKpiCards({ items }: CryovialKpiCardsProps) {
-  const theme = useTheme();
+export function CryovialKpiCards({ items, loading }: CryovialKpiCardsProps) {
   const now = new Date();
 
   // 1. Total Batches: Real count of registered cryovial batches
@@ -58,72 +45,12 @@ export function CryovialKpiCards({ items }: CryovialKpiCardsProps) {
       c.vialsRemaining <= 2
   ).length;
 
-  const cards: KpiCardDef[] = [
-    { label: "Total Batches", description: "All registered batches", count: totalBatchesCount, icon: ScienceOutlinedIcon, tone: "purple" },
-    { label: "Vials Available", description: "Usable vials remaining", count: vialsAvailableCount, icon: CheckCircleOutlineIcon, tone: "notDetected" },
-    { label: "Expiring Soon", description: "Within 30 days", count: expiringSoonCount, icon: WarningAmberOutlinedIcon, tone: "action" },
-    { label: "Low Stock", description: "≤ 2 vials remaining", count: lowStockCount, icon: ErrorOutlineIcon, tone: "detected" }
+  const tiles: SummaryTile[] = [
+    { label: "Total Batches", value: totalBatchesCount, tone: "purple" },
+    { label: "Vials Available", value: vialsAvailableCount, tone: "notDetected" },
+    { label: "Expiring Soon (30 d)", value: expiringSoonCount, tone: "action" },
+    { label: "Low Stock (≤ 2 vials)", value: lowStockCount, tone: "detected" }
   ];
 
-  return (
-    <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-      {cards.map((card) => {
-        const tokens = theme.custom.status[card.tone];
-        return (
-          <Grid
-            key={card.label}
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 3
-            }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.75,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
-                bgcolor: "background.paper",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 1.5,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: tokens.bg,
-                    color: tokens.text
-                  }}
-                >
-                  <card.icon sx={{ fontSize: 20 }} />
-                </Box>
-                <Typography
-                  sx={{
-                    fontSize: 24,
-                    fontWeight: 800,
-                    color: tokens.text,
-                    lineHeight: 1
-                  }}
-                >
-                  {card.count}
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", lineHeight: 1.2 }} noWrap>
-                {card.label}
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }} noWrap>
-                {card.description}
-              </Typography>
-            </Paper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
+  return <KpiStrip tiles={tiles} loading={loading} />;
 }

@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import {
-  Box, Paper, Stack, Typography, TextField, Button, Table, TableHead,
-  TableRow, TableCell, TableBody, TableContainer, TablePagination, Chip, Alert, IconButton,
-  Tooltip, Grid, CircularProgress, useTheme
+  Box, Paper, Stack, Typography, TextField, Button, Alert,
+  Grid, CircularProgress, useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import PlaceIcon from "@mui/icons-material/Place";
 import HistoryIcon from "@mui/icons-material/History";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { RegisterTable } from "../../../../components/lab";
+import type { RegisterColumn } from "../../../../components/lab";
+import { StatusBadge } from "../../../../components/StatusBadge";
+import { monospaceFontFamily } from "../../../../theme/palette";
 
 import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
@@ -23,10 +25,6 @@ interface ActiveEquipmentViewProps {
 export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps) {
   const navigate = useNavigate();
   const theme = useTheme();
-  // This inline pair is where the dark table-head band came from; it now
-  // lives in the theme as chrome.tableHeaderBg/Text so every table agrees.
-  const headerBg = theme.custom.chrome.tableHeaderBg;
-  const headerText = theme.custom.chrome.tableHeaderText;
 
   // Active Equipment state
   const [activeEquipment, setActiveEquipment] = useState<ActiveEquipmentDto[]>([]);
@@ -36,8 +34,6 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   // Selected Equipment Activities state
   const [activities, setActivities] = useState<EquipmentActivityDto[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
-  const [activitiesPage, setActivitiesPage] = useState(0);
-  const [activitiesRowsPerPage, setActivitiesRowsPerPage] = useState(15);
 
   // Activity History state
   const [historyItemCode, setHistoryItemCode] = useState("");
@@ -45,15 +41,11 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   const [historyToDate, setHistoryToDate] = useState("");
   const [historyResults, setHistoryResults] = useState<EquipmentActivityDto[] | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyPage, setHistoryPage] = useState(0);
-  const [historyRowsPerPage, setHistoryRowsPerPage] = useState(15);
 
   // "Where is it?" search state
   const [whereQuery, setWhereQuery] = useState("");
   const [whereResult, setWhereResult] = useState<WhereIsItResultDto | null>(null);
   const [loadingWhere, setLoadingWhere] = useState(false);
-  const [wherePage, setWherePage] = useState(0);
-  const [whereRowsPerPage, setWhereRowsPerPage] = useState(15);
 
   // Load Active Equipment List on mount
   const loadActiveEquipment = async () => {
@@ -78,8 +70,6 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   // Load active activities when selected equipment changes
   useEffect(() => {
     if (selectedEqId) {
-      setActivitiesPage(0);
-      setHistoryPage(0);
       loadActivitiesForEquipment(selectedEqId);
       loadHistoryForEquipment(selectedEqId);
     } else {
@@ -119,7 +109,6 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   const handleHistorySearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedEqId) {
-      setHistoryPage(0);
       loadHistoryForEquipment(selectedEqId);
     }
   };
@@ -129,7 +118,6 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
     if (!whereQuery.trim()) return;
     try {
       setLoadingWhere(true);
-      setWherePage(0);
       const res = await EquipmentInventoryService.whereIsIt(whereQuery);
       setWhereResult(res);
     } catch {
@@ -138,6 +126,45 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
       setLoadingWhere(false);
     }
   };
+
+  const activityRoute = (act: EquipmentActivityDto): string | null =>
+    act.entityType === "Sample"
+      ? "/receiving-testing"
+      : act.entityType === "Media"
+      ? "/laboratory-configuration/media"
+      : act.entityType === "Cryovial"
+      ? "/laboratory-configuration/cryovials"
+      : null;
+
+  const whereColumns: RegisterColumn<WhereIsItResultDto["history"][number]>[] = [
+    { key: "equipmentCode", label: "Equipment", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{h.equipmentCode} ({h.equipmentName})</Box> },
+    { key: "activityType", label: "Activity", sortable: true },
+    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatLabDateTime(h.startedOn) },
+    { key: "performedBy", label: "Started By", sortable: true },
+    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatLabDateTime(h.completedOn) : "Active") },
+    { key: "completedBy", label: "Ended By", sortable: true, render: (h) => h.completedBy ?? "—" }
+  ];
+
+  const activityColumns: RegisterColumn<EquipmentActivityDto>[] = [
+    { key: "itemName", label: "Item / Activity", sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 600 }}>{a.itemName}</Box> },
+    { key: "itemCode", label: "Item Code", sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}>{a.itemCode}</Box> },
+    { key: "activityType", label: "Activity Type", sortable: true },
+    { key: "mediaDescription", label: "Media / Description" },
+    { key: "startedOn", label: "Started On", sortable: true, render: (a) => formatLabDateTime(a.startedOn) },
+    { key: "startedBy", label: "Started By", sortable: true },
+    { key: "expectedCompletion", label: "Expected Completion", sortable: true, render: (a) => (a.expectedCompletion ? formatLabDateTime(a.expectedCompletion) : "N/A") }
+  ];
+
+  const historyColumns: RegisterColumn<EquipmentActivityDto>[] = [
+    { key: "itemName", label: "Item / Activity", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600 }}>{h.itemName}</Box> },
+    { key: "itemCode", label: "Item Code", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}>{h.itemCode}</Box> },
+    { key: "activityType", label: "Activity Type", sortable: true },
+    { key: "mediaDescription", label: "Media / Description" },
+    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatLabDateTime(h.startedOn) },
+    { key: "startedBy", label: "Started By", sortable: true },
+    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatLabDateTime(h.completedOn) : <StatusBadge status="Active" />) },
+    { key: "completedBy", label: "Ended By", sortable: true, render: (h) => h.completedBy ?? "—" }
+  ];
 
   const selectedEquipment = activeEquipment.find((e) => e.id === selectedEqId);
 
@@ -214,7 +241,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         Started: {formatLabDateTime(whereResult.currentActivity.startedOn)} | Analyst: {whereResult.currentActivity.startedBy}
                       </Typography>
                     </Box>
-                    <Chip label="Active / Current Location" color="success" size="small" />
+                    <StatusBadge status="Active" label="Active / Current Location" />
                   </Stack>
                 </Box>
               ) : (
@@ -225,46 +252,12 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
 
               {whereResult.history.length > 0 ? (
                 <>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead sx={{ bgcolor: headerBg, "& th": { color: headerText } }}>
-                        <TableRow>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Equipment</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started On</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started By</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended On</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended By</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {whereResult.history
-                          .slice(wherePage * whereRowsPerPage, wherePage * whereRowsPerPage + whereRowsPerPage)
-                          .map((h, idx) => (
-                            <TableRow key={idx}>
-                              <TableCell sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>{h.equipmentCode} ({h.equipmentName})</TableCell>
-                              <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
-                              <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
-                              <TableCell sx={{ fontSize: 12 }}>{h.performedBy}</TableCell>
-                              <TableCell sx={{ fontSize: 12 }}>{h.completedOn ? formatLabDateTime(h.completedOn) : "Active"}</TableCell>
-                              <TableCell sx={{ fontSize: 12 }}>{h.completedBy ?? "—"}</TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                  <TablePagination
-                    component="div"
-                    count={whereResult.history.length}
-                    page={wherePage}
-                    onPageChange={(_, newPage) => setWherePage(newPage)}
-                    rowsPerPage={whereRowsPerPage}
-                    onRowsPerPageChange={(e) => {
-                      setWhereRowsPerPage(parseInt(e.target.value, 10));
-                      setWherePage(0);
-                    }}
-                    rowsPerPageOptions={[15, 30, 50]}
-                    sx={{ borderTop: "1px solid", borderColor: "divider" }}
+                  <RegisterTable
+                    columns={whereColumns}
+                    rows={whereResult.history}
+                    getRowId={(h) => `${h.equipmentCode}-${h.startedOn}-${h.activityType}`}
+                    pageSize={25}
+                    empty={{ title: "No location history records found matching this query." }}
                   />
                 </>
               ) : (
@@ -351,16 +344,14 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color: "primary.main" }}>
                           {eq.code}
                         </Typography>
-                        <Chip
+                        <StatusBadge
+                          status={isInUse ? "InUse" : "Idle"}
                           label={isInUse ? `${eq.activeItemCount} ${eq.activeItemCount === 1 ? "item" : "items"}` : "Idle"}
-                          size="small"
-                          color={isInUse ? "primary" : "default"}
-                          sx={{ height: 20, fontSize: 11 }}
                         />
                       </Stack>
                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{eq.instrumentType}</Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>{eq.location}</Typography>
-                      <Chip label={eq.primaryActivityCategory} size="small" variant="outlined" sx={{ mt: 1, height: 20, fontSize: 10 }} />
+                      <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 1 }}>{eq.primaryActivityCategory}</Typography>
                     </Paper>
                   );
                 })}
@@ -401,11 +392,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                   <Stack direction="row" spacing={1} sx={{
                     alignItems: "center"
                   }}>
-                    <Chip
-                      label={selectedEquipment.activeItemCount > 0 ? "In Use" : "Idle"}
-                      color={selectedEquipment.activeItemCount > 0 ? "success" : "default"}
-                      size="small"
-                    />
+                    <StatusBadge status={selectedEquipment.activeItemCount > 0 ? "InUse" : "Idle"} label={selectedEquipment.activeItemCount > 0 ? "In Use" : "Idle"} />
                     <Button size="small" variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => onOpenDetails(selectedEquipment.id)}>
                       Equipment Details
                     </Button>
@@ -504,77 +491,17 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                   <Alert severity="info" sx={{ fontSize: 13 }}>No active activities currently running in this equipment.</Alert>
                 ) : (
                   <>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead sx={{ bgcolor: headerBg, "& th": { color: headerText } }}>
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item / Activity</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item Code</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Activity Type</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Media / Description</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Started On</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Started By</TableCell>
-                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Expected Completion</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {activities
-                            .slice(activitiesPage * activitiesRowsPerPage, activitiesPage * activitiesRowsPerPage + activitiesRowsPerPage)
-                            .map((act) => (
-                              <TableRow key={act.activityId} hover>
-                                <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{act.itemName}</TableCell>
-                                <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>{act.itemCode}</TableCell>
-                                <TableCell sx={{ fontSize: 12 }}>
-                                  <Chip label={act.activityType} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: 10 }} />
-                                </TableCell>
-                                <TableCell sx={{ fontSize: 12 }}>{act.mediaDescription}</TableCell>
-                                <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(act.startedOn)}</TableCell>
-                                <TableCell sx={{ fontSize: 12 }}>{act.startedBy}</TableCell>
-                                <TableCell sx={{ fontSize: 12 }}>
-                                  {act.expectedCompletion ? formatLabDateTime(act.expectedCompletion) : "N/A"}
-                                </TableCell>
-                                <TableCell align="right">
-                                  {(() => {
-                                    const targetRoute =
-                                      act.entityType === "Sample"
-                                        ? "/receiving-testing"
-                                        : act.entityType === "Media"
-                                        ? "/laboratory-configuration/media"
-                                        : act.entityType === "Cryovial"
-                                        ? "/laboratory-configuration/cryovials"
-                                        : null;
-
-                                    return (
-                                      <Tooltip title="View Activity / Test Workspace">
-                                        <IconButton
-                                          {...(targetRoute ? { component: Link, to: targetRoute } : {})}
-                                          size="small"
-                                          color="primary"
-                                        >
-                                          <VisibilityIcon fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                    );
-                                  })()}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                    <TablePagination
-                      component="div"
-                      count={activities.length}
-                      page={activitiesPage}
-                      onPageChange={(_, newPage) => setActivitiesPage(newPage)}
-                      rowsPerPage={activitiesRowsPerPage}
-                      onRowsPerPageChange={(e) => {
-                        setActivitiesRowsPerPage(parseInt(e.target.value, 10));
-                        setActivitiesPage(0);
+                    <RegisterTable
+                      columns={activityColumns}
+                      rows={activities}
+                      getRowId={(act) => act.activityId}
+                      pageSize={25}
+                      onRowClick={(act) => { const route = activityRoute(act); if (route) navigate(route); }}
+                      rowActions={(act) => {
+                        const route = activityRoute(act);
+                        return route ? [{ label: "View activity / test workspace", onClick: () => navigate(route) }] : [];
                       }}
-                      rowsPerPageOptions={[15, 30, 50]}
-                      sx={{ borderTop: "1px solid", borderColor: "divider" }}
+                      empty={{ title: "No active activities currently running in this equipment." }}
                     />
                   </>
                 )}
@@ -660,69 +587,13 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
 
                   {historyResults && (
                     <Box sx={{ mt: 1 }}>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead sx={{ bgcolor: headerBg, "& th": { color: headerText } }}>
-                            <TableRow>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Item / Activity</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Item Code</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity Type</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Media / Description</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started On</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started By</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended On</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended By</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {historyResults.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                                  <Typography
-                                    sx={{
-                                      color: "text.secondary",
-                                      fontSize: 13
-                                    }}>
-                                    No historical activities found matching the selected search criteria.
-                                  </Typography>
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              historyResults
-                                .slice(historyPage * historyRowsPerPage, historyPage * historyRowsPerPage + historyRowsPerPage)
-                                .map((h) => (
-                                  <TableRow key={h.activityId} hover>
-                                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{h.itemName}</TableCell>
-                                    <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>{h.itemCode}</TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>{h.mediaDescription}</TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>{h.startedBy}</TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>
-                                      {h.completedOn ? formatLabDateTime(h.completedOn) : <Chip label="Active" size="small" color="success" sx={{ height: 18, fontSize: 10 }} />}
-                                    </TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>{h.completedBy ?? "—"}</TableCell>
-                                  </TableRow>
-                                ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                      {historyResults.length > 0 && (
-                        <TablePagination
-                          component="div"
-                          count={historyResults.length}
-                          page={historyPage}
-                          onPageChange={(_, newPage) => setHistoryPage(newPage)}
-                          rowsPerPage={historyRowsPerPage}
-                          onRowsPerPageChange={(e) => {
-                            setHistoryRowsPerPage(parseInt(e.target.value, 10));
-                            setHistoryPage(0);
-                          }}
-                          rowsPerPageOptions={[15, 30, 50]}
-                          sx={{ borderTop: "1px solid", borderColor: "divider" }}
-                        />
-                      )}
+                      <RegisterTable
+                        columns={historyColumns}
+                        rows={historyResults}
+                        getRowId={(h) => h.activityId}
+                        pageSize={25}
+                        empty={{ title: "No historical activities found matching the selected search criteria." }}
+                      />
                     </Box>
                   )}
                 </Stack>

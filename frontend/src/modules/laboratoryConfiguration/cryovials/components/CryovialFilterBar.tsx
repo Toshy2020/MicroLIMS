@@ -1,32 +1,20 @@
 import { useMemo } from "react";
-import {
-  Paper,
-  Box,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  InputAdornment,
-  ButtonGroup,
-  useTheme
-} from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import { Select, MenuItem, FormControl, InputLabel, Button } from "@mui/material";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import { CryovialItem, CryovialFilterState } from "../types/cryovialTypes";
+import { FilterBar } from "../../../../components/lab";
 
 interface CryovialFilterBarProps {
   items: CryovialItem[];
   filters: CryovialFilterState;
   onFilterChange: (newFilters: CryovialFilterState) => void;
   onReset: () => void;
+  resultCount?: number;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: CryovialFilterBarProps) {
-  const theme = useTheme();
-  const { notDetected, action, detected } = theme.custom.status;
-
+export function CryovialFilterBar({ items, filters, onFilterChange, onReset, resultCount, onRefresh, refreshing }: CryovialFilterBarProps) {
   // Extract unique organisms from current dataset
   const organisms = useMemo(() => {
     const set = new Set<string>();
@@ -41,176 +29,83 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
     onFilterChange({ ...filters, [field]: value });
   };
 
-  const handleShortcutStatus = (statusValue: string) => {
-    updateField("status", statusValue);
-  };
+  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
   return (
-    <Paper sx={{ p: 2, mb: 2, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
-      {/* Top row: Status shortcuts & search */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 1.5,
-          mb: 1.5
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <ButtonGroup size="small" variant="outlined">
-            <Button
-              variant={filters.status === "" ? "contained" : "outlined"}
-              onClick={() => handleShortcutStatus("")}
-              sx={{
-                bgcolor: filters.status === "" ? "primary.main" : undefined,
-                color: filters.status === "" ? "primary.contrastText" : "text.secondary",
-                borderColor: "divider",
-                "&:hover": { bgcolor: filters.status === "" ? "primary.dark" : "background.default" }
-              }}
-            >
-              All
-            </Button>
-            <Button
-              variant={filters.status === "Approved" ? "contained" : "outlined"}
-              onClick={() => handleShortcutStatus("Approved")}
-              sx={{
-                bgcolor: filters.status === "Approved" ? notDetected.text : undefined,
-                color: filters.status === "Approved" ? theme.palette.getContrastText(notDetected.text) : notDetected.text,
-                borderColor: "divider",
-                "&:hover": { bgcolor: filters.status === "Approved" ? notDetected.text : notDetected.bg }
-              }}
-            >
-              Approved
-            </Button>
-            <Button
-              variant={filters.status === "PendingReview" ? "contained" : "outlined"}
-              onClick={() => handleShortcutStatus("PendingReview")}
-              sx={{
-                bgcolor: filters.status === "PendingReview" ? action.text : undefined,
-                color: filters.status === "PendingReview" ? theme.palette.getContrastText(action.text) : action.text,
-                borderColor: "divider",
-                "&:hover": { bgcolor: filters.status === "PendingReview" ? action.text : action.bg }
-              }}
-            >
-              Pending Review
-            </Button>
-            <Button
-              variant={filters.status === "Rejected" ? "contained" : "outlined"}
-              onClick={() => handleShortcutStatus("Rejected")}
-              sx={{
-                bgcolor: filters.status === "Rejected" ? detected.text : undefined,
-                color: filters.status === "Rejected" ? theme.palette.getContrastText(detected.text) : detected.text,
-                borderColor: "divider",
-                "&:hover": { bgcolor: filters.status === "Rejected" ? detected.text : detected.bg }
-              }}
-            >
-              Rejected
-            </Button>
-          </ButtonGroup>
-        </Box>
-
-        <Box sx={{ display: "flex", gap: 1, flexGrow: 1, maxWidth: { xs: "100%", sm: 380 } }}>
-          <TextField
-            size="small"
-            fullWidth
-            placeholder="Search by code, organism, material..."
-            value={filters.search}
-            onChange={(e) => updateField("search", e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                  </InputAdornment>
-                )
-              }
-            }}
-          />
-        </Box>
-      </Box>
-
-      {/* Bottom row: Detailed Dropdown Filters & Reset */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "1.5fr 1.2fr 1.2fr auto"
-          },
-          gap: 1.5,
-          alignItems: "center"
-        }}
-      >
-        <FormControl size="small" fullWidth>
-          <InputLabel id="cryovial-organism-filter-label">Organism</InputLabel>
-          <Select
-            labelId="cryovial-organism-filter-label"
-            label="Organism"
-            value={filters.organism}
-            onChange={(e) => updateField("organism", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Organisms</em>
+    <FilterBar
+      search={filters.search}
+      onSearch={(value) => updateField("search", value)}
+      placeholder="Search by code, organism, material..."
+      resultCount={resultCount}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+    >
+      <FormControl size="small" sx={{ minWidth: 170 }}>
+        <InputLabel id="cryovial-organism-filter-label">Organism</InputLabel>
+        <Select
+          labelId="cryovial-organism-filter-label"
+          label="Organism"
+          value={filters.organism}
+          onChange={(e) => updateField("organism", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Organisms</em>
+          </MenuItem>
+          {organisms.map((org) => (
+            <MenuItem key={org} value={org}>
+              {org}
             </MenuItem>
-            {organisms.map((org) => (
-              <MenuItem key={org} value={org}>
-                {org}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          ))}
+        </Select>
+      </FormControl>
 
-        <FormControl size="small" fullWidth>
-          <InputLabel id="cryovial-status-filter-label">Status</InputLabel>
-          <Select
-            labelId="cryovial-status-filter-label"
-            label="Status"
-            value={filters.status}
-            onChange={(e) => updateField("status", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Statuses</em>
-            </MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
-            <MenuItem value="PendingReview">Pending Review</MenuItem>
-            <MenuItem value="Rejected">Rejected</MenuItem>
-            <MenuItem value="Destroyed">Destroyed</MenuItem>
-            <MenuItem value="Depleted">Depleted (0 Vials)</MenuItem>
-          </Select>
-        </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="cryovial-status-filter-label">Status</InputLabel>
+        <Select
+          labelId="cryovial-status-filter-label"
+          label="Status"
+          value={filters.status}
+          onChange={(e) => updateField("status", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Statuses</em>
+          </MenuItem>
+          <MenuItem value="Approved">Approved</MenuItem>
+          <MenuItem value="PendingReview">Pending Review</MenuItem>
+          <MenuItem value="Rejected">Rejected</MenuItem>
+          <MenuItem value="Destroyed">Destroyed</MenuItem>
+          <MenuItem value="Depleted">Depleted (0 Vials)</MenuItem>
+        </Select>
+      </FormControl>
 
-        <FormControl size="small" fullWidth>
-          <InputLabel id="cryovial-expiry-filter-label">Expiry</InputLabel>
-          <Select
-            labelId="cryovial-expiry-filter-label"
-            label="Expiry"
-            value={filters.expiryRange}
-            onChange={(e) => updateField("expiryRange", e.target.value)}
-          >
-            <MenuItem value="">
-              <em>All Expiry</em>
-            </MenuItem>
-            <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-            <MenuItem value="expired">Expired</MenuItem>
-            <MenuItem value="valid">Valid / Unexpired</MenuItem>
-          </Select>
-        </FormControl>
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel id="cryovial-expiry-filter-label">Expiry</InputLabel>
+        <Select
+          labelId="cryovial-expiry-filter-label"
+          label="Expiry"
+          value={filters.expiryRange}
+          onChange={(e) => updateField("expiryRange", e.target.value)}
+        >
+          <MenuItem value="">
+            <em>All Expiry</em>
+          </MenuItem>
+          <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
+          <MenuItem value="expired">Expired</MenuItem>
+          <MenuItem value="valid">Valid / Unexpired</MenuItem>
+        </Select>
+      </FormControl>
 
-        <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "flex-end", md: "flex-start" } }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={onReset}
-            startIcon={<RotateLeftIcon fontSize="small" />}
-            sx={{ borderColor: "divider", color: "text.secondary", minWidth: 90 }}
-          >
-            Reset
-          </Button>
-        </Box>
-      </Box>
-    </Paper>
+      {hasActiveFilters && (
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={onReset}
+          startIcon={<RotateLeftIcon fontSize="small" />}
+          sx={{ borderColor: "divider", color: "text.secondary" }}
+        >
+          Reset
+        </Button>
+      )}
+    </FilterBar>
   );
 }

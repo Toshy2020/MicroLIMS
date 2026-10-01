@@ -3,16 +3,12 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Divider,
   FormControl,
   IconButton,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
@@ -25,18 +21,18 @@ import {
   Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { PageHeader } from "../../components/PageHeader";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { tableHeadSx } from "../../theme";
+import { LabPage, FilterBar, RegisterTable, ResultSection, NumericCell } from "../../components/lab";
+import type { RegisterColumn } from "../../components/lab";
+import { StatusBadge } from "../../components/StatusBadge";
+import { monospaceFontFamily } from "../../theme/palette";
 import { useTestDefinitions } from "../../hooks/useTestDefinitions";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
@@ -114,6 +110,7 @@ export function CalibrationRunsPage() {
   const [runs, setRuns] = useState<CalibrationRunView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -558,202 +555,185 @@ export function CalibrationRunsPage() {
     loadRuns();
   };
 
+  const openReport = (r: CalibrationRunView) => window.open(`/laboratory/calibration-runs/${r.id}/report`, "_blank", "noopener");
+
+  const filteredRuns = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return runs;
+    return runs.filter((r) =>
+      [r.code, r.testDisplayName, r.testCode, r.methodAbbreviation, r.sectionName, r.equipmentCode, r.equipmentName, r.performedByName]
+        .some((v) => (v ?? "").toLowerCase().includes(q)));
+  }, [runs, search]);
+
+  const tableColumns: RegisterColumn<CalibrationRunView>[] = [
+    {
+      key: "code", label: "Run Code", sortable: true,
+      render: (r) => <Box component="span" sx={{ fontWeight: 600, whiteSpace: "nowrap", fontFamily: monospaceFontFamily }}>{r.code}</Box>
+    },
+    {
+      key: "testDisplayName", label: "Method", sortable: true, sortValue: (r) => r.testDisplayName || r.testCode,
+      render: (r) => (
+        <>
+          {r.testDisplayName || r.testCode}
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            {r.methodAbbreviation ? `${r.methodAbbreviation} · ` : ""}
+            {r.sectionName}
+          </Typography>
+        </>
+      )
+    },
+    {
+      key: "equipmentCode", label: "Instrument", sortable: true,
+      render: (r) => (
+        <>
+          {r.equipmentCode}
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.equipmentName}</Typography>
+        </>
+      )
+    },
+    {
+      key: "calibrationAt", label: "Calibration Date", sortable: true, sortValue: (r) => new Date(r.calibrationAt).getTime(),
+      render: (r) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{new Date(r.calibrationAt).toLocaleString()}</Box>
+    },
+    {
+      key: "analytes", label: "Analytes Summary",
+      render: (r) => (
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", alignItems: "center", rowGap: 0.5 }}>
+          {r.analytes.map((a) => (
+            <Tooltip
+              key={a.id}
+              title={`${a.element} (${a.wavelengthNm} nm${
+                !aasTestIds.has(r.testDefinitionId) && a.view ? ` ${a.view}` : ""
+              }): ${a.passed ? "Passed" : a.failureReasons || "Failed"}`}
+            >
+              <span><StatusBadge status={a.passed ? "Pass" : "Fail"} label={a.element} /></span>
+            </Tooltip>
+          ))}
+          <Typography sx={{ fontSize: 11, color: "text.secondary", ml: 0.5 }}>
+            ({r.analytesPassed}/{r.analytesTotal})
+          </Typography>
+        </Stack>
+      )
+    },
+    {
+      key: "passed", label: "Result", sortable: true, sortValue: (r) => (r.passed ? 1 : 0),
+      render: (r) => (
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+          {r.passed ? (
+            <StatusBadge status="Pass" label="Passed" />
+          ) : (
+            <Tooltip
+              title={
+                r.analytes
+                  .filter((a) => !a.passed)
+                  .map((a) => `${a.element}: ${a.failureReasons}`)
+                  .join("; ") || "Calibration criteria not met"
+              }
+            >
+              <span><StatusBadge status="Fail" label="Failed" /></span>
+            </Tooltip>
+          )}
+          {r.status === "Withdrawn" && <StatusBadge status="Withdrawn" label="Withdrawn" />}
+        </Stack>
+      )
+    },
+    {
+      key: "performedAt", label: "Performed By", sortable: true, sortValue: (r) => new Date(r.performedAt).getTime(),
+      render: (r) => (
+        <Box sx={{ whiteSpace: "nowrap" }}>
+          {r.performedByName}
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            {new Date(r.performedAt).toLocaleString()}
+          </Typography>
+        </Box>
+      )
+    }
+  ];
+
+  const newRunButton = (
+    <Button variant="contained" startIcon={<AddIcon />} onClick={openNewRunDialog}>
+      New Run
+    </Button>
+  );
+
   return (
     <>
-      <PageHeader
+      <LabPage
         title="Calibration Runs (ICP-OES / AAS)"
         subtitle="Elemental assay calibration curves with multi-point linear regression and QC checks."
+        actions={newRunButton}
+        filters={
+          <FilterBar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search run code, method, instrument or analyst"
+            resultCount={filteredRuns.length}
+            onRefresh={loadRuns}
+            refreshing={loading}
+          >
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Result</InputLabel>
+              <Select
+                label="Result"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              >
+                <MenuItem value="all">All Results</MenuItem>
+                <MenuItem value="passed">Passed</MenuItem>
+                <MenuItem value="failed">Failed</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel>Method</InputLabel>
+              <Select
+                label="Method"
+                value={methodFilter}
+                onChange={(e) => setMethodFilter(e.target.value)}
+              >
+                <MenuItem value="all">All methods</MenuItem>
+                {calMethods.map((t) => (
+                  <MenuItem key={t.id} value={String(t.id)}>
+                    {t.displayName} ({t.methodAbbreviation || t.code})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Run Status</InputLabel>
+              <Select
+                label="Run Status"
+                value={runStatusFilter}
+                onChange={(e) => setRunStatusFilter(e.target.value as RunStatusFilter)}
+              >
+                <MenuItem value="all">All Runs</MenuItem>
+                <MenuItem value="Active">Active Only</MenuItem>
+                <MenuItem value="Withdrawn">Withdrawn Only</MenuItem>
+              </Select>
+            </FormControl>
+          </FilterBar>
+        }
       >
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadRuns} disabled={loading}>
-            Refresh
-          </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openNewRunDialog}>
-            New Run
-          </Button>
-        </Stack>
-      </PageHeader>
+        {error && <Alert severity="error">{error}</Alert>}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Paper sx={{ p: 2.5 }}>
-        {/* Filter bar */}
-        <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: "wrap", alignItems: "center" }}>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Result</InputLabel>
-            <Select
-              label="Result"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            >
-              <MenuItem value="all">All Results</MenuItem>
-              <MenuItem value="passed">Passed</MenuItem>
-              <MenuItem value="failed">Failed</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel>Method</InputLabel>
-            <Select
-              label="Method"
-              value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-            >
-              <MenuItem value="all">All methods</MenuItem>
-              {calMethods.map((t) => (
-                <MenuItem key={t.id} value={String(t.id)}>
-                  {t.displayName} ({t.methodAbbreviation || t.code})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Run Status</InputLabel>
-            <Select
-              label="Run Status"
-              value={runStatusFilter}
-              onChange={(e) => setRunStatusFilter(e.target.value as RunStatusFilter)}
-            >
-              <MenuItem value="all">All Runs</MenuItem>
-              <MenuItem value="Active">Active Only</MenuItem>
-              <MenuItem value="Withdrawn">Withdrawn Only</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-            <CircularProgress size={32} />
-          </Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={tableHeadSx}>
-                <TableCell>Run Code</TableCell>
-                <TableCell>Method</TableCell>
-                <TableCell>Instrument</TableCell>
-                <TableCell>Calibration Date</TableCell>
-                <TableCell>Analytes Summary</TableCell>
-                <TableCell>Result</TableCell>
-                <TableCell>Performed By</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {runs.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{r.code}</TableCell>
-                  <TableCell>
-                    {r.testDisplayName || r.testCode}
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {r.methodAbbreviation ? `${r.methodAbbreviation} · ` : ""}
-                      {r.sectionName}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {r.equipmentCode}
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.equipmentName}</Typography>
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {new Date(r.calibrationAt).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
-                      {r.analytes.map((a) => (
-                        <Tooltip
-                          key={a.id}
-                          title={`${a.element} (${a.wavelengthNm} nm${
-                            !aasTestIds.has(r.testDefinitionId) && a.view ? ` ${a.view}` : ""
-                          }): ${a.passed ? "Passed" : a.failureReasons || "Failed"}`}
-                        >
-                          <Chip
-                            size="small"
-                            label={a.element}
-                            color={a.passed ? "success" : "error"}
-                            variant="outlined"
-                            sx={{ fontWeight: 600, fontSize: "0.75rem" }}
-                          />
-                        </Tooltip>
-                      ))}
-                      <Typography sx={{ fontSize: 11, color: "text.secondary", ml: 0.5 }}>
-                        ({r.analytesPassed}/{r.analytesTotal})
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                      {r.passed ? (
-                        <Chip size="small" color="success" label="Passed" />
-                      ) : (
-                        <Tooltip
-                          title={
-                            r.analytes
-                              .filter((a) => !a.passed)
-                              .map((a) => `${a.element}: ${a.failureReasons}`)
-                              .join("; ") || "Calibration criteria not met"
-                          }
-                        >
-                          <Chip size="small" color="error" label="Failed" />
-                        </Tooltip>
-                      )}
-                      {r.status === "Withdrawn" && (
-                        <Chip
-                          size="small"
-                          color="warning"
-                          label="Withdrawn"
-                          variant="filled"
-                          sx={{ fontWeight: 600 }}
-                        />
-                      )}
-                    </Stack>
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {r.performedByName}
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {new Date(r.performedAt).toLocaleString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-                      <Button
-                        size="small"
-                        startIcon={<DescriptionOutlinedIcon />}
-                        href={`/laboratory/calibration-runs/${r.id}/report`}
-                        target="_blank"
-                        rel="noopener"
-                      >
-                        Report
-                      </Button>
-                      {canWithdraw && r.status === "Active" && (
-                        <Button
-                          size="small"
-                          color="warning"
-                          startIcon={<RemoveCircleOutlineIcon />}
-                          onClick={() => openWithdrawDialog(r)}
-                        >
-                          Withdraw
-                        </Button>
-                      )}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {runs.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                    No calibration runs found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </Paper>
+        <RegisterTable
+          columns={tableColumns}
+          rows={filteredRuns}
+          getRowId={(r) => r.id}
+          loading={loading}
+          onRowClick={openReport}
+          rowActions={(r) => [
+            { label: "Open report", onClick: () => openReport(r) },
+            ...(canWithdraw && r.status === "Active" ? [{ label: "Withdraw", onClick: () => openWithdrawDialog(r), danger: true }] : [])
+          ]}
+          empty={
+            search || statusFilter !== "all" || methodFilter !== "all" || runStatusFilter !== "all"
+              ? { title: "No matching calibration runs", description: "Try different filters or search terms." }
+              : { title: "No calibration runs found", description: "Record the first signed calibration run.", action: newRunButton }
+          }
+        />
+      </LabPage>
 
       {/* New Run Wizard Modal */}
       <FloatingDialog
@@ -770,7 +750,7 @@ export function CalibrationRunsPage() {
               }`
         }
         onClose={() => setDialogOpen(false)}
-        maxWidth={wizardStep === 1 ? "md" : "lg"}
+        maxWidth="lg"
         actions={
           createdRun ? (
             <Button variant="contained" onClick={() => setDialogOpen(false)}>
@@ -843,191 +823,201 @@ export function CalibrationRunsPage() {
             {/* STEP 1: Header + Standards */}
             {wizardStep === 1 && (
               <Stack spacing={2}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Elemental Method</InputLabel>
-                  <Select
-                    label="Elemental Method"
-                    value={selectedTestId}
-                    onChange={(e) => handleTestSelection(e.target.value)}
-                  >
-                    {calMethods.map((t) => (
-                      <MenuItem key={t.id} value={String(t.id)}>
-                        {t.displayName} ({t.methodAbbreviation || t.code})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {calMethods.length === 0 && (
-                  <Alert severity="info">
-                    No active elemental test method requires a calibration run. Configure one in Physicochemical Test Master.
-                  </Alert>
-                )}
-
-                {selectedMethod && (
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      bgcolor: "action.hover",
-                      borderRadius: 1,
-                      border: "1px solid",
-                      borderColor: "divider",
-                      fontSize: "0.85rem"
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
-                      ACCEPTANCE CRITERIA FOR {selectedMethod.methodAbbreviation || selectedMethod.code} ({instrumentTypeLabel})
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-                      Min Correlation: {selectedMethod.calMinCorrelation ?? "0.9995"} (
-                      {selectedMethod.calCorrelationType === "RSquared" ? "r²" : "r"})
-                      {configuredStandardLevels ? (
-                        <> · Standard Levels: {configuredStandardLevels.join(", ")} mg/L</>
-                      ) : (
-                        <> · Min Standards: {selectedMethod.calMinStandards ?? 5}</>
-                      )}
-                      {(selectedMethod.calRequireIcv || selectedMethod.calRequireCcv) && (
-                        <>
-                          {" "}· ICV/CCV: {selectedMethod.calCheckRecoveryLowPercent ?? 90}%–
-                          {selectedMethod.calCheckRecoveryHighPercent ?? 110}%
-                        </>
-                      )}
-                      {selectedMethod.calRequireBlank && (
-                        <> · Blank Max: {selectedMethod.calBlankMax != null ? `${selectedMethod.calBlankMax} mg/L` : "LOQ of analyte"}</>
-                      )}
-                      {selectedMethod.calRequireInternalStandard && (
-                        <>
-                          {" "}· IS Recovery: {selectedMethod.calIsRecoveryLowPercent ?? "—"}%–{selectedMethod.calIsRecoveryHighPercent ?? "—"}%
-                        </>
-                      )}
-                      {" "}· Max Age: {selectedMethod.calMaxRunAgeHours ?? 24}h
-                    </Typography>
-                  </Box>
-                )}
-
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                  <FormControl size="small" fullWidth disabled={!selectedMethod}>
-                    <InputLabel>{instrumentTypeLabel} Instrument</InputLabel>
-                    <Select
-                      label={`${instrumentTypeLabel} Instrument`}
-                      value={selectedEquipmentId}
-                      onChange={(e) => setSelectedEquipmentId(e.target.value)}
-                    >
-                      {sectionInstruments.map((i) => (
-                        <MenuItem key={i.id} value={String(i.id)}>
-                          {i.code} — {i.name}
-                          {selectedInstrumentType === "IcpOes" ? ` (${i.cdsSoftware || "PerkinElmerSyngistix"})` : ""}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    size="small"
-                    fullWidth
-                    type="datetime-local"
-                    label="Calibration Date/Time"
-                    value={calibrationAt}
-                    onChange={(e) => setCalibrationAt(e.target.value)}
-                    slotProps={{
-                      inputLabel: { shrink: true },
-                      htmlInput: { max: new Date().toISOString().slice(0, 16) }
-                    }}
-                  />
-                </Stack>
-
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                  <FormControl size="small" fullWidth disabled={!selectedMethod}>
-                    <InputLabel>Calibration Standard (Required)</InputLabel>
-                    <Select
-                      label="Calibration Standard (Required)"
-                      value={selectedStandardId}
-                      onChange={(e) => setSelectedStandardId(e.target.value)}
-                    >
-                      {sectionStandards.map((s) => (
-                        <MenuItem key={s.id} value={String(s.id)}>
-                          {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
-                          {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  {selectedMethod?.calRequireIcv && (
-                    <FormControl size="small" fullWidth disabled={!selectedMethod}>
-                      <InputLabel>ICV Standard (Second Source)</InputLabel>
+                <ResultSection step={1} title="Run details">
+                  <Stack spacing={2}>
+                    <FormControl size="small" fullWidth>
+                      <InputLabel>Elemental Method</InputLabel>
                       <Select
-                        label="ICV Standard (Second Source)"
-                        value={selectedIcvStandardId}
-                        onChange={(e) => setSelectedIcvStandardId(e.target.value)}
+                        label="Elemental Method"
+                        value={selectedTestId}
+                        onChange={(e) => handleTestSelection(e.target.value)}
                       >
-                        <MenuItem value="">
-                          <em>None</em>
-                        </MenuItem>
-                        {sectionStandards.map((s) => (
-                          <MenuItem key={s.id} value={String(s.id)}>
-                            {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
-                            {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
+                        {calMethods.map((t) => (
+                          <MenuItem key={t.id} value={String(t.id)}>
+                            {t.displayName} ({t.methodAbbreviation || t.code})
                           </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
-                  )}
-                </Stack>
 
-                {selectedMethod?.calRequireIcv && !selectedIcvStandardId && (
-                  <Alert severity="warning">
-                    This method requires an Initial Calibration Verification (ICV) check. A second-source ICV standard is strongly recommended.
-                  </Alert>
-                )}
+                    {calMethods.length === 0 && (
+                      <Alert severity="info">
+                        No active elemental test method requires a calibration run. Configure one in Physicochemical Test Master.
+                      </Alert>
+                    )}
 
-                {/* Instrument software report attachment (Syngistix for ICP-OES) */}
-                <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    {selectedInstrumentType === "Aas" ? "Instrument Software Calibration Report Attachment *" : "Syngistix Calibration Report Attachment *"}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-                    Upload the original instrument report (.pdf, .txt, .csv, .rep, max 30 MB).
-                  </Typography>
-                  <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<UploadFileIcon />}
-                      size="small"
-                    >
-                      Select File
-                      <input
-                        type="file"
-                        hidden
-                        accept=".pdf,.txt,.csv,.xlsx,.rep"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setReportFile(file);
+                    {selectedMethod && (
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          bgcolor: "action.hover",
+                          borderRadius: 1,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          fontSize: "0.85rem"
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
+                          ACCEPTANCE CRITERIA FOR {selectedMethod.methodAbbreviation || selectedMethod.code} ({instrumentTypeLabel})
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                          Min Correlation: {selectedMethod.calMinCorrelation ?? "0.9995"} (
+                          {selectedMethod.calCorrelationType === "RSquared" ? "r²" : "r"})
+                          {configuredStandardLevels ? (
+                            <> · Standard Levels: {configuredStandardLevels.join(", ")} mg/L</>
+                          ) : (
+                            <> · Min Standards: {selectedMethod.calMinStandards ?? 5}</>
+                          )}
+                          {(selectedMethod.calRequireIcv || selectedMethod.calRequireCcv) && (
+                            <>
+                              {" "}· ICV/CCV: {selectedMethod.calCheckRecoveryLowPercent ?? 90}%–
+                              {selectedMethod.calCheckRecoveryHighPercent ?? 110}%
+                            </>
+                          )}
+                          {selectedMethod.calRequireBlank && (
+                            <> · Blank Max: {selectedMethod.calBlankMax != null ? `${selectedMethod.calBlankMax} mg/L` : "LOQ of analyte"}</>
+                          )}
+                          {selectedMethod.calRequireInternalStandard && (
+                            <>
+                              {" "}· IS Recovery: {selectedMethod.calIsRecoveryLowPercent ?? "—"}%–{selectedMethod.calIsRecoveryHighPercent ?? "—"}%
+                            </>
+                          )}
+                          {" "}· Max Age: {selectedMethod.calMaxRunAgeHours ?? 24}h
+                        </Typography>
+                      </Box>
+                    )}
+
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <FormControl size="small" fullWidth disabled={!selectedMethod}>
+                        <InputLabel>{instrumentTypeLabel} Instrument</InputLabel>
+                        <Select
+                          label={`${instrumentTypeLabel} Instrument`}
+                          value={selectedEquipmentId}
+                          onChange={(e) => setSelectedEquipmentId(e.target.value)}
+                        >
+                          {sectionInstruments.map((i) => (
+                            <MenuItem key={i.id} value={String(i.id)}>
+                              {i.code} — {i.name}
+                              {selectedInstrumentType === "IcpOes" ? ` (${i.cdsSoftware || "PerkinElmerSyngistix"})` : ""}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <TextField
+                        size="small"
+                        fullWidth
+                        type="datetime-local"
+                        label="Calibration Date/Time"
+                        value={calibrationAt}
+                        onChange={(e) => setCalibrationAt(e.target.value)}
+                        slotProps={{
+                          inputLabel: { shrink: true },
+                          htmlInput: { max: new Date().toISOString().slice(0, 16) }
                         }}
                       />
-                    </Button>
-                    {reportFile ? (
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {reportFile.name} ({(reportFile.size / 1024).toFixed(1)} KB)
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" sx={{ color: "error.main" }}>
-                        No file chosen (required)
-                      </Typography>
-                    )}
+                    </Stack>
                   </Stack>
-                </Box>
+                </ResultSection>
 
-                <TextField
-                  size="small"
-                  fullWidth
-                  multiline
-                  rows={2}
-                  label="Comment (optional)"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
+                <ResultSection step={2} title="Standards and instrument report">
+                  <Stack spacing={2}>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <FormControl size="small" fullWidth disabled={!selectedMethod}>
+                        <InputLabel>Calibration Standard (Required)</InputLabel>
+                        <Select
+                          label="Calibration Standard (Required)"
+                          value={selectedStandardId}
+                          onChange={(e) => setSelectedStandardId(e.target.value)}
+                        >
+                          {sectionStandards.map((s) => (
+                            <MenuItem key={s.id} value={String(s.id)}>
+                              {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
+                              {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      {selectedMethod?.calRequireIcv && (
+                        <FormControl size="small" fullWidth disabled={!selectedMethod}>
+                          <InputLabel>ICV Standard (Second Source)</InputLabel>
+                          <Select
+                            label="ICV Standard (Second Source)"
+                            value={selectedIcvStandardId}
+                            onChange={(e) => setSelectedIcvStandardId(e.target.value)}
+                          >
+                            <MenuItem value="">
+                              <em>None</em>
+                            </MenuItem>
+                            {sectionStandards.map((s) => (
+                              <MenuItem key={s.id} value={String(s.id)}>
+                                {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
+                                {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      )}
+                    </Stack>
+
+                    {selectedMethod?.calRequireIcv && !selectedIcvStandardId && (
+                      <Alert severity="warning">
+                        This method requires an Initial Calibration Verification (ICV) check. A second-source ICV standard is strongly recommended.
+                      </Alert>
+                    )}
+
+                    {/* Instrument software report attachment (Syngistix for ICP-OES) */}
+                    <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        {selectedInstrumentType === "Aas" ? "Instrument Software Calibration Report Attachment *" : "Syngistix Calibration Report Attachment *"}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
+                        Upload the original instrument report (.pdf, .txt, .csv, .rep, max 30 MB).
+                      </Typography>
+                      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          startIcon={<UploadFileIcon />}
+                          size="small"
+                        >
+                          Select File
+                          <input
+                            type="file"
+                            hidden
+                            accept=".pdf,.txt,.csv,.xlsx,.rep"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setReportFile(file);
+                            }}
+                          />
+                        </Button>
+                        {reportFile ? (
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {reportFile.name} ({(reportFile.size / 1024).toFixed(1)} KB)
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" sx={{ color: "error.main" }}>
+                            No file chosen (required)
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Stack>
+                </ResultSection>
+
+                <ResultSection step={3} title="Comment">
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    rows={2}
+                    label="Comment (optional)"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                </ResultSection>
               </Stack>
             )}
 
@@ -1048,33 +1038,18 @@ export function CalibrationRunsPage() {
                   </Alert>
                 ) : (
                   analyteForms.map((analyte, aIdx) => (
-                    <Card
+                    <ResultSection
                       key={analyte.testAnalyteId}
-                      variant="outlined"
-                      sx={{ borderColor: "divider", borderRadius: 1.5 }}
-                    >
-                      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                        <Stack
-                          direction="row"
-                          spacing={1.5}
-                          sx={{ alignItems: "center", mb: 1.5, flexWrap: "wrap" }}
-                        >
-                          <Chip
-                            label={analyte.element}
-                            color="primary"
-                            size="small"
-                            sx={{ fontWeight: 700, fontSize: "0.85rem" }}
-                          />
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {analyte.element} · {analyte.wavelengthNm} nm
-                            {selectedInstrumentType !== "Aas" && analyte.view ? ` (${analyte.view})` : ""}
+                      title={`${analyte.element} · ${analyte.wavelengthNm} nm${selectedInstrumentType !== "Aas" && analyte.view ? ` (${analyte.view})` : ""}`}
+                      actions={
+                        analyte.loqMgPerL != null ? (
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            LOQ: {analyte.loqMgPerL} mg/L
                           </Typography>
-                          {analyte.loqMgPerL != null && (
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                              (LOQ: {analyte.loqMgPerL} mg/L)
-                            </Typography>
-                          )}
-                        </Stack>
+                        ) : undefined
+                      }
+                    >
+                      <Box>
 
                         {/* Analyte Curve Inputs */}
                         <Stack
@@ -1247,8 +1222,8 @@ export function CalibrationRunsPage() {
                             </TableBody>
                           </Table>
                         )}
-                      </CardContent>
-                    </Card>
+                      </Box>
+                    </ResultSection>
                   ))
                 )}
               </Stack>
@@ -1279,40 +1254,12 @@ export function CalibrationRunsPage() {
                 </Typography>
 
                 {previewResult.analytes.map((a) => (
-                  <Card
+                  <ResultSection
                     key={a.testAnalyteId}
-                    variant="outlined"
-                    sx={{
-                      borderColor: a.passed ? "success.light" : "error.light",
-                      bgcolor: a.passed ? "rgba(46, 125, 50, 0.02)" : "rgba(211, 47, 47, 0.02)"
-                    }}
+                    title={`${a.element} · ${a.wavelengthNm} nm${selectedInstrumentType !== "Aas" && a.view ? ` (${a.view})` : ""}`}
+                    status={a.passed ? "Pass" : "Fail"}
                   >
-                    <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                      <Stack
-                        direction="row"
-                        spacing={1.5}
-                        sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}
-                      >
-                        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                          <Chip
-                            label={a.element}
-                            color={a.passed ? "success" : "error"}
-                            size="small"
-                            sx={{ fontWeight: 700 }}
-                          />
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {a.element} · {a.wavelengthNm} nm
-                            {selectedInstrumentType !== "Aas" && a.view ? ` (${a.view})` : ""}
-                          </Typography>
-                        </Stack>
-                        <Chip
-                          label={a.passed ? "PASSED" : "FAILED"}
-                          color={a.passed ? "success" : "error"}
-                          size="small"
-                          sx={{ fontWeight: 700 }}
-                        />
-                      </Stack>
-
+                    <Box>
                       {!a.passed && a.failureReasons && (
                         <Alert severity="error" sx={{ my: 1, py: 0.5 }}>
                           {a.failureReasons}
@@ -1340,25 +1287,20 @@ export function CalibrationRunsPage() {
                             <TableRow key={cIdx}>
                               <TableCell>{c.checkType}</TableCell>
                               <TableCell>{c.sequencePosition}</TableCell>
-                              <TableCell align="right">{c.nominalMgPerL ?? "—"}</TableCell>
-                              <TableCell align="right">{c.measuredMgPerL}</TableCell>
+                              <TableCell align="right"><NumericCell value={c.nominalMgPerL} /></TableCell>
+                              <TableCell align="right"><NumericCell value={c.measuredMgPerL} /></TableCell>
                               <TableCell align="right" sx={{ fontWeight: 600 }}>
                                 {c.recoveryPercent != null ? `${c.recoveryPercent.toFixed(2)}%` : "—"}
                               </TableCell>
                               <TableCell align="center">
-                                <Chip
-                                  size="small"
-                                  label={c.passed ? "Pass" : "Fail"}
-                                  color={c.passed ? "success" : "error"}
-                                  variant="outlined"
-                                />
+                                <StatusBadge status={c.passed ? "Pass" : "Fail"} />
                               </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
-                    </CardContent>
-                  </Card>
+                    </Box>
+                  </ResultSection>
                 ))}
               </Stack>
             )}

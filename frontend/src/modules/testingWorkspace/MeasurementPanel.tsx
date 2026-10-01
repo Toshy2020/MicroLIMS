@@ -10,15 +10,12 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { CriteriaCard, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
+import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -53,6 +50,12 @@ const getLocalIsoString = (date: Date = new Date()): string => {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
+
+// Criterion text straight from the loaded specification; no evaluation here.
+const specCriterion = (s: SpecificationDto): string | null =>
+  s.specLimit ||
+  s.expectedResultText ||
+  (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} – ${s.upperLimit ?? ""}` : null);
 
 export function MeasurementPanel({
   testOrderId,
@@ -236,24 +239,26 @@ export function MeasurementPanel({
     }
   };
 
+  const criteriaRows: CriteriaRow[] = specs.map((s) => ({
+    parameter: s.parameterName || s.testCode,
+    criterion: specCriterion(s) ?? "—",
+    unit: s.unit || undefined,
+    source: "Specification"
+  }));
+
   // Completion view
   if (current.allStepsComplete || outcome) {
-    const isOos = (outcome?.status ?? "").includes("OutOfSpecification");
-    const isReview = (outcome?.status ?? "").includes("RequiresReview");
-    const alertSeverity = isOos ? "error" : isReview ? "warning" : "success";
+    // The banner shows only the server's overall status; a reopened test has
+    // none, so it falls back to the recorded result text rather than "Pending".
+    const finalStatus = outcome?.status;
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`;
 
     return (
-      <Box>
-        <Alert severity={alertSeverity} sx={{ mb: 2 }}>
-          {displayName}: <strong>{outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}</strong>
-          {outcome?.status && ` (${outcome.status})`}
-        </Alert>
+      <Stack spacing={2}>
+        {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
 
         {testDef && (
-          <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.paper" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-              Measurement Analysis Summary
-            </Typography>
+          <ResultSection title="Measurement analysis summary">
             <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Evaluation Basis</Typography>
@@ -261,12 +266,14 @@ export function MeasurementPanel({
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicates Recorded</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{replicateCount}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{replicateCount}</Typography>
               </Box>
             </Stack>
-          </Box>
+          </ResultSection>
         )}
-      </Box>
+
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+      </Stack>
     );
   }
 
@@ -296,22 +303,21 @@ export function MeasurementPanel({
 
       <Stack spacing={2.5}>
         {/* Section 1: Run metadata */}
-        <Box sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, color: "text.primary" }}>
-              1. Analysis Configuration
-            </Typography>
+        <ResultSection
+          step={1}
+          title="Analysis configuration"
+          actions={
             <Stack direction="row" spacing={1}>
               <Chip size="small" variant="outlined" label={`Basis: ${testDef?.evaluationBasis ?? "Mean"}`} />
               <Chip size="small" variant="outlined" label={`Replicates: ${replicateCount}`} />
             </Stack>
-          </Box>
-
+          }
+        >
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time *"
+              label="Analysis time"
               value={analysedAt}
               onChange={(e) => setAnalysedAt(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
@@ -338,46 +344,13 @@ export function MeasurementPanel({
               </Select>
             </FormControl>
           </Box>
-        </Box>
+        </ResultSection>
 
-        {/* Section 2: Specifications summary */}
-        <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            2. Specification Limits ({specs.length} parameter{specs.length === 1 ? "" : "s"})
-          </Typography>
+        {/* Acceptance criteria above the entry grid */}
+        {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "action.hover" }}>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Parameter</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification Limit</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Unit</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {specs.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell sx={{ fontSize: 13, fontWeight: 500 }}>
-                    {s.parameterName || s.testCode}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13 }}>
-                    {s.specLimit || s.expectedResultText || (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} – ${s.upperLimit ?? ""}` : "—")}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13, color: "text.secondary" }}>
-                    {s.unit || "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Box>
-
-        {/* Section 3: Replicate readings grid */}
-        <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            3. Replicate Readings ({replicateCount} replicate{replicateCount === 1 ? "" : "s"})
-          </Typography>
-
+        {/* Section 2: Replicate readings grid */}
+        <ResultSection step={2} title={`Replicate readings (${replicateCount} replicate${replicateCount === 1 ? "" : "s"})`}>
           <UnitEntryGrid
             rowCount={replicateCount}
             rowLabel={(i) => `Rep ${i + 1}`}
@@ -385,9 +358,9 @@ export function MeasurementPanel({
             values={values}
             onChange={setValues}
           />
-        </Box>
+        </ResultSection>
 
-        {/* Section 4: Comment */}
+        {/* Comment */}
         <TextField
           size="small"
           label="Comment (optional)"
@@ -398,7 +371,7 @@ export function MeasurementPanel({
           fullWidth
         />
 
-        {/* Section 5: Action button */}
+        {/* Action button */}
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Button
             variant="contained"

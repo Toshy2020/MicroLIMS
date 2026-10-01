@@ -10,13 +10,15 @@ import {
   TextField,
   IconButton,
   Tooltip,
-  Chip
+  Chip,
+  FormHelperText
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { ElutionMode } from "../services/HplcMethodService";
 import { SolutionMaster } from "../services/SolutionMasterService";
 import { MobilePhaseRowState, CHANNELS } from "./hplcMethodForm";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcSolutionsSectionProps {
   diluentSolutionId: number | "";
@@ -24,6 +26,7 @@ export interface HplcSolutionsSectionProps {
   elutionMode: ElutionMode;
   availableDiluents: SolutionMaster[];
   availableMobilePhases: SolutionMaster[];
+  errors: HplcMethodErrors;
   onDiluentSolutionIdChange: (val: number | "") => void;
   onMobilePhaseChange: (index: number, field: keyof MobilePhaseRowState, val: string | number) => void;
   onAddChannel: () => void;
@@ -36,6 +39,7 @@ export function HplcSolutionsSection({
   elutionMode,
   availableDiluents,
   availableMobilePhases,
+  errors,
   onDiluentSolutionIdChange,
   onMobilePhaseChange,
   onAddChannel,
@@ -56,7 +60,7 @@ export function HplcSolutionsSection({
 
       <Stack spacing={2.5}>
         {/* Diluent Solution Picker */}
-        <FormControl size="small" fullWidth required>
+        <FormControl size="small" fullWidth required error={Boolean(errors["solutions.diluent"])}>
           <InputLabel id="diluent-solution-label">Diluent Solution *</InputLabel>
           <Select
             labelId="diluent-solution-label"
@@ -76,6 +80,7 @@ export function HplcSolutionsSection({
               ))
             )}
           </Select>
+          {errors["solutions.diluent"] && <FormHelperText>{errors["solutions.diluent"]}</FormHelperText>}
         </FormControl>
 
         {/* Mobile Phase Channels */}
@@ -104,12 +109,14 @@ export function HplcSolutionsSection({
           </Stack>
 
           <Stack spacing={1.5}>
-            {mobilePhases.map((phase, idx) => (
+            {mobilePhases.map((phase, idx) => {
+              const rowError = errors[`solutions.${idx}.solutionId`] ?? errors[`solutions.${idx}.channel`];
+              return (
               <Box
                 key={idx}
                 sx={{
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-start",
                   gap: 1.5,
                   p: 1.5,
                   bgcolor: "background.paper",
@@ -127,7 +134,7 @@ export function HplcSolutionsSection({
                   sx={{ fontWeight: 700, minWidth: 90 }}
                 />
 
-                <FormControl size="small" sx={{ flex: 1, minWidth: 200 }} required>
+                <FormControl size="small" sx={{ flex: 1, minWidth: 200 }} required error={Boolean(rowError)}>
                   <InputLabel id={`mp-solution-label-${idx}`}>Mobile Phase Solution *</InputLabel>
                   <Select
                     labelId={`mp-solution-label-${idx}`}
@@ -147,6 +154,7 @@ export function HplcSolutionsSection({
                       ))
                     )}
                   </Select>
+                  {rowError && <FormHelperText>{rowError}</FormHelperText>}
                 </FormControl>
 
                 {isIsocratic && (
@@ -157,8 +165,10 @@ export function HplcSolutionsSection({
                     value={phase.ratioPercent}
                     onChange={(e) => onMobilePhaseChange(idx, "ratioPercent", e.target.value)}
                     placeholder="e.g. 50"
+                    error={Boolean(errors[`solutions.${idx}.ratioPercent`])}
+                    helperText={errors[`solutions.${idx}.ratioPercent`]}
                     slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
-                    sx={{ width: 110 }}
+                    sx={{ width: errors[`solutions.${idx}.ratioPercent`] ? 220 : 110 }}
                   />
                 )}
 
@@ -175,7 +185,8 @@ export function HplcSolutionsSection({
                   </span>
                 </Tooltip>
               </Box>
-            ))}
+              );
+            })}
           </Stack>
         </Box>
       </Stack>

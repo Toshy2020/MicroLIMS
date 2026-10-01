@@ -147,32 +147,51 @@ export interface ValidateSolutionFormOptions {
   editingEntryId?: number;
 }
 
+// Fields that show their validation message inline. Errors on the other
+// sections (components, titrant) carry field: null and go to the dialog alert.
+export type SolutionFieldKey =
+  | "name"
+  | "section"
+  | "shelfLife"
+  | "finalVolume"
+  | "storage"
+  | "instructions"
+  | "phTarget"
+  | "phTolerance"
+  | "phAdjuster";
+
+export interface SolutionFormError {
+  field: SolutionFieldKey | null;
+  message: string;
+}
+
 export function validateSolutionForm(
   form: SolutionFormState,
   options: ValidateSolutionFormOptions
-): string | null {
+): SolutionFormError | null {
+  const fail = (field: SolutionFieldKey | null, message: string): SolutionFormError => ({ field, message });
   const trimmedName = form.name.trim();
   const trimmedStorage = form.storageCondition.trim();
   const trimmedInstructions = form.instructions.trim();
 
-  if (!trimmedName) return "Solution Name is required.";
+  if (!trimmedName) return fail("name", "Solution Name is required.");
   if (!options.isEditing && options.hasMultipleSections && !form.sectionId) {
-    return "Laboratory Section is required.";
+    return fail("section", "Laboratory Section is required.");
   }
 
   const shelfLifeNum = Number(form.shelfLifeValue);
   if (!form.shelfLifeValue || isNaN(shelfLifeNum) || shelfLifeNum <= 0) {
-    return "Shelf Life Value must be greater than zero.";
+    return fail("shelfLife", "Shelf Life Value must be greater than zero.");
   }
 
   const finalVolumeNum = Number(form.finalVolumeMl);
   if (!form.finalVolumeMl || isNaN(finalVolumeNum) || finalVolumeNum <= 0) {
-    return "Final Volume (mL) must be greater than zero.";
+    return fail("finalVolume", "Final Volume (mL) must be greater than zero.");
   }
 
-  if (!trimmedStorage) return "Storage Condition is required.";
-  if (!trimmedInstructions) return "Preparation Instructions are required.";
-  if (form.components.length === 0) return "At least one recipe component is required.";
+  if (!trimmedStorage) return fail("storage", "Storage Condition is required.");
+  if (!trimmedInstructions) return fail("instructions", "Preparation Instructions are required.");
+  if (form.components.length === 0) return fail(null, "At least one recipe component is required.");
 
   const usedEntryIds = new Set<number>();
   for (let i = 0; i < form.components.length; i++) {
@@ -181,15 +200,15 @@ export function validateSolutionForm(
     const qty = Number(comp.quantity);
 
     if (!comp.materialMasterEntryId || isNaN(entryId) || entryId <= 0) {
-      return `Component #${i + 1} must select a Material Master entry.`;
+      return fail(null, `Component #${i + 1} must select a Material Master entry.`);
     }
     if (usedEntryIds.has(entryId)) {
-      return "Material entry is listed more than once in the components recipe.";
+      return fail(null, "Material entry is listed more than once in the components recipe.");
     }
     usedEntryIds.add(entryId);
 
     if (!comp.quantity || isNaN(qty) || qty <= 0) {
-      return `Component #${i + 1} quantity must be greater than zero.`;
+      return fail(null, `Component #${i + 1} quantity must be greater than zero.`);
     }
   }
 
@@ -197,58 +216,58 @@ export function validateSolutionForm(
   const hasPhTarget = form.phTarget !== "";
   const phTargetNum = Number(form.phTarget);
   if (hasPhTarget && (isNaN(phTargetNum) || phTargetNum < 0 || phTargetNum > 14)) {
-    return "pH Target must be between 0.00 and 14.00.";
+    return fail("phTarget", "pH Target must be between 0.00 and 14.00.");
   }
 
   if (form.phTolerance !== "") {
-    if (!hasPhTarget) return "pH Target is required when pH Tolerance is specified.";
+    if (!hasPhTarget) return fail("phTarget", "pH Target is required when pH Tolerance is specified.");
     const tolNum = Number(form.phTolerance);
-    if (isNaN(tolNum) || tolNum <= 0) return "pH Tolerance must be greater than zero.";
+    if (isNaN(tolNum) || tolNum <= 0) return fail("phTolerance", "pH Tolerance must be greater than zero.");
   }
 
   if (form.phAdjustingEntryId && !hasPhTarget) {
-    return "pH Target is required when a pH adjusting reagent is selected.";
+    return fail("phAdjuster", "pH Target is required when a pH adjusting reagent is selected.");
   }
 
   // Titrant validation (only when type is Titrant)
   if (form.type === "Titrant") {
     const strengthNum = Number(form.nominalStrength);
     if (!form.nominalStrength || isNaN(strengthNum) || strengthNum <= 0) {
-      return "Nominal Strength must be greater than zero for titrants.";
+      return fail(null, "Nominal Strength must be greater than zero for titrants.");
     }
 
     if (form.standardizationMode === "PrimaryStandard") {
-      if (!form.standardEntryId) return "Primary Standard entry is required for PrimaryStandard mode.";
+      if (!form.standardEntryId) return fail(null, "Primary Standard entry is required for PrimaryStandard mode.");
       const equivNum = Number(form.equivalenceMgPerMl);
       if (!form.equivalenceMgPerMl || isNaN(equivNum) || equivNum <= 0) {
-        return "Equivalence (mg/mL) must be greater than zero.";
+        return fail(null, "Equivalence (mg/mL) must be greater than zero.");
       }
     } else if (form.standardizationMode === "AgainstVolumetricSolution") {
       if (!form.referenceSolutionId) {
-        return "Reference Titrant is required for AgainstVolumetricSolution mode.";
+        return fail(null, "Reference Titrant is required for AgainstVolumetricSolution mode.");
       }
       if (options.editingEntryId && Number(form.referenceSolutionId) === options.editingEntryId) {
-        return "A titrant cannot standardize against itself.";
+        return fail(null, "A titrant cannot standardize against itself.");
       }
     }
 
     const repNum = Number(form.replicateCount);
     if (!form.replicateCount || isNaN(repNum) || repNum < 1 || !Number.isInteger(repNum)) {
-      return "Replicate Count must be an integer of at least 1.";
+      return fail(null, "Replicate Count must be an integer of at least 1.");
     }
 
     const minNum = Number(form.factorMin);
     const maxNum = Number(form.factorMax);
-    if (!form.factorMin || isNaN(minNum) || minNum <= 0) return "Factor Min must be greater than zero.";
-    if (!form.factorMax || isNaN(maxNum) || maxNum <= 0) return "Factor Max must be greater than zero.";
-    if (minNum > maxNum) return "Factor Min cannot be greater than Factor Max.";
+    if (!form.factorMin || isNaN(minNum) || minNum <= 0) return fail(null, "Factor Min must be greater than zero.");
+    if (!form.factorMax || isNaN(maxNum) || maxNum <= 0) return fail(null, "Factor Max must be greater than zero.");
+    if (minNum > maxNum) return fail(null, "Factor Min cannot be greater than Factor Max.");
 
     const rsdNum = Number(form.maxRsdPercent);
-    if (!form.maxRsdPercent || isNaN(rsdNum) || rsdNum <= 0) return "Max RSD % must be greater than zero.";
+    if (!form.maxRsdPercent || isNaN(rsdNum) || rsdNum <= 0) return fail(null, "Max RSD % must be greater than zero.");
 
     const valDaysNum = Number(form.validityDays);
     if (form.validityDays === "" || isNaN(valDaysNum) || valDaysNum < 0 || !Number.isInteger(valDaysNum)) {
-      return "Standardization Validity Days must be 0 or greater.";
+      return fail(null, "Standardization Validity Days must be 0 or greater.");
     }
   }
 

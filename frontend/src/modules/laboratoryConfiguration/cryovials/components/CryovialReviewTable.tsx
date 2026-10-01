@@ -1,327 +1,151 @@
-import React from "react";
-import {
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  TablePagination,
-  Paper,
-  Box,
-  Button,
-  Typography,
-  Tooltip,
-  useTheme
-} from "@mui/material";
-import AcUnitIcon from "@mui/icons-material/AcUnit";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
-import { Link } from "react-router-dom";
+import { Box, Typography } from "@mui/material";
+import { RegisterTable } from "../../../../components/lab";
+import type { RegisterColumn, RegisterRowAction } from "../../../../components/lab";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
 import { isMaterialExpiringSoon } from "../../../inventory/materials/components/MaterialKpiCards";
-import { tableHeadSx } from "../../../../theme";
+import { monospaceFontFamily } from "../../../../theme/palette";
 
 interface CryovialReviewTableProps {
   items: CryovialItem[];
-  page: number;
-  rowsPerPage: number;
-  onPageChange: (newPage: number) => void;
-  onRowsPerPageChange: (newRowsPerPage: number) => void;
+  loading?: boolean;
+  isFiltered?: boolean;
   onApproveClick: (cryovial: CryovialItem, approved: boolean) => void;
   onThawClick: (cryovial: CryovialItem) => void;
   onDestroyClick: (cryovial: CryovialItem) => void;
 }
 
-export function CryovialReviewTable({
-  items,
-  page,
-  rowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
-  onApproveClick,
-  onThawClick,
-  onDestroyClick
-}: CryovialReviewTableProps) {
-  const theme = useTheme();
-  const { detected, action, purple } = theme.custom.status;
+const isExpired = (expiryDateStr: string) => {
+  if (!expiryDateStr) return false;
+  return new Date(expiryDateStr) <= new Date();
+};
 
-  const isExpired = (expiryDateStr: string) => {
-    if (!expiryDateStr) return false;
-    return new Date(expiryDateStr) <= new Date();
+const organismOf = (c: CryovialItem) => c.organism?.scientificName ?? c.organismNameSnapshot;
+
+const COLUMNS: RegisterColumn<CryovialItem>[] = [
+  {
+    key: "code", label: "Code", sortable: true,
+    render: (c) => (
+      <>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: monospaceFontFamily, color: "primary.main" }}>{c.code}</Typography>
+        {c.storageCondition && (
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>{c.storageCondition}</Typography>
+        )}
+      </>
+    )
+  },
+  {
+    key: "organism", label: "Organism & Source", sortable: true, sortValue: organismOf,
+    render: (c) => {
+      const atcc = c.organism?.atccNumber ? ` (ATCC ${c.organism.atccNumber})` : "";
+      return (
+        <>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+            {organismOf(c)}
+            {atcc && (
+              <Typography component="span" sx={{ fontSize: 11, color: "text.secondary", ml: 0.5 }}>{atcc}</Typography>
+            )}
+          </Typography>
+          {c.material && (
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+              {c.material.materialName} · Batch {c.material.batchNumber}
+            </Typography>
+          )}
+        </>
+      );
+    }
+  },
+  {
+    key: "approvalStatus", label: "Status", sortable: true,
+    sortValue: (c) => (c.isDestroyed ? "Destroyed" : c.approvalStatus),
+    render: (c) => (c.isDestroyed ? <StatusBadge status="Destroyed" label="Destroyed" /> : <StatusBadge status={c.approvalStatus} />)
+  },
+  {
+    key: "vialsRemaining", label: "Vials Stock", sortable: true,
+    render: (c) => {
+      const depleted = c.vialsRemaining === 0;
+      return (
+        <>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: depleted ? "error.main" : "text.primary" }}>
+            {c.vialsRemaining} of {c.numberOfVialsPrepared} vials
+          </Typography>
+          {depleted && !c.isDestroyed && (
+            <Box sx={{ mt: 0.25 }}>
+              <StatusBadge status="Depleted" label="Depleted" />
+            </Box>
+          )}
+        </>
+      );
+    }
+  },
+  {
+    key: "preparedAt", label: "Prepared", sortable: true,
+    render: (c) => (
+      <>
+        <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>{formatLabDate(c.preparedAt)}</Typography>
+        {c.preparedByName && (
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>{c.preparedByName}</Typography>
+        )}
+      </>
+    )
+  },
+  {
+    key: "expiryDate", label: "Expiry", sortable: true,
+    render: (c) => {
+      const expired = isExpired(c.expiryDate);
+      const expiringSoon = !expired && isMaterialExpiringSoon(c.expiryDate, 30);
+      return (
+        <>
+          <Typography sx={{ fontSize: 12, fontWeight: expired || expiringSoon ? 700 : 500, whiteSpace: "nowrap" }}>
+            {formatLabDate(c.expiryDate)}
+          </Typography>
+          {expired && <Typography sx={{ fontSize: 10, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
+          {expiringSoon && <Typography sx={{ fontSize: 10, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}
+        </>
+      );
+    }
+  }
+];
+
+export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick }: CryovialReviewTableProps) {
+  // Same availability rules as the former inline buttons.
+  const rowActions = (c: CryovialItem): RegisterRowAction[] => {
+    const actions: RegisterRowAction[] = [];
+    const pending = c.approvalStatus === "PendingReview" && !c.isDestroyed;
+    if (pending) {
+      actions.push({ label: "Approve batch", onClick: () => onApproveClick(c, true) });
+      actions.push({ label: "Reject batch", danger: true, onClick: () => onApproveClick(c, false) });
+    } else {
+      if (c.approvalStatus === "Approved" && !c.isDestroyed && !isExpired(c.expiryDate) && c.vialsRemaining > 0) {
+        actions.push({ label: "Thaw vial", onClick: () => onThawClick(c) });
+      }
+      if (!c.isDestroyed) {
+        actions.push({ label: "Destroy (decommission batch)", danger: true, onClick: () => onDestroyClick(c) });
+      }
+    }
+    actions.push({ label: "View laboratory report record", onClick: () => window.open(`/cryovials/${c.id}/report`, "_blank", "noopener") });
+    return actions;
   };
 
-  const paginatedItems = items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   return (
-    <Paper sx={{ width: "100%", overflow: "hidden", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-      <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow sx={tableHeadSx}>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Code
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Organism &amp; Source
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Status
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Vials Stock
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Prepared
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Expiry
-              </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
-                Actions
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                  <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-                    No cryovials matching the filter criteria.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedItems.map((c) => {
-                const expired = isExpired(c.expiryDate);
-                const expiringSoon = !expired && isMaterialExpiringSoon(c.expiryDate, 30);
-                const organismName = c.organism?.scientificName ?? c.organismNameSnapshot;
-                const atcc = c.organism?.atccNumber ? ` (ATCC ${c.organism.atccNumber})` : "";
-                const depleted = c.vialsRemaining === 0;
-
-                return (
-                  <TableRow
-                    key={c.id}
-                    hover
-                    sx={{
-                      "&:nth-of-type(even)": { bgcolor: "background.default" },
-                      opacity: c.isDestroyed ? 0.65 : 1
-                    }}
-                  >
-                    {/* Code */}
-                    <TableCell sx={{ py: 1.25 }}>
-                      <Typography
-                        sx={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          fontFamily: "monospace",
-                          color: theme.palette.primary.main
-                        }}
-                      >
-                        {c.code}
-                      </Typography>
-                      {c.storageCondition && (
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
-                          {c.storageCondition}
-                        </Typography>
-                      )}
-                    </TableCell>
-
-                    {/* Organism & Source */}
-                    <TableCell sx={{ py: 1.25 }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                        {organismName}
-                        {atcc && (
-                          <Typography component="span" sx={{ fontSize: 11, color: "text.secondary", ml: 0.5 }}>
-                            {atcc}
-                          </Typography>
-                        )}
-                      </Typography>
-                      {c.material && (
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
-                          {c.material.materialName} · Batch {c.material.batchNumber}
-                        </Typography>
-                      )}
-                    </TableCell>
-
-                    {/* Status */}
-                    <TableCell sx={{ py: 1.25 }}>
-                      {c.isDestroyed ? (
-                        <StatusBadge status="Destroyed" label="Destroyed" />
-                      ) : (
-                        <StatusBadge status={c.approvalStatus} />
-                      )}
-                    </TableCell>
-
-                    {/* Vials Stock */}
-                    <TableCell sx={{ py: 1.25 }}>
-                      <Typography
-                        sx={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: depleted ? detected.text : "text.primary"
-                        }}
-                      >
-                        {c.vialsRemaining} of {c.numberOfVialsPrepared} vials
-                      </Typography>
-                      {depleted && !c.isDestroyed && (
-                        <Box sx={{ mt: 0.25 }}>
-                          <StatusBadge status="Depleted" label="Depleted" />
-                        </Box>
-                      )}
-                    </TableCell>
-
-                    {/* Prepared */}
-                    <TableCell sx={{ py: 1.25 }}>
-                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                        {formatLabDate(c.preparedAt)}
-                      </Typography>
-                      {c.preparedByName && (
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
-                          {c.preparedByName}
-                        </Typography>
-                      )}
-                    </TableCell>
-
-                    {/* Expiry */}
-                    <TableCell sx={{ py: 1.25 }}>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          fontWeight: expired || expiringSoon ? 700 : 500,
-                          color: expired ? detected.text : expiringSoon ? action.text : "text.primary"
-                        }}
-                      >
-                        {formatLabDate(c.expiryDate)}
-                      </Typography>
-                      {expired && (
-                        <Typography sx={{ fontSize: 10, color: detected.text, fontWeight: 700 }}>
-                          Expired
-                        </Typography>
-                      )}
-                      {expiringSoon && (
-                        <Typography sx={{ fontSize: 10, color: action.text, fontWeight: 600 }}>
-                          Expiring soon
-                        </Typography>
-                      )}
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell align="right" sx={{ py: 1.25 }}>
-                      <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 0.75 }}>
-                        {c.approvalStatus === "PendingReview" && !c.isDestroyed ? (
-                          <>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="success"
-                              onClick={() => onApproveClick(c, true)}
-                              startIcon={<CheckCircleOutlineIcon fontSize="small" />}
-                              sx={{ px: 1, py: 0.25, fontSize: 11, fontWeight: 700 }}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              onClick={() => onApproveClick(c, false)}
-                              startIcon={<HighlightOffIcon fontSize="small" />}
-                              sx={{ px: 1, py: 0.25, fontSize: 11, fontWeight: 700 }}
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            {c.approvalStatus === "Approved" && !c.isDestroyed && !expired && c.vialsRemaining > 0 && (
-                              <Tooltip title="Thaw a single vial from this approved batch">
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  onClick={() => onThawClick(c)}
-                                  startIcon={<AcUnitIcon fontSize="small" />}
-                                  sx={{
-                                    px: 1,
-                                    py: 0.25,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    borderColor: theme.palette.primary.main,
-                                    color: theme.palette.primary.main,
-                                    "&:hover": {
-                                      borderColor: theme.palette.primary.dark,
-                                      bgcolor: purple.bg
-                                    }
-                                  }}
-                                >
-                                  Thaw Vial
-                                </Button>
-                              </Tooltip>
-                            )}
-
-                            {!c.isDestroyed && (
-                              <Tooltip title="Decommission batch">
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  onClick={() => onDestroyClick(c)}
-                                  startIcon={<DeleteOutlineIcon fontSize="small" />}
-                                  sx={{ px: 1, py: 0.25, fontSize: 11 }}
-                                >
-                                  Destroy
-                                </Button>
-                              </Tooltip>
-                            )}
-                          </>
-                        )}
-
-                        <Tooltip title="View laboratory report record">
-                          <Button
-                            component={Link}
-                            to={`/cryovials/${c.id}/report`}
-                            target="_blank"
-                            rel="noopener"
-                            size="small"
-                            variant="outlined"
-                            startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                            sx={{
-                              px: 1,
-                              py: 0.25,
-                              fontSize: 11,
-                              borderColor: "divider",
-                              color: "text.secondary",
-                              "&:hover": { bgcolor: "background.default" }
-                            }}
-                          >
-                            Record
-                          </Button>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
-        component="div"
-        count={items.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={(_, newPage) => onPageChange(newPage)}
-        onRowsPerPageChange={(e) => {
-          onRowsPerPageChange(parseInt(e.target.value, 10));
-          onPageChange(0);
-        }}
-      />
-    </Paper>
+    <RegisterTable
+      columns={COLUMNS}
+      rows={items}
+      getRowId={(c) => c.id}
+      loading={loading}
+      rowActions={rowActions}
+      rowTone={(c) => {
+        if (c.isDestroyed) return undefined;
+        if (isExpired(c.expiryDate)) return "detected";
+        if (isMaterialExpiringSoon(c.expiryDate, 30)) return "action";
+        return undefined;
+      }}
+      empty={
+        isFiltered
+          ? { title: "No cryovials matching the filter criteria", description: "Reset the filters to see all batches." }
+          : { title: "No cryovial batches yet", description: "Prepare the first working cryovial batch." }
+      }
+    />
   );
 }

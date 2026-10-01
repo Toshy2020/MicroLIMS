@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -5,7 +6,8 @@ import {
   Alert,
   Tabs,
   Tab,
-  CircularProgress
+  CircularProgress,
+  Badge
 } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { SolutionMaster } from "../services/SolutionMasterService";
@@ -50,6 +52,10 @@ export function HplcMethodDialog({
     updateField,
     dialogError,
     setDialogError,
+    errors,
+    formErrorMessages,
+    tabErrorCounts,
+    scrollTick,
     saving,
     reasonDialogOpen,
     setReasonDialogOpen,
@@ -69,6 +75,31 @@ export function HplcMethodDialog({
     onClose,
     onSuccess
   });
+
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // After a failed submit, bring the first field with an error into view (after any tab switch renders).
+  useEffect(() => {
+    if (scrollTick === 0) return;
+    const timer = window.setTimeout(() => {
+      contentRef.current
+        ?.querySelector(".Mui-error")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [scrollTick]);
+
+  // A tab with field errors shows an error-colored count on its label.
+  const tabLabel = (label: string, tab: number) => {
+    const count = tabErrorCounts[tab] ?? 0;
+    return count > 0 ? (
+      <Badge color="error" badgeContent={count} sx={{ "& .MuiBadge-badge": { right: -14, top: 2 } }}>
+        {label}
+      </Badge>
+    ) : (
+      label
+    );
+  };
 
   return (
     <>
@@ -93,7 +124,14 @@ export function HplcMethodDialog({
           </>
         }
       >
-        <Stack spacing={2} sx={{ pt: 1 }}>
+        <Stack ref={contentRef} spacing={2} sx={{ pt: 1 }}>
+          {formErrorMessages.length > 0 && (
+            <Alert severity="error">
+              {formErrorMessages.map((message) => (
+                <div key={message}>{message}</div>
+              ))}
+            </Alert>
+          )}
           {dialogError && (
             <Alert severity="error" onClose={() => setDialogError(null)}>
               {dialogError}
@@ -111,6 +149,7 @@ export function HplcMethodDialog({
                 abbreviation={form.abbreviation}
                 effectiveDate={form.effectiveDate}
                 sectionId={form.sectionId}
+                errors={errors}
                 editingId={editingId}
                 mySections={mySections}
                 sections={sections}
@@ -125,10 +164,10 @@ export function HplcMethodDialog({
                 onChange={(_, next) => setTabIndex(next)}
                 sx={{ borderBottom: 1, borderColor: "divider" }}
               >
-                <Tab label="Column" sx={{ textTransform: "none", fontWeight: 600 }} />
-                <Tab label="Elution & Detection" sx={{ textTransform: "none", fontWeight: 600 }} />
-                <Tab label="Solutions" sx={{ textTransform: "none", fontWeight: 600 }} />
-                <Tab label={`Analytes (${form.analytes.length})`} sx={{ textTransform: "none", fontWeight: 600 }} />
+                <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                <Tab label={tabLabel("Elution & Detection", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                <Tab label={tabLabel("Solutions", 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                <Tab label={tabLabel(`Analytes (${form.analytes.length})`, 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
               </Tabs>
 
               {tabIndex === 0 && (
@@ -140,6 +179,7 @@ export function HplcMethodDialog({
                   columnBrand={form.columnBrand}
                   columnPartNumber={form.columnPartNumber}
                   columnTemperatureC={form.columnTemperatureC}
+                  errors={errors}
                   onColumnDesignationChange={(val) => updateField("columnDesignation", val)}
                   onColumnLengthMmChange={(val) => updateField("columnLengthMm", val)}
                   onColumnInternalDiameterMmChange={(val) => updateField("columnInternalDiameterMm", val)}
@@ -160,6 +200,7 @@ export function HplcMethodDialog({
                   detectorType={form.detectorType}
                   injectionVolumeUl={form.injectionVolumeUl}
                   runTimeMin={form.runTimeMin}
+                  errors={errors}
                   onElutionModeChange={(val) => updateField("elutionMode", val)}
                   onFlowRateMlPerMinChange={(val) => updateField("flowRateMlPerMin", val)}
                   onEquilibrationMinChange={(val) => updateField("equilibrationMin", val)}
@@ -177,6 +218,7 @@ export function HplcMethodDialog({
                   elutionMode={form.elutionMode}
                   availableDiluents={availableDiluents}
                   availableMobilePhases={availableMobilePhases}
+                  errors={errors}
                   onDiluentSolutionIdChange={(val) => updateField("diluentSolutionId", val)}
                   onMobilePhaseChange={(idx, field, val) => {
                     const next = [...form.mobilePhases];
@@ -203,6 +245,7 @@ export function HplcMethodDialog({
                 <HplcAnalytesSection
                   analytes={form.analytes}
                   availableStandards={availableReferenceStandards}
+                  errors={errors}
                   onAnalyteChange={(idx, field, val) => {
                     const next = [...form.analytes];
                     next[idx] = { ...next[idx], [field]: val };

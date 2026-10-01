@@ -14,10 +14,13 @@ import {
   Typography
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
-import { CriteriaCard, ResultSection, VerdictBanner } from "../../components/lab";
+import { CriteriaCard, NumericCell, RegisterTable, ResultSection, VerdictBanner } from "../../components/lab";
+import type { RegisterColumn } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService } from "./services/TestWorkflowService";
+import { SampleSummaryService } from "./services/SampleSummaryService";
+import type { ParameterResultDetail, ResultReadingDetail } from "./types/sampleSummaryTypes";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
 import { ItemService } from "../laboratoryConfiguration/items/services/ItemService";
 import { masterDataOptions } from "../../services/masterDataOptions";
@@ -56,6 +59,7 @@ export function GravimetricPanel({
   displayName,
   testCode,
   itemId,
+  sampleId,
   current,
   onRecorded
 }: Props) {
@@ -77,6 +81,26 @@ export function GravimetricPanel({
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string } | null>(null);
 
   const effectiveTestCode = current.testName || testCode || "";
+
+  // Recorded weights come back from the sample summary (ResultReading rows:
+  // value1 = container, value2 = initial, value3 = final, computedValue = percent).
+  const [recorded, setRecorded] = useState<ParameterResultDetail[]>([]);
+  const showCompleted = Boolean(current.allStepsComplete || outcome);
+  useEffect(() => {
+    if (!showCompleted || sampleId == null) return;
+    let active = true;
+    SampleSummaryService.getSummary(sampleId)
+      .then((summary) => {
+        const ord = summary.testOrders?.find((t) => t.testOrderId === testOrderId);
+        if (active) setRecorded(ord?.analysis?.parameterResults ?? []);
+      })
+      .catch(() => {
+        // non-blocking: the completed view still shows the result without weights
+      });
+    return () => {
+      active = false;
+    };
+  }, [showCompleted, sampleId, testOrderId]);
 
   useEffect(() => {
     let active = true;
@@ -328,7 +352,7 @@ export function GravimetricPanel({
   }));
 
   // Completion view
-  if (current.allStepsComplete || outcome) {
+  if (showCompleted) {
     const serverStatus = outcome?.status ?? "";
     const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}`;
     // Verdict comes only from the server's status field; when the status is not
@@ -373,6 +397,37 @@ export function GravimetricPanel({
         )}
 
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
+
+        {recorded.map((p, idx) => {
+          const weights = (p.readings ?? [])
+            .filter((r) => r.kind === "Weight")
+            .sort((a, b) => a.index - b.index);
+          if (weights.length === 0) return null;
+          const weightColumns: RegisterColumn<ResultReadingDetail>[] = [
+            { key: "index", label: "Replicate", render: (r) => `Rep ${r.index}` },
+            ...(usesTare
+              ? [{ key: "value1", label: "Container (g)", numeric: true, render: (r: ResultReadingDetail) => <NumericCell value={r.value1} /> }]
+              : []),
+            { key: "value2", label: "Initial (g)", numeric: true, render: (r) => <NumericCell value={r.value2} /> },
+            { key: "value3", label: "Final (g)", numeric: true, render: (r) => <NumericCell value={r.value3} /> },
+            {
+              key: "computedValue",
+              label: isResidue ? "Residue (%)" : "Loss (%)",
+              numeric: true,
+              render: (r) => <NumericCell value={r.computedValue} decimals={2} unit="%" />
+            }
+          ];
+          return (
+            <ResultSection key={p.id} title={`Recorded weights · ${p.parameterName}`}>
+              <RegisterTable
+                columns={weightColumns}
+                rows={weights}
+                getRowId={(r) => r.id ?? `${idx}-${r.index}`}
+                empty={{ title: "No weights recorded" }}
+              />
+            </ResultSection>
+          );
+        })}
       </Stack>
     );
   }
@@ -472,14 +527,14 @@ export function GravimetricPanel({
         </ResultSection>
 
         {/* Section 3: Gravimetric Replicates Grid per Specification */}
-        {specs.map((s) => {
+        {specs.map((s, specIdx) => {
           const specRows = replicatesBySpecId[s.id!] || [];
           const readOnlyPreviews = specRows.map((r) => ({ preview: computePreview(r) }));
 
           return (
             <ResultSection
               key={s.id}
-              step={2}
+              step={specIdx + 2}
               title={`Gravimetric weights \u00b7 ${s.parameterName || s.testCode} (${replicateCount} replicate${replicateCount === 1 ? "" : "s"})`}
             >
 

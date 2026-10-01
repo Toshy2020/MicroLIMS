@@ -88,6 +88,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
   const loadUnreadMessages = () => {
     apiClient.get("/messages/unread-count")
       .then((r) => setUnreadMessages(r.data?.data?.unreadCount ?? 0))
+      // Badge only: keep the last known count and let the next poll retry.
       .catch(() => {});
   };
 
@@ -108,8 +109,17 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  // Set while the latest poll failed and nothing has loaded since. Without it
+  // the bell said "No notifications - you are up to date" during an outage.
+  const [notificationsFailed, setNotificationsFailed] = useState(false);
+
   const loadNotifications = () => {
-    apiClient.get("/dashboard/notifications").then((r) => setNotifications(r.data.data)).catch(() => {});
+    apiClient.get("/dashboard/notifications")
+      .then((r) => {
+        setNotifications(r.data.data);
+        setNotificationsFailed(false);
+      })
+      .catch(() => setNotificationsFailed(true));
   };
 
   useEffect(() => {
@@ -129,6 +139,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
   const handleNotificationClick = (notification: NotificationDto) => {
     setBellAnchor(null);
     if (notification.id !== null) {
+      // Fire-and-forget: shown as read at once; if the call failed, the next
+      // poll brings the true state back.
       apiClient.post(`/dashboard/notifications/${notification.id}/read`).catch(() => {});
       setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
     }
@@ -138,6 +150,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
 
   const handleMarkAllRead = () => {
     if (unreadCount === 0) return;
+    // Fire-and-forget, as for a single notification above.
     apiClient.post("/dashboard/notifications/read-all").catch(() => {});
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
@@ -231,7 +244,16 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             </Box>
           )}
           {notifications.length > 0 && <Divider />}
-          {notifications.length === 0 && (
+          {notificationsFailed && (
+            <MenuItem disabled sx={{ whiteSpace: "normal", "&.Mui-disabled": { opacity: 1 } }}>
+              <ListItemText
+                primary="Notifications could not be loaded"
+                secondary={notifications.length > 0 ? "The list below may be out of date. Retrying automatically." : "Retrying automatically every minute."}
+                slotProps={{ primary: { sx: { color: "error.main", fontSize: 13, fontWeight: 600 } } }}
+              />
+            </MenuItem>
+          )}
+          {notifications.length === 0 && !notificationsFailed && (
             <MenuItem disabled>
               <ListItemText primary="No notifications" secondary="You are up to date - nothing needs your attention." />
             </MenuItem>

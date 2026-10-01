@@ -86,13 +86,20 @@ export function SelectedMediaLotWorkspace({
 
   const [activeTab, setActiveTab] = useState(0);
   const [summary, setSummary] = useState<MediaSummary | null>(null);
+  // Without this a failed summary showed "—" for preparer, autoclave and
+  // approver - which reads as "not recorded" on a GMP lot record.
+  const [summaryFailed, setSummaryFailed] = useState(false);
 
   useEffect(() => {
     if (!lot?.id) return;
+    setSummaryFailed(false);
     apiClient
       .get(`/media/${lot.id}/summary`)
       .then((r) => setSummary(r.data.data))
-      .catch(() => setSummary(null));
+      .catch(() => {
+        setSummary(null);
+        setSummaryFailed(true);
+      });
   }, [lot?.id]);
 
   // Evaluations matching this media lot
@@ -114,6 +121,11 @@ export function SelectedMediaLotWorkspace({
         overflowY: "auto"
       }}
     >
+      {summaryFailed && (
+        <Alert severity="error">
+          Part of this lot's record (preparer, source batch, autoclave, evaluation and approval details) could not be loaded. Select the lot again to retry.
+        </Alert>
+      )}
       {/* Header: Lot Number, Media Type, Status, and Actions */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1.5 }}>
         <Box sx={{ minWidth: 0, flex: 1 }}>

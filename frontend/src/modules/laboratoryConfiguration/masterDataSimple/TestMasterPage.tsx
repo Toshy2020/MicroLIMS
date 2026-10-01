@@ -36,6 +36,8 @@ import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../comp
 import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { LoadErrorAlert, LoadFailuresAlert } from "../../../components/LoadErrorAlert";
+import { useLoadFailures } from "../../../hooks/useLoadFailures";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 import {
@@ -1855,13 +1857,23 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
   const defaultWorkflowType: string = isFp ? "StandardComparison" : "Observation";
   const [fpSectionId, setFpSectionId] = useState<number | null>(null);
+  // Separate from fpSectionId: null meant "still loading", "failed" and "no
+  // FP section exists" alike, so a failure (or a site without an FP section)
+  // left the register showing skeleton rows forever.
+  const [sectionsState, setSectionsState] = useState<"loading" | "loaded" | "failed">("loading");
+  const [sectionsReloadKey, setSectionsReloadKey] = useState(0);
   useEffect(() => {
+    setSectionsState("loading");
     getSections()
-      .then((secs) => setFpSectionId(secs.find((s) => s.sectionCode === FP_SECTION_CODE)?.sectionId ?? null))
-      .catch(() => setFpSectionId(null));
-  }, []);
-  const inLab = (sid?: number | null) => (isFp ? sid === fpSectionId : sid !== fpSectionId);
-  const options = allOptions.filter((t) => fpSectionId !== null && inLab(t.sectionId));
+      .then((secs) => {
+        setFpSectionId(secs.find((s) => s.sectionCode === FP_SECTION_CODE)?.sectionId ?? null);
+        setSectionsState("loaded");
+      })
+      .catch(() => setSectionsState("failed"));
+  }, [sectionsReloadKey]);
+  const inLab = (sid?: number | null) =>
+    isFp ? fpSectionId !== null && sid === fpSectionId : sid !== fpSectionId;
+  const options = allOptions.filter((t) => sectionsState === "loaded" && inLab(t.sectionId));
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
@@ -1872,11 +1884,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [hplcMethodId, setHplcMethodId] = useState<number | "">("");
   const [hplcMethods, setHplcMethods] = useState<HplcMethodListItem[]>([]);
 
+  // Lists the Add/Edit Test dialog picks from; a failure is named in the
+  // dialog instead of leaving an empty picker.
+  const { failed: dialogListFailures, fail: failDialogList } = useLoadFailures();
+
   useEffect(() => {
     HplcMethodService.getAll(false)
       .then((data) => setHplcMethods(data))
-      .catch(() => {});
-  }, []);
+      .catch(failDialogList("HPLC methods"));
+  }, [failDialogList]);
   const [sstMaxRsdPercent, setSstMaxRsdPercent] = useState<string>("");
   const [sstMinResolution, setSstMinResolution] = useState<string>("");
   const [sstMaxTailingFactor, setSstMaxTailingFactor] = useState<string>("");
@@ -1938,7 +1954,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
   const [editingTest, setEditingTest] = useState<TestDefinitionOption | null>(null);
   const [allMySections, setMySections] = useState<LaboratorySection[]>([]);
-  const mySections = allMySections.filter((s) => fpSectionId !== null && inLab(s.sectionId));
+  const mySections = allMySections.filter((s) => sectionsState === "loaded" && inLab(s.sectionId));
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -1946,8 +1962,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   useEffect(() => {
     getMySections()
       .then((secs) => setMySections(secs))
-      .catch(() => {});
-  }, []);
+      .catch(failDialogList("your laboratory sections"));
+  }, [failDialogList]);
 
   const openCreateDialog = () => {
     setEditingId(null);
@@ -2632,11 +2648,17 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         }
       >
         {message && <Alert severity={message.ok ? "success" : "error"}>{message.text}</Alert>}
+        {sectionsState === "failed" && (
+          <LoadErrorAlert
+            message="The laboratory sections could not be loaded, so the tests cannot be sorted into this laboratory and none are shown."
+            onRetry={() => setSectionsReloadKey((k) => k + 1)}
+          />
+        )}
         <RegisterTable
           columns={columns}
           rows={visibleOptions}
           getRowId={(t) => t.id}
-          loading={fpSectionId === null}
+          loading={sectionsState === "loading"}
           onRowClick={(t) => setExpandedId(t.id)}
           rowActions={(t) => [
             { label: "Details & Workflow Steps", onClick: () => setExpandedId(t.id) },
@@ -2678,6 +2700,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           </>
         }
       >
+        <LoadFailuresAlert failed={dialogListFailures} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
         {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
 
         <Stack spacing={2} sx={{ pt: 1 }}>

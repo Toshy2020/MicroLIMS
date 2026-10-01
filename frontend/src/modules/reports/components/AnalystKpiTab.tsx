@@ -108,6 +108,7 @@ export function AnalystKpiTab() {
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [testCodeOptions, setTestCodeOptions] = useState<{ testCode: string; testDisplayName: string }[]>([]);
+  const [filterOptionsFailed, setFilterOptionsFailed] = useState(false);
 
   useEffect(() => {
     UserService.getEligibleAnalysts()
@@ -121,7 +122,7 @@ export function AnalystKpiTab() {
           setTestCodeOptions(opts.testCodes ?? []);
         }
       })
-      .catch(() => {});
+      .catch(() => setFilterOptionsFailed(true));
   }, []);
 
   const loadData = () => {
@@ -269,7 +270,12 @@ export function AnalystKpiTab() {
               </Select>
             </FormControl>
             {analystsError && (
-              <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>{analystsError}</Typography>
+              <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.5 }}>{analystsError}</Typography>
+            )}
+            {filterOptionsFailed && (
+              <Typography role="alert" sx={{ fontSize: 12, color: "error.main", mt: 0.5 }}>
+                The category, location and test lists could not be loaded. Reload the page to try again.
+              </Typography>
             )}
           </Grid>
 

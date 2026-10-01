@@ -53,6 +53,7 @@ import { GroupedActionsPanel } from "../testingWorkspace/components/GroupedActio
 import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
+import { toast } from "sonner";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
@@ -121,6 +122,16 @@ interface Props {
   lab: WorkspaceLab;
 }
 
+// A sample opened from a link or notification that is not on the current
+// page is fetched on its own; if that fails the workspace used to open with
+// nothing selected and no explanation. Both lookups below can fail for the
+// same sample, so the toast id keeps it to one message.
+function notifySampleLoadFailed(sampleId: number) {
+  toast.error(`Sample #${sampleId} could not be opened. It may not belong to this laboratory, or the server could not be reached.`, {
+    id: `workspace-sample-${sampleId}`
+  });
+}
+
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
@@ -181,6 +192,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         } else {
           ReceiveService.getSample(sampleId, lab.sectionId).then((fetched) => {
             if (fetched) checkedSamplesCache.current.set(sampleId, fetched);
+          // Cache warm-up only; the selection itself is already recorded.
           }).catch(() => {});
         }
       } else {
@@ -405,7 +417,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               }
             }
           }
-        }).catch(() => {});
+        }).catch(() => notifySampleLoadFailed(sId));
       }
     } else if (tId && records) {
       for (const sample of records) {
@@ -449,7 +461,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     if (extraSelectedSample?.sampleId === selectedSampleId) return;
     ReceiveService.getSample(selectedSampleId, lab.sectionId).then((sample) => {
       if (sample) setExtraSelectedSample(sample);
-    }).catch(() => {});
+    }).catch(() => notifySampleLoadFailed(selectedSampleId));
   }, [selectedSampleId, records, extraSelectedSample, lab.sectionId]);
 
   // Workload tiles are a toggle: clicking the active one clears it.

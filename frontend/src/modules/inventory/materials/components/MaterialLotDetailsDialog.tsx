@@ -42,6 +42,9 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
   const [eligibility, setEligibility] = useState<CoeEligibilityResult | null>(null);
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  // A failed check used to show no banner at all - indistinguishable from a
+  // lot that needs no COA.
+  const [eligibilityFailed, setEligibilityFailed] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
@@ -54,9 +57,13 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
       return;
     }
     setEligibilityLoading(true);
+    setEligibilityFailed(false);
     MaterialService.getCOAEligibility(material.id)
       .then(setEligibility)
-      .catch(() => setEligibility(null))
+      .catch(() => {
+        setEligibility(null);
+        setEligibilityFailed(true);
+      })
       .finally(() => setEligibilityLoading(false));
   }, [open, material, coaRequired, refresh]);
 
@@ -142,6 +149,10 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
                 <CircularProgress size={14} />
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Checking COA status…</Typography>
               </Box>
+            ) : eligibilityFailed ? (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                The COA status of this lot could not be checked. Close and reopen the lot to try again.
+              </Alert>
             ) : eligibility ? (
               <Alert
                 id="lot-coa-eligibility-banner"

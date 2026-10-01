@@ -62,6 +62,8 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
   // Export menu
   const [exportMenuAnchor, setExportMenuAnchor] = useState<HTMLElement | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Without this the criteria pickers stayed empty with no explanation.
+  const [filterOptionsFailed, setFilterOptionsFailed] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
           }
         }
       })
-      .catch(() => {});
+      .catch(() => setFilterOptionsFailed(true));
   }, [initialTestCode]);
 
   const fetchAnalysis = () => {
@@ -190,6 +192,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
         <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main, mb: 2 }}>
           Analysis Criteria
         </Typography>
+        {filterOptionsFailed && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            The test and location lists could not be loaded. Reload the page to try again.
+          </Alert>
+        )}
 
         <Stack spacing={2}>
           <FormControl fullWidth size="small">

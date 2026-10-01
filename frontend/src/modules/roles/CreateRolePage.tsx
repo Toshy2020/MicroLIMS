@@ -8,6 +8,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { PageHeader } from "../../components/PageHeader";
 import { RoleService, RoleRecord, PermissionRecord } from "./services/RoleService";
 import { PermissionMatrix } from "./components/PermissionMatrix";
+import { useLoadFailures } from "../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { Role as RoleType } from "../../contexts/AuthContext";
 
 const BASE_TYPES: RoleType[] = ["SystemAdministrator", "SectionHead", "Reviewer", "Analyst"];
@@ -29,10 +31,12 @@ export function CreateRolePage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const { failed: failedLists, fail } = useLoadFailures();
+
   useEffect(() => {
-    RoleService.getAll().then(setExistingRoles).catch(() => {});
-    RoleService.getAllPermissions().then(setAllPermissions).catch(() => {});
-  }, []);
+    RoleService.getAll().then(setExistingRoles).catch(fail("the existing roles"));
+    RoleService.getAllPermissions().then(setAllPermissions).catch(fail("the permission list"));
+  }, [fail]);
 
   // Default-check the selected base type's current grants whenever it
   // changes, fetched live rather than hardcoded so this never drifts
@@ -101,6 +105,7 @@ export function CreateRolePage() {
         {STEPS.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
       </Stepper>
 
+      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {step === 0 && (

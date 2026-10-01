@@ -199,6 +199,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Without the definitions the dialog cannot tell which fields a test needs.
+  const [testDefsFailed, setTestDefsFailed] = useState(false);
 
   useEffect(() => {
     if (testDefinitionByCode && Object.keys(testDefinitionByCode).length > 0) {
@@ -208,8 +210,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         .getTestDefinitions()
         .then((defs: TestDefinitionSummary[]) => {
           setTestDefs(Object.fromEntries(defs.map((d) => [d.code, d])));
+          setTestDefsFailed(false);
         })
-        .catch(() => {});
+        .catch(() => setTestDefsFailed(true));
     }
   }, [testDefinitionByCode]);
 
@@ -774,6 +777,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       </DialogTitle>
 
       <DialogContent dividers sx={{ pt: 2 }}>
+        {testDefsFailed && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            The test definitions could not be loaded, so test-specific fields may be missing. Close and reopen this dialog to try again.
+          </Alert>
+        )}
         {error && (
           <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
             {error}

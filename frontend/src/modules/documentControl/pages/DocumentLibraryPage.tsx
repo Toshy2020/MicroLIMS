@@ -117,6 +117,9 @@ export function DocumentLibraryPage() {
     title: ""
   });
 
+  // Kept apart from `error`, which every library fetch clears.
+  const [filtersFailed, setFiltersFailed] = useState(false);
+
   // Load types and departments
   useEffect(() => {
     Promise.all([
@@ -125,7 +128,7 @@ export function DocumentLibraryPage() {
     ]).then(([t, d]) => {
       setTypes(t);
       setDepartments(d);
-    }).catch(() => {});
+    }).catch(() => setFiltersFailed(true));
   }, []);
 
   const fetchLibrary = useCallback(async () => {
@@ -215,6 +218,11 @@ export function DocumentLibraryPage() {
         )}
       </Box>
 
+      {filtersFailed && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          The document types and departments could not be loaded, so those filters are empty. Reload the page to try again.
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}

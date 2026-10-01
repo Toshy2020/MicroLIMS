@@ -4,6 +4,7 @@ import { ReportFilterPanel } from "./components/ReportFilterPanel";
 import { ReportResultsTable } from "./components/ReportResultsTable";
 import { QuickReportsTiles } from "./components/QuickReportsTiles";
 import { ReportingService } from "./services/ReportingService";
+import { LoadErrorAlert } from "../../components/LoadErrorAlert";
 import { FilterOptionsResponse, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "./types/reportingTypes";
 
 interface RecordSearchTabProps {
@@ -27,6 +28,9 @@ function baseParams(fromDate: string | undefined, toDate: string | undefined): R
 // filters are currently applied.
 export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTab }: RecordSearchTabProps) {
   const [filterOptions, setFilterOptions] = useState<FilterOptionsResponse | null>(null);
+  // Without this a failed load left every filter dropdown empty with no
+  // explanation, as if no media, strains or products existed.
+  const [filterOptionsFailed, setFilterOptionsFailed] = useState(false);
   const [draft, setDraft] = useState<ResultRecordSearchParams>(baseParams(fromDate, toDate));
   const [applied, setApplied] = useState<ResultRecordSearchParams>(baseParams(fromDate, toDate));
   const [results, setResults] = useState<ResultRecordSearchResponse | null>(null);
@@ -35,7 +39,7 @@ export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTa
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    ReportingService.getFilterOptions().then(setFilterOptions).catch(() => setFilterOptions(null));
+    ReportingService.getFilterOptions().then(setFilterOptions).catch(() => { setFilterOptions(null); setFilterOptionsFailed(true); });
   }, []);
 
   // Quick-period change: immediate apply, carrying over every other
@@ -77,8 +81,11 @@ export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTa
   };
 
   return (
-    <Box sx={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 2, alignItems: "start" }}>
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px 1fr" }, gap: 2, alignItems: "start" }}>
       <Stack spacing={2}>
+        {filterOptionsFailed && (
+          <LoadErrorAlert message="The filter options could not be loaded, so the filter lists are empty. Reload the page to try again." />
+        )}
         <ReportFilterPanel
           filterOptions={filterOptions}
           draft={draft}

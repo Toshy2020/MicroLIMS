@@ -26,6 +26,8 @@ import { SectionTitle } from "../../components/SectionTitle";
 import { UserService, UserRecord } from "./services/UserService";
 import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLoadFailures } from "../../hooks/useLoadFailures";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
 
 export function UsersPage() {
@@ -74,11 +76,17 @@ export function UsersPage() {
 
   const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
 
+  // A failed load used to leave the user table (or the role picker) empty
+  // with no explanation.
+  const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
   const load = () => {
-    UserService.getAll().then(setUsers).catch(() => {});
-    RoleService.getAll().then(setRoles).catch(() => {});
+    resetFailures();
+    UserService.getAll().then(setUsers).catch(fail("users"));
+    RoleService.getAll().then(setRoles).catch(fail("roles"));
   };
 
+  // Mount-only: load is redefined each render and only runs set-state calls.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
   const handleCreateUser = async () => {
@@ -283,6 +291,7 @@ export function UsersPage() {
   return (
     <>
       <PageHeader title="User Management" subtitle="Manage system users, role assignments, security status, and account access." />
+      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
       <SectionTitle>Create New User</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
         <Box

@@ -240,6 +240,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [analyteById, setAnalyteById] = useState<Record<number, TestAnalyteDto>>({});
   const [hplcAnalyteById, setHplcAnalyteById] = useState<Record<number, { name: string }>>({});
   const [error, setError] = useState<string | null>(null);
+  // Test-definition and analyte-name lookups that failed. Without them the
+  // "Analyte: ..." chips silently disappear, so per-analyte specifications
+  // look identical; say so rather than show a quietly incomplete list.
+  const [lookupsIncomplete, setLookupsIncomplete] = useState(false);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -284,7 +288,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                     map[a.id] = a;
                   }
                 })
-                .catch(() => {})
+                .catch(() => setLookupsIncomplete(true))
             )
           );
           setAnalyteById(map);
@@ -301,14 +305,15 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                     hMap[a.id] = { name: a.name };
                   }
                 })
-                .catch(() => {})
+                .catch(() => setLookupsIncomplete(true))
             )
           );
           setHplcAnalyteById(hMap);
         }
       })
       .catch(() => {
-        // Non-fatal fallback
+        // Non-fatal: the specifications still load, only labels are missing.
+        setLookupsIncomplete(true);
       });
   }, []);
 
@@ -474,6 +479,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         <LimitTypeBadge type="WeightVariation" labelOverride="Weight Variation" />
       </Stack>
 
+      {lookupsIncomplete && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Some test and analyte names could not be loaded, so analyte labels may be missing from the specifications below. Reload the page to try again.
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}

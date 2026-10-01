@@ -154,6 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           { refreshToken: storedRefreshToken },
           { headers: { Authorization: `Bearer ${token}` } }
         )
+        // Best effort: the local session is cleared below either way, and
+        // the refresh token expires server-side on its own.
         .catch(() => {});
     }
     clearLocalState();

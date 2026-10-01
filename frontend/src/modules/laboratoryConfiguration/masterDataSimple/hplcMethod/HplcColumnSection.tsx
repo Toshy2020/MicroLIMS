@@ -1,4 +1,5 @@
 import { Box, Typography, TextField, Stack } from "@mui/material";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcColumnSectionProps {
   columnDesignation: string;
@@ -8,6 +9,7 @@ export interface HplcColumnSectionProps {
   columnBrand: string;
   columnPartNumber: string;
   columnTemperatureC: string | number;
+  errors: HplcMethodErrors;
   onColumnDesignationChange: (val: string) => void;
   onColumnLengthMmChange: (val: string) => void;
   onColumnInternalDiameterMmChange: (val: string) => void;
@@ -25,6 +27,7 @@ export function HplcColumnSection({
   columnBrand,
   columnPartNumber,
   columnTemperatureC,
+  errors,
   onColumnDesignationChange,
   onColumnLengthMmChange,
   onColumnInternalDiameterMmChange,
@@ -51,7 +54,8 @@ export function HplcColumnSection({
             value={columnDesignation}
             onChange={(e) => onColumnDesignationChange(e.target.value)}
             required
-            helperText="USP designation (e.g. L1)"
+            error={Boolean(errors["column.designation"])}
+            helperText={errors["column.designation"] ?? "USP designation (e.g. L1)"}
             fullWidth
           />
           <TextField
@@ -61,7 +65,8 @@ export function HplcColumnSection({
             value={columnTemperatureC}
             onChange={(e) => onColumnTemperatureCChange(e.target.value)}
             required
-            helperText="Oven temperature in Celsius"
+            error={Boolean(errors["column.temperatureC"])}
+            helperText={errors["column.temperatureC"] ?? "Oven temperature in Celsius"}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />
@@ -76,7 +81,8 @@ export function HplcColumnSection({
             onChange={(e) => onColumnLengthMmChange(e.target.value)}
             required
             placeholder="e.g. 150"
-            helperText="Column length in mm"
+            error={Boolean(errors["column.lengthMm"])}
+            helperText={errors["column.lengthMm"] ?? "Column length in mm"}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />
@@ -88,7 +94,8 @@ export function HplcColumnSection({
             onChange={(e) => onColumnInternalDiameterMmChange(e.target.value)}
             required
             placeholder="e.g. 4.6"
-            helperText="Internal diameter in mm"
+            error={Boolean(errors["column.internalDiameterMm"])}
+            helperText={errors["column.internalDiameterMm"] ?? "Internal diameter in mm"}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />
@@ -100,7 +107,8 @@ export function HplcColumnSection({
             onChange={(e) => onParticleSizeUmChange(e.target.value)}
             required
             placeholder="e.g. 5"
-            helperText="Packing particle size"
+            error={Boolean(errors["column.particleSizeUm"])}
+            helperText={errors["column.particleSizeUm"] ?? "Packing particle size"}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />

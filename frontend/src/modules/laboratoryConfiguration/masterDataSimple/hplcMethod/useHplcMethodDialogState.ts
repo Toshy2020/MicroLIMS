@@ -9,6 +9,7 @@ import { SolutionMaster } from "../services/SolutionMasterService";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
 import {
+  HplcMethodErrors,
   HplcMethodFormState,
   createInitialHplcMethodFormState,
   hplcMethodEntityToFormState,
@@ -18,6 +19,7 @@ import {
   getAvailableMobilePhases,
   getAvailableReferenceStandards
 } from "./hplcMethodForm";
+import { HPLC_FORM_ERROR_PREFIX, hplcErrorTab } from "./hplcMethodValidation";
 
 export interface UseHplcMethodDialogStateProps {
   open: boolean;
@@ -48,6 +50,9 @@ export function useHplcMethodDialogState({
   );
 
   const [dialogError, setDialogError] = useState<string | null>(null);
+  // Field errors appear after the first failed submit and then follow the form live.
+  const [showErrors, setShowErrors] = useState(false);
+  const [scrollTick, setScrollTick] = useState(0);
   const [saving, setSaving] = useState(false);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [editReason, setEditReason] = useState("");
@@ -56,6 +61,7 @@ export function useHplcMethodDialogState({
   const initForm = useCallback(() => {
     setTabIndex(0);
     setDialogError(null);
+    setShowErrors(false);
     setSaving(false);
     setReasonDialogOpen(false);
     setEditReason("");
@@ -109,6 +115,37 @@ export function useHplcMethodDialogState({
     [currentSectionId, materialMasters, loadedEntity?.analytes]
   );
 
+  const validationErrors = useMemo<HplcMethodErrors>(
+    () =>
+      validateHplcMethodForm(form, {
+        isEditing: Boolean(editingId),
+        hasMultipleSections: mySections.length > 1
+      }),
+    [form, editingId, mySections.length]
+  );
+  const errors = useMemo<HplcMethodErrors>(
+    () => (showErrors ? validationErrors : {}),
+    [showErrors, validationErrors]
+  );
+
+  // Rules spanning a whole tab (e.g. at least one analyte) have no field and go to the top alert.
+  const formErrorMessages = useMemo(
+    () =>
+      Object.entries(errors)
+        .filter(([key]) => key.startsWith(HPLC_FORM_ERROR_PREFIX))
+        .map(([, message]) => message),
+    [errors]
+  );
+
+  const tabErrorCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const key of Object.keys(errors)) {
+      const tab = hplcErrorTab(key);
+      if (tab !== null) counts[tab] = (counts[tab] ?? 0) + 1;
+    }
+    return counts;
+  }, [errors]);
+
   const updateField = <K extends keyof HplcMethodFormState>(field: K, val: HplcMethodFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: val }));
   };
@@ -131,12 +168,14 @@ export function useHplcMethodDialogState({
 
   const handleInitiateSave = () => {
     setDialogError(null);
-    const err = validateHplcMethodForm(form, {
-      isEditing: Boolean(editingId),
-      hasMultipleSections: mySections.length > 1
-    });
-    if (err) {
-      setDialogError(err);
+    const keys = Object.keys(validationErrors);
+    if (keys.length > 0) {
+      setShowErrors(true);
+      // The general header is always visible; otherwise jump to the first tab with an error.
+      const hasGeneralError = keys.some((key) => hplcErrorTab(key) === null);
+      const tabs = keys.map(hplcErrorTab).filter((tab): tab is number => tab !== null);
+      if (!hasGeneralError && tabs.length > 0) setTabIndex(Math.min(...tabs));
+      setScrollTick((tick) => tick + 1);
       return;
     }
 
@@ -182,6 +221,10 @@ export function useHplcMethodDialogState({
     updateField,
     dialogError,
     setDialogError,
+    errors,
+    formErrorMessages,
+    tabErrorCounts,
+    scrollTick,
     saving,
     reasonDialogOpen,
     setReasonDialogOpen,

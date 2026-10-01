@@ -24,6 +24,7 @@ import {
   GradientStepRowState,
   ELUTION_MODE_OPTIONS
 } from "./hplcMethodForm";
+import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcElutionSectionProps {
   elutionMode: ElutionMode;
@@ -31,6 +32,7 @@ export interface HplcElutionSectionProps {
   equilibrationMin: string | number;
   gradientSteps: GradientStepRowState[];
   mobilePhaseChannels: string[];
+  errors: HplcMethodErrors;
   onElutionModeChange: (val: ElutionMode) => void;
   onFlowRateMlPerMinChange: (val: string) => void;
   onEquilibrationMinChange: (val: string) => void;
@@ -45,6 +47,7 @@ export function HplcElutionSection({
   equilibrationMin,
   gradientSteps,
   mobilePhaseChannels,
+  errors,
   onElutionModeChange,
   onFlowRateMlPerMinChange,
   onEquilibrationMinChange,
@@ -90,7 +93,8 @@ export function HplcElutionSection({
             onChange={(e) => onFlowRateMlPerMinChange(e.target.value)}
             required
             placeholder="e.g. 1.0"
-            helperText="Mobile phase flow velocity"
+            error={Boolean(errors["elution.flowRateMlPerMin"])}
+            helperText={errors["elution.flowRateMlPerMin"] ?? "Mobile phase flow velocity"}
             slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
             fullWidth
           />
@@ -102,7 +106,8 @@ export function HplcElutionSection({
             value={equilibrationMin}
             onChange={(e) => onEquilibrationMinChange(e.target.value)}
             placeholder="e.g. 10"
-            helperText="Column wash / equilibration (optional)"
+            error={Boolean(errors["elution.equilibrationMin"])}
+            helperText={errors["elution.equilibrationMin"] ?? "Column wash / equilibration (optional)"}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />
@@ -169,7 +174,8 @@ export function HplcElutionSection({
                           onChange={(e) => onGradientStepChange(idx, "timeMin", e.target.value)}
                           slotProps={{ htmlInput: { min: 0, step: "any" } }}
                           disabled={idx === 0}
-                          helperText={idx === 0 ? "Initial (0 min)" : undefined}
+                          error={Boolean(errors[`gradient.${idx}.timeMin`])}
+                          helperText={errors[`gradient.${idx}.timeMin`] ?? (idx === 0 ? "Initial (0 min)" : undefined)}
                           sx={{ width: 110 }}
                         />
                       </TableCell>
@@ -180,6 +186,8 @@ export function HplcElutionSection({
                           value={step.percentA}
                           onChange={(e) => onGradientStepChange(idx, "percentA", e.target.value)}
                           disabled={!hasChannel("A")}
+                          error={Boolean(errors[`gradient.${idx}.percentA`])}
+                          helperText={errors[`gradient.${idx}.percentA`]}
                           slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
@@ -191,6 +199,8 @@ export function HplcElutionSection({
                           value={step.percentB}
                           onChange={(e) => onGradientStepChange(idx, "percentB", e.target.value)}
                           disabled={!hasChannel("B")}
+                          error={Boolean(errors[`gradient.${idx}.percentB`])}
+                          helperText={errors[`gradient.${idx}.percentB`]}
                           slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
@@ -202,6 +212,8 @@ export function HplcElutionSection({
                           value={step.percentC}
                           onChange={(e) => onGradientStepChange(idx, "percentC", e.target.value)}
                           disabled={!hasChannel("C")}
+                          error={Boolean(errors[`gradient.${idx}.percentC`])}
+                          helperText={errors[`gradient.${idx}.percentC`]}
                           slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
@@ -213,12 +225,19 @@ export function HplcElutionSection({
                           value={step.percentD}
                           onChange={(e) => onGradientStepChange(idx, "percentD", e.target.value)}
                           disabled={!hasChannel("D")}
+                          error={Boolean(errors[`gradient.${idx}.percentD`])}
+                          helperText={errors[`gradient.${idx}.percentD`]}
                           slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: is100 ? "success.main" : "error.main" }}>
                         {sum.toFixed(1)}%
+                        {errors[`gradient.${idx}.total`] && (
+                          <Typography variant="caption" color="error" sx={{ display: "block", fontWeight: 400 }}>
+                            {errors[`gradient.${idx}.total`]}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Tooltip title="Remove step">

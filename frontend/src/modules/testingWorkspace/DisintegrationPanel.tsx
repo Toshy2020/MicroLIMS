@@ -150,7 +150,7 @@ export function DisintegrationPanel({
       // 3. Fetch specifications for this item and test (DisintegrationTime limitType)
       let matchedSpec: SpecificationDto | null = null;
       if (resolvedItemId != null) {
-        const itemSpecs = await SpecificationService.getForItem(resolvedItemId);
+        const itemSpecs = await SpecificationService.getForTestOrder(testOrderId);
         const disSpecs = itemSpecs.filter(
           (s) => s.testCode === effectiveTestCode && s.limitType === "DisintegrationTime"
         );

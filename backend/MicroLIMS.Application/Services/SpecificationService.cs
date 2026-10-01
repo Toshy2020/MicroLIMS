@@ -184,11 +184,23 @@ public class SpecificationService
         if (!testAssigned)
             throw new InvalidOperationException($"Test '{spec.TestCode}' is not assigned to item {spec.ItemId}.");
 
+        // Production stages exist only on Finished Product samples, so a
+        // stage-specific row on any other item could never be used.
+        if (spec.ProductionStageRole is ProductionStageRole role)
+        {
+            if (role == ProductionStageRole.Other)
+                throw new InvalidOperationException("Choose Bulk, In-Process, Finished or Stability, or leave the stage as all stages.");
+            var category = await _db.Items.Where(i => i.Id == spec.ItemId).Select(i => (SampleCategory?)i.Category).FirstOrDefaultAsync(cancellationToken);
+            if (category != SampleCategory.FinishedProduct)
+                throw new InvalidOperationException("Stage-specific specifications are only available for Finished Product items.");
+        }
+
         var duplicate = await _db.Specifications.AnyAsync(
-            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName && s.Id != spec.Id,
+            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName
+                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
             cancellationToken);
         if (duplicate)
-            throw new InvalidOperationException($"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' on this item.");
+            throw new InvalidOperationException($"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at {StageText(spec.ProductionStageRole)} on this item.");
 
         var testDef = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == spec.TestCode, cancellationToken);
@@ -199,7 +211,7 @@ public class SpecificationService
                 throw new InvalidOperationException("DissolutionQ specifications are only allowed for Dissolution tests.");
 
             var duplicateDissolution = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
                 cancellationToken);
             if (duplicateDissolution)
                 throw new InvalidOperationException($"Only one specification is allowed for Dissolution test '{spec.TestCode}' on this item.");
@@ -215,7 +227,7 @@ public class SpecificationService
                 throw new InvalidOperationException("DisintegrationTime specifications are only allowed for Disintegration tests.");
 
             var duplicateDisintegration = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
                 cancellationToken);
             if (duplicateDisintegration)
                 throw new InvalidOperationException($"Only one specification is allowed for Disintegration test '{spec.TestCode}' on this item.");
@@ -231,7 +243,7 @@ public class SpecificationService
                 throw new InvalidOperationException("WeightVariation specifications are only allowed for WeightVariation tests.");
 
             var duplicateWeightVariation = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
                 cancellationToken);
             if (duplicateWeightVariation)
                 throw new InvalidOperationException($"Only one specification is allowed for WeightVariation test '{spec.TestCode}' on this item.");
@@ -268,7 +280,7 @@ public class SpecificationService
 
             var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId.Value
-                     && s.ResultBasis == spec.ResultBasis && s.Id != spec.Id,
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
                 cancellationToken);
             if (duplicateAnalyteBasis)
                 throw new InvalidOperationException("A specification for this analyte and basis already exists.");
@@ -295,7 +307,7 @@ public class SpecificationService
                 throw new InvalidOperationException($"Test analyte does not belong to test '{spec.TestCode}'.");
 
             var duplicateAnalyte = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
                 cancellationToken);
             if (duplicateAnalyte)
                 throw new InvalidOperationException($"A specification for this analyte already exists for test '{spec.TestCode}' on item {spec.ItemId}.");
@@ -337,7 +349,7 @@ public class SpecificationService
                 throw new InvalidOperationException($"Test analyte does not belong to test '{spec.TestCode}'.");
 
             var duplicateAnalyte = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
                 cancellationToken);
             if (duplicateAnalyte)
                 throw new InvalidOperationException($"A specification for this analyte already exists for test '{spec.TestCode}' on item {spec.ItemId}.");
@@ -415,6 +427,8 @@ public class SpecificationService
                 throw new InvalidOperationException("Conversion factor must be 1.0 for non-Calibration Curve specifications.");
         }
     }
+
+    private static string StageText(ProductionStageRole? role) => role is null ? "all stages" : $"the {role} stage";
 
     // Backend performs alert/action/spec comparison - frontend only displays results.
     public ResultStatus CompareAgainstLimits(decimal value, Specification spec) =>

@@ -23,6 +23,22 @@ export type ResultBasis = "MgPerKg" | "MgPerUnit" | "PercentLabelClaim";
 
 export type SampleMatrix = "Solid" | "Liquid";
 
+// The production stage a specification row applies to; null/absent =
+// every stage. A sample at a stage with rows of its own uses those rows,
+// any other sample the every-stage rows - decided on the server.
+export type ProductionStageRole = "Bulk" | "InProcess" | "Finished" | "Stability";
+
+export const PRODUCTION_STAGE_ROLE_OPTIONS: { value: ProductionStageRole; label: string }[] = [
+  { value: "Bulk", label: "Bulk" },
+  { value: "InProcess", label: "In-Process" },
+  { value: "Finished", label: "Finished Product" },
+  { value: "Stability", label: "Stability" }
+];
+
+export function productionStageRoleLabel(role: ProductionStageRole | string | null | undefined): string {
+  return PRODUCTION_STAGE_ROLE_OPTIONS.find((o) => o.value === role)?.label ?? "All stages";
+}
+
 export interface SpecificationStageDto {
   id?: number;
   stageNumber: number;
@@ -71,6 +87,7 @@ export interface SpecificationDto {
   canEdit?: boolean;
   sectionName?: string;
   hplcMethodAnalyteId?: number | null;
+  productionStageRole?: ProductionStageRole | string | null;
 }
 
 export interface CreateSpecificationPayload {
@@ -105,6 +122,7 @@ export interface CreateSpecificationPayload {
   conversionFactor?: number | null;
   dosageForm?: DosageForm | null;
   hplcMethodAnalyteId?: number | null;
+  productionStageRole?: ProductionStageRole | null;
 }
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;
@@ -112,6 +130,10 @@ export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemI
 export const SpecificationService = {
   getForItem: (itemId: number): Promise<SpecificationDto[]> =>
     apiClient.get(`/masterdata/specifications?itemId=${itemId}`).then((r) => r.data.data),
+  // The rows that apply to this test order's sample (its production
+  // stage's rows, else the every-stage rows) - for result entry.
+  getForTestOrder: (testOrderId: number): Promise<SpecificationDto[]> =>
+    apiClient.get(`/masterdata/specifications/for-test-order/${testOrderId}`).then((r) => r.data.data),
   create: (payload: CreateSpecificationPayload): Promise<SpecificationDto> =>
     apiClient.post("/masterdata/specifications", payload).then((r) => r.data.data),
   update: (id: number, payload: UpdateSpecificationPayload, version?: number): Promise<SpecificationDto> =>

@@ -35,6 +35,13 @@ public class SpecificationMasterDataController : ControllerBase
     public async Task<IActionResult> GetSpecifications([FromQuery] int itemId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetSpecificationsAsync(CurrentUserId, itemId)));
 
+    // The rows that apply to this test order's sample - its production
+    // stage's rows when the item has them, else the every-stage rows.
+    // Result-entry panels read this instead of the item's full list.
+    [HttpGet("specifications/for-test-order/{testOrderId}")]
+    public async Task<IActionResult> GetSpecificationsForTestOrder(int testOrderId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetSpecificationsForTestOrderAsync(CurrentUserId, testOrderId)));
+
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("specifications")]
     public async Task<IActionResult> CreateSpecification(CreateSpecificationRequest request) =>

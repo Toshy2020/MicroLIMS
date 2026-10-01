@@ -11,6 +11,13 @@ public class Specification : IVersionedEntity
     [JsonIgnore]
     public Item? Item { get; set; }
     public string TestCode { get; set; } = string.Empty;
+
+    // The production stage this row applies to (e.g. Bulk vs Finished),
+    // keyed on ProductionStageRole - never the renameable stage name.
+    // Null = every stage. For a sample whose stage role has rows of its
+    // own for this TestCode, those rows are used and the every-stage rows
+    // are not; otherwise the every-stage rows are (SpecificationStageResolver).
+    public ProductionStageRole? ProductionStageRole { get; set; }
     public string AlertLimit { get; set; } = string.Empty;
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;

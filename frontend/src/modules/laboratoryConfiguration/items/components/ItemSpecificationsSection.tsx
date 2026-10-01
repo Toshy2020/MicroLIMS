@@ -22,7 +22,8 @@ import { Item } from "../services/ItemService";
 import {
   SpecificationService,
   SpecificationDto,
-  LimitType
+  LimitType,
+  productionStageRoleLabel
 } from "../../specifications/services/SpecificationService";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
@@ -548,8 +549,15 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                         >
                           <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
                             {displayName}
-                            {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.canEdit === false) && (
+                            {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole) && (
                               <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                {spec.productionStageRole && (
+                                  <Chip
+                                    size="small"
+                                    label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
+                                    sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
+                                  />
+                                )}
                                 {spec.canEdit === false && (
                                   <Chip
                                     size="small"
@@ -787,8 +795,16 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                     <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
                                       {spec.parameterName}
                                     </Typography>
-                                    {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId) && (
+                                    {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.productionStageRole) && (
                                       <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                        {spec.productionStageRole && (
+                                          <Chip
+                                            size="small"
+                                            label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
+                                            sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
+                                          />
+                                        )}
+                                        
                                         {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
                                           <Chip
                                             size="small"

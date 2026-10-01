@@ -792,7 +792,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         var dilutionFactorOverridden = false;
         if (!isDirectCount && sample.ItemId is not null)
         {
-            var itemSpec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, order.TestCode);
+            var itemSpec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
             configuredDilutionFactor = itemSpec?.DilutionFactor;
 
             if (configuredDilutionFactor is null)
@@ -881,7 +881,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             string? alertLimit = null, actionLimit = null, specLimit = null, configuredUnit = null;
             if (sample.ItemId is not null)
             {
-                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, order.TestCode);
+                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
                 alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
                 configuredUnit = spec?.Unit;
             }

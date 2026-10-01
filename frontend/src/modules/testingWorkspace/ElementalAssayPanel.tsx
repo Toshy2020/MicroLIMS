@@ -129,7 +129,7 @@ export function ElementalAssayPanel({
         // 2. Fetch specifications for this item and test
         let specs: SpecificationDto[] = [];
         if (resolvedItemId != null) {
-          const itemSpecs = await SpecificationService.getForItem(resolvedItemId);
+          const itemSpecs = await SpecificationService.getForTestOrder(testOrderId);
           specs = itemSpecs.filter(
             (s) => s.testCode === effectiveTestCode && s.testAnalyteId != null
           );

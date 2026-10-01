@@ -356,7 +356,7 @@ public class UniversalSpecificationsTests
         db.Specifications.AddRange(spec1, spec2, spec3, spec4);
         await db.SaveChangesAsync();
 
-        var primary = await SpecificationLookup.PrimaryAsync(db, itemId, testCode);
+        var primary = await SpecificationLookup.PrimaryAsync(db, sampleId: 0, itemId, testCode);
         Assert.NotNull(primary);
         // spec2 and spec4 have DisplayOrder = 0; spec2 has lower Id than spec4
         Assert.Equal(spec2.Id, primary.Id);

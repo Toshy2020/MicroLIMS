@@ -902,14 +902,19 @@ public class SampleSummaryService
     // The physical location's stable identity, independent of
     // ResolveLocationName's display text (which can collide - e.g.
     // several water sampling points sharing the same "WTU" label). Feeds
-    // SampleLocationDetailDto.LocationKey.
+    // SampleLocationDetailDto.LocationKey. Rooms and machine parts key on
+    // the Room/MachinePart itself, not the per-test configuration row:
+    // there is one RoomTestConfiguration per room per TestCode, so keying
+    // on it gave the same room a separate COA row for every test.
     private static string ResolveLocationKey(SampleLocation? loc)
     {
         if (loc == null) return $"None:{Guid.NewGuid()}";
         if (loc.WaterSamplingPointId is int directWaterId) return $"Water:{directWaterId}";
         if (loc.SamplingConfiguration?.WaterSamplingPointId is int configWaterId) return $"Water:{configWaterId}";
-        if (loc.RoomTestConfigurationId is int roomId) return $"Room:{roomId}";
-        if (loc.MachinePartConfigurationId is int partId) return $"MachinePart:{partId}";
+        if (loc.RoomTestConfiguration?.RoomId is int roomId) return $"Room:{roomId}";
+        if (loc.RoomTestConfigurationId is int roomConfigId) return $"RoomConfig:{roomConfigId}";
+        if (loc.MachinePartConfiguration?.MachinePartId is int partId) return $"MachinePart:{partId}";
+        if (loc.MachinePartConfigurationId is int partConfigId) return $"MachinePartConfig:{partConfigId}";
         return $"Loc:{loc.Id}";
     }
 

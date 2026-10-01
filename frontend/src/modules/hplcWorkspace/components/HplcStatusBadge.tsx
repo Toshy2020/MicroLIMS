@@ -10,7 +10,9 @@ export interface HplcStatusBadgeProps {
 
 // Raw API value (case-insensitive) -> canonical STATUS_TONE key + display label.
 const STATUS_MAP: Record<string, { key: string; label: string }> = {
-  open: { key: "Open", label: "Open" },
+  // A run in progress, not an issue to act on - shares the InProgress (info)
+  // tone rather than STATUS_TONE.Open, which is the action tone for findings.
+  open: { key: "InProgress", label: "Open" },
   completed: { key: "Completed", label: "Completed" },
   abandoned: { key: "Abandoned", label: "Abandoned" },
   pending: { key: "Pending", label: "Pending" },

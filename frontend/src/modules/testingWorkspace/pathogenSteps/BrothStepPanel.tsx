@@ -236,13 +236,13 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
         the assigned incubation window completes.
       </Alert>
       <Typography variant="body2">Medium: <strong>{medium.mediaName}</strong></Typography>
-      <Select displayEmpty size="small" value={mediaLotId} onChange={(e) => setMediaLotId(Number(e.target.value))}>
+      <Select displayEmpty size="small" value={mediaLotId} onChange={(e) => setMediaLotId(Number(e.target.value))} inputProps={{ "aria-label": "Media lot" }}>
         <MenuItem value=""><em>Media Lot</em></MenuItem>
         {medium.availableLots.map((l) => (
           <MenuItem key={l.id} value={l.id}>{l.lotNumber} — expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
         ))}
       </Select>
-      <Select displayEmpty size="small" value={equipmentId} onChange={(e) => setEquipmentId(Number(e.target.value))}>
+      <Select displayEmpty size="small" value={equipmentId} onChange={(e) => setEquipmentId(Number(e.target.value))} inputProps={{ "aria-label": `Incubator (${medium.tempMin}-${medium.tempMax} °C)` }}>
         <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
         {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setTemperature}°C</MenuItem>)}
       </Select>

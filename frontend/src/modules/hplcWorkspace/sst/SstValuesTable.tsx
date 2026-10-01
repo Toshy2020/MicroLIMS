@@ -93,7 +93,7 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
             {a.meanResponse != null ? a.meanResponse.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
           </Box>
           {a.meanResponse != null && !a.passed && !a.failureReasons && (
-            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10, display: "block" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11, display: "block" }}>
               pending confirmation
             </Typography>
           )}
@@ -108,7 +108,7 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
         <Box>
           <NumericCell value={a.computedRsdPercent} decimals={2} unit="%" />
           {a.computedRsdPercent != null && !a.passed && !a.failureReasons && (
-            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10, display: "block" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11, display: "block" }}>
               pending confirmation
             </Typography>
           )}

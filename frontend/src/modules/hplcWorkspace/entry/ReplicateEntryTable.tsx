@@ -250,6 +250,7 @@ export function ReplicateEntryTable({
                           color="error"
                           disabled={disabled || replicates.length <= 1}
                           onClick={() => handleRemoveRow(repIdx)}
+                          aria-label={`Remove replicate ${repIdx + 1}`}
                         >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>

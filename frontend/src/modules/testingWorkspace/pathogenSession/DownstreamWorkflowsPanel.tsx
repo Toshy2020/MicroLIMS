@@ -97,7 +97,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                     <Chip
                       label="TSB"
                       size="small"
-                      sx={{ fontSize: 10, height: 16, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text }}
+                      sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text }}
                     />
                   )}
                 </Stack>
@@ -202,8 +202,8 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               label={isTsbIncubating ? "TSB Incubating" : "Shared Session Step"}
                               size="small"
                               sx={{
-                                fontSize: 10,
-                                height: 18,
+                                fontSize: 11,
+                                height: 20,
                                 bgcolor: isTsbIncubating ? theme.custom.status.info.bg : theme.custom.status.purple.bg,
                                 color: isTsbIncubating ? theme.custom.status.info.text : theme.custom.status.purple.text,
                                 fontWeight: 700
@@ -215,7 +215,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               icon={<LockOutlinedIcon sx={{ fontSize: 12 }} />}
                               label="Locked until TSB Complete"
                               size="small"
-                              sx={{ fontSize: 10, height: 18, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 600 }}
+                              sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 600 }}
                             />
                           )}
                         </Stack>

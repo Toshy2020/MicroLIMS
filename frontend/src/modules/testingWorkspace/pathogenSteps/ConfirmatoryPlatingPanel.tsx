@@ -284,6 +284,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     displayEmpty size="small" value={row.mediaLotId} disabled={!row.checked}
                     onChange={(e) => setLot(m.stepMediaId, Number(e.target.value))}
                     sx={{ minWidth: 220 }}
+                    inputProps={{ "aria-label": `${m.mediaName} media lot` }}
                   >
                     <MenuItem value=""><em>Media Lot</em></MenuItem>
                     {m.availableLots.map((l) => (
@@ -294,6 +295,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     displayEmpty size="small" value={row.equipmentId} disabled={!row.checked}
                     onChange={(e) => setEquipment(m.stepMediaId, Number(e.target.value))}
                     sx={{ minWidth: 220 }}
+                    inputProps={{ "aria-label": `${m.mediaName} incubator (${m.tempMin}-${m.tempMax} °C)` }}
                   >
                     <MenuItem value=""><em>Incubator ({m.tempMin}-{m.tempMax} °C)</em></MenuItem>
                     {row.incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setTemperature}°C</MenuItem>)}

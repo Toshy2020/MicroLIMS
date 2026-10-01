@@ -281,6 +281,7 @@ export function ReportUploadPanel({
                             size="small"
                             onClick={() => handleViewFile(item.id)}
                             disabled={viewingId === item.id}
+                            aria-label={`View ${item.fileName} in a new tab`}
                           >
                             {viewingId === item.id ? (
                               <CircularProgress size={16} />
@@ -297,6 +298,7 @@ export function ReportUploadPanel({
                             size="small"
                             color="primary"
                             onClick={() => openSupersede(item)}
+                            aria-label={`Replace ${item.fileName} with a newer version`}
                           >
                             <SwapHorizIcon fontSize="small" />
                           </IconButton>

@@ -207,7 +207,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
                       label={`${formatEvidenceKind(e.kind)} (${e.context})`}
                       size="small"
                       variant="outlined"
-                      sx={{ fontSize: 10, height: 20 }}
+                      sx={{ fontSize: 11, height: 20 }}
                     />
                   </TableCell>
                   <TableCell sx={{ fontSize: 11 }}>

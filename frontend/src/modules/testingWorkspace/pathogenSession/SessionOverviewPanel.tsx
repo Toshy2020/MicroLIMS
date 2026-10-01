@@ -304,7 +304,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
                         <Chip
                           label={`Grade ${loc.gradeClassification}`}
                           size="small"
-                          sx={{ fontSize: 10, height: 18, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
+                          sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                         />
                       ) : (
                         "—"

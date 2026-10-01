@@ -156,6 +156,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             size="small"
             value={mediaLotId}
             onChange={(e) => setMediaLotId(Number(e.target.value))}
+            inputProps={{ "aria-label": "Media lot" }}
           >
             <MenuItem value=""><em>Media Lot</em></MenuItem>
             {medium.availableLots.map((l) => (
@@ -170,6 +171,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             size="small"
             value={equipmentId}
             onChange={(e) => setEquipmentId(Number(e.target.value))}
+            inputProps={{ "aria-label": `Incubator (${medium.tempMin}-${medium.tempMax} °C)` }}
           >
             <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
             {incubators.map((i) => (

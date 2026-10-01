@@ -523,7 +523,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   alignItems: "center"
                 }}>
                   <span>{p.testDisplayName} ({p.testCode})</span>
-                  <Chip label={`${p.locations.length} loc`} size="small" sx={{ fontSize: 10, height: 18 }} />
+                  <Chip label={`${p.locations.length} loc`} size="small" sx={{ fontSize: 11, height: 20 }} />
                 </Stack>
               }
             />
@@ -906,7 +906,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             <Card sx={{ bgcolor: theme.custom.status.inconclusive.bg, border: "1px solid", borderColor: theme.custom.status.inconclusive.border, borderRadius: 2 }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.custom.status.inconclusive.text, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
-                  🧪 Biochemical Supporting Observation (Optional)
+                  <span aria-hidden="true">🧪</span> Biochemical Supporting Observation (Optional)
                 </Typography>
                 <Typography sx={{ fontSize: 11.5, color: theme.custom.status.inconclusive.text, mb: 1.5, display: "block" }}>
                   Add any biochemical confirmation, species identification, or supporting remarks for the <strong>{stats.detected} Detected (+)</strong> location(s) above. This comment will be contemporaneously recorded in the audit trail.
@@ -916,6 +916,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   multiline
                   rows={3}
                   placeholder="E.g. 'Indole test positive; confirms E. coli detection' or 'Oxidase negative; gram-negative rod; consistent with Enterobacteriaceae family'"
+                  slotProps={{ htmlInput: { "aria-label": "Biochemical supporting observation" } }}
                   value={biochemicalComment}
                   onChange={(e) => setBiochemicalComment(e.target.value)}
                   size="small"

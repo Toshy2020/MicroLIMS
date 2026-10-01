@@ -47,7 +47,11 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
                .HasForeignKey(st => st.SpecificationId)
                .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName }).IsUnique();
+        // One row per parameter per production stage; NULL (every stage)
+        // counts as a value of its own, so two every-stage rows still clash.
+        builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName, s.ProductionStageRole })
+            .IsUnique()
+            .AreNullsDistinct(false);
     }
 }
 

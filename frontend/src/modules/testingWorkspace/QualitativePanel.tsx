@@ -109,7 +109,7 @@ export function QualitativePanel({
         // 2. Fetch specifications for this item and test
         let loadedSpecs: SpecificationDto[] = [];
         if (resolvedItemId != null) {
-          const itemSpecs = await SpecificationService.getForItem(resolvedItemId);
+          const itemSpecs = await SpecificationService.getForTestOrder(testOrderId);
           loadedSpecs = itemSpecs
             .filter((s) => s.testCode === effectiveTestCode)
             .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));

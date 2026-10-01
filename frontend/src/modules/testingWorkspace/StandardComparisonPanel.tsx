@@ -266,7 +266,7 @@ export function StandardComparisonPanel({
 
       let matchedSpecs: SpecificationDto[] = [];
       if (resolvedItemId != null) {
-        const itemSpecs = await SpecificationService.getForItem(resolvedItemId);
+        const itemSpecs = await SpecificationService.getForTestOrder(testOrderId);
         matchedSpecs = itemSpecs
           .filter((s) => s.testCode === effectiveTestCode && s.testAnalyteId != null)
           .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));

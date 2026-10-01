@@ -327,6 +327,7 @@ public class SpecificationResponse
     public decimal ConversionFactor { get; init; }
     public DosageForm? DosageForm { get; init; }
     public int? HplcMethodAnalyteId { get; init; }
+    public ProductionStageRole? ProductionStageRole { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -335,6 +336,7 @@ public class SpecificationResponse
         Version = e.Version,
         ItemId = e.ItemId,
         TestCode = e.TestCode,
+        ProductionStageRole = e.ProductionStageRole,
         AlertLimit = e.AlertLimit,
         ActionLimit = e.ActionLimit,
         SpecLimit = e.SpecLimit,

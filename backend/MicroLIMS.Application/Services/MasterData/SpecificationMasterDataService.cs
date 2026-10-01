@@ -26,9 +26,24 @@ public class SpecificationMasterDataService
         _specificationService = specificationService ?? new SpecificationService(db);
     }
 
-    public async Task<object> GetSpecificationsAsync(int currentUserId, int itemId)
+    public async Task<object> GetSpecificationsAsync(int currentUserId, int itemId) =>
+        await ToRowsAsync(currentUserId, await _specificationService.GetForItemAsync(itemId));
+
+    public async Task<object> GetSpecificationsForTestOrderAsync(int currentUserId, int testOrderId)
     {
-        var specs = await _specificationService.GetForItemAsync(itemId);
+        var order = await _db.TestOrders
+            .Where(o => o.Id == testOrderId)
+            .Select(o => new { o.SampleId, o.TestCode, o.Sample!.ItemId })
+            .FirstOrDefaultAsync()
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+        if (order.ItemId is not int itemId)
+            return new List<SpecificationRowDto>();
+
+        return await ToRowsAsync(currentUserId, await SpecificationLookup.ForSampleAsync(_db, order.SampleId, itemId, order.TestCode));
+    }
+
+    private async Task<List<SpecificationRowDto>> ToRowsAsync(int currentUserId, List<Specification> specs)
+    {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
 
         var testCodes = specs.Select(s => s.TestCode).Distinct().ToList();
@@ -49,7 +64,7 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
                 s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -99,6 +114,7 @@ public class SpecificationMasterDataService
             ConversionFactor = request.ConversionFactor ?? 1.0m,
             DosageForm = request.DosageForm,
             HplcMethodAnalyteId = request.HplcMethodAnalyteId,
+            ProductionStageRole = request.ProductionStageRole,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
                 StageNumber = s.StageNumber,
@@ -163,6 +179,7 @@ public class SpecificationMasterDataService
         spec.LabelClaimUnit = request.LabelClaimUnit;
         spec.DosageForm = request.DosageForm;
         spec.HplcMethodAnalyteId = request.HplcMethodAnalyteId;
+        spec.ProductionStageRole = request.ProductionStageRole;
         if (request.ConversionFactor.HasValue)
             spec.ConversionFactor = request.ConversionFactor.Value;
 

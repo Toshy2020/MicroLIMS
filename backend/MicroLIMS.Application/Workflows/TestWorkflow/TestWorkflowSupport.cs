@@ -621,9 +621,10 @@ public class TestWorkflowSupport
 
         var itemId = order.Sample.ItemId.Value;
 
+        var stage = await SpecificationLookup.ApplicableStageAsync(_db, order.SampleId, itemId, order.TestCode);
         var specs = await _db.Specifications
             .Include(s => s.TestAnalyte)
-            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode)
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.ProductionStageRole == stage)
             .ToListAsync();
 
         if (specs.Count == 0)

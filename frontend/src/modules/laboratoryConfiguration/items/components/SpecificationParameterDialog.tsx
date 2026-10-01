@@ -33,7 +33,9 @@ import {
   SampleMatrix,
   CreateSpecificationPayload,
   UpdateSpecificationPayload,
-  DosageForm
+  DosageForm,
+  ProductionStageRole,
+  PRODUCTION_STAGE_ROLE_OPTIONS
 } from "../../specifications/services/SpecificationService";
 import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
@@ -128,6 +130,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [unit, setUnit] = useState("");
   const [dilutionFactor, setDilutionFactor] = useState("");
   const [dosageForm, setDosageForm] = useState<DosageForm | "">("");
+  // "" = all stages. Production stages exist only on Finished Product
+  // samples, so the field is offered only for Finished Product items.
+  const [productionStageRole, setProductionStageRole] = useState<ProductionStageRole | "">("");
+  const supportsProductionStage = item.category === "FinishedProduct";
 
   // CalibrationCurve states
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
@@ -297,6 +303,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         editingSpec.dilutionFactor != null ? String(editingSpec.dilutionFactor) : ""
       );
       setDosageForm((editingSpec.dosageForm as DosageForm) || "");
+      setProductionStageRole((editingSpec.productionStageRole as ProductionStageRole) || "");
       if (editingSpec.limitType === "WeightVariation") {
         setUnit("mg");
       }
@@ -365,6 +372,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setUnit(isInitHplc ? "%" : defaultType === "WeightVariation" ? "mg" : defaultType === "DisintegrationTime" ? "min" : "");
       setDilutionFactor("");
       setDosageForm("");
+      setProductionStageRole("");
 
       setTestAnalyteId("");
       setHplcMethodAnalyteId("");
@@ -715,7 +723,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             : (isHplcMethodAssay && resultBasis === "MgPerUnit"
               ? labelClaimUnit.trim() || null
               : (isCalibrationCurve ? labelClaimUnit.trim() || null : null))),
-      conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
+      conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1,
+      productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null
     };
 
     try {
@@ -806,6 +815,29 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               placeholder="e.g. Assay (HPLC) or Impurity A"
             />
           </Box>
+
+          {supportsProductionStage && (
+            <FormControl size="small" fullWidth>
+              <InputLabel id="production-stage-label">Production Stage</InputLabel>
+              <Select
+                labelId="production-stage-label"
+                label="Production Stage"
+                value={productionStageRole}
+                onChange={(e) => setProductionStageRole(e.target.value as ProductionStageRole | "")}
+              >
+                <MenuItem value="">All stages</MenuItem>
+                {PRODUCTION_STAGE_ROLE_OPTIONS.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                A sample at a stage that has its own specification for this test uses it; every other sample uses the
+                &quot;All stages&quot; specification.
+              </Typography>
+            </FormControl>
+          )}
 
           {/* Calibration Curve (ICP-OES) / Standard-Comparison Assay Parameters Block */}
           {usesAnalytePicker && (

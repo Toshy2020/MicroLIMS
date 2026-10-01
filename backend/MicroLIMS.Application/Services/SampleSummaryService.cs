@@ -228,7 +228,9 @@ public class SampleSummaryService
         // (e.g. every pathogen test, until Test Master's Items page is used
         // to add one) - not an error, renders as "-" wherever shown.
         // A test can carry several specification parameters (e.g. Impurity
-        // A / B / Total); they are listed in display order.
+        // A / B / Total); they are listed in display order. Only the rows
+        // for the sample's production stage are shown (SpecificationLookup).
+        var sampleStageRole = await SpecificationLookup.SampleStageRoleAsync(_db, sample.Id);
         var specificationsByTestCode = sample.ItemId is null
             ? new Dictionary<string, List<Specification>>()
             : (await _db.Specifications
@@ -237,7 +239,7 @@ public class SampleSummaryService
                 .OrderBy(sp => sp.DisplayOrder).ThenBy(sp => sp.Id)
                 .ToListAsync())
                 .GroupBy(sp => sp.TestCode)
-                .ToDictionary(g => g.Key, g => g.ToList());
+                .ToDictionary(g => g.Key, g => SpecificationLookup.SelectForStage(g, sampleStageRole));
 
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)

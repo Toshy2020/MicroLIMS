@@ -127,7 +127,7 @@ public sealed class HplcSampleEntryContext
             ?? throw new InvalidOperationException("The run's method snapshot could not be read.");
 
         var specs = order.Sample?.ItemId is int itemId
-            ? await db.Specifications.Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.HplcMethodAnalyteId != null).ToListAsync(ct)
+            ? (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).Where(s => s.HplcMethodAnalyteId != null).ToList()
             : new List<Specification>();
 
         var submitted = await db.TestAnalyses.AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);

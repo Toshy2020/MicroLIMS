@@ -432,7 +432,7 @@ export function ElementalAssayPanel({
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time *"
+              label="Analysis time"
               value={analysisTime}
               onChange={(e) => setAnalysisTime(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
@@ -494,7 +494,7 @@ export function ElementalAssayPanel({
                       <InputLabel id={`cal-run-label-${idx}`}>Calibration Run *</InputLabel>
                       <Select
                         labelId={`cal-run-label-${idx}`}
-                        label="Calibration Run *"
+                        label="Calibration Run"
                         value={row.calibrationRunAnalyteId}
                         onChange={(e) =>
                           handleRowChange(idx, {

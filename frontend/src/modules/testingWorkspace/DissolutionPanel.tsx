@@ -704,7 +704,7 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="datetime-local"
-                label="Analysis Time (Local) *"
+                label="Analysis Time (Local)"
                 value={analysedAt}
                 onChange={(e) => setAnalysedAt(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
@@ -743,7 +743,7 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="number"
-                label="Medium Volume (mL) *"
+                label="Medium Volume (mL)"
                 placeholder="e.g. 900"
                 value={mediumVolumeMl}
                 onChange={(e) => setMediumVolumeMl(e.target.value)}
@@ -754,7 +754,7 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="number"
-                label="Sample Dilution Factor *"
+                label="Sample Dilution Factor"
                 placeholder="1"
                 value={dilutionFactor}
                 onChange={(e) => setDilutionFactor(e.target.value)}

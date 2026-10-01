@@ -811,7 +811,7 @@ export function WeightVariationPanel({
               <TextField
                 size="small"
                 type="datetime-local"
-                label="Analysis Time (Local) *"
+                label="Analysis Time (Local)"
                 value={analysedAt}
                 onChange={(e) => setAnalysedAt(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}

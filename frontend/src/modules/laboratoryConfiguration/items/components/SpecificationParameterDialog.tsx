@@ -1611,7 +1611,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               value={dilutionFactor}
               onChange={(e) => setDilutionFactor(e.target.value)}
               disabled={limitType !== "CountTiered"}
-              helperText="DILUTION FACTOR — editable only for Count-Tiered parameters"
+              helperText="DILUTION FACTOR: editable only for Count-Tiered parameters"
               placeholder={limitType === "CountTiered" ? "e.g. 10" : "—"}
               slotProps={{ htmlInput: { step: "1", min: "1" } }}
               fullWidth

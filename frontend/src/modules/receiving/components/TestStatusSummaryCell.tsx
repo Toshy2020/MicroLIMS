@@ -31,7 +31,7 @@ const CLOSED_SAMPLE_SUMMARY: Record<string, { text: string; tone: StatusTone }> 
   Rejected: { text: "Rejected", tone: "detected" },
   Voided: { text: "Voided", tone: "detected" },
   Cancelled: { text: "Cancelled", tone: "detected" },
-  RetestRequested: { text: "On Hold — Retest", tone: "inconclusive" }
+  RetestRequested: { text: "On Hold, Retest", tone: "inconclusive" }
 };
 
 function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sampleStatus: string): { text: string; tone: StatusTone; isDirectAction: boolean } {

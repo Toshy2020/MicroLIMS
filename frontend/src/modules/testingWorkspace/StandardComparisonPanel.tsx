@@ -388,10 +388,10 @@ export function StandardComparisonPanel({
     if (!a) return "No matching analyte on the linked suitability run.";
     if (!a.passed) return "This analyte did not pass the suitability run.";
     if (a.theoreticalWeightMg == null || a.theoreticalWeightMg <= 0)
-      return "Missing theoretical standard weight on the run — this run cannot be used until corrected.";
-    if (a.moisturePercent == null) return "Missing moisture % on the run — this run cannot be used until corrected.";
-    if (isTitration && a.blankTitreMl == null) return "This run has no blank titre — it cannot be used for a titration test.";
-    if (!isTitration && a.blankTitreMl != null) return "This run was recorded as a titration (has a blank titre) — it cannot be used for a peak-area test.";
+      return "Missing theoretical standard weight on the run. This run cannot be used until corrected.";
+    if (a.moisturePercent == null) return "Missing moisture % on the run. This run cannot be used until corrected.";
+    if (isTitration && a.blankTitreMl == null) return "This run has no blank titre, so it cannot be used for a titration test.";
+    if (!isTitration && a.blankTitreMl != null) return "This run was recorded as a titration (has a blank titre), so it cannot be used for a peak-area test.";
     return null;
   };
 
@@ -578,7 +578,7 @@ export function StandardComparisonPanel({
         {activeAnalysis && <PreparationsReadOnly analysis={activeAnalysis} />}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && <Button variant="contained" onClick={onClose}>Done / Close</Button>}
         </Box>
       </Stack>
@@ -609,7 +609,7 @@ export function StandardComparisonPanel({
       )}
       {specs.length === 0 && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          No specifications configured for this test and item yet — every analyte needs a specification linked
+          No specifications configured for this test and item yet. Every analyte needs a specification linked
           to a test analyte before a result can be recorded.
         </Alert>
       )}
@@ -631,7 +631,7 @@ export function StandardComparisonPanel({
             <MenuItem value="" disabled>{selectable.length ? "Choose a passed run" : "No passed run for this method yet"}</MenuItem>
             {selectable.map((r) => (
               <MenuItem key={r.id} value={r.id}>
-                {r.code} — {r.equipmentCode}, {new Date(r.performedAt).toLocaleDateString()} ({r.analytes?.length ?? 0} analytes)
+                {r.code}: {r.equipmentCode}, {new Date(r.performedAt).toLocaleDateString()} ({r.analytes?.length ?? 0} analytes)
               </MenuItem>
             ))}
           </Select>
@@ -647,7 +647,7 @@ export function StandardComparisonPanel({
 
       {linked && specs.length > 0 && (
         <Box sx={{ mt: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 1.5 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1 }}>Linked run — standard values (read-only)</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1 }}>Linked run: standard values (read-only)</Typography>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -705,7 +705,7 @@ export function StandardComparisonPanel({
           >
             <MenuItem value=""><em>Select instrument (optional)</em></MenuItem>
             {fpEquipment.map((eq) => (
-              <MenuItem key={eq.id} value={eq.id}>{eq.code} — {eq.name} ({eq.type})</MenuItem>
+              <MenuItem key={eq.id} value={eq.id}>{eq.code}: {eq.name} ({eq.type})</MenuItem>
             ))}
           </Select>
           <TextField
@@ -723,7 +723,7 @@ export function StandardComparisonPanel({
         {expectedPreps > 0 && (
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
-              Sample preparations ({expectedPreps}) — weigh-in window ±{weighInTolerance}%
+              Sample preparations ({expectedPreps}), weigh-in window ±{weighInTolerance}%
             </Typography>
             <UnitEntryGrid
               rowCount={expectedPreps}
@@ -748,13 +748,13 @@ export function StandardComparisonPanel({
                 return (
                   <Box key={i}>
                     <Typography sx={{ fontSize: 12, color: outOfWindow ? "warning.main" : "text.secondary" }}>
-                      Preparation {i + 1} deviation: {dev.toFixed(2)}%{outOfWindow ? " — outside window, justification required" : ""}
+                      Preparation {i + 1} deviation: {dev.toFixed(2)}%{outOfWindow ? ", outside window, justification required" : ""}
                     </Typography>
                     {outOfWindow && (
                       <TextField
                         size="small"
                         fullWidth
-                        label={`Justification — preparation ${i + 1} *`}
+                        label={`Justification for preparation ${i + 1} *`}
                         value={p.weighInJustification}
                         onChange={(e) => updatePreparation(i, "weighInJustification", e.target.value)}
                         error={!p.weighInJustification.trim()}
@@ -775,7 +775,7 @@ export function StandardComparisonPanel({
         {specs.length > 0 && expectedPreps > 0 && (
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
-              {isTitration ? "Titres (mL)" : "Peak areas"} — analytes × preparation (paste from the CDS export)
+              {isTitration ? "Titres (mL)" : "Peak areas"}: analytes × preparation (paste from the CDS export)
             </Typography>
             <UnitEntryGrid
               rowCount={specs.length}
@@ -790,7 +790,7 @@ export function StandardComparisonPanel({
         {specs.length > 0 && expectedPreps > 0 && (
           <Box sx={{ border: "1px dashed", borderColor: "divider", borderRadius: 1.5, p: 1.5 }}>
             <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1 }}>
-              Preview — %Assay per preparation (client-side estimate; the saved value is always calculated by the server)
+              Preview: %Assay per preparation (client-side estimate; the saved value is always calculated by the server)
             </Typography>
             <TableContainer>
               <Table size="small">

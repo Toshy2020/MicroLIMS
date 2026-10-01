@@ -373,7 +373,7 @@ export function FpInstrumentsPage() {
               {availableInventory.length === 0 && <MenuItem value="" disabled>No unconfigured assets in the inventory</MenuItem>}
               {availableInventory.map((i) => (
                 <MenuItem key={i.id} value={i.id}>
-                  {i.code} — {i.instrumentType}{i.manufacturerName ? ` (${i.manufacturerName})` : ""}
+                  {i.code}: {i.instrumentType}{i.manufacturerName ? ` (${i.manufacturerName})` : ""}
                 </MenuItem>
               ))}
             </Select>

@@ -81,7 +81,7 @@ function buildPrintDocument(ctx: TrendExportContext, chartImageDataUrl: string |
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Trend Analysis Export — MicroLIMS</title>
+<title>Trend Analysis Export · MicroLIMS</title>
 <style>
   @page { size: A4 landscape; margin: 12mm; @bottom-right { content: "Page " counter(page); font-size: 8pt; color: #666; } }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 9pt; color: #1f2937; margin: 0; padding: 10px; }
@@ -121,7 +121,7 @@ function buildPrintDocument(ctx: TrendExportContext, chartImageDataUrl: string |
     <tbody>${buildTableRowsHtml(ctx) || `<tr><td colspan="8" style="text-align:center;padding:20px;color:#6b7280;">No matching records found.</td></tr>`}</tbody>
   </table>
   <div class="footer">
-    <div>Trend Analysis Export — Generated for analytical review. Not a formal Certificate of Analysis.</div>
+    <div>Trend Analysis Export. Generated for analytical review. Not a formal Certificate of Analysis.</div>
     <div>MicroLIMS Quality Assurance</div>
   </div>
   <script>window.onload = function() { setTimeout(function() { window.print(); }, 250); };</script>

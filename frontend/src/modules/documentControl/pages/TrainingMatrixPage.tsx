@@ -216,7 +216,7 @@ export function TrainingMatrixPage() {
         );
       case "TrainedOnSupersededOnly":
         return (
-          <Tooltip title="Qualified on Prior Revision Only — Retraining Gap">
+          <Tooltip title="Qualified on Prior Revision Only: Retraining Gap">
             <Chip
               icon={<WarningIcon sx={{ fontSize: "14px !important" }} />}
               label="Trained on Superseded Only"
@@ -729,7 +729,7 @@ export function TrainingMatrixPage() {
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
-              {selectedDoc?.companyDocumentCode} — {selectedDoc?.title}
+              {selectedDoc?.companyDocumentCode}: {selectedDoc?.title}
             </Typography>
           </Box>
           <IconButton aria-label="Close document training details" size="small" onClick={() => setSelectedDoc(null)}>

@@ -455,7 +455,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           Final result: <strong>{outcome}</strong>
         </Alert>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && (
             <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
               Done / Close
@@ -485,7 +485,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         }}> (Two-stage transfer: Stage {currentStageNumber} of 2)</Typography>}
         {step.isFinalStep && <Typography component="span" variant="caption" sx={{
           color: "text.secondary"
-        }}> — determines the final result</Typography>}
+        }}> (determines the final result)</Typography>}
       </Typography>
 
       {phase === "select-media" && (
@@ -508,12 +508,12 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             inputProps={{ "aria-label": "Media batch" }}
           >
             <MenuItem value=""><em>Media Batch ({permittedMaterialNames || "approved"} lots only)</em></MenuItem>
-            {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
+            {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber}, expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
           </Select>
 
           <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))} inputProps={{ "aria-label": "Stage 1 incubator" }}>
             <MenuItem value=""><em>Stage 1 Incubator ({stage1TempMin}-{stage1TempMax} °C)</em></MenuItem>
-            {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setPointTemperature}°C</MenuItem>)}
+            {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setPointTemperature}°C</MenuItem>)}
           </Select>
           {matchingIncubators.length === 0 && (
             <Alert severity="warning">No incubator is set to {stage1TempMin}-{stage1TempMax} °C for this step.</Alert>
@@ -523,7 +523,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
               color: "text.secondary"
             }}>
               Required Temperature (Stage 1): <strong>{stage1TempMin}-{stage1TempMax} °C</strong>
-              {" — "}Incubation Period: <strong>{stage1IncMinHours}-{stage1IncMaxHours} hours</strong>
+              {", "}Incubation Period: <strong>{stage1IncMinHours}-{stage1IncMaxHours} hours</strong>
             </Typography>
           )}
           <Stack direction="row" sx={{
@@ -556,7 +556,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
               color: "text.secondary"
             }}>
               Stage 2 Required Temperature: <strong>{stage2Config.tempMin}-{stage2Config.tempMax} °C</strong>
-              {" — "}Incubation Period: <strong>{stage2Config.incubationMinHours}-{stage2Config.incubationMaxHours} hours</strong>
+              {", "}Incubation Period: <strong>{stage2Config.incubationMinHours}-{stage2Config.incubationMaxHours} hours</strong>
             </Typography>
           </Box>
 
@@ -572,7 +572,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             </MenuItem>
             {matchingStage2Incubators.map((i) => (
               <MenuItem key={i.id} value={i.id}>
-                {i.name} ({i.code}) — {i.setPointTemperature}°C
+                {i.name} ({i.code}), {i.setPointTemperature}°C
               </MenuItem>
             ))}
           </Select>
@@ -643,7 +643,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
       <ConfirmationDialog
         open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
         onConfirm={confirmSkipWait}
         onCancel={() => setSkipDialogOpen(false)}
       />
@@ -707,7 +707,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                     disabled={isDirectCount || !dilutionFactorOverriding}
                     helperText={
                       isDirectCount
-                        ? "Direct count — dilution factor fixed at 1"
+                        ? "Direct count: dilution factor fixed at 1"
                         : dilutionFactorOverriding
                           ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
                           : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
@@ -752,7 +752,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                   value={dilutionFactorOverrideNote}
                   onChange={(e) => setDilutionFactorOverrideNote(e.target.value)}
                   error={!dilutionFactorOverrideNote.trim()}
-                  helperText="Required — the entered value differs from what's configured on Specifications. This is captured in the audit trail."
+                  helperText="Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
                   fullWidth
                   sx={{ mb: 1 }}
                 />
@@ -771,7 +771,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                       placeholder="Colony count or TNTC"
                       helperText={
                         isNonNumeric(r)
-                          ? "⚠ Non-numeric — will be flagged for reviewer decision"
+                          ? "⚠ Non-numeric, will be flagged for reviewer decision"
                           : ""
                       }
                       sx={{
@@ -804,7 +804,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                   </Typography>
                   {liveResult.isNonNumeric && (
                     <Typography variant="caption" sx={{ color: theme.custom.status.inconclusive.text, display: "block", mt: 0.5 }}>
-                      Non-numeric result — reviewer will decide accept or retest
+                      Non-numeric result: reviewer will decide accept or retest
                     </Typography>
                   )}
                 </Box>
@@ -834,7 +834,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           {lastOutcome.isDefinitive ? (
             <Alert severity="success">
               Step recorded: <strong>{lastOutcome.outcomeSummary}</strong>
-              {lastOutcome.average != null && ` — Average ${lastOutcome.average}, Calculated ${lastOutcome.calculatedResult}, Status ${lastOutcome.status}`}
+              {lastOutcome.average != null && `: Average ${lastOutcome.average}, Calculated ${lastOutcome.calculatedResult}, Status ${lastOutcome.status}`}
             </Alert>
           ) : (
             <Alert severity="warning">

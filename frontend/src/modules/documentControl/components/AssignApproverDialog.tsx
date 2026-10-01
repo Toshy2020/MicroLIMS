@@ -119,7 +119,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700 }}>
-        Assign Approver — {companyDocumentCode} Rev {revisionNumber}
+        Assign Approver: {companyDocumentCode} Rev {revisionNumber}
       </DialogTitle>
 
       <DialogContent dividers>

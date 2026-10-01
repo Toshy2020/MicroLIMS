@@ -177,7 +177,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                   fontWeight: "bold",
                   color: "text.secondary"
                 }}>
-                Informational Only — Formal Acknowledgement Required
+                Informational Only. Formal Acknowledgement Required
               </Typography>
             </Box>
             <LinearProgress

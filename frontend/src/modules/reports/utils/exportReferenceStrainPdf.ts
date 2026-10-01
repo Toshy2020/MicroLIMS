@@ -68,7 +68,7 @@ export function exportReferenceStrainPdf(records: ReferenceStrainListItem[], opt
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${escapeHtml(title)} — MicroLIMS</title>
+  <title>${escapeHtml(title)} · MicroLIMS</title>
   <style>
     @page {
       size: A4 landscape;
@@ -218,7 +218,7 @@ export function exportReferenceStrainPdf(records: ReferenceStrainListItem[], opt
   </table>
 
   <div class="footer">
-    <div>Reference Strains Report — Working cultures traceability and qualification usage history.</div>
+    <div>Reference Strains Report. Working cultures traceability and qualification usage history.</div>
     <div>MicroLIMS Quality Assurance</div>
   </div>
 

@@ -254,7 +254,7 @@ export function SampleTableRow({
                 {isWater && (
                   <DetailField
                     label="Sampling Point"
-                    value={sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode} — ${sample.waterSamplingPointLocation}` : ""}
+                    value={sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode}, ${sample.waterSamplingPointLocation}` : ""}
                   />
                 )}
                 {isWater && sample.storageCondition && (

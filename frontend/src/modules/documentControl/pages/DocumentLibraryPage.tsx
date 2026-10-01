@@ -267,7 +267,7 @@ export function DocumentLibraryPage() {
             <MenuItem value="">All Types</MenuItem>
             {types.map((t) => (
               <MenuItem key={t.id} value={t.id}>
-                {t.code} — {t.name}
+                {t.code}: {t.name}
               </MenuItem>
             ))}
           </TextField>
@@ -286,7 +286,7 @@ export function DocumentLibraryPage() {
             <MenuItem value="">All Departments</MenuItem>
             {departments.map((d) => (
               <MenuItem key={d.id} value={d.id}>
-                {d.code} — {d.name}
+                {d.code}: {d.name}
               </MenuItem>
             ))}
           </TextField>

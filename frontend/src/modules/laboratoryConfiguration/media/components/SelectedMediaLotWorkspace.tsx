@@ -704,7 +704,7 @@ export function SelectedMediaLotWorkspace({
                     </Typography>
                     <Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                        {ev.eventType} — {ev.performedByName || "System"}
+                        {ev.eventType} by {ev.performedByName || "System"}
                       </Typography>
                       {ev.comment && (
                         <Typography sx={{ fontSize: 11, color: "text.secondary" }}>

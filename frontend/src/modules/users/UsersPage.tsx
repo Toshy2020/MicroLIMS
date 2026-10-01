@@ -734,7 +734,7 @@ export function UsersPage() {
         <Stack spacing={2} sx={{ mt: 1 }}>
           {deleteError && <Alert severity="error">{deleteError}</Alert>}
           <Alert severity="warning" icon={<WarningAmberIcon />}>
-            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system — if this fails, deactivate the account instead.
+            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system. If this fails, deactivate the account instead.
           </Alert>
           <Typography variant="body2">
             Permanently delete <strong>{deleteDialogUser?.fullName} (@{deleteDialogUser?.username})</strong>?

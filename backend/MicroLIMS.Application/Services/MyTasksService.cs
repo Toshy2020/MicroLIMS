@@ -96,7 +96,7 @@ public class MyTasksService
 
                 tasks.Add(new MyTaskDto(
                     TaskType: "Revise Test",
-                    Title: $"Revise {t.TestCode} — {location}",
+                    Title: $"Revise {t.TestCode}: {location}",
                     Subtitle: returnReasonSubtitle,
                     ReferenceId: sample.ReferenceNumber,
                     DueAt: returnInfo.ReturnedAt,
@@ -117,7 +117,7 @@ public class MyTasksService
 
             tasks.Add(new MyTaskDto(
                 TaskType: "Read Test",
-                Title: $"Read {t.TestCode} — {location}",
+                Title: $"Read {t.TestCode}: {location}",
                 Subtitle: $"{sample.ReferenceNumber} · {t.TestCode} · {openIncubation.StepName}",
                 ReferenceId: sample.ReferenceNumber,
                 DueAt: dueAt,
@@ -153,7 +153,7 @@ public class MyTasksService
             var media = e.Media!;
             tasks.Add(new MyTaskDto(
                 TaskType: e.EvaluationType.ToString(),
-                Title: $"{FormatEvaluationType(e.EvaluationType)} — Media lot {media.LotNumber}",
+                Title: $"{FormatEvaluationType(e.EvaluationType)}: Media lot {media.LotNumber}",
                 Subtitle: $"{media.Material?.MaterialName} · {media.LotNumber}",
                 ReferenceId: media.LotNumber,
                 DueAt: dueAt,

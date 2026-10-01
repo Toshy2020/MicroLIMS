@@ -159,7 +159,7 @@ export function MediaReportPage() {
               <div className="observation-row">
                 {s.evaluation.challenges.length === 0 ? (
                   <span style={{ fontSize: 13, color: "var(--color-text-quaternary)" }}>
-                    No challenge organisms configured for this material — the lot cannot conform until challenge specs exist.
+                    No challenge organisms configured for this material; the lot cannot conform until challenge specs exist.
                   </span>
                 ) : s.evaluation.evaluationType === "GrowthPromotion" ? (
                   s.evaluation.challenges.map((c, i) => <GrowthPromotionCard key={i} c={c} lotNumber={s.lotNumber} />)

@@ -30,7 +30,7 @@ export interface MediaProductPickerProps {
 type Option = MediaProductOption | { isNew: true; inputValue?: string };
 
 const filter = createFilterOptions<Option>({
-  stringify: (opt) => ("isNew" in opt ? "" : `${opt.code} — ${opt.name} ${opt.code} ${opt.name}`)
+  stringify: (opt) => ("isNew" in opt ? "" : `${opt.code}: ${opt.name} ${opt.code} ${opt.name}`)
 });
 
 export function MediaProductPicker({
@@ -91,7 +91,7 @@ export function MediaProductPicker({
         getOptionLabel={(o) => {
           if (typeof o === "string") return o;
           if ("isNew" in o) return "+ Add media product";
-          return `${o.code} — ${o.name}`;
+          return `${o.code}: ${o.name}`;
         }}
         isOptionEqualToValue={(o, v) => {
           if (!v || "isNew" in o || "isNew" in v) return false;
@@ -133,7 +133,7 @@ export function MediaProductPicker({
           }
           return (
             <li key={key ?? option.id} {...restProps}>
-              {`${option.code} — ${option.name}`}
+              {`${option.code}: ${option.name}`}
             </li>
           );
         }}

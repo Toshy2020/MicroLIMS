@@ -25,7 +25,7 @@ public class WorkflowStateResolverTests
             utcNow: DateTime.UtcNow);
 
         Assert.Equal("REVIEWED", result.WorkflowState);
-        Assert.Equal("Reviewed — Pending Approval", result.WorkflowStateDisplay);
+        Assert.Equal("Reviewed, Pending Approval", result.WorkflowStateDisplay);
         Assert.Equal("Reviewed", result.WorkflowStatus);
         Assert.True(result.IsWorkflowLocked);
         Assert.False(result.IsResultEntryAllowed);
@@ -49,7 +49,7 @@ public class WorkflowStateResolverTests
             utcNow: DateTime.UtcNow);
 
         Assert.Equal("REVIEWED", result.WorkflowState);
-        Assert.Equal("Reviewed — Pending Approval", result.WorkflowStateDisplay);
+        Assert.Equal("Reviewed, Pending Approval", result.WorkflowStateDisplay);
         Assert.Equal("Reviewed", result.WorkflowStatus);
         Assert.True(result.IsWorkflowLocked);
         Assert.False(result.IsResultEntryAllowed);

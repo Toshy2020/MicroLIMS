@@ -288,7 +288,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                   >
                     <MenuItem value=""><em>Media Lot</em></MenuItem>
                     {m.availableLots.map((l) => (
-                      <MenuItem key={l.id} value={l.id}>{l.lotNumber} — expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+                      <MenuItem key={l.id} value={l.id}>{l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
                     ))}
                   </Select>
                   <Select
@@ -298,7 +298,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     inputProps={{ "aria-label": `${m.mediaName} incubator (${m.tempMin}-${m.tempMax} °C)` }}
                   >
                     <MenuItem value=""><em>Incubator ({m.tempMin}-{m.tempMax} °C)</em></MenuItem>
-                    {row.incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setTemperature}°C</MenuItem>)}
+                    {row.incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setTemperature}°C</MenuItem>)}
                   </Select>
                 </Stack>
               </Box>
@@ -366,7 +366,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
 
           {minReadyAt && (
             <Alert severity="warning">
-              Not ready yet — available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
+              Not ready yet. Available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
             </Alert>
           )}
 
@@ -432,7 +432,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                   />
                   <FormControlLabel
                     value="GrowthConforming" control={<Radio />} disabled={!checked}
-                    label="Growth matching expected appearance — conforming"
+                    label="Growth matching expected appearance: conforming"
                   />
                 </RadioGroup>
               </Box>
@@ -485,7 +485,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
 
       <ConfirmationDialog
         open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
         onConfirm={confirmSkipWait}
         onCancel={() => setSkipDialogOpen(false)}
       />

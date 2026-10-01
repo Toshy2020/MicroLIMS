@@ -355,7 +355,7 @@ export function SelectedSampleTestingPanel({
             {sample.category === "FinishedProduct"
               ? sample.productionStage || "—"
               : isWater
-              ? (sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode} — ${sample.waterSamplingPointLocation || ""}` : "—")
+              ? (sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode}, ${sample.waterSamplingPointLocation || ""}` : "—")
               : sample.category === "AfterCleaning"
               ? sample.previousProductName || "—"
               : formatDate(sample.mfgDate)}

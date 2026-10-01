@@ -187,7 +187,7 @@ export function DualPdfComparisonViewer({
               />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              {companyDocumentCode} — {documentTitle}
+              {companyDocumentCode}: {documentTitle}
             </Typography>
           </Box>
           <IconButton onClick={onClose} size="small" aria-label="close">

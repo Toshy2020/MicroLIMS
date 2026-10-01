@@ -745,7 +745,7 @@ export function CalibrationRunsPage() {
         title={
           createdRun
             ? `Run ${createdRun.code}`
-            : `New Calibration Run — Step ${wizardStep} of 3: ${
+            : `New Calibration Run, Step ${wizardStep} of 3: ${
                 wizardStep === 1
                   ? "Header & Standards"
                   : wizardStep === 2
@@ -903,7 +903,7 @@ export function CalibrationRunsPage() {
                         >
                           {sectionInstruments.map((i) => (
                             <MenuItem key={i.id} value={String(i.id)}>
-                              {i.code} — {i.name}
+                              {i.code}: {i.name}
                               {selectedInstrumentType === "IcpOes" ? ` (${i.cdsSoftware || "PerkinElmerSyngistix"})` : ""}
                             </MenuItem>
                           ))}
@@ -939,7 +939,7 @@ export function CalibrationRunsPage() {
                         >
                           {sectionStandards.map((s) => (
                             <MenuItem key={s.id} value={String(s.id)}>
-                              {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
+                              {s.materialName}, Lot {s.batchNumber} (Exp:{" "}
                               {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
                             </MenuItem>
                           ))}
@@ -960,7 +960,7 @@ export function CalibrationRunsPage() {
                             </MenuItem>
                             {sectionStandards.map((s) => (
                               <MenuItem key={s.id} value={String(s.id)}>
-                                {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
+                                {s.materialName}, Lot {s.batchNumber} (Exp:{" "}
                                 {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
                               </MenuItem>
                             ))}

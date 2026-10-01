@@ -110,7 +110,7 @@ export function AuditSearchPage() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
         <SectionTitle>
           {results
-            ? `Audit Events (${results.length}${results.length >= 300 ? " — capped at 300 latest" : ""})`
+            ? `Audit Events (${results.length}${results.length >= 300 ? ", capped at 300 latest" : ""})`
             : "Audit Events"}
         </SectionTitle>
       </Box>

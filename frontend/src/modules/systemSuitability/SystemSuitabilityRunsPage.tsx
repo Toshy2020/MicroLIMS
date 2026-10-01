@@ -345,14 +345,14 @@ export function SystemSuitabilityRunsPage() {
               : "";
             const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
             const weighIn = a.theoreticalWeightMg != null
-              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
+              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? ", OUT OF WINDOW" : ""})`
               : "";
             const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
-            const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
+            const justification = a.weighInJustification ? `, justification: ${a.weighInJustification}` : "";
             return (
               <Tooltip
                 key={a.id}
-                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
+                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? `; ${a.failureReasons}` : ""}${justification}`}
               >
                 <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: a.passed ? "text.primary" : "error.main" }}>
                   <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>{a.analyteName}: </Typography>
@@ -514,14 +514,14 @@ export function SystemSuitabilityRunsPage() {
               <FormControl size="small" fullWidth disabled={!method}>
                 <InputLabel>{isTitrationRun ? "Titrator" : "HPLC instrument"}</InputLabel>
                 <Select label={isTitrationRun ? "Titrator" : "HPLC instrument"} value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)} inputProps={{ "aria-label": isTitrationRun ? "Titrator" : "HPLC instrument" }}>
-                  {sectionInstruments.map((i) => <MenuItem key={i.id} value={String(i.id)}>{i.code} — {i.name}</MenuItem>)}
+                  {sectionInstruments.map((i) => <MenuItem key={i.id} value={String(i.id)}>{i.code}: {i.name}</MenuItem>)}
                 </Select>
               </FormControl>
               {!isTitrationRun && (
                 <FormControl size="small" fullWidth disabled={!method}>
                   <InputLabel>Column</InputLabel>
                   <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)} inputProps={{ "aria-label": "Column" }}>
-                    {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</MenuItem>)}
+                    {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code}: {c.name}</MenuItem>)}
                   </Select>
                 </FormControl>
               )}
@@ -537,7 +537,7 @@ export function SystemSuitabilityRunsPage() {
                 <InputLabel>Reference standard</InputLabel>
                 <Select label="Reference standard" value={form.standardId} onChange={(e) => set("standardId")(e.target.value)} inputProps={{ "aria-label": "Reference standard" }}>
                   {sectionStandards.map((s) => (
-                    <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — batch {s.batchNumber} (purity {s.purity}%)</MenuItem>
+                    <MenuItem key={s.id} value={String(s.id)}>{s.materialName}, batch {s.batchNumber} (purity {s.purity}%)</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -608,7 +608,7 @@ export function SystemSuitabilityRunsPage() {
                               inputProps={{ "aria-label": "Reference standard" }}
                             >
                               {sectionStandards.map((s) => (
-                                <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — {s.batchNumber} (purity {s.purity}%)</MenuItem>
+                                <MenuItem key={s.id} value={String(s.id)}>{s.materialName}, {s.batchNumber} (purity {s.purity}%)</MenuItem>
                               ))}
                             </Select>
                           </FormControl>
@@ -635,7 +635,7 @@ export function SystemSuitabilityRunsPage() {
                         {deviation !== null && (
                           <Typography variant="caption" sx={{ display: "block", mb: outOfWindow ? 0.5 : 1.5, color: outOfWindow ? "warning.main" : "text.secondary" }}>
                             Weigh-in deviation from Th.Wt.std: {deviation.toFixed(2)}%
-                            {outOfWindow ? ` — outside ±${WEIGH_IN_TOLERANCE_PERCENT}%, justification required` : ""}
+                            {outOfWindow ? `, outside ±${WEIGH_IN_TOLERANCE_PERCENT}%, justification required` : ""}
                           </Typography>
                         )}
                         {outOfWindow && (
@@ -682,7 +682,7 @@ export function SystemSuitabilityRunsPage() {
                         </Stack>
                         <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: "text.secondary" }}>
                           Mean: {mean !== null ? mean.toFixed(2) : "—"} · Computed RSD: {rsd !== null ? `${rsd.toFixed(2)}%` : "—"}
-                          {a.sstMaxRsdPercent != null ? ` (max ${a.sstMaxRsdPercent})` : ""} — informational; the server recomputes and decides pass/fail.
+                          {a.sstMaxRsdPercent != null ? ` (max ${a.sstMaxRsdPercent})` : ""}. Informational only; the server recomputes and decides pass/fail.
                         </Typography>
 
                         {!isTitrationRun && (

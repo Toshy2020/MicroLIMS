@@ -136,7 +136,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
           />
           {isExpired && (
             <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5, fontStyle: "italic" }}>
-              Historical — lot expired
+              Historical, lot expired
             </Typography>
           )}
         </Box>
@@ -162,7 +162,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
               >
                 {eligibility.hasCurrentCoa ? (
                   <Typography sx={{ fontSize: 12 }}>
-                    <strong>COA Requirement Satisfied</strong> — a current COA is on file.
+                    <strong>COA Requirement Satisfied</strong>: a current COA is on file.
                   </Typography>
                 ) : (
                   <Stack spacing={0.25}>

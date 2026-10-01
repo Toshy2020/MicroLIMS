@@ -214,7 +214,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
                   }
                   label={
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>
-                      {dept.departmentName} ({dept.departmentCode}) — <em>All sections (entire department)</em>
+                      {dept.departmentName} ({dept.departmentCode}): <em>All sections (entire department)</em>
                     </Typography>
                   }
                 />

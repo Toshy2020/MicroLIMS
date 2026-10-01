@@ -370,7 +370,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
             variant="caption"
             sx={{ color: "text.secondary", display: "block", mt: 0.25 }}
           >
-            One table for every limit type — count-based, numeric, qualitative and multi-stage.
+            One table for every limit type: count-based, numeric, qualitative and multi-stage.
           </Typography>
         </Box>
 

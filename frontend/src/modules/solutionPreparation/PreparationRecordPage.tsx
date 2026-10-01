@@ -159,7 +159,7 @@ export function PreparationRecordPage() {
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>Code</Typography>
             <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-              {preparation.code || "— (In Progress)"}
+              {preparation.code || "In progress (no code yet)"}
             </Typography>
           </Box>
           <Box>

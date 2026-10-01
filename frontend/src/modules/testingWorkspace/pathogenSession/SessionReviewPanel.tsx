@@ -246,7 +246,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                 mb: 1
               }}>
               <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
-                Testing Session Review — {session.sampleReferenceNumber}
+                Testing Session Review: {session.sampleReferenceNumber}
               </Typography>
               <Chip
                 label={session.overallSessionStatusDisplay ?? session.overallSessionStatus}

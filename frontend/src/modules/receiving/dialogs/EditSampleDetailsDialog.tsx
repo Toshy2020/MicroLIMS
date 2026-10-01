@@ -216,7 +216,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               Edit Sample Details
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Sample #{sample.sampleId} — {sample.displayName} ({sample.referenceNumber})
+              Sample #{sample.sampleId}: {sample.displayName} ({sample.referenceNumber})
             </Typography>
           </Box>
         }

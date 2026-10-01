@@ -143,7 +143,7 @@ export function StandardEntryForm({
               >
                 {selectableLots.map((lot) => (
                   <MenuItem key={lot.id} value={lot.id}>
-                    {lot.materialName} — Lot {lot.batchNumber} (Purity: {lot.purity ?? "—"}% | MC: {lot.moisturePercent ?? "—"}%)
+                    {lot.materialName}, Lot {lot.batchNumber} (Purity: {lot.purity ?? "—"}% | MC: {lot.moisturePercent ?? "—"}%)
                   </MenuItem>
                 ))}
               </Select>

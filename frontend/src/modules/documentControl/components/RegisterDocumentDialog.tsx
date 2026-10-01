@@ -227,7 +227,7 @@ export function RegisterDocumentDialog({
             >
               {types.map((t) => (
                 <MenuItem key={t.id} value={t.id}>
-                  {t.code} — {t.name}
+                  {t.code}: {t.name}
                 </MenuItem>
               ))}
             </TextField>
@@ -254,7 +254,7 @@ export function RegisterDocumentDialog({
             >
               {departments.map((d) => (
                 <MenuItem key={d.id} value={d.id}>
-                  {d.code} — {d.name}
+                  {d.code}: {d.name}
                 </MenuItem>
               ))}
             </TextField>

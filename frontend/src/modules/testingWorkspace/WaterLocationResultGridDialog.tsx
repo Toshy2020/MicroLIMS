@@ -176,7 +176,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {conformCount}/{rows.length} locations within spec — worst status: <StatusBadge status={worstStatus} />
+            {conformCount}/{rows.length} locations within spec; worst status: <StatusBadge status={worstStatus} />
           </Typography>
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>

@@ -81,7 +81,7 @@ export function ThawVialReasonDialog({
             <AcUnitIcon fontSize="small" />
           </Box>
           <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
-            Thaw Vial — Provide Reason
+            Thaw Vial: Provide Reason
           </Typography>
         </>
       }

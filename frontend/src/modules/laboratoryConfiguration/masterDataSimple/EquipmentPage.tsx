@@ -552,7 +552,7 @@ export function EquipmentPage() {
     <>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <PageHeader
-          title="Laboratory Configuration — Equipment"
+          title="Laboratory Configuration: Equipment"
           subtitle="Configure equipment used by this laboratory, set points, and autoclave programs."
         />
         <Stack direction="row" spacing={1}>
@@ -747,7 +747,7 @@ export function EquipmentPage() {
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1 }}>
                       <Box>
                         <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main }}>
-                          {selectedEquipment.code} — {selectedEquipment.name}
+                          {selectedEquipment.code}: {selectedEquipment.name}
                         </Typography>
                         <Typography variant="body2" sx={{
                           color: "text.secondary"
@@ -1357,7 +1357,7 @@ export function EquipmentPage() {
             <Typography variant="body1" sx={{
               fontWeight: 700
             }}>
-              {selectedEquipment?.code} — {selectedEquipment?.name}
+              {selectedEquipment?.code}: {selectedEquipment?.name}
             </Typography>
           </Box>
           <Box>
@@ -1427,7 +1427,7 @@ export function EquipmentPage() {
             <Typography variant="body1" sx={{
               fontWeight: 700
             }}>
-              {selectedEquipment?.code} — {selectedEquipment?.name}
+              {selectedEquipment?.code}: {selectedEquipment?.name}
             </Typography>
           </Box>
           <TextField

@@ -612,7 +612,7 @@ export function DocumentDetailPage() {
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>Department & Section</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} — {document.sectionName}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} / {document.sectionName}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{

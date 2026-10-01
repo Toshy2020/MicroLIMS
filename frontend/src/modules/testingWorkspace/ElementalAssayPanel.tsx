@@ -379,7 +379,7 @@ export function ElementalAssayPanel({
         ) : null}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
               Done / Close

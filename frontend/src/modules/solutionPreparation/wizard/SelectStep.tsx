@@ -250,7 +250,7 @@ export function SelectStep({
               <Stack spacing={0.5}>
                 {selectedSolution.components?.map((c) => (
                   <Typography key={c.id ?? c.order} variant="caption" sx={{ color: "text.secondary" }}>
-                    • {c.entryName} ({c.entryCode}) — {c.quantity} {c.unit}
+                    • {c.entryName} ({c.entryCode}): {c.quantity} {c.unit}
                   </Typography>
                 ))}
               </Stack>

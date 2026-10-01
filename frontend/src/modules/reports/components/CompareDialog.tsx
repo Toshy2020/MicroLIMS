@@ -57,7 +57,7 @@ export function CompareDialog({ open, onClose, initialMode = "products", testCod
             Multi-Series Trend Comparison
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            {result ? `${result.testDisplayName} — every subject with results in the selected date range` : "Compare performance and statistical distribution across batches, products, or facility points."}
+            {result ? `${result.testDisplayName}: every subject with results in the selected date range` : "Compare performance and statistical distribution across batches, products, or facility points."}
           </Typography>
           <Tabs
             value={mode}

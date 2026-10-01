@@ -97,6 +97,18 @@ const INITIAL_FORM: MaterialFormState = {
   materialMasterEntryId: null
 };
 
+// The stored location for a material kept in a piece of equipment, e.g.
+// "Refrigerator, Thermo (EQ-12)". Records saved before October 2026 used an
+// em dash between type and manufacturer; those still match their equipment,
+// and are only rewritten if someone changes the location.
+function equipmentLocationTag(eq: StorageEquipmentOption): string {
+  return `${eq.instrumentType}, ${eq.manufacturerName} (${eq.code})`;
+}
+
+function isEquipmentLocation(value: string | undefined, eq: StorageEquipmentOption): boolean {
+  return value === equipmentLocationTag(eq) || value === `${eq.instrumentType} \u2014 ${eq.manufacturerName} (${eq.code})`;
+}
+
 export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: AddMaterialDialogProps) {
   const theme = useTheme();
   const [form, setForm] = useState<MaterialFormState>(INITIAL_FORM);
@@ -209,9 +221,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   );
 
   const selectedEquipment = inServiceEquipment.find((eq) => {
-    const fullTag = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
     return (
-      form.location === fullTag ||
+      isEquipmentLocation(form.location, eq) ||
       form.location === eq.code ||
       (form.location && form.location.includes(eq.code))
     );
@@ -221,7 +232,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     form.location &&
       form.location !== roomStorageOption &&
       !inServiceEquipment.some(
-        (eq) => `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})` === form.location
+        (eq) => isEquipmentLocation(form.location, eq)
       )
   );
   const hasOtherOptions = Boolean(roomStorageOption || isFallbackLocation);
@@ -812,7 +823,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             <Autocomplete<MaterialMasterEntry>
               size="small"
               options={availableMasterEntries}
-              getOptionLabel={(option) => `${option.code} — ${option.name}${option.grade ? ` (${option.grade})` : ""}`}
+              getOptionLabel={(option) => `${option.code}: ${option.name}${option.grade ? ` (${option.grade})` : ""}`}
               isOptionEqualToValue={(option, val) => option.id === val.id}
               value={selectedMasterEntry}
               onChange={(_event, newValue) => handleMasterEntryChange(newValue)}
@@ -978,7 +989,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           <Select
             labelId="storage-location-label"
             label="Storage Location"
-            value={form.location}
+            value={selectedEquipment && isEquipmentLocation(form.location, selectedEquipment) ? equipmentLocationTag(selectedEquipment) : form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
             disabled={equipmentLoading}
           >
@@ -987,11 +998,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             </MenuItem>
 
             <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-              Equipment — Refrigerator
+              Equipment: Refrigerator
             </ListSubheader>
             {refrigerators.length > 0 ? (
               refrigerators.map((eq) => {
-                const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                const val = equipmentLocationTag(eq);
                 return (
                   <MenuItem key={eq.id} value={val}>
                     {val}
@@ -1005,11 +1016,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             )}
 
             <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-              Equipment — Deep Freezer
+              Equipment: Deep Freezer
             </ListSubheader>
             {deepFreezers.length > 0 ? (
               deepFreezers.map((eq) => {
-                const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                const val = equipmentLocationTag(eq);
                 return (
                   <MenuItem key={eq.id} value={val}>
                     {val}
@@ -1023,11 +1034,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             )}
 
             <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-              Equipment — Freezer
+              Equipment: Freezer
             </ListSubheader>
             {freezers.length > 0 ? (
               freezers.map((eq) => {
-                const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                const val = equipmentLocationTag(eq);
                 return (
                   <MenuItem key={eq.id} value={val}>
                     {val}
@@ -1129,7 +1140,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                 Selected Storage
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
-                {selectedEquipment.instrumentType} — {selectedEquipment.manufacturerName || "Asset"}
+                {selectedEquipment.instrumentType}, {selectedEquipment.manufacturerName || "Asset"}
               </Typography>
             </Box>
             <Box>
@@ -1245,7 +1256,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       {editingItem && (
         <Box sx={{ mt: 2.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            <strong>Note:</strong> Changing Quantity Received adjusts Quantity Remaining by the difference (a receiving correction) —
+            <strong>Note:</strong> Changing Quantity Received adjusts Quantity Remaining by the difference (a receiving correction);
             it preserves consumption already recorded by Media Preparation or Cryovials.
           </Typography>
         </Box>

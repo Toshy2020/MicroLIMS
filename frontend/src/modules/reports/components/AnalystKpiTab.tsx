@@ -674,7 +674,7 @@ export function AnalystKpiTab() {
           }}>
           <Paper sx={{ p: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-              TAT Stage Summary (Days) — Segregated by Responsibility
+              TAT Stage Summary (Days), Segregated by Responsibility
             </Typography>
             <Grid container spacing={1}>
               <Grid size={3}>

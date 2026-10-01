@@ -686,7 +686,7 @@ export function WeightVariationPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
               Done / Close
@@ -805,7 +805,7 @@ export function WeightVariationPanel({
                   </MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code} — {eq.name} ({eq.type})
+                      {eq.code}: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>

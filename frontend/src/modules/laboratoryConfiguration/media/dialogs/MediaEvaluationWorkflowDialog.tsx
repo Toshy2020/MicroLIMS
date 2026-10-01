@@ -196,7 +196,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1, flex: 1, minWidth: 0 }}>
             <Box>
               <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-                {evaluation.media?.lotNumber} — {evaluationTypeLabel(evaluation.evaluationType)}
+                {evaluation.media?.lotNumber}: {evaluationTypeLabel(evaluation.evaluationType)}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 Evaluation ID #{evaluation.id} · Status: {evaluation.status}
@@ -290,7 +290,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             >
                               {referenceLotOptions.map((m: any) => (
                                 <MenuItem key={m.id} value={m.id}>
-                                  {m.lotNumber} — prepared {new Date(m.preparedAt).toLocaleDateString()}
+                                  {m.lotNumber}, prepared {new Date(m.preparedAt).toLocaleDateString()}
                                 </MenuItem>
                               ))}
                               <MenuItem value="freetext">
@@ -319,7 +319,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       </Typography>
                     ) : c.lyophilizedDisk ? (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        Source: <strong>{c.lyophilizedDisk.materialName} — batch {c.lyophilizedDisk.batchNumber}</strong>
+                        Source: <strong>{c.lyophilizedDisk.materialName}, batch {c.lyophilizedDisk.batchNumber}</strong>
                       </Typography>
                     ) : (
                       <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
@@ -347,12 +347,12 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               </MenuItem>
                               {options.map((o: any) => (
                                 <MenuItem key={`cv:${o.id}`} value={`cv:${o.id}`}>
-                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left) — Cryovial
+                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left), Cryovial
                                 </MenuItem>
                               ))}
                               {diskOpts.map((d: any) => (
                                 <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
-                                  {d.materialName} — batch {d.batchNumber} ({d.quantityRemaining} left) — Lyophilized Disk
+                                  {d.materialName}, batch {d.batchNumber} ({d.quantityRemaining} left), Lyophilized Disk
                                 </MenuItem>
                               ))}
                             </Select>
@@ -374,7 +374,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     {c.incubation ? (
                       <Typography variant="body2" sx={{ mb: 1 }}>
                         Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
-                        {" — "}
+                        {", "}
                         {isReadyToRead(c) ? (
                           <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Ready to read</span>
                         ) : (
@@ -427,7 +427,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         </Typography>
                         {evaluation.evaluationType === "GrowthPromotion" && (
                           <Typography variant="body2">
-                            Old Count: <strong>{c.oldMediaCount}</strong> / New Count: <strong>{c.newMediaCount}</strong> — Recovery: <strong>{c.recoveryPercent}%</strong>
+                            Old Count: <strong>{c.oldMediaCount}</strong> / New Count: <strong>{c.newMediaCount}</strong>, Recovery: <strong>{c.recoveryPercent}%</strong>
                           </Typography>
                         )}
                         {evaluation.evaluationType === "GrowthPromotion" && (
@@ -454,7 +454,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     ) : !isReadyToRead(c) ? (
                       <Alert severity="info" sx={{ mt: 1 }}>
                         {c.incubation
-                          ? `Incubation still in progress — result entry opens at ${new Date(c.incubation.expectedReadingAt).toLocaleString()}.`
+                          ? `Incubation still in progress; result entry opens at ${new Date(c.incubation.expectedReadingAt).toLocaleString()}.`
                           : "Record incubation before a result can be entered."}
                       </Alert>
                     ) : (

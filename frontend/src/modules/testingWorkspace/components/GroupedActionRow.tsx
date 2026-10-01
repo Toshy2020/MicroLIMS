@@ -392,7 +392,7 @@ export function GroupedActionRow({
                   ) : (
                     matchingIncubators.map((inc) => (
                       <MenuItem key={inc.id} value={inc.id} sx={{ fontSize: "0.75rem" }}>
-                        {inc.code} — Set: {inc.setPointTemperature}°C ({inc.name})
+                        {inc.code}, Set: {inc.setPointTemperature}°C ({inc.name})
                       </MenuItem>
                     ))
                   )}

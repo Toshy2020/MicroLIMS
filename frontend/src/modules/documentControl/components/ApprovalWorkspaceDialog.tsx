@@ -179,7 +179,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Approval Workspace — {dossier?.master.companyDocumentCode} Rev {dossier?.revision.revisionNumber}
+              Approval Workspace: {dossier?.master.companyDocumentCode} Rev {dossier?.revision.revisionNumber}
             </Typography>
             <Typography variant="caption" sx={{
               color: "text.secondary"
@@ -233,9 +233,9 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   </Typography>
                   <Typography variant="caption" sx={{ display: "block" }}>
                     Signed by <strong>{dossier.activeSignature.userFullNameSnapshot}</strong> ({dossier.activeSignature.usernameSnapshot})
-                    {" — "}Role: <strong>{dossier.activeSignature.roleSnapshot}</strong>
-                    {" — "}Meaning: <strong>{dossier.activeSignature.meaningOfSignature}</strong>
-                    {" — "}Timestamp: <strong>{new Date(dossier.activeSignature.signedAt).toUTCString()}</strong>
+                    {", "}Role: <strong>{dossier.activeSignature.roleSnapshot}</strong>
+                    {", "}Meaning: <strong>{dossier.activeSignature.meaningOfSignature}</strong>
+                    {", "}Timestamp: <strong>{new Date(dossier.activeSignature.signedAt).toUTCString()}</strong>
                   </Typography>
                 </Alert>
               </Box>
@@ -333,7 +333,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                         Document Code / Title:
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {dossier.master.companyDocumentCode} — {dossier.master.title}
+                        {dossier.master.companyDocumentCode}: {dossier.master.title}
                       </Typography>
                     </Grid>
                     <Grid size={3}>
@@ -684,7 +684,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   ) : (
                     <Alert severity="error" icon={<CancelIcon fontSize="inherit" />}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Approval Blocked — Prerequisites Incomplete
+                        Approval Blocked: Prerequisites Incomplete
                       </Typography>
                       <Typography variant="caption">
                         The following items must be resolved before this revision can be approved:

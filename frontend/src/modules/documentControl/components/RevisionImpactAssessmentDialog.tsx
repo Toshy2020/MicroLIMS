@@ -174,7 +174,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontWeight: 600 }}>
-        Revision Impact Assessment — Rev {revisionNumber}
+        Revision Impact Assessment: Rev {revisionNumber}
       </DialogTitle>
       <DialogContent dividers>
         {loading ? (

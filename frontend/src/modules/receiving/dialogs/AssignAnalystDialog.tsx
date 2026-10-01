@@ -203,7 +203,7 @@ export function AssignAnalystDialog({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <PersonOutlineIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
-                      {a.fullName} ({a.username}) — {a.role?.name}
+                      {a.fullName} ({a.username}), {a.role?.name}
                     </Typography>
                   </Box>
                 </MenuItem>

@@ -557,7 +557,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             </Box>
             <Box>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
-                Shared Media & Incubation Setup — {currentPathogen.testDisplayName}
+                Shared Media & Incubation Setup: {currentPathogen.testDisplayName}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 {currentPathogen.requiredMediaCount} confirmatory media required by Test Master specification for {currentPathogen.testCode}.
@@ -617,7 +617,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   >
                     {releasedMedia.map((m: any) => (
                       <MenuItem key={m.id} value={m.id}>
-                        {m.lotNumber} — {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                        {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
                       </MenuItem>
                     ))}
                   </TextField>
@@ -636,7 +636,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               >
                 {incubators.map((inc: any) => (
                   <MenuItem key={inc.id} value={inc.id}>
-                    {inc.code} — {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
+                    {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
                   </MenuItem>
                 ))}
               </TextField>

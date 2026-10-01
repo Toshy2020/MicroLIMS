@@ -104,9 +104,9 @@ public class WorkflowStateResolver
         // callers pass the sample's own status so a closed sample never shows
         // a next step.
         if (testOrder.IsSuperseded)
-            return Closed(result, "SUPERSEDED", "Superseded — retested on a new sample", "Superseded");
+            return Closed(result, "SUPERSEDED", "Superseded: retested on a new sample", "Superseded");
         if (testOrder.Status == ApprovalStatus.Voided || sampleStatus == SampleStatus.Voided)
-            return Closed(result, "VOIDED", "Voided — struck from the record", "Voided");
+            return Closed(result, "VOIDED", "Voided: struck from the record", "Voided");
         if (sampleStatus == SampleStatus.Cancelled)
             return Closed(result, "CANCELLED", "Cancelled", "Cancelled");
         // This section's own testing was closed (SectionClosureService) after
@@ -115,7 +115,7 @@ public class WorkflowStateResolver
         // wins ahead of the sample-level Rejected/Approved checks below
         // regardless of how the rest of the sample resolves.
         if (testOrder.Status == ApprovalStatus.Cancelled)
-            return Closed(result, "CANCELLED", "Cancelled — testing closed after another lab rejected the sample", "Cancelled");
+            return Closed(result, "CANCELLED", "Cancelled: testing closed after another lab rejected the sample", "Cancelled");
 
         // 1. Approved
         if (testOrder.Status == ApprovalStatus.Approved)
@@ -148,13 +148,13 @@ public class WorkflowStateResolver
         // A retest was ordered: the original sample's remaining tests wait for
         // the retest outcome to decide them (SampleApprovalService.PropagateOosOutcomeAsync).
         if (sampleStatus == SampleStatus.RetestRequested)
-            return Closed(result, "ON_HOLD", "On hold — awaiting retest outcome", "OnHold");
+            return Closed(result, "ON_HOLD", "On hold, awaiting retest outcome", "OnHold");
 
         // 1c. Reviewed — Pending Approval
         if (testOrder.Status == ApprovalStatus.Reviewed || testOrder.CurrentStep == WorkflowStep.Reviewed)
         {
             result.WorkflowState = "REVIEWED";
-            result.WorkflowStateDisplay = "Reviewed — Pending Approval";
+            result.WorkflowStateDisplay = "Reviewed, Pending Approval";
             result.WorkflowStatus = "Reviewed";
             result.IsWorkflowLocked = true;
             result.IsResultEntryAllowed = false;
@@ -165,7 +165,7 @@ public class WorkflowStateResolver
         if (testOrder.CurrentStep == WorkflowStep.Ready)
         {
             result.WorkflowState = "RESULTS_RECORDED";
-            result.WorkflowStateDisplay = "Result Recorded — Pending Review";
+            result.WorkflowStateDisplay = "Result Recorded, Pending Review";
             result.WorkflowStatus = "PendingReview";
             result.IsWorkflowLocked = false;
             result.IsResultEntryAllowed = true;
@@ -256,7 +256,7 @@ public class WorkflowStateResolver
                 else if (allDownstreamDone)
                 {
                     result.WorkflowState = "AWAITING_RESULTS";
-                    result.WorkflowStateDisplay = "Ready — Awaiting Primary Readings";
+                    result.WorkflowStateDisplay = "Ready, Awaiting Primary Readings";
                     result.WorkflowStatus = "EnterResult";
                     result.IsWorkflowLocked = false;
                     result.IsResultEntryAllowed = true;

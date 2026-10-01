@@ -544,7 +544,7 @@ export function DissolutionPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
               Done / Close
@@ -614,7 +614,7 @@ export function DissolutionPanel({
             </MenuItem>
             {selectableRuns.map((r) => (
               <MenuItem key={r.id} value={r.id}>
-                {r.code} — {r.equipmentCode}, {new Date(r.performedAt).toLocaleDateString()}
+                {r.code}: {r.equipmentCode}, {new Date(r.performedAt).toLocaleDateString()}
               </MenuItem>
             ))}
           </Select>
@@ -699,7 +699,7 @@ export function DissolutionPanel({
                   <MenuItem value=""><em>Select apparatus (optional)</em></MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code} — {eq.name} ({eq.type})
+                      {eq.code}: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>

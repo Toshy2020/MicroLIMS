@@ -306,7 +306,7 @@ export function ReviewerDashboardPage() {
                   <Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                       <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                        {item.referenceNumber} — {item.subjectName}
+                        {item.referenceNumber}: {item.subjectName}
                       </Typography>
                       {item.testCodes.map((code) => (
                         <Chip key={code} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />

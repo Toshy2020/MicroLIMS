@@ -342,7 +342,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 Trend Chart
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                {analysis?.testDisplayName || criteria.testCode} — {analysis?.subjectName || criteria.subjectName} ({criteria.dateRange === "12m" ? "Last 12 Months" : criteria.dateRange})
+                {analysis?.testDisplayName || criteria.testCode}: {analysis?.subjectName || criteria.subjectName} ({criteria.dateRange === "12m" ? "Last 12 Months" : criteria.dateRange})
               </Typography>
             </Box>
             <Chip

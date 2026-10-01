@@ -170,7 +170,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
             }}>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared By</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
-              {detail.preparedByName} — {formatDateTime(detail.preparedAt)}
+              {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
           </Grid>
           <Grid

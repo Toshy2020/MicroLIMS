@@ -82,7 +82,7 @@ export function exportResultsPdf(records: ResultRecordItem[], options: PdfExport
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${escapeHtml(title)} — MicroLIMS</title>
+  <title>${escapeHtml(title)} · MicroLIMS</title>
   <style>
     @page {
       size: A4 landscape;
@@ -253,7 +253,7 @@ export function exportResultsPdf(records: ResultRecordItem[], options: PdfExport
   </table>
 
   <div class="footer">
-    <div>Laboratory Results Export — Generated for analytical and reporting review. Not a formal Certificate of Analysis.</div>
+    <div>Laboratory Results Export. Generated for analytical and reporting review. Not a formal Certificate of Analysis.</div>
     <div>MicroLIMS Quality Assurance</div>
   </div>
 

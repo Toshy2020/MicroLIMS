@@ -14,7 +14,7 @@ namespace MicroLIMS.Application.Services;
 // limits reads "Cannot certify".
 public static class CertificateOfAnalysisBuilder
 {
-    public const string SampleCompliesNoResultsText = "Cannot certify — no results are recorded.";
+    public const string SampleCompliesNoResultsText = "Cannot certify because no results are recorded.";
 
     public static CertificateOfAnalysisDto Build(SampleSummaryDto summary)
     {
@@ -26,7 +26,7 @@ public static class CertificateOfAnalysisBuilder
         {
             var rejectingLabs = summary.Sections.Where(s => s.Status == "Rejected").Select(s => s.SectionName).ToList();
             sample.Complies = false;
-            sample.ConclusionText = $"Rejected — {(rejectingLabs.Count > 0 ? string.Join(", ", rejectingLabs) : Humanize(summary.Status))}";
+            sample.ConclusionText = $"Rejected: {(rejectingLabs.Count > 0 ? string.Join(", ", rejectingLabs) : Humanize(summary.Status))}";
         }
 
         return new CertificateOfAnalysisDto
@@ -198,9 +198,9 @@ public static class CertificateOfAnalysisBuilder
         if (fails.Count > 0)
         {
             var text = $"This sample does not comply with the specified requirements. Exceptions: {string.Join("; ", fails)}.";
-            return cannotCertify.Count > 0 ? $"{text} Additionally, cannot certify — {string.Join("; and ", cannotCertify)}." : text;
+            return cannotCertify.Count > 0 ? $"{text} Additionally, cannot certify because {string.Join("; and ", cannotCertify)}." : text;
         }
-        return $"Cannot certify — {string.Join("; and ", cannotCertify)}.";
+        return $"Cannot certify because {string.Join("; and ", cannotCertify)}.";
     }
 
     // ---- Product / Raw Material / Packaging: one row per test ----
@@ -299,9 +299,9 @@ public static class CertificateOfAnalysisBuilder
 
         var unconfigured = simple.Rows.Any(r => r.LimitsNotConfigured);
         var missing = simple.Rows.Any(r => r.NoResult);
-        return unconfigured && missing ? "Cannot certify — one or more results has no configured limit, and one or more tests has no recorded result."
-            : missing ? "Cannot certify — one or more tests has no recorded result."
-            : "Cannot certify — one or more results has no configured limit.";
+        return unconfigured && missing ? "Cannot certify because one or more results has no configured limit, and one or more tests has no recorded result."
+            : missing ? "Cannot certify because one or more tests has no recorded result."
+            : "Cannot certify because one or more results has no configured limit.";
     }
 
     // ---- Shared ----

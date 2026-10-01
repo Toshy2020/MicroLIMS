@@ -758,7 +758,7 @@ public class PathogenSessionService
         else if (tsbCompleted)
         {
             sessionStatus = "TSB_COMPLETED";
-            sessionStatusDisplay = "TSB Complete — Downstream Testing";
+            sessionStatusDisplay = "TSB Complete, Downstream Testing";
         }
         else if (tsbApplicableCodes.Count == 0)
         {

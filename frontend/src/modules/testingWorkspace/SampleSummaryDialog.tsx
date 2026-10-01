@@ -142,10 +142,10 @@ function isTestOrderNonPassing(order: TestOrderSummaryDetail): boolean {
 }
 
 const DECISION_OPTIONS: { value: SampleApprovalDecision; label: string }[] = [
-  { value: "Approve", label: "Approve — Results conform to specifications" },
-  { value: "Reject", label: "Not Conform (Final Conclusion) — Close this sample" },
-  { value: "NewSampleRequest", label: "New Sample Required — Close and request new sample" },
-  { value: "RetestRetainedSample", label: "Retest Retained Sample — Return to testing" }
+  { value: "Approve", label: "Approve: Results conform to specifications" },
+  { value: "Reject", label: "Not Conform (Final Conclusion): Close this sample" },
+  { value: "NewSampleRequest", label: "New Sample Required: Close and request new sample" },
+  { value: "RetestRetainedSample", label: "Retest Retained Sample: Return to testing" }
 ];
 
 const SIGNATURE_STATEMENTS: Record<string, string> = {
@@ -236,7 +236,7 @@ function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
           </>
         )}
         {s.waterSamplingPointCode && (
-          <SummaryField label="Sampling Point" value={`${s.waterSamplingPointCode} — ${s.waterSamplingPointLocation}`} />
+          <SummaryField label="Sampling Point" value={`${s.waterSamplingPointCode}, ${s.waterSamplingPointLocation}`} />
         )}
         {s.storageCondition && (
           <SummaryField
@@ -678,13 +678,13 @@ function StandardComparisonCalcSummary({ parameter }: { parameter: ParameterResu
         <Typography key={p.preparationIndex} sx={{ fontSize: 11, color: p.weighInOutOfWindow ? "warning.main" : "text.secondary", mt: 0.25 }}>
           P{p.preparationIndex}: Th.Wt.test {num(p.theoreticalWeightMg)} mg · Act.Wt.test {num(p.actualWeightMg)} mg ·
           {" "}deviation {num(p.weighInDeviationPercent, 2)}%
-          {p.weighInOutOfWindow ? ` (outside window${p.weighInJustification ? ` — ${p.weighInJustification}` : ""})` : ""}
+          {p.weighInOutOfWindow ? ` (outside window${p.weighInJustification ? `: ${p.weighInJustification}` : ""})` : ""}
         </Typography>
       ))}
       <Typography sx={{ fontSize: 11, color: calc.rsdExceeded ? "warning.main" : "text.secondary", mt: 0.25 }}>
         Preparation RSD: {calc.preparationRsdPercent != null ? `${num(calc.preparationRsdPercent, 2)}%` : "—"}
         {calc.maxPreparationRsdPercent != null ? ` (max ${num(calc.maxPreparationRsdPercent, 2)}%)` : ""}
-        {calc.rsdExceeded && calc.reviewReason ? ` — ${calc.reviewReason}` : ""}
+        {calc.rsdExceeded && calc.reviewReason ? `: ${calc.reviewReason}` : ""}
       </Typography>
     </Box>
   );
@@ -1000,7 +1000,7 @@ function TestResultsSection({
                     flexWrap: "wrap"
                   }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
-                    {order.testCode} — {order.testDisplayName}
+                    {order.testCode}: {order.testDisplayName}
                   </Typography>
                   {order.sectionName && (
                     <Chip
@@ -2024,7 +2024,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   .map((sec) => (
                     <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 11, color: "text.secondary", pl: 0.5 }}>
                       {sec.sectionName} closed by {sec.closedByName ?? "—"} on {formatDate(sec.closedAt)}
-                      {sec.closeReason ? ` — ${sec.closeReason}` : ""}
+                      {sec.closeReason ? `: ${sec.closeReason}` : ""}
                     </Typography>
                   ))}
               </Box>

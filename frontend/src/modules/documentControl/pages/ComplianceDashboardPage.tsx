@@ -221,7 +221,7 @@ export function ComplianceDashboardPage() {
                       gap: 0.5
                     }}>
                     <ErrorOutlineIcon fontSize="inherit" />
-                    Action required — click to filter matrix
+                    Action required. Click to filter matrix
                   </Typography>
                 </CardContent>
               </Card>

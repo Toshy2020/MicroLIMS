@@ -61,7 +61,7 @@ export function TrendingDataDialog({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flex: 1, minWidth: 0, mr: 1 }}>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-              Trend Data Table — {testName}
+              Trend Data Table: {testName}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Subject: <strong>{subjectName}</strong> {unit ? `(${unit})` : ""}

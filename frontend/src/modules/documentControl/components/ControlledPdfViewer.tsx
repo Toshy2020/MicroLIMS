@@ -154,7 +154,7 @@ export function ControlledPdfViewer({
               {isSupersededOrObsolete && (
                 <Chip
                   icon={<WarningAmberIcon />}
-                  label="HISTORICAL REVISION — NOT CURRENT EFFECTIVE"
+                  label="HISTORICAL REVISION, NOT CURRENT EFFECTIVE"
                   size="small"
                   color="warning"
                   sx={compactChipStrongSx}
@@ -162,7 +162,7 @@ export function ControlledPdfViewer({
               )}
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              {companyDocumentCode} — {title}
+              {companyDocumentCode}: {title}
             </Typography>
             <Typography variant="caption" sx={{
               color: "text.secondary"
@@ -191,7 +191,7 @@ export function ControlledPdfViewer({
                   {/* Exact label mandated by ML-DC-FRS-1C-001 §2:133 - scroll
                       progress is informational and must never be presented as
                       satisfying the acknowledgement obligation. */}
-                  Reading Progress {localProgress}% — Informational Only — Formal Acknowledgement Required
+                  Reading Progress {localProgress}%. Informational Only. Formal Acknowledgement Required
                 </Typography>
                 {isAcknowledged && (
                   <Chip

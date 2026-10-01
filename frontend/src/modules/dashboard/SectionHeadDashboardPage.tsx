@@ -493,7 +493,7 @@ export function SectionHeadDashboardPage() {
                       <Box>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                            {item.referenceNumber} — {item.subjectName}
+                            {item.referenceNumber}: {item.subjectName}
                           </Typography>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {item.testCodes.map((tc, tcIdx) => (

@@ -178,7 +178,7 @@ export function SampleReportPage() {
               <span className="key">Quantity</span><span className="value">{s.sampleQuantity ?? "—"}</span>
               {s.waterSamplingPointCode && (
                 <><span className="key">Sampling point</span>
-                <span className="value">{s.waterSamplingPointCode} — {s.waterSamplingPointLocation}</span></>
+                <span className="value">{s.waterSamplingPointCode}, {s.waterSamplingPointLocation}</span></>
               )}
               {s.storageCondition && (
                 <><span className="key">Storage</span>

@@ -181,7 +181,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
             <Typography variant="subtitle1" sx={{
               fontWeight: 700
             }}>
-              Where is it? — Global Traceability Search
+              Where is it? Global Traceability Search
             </Typography>
           </Stack>
           <Box component="form" onSubmit={handleWhereIsItSearch} sx={{ display: "flex", gap: 1.5 }}>
@@ -232,7 +232,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                           fontWeight: 700,
                           color: "success.dark"
                         }}>
-                        CURRENT LOCATION: {whereResult.currentEquipmentCode} — {whereResult.currentEquipmentName}
+                        CURRENT LOCATION: {whereResult.currentEquipmentCode}, {whereResult.currentEquipmentName}
                       </Typography>
                       <Typography variant="body2">
                         Activity: <strong>{whereResult.currentActivity.activityType}</strong> | Item: <strong>{whereResult.currentActivity.itemName} (@{whereResult.currentActivity.itemCode})</strong>
@@ -302,7 +302,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                 display: "block",
                 mb: 2
               }}>
-              {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use — select any equipment to view its traceability history
+              {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use. Select any equipment to view its traceability history
             </Typography>
 
             {loadingActive ? (
@@ -384,7 +384,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     <Typography variant="h6" sx={{
                       fontWeight: 700
                     }}>
-                      {selectedEquipment.code} — {selectedEquipment.instrumentType}
+                      {selectedEquipment.code}: {selectedEquipment.instrumentType}
                     </Typography>
                     <Typography variant="body2" sx={{
                       color: "text.secondary"
@@ -520,7 +520,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     <Typography variant="subtitle1" sx={{
                       fontWeight: 700
                     }}>
-                      Search Activity History — {selectedEquipment.code}
+                      Search Activity History: {selectedEquipment.code}
                     </Typography>
                   </Stack>
 

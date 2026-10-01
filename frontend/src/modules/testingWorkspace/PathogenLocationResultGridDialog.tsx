@@ -101,7 +101,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {detectedCount}/{rows.length} locations detected — overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
+            {detectedCount}/{rows.length} locations detected; overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
           </Typography>
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>

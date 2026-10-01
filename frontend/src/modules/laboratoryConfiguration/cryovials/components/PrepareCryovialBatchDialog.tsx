@@ -139,7 +139,7 @@ export function PrepareCryovialBatchDialog({
     setError(null);
     try {
       const storageConditionValue = selectedStorageEquipment
-        ? `${selectedStorageEquipment.instrumentType} — ${selectedStorageEquipment.manufacturerName} (${selectedStorageEquipment.code})`
+        ? `${selectedStorageEquipment.instrumentType}, ${selectedStorageEquipment.manufacturerName} (${selectedStorageEquipment.code})`
         : "";
 
       const payload: PrepareCryovialPayload = {
@@ -238,7 +238,7 @@ export function PrepareCryovialBatchDialog({
                 </MenuItem>
                 {usableMaterials.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.materialName} — batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)
+                    {m.materialName}, batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)
                   </MenuItem>
                 ))}
               </Select>
@@ -257,7 +257,7 @@ export function PrepareCryovialBatchDialog({
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   Organism:{" "}
                   <span style={{ color: theme.palette.primary.main, fontWeight: 700 }}>
-                    {selectedMaterial.organism?.scientificName ?? "— (set an Organism on this Material first)"}
+                    {selectedMaterial.organism?.scientificName ?? "Not set (set an Organism on this Material first)"}
                   </span>
                   {selectedMaterial.organism?.atccNumber ? ` (ATCC ${selectedMaterial.organism.atccNumber})` : ""}
                   {" · "}
@@ -342,7 +342,7 @@ export function PrepareCryovialBatchDialog({
                 </MenuItem>
                 {eligibleFreezers.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
-                    {eq.instrumentType} — {eq.manufacturerName} ({eq.code})
+                    {eq.instrumentType}, {eq.manufacturerName} ({eq.code})
                   </MenuItem>
                 ))}
               </Select>
@@ -410,7 +410,7 @@ export function PrepareCryovialBatchDialog({
                     Storage Equipment
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
-                    {selectedStorageEquipment.instrumentType} — {selectedStorageEquipment.manufacturerName || "Asset"}
+                    {selectedStorageEquipment.instrumentType}, {selectedStorageEquipment.manufacturerName || "Asset"}
                   </Typography>
                 </Box>
                 <Box>

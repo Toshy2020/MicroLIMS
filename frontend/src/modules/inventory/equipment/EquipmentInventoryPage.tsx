@@ -343,7 +343,7 @@ export function EquipmentInventoryPage() {
 
       {/* Controlled Printable Document Table */}
       <PrintableTable
-        title="Equipment Register — Microbiology Lab"
+        title="Equipment Register: Microbiology Lab"
         subtitle="Out-of-service and retired instruments are excluded from this list."
         rows={printList}
         getRowId={(eq) => eq.id}

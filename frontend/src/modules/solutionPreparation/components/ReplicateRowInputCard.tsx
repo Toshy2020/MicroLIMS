@@ -56,7 +56,7 @@ export function ReplicateRowInputCard({
             >
               {standardLots.map((lot) => (
                 <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
-                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){!lot.usable ? ` — ${lot.reason}` : ""}
+                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){!lot.usable ? `, ${lot.reason}` : ""}
                 </MenuItem>
               ))}
             </Select>

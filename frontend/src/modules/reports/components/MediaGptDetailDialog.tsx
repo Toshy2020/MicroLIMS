@@ -150,7 +150,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
             }}>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared By</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {detail.preparedByName} — {formatDateTime(detail.preparedAt)}
+              {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
           </Grid>
           <Grid

@@ -122,7 +122,7 @@ export function EventTimelineSection({ events }: { events: TimelineEventLike[] }
           events.map((e, i) => (
             <div className="observation-item" key={i}>
               <span className="obs-step">
-                {humanize(e.eventType)}{e.decision ? ` — ${humanize(e.decision)}` : ""}
+                {humanize(e.eventType)}{e.decision ? `: ${humanize(e.decision)}` : ""}
               </span>
               <span>
                 <strong>{e.performedByName}</strong>

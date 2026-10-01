@@ -154,7 +154,7 @@ export function MediaEvaluationPage() {
         title={
           selected ? (
             <Box>
-              {selected.media?.lotNumber} — {evaluationTypeLabel(selected.evaluationType)}
+              {selected.media?.lotNumber}: {evaluationTypeLabel(selected.evaluationType)}
               <Box sx={{ mt: 0.5, display: "flex", gap: 1 }}>
                 <StatusBadge status={selected.status} />
                 {selected.outcome && <StatusBadge status={selected.outcome} />}
@@ -212,7 +212,7 @@ export function MediaEvaluationPage() {
                       {c.incubation ? (
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
-                          {" — "}
+                          {", "}
                           {isReadyToRead(c) ? "ready to read" : `earliest reading ${new Date(c.incubation.expectedReadingAt).toLocaleString()}`}
                         </Typography>
                       ) : (
@@ -235,7 +235,7 @@ export function MediaEvaluationPage() {
                       {c.outcome ? (
                         <Box sx={{ mt: 1 }}>
                           {selected.evaluationType === "GrowthPromotion" && (
-                            <Typography variant="body2">Old {c.oldMediaCount} / New {c.newMediaCount} — Recovery {c.recoveryPercent}%</Typography>
+                            <Typography variant="body2">Old {c.oldMediaCount} / New {c.newMediaCount}, Recovery {c.recoveryPercent}%</Typography>
                           )}
                           {c.challengeRole === "Inhibition" && (
                             <Typography variant="body2">Growth Observed: {c.growthObserved ? "Yes" : "No"}</Typography>

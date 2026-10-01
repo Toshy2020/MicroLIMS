@@ -79,7 +79,7 @@ function ElementalAssayCard({ test }: { test: TestOrderSummaryDetail }) {
               return (
                 <div className="plate-stat" key={idx}>
                   <div className="stat-label">
-                    <strong>{elem.parameterName} ({elem.element})</strong> — Run: {elem.runCode} ({elem.runAnalytePassed ? "passed" : "failed"})
+                    <strong>{elem.parameterName} ({elem.element})</strong>, Run: {elem.runCode} ({elem.runAnalytePassed ? "passed" : "failed"})
                     {flags ? ` [${flags}]` : ""}
                     {elem.mgPerUnit !== null && ` · ${elem.mgPerUnit.toFixed(4)} mg/unit`}
                     {elem.resultClaim !== null && ` · Claim: ${elem.resultClaim.toFixed(4)}`}

@@ -81,7 +81,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       setForm((f) => ({
         ...f,
         autoclaveProgramId: prog.id,
-        autoclaveProgram: `${prog.programCode} — ${prog.programName}`,
+        autoclaveProgram: `${prog.programCode}: ${prog.programName}`,
         loadType: prog.loadType,
         temperature: prog.temperature,
         cycleTime: prog.cycleTimeMinutes
@@ -221,10 +221,10 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                       <em>Dehydrated Media Stock (Inventory) *</em>
                     </MenuItem>
                     {usableStock.map((m) => {
-                      const codePrefix = m.code ? `${m.code} — ` : "";
+                      const codePrefix = m.code ? `${m.code}: ` : "";
                       const label = m.mediaProductId == null
-                        ? `${codePrefix}${m.materialName} — batch ${m.batchNumber} (not linked to a media product - edit it in Inventory > Materials Stock)`
-                        : `${codePrefix}${m.materialName} — batch ${m.batchNumber} (${m.quantityRemaining} ${m.unit} left)`;
+                        ? `${codePrefix}${m.materialName}, batch ${m.batchNumber} (not linked to a media product - edit it in Inventory > Materials Stock)`
+                        : `${codePrefix}${m.materialName}, batch ${m.batchNumber} (${m.quantityRemaining} ${m.unit} left)`;
 
                       return (
                         <MenuItem key={m.id} value={m.id} disabled={m.mediaProductId == null}>
@@ -295,7 +295,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   </MenuItem>
                   {autoclaves.map((a) => (
                     <MenuItem key={a.id} value={a.id}>
-                      {a.code} — {a.name}
+                      {a.code}: {a.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -313,7 +313,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   </MenuItem>
                   {Array.isArray(autoclavePrograms) && autoclavePrograms.map((p) => (
                     <MenuItem key={p.id} value={p.id}>
-                      {p.programCode} — {p.programName} ({p.temperature}°C, {p.cycleTimeMinutes} min)
+                      {p.programCode}: {p.programName} ({p.temperature}°C, {p.cycleTimeMinutes} min)
                     </MenuItem>
                   ))}
                 </Select>

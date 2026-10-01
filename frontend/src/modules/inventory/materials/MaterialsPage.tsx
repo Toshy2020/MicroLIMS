@@ -87,25 +87,25 @@ export function MaterialsPage() {
     }
 
     if (effectiveCode === "MICRO") {
-      return "Materials in Stock — Microbiology Lab";
+      return "Materials in Stock: Microbiology Lab";
     }
     if (effectiveCode === "FP") {
-      return "Materials in Stock — Physicochemical Lab";
+      return "Materials in Stock: Physicochemical Lab";
     }
     if (effectiveCode) {
       const sec = sections.find((s) => s.sectionCode === effectiveCode);
       if (sec?.sectionName) {
-        return `Materials in Stock — ${sec.sectionName}`;
+        return `Materials in Stock: ${sec.sectionName}`;
       }
     }
     if (singleSectionId != null) {
       const sec = sections.find((s) => s.sectionId === singleSectionId);
       if (sec?.sectionName) {
-        return `Materials in Stock — ${sec.sectionName}`;
+        return `Materials in Stock: ${sec.sectionName}`;
       }
     }
 
-    return "Materials in Stock — All Laboratories";
+    return "Materials in Stock: All Laboratories";
   }, [labParam, printList, sections, sectionCodeById]);
 
   // Filters & KPI state
@@ -329,7 +329,7 @@ export function MaterialsPage() {
       <Box className="no-print">
         <LabPage
           title="Materials Stock"
-          subtitle="Media, discs, kits, reagents, chemicals, disposables — receiving, expiry, and quantity received/remaining."
+          subtitle="Media, discs, kits, reagents, chemicals, disposables: receiving, expiry, and quantity received/remaining."
           actions={
             <>
               <PrintButton label="Print (excludes expired / depleted)" />

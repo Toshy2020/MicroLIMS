@@ -163,7 +163,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>Structured Change Items — Rev {revisionNumber}</span>
+        <span>Structured Change Items: Rev {revisionNumber}</span>
         {isEditable && !showAdd && (
           <Button
             startIcon={<AddCircleOutlineIcon />}

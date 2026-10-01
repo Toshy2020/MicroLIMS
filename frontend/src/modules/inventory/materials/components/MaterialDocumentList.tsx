@@ -132,7 +132,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
 
                 {isExpired && doc.status === "Current" && (
                   <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
-                    Historical — lot expired
+                    Historical, lot expired
                   </Typography>
                 )}
 

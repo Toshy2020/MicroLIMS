@@ -45,10 +45,10 @@ function formatDuration(seconds: number): string {
 // test has no next step, so these win over every incubation/step rule below.
 const CLOSED_TEST_STATES: Record<string, { status: string; label: string; text: string }> = {
   REJECTED: { status: "Rejected", label: "Rejected", text: "✗ Rejected" },
-  VOIDED: { status: "Voided", label: "Voided", text: "Voided — struck from the record" },
+  VOIDED: { status: "Voided", label: "Voided", text: "Voided: struck from the record" },
   CANCELLED: { status: "Cancelled", label: "Cancelled", text: "Cancelled" },
-  SUPERSEDED: { status: "Superseded", label: "Superseded", text: "Superseded — retested on a new sample" },
-  ON_HOLD: { status: "OnHold", label: "On Hold", text: "On hold — awaiting retest outcome" }
+  SUPERSEDED: { status: "Superseded", label: "Superseded", text: "Superseded: retested on a new sample" },
+  ON_HOLD: { status: "OnHold", label: "On Hold", text: "On hold, awaiting retest outcome" }
 };
 
 export function AssignedTestCard({
@@ -171,7 +171,7 @@ export function AssignedTestCard({
       return { status: "Approved", label: "Approved" };
     }
     if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return { status: "Reviewed", label: "Reviewed — Pending Approval" };
+      return { status: "Reviewed", label: "Reviewed, Pending Approval" };
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
       return { status: "PendingReview", label: "Pending Review" };
@@ -264,16 +264,16 @@ export function AssignedTestCard({
       return closed.text;
     }
     if (test.workflowState === "WINDOW_NOT_CONFIGURED") {
-      return "Blocked — incubation window not configured in Test Master";
+      return "Blocked: incubation window not configured in Test Master";
     }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return "✓ Approved & Complete";
     }
     if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return "✓ Reviewed — Pending Approval";
+      return "✓ Reviewed, Pending Approval";
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
-      return "Result Recorded — Pending Review";
+      return "Result Recorded, Pending Review";
     }
 
     if (effectiveIsIncubating) {
@@ -290,7 +290,7 @@ export function AssignedTestCard({
       const endUtc = optimisticDetails?.endUtc || incubationEndUtc || activeIncubation?.incubationEndUtc;
       if (endUtc && nowMs >= new Date(endUtc).getTime()) {
         if (test.workflowState === "TSB_INCUBATING" || test.usesSharedTsb || step?.stepType === "BrothEnrichment" || step?.stepType === "SelectiveBroth") {
-          return `✓ ${mediaLabel}${tempRange} · Incubation Complete — Ready for Downstream Setup${incSuffix}`;
+          return `✓ ${mediaLabel}${tempRange} · Incubation Complete, Ready for Downstream Setup${incSuffix}`;
         }
         return `⏳ ${mediaLabel}${tempRange} · Incubation Complete${incSuffix}`;
       }

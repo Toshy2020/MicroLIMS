@@ -122,7 +122,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       <Box sx={{ p: 1 }}>
         <Alert severity="success" icon={<CheckCircleIcon />} sx={{ mb: 2 }}>
           <AlertTitle sx={{ fontWeight: 700 }}>Shared TSB Applied</AlertTitle>
-          This test is linked to the shared TSB for this sample. There is one shared tube per sample — no separate broth entry required.
+          This test is linked to the shared TSB for this sample. There is one shared tube per sample; no separate broth entry required.
         </Alert>
 
         {summary.windowNotConfigured && (
@@ -239,12 +239,12 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       <Select displayEmpty size="small" value={mediaLotId} onChange={(e) => setMediaLotId(Number(e.target.value))} inputProps={{ "aria-label": "Media lot" }}>
         <MenuItem value=""><em>Media Lot</em></MenuItem>
         {medium.availableLots.map((l) => (
-          <MenuItem key={l.id} value={l.id}>{l.lotNumber} — expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+          <MenuItem key={l.id} value={l.id}>{l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
         ))}
       </Select>
       <Select displayEmpty size="small" value={equipmentId} onChange={(e) => setEquipmentId(Number(e.target.value))} inputProps={{ "aria-label": `Incubator (${medium.tempMin}-${medium.tempMax} °C)` }}>
         <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
-        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setTemperature}°C</MenuItem>)}
+        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setTemperature}°C</MenuItem>)}
       </Select>
       <Typography variant="body2">
         <strong>Assigned Incubation:</strong> {step.incubationMinHours}–{step.incubationMaxHours} h
@@ -290,7 +290,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       >
           <Alert severity="info" sx={{ mb: 2 }}>
             One TSB tube is shared across all pathogen tests for this sample.
-            There is one physical shared tube per sample — no per-test variation is permitted.
+            There is one physical shared tube per sample; no per-test variation is permitted.
           </Alert>
 
           {/* TSB details */}

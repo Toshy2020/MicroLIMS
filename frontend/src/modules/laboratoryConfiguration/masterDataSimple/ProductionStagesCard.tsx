@@ -307,7 +307,7 @@ export function ProductionStagesCard() {
                 fontStyle: "italic"
               }}
             >
-              None configured yet — add the first one above.
+              None configured yet. Add the first one above.
             </Typography>
           ) : (
             list.map((o, idx) => {
@@ -387,7 +387,7 @@ export function ProductionStagesCard() {
         open={pendingDelete != null}
         message={
           pendingDelete
-            ? `Delete "${pendingDelete.name}" from Production Stages? Samples already recorded with this stage keep it — only the dropdown changes.`
+            ? `Delete "${pendingDelete.name}" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes.`
             : ""
         }
         onCancel={() => setPendingDelete(null)}

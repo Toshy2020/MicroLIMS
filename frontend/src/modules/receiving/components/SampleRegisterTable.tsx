@@ -323,7 +323,7 @@ export function SampleRegisterTable({
                       label="Retest"
                       color="warning"
                       variant="outlined"
-                      sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                      sx={{ height: 20, fontSize: 11, fontWeight: 700 }}
                     />
                   )}
                   {sample.oosGroupCode && (
@@ -331,7 +331,7 @@ export function SampleRegisterTable({
                       <Chip
                         size="small"
                         label={sample.oosGroupCode}
-                        sx={{ height: 18, fontSize: 10, fontFamily: "monospace", fontWeight: 600 }}
+                        sx={{ height: 20, fontSize: 11, fontFamily: "monospace", fontWeight: 600 }}
                       />
                     </Tooltip>
                   )}
@@ -351,7 +351,7 @@ export function SampleRegisterTable({
                         onClick={(e) => toggleExpand(sample.sampleId, e)}
                         sx={{
                           height: 20,
-                          fontSize: 10.5,
+                          fontSize: 11,
                           fontWeight: 700,
                           cursor: "pointer",
                           bgcolor: isExpanded ? "primary.main" : "action.selected",
@@ -471,7 +471,7 @@ export function SampleRegisterTable({
                 size="small"
                 label="Unassigned"
                 variant="outlined"
-                sx={{ fontSize: 10.5, height: 20, color: "text.disabled", borderColor: "divider" }}
+                sx={{ fontSize: 11, height: 20, color: "text.disabled", borderColor: "divider" }}
               />
             )}
           </TableCell>
@@ -675,7 +675,7 @@ function SampleDocIndicator({
         px: 0.75,
         py: 0.2,
         borderRadius: 1,
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: 600,
         bgcolor: docCount > 0 ? "action.hover" : "transparent",
         color: docCount > 0 ? "primary.main" : "text.secondary",

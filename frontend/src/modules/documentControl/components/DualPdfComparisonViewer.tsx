@@ -216,9 +216,9 @@ export function DualPdfComparisonViewer({
               sx={{
                 px: 2,
                 py: 1,
-                bgcolor: (t) => (t.palette.mode === "dark" ? "#1B2A1E" : "#E8F5E9"),
+                bgcolor: (t) => t.custom.status.notDetected.bg,
                 borderBottom: "1px solid",
-                borderColor: (t) => (t.palette.mode === "dark" ? "#2E5A36" : "#C8E6C9"),
+                borderColor: (t) => t.custom.status.notDetected.border,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center"
@@ -326,9 +326,9 @@ export function DualPdfComparisonViewer({
               sx={{
                 px: 2,
                 py: 1,
-                bgcolor: (t) => (t.palette.mode === "dark" ? "#102A43" : "#E3F2FD"),
+                bgcolor: (t) => t.custom.status.info.bg,
                 borderBottom: "1px solid",
-                borderColor: (t) => (t.palette.mode === "dark" ? "#244E72" : "#BBDEFB"),
+                borderColor: (t) => t.custom.status.info.border,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center"

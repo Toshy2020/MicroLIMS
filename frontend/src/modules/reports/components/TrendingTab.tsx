@@ -399,7 +399,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                             <Typography>Ref: <strong>{pt.referenceNumber}</strong></Typography>
                             <Typography>Result: <strong>{pt.reportedValue} {analysis.unit}</strong></Typography>
                             <Typography>Level: <strong>{pt.resultLevel}</strong></Typography>
-                            <Typography sx={{ fontSize: 10, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
+                            <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
                           </Paper>
                         );
                       }}
@@ -505,7 +505,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                               </td>
                               <td style={{ padding: "8px 12px" }}>{ev.resultEnteredByName}</td>
                               <td style={{ padding: "8px 12px" }}>
-                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 10, height: 20 }} />
+                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 11, height: 20 }} />
                               </td>
                             </tr>
                           ))}

@@ -228,7 +228,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
                       label={option.fullName}
                       size="small"
                       avatar={
-                        <Avatar sx={{ width: 20, height: 20, fontSize: 10, bgcolor: brandColors.sectionTitle }}>
+                        <Avatar sx={{ width: 20, height: 20, fontSize: 11, bgcolor: brandColors.sectionTitle }}>
                           {option.fullName.charAt(0).toUpperCase()}
                         </Avatar>
                       }

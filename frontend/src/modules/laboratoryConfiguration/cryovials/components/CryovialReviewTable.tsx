@@ -100,8 +100,8 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
           <Typography sx={{ fontSize: 12, fontWeight: expired || expiringSoon ? 700 : 500, whiteSpace: "nowrap" }}>
             {formatLabDate(c.expiryDate)}
           </Typography>
-          {expired && <Typography sx={{ fontSize: 10, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
-          {expiringSoon && <Typography sx={{ fontSize: 10, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}
+          {expired && <Typography sx={{ fontSize: 11, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
+          {expiringSoon && <Typography sx={{ fontSize: 11, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}
         </>
       );
     }

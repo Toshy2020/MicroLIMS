@@ -53,7 +53,7 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                       alignItems: "center"
                     }}>
                     <CategoryBadge category={s.category} />
-                    <Typography sx={{ fontSize: 10, color: "text.secondary" }}>{formatDate(s.receivedAt)}</Typography>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{formatDate(s.receivedAt)}</Typography>
                   </Stack>
                 </Paper>
               ))}

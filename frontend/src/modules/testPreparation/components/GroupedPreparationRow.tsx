@@ -90,10 +90,10 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
             label={`× ${group.sampleCount} ${sampleWord}`}
             sx={{
               height: 20,
-              fontSize: "0.68rem",
+              fontSize: "0.6875rem",
               fontWeight: 700,
-              bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.15)" : "#EEF2FF",
-              color: theme.palette.mode === "dark" ? "#A5B4FC" : "#4338CA",
+              bgcolor: theme.custom.status.purple.bg,
+              color: theme.custom.status.purple.text,
               borderRadius: "4px"
             }}
           />
@@ -102,7 +102,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
             size="small"
             label={group.approvalStatus === "Approved" ? "Approved" : "Pending Approval"}
             color={group.approvalStatus === "Approved" ? "success" : "warning"}
-            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700, borderRadius: "4px" }}
+            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700, borderRadius: "4px" }}
           />
         </Box>
 
@@ -137,7 +137,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
           }}
         >
           <Box sx={{ mb: 1.5 }}>
-            <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
               Samples to prepare ({group.sampleCount}):
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -173,7 +173,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
             </Alert>
           )}
 
-          <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.75 }}>
+          <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.75 }}>
             Configured Preparation Steps
           </Typography>
 

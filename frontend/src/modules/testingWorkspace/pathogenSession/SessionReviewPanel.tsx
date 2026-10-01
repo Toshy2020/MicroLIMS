@@ -251,7 +251,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
               <Chip
                 label={session.overallSessionStatusDisplay ?? session.overallSessionStatus}
                 size="small"
-                sx={{ bgcolor: brandColors.sectionTitle, color: "#ffffff", fontWeight: 700 }}
+                sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700 }}
               />
             </Stack>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>

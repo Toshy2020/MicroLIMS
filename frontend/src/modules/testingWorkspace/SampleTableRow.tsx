@@ -275,7 +275,7 @@ export function SampleTableRow({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: 10, color: "text.secondary" }}>{label}</Typography>
+      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{label}</Typography>
       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{value || "—"}</Typography>
     </Box>
   );

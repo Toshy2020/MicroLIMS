@@ -161,7 +161,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
       className="no-print"
       sx={{
         background: theme.custom.chrome.topbarBg,
-        color: "#fff",
+        color: "common.white",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -180,7 +180,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           <Tooltip title={isMobile ? "Toggle navigation menu" : (sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")}>
             <IconButton
               onClick={onToggleSidebar}
-              sx={{ color: "#fff", p: 0.75, mr: 0.5 }}
+              sx={{ color: "common.white", p: 0.75, mr: 0.5 }}
               aria-label="Toggle navigation menu"
             >
               <MenuIcon />
@@ -201,7 +201,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             checkedIcon={<DarkModeIcon sx={{ fontSize: 15, color: "#2E3542", p: "1.5px" }} />}
             sx={{
               "& .MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28)", opacity: 1 },
-              "& .MuiSwitch-thumb": { backgroundColor: "#fff" },
+              "& .MuiSwitch-thumb": { backgroundColor: "common.white" },
               "& .Mui-checked+.MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28) !important", opacity: 1 }
             }}
             slotProps={{
@@ -212,7 +212,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
         <Tooltip title="Notifications">
           <IconButton
             onClick={(e) => setBellAnchor(e.currentTarget)}
-            sx={{ color: "#fff" }}
+            sx={{ color: "common.white" }}
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-controls={bellAnchor ? "header-notifications-menu" : undefined}
             aria-haspopup="true"
@@ -295,7 +295,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
               py: 0.5,
               ml: 0.5,
               borderRadius: 2,
-              color: "#fff",
+              color: "common.white",
               textAlign: "left",
               bgcolor: profileAnchor ? "rgba(255,255,255,0.14)" : "transparent",
               "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
@@ -303,7 +303,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             }}
           >
             <Badge badgeContent={unreadMessages} color="error" overlap="circular">
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: "primary.main", fontWeight: 700, fontSize: 13 }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: "common.white", color: "primary.main", fontWeight: 700, fontSize: 13 }}>
                 {userInitials(fullName, username)}
               </Avatar>
             </Badge>

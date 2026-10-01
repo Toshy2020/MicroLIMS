@@ -71,7 +71,7 @@ const analyteLines = (
   <Stack spacing={0.25}>
     {analytes.map((a) => (
       <Typography key={a.id} sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-        <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+        <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>{a.analyteName}: </Typography>
         {render(a)}
       </Typography>
     ))}
@@ -355,7 +355,7 @@ export function SystemSuitabilityRunsPage() {
                 title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
               >
                 <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: a.passed ? "text.primary" : "error.main" }}>
-                  <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+                  <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>{a.analyteName}: </Typography>
                   {a.referenceStandardName ?? "—"}{a.referenceStandardBatch ? ` (${a.referenceStandardBatch})` : ""}
                 </Typography>
               </Tooltip>

@@ -103,9 +103,9 @@ export function AuditTraceabilityChain({
                     label={node.nodeType.toUpperCase()}
                     size="small"
                     sx={{
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: 700,
-                      height: 18,
+                      height: 20,
                       bgcolor: theme.custom.status.purple.bg,
                       color: theme.custom.status.purple.text
                     }}
@@ -119,7 +119,7 @@ export function AuditTraceabilityChain({
                     label={node.status}
                     size="small"
                     variant="outlined"
-                    sx={{ fontSize: 10, height: 18 }}
+                    sx={{ fontSize: 11, height: 20 }}
                   />
                 )}
               </Box>
@@ -141,7 +141,7 @@ export function AuditTraceabilityChain({
                     size="small"
                     variant="text"
                     onClick={() => onOpenEntityHistory(node.nodeType, node.entityId!)}
-                    sx={{ fontSize: 10, textTransform: "none", py: 0.2 }}
+                    sx={{ fontSize: 11, textTransform: "none", py: 0.2 }}
                   >
                     View Audit History
                   </Button>
@@ -158,7 +158,7 @@ export function AuditTraceabilityChain({
                       size="small"
                       variant="outlined"
                       endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
-                      sx={{ fontSize: 10, textTransform: "none", py: 0.2 }}
+                      sx={{ fontSize: 11, textTransform: "none", py: 0.2 }}
                     >
                       Open {node.nodeType}
                     </Button>

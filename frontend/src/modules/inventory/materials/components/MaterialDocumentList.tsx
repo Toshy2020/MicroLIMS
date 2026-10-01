@@ -119,7 +119,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
                     size="small"
                     color={STATUS_COLORS[doc.status]}
                     variant={doc.status === "Current" ? "filled" : "outlined"}
-                    sx={{ fontSize: 10, height: 18 }}
+                    sx={{ fontSize: 11, height: 20 }}
                   />
                 </Box>
 
@@ -131,7 +131,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
                 </Typography>
 
                 {isExpired && doc.status === "Current" && (
-                  <Typography sx={{ fontSize: 10, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
                     Historical — lot expired
                   </Typography>
                 )}

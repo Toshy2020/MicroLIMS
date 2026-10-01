@@ -223,7 +223,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                     <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", lineHeight: 1 }}>
                       {data.totalTests.value}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: "text.secondary", fontWeight: 600 }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
                       TOTAL
                     </Typography>
                   </Box>
@@ -334,7 +334,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
                     {data.locationDistribution.reduce((acc, x) => acc + x.count, 0).toLocaleString()}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
 
@@ -389,7 +389,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                     <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => onNavigateTab(1)}>
                       <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
                         {r.subjectName}
-                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10.5 }}>
+                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
                           {r.referenceNumber}
                         </Typography>
                       </TableCell>
@@ -407,7 +407,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                               ? "error"
                               : "warning"
                           }
-                          sx={{ fontSize: 10, height: 20, fontWeight: 700 }}
+                          sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
                         />
                       </TableCell>
                     </TableRow>

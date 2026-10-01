@@ -157,8 +157,8 @@ export function GroupedActionsPanel({
               width: 32,
               height: 32,
               borderRadius: "8px",
-              bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.2)" : "#EEF2FF",
-              color: theme.palette.mode === "dark" ? "#A5B4FC" : "#4338CA",
+              bgcolor: theme.custom.status.purple.bg,
+              color: theme.custom.status.purple.text,
               display: "flex",
               alignItems: "center",
               justifyContent: "center"
@@ -251,9 +251,9 @@ export function GroupedActionsPanel({
               px: 3,
               textAlign: "center",
               border: "1px dashed",
-              borderColor: theme.palette.mode === "dark" ? "rgba(245, 158, 11, 0.4)" : "#FCD34D",
+              borderColor: theme.custom.status.inconclusive.border,
               borderRadius: 2,
-              bgcolor: theme.palette.mode === "dark" ? "rgba(245, 158, 11, 0.05)" : "#FFFBEB",
+              bgcolor: theme.custom.status.inconclusive.bg,
               my: "auto"
             }}
           >
@@ -266,7 +266,7 @@ export function GroupedActionsPanel({
             </Typography>
             {excludedResultEntryTestOrders && excludedResultEntryTestOrders.length > 0 && (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, maxWidth: 520, mx: "auto", textAlign: "left" }}>
-                <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
+                <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
                   Tests Awaiting Individual Result Entry ({excludedResultEntryTestOrders.length}):
                 </Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>

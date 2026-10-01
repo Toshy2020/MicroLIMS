@@ -305,7 +305,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
                       size="small"
                       label={u.outcome || "Pending"}
                       color={u.outcome === "Conform" ? "success" : u.outcome === "NonConform" ? "error" : "default"}
-                      sx={{ fontWeight: 700, fontSize: 10.5, height: 20 }}
+                      sx={{ fontWeight: 700, fontSize: 11, height: 20 }}
                     />
                   </TableCell>
                   <TableCell sx={{ fontSize: 11.5 }}>

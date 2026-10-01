@@ -266,7 +266,7 @@ export function DiscussionDetailPage() {
                 width: 44,
                 height: 44,
                 bgcolor: brandColors.sectionTitle,
-                color: "#fff",
+                color: "common.white",
                 fontWeight: 700,
                 fontSize: 16
               }}
@@ -290,7 +290,7 @@ export function DiscussionDetailPage() {
                 sx={{
                   fontWeight: 700,
                   fontSize: 11,
-                  bgcolor: (theme) => (theme.palette.mode === "dark" ? "rgba(234, 179, 8, 0.15)" : "#FEF9C3"),
+                  bgcolor: (theme) => theme.custom.status.pale.bg,
                   color: "warning.dark"
                 }}
               />
@@ -435,7 +435,7 @@ export function DiscussionDetailPage() {
                 >
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-                      <Avatar sx={{ width: 30, height: 30, fontSize: 12, bgcolor: brandColors.sectionTitle, color: "#fff" }}>
+                      <Avatar sx={{ width: 30, height: 30, fontSize: 12, bgcolor: brandColors.sectionTitle, color: "common.white" }}>
                         {commentAuthorInitial}
                       </Avatar>
                       <Box>

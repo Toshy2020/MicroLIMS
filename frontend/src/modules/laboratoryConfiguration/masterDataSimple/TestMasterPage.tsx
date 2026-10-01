@@ -1262,10 +1262,10 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Required Checks</Typography>
                 <Stack useFlexGap direction="row" spacing={0.5} sx={{ mt: 0.25, flexWrap: "wrap", alignItems: "center" }}>
-                  {test.calRequireBlank && <Chip size="small" label="Blank" sx={{ height: 18, fontSize: "0.65rem" }} />}
-                  {test.calRequireIcv && <Chip size="small" label="ICV" sx={{ height: 18, fontSize: "0.65rem" }} />}
-                  {test.calRequireCcv && <Chip size="small" label="CCV" sx={{ height: 18, fontSize: "0.65rem" }} />}
-                  {test.calRequireInternalStandard && <Chip size="small" label="IS" sx={{ height: 18, fontSize: "0.65rem" }} />}
+                  {test.calRequireBlank && <Chip size="small" label="Blank" sx={{ height: 20, fontSize: "0.6875rem" }} />}
+                  {test.calRequireIcv && <Chip size="small" label="ICV" sx={{ height: 20, fontSize: "0.6875rem" }} />}
+                  {test.calRequireCcv && <Chip size="small" label="CCV" sx={{ height: 20, fontSize: "0.6875rem" }} />}
+                  {test.calRequireInternalStandard && <Chip size="small" label="IS" sx={{ height: 20, fontSize: "0.6875rem" }} />}
                   {!test.calRequireBlank && !test.calRequireIcv && !test.calRequireCcv && !test.calRequireInternalStandard && (
                     <Typography variant="body2" sx={{ color: "text.secondary" }}>None</Typography>
                   )}
@@ -1508,7 +1508,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                             color="primary"
                             variant="outlined"
                             label="2-Stage"
-                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                           />
                         )}
                       </Stack>
@@ -1543,7 +1543,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                             size="small"
                             color="secondary"
                             label="Transfer"
-                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                           />
                         )}
                       </Stack>
@@ -2540,7 +2540,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="primary"
                           variant="outlined"
                           label="HPLC Assay"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "StandardComparison" && (
@@ -2549,7 +2549,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="primary"
                           variant="outlined"
                           label="Standard-Comparison"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "ElementalAssay" && (
@@ -2558,7 +2558,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="secondary"
                           variant="outlined"
                           label={t.calInstrumentType === "Aas" ? "AAS" : "ICP-OES"}
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "Dissolution" && (
@@ -2567,7 +2567,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="info"
                           variant="outlined"
                           label="Dissolution"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "Disintegration" && (
@@ -2576,7 +2576,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="info"
                           variant="outlined"
                           label="Disintegration"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "WeightVariation" && (
@@ -2585,7 +2585,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="info"
                           variant="outlined"
                           label="Weight Variation"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
                       {t.requiresSystemSuitability && (
@@ -2602,7 +2602,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                             color="info"
                             variant="outlined"
                             label={`SST: ${t.methodAbbreviation ?? "Required"}`}
-                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                           />
                         </Tooltip>
                       )}
@@ -2615,7 +2615,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                             color="info"
                             variant="outlined"
                             label={`CAL: ${t.methodAbbreviation ?? "Required"}`}
-                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                           />
                         </Tooltip>
                       )}

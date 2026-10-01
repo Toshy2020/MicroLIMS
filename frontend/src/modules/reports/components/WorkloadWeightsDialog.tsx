@@ -145,7 +145,7 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
                       <Chip
                         size="small"
                         label={`${w.workloadWeight}x`}
-                        sx={{ fontWeight: 700, bgcolor: "#ede9fe", color: "#6d28d9" }}
+                        sx={{ fontWeight: 700, bgcolor: (t) => t.custom.status.purple.bg, color: (t) => t.custom.status.purple.text }}
                       />
                     )}
                   </TableCell>

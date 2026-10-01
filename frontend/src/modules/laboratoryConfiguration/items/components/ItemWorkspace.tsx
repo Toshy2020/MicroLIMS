@@ -624,7 +624,7 @@ function DocumentCard({
               sx={{ fontWeight: 700, fontSize: 11, height: 20 }}
             />
             {isHistorical && (
-              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 10, height: 18 }} />
+              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 11, height: 20 }} />
             )}
           </Stack>
 

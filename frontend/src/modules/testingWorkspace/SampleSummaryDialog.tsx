@@ -325,7 +325,7 @@ function IncubationStageBlock({
               height: 22,
               borderRadius: "50%",
               bgcolor: brandColors.sectionTitle,
-              color: "#ffffff",
+              color: "common.white",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -541,7 +541,7 @@ function ElementalAssayResultBlock({ assay }: { assay: ElementalAssayDetail }) {
                         label={elem.runAnalytePassed ? "Pass" : "Fail"}
                         color={elem.runAnalytePassed ? "success" : "error"}
                         variant="outlined"
-                        sx={{ height: 18, fontSize: "0.65rem" }}
+                        sx={{ height: 20, fontSize: "0.6875rem" }}
                       />
                     </Box>
                   </TableCell>
@@ -1294,7 +1294,7 @@ function ApprovalSignaturesCard({
                     bgcolor: theme.custom.status.notDetected.bg,
                     color: theme.custom.status.notDetected.text,
                     fontWeight: 700,
-                    fontSize: 10,
+                    fontSize: 11,
                     height: 20
                   }}
                 />
@@ -1503,7 +1503,7 @@ function ApprovalSignaturesCard({
                               size="small"
                               label={t.sectionName}
                               variant="outlined"
-                              sx={{ ml: 0.5, height: 16, fontSize: 9 }}
+                              sx={{ ml: 0.5, height: 20, fontSize: 11 }}
                             />
                           )}
                           {isTestOrderNonPassing(t) && (
@@ -1511,7 +1511,7 @@ function ApprovalSignaturesCard({
                               size="small"
                               label="Non-conforming"
                               color="error"
-                              sx={{ ml: 0.5, height: 16, fontSize: 9 }}
+                              sx={{ ml: 0.5, height: 20, fontSize: 11 }}
                             />
                           )}
                         </Typography>
@@ -1947,7 +1947,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   onClick={() => setOpenPathogenDialog(true)}
                   sx={{
                     bgcolor: brandColors.sectionTitle,
-                    color: "#ffffff",
+                    color: "common.white",
                     fontWeight: 700,
                     fontSize: 12,
                     "&:hover": { bgcolor: brandColors.pageTitle }

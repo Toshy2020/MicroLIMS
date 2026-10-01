@@ -406,7 +406,7 @@ export function PrepareCryovialBatchDialog({
                 }}
               >
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Storage Equipment
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
@@ -414,7 +414,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Code
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -422,7 +422,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Location
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -430,7 +430,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Status
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>

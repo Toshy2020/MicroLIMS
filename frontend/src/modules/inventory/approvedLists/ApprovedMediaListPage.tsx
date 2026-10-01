@@ -978,7 +978,7 @@ export function ApprovedMediaListPage() {
                                   {formatLabDate(m.expiryDate)}
                                 </Typography>
                                 {expiring && (
-                                  <Typography sx={{ fontSize: 10, color: action.text, fontWeight: 600 }}>
+                                  <Typography sx={{ fontSize: 11, color: action.text, fontWeight: 600 }}>
                                     Expiring soon
                                   </Typography>
                                 )}

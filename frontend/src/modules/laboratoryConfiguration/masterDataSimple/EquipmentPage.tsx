@@ -708,7 +708,7 @@ export function EquipmentPage() {
                             size="small"
                             label={eq.inventoryStatus ?? "In Service"}
                             color={eq.inventoryStatus === "OutOfService" ? "error" : "success"}
-                            sx={{ height: 18, fontSize: 10 }}
+                            sx={{ height: 20, fontSize: 11 }}
                           />
                         </Box>
                       </Box>

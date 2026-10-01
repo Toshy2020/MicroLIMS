@@ -195,7 +195,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
                 p: 1.5,
                 bgcolor: (t) => t.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "success.50",
                 border: "1px solid",
-                borderColor: (t) => t.palette.mode === "dark" ? "success.dark" : "#c8e6c9",
+                borderColor: (t) => t.custom.status.notDetected.border,
                 borderRadius: 1
               }}>
                 <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "success.light" : "success.dark", fontWeight: 600 }}>

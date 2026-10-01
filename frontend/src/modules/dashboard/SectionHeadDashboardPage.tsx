@@ -156,7 +156,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, my: 0.25 }}>
               {data.activeTests}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Tests in progress</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Tests in progress</Typography>
           </Paper>
         </Grid>
 
@@ -189,7 +189,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.info.text, my: 0.25 }}>
               {data.incubating}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Tests incubating</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Tests incubating</Typography>
           </Paper>
         </Grid>
 
@@ -222,7 +222,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.readyToRead}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Test readings pending</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Test readings pending</Typography>
           </Paper>
         </Grid>
 
@@ -255,7 +255,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.inconclusive.text, my: 0.25 }}>
               {data.pendingReview}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples awaiting review</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples awaiting review</Typography>
           </Paper>
         </Grid>
 
@@ -288,7 +288,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.pendingApproval}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples awaiting release</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples awaiting release</Typography>
           </Paper>
         </Grid>
 
@@ -321,7 +321,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.detected.text, my: 0.25 }}>
               {data.overdue}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: theme.custom.status.detected.text }}>&gt;24h delay</Typography>
+            <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text }}>&gt;24h delay</Typography>
           </Paper>
         </Grid>
 
@@ -357,7 +357,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.attentionCount}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Action required</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Action required</Typography>
           </Paper>
         </Grid>
       </Grid>
@@ -478,7 +478,7 @@ export function SectionHeadDashboardPage() {
                           </Typography>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {item.testCodes.map((tc, tcIdx) => (
-                              <Chip key={`${tcIdx}-${tc}`} label={tc} size="small" sx={{ fontSize: 10, height: 20 }} />
+                              <Chip key={`${tcIdx}-${tc}`} label={tc} size="small" sx={{ fontSize: 11, height: 20 }} />
                             ))}
                           </Box>
                         </Box>
@@ -603,14 +603,14 @@ export function SectionHeadDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 9, height: 16, mt: 0.25, display: "inline-flex" }}
+                              sx={{ fontSize: 11, height: 20, mt: 0.25, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
                         <TableCell sx={{ fontSize: 11 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {row.testCodes.map((code, cIdx) => (
-                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 10, height: 18 }} />
+                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
                             ))}
                           </Box>
                         </TableCell>
@@ -623,8 +623,8 @@ export function SectionHeadDashboardPage() {
                               label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
-                                fontSize: 10,
-                                height: 18,
+                                fontSize: 11,
+                                height: 20,
                                 bgcolor:
                                   row.worstResultLevel === "OutOfSpecification"
                                     ? theme.custom.status.detected.text + "22"
@@ -653,7 +653,7 @@ export function SectionHeadDashboardPage() {
                             to={`/receiving-testing?sampleId=${row.sampleId}&openSummary=true`}
                             variant="outlined"
                             size="small"
-                            sx={{ textTransform: "none", fontSize: 10, py: 0.2, fontWeight: 600 }}
+                            sx={{ textTransform: "none", fontSize: 11, py: 0.2, fontWeight: 600 }}
                           >
                             Review
                           </Button>
@@ -749,14 +749,14 @@ export function SectionHeadDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 9, height: 16, mt: 0.25, display: "inline-flex" }}
+                              sx={{ fontSize: 11, height: 20, mt: 0.25, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
                         <TableCell sx={{ fontSize: 11 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {row.testCodes.map((code, cIdx) => (
-                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 10, height: 18 }} />
+                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
                             ))}
                           </Box>
                         </TableCell>
@@ -769,7 +769,7 @@ export function SectionHeadDashboardPage() {
                             variant="outlined"
                             size="small"
                             color="success"
-                            sx={{ textTransform: "none", fontSize: 10, py: 0.2, fontWeight: 600 }}
+                            sx={{ textTransform: "none", fontSize: 11, py: 0.2, fontWeight: 600 }}
                           >
                             Approve
                           </Button>

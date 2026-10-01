@@ -324,7 +324,7 @@ export function MultiSampleEntryGrid({
                           </FormGroup>
                         )}
                         {errors.targetSectionIds && (
-                          <Typography sx={{ fontSize: 10.5, color: theme.custom.status.detected.text, mt: 0.25 }}>
+                          <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text, mt: 0.25 }}>
                             {errors.targetSectionIds}
                           </Typography>
                         )}

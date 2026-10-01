@@ -158,7 +158,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
       }}
       titleSx={{
         bgcolor: brandColors.sectionTitle,
-        color: "#ffffff",
+        color: "common.white",
         py: 2,
         px: 3
       }}
@@ -185,10 +185,10 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                 justifyContent: "center"
               }}
             >
-              <ScienceOutlinedIcon sx={{ fontSize: 24, color: "#ffffff" }} />
+              <ScienceOutlinedIcon sx={{ fontSize: 24, color: "common.white" }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 17, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
+              <Typography sx={{ fontSize: 17, fontWeight: 800, color: "common.white", lineHeight: 1.2 }}>
                 Pathogen Testing Session Workspace
               </Typography>
               {session && (
@@ -208,7 +208,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                 size="small"
                 sx={{
                   bgcolor: "rgba(255,255,255,0.2)",
-                  color: "#ffffff",
+                  color: "common.white",
                   fontWeight: 700,
                   fontSize: 12
                 }}
@@ -221,11 +221,11 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                 startIcon={<RestartAltIcon />}
                 onClick={() => setResetDialogOpen(true)}
                 sx={{
-                  color: "#ffffff",
+                  color: "common.white",
                   borderColor: "rgba(255,255,255,0.4)",
                   fontSize: 12,
                   fontWeight: 600,
-                  "&:hover": { borderColor: "#ffffff", bgcolor: "rgba(255,255,255,0.1)" }
+                  "&:hover": { borderColor: "common.white", bgcolor: "rgba(255,255,255,0.1)" }
                 }}
               >
                 Reset Session

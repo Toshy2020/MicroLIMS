@@ -639,24 +639,24 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                   <TableRow key={doc.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                     <TableCell>
                       {isCurrent && (
-                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
+                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
                       )}
                       {isSuperseded && (
-                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 10, bgcolor: "action.selected" }} />
+                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 11, bgcolor: "action.selected" }} />
                       )}
                       {(!isCurrent && !isSuperseded) && (
-                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 10 }} />
+                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
                       )}
                     </TableCell>
                     <TableCell>
                       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{doc.originalFileName}</Typography>
                       {doc.supersessionReason && (
-                        <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                           Superseded: {doc.supersessionReason}
                         </Typography>
                       )}
                       {doc.voidReason && (
-                        <Typography sx={{ fontSize: 10.5, color: "error.main" }}>
+                        <Typography sx={{ fontSize: 11, color: "error.main" }}>
                           Voided: {doc.voidReason}
                         </Typography>
                       )}

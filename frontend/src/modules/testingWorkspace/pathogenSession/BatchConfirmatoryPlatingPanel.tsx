@@ -419,7 +419,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   if (!loadingEligible && eligibleLocations.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-        <CheckCircleOutlineIcon sx={{ fontSize: 48, color: "#059669", mb: 1.5 }} />
+        <CheckCircleOutlineIcon sx={{ fontSize: 48, color: (t) => t.custom.status.notDetected.text, mb: 1.5 }} />
         <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", mb: 1 }}>
           Confirmatory Plating Not Required
         </Typography>
@@ -547,7 +547,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 height: 36,
                 borderRadius: 1.5,
                 bgcolor: brandColors.sectionTitle,
-                color: "#ffffff",
+                color: "common.white",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
@@ -844,7 +844,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                               >
                                 <FormControlLabel
                                   value={GrowthObservation.NoGrowth}
-                                  control={<Radio size="small" sx={{ color: "#059669", "&.Mui-checked": { color: "#059669" } }} />}
+                                  control={<Radio size="small" sx={{ color: (t) => t.custom.status.notDetected.text, "&.Mui-checked": { color: (t) => t.custom.status.notDetected.text } }} />}
                                   label={<Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.notDetected.text }}>No Growth</Typography>}
                                 />
                                 <FormControlLabel

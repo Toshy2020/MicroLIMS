@@ -247,7 +247,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
                     {isApproved ? (
                       <CheckCircleIcon sx={{ fontSize: 14, color: theme.custom.status.notDetected.text }} />
                     ) : (
-                      <FiberManualRecordIcon sx={{ fontSize: 10, color }} />
+                      <FiberManualRecordIcon sx={{ fontSize: 11, color }} />
                     )}
                     <Typography sx={{ fontSize: 11, fontWeight: 600, color }}>
                       <StatusBadge status={effectiveStatus} />

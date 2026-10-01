@@ -220,7 +220,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                       {c.recoveryPercent !== null && (
                         <Box>
                           <strong>{c.recoveryPercent}%</strong> Recovery
-                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 10.5 }}>
+                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
                             New: {c.newMediaCount} / Old: {c.oldMediaCount} (Ref: {c.referenceMediaLot || "—"})
                           </Typography>
                         </Box>
@@ -258,14 +258,14 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                         icon={isConform ? <CheckCircleIcon sx={{ "&&": { fontSize: 14 } }} /> : isNonConform ? <CancelIcon sx={{ "&&": { fontSize: 14 } }} /> : undefined}
                         label={c.outcome || "Pending"}
                         color={isConform ? "success" : isNonConform ? "error" : "default"}
-                        sx={{ fontWeight: 700, fontSize: 10.5, height: 22 }}
+                        sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
                       />
                     </TableCell>
                     <TableCell sx={{ fontSize: 11.5 }}>
                       {c.readByName ? (
                         <>
                           <div>{c.readByName}</div>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10.5 }}>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11 }}>
                             {formatDateTime(c.readAt)}
                           </Typography>
                         </>

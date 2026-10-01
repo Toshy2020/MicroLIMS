@@ -211,7 +211,7 @@ export function SelectedSampleTestingPanel({
                 textTransform: "none",
                 minWidth: "auto",
                 bgcolor: theme.custom.status.action.text,
-                color: "#ffffff",
+                color: "common.white",
                 "&:hover": { bgcolor: theme.custom.status.action.text, opacity: 0.85 }
               }}
             >
@@ -257,7 +257,7 @@ export function SelectedSampleTestingPanel({
       >
         {/* 1. ASSIGNED TO */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             ASSIGNED TO
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: theme.palette.primary.main, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -267,7 +267,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 2. PREPARATION STATUS */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             PREP STATUS
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: needsPreparation ? theme.custom.status.action.text : theme.custom.status.notDetected.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -277,7 +277,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 3. CAUSE OF TESTING */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             CAUSE OF TESTING
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -287,7 +287,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 4. BATCH NUMBER */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             BATCH NUMBER
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -297,7 +297,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 5. CONTROL NUMBER */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             CONTROL NUMBER
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -307,7 +307,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 6. RECEIVED AT */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             RECEIVED AT
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -322,7 +322,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 7. SAMPLED BY */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             SAMPLED BY
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -332,7 +332,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 8. SAMPLE QUANTITY */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             SAMPLE QTY
           </Typography>
           <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -342,7 +342,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 9. CATEGORY-SPECIFIC CONTEXT (Stage / Sampling Point / Prev Product) */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             {sample.category === "FinishedProduct"
               ? "STAGE"
               : isWater
@@ -364,7 +364,7 @@ export function SelectedSampleTestingPanel({
 
         {/* 10. EXP DATE / STORAGE CONDITION */}
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.6875rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             {isWater || sample.storageCondition
               ? "STORAGE"
               : isProductLike
@@ -406,7 +406,7 @@ export function SelectedSampleTestingPanel({
             onClick={() => setOpenPathogenWorkflow(true)}
             sx={{
               bgcolor: brandColors.sectionTitle,
-              color: "#ffffff",
+              color: "common.white",
               fontWeight: 700,
               fontSize: 12,
               "&:hover": { bgcolor: brandColors.pageTitle }
@@ -453,7 +453,7 @@ export function SelectedSampleTestingPanel({
               onClick={() => onNeedsPreparationClick(sample)}
               sx={{
                 bgcolor: theme.custom.status.action.text,
-                color: "#ffffff",
+                color: "common.white",
                 fontWeight: 700,
                 fontSize: 12,
                 whiteSpace: "nowrap",

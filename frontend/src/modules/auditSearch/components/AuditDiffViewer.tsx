@@ -35,9 +35,9 @@ export function AuditDiffViewer({
               label="CREATED"
               size="small"
               sx={{
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 700,
-                height: 18,
+                height: 20,
                 bgcolor: theme.custom.status.notDetected.bg,
                 color: theme.custom.status.notDetected.text,
                 border: "1px solid",
@@ -96,9 +96,9 @@ export function AuditDiffViewer({
           label="DELETED"
           size="small"
           sx={{
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 700,
-            height: 18,
+            height: 20,
             bgcolor: theme.custom.status.detected.bg,
             color: theme.custom.status.detected.text,
             border: "1px solid",
@@ -151,7 +151,7 @@ export function AuditDiffViewer({
               >
                 {c.oldDisplay}
               </Typography>
-              <ArrowForwardIcon sx={{ fontSize: 10, color: "text.secondary", flexShrink: 0 }} />
+              <ArrowForwardIcon sx={{ fontSize: 11, color: "text.secondary", flexShrink: 0 }} />
               <Typography
                 component="span"
                 sx={{
@@ -185,7 +185,7 @@ export function AuditDiffViewer({
                   onViewAll?.();
                 }}
                 sx={{
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: 600,
                   color: "primary.main",
                   cursor: "pointer",
@@ -217,18 +217,18 @@ export function AuditDiffViewer({
           }}
         >
           <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", mb: 0.5 }}>
-            {c.label} <Typography component="span" sx={{ fontSize: 10, color: "text.disabled", fontFamily: "monospace" }}>({c.key})</Typography>
+            {c.label} <Typography component="span" sx={{ fontSize: 11, color: "text.disabled", fontFamily: "monospace" }}>({c.key})</Typography>
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
             <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.detected.bg, border: "1px solid", borderColor: theme.custom.status.detected.border, borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 10, color: theme.custom.status.detected.text, fontWeight: 700 }}>PREVIOUS VALUE</Typography>
+              <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text, fontWeight: 700 }}>PREVIOUS VALUE</Typography>
               <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, wordBreak: "break-word" }}>
                 {c.oldDisplay}
               </Typography>
             </Box>
             <ArrowForwardIcon sx={{ color: "text.secondary", fontSize: 16 }} />
             <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>NEW VALUE</Typography>
+              <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>NEW VALUE</Typography>
               <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600, wordBreak: "break-word" }}>
                 {c.newDisplay}
               </Typography>

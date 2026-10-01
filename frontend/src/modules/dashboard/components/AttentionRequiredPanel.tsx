@@ -98,7 +98,7 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
                   Expires in {lot.daysRemaining} day{lot.daysRemaining === 1 ? "" : "s"}
                 </Typography>
               </Box>
-              <Chip size="small" label="Expiring" sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
+              <Chip size="small" label="Expiring" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
             </Box>
           ))}
 

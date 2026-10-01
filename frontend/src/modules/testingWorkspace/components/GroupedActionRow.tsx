@@ -210,10 +210,10 @@ export function GroupedActionRow({
             label={`× ${group.sampleCount} ${group.sampleCount === 1 ? "Sample" : "Samples"}`}
             sx={{
               height: 20,
-              fontSize: "0.68rem",
+              fontSize: "0.6875rem",
               fontWeight: 700,
-              bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.15)" : "#EEF2FF",
-              color: theme.palette.mode === "dark" ? "#A5B4FC" : "#4338CA",
+              bgcolor: theme.custom.status.purple.bg,
+              color: theme.custom.status.purple.text,
               borderRadius: "4px"
             }}
           />
@@ -282,7 +282,7 @@ export function GroupedActionRow({
         >
           {/* Sample Chips List */}
           <Box sx={{ mb: 1.5 }}>
-            <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
               Selected Samples ({group.testOrders.length} Tests):
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -336,7 +336,7 @@ export function GroupedActionRow({
               {/* Media Lot Dropdown - only when not incubator-only transfer */}
               {!isIncubatorOnly && (
                 <Box sx={{ flex: "1 1 200px" }}>
-                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+                  <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
                     Media Lot ({group.permittedMaterialNames || "Approved Media"})
                   </Typography>
                   <Select
@@ -369,7 +369,7 @@ export function GroupedActionRow({
 
               {/* Incubator Dropdown */}
               <Box sx={{ flex: "1 1 200px" }}>
-                <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+                <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
                   {isIncubatorOnly ? "Transfer to Incubator" : "Incubator"} ({group.tempMin}–{group.tempMax}°C)
                 </Typography>
                 <Select

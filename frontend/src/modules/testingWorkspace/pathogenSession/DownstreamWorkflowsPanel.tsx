@@ -167,7 +167,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                                 // deliberately "filled" state vs. pending's outline-style
                                 // treatment below, which does need a dark-aware pale token.
                                 bgcolor: isStepDone ? "#059669" : isStepLocked ? "#64748b" : theme.custom.status.pending.bg,
-                                color: isStepDone || isStepLocked ? "#ffffff" : "text.secondary",
+                                color: isStepDone || isStepLocked ? "common.white" : "text.secondary",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -253,7 +253,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                                 sx={{
                                   fontSize: 13,
                                   fontWeight: 700,
-                                  color: isStepDone ? "#059669" : isStepLocked ? theme.custom.status.detected.text : "text.secondary"
+                                  color: isStepDone ? theme.custom.status.notDetected.text : isStepLocked ? theme.custom.status.detected.text : "text.secondary"
                                 }}
                               >
                                 {isStepDone

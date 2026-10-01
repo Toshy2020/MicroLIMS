@@ -181,7 +181,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               <Chip
                 label="Master Data Driven"
                 size="small"
-                sx={{ bgcolor: brandColors.sectionTitle, color: "#ffffff", fontWeight: 700, fontSize: 11 }}
+                sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700, fontSize: 11 }}
               />
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
                 Workflow Configured from Test Master

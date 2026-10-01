@@ -84,7 +84,7 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
               >
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: 13, bgcolor: "primary.main", color: "#fff", px: 1, py: 0.25, borderRadius: 1 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: 13, bgcolor: "primary.main", color: "common.white", px: 1, py: 0.25, borderRadius: 1 }}>
                       v{ver.versionNumber}
                     </Typography>
                     <DiscussionCategoryBadge category={ver.category} categoryName={ver.categoryName} />

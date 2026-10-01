@@ -322,7 +322,7 @@ export function AdminDashboardPage() {
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
                 {summary.reviewerQueue}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples</Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           <Grid
@@ -349,7 +349,7 @@ export function AdminDashboardPage() {
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.ok }}>
                 {summary.approvalQueue}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples</Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           {summary.pendingPreparationConfigApproval > 0 && (

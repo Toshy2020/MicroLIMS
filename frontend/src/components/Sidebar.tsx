@@ -103,7 +103,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
         display: "flex",
         flexDirection: "column",
         bgcolor: chrome.sidebarBg,
-        color: "#fff",
+        color: "common.white",
         overflow: "hidden"
       }}
     >
@@ -181,7 +181,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       borderLeft: active ? `3px solid ${chrome.sidebarActiveBorder}` : "3px solid transparent",
                       "&:hover": {
                         bgcolor: "rgba(255, 255, 255, 0.1)",
-                        color: "#fff"
+                        color: "common.white"
                       },
                       justifyContent: effectiveCollapsed ? "center" : "flex-start"
                     }}
@@ -254,7 +254,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                   boxShadow: childActive ? `inset 3px 0 0 ${chrome.sidebarActiveBorder}` : "none",
                                   "&:hover": {
                                     bgcolor: "rgba(255, 255, 255, 0.1)",
-                                    color: "#fff"
+                                    color: "common.white"
                                   }
                                 }}
                               >
@@ -297,7 +297,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                             <Typography
                               sx={{
                                 px: 2, pt: 1, pb: 0.5,
-                                fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6,
+                                fontSize: 11, fontWeight: 700, letterSpacing: 0.6,
                                 color: "text.secondary", textTransform: "uppercase"
                               }}
                             >
@@ -351,7 +351,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
             <IconButton
               onClick={onToggleCollapse}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              sx={{ color: "rgba(255, 255, 255, 0.8)", "&:hover": { color: "#fff" } }}
+              sx={{ color: "rgba(255, 255, 255, 0.8)", "&:hover": { color: "common.white" } }}
             >
               {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
             </IconButton>

@@ -62,7 +62,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
           {Math.abs(data.deltaPercent)}%
         </Box>
-        <Typography sx={{ fontSize: 10.5, color: "text.secondary" }} noWrap>
+        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
           {data.comparisonLabel}
         </Typography>
       </Box>
@@ -579,7 +579,7 @@ export function AnalystKpiTab() {
                 </ResponsiveContainer>
                 <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
                   <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.palette.primary.main }}>{categoryTotal.toLocaleString()}</Typography>
-                  <Typography sx={{ fontSize: 9, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
               <Box sx={{ width: "50%", pl: 1 }}>
@@ -642,7 +642,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.workflowBottleneck.testingQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid size={4}>
@@ -651,7 +651,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.purple.text }}>
                     {data.workflowBottleneck.reviewQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid size={4}>
@@ -660,7 +660,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                     {data.workflowBottleneck.approvalQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -679,38 +679,38 @@ export function AnalystKpiTab() {
             <Grid container spacing={1}>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.info.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Testing (Analyst)</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Testing (Analyst)</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.info.text }}>
                     {data.tatSummary.testingTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Assignment → Submitted</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Assignment → Submitted</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Review Stage</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Review Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.reviewTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Submitted → Reviewed</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Submitted → Reviewed</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Approval Stage</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approval Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.approvalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Reviewed → Decided</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Reviewed → Decided</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Total Lifecycle</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Lifecycle</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.tatSummary.totalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Full turnaround</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Full turnaround</Typography>
                 </Box>
               </Grid>
             </Grid>

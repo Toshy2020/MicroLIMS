@@ -102,7 +102,7 @@ export function DiscussionCard({
                 width: 38,
                 height: 38,
                 bgcolor: brandColors.sectionTitle,
-                color: "#fff",
+                color: "common.white",
                 fontWeight: 700,
                 fontSize: 14
               }}
@@ -132,7 +132,7 @@ export function DiscussionCard({
                 sx={{
                   fontWeight: 700,
                   fontSize: 11,
-                  bgcolor: (theme) => (theme.palette.mode === "dark" ? "rgba(234, 179, 8, 0.15)" : "#FEF9C3"),
+                  bgcolor: (theme) => theme.custom.status.pale.bg,
                   color: "warning.dark",
                   border: "1px solid",
                   borderColor: "warning.light"

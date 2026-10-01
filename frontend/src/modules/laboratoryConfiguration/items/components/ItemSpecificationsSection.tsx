@@ -41,103 +41,40 @@ interface ItemSpecificationsSectionProps {
   onSpecsChanged?: () => void;
 }
 
-const LIMIT_CHIP_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  Range: {
-    label: "Range",
-    color: "#3b82f6",
-    bg: "rgba(59, 130, 246, 0.12)",
-    border: "rgba(59, 130, 246, 0.35)"
-  },
-  NotMoreThan: {
-    label: "NMT",
-    color: "#f59e0b",
-    bg: "rgba(245, 158, 11, 0.12)",
-    border: "rgba(245, 158, 11, 0.35)"
-  },
-  NotLessThan: {
-    label: "NLT",
-    color: "#f59e0b",
-    bg: "rgba(245, 158, 11, 0.12)",
-    border: "rgba(245, 158, 11, 0.35)"
-  },
-  TargetWithTolerance: {
-    label: "Target \u00B1 Tol.",
-    color: "#06b6d4",
-    bg: "rgba(6, 182, 212, 0.12)",
-    border: "rgba(6, 182, 212, 0.35)"
-  },
-  CountTiered: {
-    label: "Count-Tiered",
-    color: "#10b981",
-    bg: "rgba(16, 185, 129, 0.12)",
-    border: "rgba(16, 185, 129, 0.35)"
-  },
-  Qualitative: {
-    label: "Qualitative",
-    color: "#a855f7",
-    bg: "rgba(168, 85, 247, 0.12)",
-    border: "rgba(168, 85, 247, 0.35)"
-  },
-  PresenceAbsence: {
-    label: "Presence/Absence",
-    color: "#f43f5e",
-    bg: "rgba(244, 63, 94, 0.12)",
-    border: "rgba(244, 63, 94, 0.35)"
-  },
-  MultiStage: {
-    label: "Multi-Stage",
-    color: "#eab308",
-    bg: "rgba(234, 179, 8, 0.12)",
-    border: "rgba(234, 179, 8, 0.35)"
-  },
-  StageCriteria: {
-    label: "Stage Criteria",
-    color: "#94a3b8",
-    bg: "rgba(148, 163, 184, 0.12)",
-    border: "rgba(148, 163, 184, 0.35)"
-  },
-  DissolutionQ: {
-    label: "Dissolution Q",
-    color: "#3b82f6",
-    bg: "rgba(59, 130, 246, 0.12)",
-    border: "rgba(59, 130, 246, 0.35)"
-  },
-  DisintegrationTime: {
-    label: "Disintegration Time",
-    color: "#0284c7",
-    bg: "rgba(2, 132, 199, 0.12)",
-    border: "rgba(2, 132, 199, 0.35)"
-  },
-  WeightVariation: {
-    label: "Weight Variation",
-    color: "#7c3aed",
-    bg: "rgba(124, 58, 237, 0.12)",
-    border: "rgba(124, 58, 237, 0.35)"
-  }
+// Limit types are categories, not states: the label carries the meaning, so
+// one neutral chip style (theme-aware, AA contrast in both modes). The old
+// per-type hues were decorative - two types shared a colour - and amber text
+// on its own 12% tint measured about 2:1.
+const LIMIT_TYPE_LABELS: Record<string, string> = {
+  Range: "Range",
+  NotMoreThan: "NMT",
+  NotLessThan: "NLT",
+  TargetWithTolerance: "Target \u00B1 Tol.",
+  CountTiered: "Count-Tiered",
+  Qualitative: "Qualitative",
+  PresenceAbsence: "Presence/Absence",
+  MultiStage: "Multi-Stage",
+  StageCriteria: "Stage Criteria",
+  DissolutionQ: "Dissolution Q",
+  DisintegrationTime: "Disintegration Time",
+  WeightVariation: "Weight Variation",
 };
 
 export const LimitTypeBadge: React.FC<{ type: string; labelOverride?: string }> = ({
   type,
   labelOverride
 }) => {
-  const style = LIMIT_CHIP_STYLES[type] ?? {
-    label: type,
-    color: "#94a3b8",
-    bg: "rgba(148, 163, 184, 0.12)",
-    border: "rgba(148, 163, 184, 0.35)"
-  };
   return (
     <Chip
       size="small"
-      label={labelOverride ?? style.label}
+      variant="outlined"
+      label={labelOverride ?? LIMIT_TYPE_LABELS[type] ?? type}
       sx={{
         height: 22,
-        fontSize: 11,
+        fontSize: 11.5,
         fontWeight: 600,
-        color: style.color,
-        bgcolor: style.bg,
-        border: "1px solid",
-        borderColor: style.border,
+        color: "text.secondary",
+        borderColor: "divider",
         borderRadius: "4px"
       }}
     />

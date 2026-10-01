@@ -390,7 +390,7 @@ export function UsersPage() {
                 <TableRow key={u.id} hover>
                   <TableCell>
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{u.fullName}</Typography>
-                    <Typography sx={{ color: "text.secondary", fontSize: 12 }}>@{u.username} {isSelf && <Chip label="You" size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: 10 }} />}</Typography>
+                    <Typography sx={{ color: "text.secondary", fontSize: 12 }}>@{u.username} {isSelf && <Chip label="You" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 11 }} />}</Typography>
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 13, fontStyle: u.email ? "normal" : "italic", color: u.email ? "text.primary" : "text.secondary" }}>

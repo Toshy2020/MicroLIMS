@@ -409,7 +409,7 @@ export function ReviewerDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 10, height: 18, mt: 0.5, display: "inline-flex" }}
+                              sx={{ fontSize: 11, height: 20, mt: 0.5, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
@@ -432,8 +432,8 @@ export function ReviewerDashboardPage() {
                               label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
-                                fontSize: 10,
-                                height: 18,
+                                fontSize: 11,
+                                height: 20,
                                 bgcolor:
                                   row.worstResultLevel === "OutOfSpecification"
                                     ? brandColors.err + "22"
@@ -469,7 +469,7 @@ export function ReviewerDashboardPage() {
                             label={row.priority}
                             size="small"
                             sx={{
-                              fontSize: 10,
+                              fontSize: 11,
                               height: 20,
                               fontWeight: 700,
                               bgcolor:
@@ -558,14 +558,14 @@ export function ReviewerDashboardPage() {
                       <Chip
                         label={rec.status}
                         size="small"
-                        sx={{ fontSize: 10, height: 18, fontWeight: 700 }}
+                        sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
                       />
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
                       <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         Tests: {rec.testCode}
                       </Typography>
-                      <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         {new Date(rec.reviewedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </Typography>
                     </Box>

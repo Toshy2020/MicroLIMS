@@ -7,7 +7,8 @@ import {
   Stack,
   Alert,
   SxProps,
-  Theme
+  Theme,
+  useTheme
 } from "@mui/material";
 import { FloatingDialog } from "./FloatingDialog";
 import { useMediaProducts, MediaProductOption } from "../hooks/useMediaProducts";
@@ -45,6 +46,7 @@ export function MediaProductPicker({
   allowCreate = false,
   options: externalOptions
 }: MediaProductPickerProps) {
+  const theme = useTheme();
   const { options: hookOptions, loading, create } = useMediaProducts();
   const options = externalOptions ?? hookOptions;
   const selected = options.find((o) => o.id === value) ?? null;
@@ -123,7 +125,7 @@ export function MediaProductPicker({
               <li
                 key="add-new-media-product"
                 {...restProps}
-                style={{ ...restProps.style, color: "#1976d2", fontWeight: 600 }}
+                style={{ ...restProps.style, color: theme.palette.primary.main, fontWeight: 600 }}
               >
                 + Add media product
               </li>

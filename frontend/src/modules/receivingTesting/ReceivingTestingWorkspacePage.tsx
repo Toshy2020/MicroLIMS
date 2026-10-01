@@ -734,7 +734,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       {/* Header Section */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
         <PageHeader
-          title={`${lab.name} — Workspace`}
+          title={`${lab.name} Workspace`}
           subtitle="Manage incoming samples, assignments, testing progress, review, and laboratory workflow execution from one workspace."
         />
 

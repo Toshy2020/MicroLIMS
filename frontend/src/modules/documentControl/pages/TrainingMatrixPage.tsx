@@ -506,7 +506,7 @@ export function TrainingMatrixPage() {
                   }}
                   onClick={() => handleDocClick(doc)}
                 >
-                  <Tooltip title={`${doc.companyDocumentCode} — ${doc.title} (Current Rev: ${doc.currentEffectiveRevisionNumber || "None"})`}>
+                  <Tooltip title={`${doc.companyDocumentCode}: ${doc.title} (Current Rev: ${doc.currentEffectiveRevisionNumber || "None"})`}>
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <Typography
                         variant="caption"

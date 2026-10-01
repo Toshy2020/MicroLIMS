@@ -69,7 +69,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
   };
 
   return (
-    <FloatingDialog open={open} title={`${testCode} Results — ${displayName}`} onClose={onClose}>
+    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
       {!rows && !error && <LoadingSpinner />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (

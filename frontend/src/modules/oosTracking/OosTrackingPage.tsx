@@ -485,7 +485,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
   return (
     <FloatingDialog
       open={open}
-      title={`Lab Investigation Documents — ${group.oosGroupCode}`}
+      title={`Lab Investigation Documents: ${group.oosGroupCode}`}
       onClose={onClose}
       actions={
         <Button onClick={onClose} disabled={submitting}>

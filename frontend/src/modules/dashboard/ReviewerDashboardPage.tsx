@@ -22,7 +22,6 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
@@ -42,8 +41,6 @@ function formatAge(minutes: number): string {
 
 export function ReviewerDashboardPage() {
   const theme = useTheme();
-  const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "Reviewer";
   const lab = useDashboardLab();
 
   const [data, setData] = useState<ReviewerDashboard | null>(null);
@@ -83,9 +80,9 @@ export function ReviewerDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Reviewer Command Center — ${displayName}`}
+        title="Reviewer Command Center"
         subtitle={lab.code
-          ? `${LAB_LABELS[lab.code]} · results waiting for your scientific review today.`
+          ? `Results in the ${LAB_LABELS[lab.code]} waiting for your scientific review today.`
           : "What results are waiting for your scientific review today?"}
       >
         <Button

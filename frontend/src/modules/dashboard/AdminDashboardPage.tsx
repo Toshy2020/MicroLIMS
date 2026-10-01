@@ -13,7 +13,6 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
@@ -44,8 +43,6 @@ const FP_CONFIG_LINKS = [
 
 export function AdminDashboardPage() {
   const theme = useTheme();
-  const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "System Administrator";
   const lab = useDashboardLab();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -90,9 +87,9 @@ export function AdminDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Administrator Command Center — ${displayName}`}
+        title="Administrator Command Center"
         subtitle={lab.code
-          ? `System administration, access control and audit compliance · ${LAB_LABELS[lab.code]} operations.`
+          ? `System administration, access control, audit compliance and ${LAB_LABELS[lab.code]} operations.`
           : "System administration, access control, audit compliance, and laboratory operations."}
       >
         <Button

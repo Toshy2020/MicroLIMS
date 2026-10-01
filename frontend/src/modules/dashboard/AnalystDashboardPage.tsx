@@ -81,7 +81,7 @@ export function AnalystDashboardPage() {
     <>
       <PageHeader
         title={`Welcome back, ${displayName}`}
-        subtitle={lab.code ? `${LAB_LABELS[lab.code]} · your prioritized work for today.` : "Your prioritized work for today."}
+        subtitle={lab.code ? `Your prioritized work in the ${LAB_LABELS[lab.code]} for today.` : "Your prioritized work for today."}
       >
         <Button
           variant="outlined"

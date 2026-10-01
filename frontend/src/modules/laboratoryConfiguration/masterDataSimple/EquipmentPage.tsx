@@ -1492,7 +1492,7 @@ export function EquipmentPage() {
         onClose={() => setProgramHistoryDialogOpen(false)}
         maxWidth="md"
         titleSx={{ fontWeight: 700 }}
-        title={`Program History — ${selectedProgramCode}`}
+        title={`Program History: ${selectedProgramCode}`}
         actions={
           <Button onClick={() => setProgramHistoryDialogOpen(false)} variant="contained">
             Close

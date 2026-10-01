@@ -124,7 +124,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
   };
 
   return (
-    <FloatingDialog open={open} title={`${testCode} Results — ${displayName}`} onClose={onClose}>
+    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
       {!rows && !error && <LoadingSpinner />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (

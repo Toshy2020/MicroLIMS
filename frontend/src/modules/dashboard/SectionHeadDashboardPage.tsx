@@ -24,7 +24,6 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
@@ -38,8 +37,6 @@ import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 export function SectionHeadDashboardPage() {
   const theme = useTheme();
-  const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "Section Head";
   const lab = useDashboardLab();
   // KPI tiles per row: Physicochemical has no incubation tiles (5 vs 7).
   const kpiCols = lab.isPhyschem ? 2.4 : 1.71;
@@ -108,9 +105,9 @@ export function SectionHeadDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Section Head Command Center — ${displayName}`}
+        title="Section Head Command Center"
         subtitle={lab.code
-          ? `${LAB_LABELS[lab.code]} · operational overview, workflow bottlenecks and intervention tracking.`
+          ? `Operational overview, workflow bottlenecks and intervention tracking for the ${LAB_LABELS[lab.code]}.`
           : "Laboratory-wide operational overview, workflow bottlenecks, and intervention tracking."}
       >
         <Button

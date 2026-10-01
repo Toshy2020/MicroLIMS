@@ -278,7 +278,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                 {items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell sx={{ fontWeight: 600 }}>
-                      {item.sectionNumber} — {item.sectionTitle}
+                      {item.sectionNumber} {item.sectionTitle}
                     </TableCell>
                     <TableCell>
                       <Chip label={item.changeCategory} size="small" variant="outlined" />

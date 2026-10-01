@@ -492,7 +492,7 @@ export function UsersPage() {
         open={Boolean(editProfileUser)}
         onClose={() => setEditProfileUser(null)}
         maxWidth="xs"
-        title={`Edit Profile — ${editProfileUser?.username}`}
+        title={`Edit Profile: ${editProfileUser?.username}`}
         actions={
           <>
             <Button onClick={() => setEditProfileUser(null)}>Cancel</Button>
@@ -512,7 +512,7 @@ export function UsersPage() {
         open={Boolean(roleDialogUser)}
         onClose={() => setRoleDialogUser(null)}
         maxWidth="xs"
-        title={`Change Role — ${roleDialogUser?.username}`}
+        title={`Change Role: ${roleDialogUser?.username}`}
         actions={
           <>
             <Button onClick={() => setRoleDialogUser(null)}>Cancel</Button>

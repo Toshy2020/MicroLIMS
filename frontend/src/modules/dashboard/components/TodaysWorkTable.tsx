@@ -109,7 +109,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
                 </TableCell>
                 <TableCell><CategoryBadge category={item.category} /></TableCell>
                 <TableCell>
-                  <Stack
+                  <Stack useFlexGap
                     direction="row"
                     spacing={0.5}
                     sx={{

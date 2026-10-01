@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Select, MenuItem, Button, Alert,
-  TextField, Typography, Stack
+  TextField, Typography, Stack,
+  TableContainer
 } from "@mui/material";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
@@ -125,23 +126,25 @@ export function MediaEvaluationPage() {
           <MenuItem value=""><em>All Statuses</em></MenuItem>
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </Select>
-        <Table size="small">
-          <TableHead><TableRow sx={tableHeadSx}>
-            <TableCell>Lot</TableCell><TableCell>Media Type</TableCell><TableCell>Evaluation Type</TableCell>
-            <TableCell>Status</TableCell><TableCell>Outcome</TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {evaluations.map((e) => (
-              <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => openDetail(e.id)}>
-                <TableCell>{e.media?.lotNumber}</TableCell>
-                <TableCell>{mediaClassLabel(e.media?.mediaType?.class)}</TableCell>
-                <TableCell>{evaluationTypeLabel(e.evaluationType)}</TableCell>
-                <TableCell><StatusBadge status={e.status} /></TableCell>
-                <TableCell>{e.outcome ? <StatusBadge status={e.outcome} /> : "—"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TableContainer>
+          <Table size="small">
+            <TableHead><TableRow sx={tableHeadSx}>
+              <TableCell>Lot</TableCell><TableCell>Media Type</TableCell><TableCell>Evaluation Type</TableCell>
+              <TableCell>Status</TableCell><TableCell>Outcome</TableCell>
+            </TableRow></TableHead>
+            <TableBody>
+              {evaluations.map((e) => (
+                <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => openDetail(e.id)}>
+                  <TableCell>{e.media?.lotNumber}</TableCell>
+                  <TableCell>{mediaClassLabel(e.media?.mediaType?.class)}</TableCell>
+                  <TableCell>{evaluationTypeLabel(e.evaluationType)}</TableCell>
+                  <TableCell><StatusBadge status={e.status} /></TableCell>
+                  <TableCell>{e.outcome ? <StatusBadge status={e.outcome} /> : "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
 
       <FloatingDialog

@@ -360,8 +360,8 @@ export function DocumentLibraryPage() {
       </Paper>
 
       {/* Library Table */}
-      <TableContainer component={Paper}>
-        <Table size="small">
+      <TableContainer component={Paper} sx={{ maxHeight: { md: "calc(100vh - 240px)" } }}>
+        <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Company Code</TableCell>

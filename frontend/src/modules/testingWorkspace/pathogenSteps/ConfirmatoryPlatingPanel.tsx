@@ -277,7 +277,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     Expected appearance of a target-positive colony: <strong>{m.expectedAppearance}</strong>
                   </Alert>
                 )}
-                <Stack direction="row" spacing={1} sx={{
+                <Stack useFlexGap direction="row" spacing={1} sx={{
                   flexWrap: "wrap"
                 }}>
                   <Select

@@ -274,7 +274,7 @@ function ReadOnlyDocumentCard({
           alignItems: "flex-start"
         }}>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1}
             sx={{

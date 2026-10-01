@@ -1,4 +1,4 @@
-import { Button, Table, TableHead, TableRow, TableCell, TableBody, Typography, Box , useTheme} from "@mui/material";
+import { Button, Table, TableHead, TableRow, TableCell, TableBody, Typography, Box , useTheme, TableContainer} from "@mui/material";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { NumericTrendPoint, QualitativeTrendPoint } from "../types/reportingTypes";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -75,66 +75,70 @@ export function TrendingDataDialog({
       actions={<Button onClick={onClose}>Close</Button>}
     >
         {isNumeric ? (
-          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Period / Date</TableCell>
-                <TableCell>Reference</TableCell>
-                <TableCell>Reported Result</TableCell>
-                <TableCell>Result Level</TableCell>
-                <TableCell>Mean</TableCell>
-                <TableCell>Upper Limit</TableCell>
-                <TableCell>Alert Level</TableCell>
-                <TableCell>Action Level</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {numericPoints.map((p, idx) => (
-                <TableRow
-                  key={idx}
-                  hover
-                  sx={{ cursor: onSelectRecord ? "pointer" : "default" }}
-                  onClick={() => onSelectRecord && onSelectRecord(p.recordId)}
-                >
-                  <TableCell>{p.label}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>{p.referenceNumber}</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>{p.reportedValue} {unit ?? ""}</TableCell>
-                  <TableCell><StatusBadge status={p.resultLevel} /></TableCell>
-                  <TableCell>{p.mean != null ? Number(p.mean).toFixed(1) : "—"}</TableCell>
-                  <TableCell>{p.upperLimit ?? "—"}</TableCell>
-                  <TableCell>{p.alertLevel ?? "—"}</TableCell>
-                  <TableCell>{p.actionLevel ?? "—"}</TableCell>
+          <TableContainer>
+            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Period / Date</TableCell>
+                  <TableCell>Reference</TableCell>
+                  <TableCell>Reported Result</TableCell>
+                  <TableCell>Result Level</TableCell>
+                  <TableCell>Mean</TableCell>
+                  <TableCell>Upper Limit</TableCell>
+                  <TableCell>Alert Level</TableCell>
+                  <TableCell>Action Level</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {numericPoints.map((p, idx) => (
+                  <TableRow
+                    key={idx}
+                    hover
+                    sx={{ cursor: onSelectRecord ? "pointer" : "default" }}
+                    onClick={() => onSelectRecord && onSelectRecord(p.recordId)}
+                  >
+                    <TableCell>{p.label}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>{p.referenceNumber}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{p.reportedValue} {unit ?? ""}</TableCell>
+                    <TableCell><StatusBadge status={p.resultLevel} /></TableCell>
+                    <TableCell>{p.mean != null ? Number(p.mean).toFixed(1) : "—"}</TableCell>
+                    <TableCell>{p.upperLimit ?? "—"}</TableCell>
+                    <TableCell>{p.alertLevel ?? "—"}</TableCell>
+                    <TableCell>{p.actionLevel ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         ) : (
-          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Period / Date</TableCell>
-                <TableCell>Detected Count</TableCell>
-                <TableCell>Absent / Conform Count</TableCell>
-                <TableCell>Total Evaluated</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {qualitativePoints.map((p, idx) => (
-                <TableRow key={idx} hover>
-                  <TableCell>{p.label}</TableCell>
-                  <TableCell sx={{ color: p.detectedCount > 0 ? brandColors.err : "inherit", fontWeight: p.detectedCount > 0 ? 700 : 400 }}>
-                    {p.detectedCount}
-                  </TableCell>
-                  <TableCell sx={{ color: brandColors.ok }}>{p.absentCount}</TableCell>
-                  <TableCell>{p.totalCount}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={p.detectedCount > 0 ? "Detected" : "Conform"} />
-                  </TableCell>
+          <TableContainer>
+            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Period / Date</TableCell>
+                  <TableCell>Detected Count</TableCell>
+                  <TableCell>Absent / Conform Count</TableCell>
+                  <TableCell>Total Evaluated</TableCell>
+                  <TableCell>Status</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {qualitativePoints.map((p, idx) => (
+                  <TableRow key={idx} hover>
+                    <TableCell>{p.label}</TableCell>
+                    <TableCell sx={{ color: p.detectedCount > 0 ? brandColors.err : "inherit", fontWeight: p.detectedCount > 0 ? 700 : 400 }}>
+                      {p.detectedCount}
+                    </TableCell>
+                    <TableCell sx={{ color: brandColors.ok }}>{p.absentCount}</TableCell>
+                    <TableCell>{p.totalCount}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={p.detectedCount > 0 ? "Detected" : "Conform"} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
     </FloatingDialog>
   );

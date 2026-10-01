@@ -26,7 +26,8 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  FormControl
+  FormControl,
+  TableContainer
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PrintIcon from "@mui/icons-material/Print";
@@ -434,46 +435,48 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
 
   return (
     <Box>
-      <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-        <TableHead sx={tableHeadSx}>
-          <TableRow>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Limits (Alert / Action / Spec)</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{unit}</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Result</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered By</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered At</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {locations.map((l, idx) => (
-            <TableRow key={idx} hover>
-              <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                {l.locationName}{l.gradeClassification ? ` (${l.gradeClassification})` : ""}
-              </TableCell>
-              <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                {l.alertLimit || "—"} / {l.actionLimit || "—"} / {l.specLimit || "—"}
-              </TableCell>
-              <TableCell sx={{ fontSize: 12, textAlign: "right", fontWeight: 700 }}>
-                {l.cfuResult ?? "—"}
-              </TableCell>
-              <TableCell sx={{ fontSize: 12 }}>
-                {l.reportedResult ?? "—"}
-              </TableCell>
-              <TableCell sx={{ textAlign: "center" }}>
-                {l.status ? <StatusBadge status={l.status} /> : "—"}
-              </TableCell>
-              <TableCell sx={{ fontSize: 12 }}>
-                {l.enteredByName || "—"}
-              </TableCell>
-              <TableCell sx={{ fontSize: 12 }}>
-                {formatDate(l.enteredAt)}
-              </TableCell>
+      <TableContainer>
+        <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+          <TableHead sx={tableHeadSx}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Limits (Alert / Action / Spec)</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{unit}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Result</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered By</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered At</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {locations.map((l, idx) => (
+              <TableRow key={idx} hover>
+                <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                  {l.locationName}{l.gradeClassification ? ` (${l.gradeClassification})` : ""}
+                </TableCell>
+                <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
+                  {l.alertLimit || "—"} / {l.actionLimit || "—"} / {l.specLimit || "—"}
+                </TableCell>
+                <TableCell sx={{ fontSize: 12, textAlign: "right", fontWeight: 700 }}>
+                  {l.cfuResult ?? "—"}
+                </TableCell>
+                <TableCell sx={{ fontSize: 12 }}>
+                  {l.reportedResult ?? "—"}
+                </TableCell>
+                <TableCell sx={{ textAlign: "center" }}>
+                  {l.status ? <StatusBadge status={l.status} /> : "—"}
+                </TableCell>
+                <TableCell sx={{ fontSize: 12 }}>
+                  {l.enteredByName || "—"}
+                </TableCell>
+                <TableCell sx={{ fontSize: 12 }}>
+                  {formatDate(l.enteredAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <Box sx={{ mt: 1.25, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           <strong>{conformCount}/{locations.length}</strong> locations within specification
@@ -506,56 +509,58 @@ function ElementalAssayResultBlock({ assay }: { assay: ElementalAssayDetail }) {
         <SummaryField label="Analysis Time" value={formatDate(assay.analysedAt)} />
         <SummaryField label="Entered By / At" value={`${assay.enteredByName ?? "—"} · ${formatDate(assay.enteredAt)}`} />
       </Box>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={headSx}>Parameter</TableCell>
-            <TableCell sx={headSx}>Element</TableCell>
-            <TableCell sx={headSx}>Calibration Run</TableCell>
-            <TableCell sx={headSx}>PPM</TableCell>
-            <TableCell sx={headSx}>Flags</TableCell>
-            <TableCell sx={headSx}>mg / unit</TableCell>
-            <TableCell sx={headSx}>Claim</TableCell>
-            <TableCell sx={headSx}>%LC</TableCell>
-            <TableCell sx={headSx}>Reported</TableCell>
-            <TableCell sx={headSx}>Specification</TableCell>
-            <TableCell sx={headSx}>Status</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {assay.elements.map((elem, idx) => {
-            const flags = [elem.overRange ? ">Range" : null, elem.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ") || "—";
-            return (
-              <TableRow key={idx}>
-                <TableCell sx={cellSx}>{elem.parameterName}</TableCell>
-                <TableCell sx={cellSx}>{elem.element}</TableCell>
-                <TableCell sx={cellSx}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                    <Typography sx={{ fontSize: 12 }}>{elem.runCode}</Typography>
-                    <Chip
-                      size="small"
-                      label={elem.runAnalytePassed ? "Pass" : "Fail"}
-                      color={elem.runAnalytePassed ? "success" : "error"}
-                      variant="outlined"
-                      sx={{ height: 18, fontSize: "0.65rem" }}
-                    />
-                  </Box>
-                </TableCell>
-                <TableCell sx={cellSx}>{num(elem.reportedPpm)}</TableCell>
-                <TableCell sx={cellSx}>{flags}</TableCell>
-                <TableCell sx={cellSx}>{elem.mgPerUnit !== null ? num(elem.mgPerUnit, 4) : "—"}</TableCell>
-                <TableCell sx={cellSx}>{elem.resultClaim !== null ? num(elem.resultClaim, 4) : "—"}</TableCell>
-                <TableCell sx={cellSx}>{elem.percentLabelClaim !== null ? `${num(elem.percentLabelClaim, 2)}%` : "—"}</TableCell>
-                <TableCell sx={{ ...cellSx, fontWeight: 600 }}>{elem.reportedDisplay}</TableCell>
-                <TableCell sx={cellSx}>{elem.specLimit ? `${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : "—"}</TableCell>
-                <TableCell sx={cellSx}>
-                  <StatusBadge status={elem.status} />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={headSx}>Parameter</TableCell>
+              <TableCell sx={headSx}>Element</TableCell>
+              <TableCell sx={headSx}>Calibration Run</TableCell>
+              <TableCell sx={headSx}>PPM</TableCell>
+              <TableCell sx={headSx}>Flags</TableCell>
+              <TableCell sx={headSx}>mg / unit</TableCell>
+              <TableCell sx={headSx}>Claim</TableCell>
+              <TableCell sx={headSx}>%LC</TableCell>
+              <TableCell sx={headSx}>Reported</TableCell>
+              <TableCell sx={headSx}>Specification</TableCell>
+              <TableCell sx={headSx}>Status</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {assay.elements.map((elem, idx) => {
+              const flags = [elem.overRange ? ">Range" : null, elem.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ") || "—";
+              return (
+                <TableRow key={idx}>
+                  <TableCell sx={cellSx}>{elem.parameterName}</TableCell>
+                  <TableCell sx={cellSx}>{elem.element}</TableCell>
+                  <TableCell sx={cellSx}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                      <Typography sx={{ fontSize: 12 }}>{elem.runCode}</Typography>
+                      <Chip
+                        size="small"
+                        label={elem.runAnalytePassed ? "Pass" : "Fail"}
+                        color={elem.runAnalytePassed ? "success" : "error"}
+                        variant="outlined"
+                        sx={{ height: 18, fontSize: "0.65rem" }}
+                      />
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={cellSx}>{num(elem.reportedPpm)}</TableCell>
+                  <TableCell sx={cellSx}>{flags}</TableCell>
+                  <TableCell sx={cellSx}>{elem.mgPerUnit !== null ? num(elem.mgPerUnit, 4) : "—"}</TableCell>
+                  <TableCell sx={cellSx}>{elem.resultClaim !== null ? num(elem.resultClaim, 4) : "—"}</TableCell>
+                  <TableCell sx={cellSx}>{elem.percentLabelClaim !== null ? `${num(elem.percentLabelClaim, 2)}%` : "—"}</TableCell>
+                  <TableCell sx={{ ...cellSx, fontWeight: 600 }}>{elem.reportedDisplay}</TableCell>
+                  <TableCell sx={cellSx}>{elem.specLimit ? `${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : "—"}</TableCell>
+                  <TableCell sx={cellSx}>
+                    <StatusBadge status={elem.status} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 }
@@ -589,36 +594,38 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
         {conditionsDisplay && <SummaryField label="Conditions" value={conditionsDisplay} />}
         <SummaryField label="Entered By / At" value={`${analysis.enteredByName ?? "—"} · ${formatDate(analysis.enteredAt)}`} />
       </Box>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={headSx}>Parameter</TableCell>
-            <TableCell sx={headSx}>Reported</TableCell>
-            <TableCell sx={headSx}>Unit</TableCell>
-            <TableCell sx={headSx}>Specification</TableCell>
-            <TableCell sx={headSx}>Status</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {analysis.parameterResults.map((p, idx) => {
-            const flags = [p.overRange ? ">Range" : null, p.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ");
-            return (
-              <TableRow key={idx}>
-                <TableCell sx={cellSx}>{p.parameterName}</TableCell>
-                <TableCell sx={{ ...cellSx, fontWeight: 600 }}>
-                  {p.reportedDisplay}
-                  {flags ? ` [${flags}]` : ""}
-                </TableCell>
-                <TableCell sx={cellSx}>{p.unit ?? "—"}</TableCell>
-                <TableCell sx={cellSx}>{p.specLimit ? `${p.specLimit}${p.unit ? ` ${p.unit}` : ""}` : "—"}</TableCell>
-                <TableCell sx={cellSx}>
-                  <StatusBadge status={p.comparisonStatus} />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={headSx}>Parameter</TableCell>
+              <TableCell sx={headSx}>Reported</TableCell>
+              <TableCell sx={headSx}>Unit</TableCell>
+              <TableCell sx={headSx}>Specification</TableCell>
+              <TableCell sx={headSx}>Status</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {analysis.parameterResults.map((p, idx) => {
+              const flags = [p.overRange ? ">Range" : null, p.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ");
+              return (
+                <TableRow key={idx}>
+                  <TableCell sx={cellSx}>{p.parameterName}</TableCell>
+                  <TableCell sx={{ ...cellSx, fontWeight: 600 }}>
+                    {p.reportedDisplay}
+                    {flags ? ` [${flags}]` : ""}
+                  </TableCell>
+                  <TableCell sx={cellSx}>{p.unit ?? "—"}</TableCell>
+                  <TableCell sx={cellSx}>{p.specLimit ? `${p.specLimit}${p.unit ? ` ${p.unit}` : ""}` : "—"}</TableCell>
+                  <TableCell sx={cellSx}>
+                    <StatusBadge status={p.comparisonStatus} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
       {analysis.analysisType === "StandardComparison" &&
         analysis.parameterResults
           .filter((p) => p.calculationJson)
@@ -756,22 +763,24 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
   return (
     <Box sx={{ mt: 1.5 }}>
       <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>Readings · {parameter.parameterName}</Typography>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={headSx}>#</TableCell>
-            {cols.map((c) => <TableCell key={c.label} sx={headSx}>{c.label}</TableCell>)}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {r.map((x) => (
-            <TableRow key={x.id}>
-              <TableCell sx={cellSx}>{x.index}</TableCell>
-              {cols.map((c) => <TableCell key={c.label} sx={cellSx}>{c.get(x) ?? "—"}</TableCell>)}
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={headSx}>#</TableCell>
+              {cols.map((c) => <TableCell key={c.label} sx={headSx}>{c.label}</TableCell>)}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {r.map((x) => (
+              <TableRow key={x.id}>
+                <TableCell sx={cellSx}>{x.index}</TableCell>
+                {cols.map((c) => <TableCell key={c.label} sx={cellSx}>{c.get(x) ?? "—"}</TableCell>)}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 }
@@ -983,7 +992,7 @@ function TestResultsSection({
                 expandIcon={<ExpandMoreIcon />}
                 sx={{ bgcolor: "background.default", px: 2.5, py: 0.5, borderBottom: "1px solid", borderBottomColor: "divider" }}
               >
-                <Stack
+                <Stack useFlexGap
                   direction="row"
                   spacing={1.5}
                   sx={{
@@ -1928,7 +1937,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   Complete overview of test execution, incubation stages, results, and approvals.
                 </Typography>
               </Box>
-              <Stack direction="row" spacing={1} sx={{ flexShrink: 0, flexWrap: "wrap", gap: 1 }}>
+              <Stack useFlexGap direction="row" spacing={1} sx={{ flexShrink: 0, flexWrap: "wrap", gap: 1 }}>
                 {exportError && <Alert severity="error" sx={{ py: 0, px: 1 }}>{exportError}</Alert>}
                 {summary.testOrders.some((t) => t.usesSharedTsb) && (
                 <Button

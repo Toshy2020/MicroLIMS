@@ -1,7 +1,8 @@
 import {
   Button, Box, Typography,
   Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip,
-  Stack, useTheme
+  Stack, useTheme,
+  TableContainer
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import BiocontrolIcon from "@mui/icons-material/Coronavirus";
@@ -194,39 +195,41 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           </Typography>
         </Box>
 
-        <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
-          <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Lot (Verified Against)</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Incubator</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Incubation Window</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Purity & Morphology Observation</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {detail.identityConfirmations.map((i) => (
-              <TableRow key={i.id} hover>
-                <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>
-                  {i.mediaLotNumber || "—"} {i.mediaName ? `(${i.mediaName})` : ""}
-                </TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{i.incubatorName || "—"}</TableCell>
-                <TableCell sx={{ fontSize: 11.5 }}>
-                  {formatDate(i.incubationStart)} – {formatDate(i.incubationEnd)}
-                </TableCell>
-                <TableCell sx={{ fontSize: 12 }}>
-                  <strong>{i.observationText}</strong>
-                </TableCell>
-              </TableRow>
-            ))}
-            {detail.identityConfirmations.length === 0 && (
+        <TableContainer>
+          <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
+            <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell colSpan={4} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
-                  No identity confirmation panel rows recorded for this batch.
-                </TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Lot (Verified Against)</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Incubator</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Incubation Window</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Purity & Morphology Observation</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {detail.identityConfirmations.map((i) => (
+                <TableRow key={i.id} hover>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>
+                    {i.mediaLotNumber || "—"} {i.mediaName ? `(${i.mediaName})` : ""}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{i.incubatorName || "—"}</TableCell>
+                  <TableCell sx={{ fontSize: 11.5 }}>
+                    {formatDate(i.incubationStart)} – {formatDate(i.incubationEnd)}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>
+                    <strong>{i.observationText}</strong>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {detail.identityConfirmations.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
+                    No identity confirmation panel rows recorded for this batch.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
 
       {/* Thaw History */}
@@ -238,31 +241,33 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           </Typography>
         </Box>
 
-        <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
-          <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Thawed Date & Time</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Thawed By Analyst</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Notes / Qualification Purpose</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {detail.thawHistory.map((t) => (
-              <TableRow key={t.id} hover>
-                <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{formatDateTime(t.thawedAt)}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{t.thawedByName}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{t.notes || "—"}</TableCell>
-              </TableRow>
-            ))}
-            {detail.thawHistory.length === 0 && (
+        <TableContainer>
+          <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
+            <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell colSpan={3} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
-                  No thaw events recorded yet for this cryovial batch.
-                </TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Thawed Date & Time</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Thawed By Analyst</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Notes / Qualification Purpose</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {detail.thawHistory.map((t) => (
+                <TableRow key={t.id} hover>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{formatDateTime(t.thawedAt)}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{t.thawedByName}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{t.notes || "—"}</TableCell>
+                </TableRow>
+              ))}
+              {detail.thawHistory.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
+                    No thaw events recorded yet for this cryovial batch.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
 
       {/* Usage Log: Primary (Direct GPT Challenges) */}
@@ -274,48 +279,50 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           </Typography>
         </Box>
 
-        <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
-          <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Lot Qualified</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Type</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Evaluation Type</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Challenge Role</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Outcome</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Read By / Date</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {detail.directUsageLog.map((u) => (
-              <TableRow key={u.challengeId} hover>
-                <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main, fontSize: 12 }}>
-                  {u.mediaLotNumber}
-                </TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{u.mediaType}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{u.evaluationType}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{u.challengeRole || "Standard Challenge"}</TableCell>
-                <TableCell>
-                  <Chip
-                    size="small"
-                    label={u.outcome || "Pending"}
-                    color={u.outcome === "Conform" ? "success" : u.outcome === "NonConform" ? "error" : "default"}
-                    sx={{ fontWeight: 700, fontSize: 10.5, height: 20 }}
-                  />
-                </TableCell>
-                <TableCell sx={{ fontSize: 11.5 }}>
-                  {u.readByName ? `${u.readByName} (${formatDate(u.readAt)})` : "Pending"}
-                </TableCell>
-              </TableRow>
-            ))}
-            {detail.directUsageLog.length === 0 && (
+        <TableContainer>
+          <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
+            <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell colSpan={6} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
-                  This strain batch has not been used in any Media/GPT challenges yet.
-                </TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Lot Qualified</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Type</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Evaluation Type</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Challenge Role</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Outcome</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Read By / Date</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {detail.directUsageLog.map((u) => (
+                <TableRow key={u.challengeId} hover>
+                  <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main, fontSize: 12 }}>
+                    {u.mediaLotNumber}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{u.mediaType}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{u.evaluationType}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{u.challengeRole || "Standard Challenge"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={u.outcome || "Pending"}
+                      color={u.outcome === "Conform" ? "success" : u.outcome === "NonConform" ? "error" : "default"}
+                      sx={{ fontWeight: 700, fontSize: 10.5, height: 20 }}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ fontSize: 11.5 }}>
+                    {u.readByName ? `${u.readByName} (${formatDate(u.readAt)})` : "Pending"}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {detail.directUsageLog.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
+                    This strain batch has not been used in any Media/GPT challenges yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
 
       {/* Secondary Indirect Rollup */}

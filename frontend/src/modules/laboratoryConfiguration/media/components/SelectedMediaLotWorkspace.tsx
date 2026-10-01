@@ -15,7 +15,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -479,43 +480,45 @@ export function SelectedMediaLotWorkspace({
                     <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.75 }}>
                       CHALLENGE ORGANISMS & STATUS:
                     </Typography>
-                    <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-                      <TableHead>
-                        <TableRow sx={tableHeadSx}>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Outcome</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {ev.challenges.map((c: any) => (
-                          <TableRow key={c.id}>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                              {c.organism?.scientificName || c.organismName || "—"}
-                              {c.challengeRole ? ` (${c.challengeRole})` : ""}
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>
-                              {c.cryovial?.code || c.cryovialCode || "Pending"}
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>
-                              {c.incubation
-                                ? `${c.incubation.temperature}°C, ${c.incubation.duration}h`
-                                : c.temperature
-                                ? `${c.temperature}°C, ${c.duration}h`
-                                : "Pending"}
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>
-                              {c.outcome ? (
-                                <StatusBadge status={c.outcome} />
-                              ) : (
-                                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pending</Typography>
-                              )}
-                            </TableCell>
+                    <TableContainer>
+                      <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+                        <TableHead>
+                          <TableRow sx={tableHeadSx}>
+                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
+                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
+                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
+                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Outcome</TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHead>
+                        <TableBody>
+                          {ev.challenges.map((c: any) => (
+                            <TableRow key={c.id}>
+                              <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                                {c.organism?.scientificName || c.organismName || "—"}
+                                {c.challengeRole ? ` (${c.challengeRole})` : ""}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>
+                                {c.cryovial?.code || c.cryovialCode || "Pending"}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>
+                                {c.incubation
+                                  ? `${c.incubation.temperature}°C, ${c.incubation.duration}h`
+                                  : c.temperature
+                                  ? `${c.temperature}°C, ${c.duration}h`
+                                  : "Pending"}
+                              </TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>
+                                {c.outcome ? (
+                                  <StatusBadge status={c.outcome} />
+                                ) : (
+                                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pending</Typography>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </Box>
                 )}
 
@@ -563,37 +566,39 @@ export function SelectedMediaLotWorkspace({
               {/* Challenges Summary */}
               {summary.evaluation.challenges && summary.evaluation.challenges.length > 0 && (
                 <Box sx={{ mt: 1.5, mb: 1.5 }}>
-                  <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-                    <TableHead>
-                      <TableRow sx={tableHeadSx}>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Outcome</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {summary.evaluation.challenges.map((c, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                            {c.organismName}
-                            {c.challengeRole ? ` (${c.challengeRole})` : ""}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>{c.cryovialCode || "Pending"}</TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {c.temperature ? `${c.temperature}°C, ${c.duration}h` : "Pending"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {c.outcome ? (
-                              <StatusBadge status={c.outcome} />
-                            ) : (
-                              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pending</Typography>
-                            )}
-                          </TableCell>
+                  <TableContainer>
+                    <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+                      <TableHead>
+                        <TableRow sx={tableHeadSx}>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Outcome</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHead>
+                      <TableBody>
+                        {summary.evaluation.challenges.map((c, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                              {c.organismName}
+                              {c.challengeRole ? ` (${c.challengeRole})` : ""}
+                            </TableCell>
+                            <TableCell sx={{ fontSize: 12 }}>{c.cryovialCode || "Pending"}</TableCell>
+                            <TableCell sx={{ fontSize: 12 }}>
+                              {c.temperature ? `${c.temperature}°C, ${c.duration}h` : "Pending"}
+                            </TableCell>
+                            <TableCell sx={{ fontSize: 12 }}>
+                              {c.outcome ? (
+                                <StatusBadge status={c.outcome} />
+                              ) : (
+                                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pending</Typography>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
               )}
             </Paper>

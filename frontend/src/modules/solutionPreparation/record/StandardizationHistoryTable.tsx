@@ -40,60 +40,62 @@ function ReplicatesSubTable({
   const theme = useTheme();
 
   return (
-    <Table size="small">
-      <TableHead sx={tableHeadSx(theme)}>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 700, width: 60 }}>Rep #</TableCell>
-          {isPrimary ? (
-            <>
-              <TableCell sx={{ fontWeight: 700 }}>Standard Lot</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Weight (mg)</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Purity (%)</TableCell>
-            </>
-          ) : (
-            <>
-              <TableCell sx={{ fontWeight: 700 }}>Reference Solution</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Ref Volume (mL)</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Ref Factor</TableCell>
-            </>
-          )}
-          <TableCell sx={{ fontWeight: 700 }}>Titrant Vol (mL)</TableCell>
-          <TableCell sx={{ fontWeight: 700 }}>Blank (mL)</TableCell>
-          <TableCell sx={{ fontWeight: 700 }}>Calculated Factor</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {replicates.map((r) => (
-          <TableRow key={r.id || r.replicateNo}>
-            <TableCell sx={{ fontWeight: 600 }}>{r.replicateNo}</TableCell>
+    <TableContainer>
+      <Table size="small">
+        <TableHead sx={tableHeadSx(theme)}>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, width: 60 }}>Rep #</TableCell>
             {isPrimary ? (
               <>
-                <TableCell sx={{ fontFamily: "monospace" }}>
-                  {r.standardLotBatchNumber || "—"}
-                </TableCell>
-                <TableCell>{r.standardWeightMg != null ? r.standardWeightMg : "—"}</TableCell>
-                <TableCell>{r.standardPurityPercent != null ? `${r.standardPurityPercent}%` : "100%"}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Standard Lot</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Weight (mg)</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Purity (%)</TableCell>
               </>
             ) : (
               <>
-                <TableCell sx={{ fontFamily: "monospace" }}>
-                  {r.referencePreparationCode || `Prep #${r.referencePreparationId}`}
-                </TableCell>
-                <TableCell>{r.referenceVolumeMl != null ? r.referenceVolumeMl : "—"}</TableCell>
-                <TableCell sx={{ fontFamily: "monospace" }}>
-                  {r.referenceFactor != null ? r.referenceFactor.toFixed(4) : "—"}
-                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Reference Solution</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Ref Volume (mL)</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Ref Factor</TableCell>
               </>
             )}
-            <TableCell>{r.titrantVolumeMl}</TableCell>
-            <TableCell>{r.blankMl != null ? r.blankMl : "—"}</TableCell>
-            <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-              {r.factor != null ? r.factor.toFixed(4) : "—"}
-            </TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Titrant Vol (mL)</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Blank (mL)</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Calculated Factor</TableCell>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHead>
+        <TableBody>
+          {replicates.map((r) => (
+            <TableRow key={r.id || r.replicateNo}>
+              <TableCell sx={{ fontWeight: 600 }}>{r.replicateNo}</TableCell>
+              {isPrimary ? (
+                <>
+                  <TableCell sx={{ fontFamily: "monospace" }}>
+                    {r.standardLotBatchNumber || "—"}
+                  </TableCell>
+                  <TableCell>{r.standardWeightMg != null ? r.standardWeightMg : "—"}</TableCell>
+                  <TableCell>{r.standardPurityPercent != null ? `${r.standardPurityPercent}%` : "100%"}</TableCell>
+                </>
+              ) : (
+                <>
+                  <TableCell sx={{ fontFamily: "monospace" }}>
+                    {r.referencePreparationCode || `Prep #${r.referencePreparationId}`}
+                  </TableCell>
+                  <TableCell>{r.referenceVolumeMl != null ? r.referenceVolumeMl : "—"}</TableCell>
+                  <TableCell sx={{ fontFamily: "monospace" }}>
+                    {r.referenceFactor != null ? r.referenceFactor.toFixed(4) : "—"}
+                  </TableCell>
+                </>
+              )}
+              <TableCell>{r.titrantVolumeMl}</TableCell>
+              <TableCell>{r.blankMl != null ? r.blankMl : "—"}</TableCell>
+              <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                {r.factor != null ? r.factor.toFixed(4) : "—"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 

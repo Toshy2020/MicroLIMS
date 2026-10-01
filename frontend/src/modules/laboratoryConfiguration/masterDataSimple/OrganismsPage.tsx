@@ -95,7 +95,7 @@ export function OrganismsPage() {
         <div>
           <SectionTitle>{editingId ? "Edit Organism" : "Add Organism"}</SectionTitle>
           <Paper sx={{ p: 2.5 }}>
-            <Stack
+            <Stack useFlexGap
               direction="row"
               spacing={1.5}
               sx={{

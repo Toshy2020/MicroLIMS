@@ -16,6 +16,7 @@ import {
   Divider,
   Stack,
   Paper,
+  TableContainer
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
@@ -378,34 +379,36 @@ export function MediaConfigurationDialog({
 
         {stagedChallenges.length > 0 && (
           <Paper variant="outlined" sx={{ p: 1, backgroundColor: "background.default" }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={tableHeadSx}>
-                  <TableCell>Organism</TableCell>
-                  <TableCell>ATCC / Ref</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Expected Description</TableCell>
-                  <TableCell>Initial Inoculum</TableCell>
-                  <TableCell align="right" />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stagedChallenges.map((c, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell sx={{ fontWeight: 500 }}>{c.organismName}</TableCell>
-                    <TableCell>{c.atccNumber ?? "—"}</TableCell>
-                    <TableCell>{c.challengeRole ?? "—"}</TableCell>
-                    <TableCell>{c.expectedDescription ?? "—"}</TableCell>
-                    <TableCell>{c.initialInoculum ?? "—"}</TableCell>
-                    <TableCell align="right">
-                      <IconButton aria-label={`Remove challenge organism ${idx + 1}`} size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={tableHeadSx}>
+                    <TableCell>Organism</TableCell>
+                    <TableCell>ATCC / Ref</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Expected Description</TableCell>
+                    <TableCell>Initial Inoculum</TableCell>
+                    <TableCell align="right" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {stagedChallenges.map((c, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell sx={{ fontWeight: 500 }}>{c.organismName}</TableCell>
+                      <TableCell>{c.atccNumber ?? "—"}</TableCell>
+                      <TableCell>{c.challengeRole ?? "—"}</TableCell>
+                      <TableCell>{c.expectedDescription ?? "—"}</TableCell>
+                      <TableCell>{c.initialInoculum ?? "—"}</TableCell>
+                      <TableCell align="right">
+                        <IconButton aria-label={`Remove challenge organism ${idx + 1}`} size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Paper>
         )}
       </Stack>

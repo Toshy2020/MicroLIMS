@@ -26,7 +26,7 @@ export function EmRoomCard({ room, configs, onEditRoom, onDeleteRoom, onAddConfi
       <Stack direction="row" sx={{ p: 2, alignItems: "flex-start", gap: 1 }}>
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Typography component="h3" sx={{ fontSize: 16, fontWeight: 600, overflowWrap: "anywhere" }}>{room.name}</Typography>
-          <Stack direction="row" spacing={0.75} sx={{ mt: 0.75, alignItems: "center", flexWrap: "wrap" }}>
+          <Stack useFlexGap direction="row" spacing={0.75} sx={{ mt: 0.75, alignItems: "center", flexWrap: "wrap" }}>
             <GradeChip grade={room.gradeClassification} />
             {empty ? (
               <ToneChip label="No tests configured" tone="inconclusive" />

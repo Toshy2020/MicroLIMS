@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, Tabs, Tab, CircularProgress, Alert, useTheme } from "@mui/material";
+import { Button, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, Tabs, Tab, CircularProgress, Alert, useTheme, TableContainer } from "@mui/material";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 import { CompareResult } from "../types/reportingTypes";
@@ -81,38 +81,40 @@ export function CompareDialog({ open, onClose, initialMode = "products", testCod
         <Alert severity="info">No results found for this test code in the selected date range.</Alert>
       )}
       {!loading && !error && subjects.length > 0 && (
-        <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>{mode === "products" ? "Product / Item" : "Location / Point"}</TableCell>
-              <TableCell align="right">Tests Evaluated</TableCell>
-              <TableCell align="right">{isNumeric ? "Mean Result" : "% Detected"}</TableCell>
-              <TableCell align="right">Alert / Action</TableCell>
-              <TableCell align="right">OOS Count</TableCell>
-              <TableCell align="right">{isNumeric ? "% Within Spec" : "% Not Detected"}</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {subjects.map((row) => (
-              <TableRow key={row.subjectName} hover>
-                <TableCell sx={{ fontWeight: 600 }}>{row.subjectName}</TableCell>
-                <TableCell align="right">{row.testsEvaluated}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  {isNumeric ? (row.meanValue ?? "—") : (row.percentDetected != null ? `${row.percentDetected}%` : "—")}
-                </TableCell>
-                <TableCell align="right" sx={{ color: row.alertActionCount > 0 ? brandColors.badgePM : "inherit" }}>
-                  {row.alertActionCount}
-                </TableCell>
-                <TableCell align="right" sx={{ color: row.oosCount > 0 ? brandColors.err : "inherit", fontWeight: row.oosCount > 0 ? 700 : 400 }}>
-                  {row.oosCount}
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: row.compliancePercent >= 95 ? brandColors.ok : brandColors.badgePM }}>
-                  {row.compliancePercent}%
-                </TableCell>
+        <TableContainer>
+          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>{mode === "products" ? "Product / Item" : "Location / Point"}</TableCell>
+                <TableCell align="right">Tests Evaluated</TableCell>
+                <TableCell align="right">{isNumeric ? "Mean Result" : "% Detected"}</TableCell>
+                <TableCell align="right">Alert / Action</TableCell>
+                <TableCell align="right">OOS Count</TableCell>
+                <TableCell align="right">{isNumeric ? "% Within Spec" : "% Not Detected"}</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {subjects.map((row) => (
+                <TableRow key={row.subjectName} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{row.subjectName}</TableCell>
+                  <TableCell align="right">{row.testsEvaluated}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    {isNumeric ? (row.meanValue ?? "—") : (row.percentDetected != null ? `${row.percentDetected}%` : "—")}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: row.alertActionCount > 0 ? brandColors.badgePM : "inherit" }}>
+                    {row.alertActionCount}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: row.oosCount > 0 ? brandColors.err : "inherit", fontWeight: row.oosCount > 0 ? 700 : 400 }}>
+                    {row.oosCount}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: row.compliancePercent >= 95 ? brandColors.ok : brandColors.badgePM }}>
+                    {row.compliancePercent}%
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
     </FloatingDialog>
   );

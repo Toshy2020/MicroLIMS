@@ -186,7 +186,7 @@ export function EMConfigPage() {
               <Stack direction="row" sx={{ px: 2.75, py: 2.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedDept.name}</Typography>
-                  <Stack direction="row" spacing={0.75} sx={{ mt: 0.5, alignItems: "center", flexWrap: "wrap" }}>
+                  <Stack useFlexGap direction="row" spacing={0.75} sx={{ mt: 0.5, alignItems: "center", flexWrap: "wrap" }}>
                     {selectedDept.class && <ToneChip label={selectedDept.class} tone="pending" />}
                     {selectedDept.testingFrequency && <ToneChip label={`Tested ${selectedDept.testingFrequency.toLowerCase()}`} tone="pending" />}
                     <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedDept.rooms ?? []).length, "room")}</Typography>

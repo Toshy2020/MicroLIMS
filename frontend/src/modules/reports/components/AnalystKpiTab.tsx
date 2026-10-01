@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Box, Paper, Typography, Grid, FormControl, InputLabel, Select, MenuItem,
   Button, Table, TableHead, TableRow, TableCell, TableBody, TableSortLabel,
-  Stack, Chip, Tooltip, useTheme
+  Stack, Chip, Tooltip, useTheme,
+  TableContainer
 } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -731,105 +732,107 @@ export function AnalystKpiTab() {
           <Chip size="small" label={`${sortedRows.length} Analysts`} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
         </Box>
 
-        <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Analyst</TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "assigned"} direction={orderBy === "assigned" ? order : "asc"} onClick={() => handleRequestSort("assigned")}>
-                  Assigned
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "completed"} direction={orderBy === "completed" ? order : "asc"} onClick={() => handleRequestSort("completed")}>
-                  Completed
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <Tooltip title="Configured Workload Units: Normalized metric based on test complexity weights">
-                  <TableSortLabel active={orderBy === "workloadUnits"} direction={orderBy === "workloadUnits" ? order : "asc"} onClick={() => handleRequestSort("workloadUnits")}>
-                    Workload Units
+        <TableContainer>
+          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Analyst</TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "assigned"} direction={orderBy === "assigned" ? order : "asc"} onClick={() => handleRequestSort("assigned")}>
+                    Assigned
                   </TableSortLabel>
-                </Tooltip>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "completionRatePercent"} direction={orderBy === "completionRatePercent" ? order : "asc"} onClick={() => handleRequestSort("completionRatePercent")}>
-                  Completion %
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "onTimePercent"} direction={orderBy === "onTimePercent" ? order : "asc"} onClick={() => handleRequestSort("onTimePercent")}>
-                  On-Time %
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "avgTestingTatDays"} direction={orderBy === "avgTestingTatDays" ? order : "asc"} onClick={() => handleRequestSort("avgTestingTatDays")}>
-                  Avg Result Turnaround
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "reviewReturns"} direction={orderBy === "reviewReturns" ? order : "asc"} onClick={() => handleRequestSort("reviewReturns")}>
-                  Review Returns
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel active={orderBy === "docCorrections"} direction={orderBy === "docCorrections" ? order : "asc"} onClick={() => handleRequestSort("docCorrections")}>
-                  Doc Corrections
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">Pending</TableCell>
-              <TableCell align="right">Overdue</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedRows.map((row) => {
-              const isSelected = selectedAnalystId === row.analystId;
-              return (
-                <TableRow
-                  key={row.analystId}
-                  hover
-                  selected={isSelected}
-                  sx={{ cursor: "pointer", bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit" }}
-                  onClick={() => setSelectedAnalystId(row.analystId)}
-                >
-                  <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                    {row.analystName} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({row.username})</Typography>
-                  </TableCell>
-                  <TableCell align="right">{row.assigned}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>{row.completed}</TableCell>
-                  <TableCell align="right">
-                    <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
-                  </TableCell>
-                  <TableCell align="right">{row.completionRatePercent}%</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title={row.onTimePercent != null
-                      ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
-                      : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "completed"} direction={orderBy === "completed" ? order : "asc"} onClick={() => handleRequestSort("completed")}>
+                    Completed
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <Tooltip title="Configured Workload Units: Normalized metric based on test complexity weights">
+                    <TableSortLabel active={orderBy === "workloadUnits"} direction={orderBy === "workloadUnits" ? order : "asc"} onClick={() => handleRequestSort("workloadUnits")}>
+                      Workload Units
+                    </TableSortLabel>
+                  </Tooltip>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "completionRatePercent"} direction={orderBy === "completionRatePercent" ? order : "asc"} onClick={() => handleRequestSort("completionRatePercent")}>
+                    Completion %
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "onTimePercent"} direction={orderBy === "onTimePercent" ? order : "asc"} onClick={() => handleRequestSort("onTimePercent")}>
+                    On-Time %
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "avgTestingTatDays"} direction={orderBy === "avgTestingTatDays" ? order : "asc"} onClick={() => handleRequestSort("avgTestingTatDays")}>
+                    Avg Result Turnaround
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "reviewReturns"} direction={orderBy === "reviewReturns" ? order : "asc"} onClick={() => handleRequestSort("reviewReturns")}>
+                    Review Returns
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel active={orderBy === "docCorrections"} direction={orderBy === "docCorrections" ? order : "asc"} onClick={() => handleRequestSort("docCorrections")}>
+                    Doc Corrections
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">Pending</TableCell>
+                <TableCell align="right">Overdue</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedRows.map((row) => {
+                const isSelected = selectedAnalystId === row.analystId;
+                return (
+                  <TableRow
+                    key={row.analystId}
+                    hover
+                    selected={isSelected}
+                    sx={{ cursor: "pointer", bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit" }}
+                    onClick={() => setSelectedAnalystId(row.analystId)}
+                  >
+                    <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+                      {row.analystName} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({row.username})</Typography>
+                    </TableCell>
+                    <TableCell align="right">{row.assigned}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>{row.completed}</TableCell>
+                    <TableCell align="right">
+                      <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
+                    </TableCell>
+                    <TableCell align="right">{row.completionRatePercent}%</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title={row.onTimePercent != null
+                        ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
+                        : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
+                        <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                          {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
+                    <TableCell align="right">
                       <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                        {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
+                        {row.reviewReturns != null ? row.reviewReturns : "—"}
                       </Typography>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
-                  <TableCell align="right">
-                    <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                      {row.reviewReturns != null ? row.reviewReturns : "—"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
-                      {row.docCorrections != null ? row.docCorrections : "—"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">{row.pending}</TableCell>
-                  <TableCell align="right" sx={{ color: row.overdue > 0 ? theme.custom.status.detected.text : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
-                    {row.overdue}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                        {row.docCorrections != null ? row.docCorrections : "—"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">{row.pending}</TableCell>
+                    <TableCell align="right" sx={{ color: row.overdue > 0 ? theme.custom.status.detected.text : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
+                      {row.overdue}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
 
       {/* Detailed Analyst Drill-Down (4 Panels) */}

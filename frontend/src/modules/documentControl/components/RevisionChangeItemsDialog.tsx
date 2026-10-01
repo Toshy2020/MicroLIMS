@@ -23,7 +23,8 @@ import {
   InputLabel,
   Paper,
   Tooltip,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 // Removal deactivates and retains the record rather than deleting it, so the
 // control must not carry a delete affordance (DC-URS-184, FS-1a-170).
@@ -260,60 +261,62 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
             No structured change items recorded for this revision yet.
           </Alert>
         ) : (
-          <Table size="small">
-            <TableHead sx={tableHeadSx(theme)}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Rationale</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Origin</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                {isEditable && <TableCell sx={{ fontWeight: 600, textAlign: "right" }}>Actions</TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell sx={{ fontWeight: 600 }}>
-                    {item.sectionNumber} — {item.sectionTitle}
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={item.changeCategory} size="small" variant="outlined" />
-                  </TableCell>
-                  <TableCell sx={{ maxWidth: 260 }}>{item.descriptionOfChange}</TableCell>
-                  <TableCell sx={{ maxWidth: 220 }}>{item.changeRationale}</TableCell>
-                  <TableCell>
-                    {item.originatingReviewFindingId ? (
-                      <Chip label={`Finding #${item.originatingReviewFindingId}`} size="small" color="secondary" />
-                    ) : (
-                      <Typography variant="caption" sx={{
-                        color: "text.secondary"
-                      }}>Author Added</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={item.status}
-                      size="small"
-                      color={item.status === "Addressed" ? "success" : "default"}
-                      onClick={isEditable ? () => handleToggleStatus(item) : undefined}
-                      sx={{ cursor: isEditable ? "pointer" : "default" }}
-                    />
-                  </TableCell>
-                  {isEditable && (
-                    <TableCell sx={{ textAlign: "right" }}>
-                      <Tooltip title="Remove change item from this draft">
-                        <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label="Remove change item from this draft">
-                          <RemoveCircleOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  )}
+          <TableContainer>
+            <Table size="small">
+              <TableHead sx={tableHeadSx(theme)}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Rationale</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Origin</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  {isEditable && <TableCell sx={{ fontWeight: 600, textAlign: "right" }}>Actions</TableCell>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      {item.sectionNumber} — {item.sectionTitle}
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={item.changeCategory} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 260 }}>{item.descriptionOfChange}</TableCell>
+                    <TableCell sx={{ maxWidth: 220 }}>{item.changeRationale}</TableCell>
+                    <TableCell>
+                      {item.originatingReviewFindingId ? (
+                        <Chip label={`Finding #${item.originatingReviewFindingId}`} size="small" color="secondary" />
+                      ) : (
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Author Added</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={item.status}
+                        size="small"
+                        color={item.status === "Addressed" ? "success" : "default"}
+                        onClick={isEditable ? () => handleToggleStatus(item) : undefined}
+                        sx={{ cursor: isEditable ? "pointer" : "default" }}
+                      />
+                    </TableCell>
+                    {isEditable && (
+                      <TableCell sx={{ textAlign: "right" }}>
+                        <Tooltip title="Remove change item from this draft">
+                          <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label="Remove change item from this draft">
+                            <RemoveCircleOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>

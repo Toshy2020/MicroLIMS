@@ -347,7 +347,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
             alignItems: { md: "center" }
           }}>
           <Box sx={{ flex: 1 }}>
-            <Stack
+            <Stack useFlexGap
               direction="row"
               spacing={1.5}
               sx={{
@@ -404,7 +404,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
             />
           </Box>
 
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1.5}
             sx={{
@@ -455,7 +455,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       )}
 
       {/* Filter and Search Bar */}
-      <Stack
+      <Stack useFlexGap
         direction="row"
         spacing={2}
         sx={{

@@ -13,7 +13,8 @@ import {
   Alert,
   CircularProgress,
   Stack,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -457,7 +458,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       </Stack>
 
       {/* Colour Legend */}
-      <Stack
+      <Stack useFlexGap
         direction="row"
         spacing={1}
         sx={{
@@ -498,121 +499,145 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         </Alert>
       ) : (
         <Box>
-          <Table
-            size="small"
-            sx={{
-              mb: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 1,
-              overflow: "hidden"
-            }}
-          >
-            <TableHead>
-              <TableRow sx={tableHeadSx}>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 220 }}>
-                  Assigned Test / Parameter
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>
-                  Limit Type
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 200 }}>
-                  Limit
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>
-                  Unit
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 150 }}>
-                  Reference Standard
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, width: 90 }}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {groupedSpecs.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    sx={{ py: 3, textAlign: "center", color: "text.secondary", fontStyle: "italic" }}
-                  >
-                    No specifications defined yet. Click &ldquo;Add Specification Parameter&rdquo; above to add limits.
+          <TableContainer>
+            <Table
+              size="small"
+              sx={{
+                mb: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                overflow: "hidden"
+              }}
+            >
+              <TableHead>
+                <TableRow sx={tableHeadSx}>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 220 }}>
+                    Assigned Test / Parameter
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>
+                    Limit Type
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 200 }}>
+                    Limit
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>
+                    Unit
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 150 }}>
+                    Reference Standard
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, width: 90 }}>
+                    Actions
                   </TableCell>
                 </TableRow>
-              ) : (
-                groupedSpecs.map((group) => {
-                  const testDisplayName = getTestDisplayName(group.testCode);
-                  const isMultiParam = group.specs.length > 1;
+              </TableHead>
+              <TableBody>
+                {groupedSpecs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      sx={{ py: 3, textAlign: "center", color: "text.secondary", fontStyle: "italic" }}
+                    >
+                      No specifications defined yet. Click &ldquo;Add Specification Parameter&rdquo; above to add limits.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  groupedSpecs.map((group) => {
+                    const testDisplayName = getTestDisplayName(group.testCode);
+                    const isMultiParam = group.specs.length > 1;
 
-                  if (!isMultiParam) {
-                    // Test with a single parameter
-                    const spec = group.specs[0];
-                    const isMultiStage = spec.limitType === "MultiStage";
-                    const displayName = spec.parameterName || testDisplayName;
+                    if (!isMultiParam) {
+                      // Test with a single parameter
+                      const spec = group.specs[0];
+                      const isMultiStage = spec.limitType === "MultiStage";
+                      const displayName = spec.parameterName || testDisplayName;
 
-                    return (
-                      <React.Fragment key={group.testCode}>
-                        <TableRow
-                          hover
-                          sx={{ "&:nth-of-type(even)": { bgcolor: "background.default" } }}
-                        >
-                          <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
-                            {displayName}
-                            {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole) && (
-                              <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
-                                {spec.productionStageRole && (
+                      return (
+                        <React.Fragment key={group.testCode}>
+                          <TableRow
+                            hover
+                            sx={{ "&:nth-of-type(even)": { bgcolor: "background.default" } }}
+                          >
+                            <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
+                              {displayName}
+                              {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole) && (
+                                <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                  {spec.productionStageRole && (
+                                    <Chip
+                                      size="small"
+                                      label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
+                                      sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
+                                    />
+                                  )}
+                                  {spec.canEdit === false && (
+                                    <Chip
+                                      size="small"
+                                      label={spec.sectionName || "Other lab"}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        color: "text.secondary",
+                                        bgcolor: "action.selected"
+                                      }}
+                                    />
+                                  )}
+                                  {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
+                                    <Chip
+                                      size="small"
+                                      label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: 11,
+                                        color: "primary.main",
+                                        bgcolor: "primary.50",
+                                        border: "1px solid",
+                                        borderColor: "primary.200"
+                                      }}
+                                    />
+                                  )}
+                                  {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
+                                    <Chip
+                                      size="small"
+                                      label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: 11,
+                                        color: "primary.main",
+                                        bgcolor: "primary.50",
+                                        border: "1px solid",
+                                        borderColor: "primary.200"
+                                      }}
+                                    />
+                                  )}
+                                  {spec.resultBasis && (
+                                    <Chip
+                                      size="small"
+                                      label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: 11,
+                                        color: "text.secondary",
+                                        bgcolor: "action.hover",
+                                        border: "1px solid",
+                                        borderColor: "divider"
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
+                            </TableCell>
+                            <TableCell sx={{ fontSize: 13 }}>
+                              {formatLimitCell(spec)}
+                              {spec.limitType === "CountTiered" && spec.dilutionFactor != null && (
+                                <Box sx={{ mt: 0.5 }}>
                                   <Chip
                                     size="small"
-                                    label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
-                                    sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
-                                  />
-                                )}
-                                {spec.canEdit === false && (
-                                  <Chip
-                                    size="small"
-                                    label={spec.sectionName || "Other lab"}
-                                    sx={{
-                                      height: 20,
-                                      fontSize: 11,
-                                      fontWeight: 600,
-                                      color: "text.secondary",
-                                      bgcolor: "action.selected"
-                                    }}
-                                  />
-                                )}
-                                {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
-                                  <Chip
-                                    size="small"
-                                    label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
-                                    sx={{
-                                      height: 20,
-                                      fontSize: 11,
-                                      color: "primary.main",
-                                      bgcolor: "primary.50",
-                                      border: "1px solid",
-                                      borderColor: "primary.200"
-                                    }}
-                                  />
-                                )}
-                                {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
-                                  <Chip
-                                    size="small"
-                                    label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
-                                    sx={{
-                                      height: 20,
-                                      fontSize: 11,
-                                      color: "primary.main",
-                                      bgcolor: "primary.50",
-                                      border: "1px solid",
-                                      borderColor: "primary.200"
-                                    }}
-                                  />
-                                )}
-                                {spec.resultBasis && (
-                                  <Chip
-                                    size="small"
-                                    label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                    label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
                                     sx={{
                                       height: 20,
                                       fontSize: 11,
@@ -622,385 +647,363 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       borderColor: "divider"
                                     }}
                                   />
-                                )}
-                              </Box>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 13 }}>
-                            {formatLimitCell(spec)}
-                            {spec.limitType === "CountTiered" && spec.dilutionFactor != null && (
-                              <Box sx={{ mt: 0.5 }}>
-                                <Chip
-                                  size="small"
-                                  label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
-                                  sx={{
-                                    height: 20,
-                                    fontSize: 11,
-                                    color: "text.secondary",
-                                    bgcolor: "action.hover",
-                                    border: "1px solid",
-                                    borderColor: "divider"
-                                  }}
-                                />
-                              </Box>
-                            )}
-                            {spec.limitType === "DissolutionQ" && spec.labelClaim != null && (
-                              <Box sx={{ mt: 0.5 }}>
-                                <Chip
-                                  size="small"
-                                  label={`Label Claim ${spec.labelClaim} ${spec.labelClaimUnit || "mg"}`}
-                                  sx={{
-                                    height: 20,
-                                    fontSize: 11,
-                                    color: "text.secondary",
-                                    bgcolor: "action.hover",
-                                    border: "1px solid",
-                                    borderColor: "divider"
-                                  }}
-                                />
-                              </Box>
-                            )}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 13 }}>{spec.unit || "\u2014"}</TableCell>
-                          <TableCell sx={{ fontSize: 13 }}>
-                            {spec.referenceStandard || "\u2014"}
-                          </TableCell>
-                          <TableCell align="right">
-                            {spec.canEdit === false ? (
-                              <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
-                                Read-only
-                              </Typography>
-                            ) : (
-                              <Stack
-                                direction="row"
-                                spacing={0.5}
-                                sx={{ justifyContent: "flex-end" }}
-                              >
-                                <IconButton aria-label={`Edit specification for ${spec.testCode}`}
-                                  size="small"
-                                  onClick={() => handleOpenEdit(spec)}
-                                  title="Edit Specification"
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton aria-label={`Delete specification for ${spec.testCode}`}
-                                  size="small"
-                                  color="error"
-                                  onClick={() => setPendingDelete(spec)}
-                                  title="Delete Specification"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Stack>
-                            )}
-                          </TableCell>
-                        </TableRow>
-
-                        {/* If MultiStage, always show stages as indented rows */}
-                        {isMultiStage &&
-                          spec.stages?.map((stage, sIdx) => (
-                            <TableRow
-                              key={`${spec.id ?? spec.testCode}-stage-${sIdx}`}
-                              sx={{ bgcolor: "action.hover" }}
-                            >
-                              <TableCell sx={{ pl: 3.5 }}>
+                                </Box>
+                              )}
+                              {spec.limitType === "DissolutionQ" && spec.labelClaim != null && (
+                                <Box sx={{ mt: 0.5 }}>
+                                  <Chip
+                                    size="small"
+                                    label={`Label Claim ${spec.labelClaim} ${spec.labelClaimUnit || "mg"}`}
+                                    sx={{
+                                      height: 20,
+                                      fontSize: 11,
+                                      color: "text.secondary",
+                                      bgcolor: "action.hover",
+                                      border: "1px solid",
+                                      borderColor: "divider"
+                                    }}
+                                  />
+                                </Box>
+                              )}
+                            </TableCell>
+                            <TableCell sx={{ fontSize: 13 }}>{spec.unit || "\u2014"}</TableCell>
+                            <TableCell sx={{ fontSize: 13 }}>
+                              {spec.referenceStandard || "\u2014"}
+                            </TableCell>
+                            <TableCell align="right">
+                              {spec.canEdit === false ? (
+                                <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                                  Read-only
+                                </Typography>
+                              ) : (
                                 <Stack
                                   direction="row"
-                                  spacing={1}
-                                  sx={{ alignItems: "center" }}
+                                  spacing={0.5}
+                                  sx={{ justifyContent: "flex-end" }}
                                 >
-                                  <Typography
-                                    sx={{ color: "text.secondary", fontSize: 13 }}
+                                  <IconButton aria-label={`Edit specification for ${spec.testCode}`}
+                                    size="small"
+                                    onClick={() => handleOpenEdit(spec)}
+                                    title="Edit Specification"
                                   >
-                                    &#8627;
-                                  </Typography>
-                                  <Typography sx={{ fontSize: 12 }}>
-                                    {stage.stageLabel}
-                                  </Typography>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton aria-label={`Delete specification for ${spec.testCode}`}
+                                    size="small"
+                                    color="error"
+                                    onClick={() => setPendingDelete(spec)}
+                                    title="Delete Specification"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
                                 </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <LimitTypeBadge type="StageCriteria" />
-                              </TableCell>
-                              <TableCell sx={{ fontSize: 13, color: "text.primary" }}>
-                                {stage.acceptanceCriteriaText}
-                              </TableCell>
-                              <TableCell sx={{ fontSize: 13 }}>
-                                {spec.unit || "\u2014"}
-                              </TableCell>
-                              <TableCell sx={{ fontSize: 13 }}>{"\u2014"}</TableCell>
-                              <TableCell align="right" />
-                            </TableRow>
-                          ))}
-                      </React.Fragment>
-                    );
-                  }
+                              )}
+                            </TableCell>
+                          </TableRow>
 
-                  // Test with several parameters - ownership (canEdit/sectionName)
-                  // is per TestCode, so it's the same for every spec in the group.
-                  const groupCanEdit = group.specs[0]?.canEdit !== false;
-                  const groupSectionName = group.specs[0]?.sectionName;
+                          {/* If MultiStage, always show stages as indented rows */}
+                          {isMultiStage &&
+                            spec.stages?.map((stage, sIdx) => (
+                              <TableRow
+                                key={`${spec.id ?? spec.testCode}-stage-${sIdx}`}
+                                sx={{ bgcolor: "action.hover" }}
+                              >
+                                <TableCell sx={{ pl: 3.5 }}>
+                                  <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    sx={{ alignItems: "center" }}
+                                  >
+                                    <Typography
+                                      sx={{ color: "text.secondary", fontSize: 13 }}
+                                    >
+                                      &#8627;
+                                    </Typography>
+                                    <Typography sx={{ fontSize: 12 }}>
+                                      {stage.stageLabel}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell>
+                                  <LimitTypeBadge type="StageCriteria" />
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 13, color: "text.primary" }}>
+                                  {stage.acceptanceCriteriaText}
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 13 }}>
+                                  {spec.unit || "\u2014"}
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 13 }}>{"\u2014"}</TableCell>
+                                <TableCell align="right" />
+                              </TableRow>
+                            ))}
+                        </React.Fragment>
+                      );
+                    }
 
-                  // Test with several parameters
-                  return (
-                    <React.Fragment key={group.testCode}>
-                      {/* Group Header Row */}
-                      <TableRow sx={{ bgcolor: "action.selected" }}>
-                        <TableCell colSpan={6} sx={{ py: 1 }}>
-                          <Stack
-                            direction="row"
-                            spacing={1.5}
-                            sx={{ alignItems: "center" }}
-                          >
-                            <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-                              {testDisplayName}
-                            </Typography>
-                            <Chip
-                              size="small"
-                              label={`${group.specs.length} parameters`}
-                              sx={{
-                                height: 20,
-                                fontSize: 11,
-                                bgcolor: "background.paper"
-                              }}
-                            />
-                            {!groupCanEdit && (
+                    // Test with several parameters - ownership (canEdit/sectionName)
+                    // is per TestCode, so it's the same for every spec in the group.
+                    const groupCanEdit = group.specs[0]?.canEdit !== false;
+                    const groupSectionName = group.specs[0]?.sectionName;
+
+                    // Test with several parameters
+                    return (
+                      <React.Fragment key={group.testCode}>
+                        {/* Group Header Row */}
+                        <TableRow sx={{ bgcolor: "action.selected" }}>
+                          <TableCell colSpan={6} sx={{ py: 1 }}>
+                            <Stack
+                              direction="row"
+                              spacing={1.5}
+                              sx={{ alignItems: "center" }}
+                            >
+                              <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
+                                {testDisplayName}
+                              </Typography>
                               <Chip
                                 size="small"
-                                label={groupSectionName || "Other lab"}
+                                label={`${group.specs.length} parameters`}
                                 sx={{
                                   height: 20,
                                   fontSize: 11,
-                                  fontWeight: 600,
-                                  color: "text.secondary",
                                   bgcolor: "background.paper"
                                 }}
                               />
-                            )}
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Indented parameter rows */}
-                      {group.specs.map((spec) => {
-                        const isMultiStage = spec.limitType === "MultiStage";
-                        return (
-                          <React.Fragment key={spec.id ?? spec.parameterName}>
-                            <TableRow hover>
-                              <TableCell sx={{ pl: 3.5 }}>
-                                <Stack
-                                  direction="row"
-                                  spacing={1}
-                                  sx={{ alignItems: "center" }}
-                                >
-                                  <Typography
-                                    sx={{ color: "text.secondary", fontSize: 13 }}
-                                  >
-                                    &#8627;
-                                  </Typography>
-                                  <Box>
-                                    <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
-                                      {spec.parameterName}
-                                    </Typography>
-                                    {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.productionStageRole) && (
-                                      <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
-                                        {spec.productionStageRole && (
-                                          <Chip
-                                            size="small"
-                                            label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
-                                            sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
-                                          />
-                                        )}
-                                        
-                                        {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
-                                          <Chip
-                                            size="small"
-                                            label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
-                                            sx={{
-                                              height: 20,
-                                              fontSize: 11,
-                                              color: "primary.main",
-                                              bgcolor: "primary.50",
-                                              border: "1px solid",
-                                              borderColor: "primary.200"
-                                            }}
-                                          />
-                                        )}
-                                        {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
-                                          <Chip
-                                            size="small"
-                                            label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
-                                            sx={{
-                                              height: 20,
-                                              fontSize: 11,
-                                              color: "primary.main",
-                                              bgcolor: "primary.50",
-                                              border: "1px solid",
-                                              borderColor: "primary.200"
-                                            }}
-                                          />
-                                        )}
-                                        {spec.resultBasis && (
-                                          <Chip
-                                            size="small"
-                                            label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
-                                            sx={{
-                                              height: 20,
-                                              fontSize: 11,
-                                              color: "text.secondary",
-                                              bgcolor: "action.hover",
-                                              border: "1px solid",
-                                              borderColor: "divider"
-                                            }}
-                                          />
-                                        )}
-                                      </Box>
-                                    )}
-                                  </Box>
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
-                              </TableCell>
-                              <TableCell sx={{ fontSize: 13 }}>
-                                {formatLimitCell(spec)}
-                                {spec.limitType === "CountTiered" &&
-                                  spec.dilutionFactor != null && (
-                                    <Box sx={{ mt: 0.5 }}>
-                                      <Chip
-                                        size="small"
-                                        label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
-                                        sx={{
-                                          height: 20,
-                                          fontSize: 11,
-                                          color: "text.secondary",
-                                          bgcolor: "action.hover",
-                                          border: "1px solid",
-                                          borderColor: "divider"
-                                        }}
-                                      />
-                                    </Box>
-                                  )}
-                              </TableCell>
-                              <TableCell sx={{ fontSize: 13 }}>
-                                {spec.unit || "\u2014"}
-                              </TableCell>
-                              <TableCell sx={{ fontSize: 13 }}>
-                                {spec.referenceStandard || "\u2014"}
-                              </TableCell>
-                              <TableCell align="right">
-                                {spec.canEdit === false ? (
-                                  <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
-                                    Read-only
-                                  </Typography>
-                                ) : (
-                                  <Stack
-                                    direction="row"
-                                    spacing={0.5}
-                                    sx={{ justifyContent: "flex-end" }}
-                                  >
-                                    <IconButton aria-label={`Edit specification for ${spec.testCode}`}
-                                      size="small"
-                                      onClick={() => handleOpenEdit(spec)}
-                                      title="Edit Specification"
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton aria-label={`Delete specification for ${spec.testCode}`}
-                                      size="small"
-                                      color="error"
-                                      onClick={() => setPendingDelete(spec)}
-                                      title="Delete Specification"
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                )}
-                              </TableCell>
-                            </TableRow>
-
-                            {/* Stages if MultiStage parameter */}
-                            {isMultiStage &&
-                              spec.stages?.map((stage, sIdx) => (
-                                <TableRow
-                                  key={`${spec.id ?? spec.testCode}-stage-${sIdx}`}
-                                  sx={{ bgcolor: "action.hover" }}
-                                >
-                                  <TableCell sx={{ pl: 5.5 }}>
-                                    <Stack
-                                      direction="row"
-                                      spacing={1}
-                                      sx={{ alignItems: "center" }}
-                                    >
-                                      <Typography
-                                        sx={{ color: "text.secondary", fontSize: 13 }}
-                                      >
-                                        &#8627;
-                                      </Typography>
-                                      <Typography sx={{ fontSize: 12 }}>
-                                        {stage.stageLabel}
-                                      </Typography>
-                                    </Stack>
-                                  </TableCell>
-                                  <TableCell>
-                                    <LimitTypeBadge type="StageCriteria" />
-                                  </TableCell>
-                                  <TableCell
-                                    sx={{ fontSize: 13, color: "text.primary" }}
-                                  >
-                                    {stage.acceptanceCriteriaText}
-                                  </TableCell>
-                                  <TableCell sx={{ fontSize: 13 }}>
-                                    {spec.unit || "\u2014"}
-                                  </TableCell>
-                                  <TableCell sx={{ fontSize: 13 }}>{"\u2014"}</TableCell>
-                                  <TableCell align="right" />
-                                </TableRow>
-                              ))}
-                          </React.Fragment>
-                        );
-                      })}
-
-                      {/* Add parameter link for this group - hidden for a
-                          read-only (other lab's) test, same rule as the
-                          per-row edit/delete buttons above */}
-                      {groupCanEdit && (
-                        <TableRow sx={{ "&:hover": { bgcolor: "transparent" } }}>
-                          <TableCell
-                            colSpan={6}
-                            sx={{
-                              pl: 3.5,
-                              py: 0.75,
-                              borderBottom: "1px solid",
-                              borderColor: "divider"
-                            }}
-                          >
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-                              onClick={() => handleAddParameterToTest(group.testCode)}
-                              sx={{
-                                textTransform: "none",
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: "primary.main",
-                                p: 0
-                              }}
-                            >
-                              + Add parameter to {testDisplayName}
-                            </Button>
+                              {!groupCanEdit && (
+                                <Chip
+                                  size="small"
+                                  label={groupSectionName || "Other lab"}
+                                  sx={{
+                                    height: 20,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: "text.secondary",
+                                    bgcolor: "background.paper"
+                                  }}
+                                />
+                              )}
+                            </Stack>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+
+                        {/* Indented parameter rows */}
+                        {group.specs.map((spec) => {
+                          const isMultiStage = spec.limitType === "MultiStage";
+                          return (
+                            <React.Fragment key={spec.id ?? spec.parameterName}>
+                              <TableRow hover>
+                                <TableCell sx={{ pl: 3.5 }}>
+                                  <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    sx={{ alignItems: "center" }}
+                                  >
+                                    <Typography
+                                      sx={{ color: "text.secondary", fontSize: 13 }}
+                                    >
+                                      &#8627;
+                                    </Typography>
+                                    <Box>
+                                      <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
+                                        {spec.parameterName}
+                                      </Typography>
+                                      {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.productionStageRole) && (
+                                        <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                          {spec.productionStageRole && (
+                                            <Chip
+                                              size="small"
+                                              label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
+                                              sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
+                                            />
+                                          )}
+                                        
+                                          {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
+                                            <Chip
+                                              size="small"
+                                              label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
+                                              sx={{
+                                                height: 20,
+                                                fontSize: 11,
+                                                color: "primary.main",
+                                                bgcolor: "primary.50",
+                                                border: "1px solid",
+                                                borderColor: "primary.200"
+                                              }}
+                                            />
+                                          )}
+                                          {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
+                                            <Chip
+                                              size="small"
+                                              label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
+                                              sx={{
+                                                height: 20,
+                                                fontSize: 11,
+                                                color: "primary.main",
+                                                bgcolor: "primary.50",
+                                                border: "1px solid",
+                                                borderColor: "primary.200"
+                                              }}
+                                            />
+                                          )}
+                                          {spec.resultBasis && (
+                                            <Chip
+                                              size="small"
+                                              label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                              sx={{
+                                                height: 20,
+                                                fontSize: 11,
+                                                color: "text.secondary",
+                                                bgcolor: "action.hover",
+                                                border: "1px solid",
+                                                borderColor: "divider"
+                                              }}
+                                            />
+                                          )}
+                                        </Box>
+                                      )}
+                                    </Box>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell>
+                                  <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 13 }}>
+                                  {formatLimitCell(spec)}
+                                  {spec.limitType === "CountTiered" &&
+                                    spec.dilutionFactor != null && (
+                                      <Box sx={{ mt: 0.5 }}>
+                                        <Chip
+                                          size="small"
+                                          label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
+                                          sx={{
+                                            height: 20,
+                                            fontSize: 11,
+                                            color: "text.secondary",
+                                            bgcolor: "action.hover",
+                                            border: "1px solid",
+                                            borderColor: "divider"
+                                          }}
+                                        />
+                                      </Box>
+                                    )}
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 13 }}>
+                                  {spec.unit || "\u2014"}
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 13 }}>
+                                  {spec.referenceStandard || "\u2014"}
+                                </TableCell>
+                                <TableCell align="right">
+                                  {spec.canEdit === false ? (
+                                    <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                                      Read-only
+                                    </Typography>
+                                  ) : (
+                                    <Stack
+                                      direction="row"
+                                      spacing={0.5}
+                                      sx={{ justifyContent: "flex-end" }}
+                                    >
+                                      <IconButton aria-label={`Edit specification for ${spec.testCode}`}
+                                        size="small"
+                                        onClick={() => handleOpenEdit(spec)}
+                                        title="Edit Specification"
+                                      >
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                      <IconButton aria-label={`Delete specification for ${spec.testCode}`}
+                                        size="small"
+                                        color="error"
+                                        onClick={() => setPendingDelete(spec)}
+                                        title="Delete Specification"
+                                      >
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    </Stack>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+
+                              {/* Stages if MultiStage parameter */}
+                              {isMultiStage &&
+                                spec.stages?.map((stage, sIdx) => (
+                                  <TableRow
+                                    key={`${spec.id ?? spec.testCode}-stage-${sIdx}`}
+                                    sx={{ bgcolor: "action.hover" }}
+                                  >
+                                    <TableCell sx={{ pl: 5.5 }}>
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{ alignItems: "center" }}
+                                      >
+                                        <Typography
+                                          sx={{ color: "text.secondary", fontSize: 13 }}
+                                        >
+                                          &#8627;
+                                        </Typography>
+                                        <Typography sx={{ fontSize: 12 }}>
+                                          {stage.stageLabel}
+                                        </Typography>
+                                      </Stack>
+                                    </TableCell>
+                                    <TableCell>
+                                      <LimitTypeBadge type="StageCriteria" />
+                                    </TableCell>
+                                    <TableCell
+                                      sx={{ fontSize: 13, color: "text.primary" }}
+                                    >
+                                      {stage.acceptanceCriteriaText}
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: 13 }}>
+                                      {spec.unit || "\u2014"}
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: 13 }}>{"\u2014"}</TableCell>
+                                    <TableCell align="right" />
+                                  </TableRow>
+                                ))}
+                            </React.Fragment>
+                          );
+                        })}
+
+                        {/* Add parameter link for this group - hidden for a
+                            read-only (other lab's) test, same rule as the
+                            per-row edit/delete buttons above */}
+                        {groupCanEdit && (
+                          <TableRow sx={{ "&:hover": { bgcolor: "transparent" } }}>
+                            <TableCell
+                              colSpan={6}
+                              sx={{
+                                pl: 3.5,
+                                py: 0.75,
+                                borderBottom: "1px solid",
+                                borderColor: "divider"
+                              }}
+                            >
+                              <Button
+                                size="small"
+                                startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                                onClick={() => handleAddParameterToTest(group.testCode)}
+                                sx={{
+                                  textTransform: "none",
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: "primary.main",
+                                  p: 0
+                                }}
+                              >
+                                + Add parameter to {testDisplayName}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
       )}
 

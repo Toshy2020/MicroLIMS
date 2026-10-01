@@ -148,7 +148,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         }}
       >
         <Box>
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1}
             sx={{

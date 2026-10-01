@@ -13,7 +13,8 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  TableContainer
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -111,38 +112,40 @@ function parseCalc(json: string | null): StandardComparisonCalculationData | nul
 // one, not recomputed here.
 function ResultsTable({ analysis }: { analysis: AnalysisDetail }) {
   return (
-    <Table size="small">
-      <TableHead>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyte</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Prep. RSD</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="center">Status</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {analysis.parameterResults.map((p: ParameterResultDetail) => {
-          const calc = parseCalc(p.calculationJson);
-          return (
-            <TableRow key={p.id}>
-              <TableCell sx={{ fontSize: 13, fontWeight: 600 }}>{p.parameterName}</TableCell>
-              <TableCell sx={{ fontSize: 13, fontWeight: 700 }}>{p.reportedDisplay}</TableCell>
-              <TableCell sx={{ fontSize: 13 }}>{p.specLimit ? `${p.specLimit}${p.unit ? ` ${p.unit}` : ""}` : "—"}</TableCell>
-              <TableCell sx={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-                {calc?.preparationRsdPercent != null ? `${calc.preparationRsdPercent.toFixed(2)} %` : "—"}
-                {calc?.reviewReason && (
-                  <Typography sx={{ fontSize: 11, color: "warning.main", mt: 0.25 }}>{calc.reviewReason}</Typography>
-                )}
-              </TableCell>
-              <TableCell align="center">
-                <StatusBadge status={p.comparisonStatus} />
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyte</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Prep. RSD</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="center">Status</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {analysis.parameterResults.map((p: ParameterResultDetail) => {
+            const calc = parseCalc(p.calculationJson);
+            return (
+              <TableRow key={p.id}>
+                <TableCell sx={{ fontSize: 13, fontWeight: 600 }}>{p.parameterName}</TableCell>
+                <TableCell sx={{ fontSize: 13, fontWeight: 700 }}>{p.reportedDisplay}</TableCell>
+                <TableCell sx={{ fontSize: 13 }}>{p.specLimit ? `${p.specLimit}${p.unit ? ` ${p.unit}` : ""}` : "—"}</TableCell>
+                <TableCell sx={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+                  {calc?.preparationRsdPercent != null ? `${calc.preparationRsdPercent.toFixed(2)} %` : "—"}
+                  {calc?.reviewReason && (
+                    <Typography sx={{ fontSize: 11, color: "warning.main", mt: 0.25 }}>{calc.reviewReason}</Typography>
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  <StatusBadge status={p.comparisonStatus} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -159,35 +162,37 @@ function PreparationsReadOnly({ analysis }: { analysis: AnalysisDetail }) {
         {items.map(({ p, calc }) => (
           <Box key={p.id}>
             <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>{p.parameterName}</Typography>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Preparation</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Th.Wt.test (mg)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Act.Wt.test (mg)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Deviation</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">{calc!.responseMode === "TitrationVolume" ? "Titre (mL)" : "Peak area"}</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">%Assay</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {calc!.preparations.map((pr) => (
-                  <TableRow key={pr.preparationIndex}>
-                    <TableCell sx={{ fontSize: 12 }}>
-                      P{pr.preparationIndex}
-                      {pr.weighInOutOfWindow && pr.weighInJustification && (
-                        <Typography sx={{ fontSize: 11, color: "warning.main" }}>{pr.weighInJustification}</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.theoreticalWeightMg} /></TableCell>
-                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.actualWeightMg} /></TableCell>
-                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.weighInDeviationPercent} decimals={2} unit="%" /></TableCell>
-                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.testResponse} /></TableCell>
-                    <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.percentAssay} decimals={2} unit="%" /></TableCell>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Preparation</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Th.Wt.test (mg)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Act.Wt.test (mg)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Deviation</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">{calc!.responseMode === "TitrationVolume" ? "Titre (mL)" : "Peak area"}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">%Assay</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {calc!.preparations.map((pr) => (
+                    <TableRow key={pr.preparationIndex}>
+                      <TableCell sx={{ fontSize: 12 }}>
+                        P{pr.preparationIndex}
+                        {pr.weighInOutOfWindow && pr.weighInJustification && (
+                          <Typography sx={{ fontSize: 11, color: "warning.main" }}>{pr.weighInJustification}</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.theoreticalWeightMg} /></TableCell>
+                      <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.actualWeightMg} /></TableCell>
+                      <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.weighInDeviationPercent} decimals={2} unit="%" /></TableCell>
+                      <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.testResponse} /></TableCell>
+                      <TableCell sx={{ fontSize: 12 }} align="right"><NumericCell value={pr.percentAssay} decimals={2} unit="%" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         ))}
       </Stack>
@@ -612,7 +617,7 @@ export function StandardComparisonPanel({
       <Stack spacing={2}>
       <ResultSection step={1} title="System suitability run">
       {linked && !changingRun ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+        <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{linked.code}</Typography>
           <StatusBadge status="Passed" />
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
@@ -643,41 +648,43 @@ export function StandardComparisonPanel({
       {linked && specs.length > 0 && (
         <Box sx={{ mt: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 1.5 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1 }}>Linked run — standard values (read-only)</Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Analyte</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Th.Wt.std</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Act.Wt.std</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>P (purity %)</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>MC %</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Mean std {isTitration ? "titre" : "response"}</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Computed RSD</TableCell>
-                {isTitration && <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Blank titre</TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {specs.map((s) => {
-                const a = runAnalyteFor(s);
-                const warning = runAnalyteWarning(a);
-                return (
-                  <TableRow key={s.testAnalyteId}>
-                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                      {s.parameterName}
-                      {warning && <Typography sx={{ fontSize: 11, color: "error.main" }}>{warning}</Typography>}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{a?.theoreticalWeightMg ?? "—"}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{a?.standardWeightMg ?? "—"}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{a?.standardPurityPercent ?? "—"}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{a?.moisturePercent ?? "—"}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{a?.standardMeanArea ?? "—"}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{a?.computedRsdPercent != null ? `${a.computedRsdPercent.toFixed(2)} %` : "—"}</TableCell>
-                    {isTitration && <TableCell sx={{ fontSize: 12 }}>{a?.blankTitreMl ?? "—"}</TableCell>}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Analyte</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Th.Wt.std</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Act.Wt.std</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>P (purity %)</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>MC %</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Mean std {isTitration ? "titre" : "response"}</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Computed RSD</TableCell>
+                  {isTitration && <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Blank titre</TableCell>}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {specs.map((s) => {
+                  const a = runAnalyteFor(s);
+                  const warning = runAnalyteWarning(a);
+                  return (
+                    <TableRow key={s.testAnalyteId}>
+                      <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                        {s.parameterName}
+                        {warning && <Typography sx={{ fontSize: 11, color: "error.main" }}>{warning}</Typography>}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{a?.theoreticalWeightMg ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{a?.standardWeightMg ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{a?.standardPurityPercent ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{a?.moisturePercent ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{a?.standardMeanArea ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{a?.computedRsdPercent != null ? `${a.computedRsdPercent.toFixed(2)} %` : "—"}</TableCell>
+                      {isTitration && <TableCell sx={{ fontSize: 12 }}>{a?.blankTitreMl ?? "—"}</TableCell>}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
       )}
 
@@ -785,34 +792,36 @@ export function StandardComparisonPanel({
             <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1 }}>
               Preview — %Assay per preparation (client-side estimate; the saved value is always calculated by the server)
             </Typography>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Analyte</TableCell>
-                  {Array.from({ length: expectedPreps }, (_, i) => (
-                    <TableCell key={i} sx={{ fontSize: 11, fontWeight: 700 }}>P{i + 1}</TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {specs.map((s, rowIdx) => {
-                  const a = runAnalyteFor(s);
-                  return (
-                    <TableRow key={s.testAnalyteId}>
-                      <TableCell sx={{ fontSize: 12 }}>{s.parameterName}</TableCell>
-                      {Array.from({ length: expectedPreps }, (_, i) => {
-                        const val = previewAssay(a, i, responses[rowIdx]?.[prepKey(i + 1)] ?? "");
-                        return (
-                          <TableCell key={i} sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                            {val != null ? `${val.toFixed(2)} %` : "—"}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Analyte</TableCell>
+                    {Array.from({ length: expectedPreps }, (_, i) => (
+                      <TableCell key={i} sx={{ fontSize: 11, fontWeight: 700 }}>P{i + 1}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {specs.map((s, rowIdx) => {
+                    const a = runAnalyteFor(s);
+                    return (
+                      <TableRow key={s.testAnalyteId}>
+                        <TableCell sx={{ fontSize: 12 }}>{s.parameterName}</TableCell>
+                        {Array.from({ length: expectedPreps }, (_, i) => {
+                          const val = previewAssay(a, i, responses[rowIdx]?.[prepKey(i + 1)] ?? "");
+                          return (
+                            <TableCell key={i} sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                              {val != null ? `${val.toFixed(2)} %` : "—"}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         )}
 

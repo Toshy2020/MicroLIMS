@@ -62,8 +62,8 @@ export function AuditResultsTable({
 
   return (
     <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
-      <TableContainer>
-        <Table size="small">
+      <TableContainer sx={{ maxHeight: { md: "calc(100vh - 240px)" } }}>
+        <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Date / Time</TableCell>

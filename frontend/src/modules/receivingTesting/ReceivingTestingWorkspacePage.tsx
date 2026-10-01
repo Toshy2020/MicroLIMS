@@ -16,7 +16,8 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -667,39 +668,41 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           bgcolor: "background.paper"
         }}
       >
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
-              <TableCell>Item / Reference</TableCell>
-              <TableCell sx={{ width: 65 }}>Type</TableCell>
-              <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
-              <TableCell sx={{ width: 85 }}>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {displayRecords.map((s) => (
-              <SampleTableRow
-                key={s.sampleId}
-                sample={s as unknown as WorkspaceSampleCard}
-                isSelected={selectedSampleId === s.sampleId}
-                isChecked={checkedSampleIds.has(s.sampleId)}
-                onToggleCheck={handleToggleCheckSample}
-                onSelectSample={(sample) => handleSelectSample(sample)}
-                isCompact={true}
-                visibleColumns={new Set(["category", "batch", "control", "status"])}
-                colSpan={4}
-                onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
-              />
-            ))}
-            {displayRecords.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
-                  No matching samples found.
-                </TableCell>
+        <TableContainer>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
+                <TableCell>Item / Reference</TableCell>
+                <TableCell sx={{ width: 65 }}>Type</TableCell>
+                <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
+                <TableCell sx={{ width: 85 }}>Status</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {displayRecords.map((s) => (
+                <SampleTableRow
+                  key={s.sampleId}
+                  sample={s as unknown as WorkspaceSampleCard}
+                  isSelected={selectedSampleId === s.sampleId}
+                  isChecked={checkedSampleIds.has(s.sampleId)}
+                  onToggleCheck={handleToggleCheckSample}
+                  onSelectSample={(sample) => handleSelectSample(sample)}
+                  isCompact={true}
+                  visibleColumns={new Set(["category", "batch", "control", "status"])}
+                  colSpan={4}
+                  onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
+                />
+              ))}
+              {displayRecords.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
+                    No matching samples found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
         {!showSelectedOnly && totalCount > 0 && (
           <TablePagination
             component="div"

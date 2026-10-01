@@ -18,7 +18,8 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  TableContainer
 } from "@mui/material";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SignatureDialog } from "../../components/SignatureDialog";
@@ -337,41 +338,43 @@ export function ElementalAssayPanel({
 
         {recordedElements && recordedElements.length > 0 ? (
           <ResultSection title="Reported elemental results (calculated by server)">
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "action.hover" }}>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Element</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Calibration run</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="right">Reported (ppm)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Display</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="center">Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {recordedElements.map((elem) => (
-                  <TableRow key={elem.parameterName || elem.element}>
-                    <TableCell sx={{ fontSize: 13, fontWeight: 600 }}>
-                      {elem.element} {elem.parameterName !== elem.element && `(${elem.parameterName})`}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13 }}>
-                      {elem.runCode}{" "}
-                      <StatusBadge status={elem.runAnalytePassed ? "Passed" : "Failed"} />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13 }} align="right">
-                      {elem.overRange ? "Over range" : elem.belowLoq ? "< LOQ" : <NumericCell value={elem.reportedPpm} />}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13, fontWeight: 700, color: "primary.main", fontVariantNumeric: "tabular-nums" }}>
-                      {elem.reportedDisplay}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13 }}>{elem.specLimit ?? "—"}</TableCell>
-                    <TableCell sx={{ fontSize: 13 }} align="center">
-                      <StatusBadge status={elem.status} />
-                    </TableCell>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "action.hover" }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Element</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Calibration run</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="right">Reported (ppm)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Display</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Specification</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }} align="center">Status</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {recordedElements.map((elem) => (
+                    <TableRow key={elem.parameterName || elem.element}>
+                      <TableCell sx={{ fontSize: 13, fontWeight: 600 }}>
+                        {elem.element} {elem.parameterName !== elem.element && `(${elem.parameterName})`}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13 }}>
+                        {elem.runCode}{" "}
+                        <StatusBadge status={elem.runAnalytePassed ? "Passed" : "Failed"} />
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13 }} align="right">
+                        {elem.overRange ? "Over range" : elem.belowLoq ? "< LOQ" : <NumericCell value={elem.reportedPpm} />}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13, fontWeight: 700, color: "primary.main", fontVariantNumeric: "tabular-nums" }}>
+                        {elem.reportedDisplay}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13 }}>{elem.specLimit ?? "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 13 }} align="center">
+                        <StatusBadge status={elem.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </ResultSection>
         ) : null}
 

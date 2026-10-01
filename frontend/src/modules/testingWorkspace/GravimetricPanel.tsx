@@ -377,7 +377,7 @@ export function GravimetricPanel({
 
         {testDef && (
           <ResultSection title="Analysis summary">
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>

@@ -85,7 +85,7 @@ export function MediaProductWorkspace({
         }}
       >
         <Box>
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1}
             sx={{
@@ -102,7 +102,7 @@ export function MediaProductWorkspace({
             </Typography>
           </Stack>
 
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1}
             sx={{

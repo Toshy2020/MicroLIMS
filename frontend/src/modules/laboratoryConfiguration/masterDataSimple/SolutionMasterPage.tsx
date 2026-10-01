@@ -182,7 +182,7 @@ export function SolutionMasterPage() {
       render: (sol) => (
         <>
           <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{sol.name}</Typography>
-          <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
+          <Stack useFlexGap direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
             {sol.phTarget != null && (
               <Typography variant="caption" color="text.secondary">
                 pH {sol.phTarget}{sol.phTolerance != null ? ` ± ${sol.phTolerance}` : ""}

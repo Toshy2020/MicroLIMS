@@ -708,7 +708,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 justifyContent: "space-between",
                 alignItems: { md: "center" }
               }}>
-              <Stack
+              <Stack useFlexGap
                 direction="row"
                 spacing={1.5}
                 sx={{

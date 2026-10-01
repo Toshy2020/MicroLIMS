@@ -23,7 +23,8 @@ import {
   Divider,
   Stack,
   CircularProgress,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
@@ -891,37 +892,39 @@ export function EquipmentPage() {
                         Set Point Change History
                       </Typography>
 
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow sx={tableHeadSx}>
-                            <TableCell>Effective On</TableCell>
-                            <TableCell align="right">Previous</TableCell>
-                            <TableCell align="right">New</TableCell>
-                            <TableCell>Changed By</TableCell>
-                            <TableCell>Reason for Change</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {safeSetPointHistory.map((h) => (
-                            <TableRow key={h.id}>
-                              <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
-                              <TableCell align="right">{h.previousSetPoint} °C</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{h.newSetPoint} °C</TableCell>
-                              <TableCell>{h.changedByName}</TableCell>
-                              <TableCell>{h.reason}</TableCell>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={tableHeadSx}>
+                              <TableCell>Effective On</TableCell>
+                              <TableCell align="right">Previous</TableCell>
+                              <TableCell align="right">New</TableCell>
+                              <TableCell>Changed By</TableCell>
+                              <TableCell>Reason for Change</TableCell>
                             </TableRow>
-                          ))}
-                          {safeSetPointHistory.length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={5} align="center" sx={{ color: setPointHistoryFailed ? "error.main" : "text.secondary", py: 3 }}>
-                                {setPointHistoryFailed
-                                  ? "The set point history could not be loaded. Select the incubator again to retry."
-                                  : "No set point changes recorded yet."}
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
+                          </TableHead>
+                          <TableBody>
+                            {safeSetPointHistory.map((h) => (
+                              <TableRow key={h.id}>
+                                <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
+                                <TableCell align="right">{h.previousSetPoint} °C</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{h.newSetPoint} °C</TableCell>
+                                <TableCell>{h.changedByName}</TableCell>
+                                <TableCell>{h.reason}</TableCell>
+                              </TableRow>
+                            ))}
+                            {safeSetPointHistory.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ color: setPointHistoryFailed ? "error.main" : "text.secondary", py: 3 }}>
+                                  {setPointHistoryFailed
+                                    ? "The set point history could not be loaded. Select the incubator again to retry."
+                                    : "No set point changes recorded yet."}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </Paper>
                   )}
 
@@ -940,65 +943,67 @@ export function EquipmentPage() {
                         </Button>
                       </Box>
 
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow sx={tableHeadSx}>
-                            <TableCell>Program</TableCell>
-                            <TableCell>Program / Load Name</TableCell>
-                            <TableCell>Load Type</TableCell>
-                            <TableCell align="right">Temperature</TableCell>
-                            <TableCell align="right">Cycle Time</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell align="center">Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {autoclaveProgramsForSelected.map((p) => (
-                            <TableRow key={p.id}>
-                              <TableCell sx={{ fontWeight: 700 }}>{p.programCode}</TableCell>
-                              <TableCell>{p.programName}</TableCell>
-                              <TableCell>{p.loadType}</TableCell>
-                              <TableCell align="right">{p.temperature} °C</TableCell>
-                              <TableCell align="right">{p.cycleTimeMinutes} min</TableCell>
-                              <TableCell>
-                                <Chip
-                                  size="small"
-                                  label={p.isActive ? "Active" : "Inactive"}
-                                  color={p.isActive ? "success" : "default"}
-                                  sx={{ height: 20, fontSize: 11 }}
-                                />
-                              </TableCell>
-                              <TableCell align="center">
-                                <Tooltip title="Edit Program">
-                                  <IconButton size="small" onClick={() => handleOpenEditProgram(p)}>
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Button
-                                  size="small"
-                                  sx={{ fontSize: 11, minWidth: 60 }}
-                                  color={p.isActive ? "warning" : "success"}
-                                  onClick={() => handleToggleProgramStatus(p)}
-                                >
-                                  {p.isActive ? "Deactivate" : "Activate"}
-                                </Button>
-                                <Tooltip title="View History">
-                                  <IconButton size="small" onClick={() => handleViewProgramHistory(p)}>
-                                    <HistoryIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </TableCell>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={tableHeadSx}>
+                              <TableCell>Program</TableCell>
+                              <TableCell>Program / Load Name</TableCell>
+                              <TableCell>Load Type</TableCell>
+                              <TableCell align="right">Temperature</TableCell>
+                              <TableCell align="right">Cycle Time</TableCell>
+                              <TableCell>Status</TableCell>
+                              <TableCell align="center">Actions</TableCell>
                             </TableRow>
-                          ))}
-                          {autoclaveProgramsForSelected.length === 0 && (
-                            <TableRow>
-                              <TableCell colSpan={7} align="center" sx={{ color: "text.secondary", py: 3 }}>
-                                No autoclave programs configured. Click "+ Add Program / Load" to configure one.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
+                          </TableHead>
+                          <TableBody>
+                            {autoclaveProgramsForSelected.map((p) => (
+                              <TableRow key={p.id}>
+                                <TableCell sx={{ fontWeight: 700 }}>{p.programCode}</TableCell>
+                                <TableCell>{p.programName}</TableCell>
+                                <TableCell>{p.loadType}</TableCell>
+                                <TableCell align="right">{p.temperature} °C</TableCell>
+                                <TableCell align="right">{p.cycleTimeMinutes} min</TableCell>
+                                <TableCell>
+                                  <Chip
+                                    size="small"
+                                    label={p.isActive ? "Active" : "Inactive"}
+                                    color={p.isActive ? "success" : "default"}
+                                    sx={{ height: 20, fontSize: 11 }}
+                                  />
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Tooltip title="Edit Program">
+                                    <IconButton size="small" onClick={() => handleOpenEditProgram(p)}>
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Button
+                                    size="small"
+                                    sx={{ fontSize: 11, minWidth: 60 }}
+                                    color={p.isActive ? "warning" : "success"}
+                                    onClick={() => handleToggleProgramStatus(p)}
+                                  >
+                                    {p.isActive ? "Deactivate" : "Activate"}
+                                  </Button>
+                                  <Tooltip title="View History">
+                                    <IconButton size="small" onClick={() => handleViewProgramHistory(p)}>
+                                      <HistoryIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {autoclaveProgramsForSelected.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={7} align="center" sx={{ color: "text.secondary", py: 3 }}>
+                                  No autoclave programs configured. Click "+ Add Program / Load" to configure one.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </Paper>
                   )}
 
@@ -1057,58 +1062,60 @@ export function EquipmentPage() {
           {activeTab === 1 && (
             <Paper sx={{ p: 2.5 }}>
               <SectionTitle>All Configured Autoclave Programs / Loads</SectionTitle>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={tableHeadSx}>
-                    <TableCell>Autoclave</TableCell>
-                    <TableCell>Program Code</TableCell>
-                    <TableCell>Program / Load Name</TableCell>
-                    <TableCell>Load Type</TableCell>
-                    <TableCell align="right">Temperature</TableCell>
-                    <TableCell align="right">Cycle Time</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell align="center">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {safeAllPrograms.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell sx={{ fontWeight: 700 }}>{p.autoclaveCode} ({p.autoclaveName})</TableCell>
-                      <TableCell>{p.programCode}</TableCell>
-                      <TableCell>{p.programName}</TableCell>
-                      <TableCell>{p.loadType}</TableCell>
-                      <TableCell align="right">{p.temperature} °C</TableCell>
-                      <TableCell align="right">{p.cycleTimeMinutes} min</TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={p.isActive ? "Active" : "Inactive"}
-                          color={p.isActive ? "success" : "default"}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Edit Program">
-                          <IconButton size="small" onClick={() => handleOpenEditProgram(p)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="View History">
-                          <IconButton size="small" onClick={() => handleViewProgramHistory(p)}>
-                            <HistoryIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={tableHeadSx}>
+                      <TableCell>Autoclave</TableCell>
+                      <TableCell>Program Code</TableCell>
+                      <TableCell>Program / Load Name</TableCell>
+                      <TableCell>Load Type</TableCell>
+                      <TableCell align="right">Temperature</TableCell>
+                      <TableCell align="right">Cycle Time</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="center">Actions</TableCell>
                     </TableRow>
-                  ))}
-                  {safeAllPrograms.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        No autoclave programs configured across any autoclaves.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {safeAllPrograms.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell sx={{ fontWeight: 700 }}>{p.autoclaveCode} ({p.autoclaveName})</TableCell>
+                        <TableCell>{p.programCode}</TableCell>
+                        <TableCell>{p.programName}</TableCell>
+                        <TableCell>{p.loadType}</TableCell>
+                        <TableCell align="right">{p.temperature} °C</TableCell>
+                        <TableCell align="right">{p.cycleTimeMinutes} min</TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={p.isActive ? "Active" : "Inactive"}
+                            color={p.isActive ? "success" : "default"}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="Edit Program">
+                            <IconButton size="small" onClick={() => handleOpenEditProgram(p)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="View History">
+                            <IconButton size="small" onClick={() => handleViewProgramHistory(p)}>
+                              <HistoryIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {safeAllPrograms.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                          No autoclave programs configured across any autoclaves.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Paper>
           )}
 
@@ -1124,39 +1131,41 @@ export function EquipmentPage() {
                 }}>
                 Complete audit trail of incubator set point changes and autoclave program configuration events.
               </Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={tableHeadSx}>
-                    <TableCell>Effective On</TableCell>
-                    <TableCell>Equipment Code</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Details / Change</TableCell>
-                    <TableCell>Changed By</TableCell>
-                    <TableCell>Reason / Comment</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {safeSetPointHistory.map((h) => (
-                    <TableRow key={`sp-${h.id}`}>
-                      <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>{selectedEquipment?.code ?? "Incubator"}</TableCell>
-                      <TableCell><Chip size="small" label="Set Point" color="primary" variant="outlined" /></TableCell>
-                      <TableCell>Set Point: {h.previousSetPoint} °C → {h.newSetPoint} °C</TableCell>
-                      <TableCell>{h.changedByName}</TableCell>
-                      <TableCell>{h.reason}</TableCell>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={tableHeadSx}>
+                      <TableCell>Effective On</TableCell>
+                      <TableCell>Equipment Code</TableCell>
+                      <TableCell>Category</TableCell>
+                      <TableCell>Details / Change</TableCell>
+                      <TableCell>Changed By</TableCell>
+                      <TableCell>Reason / Comment</TableCell>
                     </TableRow>
-                  ))}
-                  {safeSetPointHistory.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 3, color: setPointHistoryFailed ? "error.main" : "text.secondary" }}>
-                        {setPointHistoryFailed
-                          ? "The set point history could not be loaded. Select the incubator again to retry."
-                          : "Select an incubator equipment item under Configured Equipment to view its configuration history."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {safeSetPointHistory.map((h) => (
+                      <TableRow key={`sp-${h.id}`}>
+                        <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{selectedEquipment?.code ?? "Incubator"}</TableCell>
+                        <TableCell><Chip size="small" label="Set Point" color="primary" variant="outlined" /></TableCell>
+                        <TableCell>Set Point: {h.previousSetPoint} °C → {h.newSetPoint} °C</TableCell>
+                        <TableCell>{h.changedByName}</TableCell>
+                        <TableCell>{h.reason}</TableCell>
+                      </TableRow>
+                    ))}
+                    {safeSetPointHistory.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 3, color: setPointHistoryFailed ? "error.main" : "text.secondary" }}>
+                          {setPointHistoryFailed
+                            ? "The set point history could not be loaded. Select the incubator again to retry."
+                            : "Select an incubator equipment item under Configured Equipment to view its configuration history."}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Paper>
           )}
         </>
@@ -1490,43 +1499,45 @@ export function EquipmentPage() {
           </Button>
         }
       >
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={tableHeadSx}>
-                <TableCell>Date / Time</TableCell>
-                <TableCell>Action</TableCell>
-                <TableCell>Program Name</TableCell>
-                <TableCell>Load Type</TableCell>
-                <TableCell align="right">Temperature</TableCell>
-                <TableCell align="right">Cycle Time</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Changed By</TableCell>
-                <TableCell>Comment</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {Array.isArray(programHistory) && programHistory.map((h) => (
-                <TableRow key={h.id}>
-                  <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
-                  <TableCell><Chip size="small" label={h.action} color={h.action === "Created" ? "success" : "info"} /></TableCell>
-                  <TableCell>{h.newProgramName}</TableCell>
-                  <TableCell>{h.newLoadType}</TableCell>
-                  <TableCell align="right">{h.newTemperature} °C</TableCell>
-                  <TableCell align="right">{h.newCycleTimeMinutes} min</TableCell>
-                  <TableCell>{h.newIsActive ? "Active" : "Inactive"}</TableCell>
-                  <TableCell>{h.changedByName}</TableCell>
-                  <TableCell>{h.comment}</TableCell>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={tableHeadSx}>
+                  <TableCell>Date / Time</TableCell>
+                  <TableCell>Action</TableCell>
+                  <TableCell>Program Name</TableCell>
+                  <TableCell>Load Type</TableCell>
+                  <TableCell align="right">Temperature</TableCell>
+                  <TableCell align="right">Cycle Time</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Changed By</TableCell>
+                  <TableCell>Comment</TableCell>
                 </TableRow>
-              ))}
-              {(!Array.isArray(programHistory) || programHistory.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                    No historical changes logged for this program.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {Array.isArray(programHistory) && programHistory.map((h) => (
+                  <TableRow key={h.id}>
+                    <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
+                    <TableCell><Chip size="small" label={h.action} color={h.action === "Created" ? "success" : "info"} /></TableCell>
+                    <TableCell>{h.newProgramName}</TableCell>
+                    <TableCell>{h.newLoadType}</TableCell>
+                    <TableCell align="right">{h.newTemperature} °C</TableCell>
+                    <TableCell align="right">{h.newCycleTimeMinutes} min</TableCell>
+                    <TableCell>{h.newIsActive ? "Active" : "Inactive"}</TableCell>
+                    <TableCell>{h.changedByName}</TableCell>
+                    <TableCell>{h.comment}</TableCell>
+                  </TableRow>
+                ))}
+                {(!Array.isArray(programHistory) || programHistory.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                      No historical changes logged for this program.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
       </FloatingDialog>
 
       {/* DIALOG 4: SELECT FROM INVENTORY */}
@@ -1550,46 +1561,48 @@ export function EquipmentPage() {
             }}>
             Register physical equipment from Inventory into Laboratory Configuration. Master equipment identity and calibration remain managed by Inventory.
           </Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={tableHeadSx}>
-                <TableCell>Equipment Code</TableCell>
-                <TableCell>Instrument Type</TableCell>
-                <TableCell>Manufacturer</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="center">Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {Array.isArray(inventoryList) && inventoryList.map((inv) => {
-                const isAlreadyLinked = safeSummaryList.some(
-                  (s) => (s.code && inv.code && s.code.toLowerCase() === inv.code.toLowerCase()) || s.equipmentInventoryId === inv.id
-                );
-                return (
-                  <TableRow key={inv.id}>
-                    <TableCell sx={{ fontWeight: 700 }}>{inv.code}</TableCell>
-                    <TableCell>{inv.instrumentType}</TableCell>
-                    <TableCell>{inv.manufacturerName}</TableCell>
-                    <TableCell>{inv.location}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={inv.status} color={inv.status === "InService" ? "success" : "default"} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Button
-                        size="small"
-                        variant={isAlreadyLinked ? "outlined" : "contained"}
-                        disabled={isAlreadyLinked}
-                        onClick={() => handleConfigureInventoryEquipment(inv)}
-                      >
-                        {isAlreadyLinked ? "Configured" : "Configure for Lab"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={tableHeadSx}>
+                  <TableCell>Equipment Code</TableCell>
+                  <TableCell>Instrument Type</TableCell>
+                  <TableCell>Manufacturer</TableCell>
+                  <TableCell>Location</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="center">Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Array.isArray(inventoryList) && inventoryList.map((inv) => {
+                  const isAlreadyLinked = safeSummaryList.some(
+                    (s) => (s.code && inv.code && s.code.toLowerCase() === inv.code.toLowerCase()) || s.equipmentInventoryId === inv.id
+                  );
+                  return (
+                    <TableRow key={inv.id}>
+                      <TableCell sx={{ fontWeight: 700 }}>{inv.code}</TableCell>
+                      <TableCell>{inv.instrumentType}</TableCell>
+                      <TableCell>{inv.manufacturerName}</TableCell>
+                      <TableCell>{inv.location}</TableCell>
+                      <TableCell>
+                        <Chip size="small" label={inv.status} color={inv.status === "InService" ? "success" : "default"} />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          size="small"
+                          variant={isAlreadyLinked ? "outlined" : "contained"}
+                          disabled={isAlreadyLinked}
+                          onClick={() => handleConfigureInventoryEquipment(inv)}
+                        >
+                          {isAlreadyLinked ? "Configured" : "Configure for Lab"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
       </FloatingDialog>
     </>
   );

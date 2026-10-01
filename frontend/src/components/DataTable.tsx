@@ -38,13 +38,22 @@ interface DataTableProps<T> {
 
 // Reusable table used across every module (Testing Workspace, Review,
 // Approval, Reports) so behavior stays consistent everywhere.
+// Above this many rows the body scrolls inside a bounded region so the
+// column headers stay visible (same rule as RegisterTable).
+const STICKY_HEADER_MIN_ROWS = 15;
+
 export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, loading, emptyMessage }: DataTableProps<T>) {
   const theme = useTheme();
   const colSpan = columns.length + (selection ? 1 : 0);
+  const bounded = !loading && rows.length > STICKY_HEADER_MIN_ROWS;
 
   return (
-    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-      <Table size="small">
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, ...(bounded ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : null) }}
+    >
+      <Table size="small" stickyHeader>
         <TableHead>
           <TableRow sx={tableHeadSx(theme)}>
             {selection && (

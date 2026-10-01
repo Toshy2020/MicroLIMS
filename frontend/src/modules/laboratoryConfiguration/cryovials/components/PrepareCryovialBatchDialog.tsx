@@ -20,7 +20,8 @@ import {
   Paper,
   Checkbox,
   FormControlLabel,
-  useTheme
+  useTheme,
+  TableContainer
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -454,102 +455,104 @@ export function PrepareCryovialBatchDialog({
             </Typography>
           </Box>
 
-          <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-            <TableHead sx={tableHeadSx}>
-              <TableRow>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
-                <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
-                <TableCell sx={{ width: 40 }}></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {panel.map((row, i) => (
-                <TableRow key={i}>
-                  <TableCell sx={{ py: 1 }}>
-                    <Select
-                      size="small"
-                      fullWidth
-                      displayEmpty
-                      value={row.mediaId}
-                      onChange={(e) => updateRow(i, "mediaId", e.target.value)}
-                      inputProps={{ "aria-label": "Media" }}
-                    >
-                      <MenuItem value="">
-                        <em>Select Media</em>
-                      </MenuItem>
-                      {releasedMedia.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.lotNumber} ({m.material?.materialName || m.mediaType?.class || "Media"})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <Select
-                      size="small"
-                      fullWidth
-                      displayEmpty
-                      value={row.incubatorEquipmentId}
-                      onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}
-                      inputProps={{ "aria-label": "Incubator" }}
-                    >
-                      <MenuItem value="">
-                        <em>Select Incubator</em>
-                      </MenuItem>
-                      {incubators.map((i2) => (
-                        <MenuItem key={i2.id} value={i2.id}>
-                          {i2.name} ({i2.code})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={row.incubationStart}
-                      onChange={(e) => updateRow(i, "incubationStart", e.target.value)}
-                      fullWidth
-                      slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation start` } }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <TextField
-                      size="small"
-                      type="date"
-                      value={row.incubationEnd}
-                      onChange={(e) => updateRow(i, "incubationEnd", e.target.value)}
-                      fullWidth
-                      slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation end` } }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <TextField
-                      size="small"
-                      placeholder="Observation notes"
-                      value={row.observationText}
-                      onChange={(e) => updateRow(i, "observationText", e.target.value)}
-                      fullWidth
-                      slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} observation notes` } }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1 }}>
-                    <IconButton aria-label={`Remove row ${i + 1}`}
-                      size="small"
-                      onClick={() => removeRow(i)}
-                      disabled={panel.length <= 1}
-                      sx={{ color: panel.length <= 1 ? "text.disabled" : "error.main" }}
-                    >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
+          <TableContainer>
+            <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
+              <TableHead sx={tableHeadSx}>
+                <TableRow>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
+                  <TableCell sx={{ width: 40 }}></TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {panel.map((row, i) => (
+                  <TableRow key={i}>
+                    <TableCell sx={{ py: 1 }}>
+                      <Select
+                        size="small"
+                        fullWidth
+                        displayEmpty
+                        value={row.mediaId}
+                        onChange={(e) => updateRow(i, "mediaId", e.target.value)}
+                        inputProps={{ "aria-label": "Media" }}
+                      >
+                        <MenuItem value="">
+                          <em>Select Media</em>
+                        </MenuItem>
+                        {releasedMedia.map((m) => (
+                          <MenuItem key={m.id} value={m.id}>
+                            {m.lotNumber} ({m.material?.materialName || m.mediaType?.class || "Media"})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <Select
+                        size="small"
+                        fullWidth
+                        displayEmpty
+                        value={row.incubatorEquipmentId}
+                        onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}
+                        inputProps={{ "aria-label": "Incubator" }}
+                      >
+                        <MenuItem value="">
+                          <em>Select Incubator</em>
+                        </MenuItem>
+                        {incubators.map((i2) => (
+                          <MenuItem key={i2.id} value={i2.id}>
+                            {i2.name} ({i2.code})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        size="small"
+                        type="date"
+                        value={row.incubationStart}
+                        onChange={(e) => updateRow(i, "incubationStart", e.target.value)}
+                        fullWidth
+                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation start` } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        size="small"
+                        type="date"
+                        value={row.incubationEnd}
+                        onChange={(e) => updateRow(i, "incubationEnd", e.target.value)}
+                        fullWidth
+                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation end` } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        size="small"
+                        placeholder="Observation notes"
+                        value={row.observationText}
+                        onChange={(e) => updateRow(i, "observationText", e.target.value)}
+                        fullWidth
+                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} observation notes` } }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <IconButton aria-label={`Remove row ${i + 1}`}
+                        size="small"
+                        onClick={() => removeRow(i)}
+                        disabled={panel.length <= 1}
+                        sx={{ color: panel.length <= 1 ? "text.disabled" : "error.main" }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
           <Button
             size="small"

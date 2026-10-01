@@ -271,8 +271,8 @@ export function TrackingBoardPage() {
         <LoadingSpinner />
       ) : (
         <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden", bgcolor: "background.paper", opacity: loading ? 0.6 : 1, transition: "opacity 0.15s" }}>
-          <Box sx={{ overflowX: "auto" }}>
-            <Table size="small" sx={{ minWidth: 960 }}>
+          <Box sx={{ overflowX: "auto", maxHeight: { md: "calc(100vh - 240px)" } }}>
+            <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
               <TableHead sx={tableHeadSx}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Reference</TableCell>

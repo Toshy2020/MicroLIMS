@@ -524,8 +524,8 @@ export function SampleRegisterTable({
         bgcolor: "background.paper"
       }}
     >
-      <Box sx={{ overflowX: "auto" }}>
-        <Table size="small" sx={{ minWidth: 960 }}>
+      <Box sx={{ overflowX: "auto", maxHeight: { md: "calc(100vh - 240px)" } }}>
+        <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
           <TableHead sx={tableHeadSx}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>

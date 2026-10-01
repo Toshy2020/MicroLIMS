@@ -18,7 +18,8 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Typography
+  Typography,
+  TableContainer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
@@ -598,7 +599,7 @@ export function CalibrationRunsPage() {
     {
       key: "analytes", label: "Analytes Summary",
       render: (r) => (
-        <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", alignItems: "center", rowGap: 0.5 }}>
+        <Stack useFlexGap direction="row" spacing={0.5} sx={{ flexWrap: "wrap", alignItems: "center", rowGap: 0.5 }}>
           {r.analytes.map((a) => (
             <Tooltip
               key={a.id}
@@ -1059,7 +1060,7 @@ export function CalibrationRunsPage() {
                       <Box>
 
                         {/* Analyte Curve Inputs */}
-                        <Stack
+                        <Stack useFlexGap
                           direction="row"
                           spacing={1.5}
                           sx={{ flexWrap: "wrap", alignItems: "center", mb: 2 }}
@@ -1147,89 +1148,91 @@ export function CalibrationRunsPage() {
                             No checks added. Use &quot;Add Check&quot; to define Blank, ICV, or CCV checks.
                           </Typography>
                         ) : (
-                          <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
-                            <TableHead>
-                              <TableRow sx={tableHeadSx}>
-                                <TableCell sx={{ width: 150 }}>Check Type</TableCell>
-                                <TableCell sx={{ width: 80 }}>Seq</TableCell>
-                                <TableCell sx={{ minWidth: 130 }}>Nominal (mg/L)</TableCell>
-                                <TableCell sx={{ minWidth: 130 }}>Measured (mg/L)</TableCell>
-                                <TableCell align="right" sx={{ width: 60 }} />
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {analyte.checks.map((chk) => (
-                                <TableRow key={chk.id}>
-                                  <TableCell>
-                                    <Select
-                                      size="small"
-                                      fullWidth
-                                      value={chk.checkType}
-                                      onChange={(e) =>
-                                        updateCheckField(
-                                          aIdx,
-                                          chk.id,
-                                          "checkType",
-                                          e.target.value as CalibrationCheckType
-                                        )
-                                      }
-                                      inputProps={{ "aria-label": "Check type" }}
-                                    >
-                                      <MenuItem value="Blank">Blank</MenuItem>
-                                      <MenuItem value="Icv">ICV</MenuItem>
-                                      <MenuItem value="Ccv">CCV</MenuItem>
-                                      <MenuItem value="InternalStandard">Internal Standard</MenuItem>
-                                    </Select>
-                                  </TableCell>
-                                  <TableCell>
-                                    <TextField
-                                      size="small"
-                                      type="number"
-                                      value={chk.sequencePosition}
-                                      onChange={(e) =>
-                                        updateCheckField(aIdx, chk.id, "sequencePosition", Number(e.target.value))
-                                      }
-                                      slotProps={{ htmlInput: { "aria-label": "Sequence position", min: 1, step: 1 } }}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <TextField
-                                      size="small"
-                                      type="number"
-                                      placeholder={chk.checkType === "Blank" ? "N/A" : "e.g. 1.0"}
-                                      disabled={chk.checkType === "Blank"}
-                                      value={chk.nominalMgPerL}
-                                      onChange={(e) =>
-                                        updateCheckField(aIdx, chk.id, "nominalMgPerL", e.target.value)
-                                      }
-                                      slotProps={{ htmlInput: { "aria-label": "Nominal concentration (mg/L)", min: 0, step: "any" } }}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <TextField
-                                      size="small"
-                                      type="number"
-                                      placeholder="e.g. 0.998"
-                                      value={chk.measuredMgPerL}
-                                      onChange={(e) =>
-                                        updateCheckField(aIdx, chk.id, "measuredMgPerL", e.target.value)
-                                      }
-                                      slotProps={{ htmlInput: { "aria-label": "Measured concentration (mg/L)", min: 0, step: "any" } }}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <IconButton aria-label="Remove check standard"
-                                      size="small"
-                                      color="error"
-                                      onClick={() => removeCheckFromAnalyte(aIdx, chk.id)}
-                                    >
-                                      <DeleteOutlineIcon fontSize="small" />
-                                    </IconButton>
-                                  </TableCell>
+                          <TableContainer>
+                            <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
+                              <TableHead>
+                                <TableRow sx={tableHeadSx}>
+                                  <TableCell sx={{ width: 150 }}>Check Type</TableCell>
+                                  <TableCell sx={{ width: 80 }}>Seq</TableCell>
+                                  <TableCell sx={{ minWidth: 130 }}>Nominal (mg/L)</TableCell>
+                                  <TableCell sx={{ minWidth: 130 }}>Measured (mg/L)</TableCell>
+                                  <TableCell align="right" sx={{ width: 60 }} />
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHead>
+                              <TableBody>
+                                {analyte.checks.map((chk) => (
+                                  <TableRow key={chk.id}>
+                                    <TableCell>
+                                      <Select
+                                        size="small"
+                                        fullWidth
+                                        value={chk.checkType}
+                                        onChange={(e) =>
+                                          updateCheckField(
+                                            aIdx,
+                                            chk.id,
+                                            "checkType",
+                                            e.target.value as CalibrationCheckType
+                                          )
+                                        }
+                                        inputProps={{ "aria-label": "Check type" }}
+                                      >
+                                        <MenuItem value="Blank">Blank</MenuItem>
+                                        <MenuItem value="Icv">ICV</MenuItem>
+                                        <MenuItem value="Ccv">CCV</MenuItem>
+                                        <MenuItem value="InternalStandard">Internal Standard</MenuItem>
+                                      </Select>
+                                    </TableCell>
+                                    <TableCell>
+                                      <TextField
+                                        size="small"
+                                        type="number"
+                                        value={chk.sequencePosition}
+                                        onChange={(e) =>
+                                          updateCheckField(aIdx, chk.id, "sequencePosition", Number(e.target.value))
+                                        }
+                                        slotProps={{ htmlInput: { "aria-label": "Sequence position", min: 1, step: 1 } }}
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      <TextField
+                                        size="small"
+                                        type="number"
+                                        placeholder={chk.checkType === "Blank" ? "N/A" : "e.g. 1.0"}
+                                        disabled={chk.checkType === "Blank"}
+                                        value={chk.nominalMgPerL}
+                                        onChange={(e) =>
+                                          updateCheckField(aIdx, chk.id, "nominalMgPerL", e.target.value)
+                                        }
+                                        slotProps={{ htmlInput: { "aria-label": "Nominal concentration (mg/L)", min: 0, step: "any" } }}
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      <TextField
+                                        size="small"
+                                        type="number"
+                                        placeholder="e.g. 0.998"
+                                        value={chk.measuredMgPerL}
+                                        onChange={(e) =>
+                                          updateCheckField(aIdx, chk.id, "measuredMgPerL", e.target.value)
+                                        }
+                                        slotProps={{ htmlInput: { "aria-label": "Measured concentration (mg/L)", min: 0, step: "any" } }}
+                                      />
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      <IconButton aria-label="Remove check standard"
+                                        size="small"
+                                        color="error"
+                                        onClick={() => removeCheckFromAnalyte(aIdx, chk.id)}
+                                      >
+                                        <DeleteOutlineIcon fontSize="small" />
+                                      </IconButton>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
                         )}
                       </Box>
                     </ResultSection>
@@ -1280,34 +1283,36 @@ export function CalibrationRunsPage() {
                         Standards: {a.numberOfStandards} · Range: {a.lowestStandardMgPerL} – {a.highestStandardMgPerL} mg/L
                       </Typography>
 
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow sx={tableHeadSx}>
-                            <TableCell>Check</TableCell>
-                            <TableCell>Seq</TableCell>
-                            <TableCell align="right">Nominal (mg/L)</TableCell>
-                            <TableCell align="right">Measured (mg/L)</TableCell>
-                            <TableCell align="right">Computed Recovery</TableCell>
-                            <TableCell align="center">Result</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {a.checks.map((c, cIdx) => (
-                            <TableRow key={cIdx}>
-                              <TableCell>{c.checkType}</TableCell>
-                              <TableCell>{c.sequencePosition}</TableCell>
-                              <TableCell align="right"><NumericCell value={c.nominalMgPerL} /></TableCell>
-                              <TableCell align="right"><NumericCell value={c.measuredMgPerL} /></TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                {c.recoveryPercent != null ? `${c.recoveryPercent.toFixed(2)}%` : "—"}
-                              </TableCell>
-                              <TableCell align="center">
-                                <StatusBadge status={c.passed ? "Pass" : "Fail"} />
-                              </TableCell>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={tableHeadSx}>
+                              <TableCell>Check</TableCell>
+                              <TableCell>Seq</TableCell>
+                              <TableCell align="right">Nominal (mg/L)</TableCell>
+                              <TableCell align="right">Measured (mg/L)</TableCell>
+                              <TableCell align="right">Computed Recovery</TableCell>
+                              <TableCell align="center">Result</TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHead>
+                          <TableBody>
+                            {a.checks.map((c, cIdx) => (
+                              <TableRow key={cIdx}>
+                                <TableCell>{c.checkType}</TableCell>
+                                <TableCell>{c.sequencePosition}</TableCell>
+                                <TableCell align="right"><NumericCell value={c.nominalMgPerL} /></TableCell>
+                                <TableCell align="right"><NumericCell value={c.measuredMgPerL} /></TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                  {c.recoveryPercent != null ? `${c.recoveryPercent.toFixed(2)}%` : "—"}
+                                </TableCell>
+                                <TableCell align="center">
+                                  <StatusBadge status={c.passed ? "Pass" : "Fail"} />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </Box>
                   </ResultSection>
                 ))}

@@ -265,7 +265,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           REFERENCE LOT (FOR RECOVERY% COMPARISON)
                         </Typography>
-                        <Stack
+                        <Stack useFlexGap
                           direction="row"
                           spacing={1}
                           sx={{

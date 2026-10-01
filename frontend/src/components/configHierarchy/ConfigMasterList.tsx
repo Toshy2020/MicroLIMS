@@ -79,7 +79,7 @@ export function ConfigMasterList({
                   >
                     <Stack spacing={0.75} sx={{ minWidth: 0 }}>
                       <Typography sx={{ fontSize: 15, fontWeight: 600, overflowWrap: "anywhere" }}>{item.title}</Typography>
-                      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
+                      <Stack useFlexGap direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
                         {item.subtitle && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{item.subtitle}</Typography>}
                         {item.badge && <ToneChip {...item.badge} />}
                       </Stack>

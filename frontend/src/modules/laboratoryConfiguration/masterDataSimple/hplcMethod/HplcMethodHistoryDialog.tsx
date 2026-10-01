@@ -13,7 +13,8 @@ import {
   Collapse,
   Button,
   Stack,
-  Chip
+  Chip,
+  TableContainer
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -104,51 +105,53 @@ export function HplcMethodHistoryDialog({
             </Typography>
           </Box>
         ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: 40 }} />
-                <TableCell sx={{ fontWeight: 600 }}>Timestamp</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {history.map((entry, idx) => {
-                const isExpanded = expandedRow === idx;
-                const hasDetails = Boolean(entry.beforeJson || entry.afterJson);
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: 40 }} />
+                  <TableCell sx={{ fontWeight: 600 }}>Timestamp</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {history.map((entry, idx) => {
+                  const isExpanded = expandedRow === idx;
+                  const hasDetails = Boolean(entry.beforeJson || entry.afterJson);
 
-                return (
-                  <TableRow key={idx} sx={{ "& > *": { borderBottom: "unset" } }}>
-                    <TableCell>
-                      {hasDetails ? (
-                        <IconButton aria-label={isExpanded ? "Collapse version details" : "Expand version details"} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(idx)}>
-                          {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                        </IconButton>
-                      ) : null}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap", fontSize: 13 }}>
-                      {new Date(entry.at).toLocaleString()}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 500, fontSize: 13 }}>{entry.userName}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={entry.action}
-                        size="small"
-                        variant="outlined"
-                        color={entry.action.includes("Create") ? "success" : entry.action.includes("Deactivate") ? "error" : "primary"}
-                        sx={{ fontSize: 11, fontWeight: 600 }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 13, color: "text.secondary" }}>
-                      {entry.reason || "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                  return (
+                    <TableRow key={idx} sx={{ "& > *": { borderBottom: "unset" } }}>
+                      <TableCell>
+                        {hasDetails ? (
+                          <IconButton aria-label={isExpanded ? "Collapse version details" : "Expand version details"} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(idx)}>
+                            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                          </IconButton>
+                        ) : null}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                        {new Date(entry.at).toLocaleString()}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500, fontSize: 13 }}>{entry.userName}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={entry.action}
+                          size="small"
+                          variant="outlined"
+                          color={entry.action.includes("Create") ? "success" : entry.action.includes("Deactivate") ? "error" : "primary"}
+                          sx={{ fontSize: 11, fontWeight: 600 }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ fontSize: 13, color: "text.secondary" }}>
+                        {entry.reason || "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
 
         {expandedRow !== null && history[expandedRow] && (

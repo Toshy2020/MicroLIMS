@@ -21,7 +21,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
-  Switch
+  Switch,
+  TableContainer
 } from "@mui/material";
 import { getMySections, getSections, LaboratorySection } from "../../../services/laboratorySectionService";
 import EditIcon from "@mui/icons-material/Edit";
@@ -443,67 +444,69 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
 
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
 
-      <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
-        <TableHead>
-          <TableRow sx={tableHeadSx}>
-            <TableCell>Order</TableCell>
-            <TableCell>{isHplcMulti ? "Vitamin / Analyte" : "Element"}</TableCell>
-            <TableCell>{isHplcMulti ? "Detection Wavelength (nm)" : "Wavelength (nm)"}</TableCell>
-            {!hidePlasmaView && <TableCell>Plasma View</TableCell>}
-            {!isHplcMulti && <TableCell>LOQ (mg/L)</TableCell>}
-            {isHplcMulti && <TableCell>SST Criteria</TableCell>}
-            <TableCell>Status</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {analytes.map((a) => (
-            <TableRow key={a.id} sx={{ opacity: a.isActive ? 1 : 0.6 }}>
-              <TableCell>{a.displayOrder}</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>{a.element}</TableCell>
-              <TableCell>{a.wavelengthNm}</TableCell>
-              {!hidePlasmaView && <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>}
-              {!isHplcMulti && <TableCell>{a.loqMgPerL}</TableCell>}
-              {isHplcMulti && (
-                <TableCell sx={{ fontSize: 12 }}>
-                  {[
-                    a.sstMaxRsdPercent != null ? `Max RSD ${a.sstMaxRsdPercent}%` : null,
-                    !isTitration && a.sstMinResolution != null ? `Min Res ${a.sstMinResolution}` : null,
-                    !isTitration && a.sstMaxTailingFactor != null ? `Max Tailing ${a.sstMaxTailingFactor}` : null,
-                    !isTitration && a.sstMinTheoreticalPlates != null ? `Min Plates ${a.sstMinTheoreticalPlates}` : null
-                  ].filter(Boolean).join(", ") || "None specified"}
+      <TableContainer>
+        <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
+          <TableHead>
+            <TableRow sx={tableHeadSx}>
+              <TableCell>Order</TableCell>
+              <TableCell>{isHplcMulti ? "Vitamin / Analyte" : "Element"}</TableCell>
+              <TableCell>{isHplcMulti ? "Detection Wavelength (nm)" : "Wavelength (nm)"}</TableCell>
+              {!hidePlasmaView && <TableCell>Plasma View</TableCell>}
+              {!isHplcMulti && <TableCell>LOQ (mg/L)</TableCell>}
+              {isHplcMulti && <TableCell>SST Criteria</TableCell>}
+              <TableCell>Status</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {analytes.map((a) => (
+              <TableRow key={a.id} sx={{ opacity: a.isActive ? 1 : 0.6 }}>
+                <TableCell>{a.displayOrder}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{a.element}</TableCell>
+                <TableCell>{a.wavelengthNm}</TableCell>
+                {!hidePlasmaView && <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>}
+                {!isHplcMulti && <TableCell>{a.loqMgPerL}</TableCell>}
+                {isHplcMulti && (
+                  <TableCell sx={{ fontSize: 12 }}>
+                    {[
+                      a.sstMaxRsdPercent != null ? `Max RSD ${a.sstMaxRsdPercent}%` : null,
+                      !isTitration && a.sstMinResolution != null ? `Min Res ${a.sstMinResolution}` : null,
+                      !isTitration && a.sstMaxTailingFactor != null ? `Max Tailing ${a.sstMaxTailingFactor}` : null,
+                      !isTitration && a.sstMinTheoreticalPlates != null ? `Min Plates ${a.sstMinTheoreticalPlates}` : null
+                    ].filter(Boolean).join(", ") || "None specified"}
+                  </TableCell>
+                )}
+                <TableCell>
+                  <Chip
+                    size="small"
+                    label={a.isActive ? "Active" : "Deactivated"}
+                    color={a.isActive ? "success" : "default"}
+                  />
                 </TableCell>
-              )}
-              <TableCell>
-                <Chip
-                  size="small"
-                  label={a.isActive ? "Active" : "Deactivated"}
-                  color={a.isActive ? "success" : "default"}
-                />
-              </TableCell>
-              <TableCell align="right">
-                <IconButton aria-label="Edit analyte" size="small" onClick={() => openEdit(a)} title="Edit Analyte">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <Tooltip title={a.isActive ? "Deactivate Analyte" : "Re-activate Analyte"}>
-                  <IconButton size="small" color={a.isActive ? "error" : "primary"} onClick={() => handleToggleActive(a)}>
-                    {a.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
+                <TableCell align="right">
+                  <IconButton aria-label="Edit analyte" size="small" onClick={() => openEdit(a)} title="Edit Analyte">
+                    <EditIcon fontSize="small" />
                   </IconButton>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          ))}
-          {analytes.length === 0 && !loading && (
-            <TableRow>
-              <TableCell colSpan={hidePlasmaView ? 6 : 7} align="center" sx={{ py: 2, color: "text.secondary" }}>
-                {isHplcMulti
-                  ? "No vitamins/analytes configured yet. Click \"Add Vitamin / Analyte\" to configure detection wavelengths and suitability criteria for this test."
-                  : "No analytes configured yet. Click \"Add Analyte\" to configure wavelengths and LOQs for this test method."}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                  <Tooltip title={a.isActive ? "Deactivate Analyte" : "Re-activate Analyte"}>
+                    <IconButton size="small" color={a.isActive ? "error" : "primary"} onClick={() => handleToggleActive(a)}>
+                      {a.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))}
+            {analytes.length === 0 && !loading && (
+              <TableRow>
+                <TableCell colSpan={hidePlasmaView ? 6 : 7} align="center" sx={{ py: 2, color: "text.secondary" }}>
+                  {isHplcMulti
+                    ? "No vitamins/analytes configured yet. Click \"Add Vitamin / Analyte\" to configure detection wavelengths and suitability criteria for this test."
+                    : "No analytes configured yet. Click \"Add Analyte\" to configure wavelengths and LOQs for this test method."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <FloatingDialog
         open={dialogOpen}
@@ -787,47 +790,49 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
 
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
 
-      <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
-        <TableHead>
-          <TableRow sx={tableHeadSx}>
-            <TableCell>Stage Role</TableCell>
-            <TableCell>Standard Replicates</TableCell>
-            <TableCell>Sample Replicates</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {replicates.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell>
-                <Chip size="small" label={r.role} variant="outlined" sx={{ fontWeight: 600 }} />
-              </TableCell>
-              <TableCell>{r.standardReplicates}</TableCell>
-              <TableCell>{r.sampleReplicates}</TableCell>
-              <TableCell align="right">
-                <IconButton aria-label="Edit replicates" size="small" onClick={() => openEdit(r)} title="Edit Replicates">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton aria-label="Delete replicate rule"
-                  size="small"
-                  color="error"
-                  onClick={() => setPendingDelete(r)}
-                  title="Delete Replicate Configuration"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
+      <TableContainer>
+        <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
+          <TableHead>
+            <TableRow sx={tableHeadSx}>
+              <TableCell>Stage Role</TableCell>
+              <TableCell>Standard Replicates</TableCell>
+              <TableCell>Sample Replicates</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
-          ))}
-          {replicates.length === 0 && !loading && (
-            <TableRow>
-              <TableCell colSpan={4} align="center" sx={{ py: 2, color: "text.secondary" }}>
-                No stage replicates configured yet. Click "Add Stage Replicate" to configure replicate counts.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {replicates.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell>
+                  <Chip size="small" label={r.role} variant="outlined" sx={{ fontWeight: 600 }} />
+                </TableCell>
+                <TableCell>{r.standardReplicates}</TableCell>
+                <TableCell>{r.sampleReplicates}</TableCell>
+                <TableCell align="right">
+                  <IconButton aria-label="Edit replicates" size="small" onClick={() => openEdit(r)} title="Edit Replicates">
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton aria-label="Delete replicate rule"
+                    size="small"
+                    color="error"
+                    onClick={() => setPendingDelete(r)}
+                    title="Delete Replicate Configuration"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+            {replicates.length === 0 && !loading && (
+              <TableRow>
+                <TableCell colSpan={4} align="center" sx={{ py: 2, color: "text.secondary" }}>
+                  No stage replicates configured yet. Click "Add Stage Replicate" to configure replicate counts.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
         Production stages without a configured row are not configured for this test (not zero). Both counts must be integers ≥ 1.
@@ -1158,7 +1163,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       {test.workflowType === "HplcMethodAssay" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>HPLC Method Assay Configuration</Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "HplcMethodAssay"] ?? test.equationType}</Typography>
@@ -1177,7 +1182,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       {test.workflowType === "StandardComparison" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>Standard-Comparison Assay Configuration</Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "StandardComparison"] ?? test.equationType}</Typography>
@@ -1207,7 +1212,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
         <>
           <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
             <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "secondary.main" }}>{test.calInstrumentType === "Aas" ? "AAS" : "ICP-OES"} Calibration Curve Configuration</Typography>
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "None"] ?? test.equationType ?? "None"}</Typography>
@@ -1256,7 +1261,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Required Checks</Typography>
-                <Stack direction="row" spacing={0.5} sx={{ mt: 0.25, flexWrap: "wrap", alignItems: "center" }}>
+                <Stack useFlexGap direction="row" spacing={0.5} sx={{ mt: 0.25, flexWrap: "wrap", alignItems: "center" }}>
                   {test.calRequireBlank && <Chip size="small" label="Blank" sx={{ height: 18, fontSize: "0.65rem" }} />}
                   {test.calRequireIcv && <Chip size="small" label="ICV" sx={{ height: 18, fontSize: "0.65rem" }} />}
                   {test.calRequireCcv && <Chip size="small" label="CCV" sx={{ height: 18, fontSize: "0.65rem" }} />}
@@ -1303,7 +1308,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
             Measurement Configuration
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Measurement"] ?? test.equationType}</Typography>
@@ -1326,7 +1331,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
             Gravimetric Configuration
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "GravimetricLoss"] ?? test.equationType}</Typography>
@@ -1353,7 +1358,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
             Qualitative Configuration
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Qualitative"] ?? test.equationType}</Typography>
@@ -1368,7 +1373,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
             Dissolution Configuration
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Dissolution"] ?? test.equationType}</Typography>
@@ -1409,7 +1414,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
             Disintegration Configuration
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Disintegration"] ?? test.equationType}</Typography>
@@ -1444,7 +1449,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
             Weight Variation Configuration (USP &lt;2091&gt;)
           </Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "WeightVariation"] ?? test.equationType}</Typography>
@@ -1477,118 +1482,120 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       ) : (
       <>
       {steps.length > 0 ? (
-        <Table size="small" sx={{ mb: 1.5 }}>
-          <TableHead>
-            <TableRow sx={tableHeadSx}>
-              <TableCell>#</TableCell><TableCell>Step</TableCell><TableCell>Incubation</TableCell>
-              <TableCell>Temp °C</TableCell><TableCell>Step Type</TableCell><TableCell>Media</TableCell><TableCell>Organism</TableCell>
-              <TableCell>Status</TableCell><TableCell>Final</TableCell><TableCell /></TableRow>
-          </TableHead>
-          <TableBody>
-            {steps.map((s, i) => {
-              const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
-              const isTwoStage = s.stepType === "PlateCount" && s.requiresIncubationTransfer;
-              return (
-                <TableRow key={s.id}>
-                  <TableCell>{s.stepOrder}</TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} sx={{
-                      alignItems: "center"
-                    }}>
-                      <span>{s.stepName}</span>
-                      {isTwoStage && (
-                        <Chip
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          label="2-Stage"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
-                        />
+        <TableContainer>
+          <Table size="small" sx={{ mb: 1.5 }}>
+            <TableHead>
+              <TableRow sx={tableHeadSx}>
+                <TableCell>#</TableCell><TableCell>Step</TableCell><TableCell>Incubation</TableCell>
+                <TableCell>Temp °C</TableCell><TableCell>Step Type</TableCell><TableCell>Media</TableCell><TableCell>Organism</TableCell>
+                <TableCell>Status</TableCell><TableCell>Final</TableCell><TableCell /></TableRow>
+            </TableHead>
+            <TableBody>
+              {steps.map((s, i) => {
+                const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
+                const isTwoStage = s.stepType === "PlateCount" && s.requiresIncubationTransfer;
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell>{s.stepOrder}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} sx={{
+                        alignItems: "center"
+                      }}>
+                        <span>{s.stepName}</span>
+                        {isTwoStage && (
+                          <Chip
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            label="2-Stage"
+                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          />
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      {isTwoStage && stage2 ? (
+                        <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
+                          <div>Stage 1: {stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours")}h</div>
+                          <div>Stage 2: {stage2.incubationMinHours}-{stage2.incubationMaxHours}h</div>
+                        </Box>
+                      ) : (
+                        `${stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours")}h`
                       )}
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    {isTwoStage && stage2 ? (
-                      <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
-                        <div>Stage 1: {stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours")}h</div>
-                        <div>Stage 2: {stage2.incubationMinHours}-{stage2.incubationMaxHours}h</div>
-                      </Box>
-                    ) : (
-                      `${stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours")}h`
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {isTwoStage && stage2 ? (
-                      <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
-                        <div>Stage 1: {stage1Ranges(s.stepMedia, "tempMin", "tempMax")}</div>
-                        <div>Stage 2: {stage2.tempMin}-{stage2.tempMax}</div>
-                      </Box>
-                    ) : (
-                      stage1Ranges(s.stepMedia, "tempMin", "tempMax")
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} sx={{
-                      alignItems: "center"
-                    }}>
-                      <span>{s.stepType}</span>
-                      {isTwoStage && (
-                        <Chip
-                          size="small"
-                          color="secondary"
-                          label="Transfer"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
-                        />
+                    </TableCell>
+                    <TableCell>
+                      {isTwoStage && stage2 ? (
+                        <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
+                          <div>Stage 1: {stage1Ranges(s.stepMedia, "tempMin", "tempMax")}</div>
+                          <div>Stage 2: {stage2.tempMin}-{stage2.tempMax}</div>
+                        </Box>
+                      ) : (
+                        stage1Ranges(s.stepMedia, "tempMin", "tempMax")
                       )}
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    {s.stepType === "BiochemicalTest"
-                      ? (s.phenotypicTestTypes && s.phenotypicTestTypes.length > 0
-                          ? s.phenotypicTestTypes.map((t: string) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")
-                          : s.phenotypicTestType ? PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType : <em>—</em>)
-                      : (s.stepMedia && s.stepMedia.length > 0 ? s.stepMedia.map((m) => m.materialName).join(", ") : <em>—</em>)}
-                  </TableCell>
-                  <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
-                  <TableCell>
-                    {stepNeedsConfiguration(s) && (
-                      <Tooltip title="This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration.">
-                        <Chip size="small" color="warning" icon={<WarningAmberIcon fontSize="small" />} label="Needs configuration" />
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.5} sx={{
+                        alignItems: "center"
+                      }}>
+                        <span>{s.stepType}</span>
+                        {isTwoStage && (
+                          <Chip
+                            size="small"
+                            color="secondary"
+                            label="Transfer"
+                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          />
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      {s.stepType === "BiochemicalTest"
+                        ? (s.phenotypicTestTypes && s.phenotypicTestTypes.length > 0
+                            ? s.phenotypicTestTypes.map((t: string) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")
+                            : s.phenotypicTestType ? PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType : <em>—</em>)
+                        : (s.stepMedia && s.stepMedia.length > 0 ? s.stepMedia.map((m) => m.materialName).join(", ") : <em>—</em>)}
+                    </TableCell>
+                    <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
+                    <TableCell>
+                      {stepNeedsConfiguration(s) && (
+                        <Tooltip title="This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration.">
+                          <Chip size="small" color="warning" icon={<WarningAmberIcon fontSize="small" />} label="Needs configuration" />
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                    <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Move up">
+                        <span>
+                          <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} aria-label="Move up">
+                            <ArrowUpwardIcon fontSize="small" />
+                          </IconButton>
+                        </span>
                       </Tooltip>
-                    )}
-                  </TableCell>
-                  <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Move up">
-                      <span>
-                        <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} aria-label="Move up">
-                          <ArrowUpwardIcon fontSize="small" />
+                      <Tooltip title="Move down">
+                        <span>
+                          <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} aria-label="Move down">
+                            <ArrowDownwardIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Edit step">
+                        <IconButton size="small" onClick={() => startEditStep(s)} aria-label="Edit step">
+                          <EditIcon fontSize="small" />
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Move down">
-                      <span>
-                        <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} aria-label="Move down">
-                          <ArrowDownwardIcon fontSize="small" />
+                      </Tooltip>
+                      <Tooltip title="Delete step">
+                        <IconButton size="small" color="error" onClick={() => setStepToDelete(s.id)} aria-label="Delete step">
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Edit step">
-                      <IconButton size="small" onClick={() => startEditStep(s)} aria-label="Edit step">
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete step">
-                      <IconButton size="small" color="error" onClick={() => setStepToDelete(s.id)} aria-label="Delete step">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       ) : (
         <Typography
           variant="body2"
@@ -1599,7 +1606,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       )}
 
       <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1 }}>{editingStepId ? "Edit Step" : "Add Step"}</Typography>
-      <Stack
+      <Stack useFlexGap
         direction="row"
         spacing={1.5}
         sx={{
@@ -1608,7 +1615,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
         }}>
         <TextField size="small" label="Step Name" placeholder="e.g. TSB" value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
         {isBiochemical && (
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1}
             sx={{
@@ -1667,7 +1674,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "text.primary" }}>
             Stage 2 Incubation (Transfer)
           </Typography>
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={1.5}
             sx={{
@@ -1759,7 +1766,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
               const material = materials.find((mat) => mat.id === row.materialId);
               const productConditions = material?.mediaProductId ? conditions.filter((c) => c.mediaProductId === material.mediaProductId) : [];
               return (
-                <Stack
+                <Stack useFlexGap
                   key={idx}
                   direction="row"
                   spacing={1.5}
@@ -2525,7 +2532,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
       label: "Display Name",
       sortable: true,
       render: (t) => (
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                    <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       <span>{t.displayName}</span>
                       {t.workflowType === "HplcMethodAssay" && (
                         <Chip
@@ -2706,7 +2713,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
 
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+          <Stack useFlexGap direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <TextField
               size="small"
               label="Code"
@@ -2727,7 +2734,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             />
           </Stack>
 
-          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+          <Stack useFlexGap direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <FormControl size="small" sx={{ flex: 1, minWidth: 200 }} required>
               <InputLabel id="test-section-select-label">Section</InputLabel>
               <Select<number | "">
@@ -3403,7 +3410,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 </Typography>
 
                 <Stack spacing={2}>
-                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                  <Stack useFlexGap direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
                     <FormControl size="small" sx={{ flex: "1 1 160px", minWidth: 140 }}>
                       <InputLabel id="cal-instrument-type-label">Instrument</InputLabel>
                       <Select
@@ -3427,7 +3434,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                     />
                   </Stack>
 
-                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                  <Stack useFlexGap direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
                     <TextField
                       size="small"
                       type="number"
@@ -3474,7 +3481,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                     />
                   </Stack>
 
-                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                  <Stack useFlexGap direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
                     <TextField
                       size="small"
                       type="number"
@@ -3497,7 +3504,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                     />
                   </Stack>
 
-                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                  <Stack useFlexGap direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
                     <TextField
                       size="small"
                       type="number"
@@ -3535,7 +3542,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                     <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 1, color: "text.secondary" }}>
                       REQUIRED CALIBRATION CHECKS
                     </Typography>
-                    <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
+                    <Stack useFlexGap direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
                       <FormControlLabel
                         control={
                           <Checkbox
@@ -3645,7 +3652,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                         At least one criterion is required when system suitability is enabled.
                       </Typography>
 
-                      <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                      <Stack useFlexGap direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
                         <TextField
                           size="small"
                           type="number"

@@ -255,7 +255,7 @@ function ItemRowCard({
             </Typography>
           </Typography>
 
-          <Stack
+          <Stack useFlexGap
             direction="row"
             spacing={0.75}
             sx={{

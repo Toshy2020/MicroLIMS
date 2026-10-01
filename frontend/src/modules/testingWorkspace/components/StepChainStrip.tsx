@@ -16,7 +16,7 @@ export function StepChainStrip({ current }: { current: CurrentStepResponse }) {
   const currentOrder = current.step?.stepOrder ?? null;
 
   return (
-    <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
+    <Stack useFlexGap direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
       {(current.allSteps ?? []).map((s) => {
         const done = completedByOrder.get(s.stepOrder);
         const isCurrent = s.stepOrder === currentOrder;

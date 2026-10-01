@@ -15,7 +15,8 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  TableContainer
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -449,28 +450,30 @@ export function DissolutionPanel({
     passed === null || passed === undefined ? "—" : <StatusBadge status={passed ? "Pass" : "BelowSpec"} />;
 
   const renderReadingsTable = (rList: ResultReadingDetail[], firstHeader: string, lastHeader: string) => (
-    <Table size="small">
-      <TableHead>
-        <TableRow>
-          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{firstHeader}</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Peak Area</TableCell>
-          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>% Dissolved</TableCell>
-          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rList.map((r) => (
-          <TableRow key={r.id}>
-            <TableCell sx={{ fontSize: 12 }}>Vessel {r.index}</TableCell>
-            <TableCell align="right" sx={{ fontSize: 12 }}><NumericCell value={r.value1 != null ? Number(r.value1) : null} /></TableCell>
-            <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-              <NumericCell value={r.computedValue != null ? Number(r.computedValue) : null} unit="%" />
-            </TableCell>
-            <TableCell sx={{ fontSize: 12 }}>{readingStatusBadge(r.passed)}</TableCell>
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{firstHeader}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Peak Area</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>% Dissolved</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHead>
+        <TableBody>
+          {rList.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell sx={{ fontSize: 12 }}>Vessel {r.index}</TableCell>
+              <TableCell align="right" sx={{ fontSize: 12 }}><NumericCell value={r.value1 != null ? Number(r.value1) : null} /></TableCell>
+              <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
+                <NumericCell value={r.computedValue != null ? Number(r.computedValue) : null} unit="%" />
+              </TableCell>
+              <TableCell sx={{ fontSize: 12 }}>{readingStatusBadge(r.passed)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 
   // Finalized view
@@ -494,7 +497,7 @@ export function DissolutionPanel({
 
         {activeAnalysis && (
           <ResultSection title="Analysis summary">
-            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               {spec?.lowerLimit && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Specification</Typography>
@@ -584,7 +587,7 @@ export function DissolutionPanel({
       <Stack spacing={2}>
       <ResultSection step={1} title="System suitability run">
       {linkedRun && !changingRun ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+        <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{linkedRun.code}</Typography>
           <StatusBadge status="Passed" />
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
@@ -597,7 +600,7 @@ export function DissolutionPanel({
           )}
         </Stack>
       ) : (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+        <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Select
             size="small"
             displayEmpty
@@ -720,7 +723,7 @@ export function DissolutionPanel({
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                   Test Conditions
                 </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
+                <Stack useFlexGap direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
                   {conditionLabels.map((label) => (
                     <TextField
                       key={label}

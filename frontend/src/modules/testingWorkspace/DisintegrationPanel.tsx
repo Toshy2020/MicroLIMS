@@ -628,7 +628,7 @@ export function DisintegrationPanel({
                             prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
                           );
                         }}
-                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        slotProps={{ htmlInput: { "aria-label": `Unit ${s1UnitsCount + i + 1} disintegration time (minutes)`, min: 0.01, step: "any" } }}
                         sx={{ width: 140 }}
                       />
                     </TableCell>
@@ -772,7 +772,7 @@ export function DisintegrationPanel({
                           prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
                         );
                       }}
-                      slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                      slotProps={{ htmlInput: { "aria-label": `Unit ${i + 1} disintegration time (minutes)`, min: 0.01, step: "any" } }}
                       sx={{ width: 140 }}
                     />
                   </TableCell>

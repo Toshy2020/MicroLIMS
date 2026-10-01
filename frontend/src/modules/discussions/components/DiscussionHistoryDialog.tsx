@@ -14,8 +14,8 @@ import {
 import HistoryIcon from "@mui/icons-material/History";
 import { discussionService } from "../services/discussionService";
 import { DiscussionVersion } from "../types/discussionTypes";
-import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { DiscussionCategoryBadge } from "./DiscussionCategoryBadge";
+import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 
 interface Props {
   open: boolean;

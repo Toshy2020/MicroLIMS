@@ -97,6 +97,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
                 size="small"
                 value={storageCondition}
                 onChange={(e) => setStorageCondition(e.target.value)}
+                inputProps={{ "aria-label": "Storage condition" }}
               >
                 <MenuItem value=""><em>Select storage condition</em></MenuItem>
                 <MenuItem value="Refrigerator">Refrigerator</MenuItem>
@@ -115,6 +116,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
                   type="number"
                   value={storageTimeHours}
                   onChange={(e) => setStorageTimeHours(e.target.value)}
+                  slotProps={{ htmlInput: { "aria-label": "Storage time (hours)" } }}
                 />
               </Box>
             )}

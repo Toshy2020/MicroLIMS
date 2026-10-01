@@ -52,6 +52,7 @@ export function ReferenceStrainFilterPanel({
             label="Organism / Strain"
             value={draft.organismId ?? ""}
             onChange={(e) => onChange({ organismId: e.target.value ? Number(e.target.value) : undefined })}
+            inputProps={{ "aria-label": "Organism / Strain" }}
           >
             <MenuItem value="">All Organisms</MenuItem>
             {(filterOptions?.organisms ?? []).map((o) => (
@@ -68,6 +69,7 @@ export function ReferenceStrainFilterPanel({
             label="Approval Status"
             value={draft.approvalStatus ?? ""}
             onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as any })}
+            inputProps={{ "aria-label": "Approval Status" }}
           >
             <MenuItem value="">All Statuses</MenuItem>
             <MenuItem value="PendingReview">Pending Review</MenuItem>
@@ -82,6 +84,7 @@ export function ReferenceStrainFilterPanel({
             label="Active / Destroyed"
             value={draft.isDestroyed === undefined ? "" : draft.isDestroyed ? "true" : "false"}
             onChange={(e) => onChange({ isDestroyed: e.target.value === "" ? undefined : e.target.value === "true" })}
+            inputProps={{ "aria-label": "Active / Destroyed" }}
           >
             <MenuItem value="">All Batches</MenuItem>
             <MenuItem value="false">Active Only</MenuItem>

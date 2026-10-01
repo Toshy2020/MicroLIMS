@@ -180,7 +180,7 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
                         {inUse ? (
                           <Tooltip title="In use - add a new condition instead">
                             <span>
-                              <IconButton size="small" disabled>
+                              <IconButton aria-label="In use - add a new condition instead" size="small" disabled>
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </span>
@@ -195,7 +195,7 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
                         {inUse ? (
                           <Tooltip title="In use - add a new condition instead">
                             <span>
-                              <IconButton size="small" color="error" disabled>
+                              <IconButton aria-label="In use - add a new condition instead" size="small" color="error" disabled>
                                 <DeleteOutlineIcon fontSize="small" />
                               </IconButton>
                             </span>

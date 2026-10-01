@@ -455,7 +455,7 @@ export function ApprovedMediaListPage() {
                   bgcolor: "background.default"
                 }
               }}
-              slotProps={{
+              slotProps={{ htmlInput: { "aria-label": "Search by lot number, media type, manufacturer, batch" },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">

@@ -161,7 +161,7 @@ export function MediaConfigurationsSection({
                   <TableRow hover sx={{ "& > *": { borderBottom: isExpanded ? "unset" : undefined } }}>
                     <TableCell sx={{ width: 40, p: 0.5 }}>
                       {challengeCount > 0 && (
-                        <IconButton size="small" onClick={() => toggleRow(config.id)}>
+                        <IconButton aria-label={isExpanded ? "Collapse configuration details" : "Expand configuration details"} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(config.id)}>
                           {isExpanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
                         </IconButton>
                       )}

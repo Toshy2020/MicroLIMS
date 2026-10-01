@@ -21,8 +21,8 @@ import { MaterialService } from "../../../inventory/materials/services/MaterialS
 import { MaterialItem } from "../../../inventory/materials/types/materialTypes";
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 
 interface Props {
   open: boolean;
@@ -215,6 +215,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                     fullWidth
                     value={form.materialId ?? ""}
                     onChange={(e) => setField("materialId", e.target.value)}
+                    inputProps={{ "aria-label": "Dehydrated Media Stock (Inventory)" }}
                   >
                     <MenuItem value="">
                       <em>Dehydrated Media Stock (Inventory) *</em>
@@ -287,6 +288,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   displayEmpty
                   value={form.autoclaveEquipmentId ?? ""}
                   onChange={(e) => handleAutoclaveChange(e.target.value)}
+                  inputProps={{ "aria-label": "Autoclave" }}
                 >
                   <MenuItem value="">
                     <em>Select Autoclave *</em>
@@ -304,6 +306,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   disabled={!form.autoclaveEquipmentId || !Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0}
                   value={form.autoclaveProgramId ?? ""}
                   onChange={(e) => handleProgramChange(e.target.value)}
+                  inputProps={{ "aria-label": "Autoclave program" }}
                 >
                   <MenuItem value="">
                     <em>{!Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0 ? "No active programs for autoclave" : "Select Program / Load *"}</em>

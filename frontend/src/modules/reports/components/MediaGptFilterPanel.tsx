@@ -52,6 +52,7 @@ export function MediaGptFilterPanel({
             label="Evaluation Type"
             value={draft.evaluationType ?? ""}
             onChange={(e) => onChange({ evaluationType: (e.target.value || undefined) as EvaluationType | undefined })}
+            inputProps={{ "aria-label": "Evaluation Type" }}
           >
             <MenuItem value="">All Evaluation Types</MenuItem>
             <MenuItem value="GrowthPromotion">Growth Promotion (GPT)</MenuItem>
@@ -66,6 +67,7 @@ export function MediaGptFilterPanel({
             label="Media Type"
             value={draft.mediaType ?? ""}
             onChange={(e) => onChange({ mediaType: e.target.value || undefined })}
+            inputProps={{ "aria-label": "Media Type" }}
           >
             <MenuItem value="">All Media Types</MenuItem>
             {(filterOptions?.mediaTypes ?? []).map((m) => (
@@ -80,6 +82,7 @@ export function MediaGptFilterPanel({
             label="Evaluation Outcome"
             value={draft.outcome ?? ""}
             onChange={(e) => onChange({ outcome: (e.target.value || undefined) as EvaluationOutcome | undefined })}
+            inputProps={{ "aria-label": "Evaluation Outcome" }}
           >
             <MenuItem value="">All Outcomes</MenuItem>
             <MenuItem value="Conform">Conform</MenuItem>
@@ -93,6 +96,7 @@ export function MediaGptFilterPanel({
             label="Approval Status"
             value={draft.approvalStatus ?? ""}
             onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as any })}
+            inputProps={{ "aria-label": "Approval Status" }}
           >
             <MenuItem value="">All Statuses</MenuItem>
             <MenuItem value="PendingReview">Pending Review</MenuItem>

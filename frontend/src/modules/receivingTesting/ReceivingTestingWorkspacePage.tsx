@@ -53,8 +53,8 @@ import { GroupedActionsPanel } from "../testingWorkspace/components/GroupedActio
 import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
-import { toast } from "sonner";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
+import { toast } from "sonner";
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
 

@@ -1424,7 +1424,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       }
                       fullWidth
                     />
-                    <IconButton
+                    <IconButton aria-label={`Remove stage ${idx + 1}`}
                       size="small"
                       color="error"
                       onClick={() => handleRemoveStage(idx)}

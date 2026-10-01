@@ -9,8 +9,8 @@ import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../components/PageHeader";
 import { RoleService, RoleRecord } from "./services/RoleService";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
-import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { UserService, UserRecord } from "../users/services/UserService";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 
 export function RolesPage() {
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ export function RolesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 260 }}
-          slotProps={{
+          slotProps={{ htmlInput: { "aria-label": "Search by role name" },
             input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }
           }}
         />

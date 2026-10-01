@@ -113,7 +113,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
           </Typography>
         </Box>
 
-        <IconButton
+        <IconButton aria-label={expanded ? "Collapse group" : "Expand group"} aria-expanded={Boolean(expanded)}
           size="small"
           onClick={(e) => {
             e.stopPropagation();

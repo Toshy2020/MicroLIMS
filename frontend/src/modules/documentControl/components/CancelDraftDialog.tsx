@@ -94,6 +94,7 @@ export function CancelDraftDialog({
             disabled={loading}
             helperText={`${reason.trim().length}/10 characters minimum`}
             error={reason.length > 0 && !isValid}
+            slotProps={{ htmlInput: { "aria-label": "State why this draft revision is being cancelled" } }}
           />
         </Box>
       </DialogContent>

@@ -17,6 +17,7 @@ import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
 } from "../services/EquipmentInventoryService";
 import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { clickable } from "../../../../utils/clickable";
 
 interface ActiveEquipmentViewProps {
   onOpenDetails: (equipmentId: number) => void;
@@ -190,6 +191,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
               placeholder="Search by item code, sample reference, or media lot (e.g. TSB/08/26, PT-0021)..."
               value={whereQuery}
               onChange={(e) => setWhereQuery(e.target.value)}
+              slotProps={{ htmlInput: { "aria-label": "Search by item code, sample reference, or media lot" } }}
             />
             <Button
               type="submit"
@@ -333,6 +335,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         transition: "all 0.15s ease-in-out",
                         "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover", opacity: 1 }
                       }}
+                      {...clickable(() => setSelectedEqId(eq.id), { pressed: selectedEqId === eq.id })}
                     >
                       <Stack
                         direction="row"

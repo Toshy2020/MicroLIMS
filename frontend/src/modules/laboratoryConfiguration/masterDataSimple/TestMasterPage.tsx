@@ -482,7 +482,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
                 />
               </TableCell>
               <TableCell align="right">
-                <IconButton size="small" onClick={() => openEdit(a)} title="Edit Analyte">
+                <IconButton aria-label="Edit analyte" size="small" onClick={() => openEdit(a)} title="Edit Analyte">
                   <EditIcon fontSize="small" />
                 </IconButton>
                 <Tooltip title={a.isActive ? "Deactivate Analyte" : "Re-activate Analyte"}>
@@ -805,10 +805,10 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
               <TableCell>{r.standardReplicates}</TableCell>
               <TableCell>{r.sampleReplicates}</TableCell>
               <TableCell align="right">
-                <IconButton size="small" onClick={() => openEdit(r)} title="Edit Replicates">
+                <IconButton aria-label="Edit replicates" size="small" onClick={() => openEdit(r)} title="Edit Replicates">
                   <EditIcon fontSize="small" />
                 </IconButton>
-                <IconButton
+                <IconButton aria-label="Delete replicate rule"
                   size="small"
                   color="error"
                   onClick={() => setPendingDelete(r)}
@@ -867,6 +867,7 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
                 label="Stage Role"
                 value={role as ProductionStageRole}
                 onChange={(e) => setRole(e.target.value as ProductionStageRole)}
+                inputProps={{ "aria-label": "Stage Role" }}
               >
                 {availableRoles.map((r) => (
                   <MenuItem key={r} value={r}>
@@ -1150,7 +1151,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
           {["StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
-        <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
+        <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": "Workflow type" }}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
         </Select>
       </Stack>
@@ -1614,7 +1615,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
               alignItems: "center",
               flexWrap: "wrap"
             }}>
-            <Select size="small" displayEmpty value={pendingPhenotypicTest} onChange={(e) => setPendingPhenotypicTest(e.target.value as string)} sx={{ minWidth: 180 }}>
+            <Select size="small" displayEmpty value={pendingPhenotypicTest} onChange={(e) => setPendingPhenotypicTest(e.target.value as string)} sx={{ minWidth: 180 }} inputProps={{ "aria-label": "Phenotypic Test Type" }}>
               <MenuItem value=""><em>Phenotypic Test Type</em></MenuItem>
               {PHENOTYPIC_TEST_TYPES
                 .filter((t) => !form.phenotypicTestTypes.includes(t))
@@ -1626,7 +1627,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             ))}
           </Stack>
         )}
-        <Select size="small" value={form.stepType} onChange={(e) => changeStepType(e.target.value)} sx={{ minWidth: 180 }}>
+        <Select size="small" value={form.stepType} onChange={(e) => changeStepType(e.target.value)} sx={{ minWidth: 180 }} inputProps={{ "aria-label": "Step type" }}>
           {STEP_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
         </Select>
         <FormControlLabel
@@ -1717,7 +1718,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             alignItems: "center",
             mt: 1.5
           }}>
-          <Select<number | ""> size="small" displayEmpty value={form.targetOrganismId ?? ""} onChange={(e) => setForm({ ...form, targetOrganismId: e.target.value === "" ? null : Number(e.target.value) })} sx={{ minWidth: 220 }}>
+          <Select<number | ""> size="small" displayEmpty value={form.targetOrganismId ?? ""} onChange={(e) => setForm({ ...form, targetOrganismId: e.target.value === "" ? null : Number(e.target.value) })} sx={{ minWidth: 220 }} inputProps={{ "aria-label": "Target Organism (required)" }}>
             <MenuItem value=""><em>Target Organism (required)</em></MenuItem>
             {organisms.map((o) => <MenuItem key={o.id} value={o.id}>{o.scientificName}</MenuItem>)}
           </Select>
@@ -1766,7 +1767,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                     alignItems: "center",
                     flexWrap: "wrap"
                   }}>
-                  <Select<number | ""> size="small" displayEmpty value={row.materialId} onChange={(e) => updateMediaRow(idx, { materialId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 200 }}>
+                  <Select<number | ""> size="small" displayEmpty value={row.materialId} onChange={(e) => updateMediaRow(idx, { materialId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 200 }} inputProps={{ "aria-label": "Material" }}>
                     <MenuItem value=""><em>Material</em></MenuItem>
                     {materials.map((m) => <MenuItem key={m.id} value={m.id}>{m.materialName}</MenuItem>)}
                   </Select>
@@ -1776,7 +1777,8 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                     value={row.mediaIncubationConditionId}
                     disabled={productConditions.length === 0}
                     onChange={(e) => updateMediaRow(idx, { mediaIncubationConditionId: e.target.value === "" ? "" : Number(e.target.value) })}
-                    sx={{ minWidth: 240 }}>
+                    sx={{ minWidth: 240 }}
+                    inputProps={{ "aria-label": "Incubation condition" }}>
                     <MenuItem value=""><em>Incubation condition</em></MenuItem>
                     {productConditions.map((c) => (
                       <MenuItem key={c.id} value={c.id}>
@@ -2733,6 +2735,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 label="Section"
                 value={sectionId}
                 onChange={(e) => setSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+                inputProps={{ "aria-label": "Section" }}
               >
                 {mySections.length > 1 && <MenuItem value=""><em>Select Section</em></MenuItem>}
                 {editingSectionId !== null && !mySections.some((s) => s.sectionId === editingSectionId) && (
@@ -2894,6 +2897,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                         setMethodAbbreviation(chosen.abbreviation);
                       }
                     }}
+                    inputProps={{ "aria-label": "HPLC Method" }}
                   >
                     <MenuItem value=""><em>Select HPLC Method</em></MenuItem>
                     {hplcMethods

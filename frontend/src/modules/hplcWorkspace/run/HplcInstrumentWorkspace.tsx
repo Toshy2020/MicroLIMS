@@ -31,8 +31,8 @@ import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/sol
 import { monospaceFontFamily } from "../../../theme/palette";
 import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
-import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../types";
+import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 
 const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
   { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },

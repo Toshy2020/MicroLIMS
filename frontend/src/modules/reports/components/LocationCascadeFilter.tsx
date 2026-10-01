@@ -142,6 +142,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
             const group = groups.find((g) => g.id === id);
             if (group && group.items[0]) onSubjectNameChange(group.items[0].name);
           }}
+          inputProps={{ "aria-label": labels.level2 }}
         >
           {groups.map((g) => (
             <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>
@@ -155,6 +156,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
           label={labels.level3}
           value={subjectName}
           onChange={(e) => onSubjectNameChange(e.target.value)}
+          inputProps={{ "aria-label": labels.level3 }}
         >
           {(selectedGroup?.items ?? []).map((item) => (
             <MenuItem key={item.id} value={item.name}>{item.name}</MenuItem>

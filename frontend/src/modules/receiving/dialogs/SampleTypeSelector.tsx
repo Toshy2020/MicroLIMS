@@ -9,6 +9,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { SampleCategoryKey } from "../types/receivingTypes";
 import { RECEIVING_CATEGORIES } from "../constants/receivingConstants";
 import { brandColors } from "../../../theme";
+import { clickable } from "../../../utils/clickable";
 
 interface Props {
   selectedCategory: SampleCategoryKey | null;
@@ -79,6 +80,7 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowed
                         : "0 4px 12px rgba(0,0,0,0.06)"
                   }
                 }}
+                {...clickable(() => onSelectCategory(cat.key))}
               >
                 {/* Header with Icon and Selection Check */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>

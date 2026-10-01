@@ -257,6 +257,7 @@ export function MediaConfigurationDialog({
               fullWidth
               value={evaluationType}
               onChange={(e) => handleEvaluationTypeChange(e.target.value)}
+              inputProps={{ "aria-label": "Evaluation Type" }}
             >
               {EVALUATION_TYPES.map((t) => (
                 <MenuItem key={t.value} value={t.value}>
@@ -277,6 +278,7 @@ export function MediaConfigurationDialog({
               value={conditionId}
               disabled={conditions.length === 0}
               onChange={(e) => setConditionId(e.target.value === "" ? "" : Number(e.target.value))}
+              inputProps={{ "aria-label": "Condition" }}
             >
               <MenuItem value="">
                 <em>Select a condition *</em>
@@ -329,6 +331,7 @@ export function MediaConfigurationDialog({
               displayEmpty
               value={challengeRole}
               onChange={(e) => setChallengeRole(e.target.value)}
+              inputProps={{ "aria-label": "Challenge Role" }}
             >
               <MenuItem value="">
                 <em>Select Challenge Role *</em>
@@ -395,7 +398,7 @@ export function MediaConfigurationDialog({
                     <TableCell>{c.expectedDescription ?? "—"}</TableCell>
                     <TableCell>{c.initialInoculum ?? "—"}</TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
+                      <IconButton aria-label={`Remove challenge organism ${idx + 1}`} size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
                     </TableCell>

@@ -9,8 +9,8 @@ import { NotificationItem, MediaExpiryLot } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { useLoadFailures } from "../../../hooks/useLoadFailures";
-import { LoadFailuresAlert } from "../../../components/LoadErrorAlert";
 import { DashboardService } from "../services/DashboardService";
+import { LoadFailuresAlert } from "../../../components/LoadErrorAlert";
 
 function timeAgo(timestamp: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60_000));

@@ -604,6 +604,7 @@ export function DissolutionPanel({
             value={runChoice}
             onChange={(e) => setRunChoice(e.target.value as number)}
             sx={{ minWidth: 320 }}
+            inputProps={{ "aria-label": "System suitability run" }}
           >
             <MenuItem value="" disabled>
               {selectableRuns.length ? "Choose a passed run" : "No passed run for this method yet"}

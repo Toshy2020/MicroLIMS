@@ -4,6 +4,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { MediaProductOption } from "../types/mediaConfigurationTypes";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
+import { clickable } from "../../../../utils/clickable";
 
 interface MediaProductListProps {
   products: MediaProductOption[];
@@ -107,6 +108,7 @@ function MediaProductRowCard({
           bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover",
         },
       }}
+      {...clickable(() => onSelectProduct(product), { containsControls: true })}
     >
       <Box
         sx={{
@@ -160,7 +162,7 @@ function MediaProductRowCard({
 
         {isManager && (
           <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
-            <IconButton
+            <IconButton aria-label="Edit media product"
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
@@ -170,7 +172,7 @@ function MediaProductRowCard({
             >
               <EditIcon fontSize="small" />
             </IconButton>
-            <IconButton
+            <IconButton aria-label="Delete media product"
               size="small"
               color="error"
               onClick={(e) => {

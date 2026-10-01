@@ -254,7 +254,7 @@ export function GroupedActionRow({
 
         {/* Right: Expand chevron */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
-          <IconButton
+          <IconButton aria-label={expanded ? "Collapse group" : "Expand group"} aria-expanded={Boolean(expanded)}
             size="small"
             onClick={handleToggle}
             sx={{
@@ -350,6 +350,7 @@ export function GroupedActionRow({
                       fontSize: "0.75rem",
                       bgcolor: theme.palette.background.paper
                     }}
+                    inputProps={{ "aria-label": "Media lot" }}
                   >
                     {matchingMedia.length === 0 ? (
                       <MenuItem disabled value="">
@@ -382,6 +383,7 @@ export function GroupedActionRow({
                     fontSize: "0.75rem",
                     bgcolor: theme.palette.background.paper
                   }}
+                  inputProps={{ "aria-label": "Incubator" }}
                 >
                   {matchingIncubators.length === 0 ? (
                     <MenuItem disabled value="">

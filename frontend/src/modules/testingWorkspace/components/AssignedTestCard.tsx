@@ -18,6 +18,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { TestOrderSummary, SampleCard as WorkspaceSampleCard } from "../types/workspaceTypes";
 import { useTestStepQuickAction } from "../hooks/useTestStepQuickAction";
+import { clickable } from "../../../utils/clickable";
 
 interface AssignedTestCardProps {
   test: TestOrderSummary;
@@ -452,6 +453,7 @@ export function AssignedTestCard({
           bgcolor: theme.custom.status.purple.bg
         }
       }}
+      {...clickable(handleCardClick, { containsControls: true })}
     >
       {/* 1. Ultra-Compact Single-Line Horizontal Row (~46px) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.25, width: "100%" }}>
@@ -597,6 +599,7 @@ export function AssignedTestCard({
                   bgcolor: "background.paper",
                   "& .MuiSelect-select": { py: 0.5, px: 1 }
                 }}
+                inputProps={{ "aria-label": "Media lot" }}
               >
                 <MenuItem value="" sx={{ fontSize: 11.5 }}>
                   <em>Select Media Lot ({permittedMaterialNames || "Approved"})</em>
@@ -628,6 +631,7 @@ export function AssignedTestCard({
                   bgcolor: "background.paper",
                   "& .MuiSelect-select": { py: 0.5, px: 1 }
                 }}
+                inputProps={{ "aria-label": "Incubator" }}
               >
                 <MenuItem value="" sx={{ fontSize: 11.5 }}>
                   <em>Incubator ({stage1TempMin}–{stage1TempMax}°C)</em>

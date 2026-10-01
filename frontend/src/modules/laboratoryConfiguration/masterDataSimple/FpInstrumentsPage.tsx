@@ -368,6 +368,7 @@ export function FpInstrumentsPage() {
               label="Equipment Inventory asset"
               value={form.inventoryId}
               onChange={(e) => e.target.value !== "" && pickInventory(Number(e.target.value))}
+              inputProps={{ "aria-label": "Equipment Inventory asset" }}
             >
               {availableInventory.length === 0 && <MenuItem value="" disabled>No unconfigured assets in the inventory</MenuItem>}
               {availableInventory.map((i) => (

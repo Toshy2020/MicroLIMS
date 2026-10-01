@@ -21,6 +21,7 @@ import {
 import { OrganismOption } from "../../../../hooks/useOrganisms";
 import { MediaConfigurationsSection } from "./MediaConfigurationsSection";
 import { MediaIncubationConditionsSection } from "./MediaIncubationConditionsSection";
+import { clickable } from "../../../../utils/clickable";
 
 // Tab order follows setup order: a medium needs an incubation condition
 // before its evaluation configuration can pick one.
@@ -141,7 +142,7 @@ export function MediaProductWorkspace({
           </Stack>
         </Box>
 
-        <IconButton size="small" onClick={onClose} title="Close Workspace">
+        <IconButton aria-label="Close workspace" size="small" onClick={onClose} title="Close Workspace">
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -273,6 +274,7 @@ export function MediaProductWorkspace({
                       "&:hover": { bgcolor: "action.hover" },
                     }}
                     onClick={() => onTabChange(row.tab)}
+                    {...clickable(() => onTabChange(row.tab))}
                   >
                     <Typography variant="body2" sx={{ color: "text.secondary" }}>
                       {row.label}

@@ -505,12 +505,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
               setMediaId(val);
               setIncubatorId("");
             }}
+            inputProps={{ "aria-label": "Media batch" }}
           >
             <MenuItem value=""><em>Media Batch ({permittedMaterialNames || "approved"} lots only)</em></MenuItem>
             {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
           </Select>
 
-          <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))}>
+          <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))} inputProps={{ "aria-label": "Stage 1 incubator" }}>
             <MenuItem value=""><em>Stage 1 Incubator ({stage1TempMin}-{stage1TempMax} °C)</em></MenuItem>
             {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setPointTemperature}°C</MenuItem>)}
           </Select>
@@ -564,6 +565,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             size="small"
             value={stage2IncubatorId}
             onChange={(e) => setStage2IncubatorId(Number(e.target.value))}
+            inputProps={{ "aria-label": "Stage 2 incubator" }}
           >
             <MenuItem value="">
               <em>Select Stage 2 Incubator ({stage2Config.tempMin}-{stage2Config.tempMax} °C)</em>
@@ -716,7 +718,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                     }}
                   />
                   {!isDirectCount && !dilutionFactorOverriding && (
-                    <IconButton
+                    <IconButton aria-label="Override dilution factor"
                       size="small"
                       onClick={() => setDilutionFactorOverriding(true)}
                       title="Override configured Dilution Factor"
@@ -779,7 +781,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                         }
                       }}
                     />
-                    <IconButton size="small" onClick={() => removeReading(i)}><CloseIcon fontSize="small" /></IconButton>
+                    <IconButton aria-label={`Remove reading ${i + 1}`} size="small" onClick={() => removeReading(i)}><CloseIcon fontSize="small" /></IconButton>
                   </Stack>
                 ))}
               </Stack>

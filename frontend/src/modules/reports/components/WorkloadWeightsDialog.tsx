@@ -136,7 +136,7 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
                       onChange={(e) => setEditValue(parseFloat(e.target.value) || 1.0)}
                       sx={{ width: 80 }}
                       slotProps={{
-                        htmlInput: { step: 0.1, min: 0.1 }
+                        htmlInput: { "aria-label": `Weight for ${w.testCode}`, step: 0.1, min: 0.1 }
                       }}
                     />
                   ) : (
@@ -156,6 +156,7 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
                       value={editReason}
                       onChange={(e) => setEditReason(e.target.value)}
                       fullWidth
+                      slotProps={{ htmlInput: { "aria-label": "Reason for change" } }}
                     />
                   ) : (
                     <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -168,10 +169,10 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
                   <TableCell align="center">
                     {isEditing ? (
                       <Box sx={{ display: "flex", gap: 0.5 }}>
-                        <IconButton size="small" color="primary" onClick={() => saveEdit(w.testCode)}>
+                        <IconButton aria-label={`Save weight for ${w.testCode}`} size="small" color="primary" onClick={() => saveEdit(w.testCode)}>
                           <CheckIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={cancelEdit}>
+                        <IconButton aria-label="Cancel editing" size="small" onClick={cancelEdit}>
                           <CloseIcon fontSize="small" />
                         </IconButton>
                       </Box>

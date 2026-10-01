@@ -37,8 +37,8 @@ import { DiscussionCategoryBadge } from "./components/DiscussionCategoryBadge";
 import { EditDiscussionDialog } from "./components/EditDiscussionDialog";
 import { DiscussionHistoryDialog } from "./components/DiscussionHistoryDialog";
 import { brandColors } from "../../theme";
-import { toast } from "sonner";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
+import { toast } from "sonner";
 
 export function DiscussionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -224,7 +224,7 @@ export function DiscussionDetailPage() {
             >
               Edit Post
             </Button>
-            <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
+            <IconButton aria-label="Post actions" size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
             <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
@@ -360,7 +360,7 @@ export function DiscussionDetailPage() {
                       {(att.fileSizeBytes / 1024).toFixed(1)} KB
                     </Typography>
                   </Box>
-                  <IconButton
+                  <IconButton aria-label={`Download ${att.fileName}`}
                     size="small"
                     color="primary"
                     onClick={() => discussionService.downloadAttachment(post.id, att.id, att.fileName)}
@@ -393,6 +393,7 @@ export function DiscussionDetailPage() {
             maxRows={8}
             disabled={submittingComment}
             sx={{ mb: 1.5 }}
+            slotProps={{ htmlInput: { "aria-label": "Comment" } }}
           />
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
@@ -455,10 +456,10 @@ export function DiscussionDetailPage() {
                       )}
                       {canEditThisComment && !isInlineEditing && (
                         <>
-                          <IconButton size="small" onClick={() => handleStartEditComment(comment)}>
+                          <IconButton aria-label="Edit comment" size="small" onClick={() => handleStartEditComment(comment)}>
                             <EditIcon sx={{ fontSize: 15 }} />
                           </IconButton>
-                          <IconButton size="small" color="error" onClick={() => handleDeleteComment(comment.id)}>
+                          <IconButton aria-label="Delete comment" size="small" color="error" onClick={() => handleDeleteComment(comment.id)}>
                             <DeleteOutlineIcon sx={{ fontSize: 15 }} />
                           </IconButton>
                         </>
@@ -476,12 +477,13 @@ export function DiscussionDetailPage() {
                         value={editingCommentText}
                         onChange={(e) => setEditingCommentText(e.target.value)}
                         sx={{ mb: 1 }}
+                        slotProps={{ htmlInput: { "aria-label": "Edit comment" } }}
                       />
                       <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                        <IconButton size="small" onClick={() => setEditingCommentId(null)}>
+                        <IconButton aria-label="Cancel editing" size="small" onClick={() => setEditingCommentId(null)}>
                           <CloseIcon fontSize="small" />
                         </IconButton>
-                        <IconButton
+                        <IconButton aria-label="Save comment"
                           size="small"
                           color="primary"
                           onClick={() => handleSaveEditComment(comment.id)}

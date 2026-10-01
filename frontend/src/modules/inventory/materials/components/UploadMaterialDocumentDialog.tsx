@@ -16,6 +16,7 @@ import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MaterialService } from "../services/MaterialService";
 import type { MaterialDocumentType } from "../types/materialTypes";
 import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes";
+import { clickable } from "../../../../utils/clickable";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"];
 const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB (frontend pre-validation; backend is authoritative)
@@ -136,6 +137,7 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
           "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
         }}
         onClick={() => fileRef.current?.click()}
+        {...clickable(() => fileRef.current?.click(), { label: "Choose a file to upload" })}
       >
         <UploadFileIcon sx={{ color: "text.secondary", mb: 0.5, fontSize: 32 }} />
         {file ? (

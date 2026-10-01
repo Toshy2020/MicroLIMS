@@ -13,6 +13,7 @@ import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type { EquipmentDocument } from "../types/equipmentTypes";
 import { EQUIPMENT_DOCUMENT_TYPE_LABELS } from "../types/equipmentTypes";
+import { clickable } from "../../../../utils/clickable";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"];
 const MAX_SIZE_BYTES = 25 * 1024 * 1024;
@@ -161,6 +162,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
           "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
         }}
         onClick={() => fileRef.current?.click()}
+        {...clickable(() => fileRef.current?.click(), { label: "Choose a replacement file" })}
       >
         <UploadFileIcon sx={{ color: "text.secondary", fontSize: 28 }} />
         {file ? (

@@ -134,6 +134,7 @@ export function DocumentAuditPage() {
               setPage(0);
             }}
             sx={{ minWidth: 260, flexGrow: 1 }}
+            slotProps={{ htmlInput: { "aria-label": "Search Event UID, Action, Reason, Entity" } }}
           />
 
           <TextField

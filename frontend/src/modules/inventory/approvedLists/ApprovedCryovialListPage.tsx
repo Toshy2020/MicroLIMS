@@ -345,7 +345,7 @@ export function ApprovedCryovialListPage() {
                   bgcolor: "background.default"
                 }
               }}
-              slotProps={{
+              slotProps={{ htmlInput: { "aria-label": "Search by cryovial code, organism, ATCC no., manufacturer" },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">

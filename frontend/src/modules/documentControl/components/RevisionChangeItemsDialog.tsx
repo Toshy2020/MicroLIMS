@@ -205,6 +205,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                   value={category}
                   label="Category"
                   onChange={(e) => setCategory(e.target.value)}
+                  inputProps={{ "aria-label": "Category" }}
                 >
                   {CATEGORIES.map((c) => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>

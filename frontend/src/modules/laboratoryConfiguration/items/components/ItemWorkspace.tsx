@@ -34,6 +34,7 @@ import {
   ItemPreparationConfigurationService,
   type ItemPreparationConfiguration
 } from "../../../testPreparation/services/ItemPreparationConfigurationService";
+import { clickable } from "../../../../utils/clickable";
 
 interface ItemWorkspaceProps {
   item: Item;
@@ -179,7 +180,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
           </Stack>
         </Box>
 
-        <IconButton size="small" onClick={onClose} title="Close Workspace">
+        <IconButton aria-label="Close workspace" size="small" onClick={onClose} title="Close Workspace">
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -264,6 +265,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     "&:hover": { bgcolor: "action.hover" },
                   }}
                   onClick={() => setActiveTab(1)}
+                  {...clickable(() => setActiveTab(1))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Assigned Tests:
@@ -284,6 +286,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     "&:hover": { bgcolor: "action.hover" },
                   }}
                   onClick={() => setActiveTab(2)}
+                  {...clickable(() => setActiveTab(2))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Specifications:
@@ -304,6 +307,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     "&:hover": { bgcolor: "action.hover" },
                   }}
                   onClick={() => setActiveTab(3)}
+                  {...clickable(() => setActiveTab(3))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Controlled Documents:
@@ -324,6 +328,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     "&:hover": { bgcolor: "action.hover" },
                   }}
                   onClick={() => setActiveTab(4)}
+                  {...clickable(() => setActiveTab(4))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Preparation Steps:

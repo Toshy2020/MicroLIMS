@@ -677,6 +677,7 @@ export function CalibrationRunsPage() {
                 label="Result"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                inputProps={{ "aria-label": "Result" }}
               >
                 <MenuItem value="all">All Results</MenuItem>
                 <MenuItem value="passed">Passed</MenuItem>
@@ -690,6 +691,7 @@ export function CalibrationRunsPage() {
                 label="Method"
                 value={methodFilter}
                 onChange={(e) => setMethodFilter(e.target.value)}
+                inputProps={{ "aria-label": "Method" }}
               >
                 <MenuItem value="all">All methods</MenuItem>
                 {calMethods.map((t) => (
@@ -706,6 +708,7 @@ export function CalibrationRunsPage() {
                 label="Run Status"
                 value={runStatusFilter}
                 onChange={(e) => setRunStatusFilter(e.target.value as RunStatusFilter)}
+                inputProps={{ "aria-label": "Run Status" }}
               >
                 <MenuItem value="all">All Runs</MenuItem>
                 <MenuItem value="Active">Active Only</MenuItem>
@@ -831,6 +834,7 @@ export function CalibrationRunsPage() {
                         label="Elemental Method"
                         value={selectedTestId}
                         onChange={(e) => handleTestSelection(e.target.value)}
+                        inputProps={{ "aria-label": "Elemental Method" }}
                       >
                         {calMethods.map((t) => (
                           <MenuItem key={t.id} value={String(t.id)}>
@@ -894,6 +898,7 @@ export function CalibrationRunsPage() {
                           label={`${instrumentTypeLabel} Instrument`}
                           value={selectedEquipmentId}
                           onChange={(e) => setSelectedEquipmentId(e.target.value)}
+                          inputProps={{ "aria-label": "Instrument" }}
                         >
                           {sectionInstruments.map((i) => (
                             <MenuItem key={i.id} value={String(i.id)}>
@@ -929,6 +934,7 @@ export function CalibrationRunsPage() {
                           label="Calibration Standard (Required)"
                           value={selectedStandardId}
                           onChange={(e) => setSelectedStandardId(e.target.value)}
+                          inputProps={{ "aria-label": "Calibration Standard (Required)" }}
                         >
                           {sectionStandards.map((s) => (
                             <MenuItem key={s.id} value={String(s.id)}>
@@ -946,6 +952,7 @@ export function CalibrationRunsPage() {
                             label="ICV Standard (Second Source)"
                             value={selectedIcvStandardId}
                             onChange={(e) => setSelectedIcvStandardId(e.target.value)}
+                            inputProps={{ "aria-label": "ICV Standard (Second Source)" }}
                           >
                             <MenuItem value="">
                               <em>None</em>
@@ -1075,6 +1082,7 @@ export function CalibrationRunsPage() {
                               onChange={(e) =>
                                 updateAnalyteField(aIdx, "correlationType", e.target.value as CorrelationType)
                               }
+                              inputProps={{ "aria-label": "Corr Type" }}
                             >
                               <MenuItem value="R">r</MenuItem>
                               <MenuItem value="RSquared">r²</MenuItem>
@@ -1165,6 +1173,7 @@ export function CalibrationRunsPage() {
                                           e.target.value as CalibrationCheckType
                                         )
                                       }
+                                      inputProps={{ "aria-label": "Check type" }}
                                     >
                                       <MenuItem value="Blank">Blank</MenuItem>
                                       <MenuItem value="Icv">ICV</MenuItem>
@@ -1180,7 +1189,7 @@ export function CalibrationRunsPage() {
                                       onChange={(e) =>
                                         updateCheckField(aIdx, chk.id, "sequencePosition", Number(e.target.value))
                                       }
-                                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                                      slotProps={{ htmlInput: { "aria-label": "Sequence position", min: 1, step: 1 } }}
                                     />
                                   </TableCell>
                                   <TableCell>
@@ -1193,7 +1202,7 @@ export function CalibrationRunsPage() {
                                       onChange={(e) =>
                                         updateCheckField(aIdx, chk.id, "nominalMgPerL", e.target.value)
                                       }
-                                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                                      slotProps={{ htmlInput: { "aria-label": "Nominal concentration (mg/L)", min: 0, step: "any" } }}
                                     />
                                   </TableCell>
                                   <TableCell>
@@ -1205,11 +1214,11 @@ export function CalibrationRunsPage() {
                                       onChange={(e) =>
                                         updateCheckField(aIdx, chk.id, "measuredMgPerL", e.target.value)
                                       }
-                                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                                      slotProps={{ htmlInput: { "aria-label": "Measured concentration (mg/L)", min: 0, step: "any" } }}
                                     />
                                   </TableCell>
                                   <TableCell align="right">
-                                    <IconButton
+                                    <IconButton aria-label="Remove check standard"
                                       size="small"
                                       color="error"
                                       onClick={() => removeCheckFromAnalyte(aIdx, chk.id)}

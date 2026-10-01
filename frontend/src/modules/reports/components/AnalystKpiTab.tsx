@@ -234,6 +234,7 @@ export function AnalystKpiTab() {
                 label="Date Range"
                 value={filters.dateRange}
                 onChange={(e) => setFilters((f) => ({ ...f, dateRange: e.target.value as any }))}
+                inputProps={{ "aria-label": "Date Range" }}
               >
                 <MenuItem value="7d">Last 7 Days</MenuItem>
                 <MenuItem value="30d">Last 30 Days</MenuItem>
@@ -260,6 +261,7 @@ export function AnalystKpiTab() {
                   setFilters((f) => ({ ...f, analystId: e.target.value as any }));
                   if (e.target.value !== "All") setSelectedAnalystId(Number(e.target.value));
                 }}
+                inputProps={{ "aria-label": "Analyst" }}
               >
                 {!isAnalyst && <MenuItem value="All">All Analysts</MenuItem>}
                 {analysts.map((a) => (
@@ -291,6 +293,7 @@ export function AnalystKpiTab() {
                 label="Category"
                 value={filters.category}
                 onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value as any }))}
+                inputProps={{ "aria-label": "Category" }}
               >
                 <MenuItem value="All">All Categories</MenuItem>
                 {categoryOptions.map((cat) => (
@@ -312,6 +315,7 @@ export function AnalystKpiTab() {
                 label="Location / Subject"
                 value={filters.location}
                 onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value as any }))}
+                inputProps={{ "aria-label": "Location / Subject" }}
               >
                 <MenuItem value="All">All Locations</MenuItem>
                 {locationOptions.map((loc) => (
@@ -333,6 +337,7 @@ export function AnalystKpiTab() {
                 label="Test Code"
                 value={filters.testCode}
                 onChange={(e) => setFilters((f) => ({ ...f, testCode: e.target.value as any }))}
+                inputProps={{ "aria-label": "Test Code" }}
               >
                 <MenuItem value="All">All Tests</MenuItem>
                 {testCodeOptions.map((t) => (

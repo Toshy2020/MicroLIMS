@@ -139,7 +139,7 @@ export function SolutionComponentsSection({
             <Stack direction="row" spacing={0.5} sx={{ ml: "auto" }}>
               <Tooltip title="Move Up">
                 <span>
-                  <IconButton
+                  <IconButton aria-label="Move Up"
                     size="small"
                     disabled={idx === 0}
                     onClick={() => onMoveComponent(idx, "up")}
@@ -150,7 +150,7 @@ export function SolutionComponentsSection({
               </Tooltip>
               <Tooltip title="Move Down">
                 <span>
-                  <IconButton
+                  <IconButton aria-label="Move Down"
                     size="small"
                     disabled={idx === components.length - 1}
                     onClick={() => onMoveComponent(idx, "down")}
@@ -161,7 +161,7 @@ export function SolutionComponentsSection({
               </Tooltip>
               <Tooltip title="Remove Component">
                 <span>
-                  <IconButton
+                  <IconButton aria-label="Remove Component"
                     size="small"
                     color="error"
                     disabled={components.length <= 1}

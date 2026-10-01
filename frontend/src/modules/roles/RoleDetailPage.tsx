@@ -12,8 +12,8 @@ import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { RoleService, RoleDetail, PermissionRecord } from "./services/RoleService";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
-import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { PermissionMatrix } from "./components/PermissionMatrix";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 
 export function RoleDetailPage() {
   const { id } = useParams();

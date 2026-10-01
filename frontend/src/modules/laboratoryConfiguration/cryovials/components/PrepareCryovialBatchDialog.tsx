@@ -475,6 +475,7 @@ export function PrepareCryovialBatchDialog({
                       displayEmpty
                       value={row.mediaId}
                       onChange={(e) => updateRow(i, "mediaId", e.target.value)}
+                      inputProps={{ "aria-label": "Media" }}
                     >
                       <MenuItem value="">
                         <em>Select Media</em>
@@ -493,6 +494,7 @@ export function PrepareCryovialBatchDialog({
                       displayEmpty
                       value={row.incubatorEquipmentId}
                       onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}
+                      inputProps={{ "aria-label": "Incubator" }}
                     >
                       <MenuItem value="">
                         <em>Select Incubator</em>
@@ -511,6 +513,7 @@ export function PrepareCryovialBatchDialog({
                       value={row.incubationStart}
                       onChange={(e) => updateRow(i, "incubationStart", e.target.value)}
                       fullWidth
+                      slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation start` } }}
                     />
                   </TableCell>
                   <TableCell sx={{ py: 1 }}>
@@ -520,6 +523,7 @@ export function PrepareCryovialBatchDialog({
                       value={row.incubationEnd}
                       onChange={(e) => updateRow(i, "incubationEnd", e.target.value)}
                       fullWidth
+                      slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation end` } }}
                     />
                   </TableCell>
                   <TableCell sx={{ py: 1 }}>
@@ -529,10 +533,11 @@ export function PrepareCryovialBatchDialog({
                       value={row.observationText}
                       onChange={(e) => updateRow(i, "observationText", e.target.value)}
                       fullWidth
+                      slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} observation notes` } }}
                     />
                   </TableCell>
                   <TableCell sx={{ py: 1 }}>
-                    <IconButton
+                    <IconButton aria-label={`Remove row ${i + 1}`}
                       size="small"
                       onClick={() => removeRow(i)}
                       disabled={panel.length <= 1}

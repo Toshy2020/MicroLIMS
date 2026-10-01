@@ -123,7 +123,7 @@ export function HplcMethodHistoryDialog({
                   <TableRow key={idx} sx={{ "& > *": { borderBottom: "unset" } }}>
                     <TableCell>
                       {hasDetails ? (
-                        <IconButton size="small" onClick={() => toggleRow(idx)}>
+                        <IconButton aria-label={isExpanded ? "Collapse version details" : "Expand version details"} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(idx)}>
                           {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                         </IconButton>
                       ) : null}

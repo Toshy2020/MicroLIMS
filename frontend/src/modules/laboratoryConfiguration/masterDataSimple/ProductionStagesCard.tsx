@@ -233,6 +233,7 @@ export function ProductionStagesCard() {
                 onChange={(e) =>
                   setRole(e.target.value as ProductionStageRole)
                 }
+                inputProps={{ "aria-label": "Role" }}
               >
                 {PRODUCTION_STAGE_ROLES.map((r) => (
                   <MenuItem key={r} value={r}>

@@ -679,14 +679,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 spacing={0.5}
                                 sx={{ justifyContent: "flex-end" }}
                               >
-                                <IconButton
+                                <IconButton aria-label={`Edit specification for ${spec.testCode}`}
                                   size="small"
                                   onClick={() => handleOpenEdit(spec)}
                                   title="Edit Specification"
                                 >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton
+                                <IconButton aria-label={`Delete specification for ${spec.testCode}`}
                                   size="small"
                                   color="error"
                                   onClick={() => setPendingDelete(spec)}
@@ -902,14 +902,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                     spacing={0.5}
                                     sx={{ justifyContent: "flex-end" }}
                                   >
-                                    <IconButton
+                                    <IconButton aria-label={`Edit specification for ${spec.testCode}`}
                                       size="small"
                                       onClick={() => handleOpenEdit(spec)}
                                       title="Edit Specification"
                                     >
                                       <EditIcon fontSize="small" />
                                     </IconButton>
-                                    <IconButton
+                                    <IconButton aria-label={`Delete specification for ${spec.testCode}`}
                                       size="small"
                                       color="error"
                                       onClick={() => setPendingDelete(spec)}

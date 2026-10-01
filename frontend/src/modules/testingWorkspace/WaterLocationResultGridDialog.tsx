@@ -158,8 +158,9 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
                               size="small" type="number" sx={{ width: 90 }}
                               value={v}
                               onChange={(e) => updateReading(r.id, i, e.target.value)}
+                              slotProps={{ htmlInput: { "aria-label": `${r.locationName} reading ${i + 1}` } }}
                             />
-                            <IconButton size="small" onClick={() => removeReading(r.id, i)}><CloseIcon fontSize="small" /></IconButton>
+                            <IconButton aria-label={`Remove reading ${i + 1}`} size="small" onClick={() => removeReading(r.id, i)}><CloseIcon fontSize="small" /></IconButton>
                           </Stack>
                         ))}
                         <Button size="small" startIcon={<AddIcon />} onClick={() => addReading(r.id)} sx={{ alignSelf: "flex-start" }}>

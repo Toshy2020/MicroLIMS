@@ -1,6 +1,7 @@
 import { Box, Paper, Typography, Stack, useTheme } from "@mui/material";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
+import { clickable } from "../../utils/clickable";
 
 const COLUMNS: { status: string; label: string }[] = [
   { status: "Received", label: "Received" },
@@ -41,6 +42,7 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                 <Paper
                   key={s.sampleId} onClick={() => onCardClick(s.sampleId)}
                   sx={{ p: 1.25, cursor: "pointer", "&:hover": { boxShadow: theme.palette.mode === "dark" ? "0 2px 6px rgba(0,0,0,0.4)" : "0 2px 6px rgba(0,0,0,0.12)" } }}
+                  {...clickable(() => onCardClick(s.sampleId))}
                 >
                   <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.displayName}</Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 0.5 }}>{s.referenceNumber}</Typography>

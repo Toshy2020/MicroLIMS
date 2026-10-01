@@ -170,7 +170,7 @@ export function OosTrackingPage() {
                   onClick={() => toggleGroup(group.oosGroupCode)}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
+                    <IconButton aria-label={isExpanded ? "Collapse OOS group" : "Expand OOS group"} aria-expanded={Boolean(isExpanded)} size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
                       {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
 

@@ -192,7 +192,7 @@ export function GroupedActionsPanel({
           >
             Deselect All
           </Button>
-          <IconButton
+          <IconButton aria-label="Clear selection"
             size="small"
             onClick={onDeselectAll}
             sx={{ width: 26, height: 26, color: "text.secondary" }}

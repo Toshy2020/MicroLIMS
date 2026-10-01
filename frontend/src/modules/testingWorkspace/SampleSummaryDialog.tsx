@@ -1539,6 +1539,7 @@ function ApprovalSignaturesCard({
                     label="New Sample 1 - Analyst"
                     value={newSampleAnalystOneId}
                     onChange={(e) => setNewSampleAnalystOneId(e.target.value === "" ? "" : Number(e.target.value))}
+                    inputProps={{ "aria-label": "New Sample 1 - Analyst" }}
                   >
                     {analysts.map((a) => (
                       <MenuItem key={a.id} value={a.id}>{a.fullName} ({a.username})</MenuItem>
@@ -1551,6 +1552,7 @@ function ApprovalSignaturesCard({
                     label="New Sample 2 - Analyst"
                     value={newSampleAnalystTwoId}
                     onChange={(e) => setNewSampleAnalystTwoId(e.target.value === "" ? "" : Number(e.target.value))}
+                    inputProps={{ "aria-label": "New Sample 2 - Analyst" }}
                   >
                     {analysts.map((a) => (
                       <MenuItem key={a.id} value={a.id}>{a.fullName} ({a.username})</MenuItem>

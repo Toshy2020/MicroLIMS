@@ -291,7 +291,7 @@ export function ReportResultsTable({
       label: "",
       align: "center",
       render: (row) => (
-        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
+        <IconButton aria-label="Row actions" size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
           <MoreVertIcon fontSize="small" />
         </IconButton>
       )
@@ -461,7 +461,7 @@ export function ReportResultsTable({
 
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 2, flexWrap: "wrap", gap: 1 }}>
             <FormControl size="small">
-              <Select value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))}>
+              <Select value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))} inputProps={{ "aria-label": "Rows per page" }}>
                 {ROWS_PER_PAGE_OPTIONS.map((n) => <MenuItem key={n} value={n}>{n} / page</MenuItem>)}
               </Select>
             </FormControl>
@@ -470,10 +470,10 @@ export function ReportResultsTable({
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                 {pageStart} - {pageEnd} of {totalCount}
               </Typography>
-              <IconButton size="small" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+              <IconButton aria-label="Previous page" size="small" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
                 <ChevronLeftIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+              <IconButton aria-label="Next page" size="small" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
                 <ChevronRightIcon fontSize="small" />
               </IconButton>
             </Box>

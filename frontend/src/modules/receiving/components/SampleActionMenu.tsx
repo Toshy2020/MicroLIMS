@@ -103,7 +103,11 @@ export function SampleActionMenu({
           }
         >
           <span>
-            <IconButton
+            <IconButton aria-label={
+            isEditable
+              ? "Edit Sample Details"
+              : "Locked: the sample has been submitted for review"
+          }
               size="small"
               disabled={!isEditable}
               onClick={(e) => {
@@ -141,7 +145,7 @@ export function SampleActionMenu({
       )}
 
       {/* More Actions Menu */}
-      <IconButton
+      <IconButton aria-label="Sample actions"
         size="small"
         onClick={handleOpenMenu}
         sx={{

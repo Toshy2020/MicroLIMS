@@ -174,7 +174,7 @@ export function HplcSolutionsSection({
 
                 <Tooltip title="Remove channel">
                   <span>
-                    <IconButton
+                    <IconButton aria-label="Remove channel"
                       size="small"
                       onClick={() => onRemoveChannel(idx)}
                       disabled={mobilePhases.length <= 1}

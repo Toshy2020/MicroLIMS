@@ -16,6 +16,7 @@ import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type { EquipmentDocumentType } from "../types/equipmentTypes";
 import { EQUIPMENT_DOCUMENT_TYPE_LABELS } from "../types/equipmentTypes";
+import { clickable } from "../../../../utils/clickable";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"];
 const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -146,6 +147,7 @@ export function UploadEquipmentDocumentDialog({ open, equipmentId, onClose, onSu
           "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
         }}
         onClick={() => fileRef.current?.click()}
+        {...clickable(() => fileRef.current?.click(), { label: "Choose a file to upload" })}
       >
         <UploadFileIcon sx={{ color: "text.secondary", mb: 0.5, fontSize: 32 }} />
         {file ? (

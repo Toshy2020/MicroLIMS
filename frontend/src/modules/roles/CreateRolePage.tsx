@@ -9,8 +9,8 @@ import { PageHeader } from "../../components/PageHeader";
 import { RoleService, RoleRecord, PermissionRecord } from "./services/RoleService";
 import { PermissionMatrix } from "./components/PermissionMatrix";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
-import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { Role as RoleType } from "../../contexts/AuthContext";
+import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 
 const BASE_TYPES: RoleType[] = ["SystemAdministrator", "SectionHead", "Reviewer", "Analyst"];
 const STEPS = ["Name", "Base Type", "Permissions", "Review"];
@@ -148,6 +148,7 @@ export function CreateRolePage() {
                 value={cloneFromRoleId}
                 onChange={(e) => handleCloneFrom(Number(e.target.value))}
                 sx={{ minWidth: 220 }}
+                inputProps={{ "aria-label": "Role to clone" }}
               >
                 <MenuItem value=""><em>Select a role to clone</em></MenuItem>
                 {existingRoles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}

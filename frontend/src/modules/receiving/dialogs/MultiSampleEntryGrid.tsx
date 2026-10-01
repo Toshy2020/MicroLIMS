@@ -265,6 +265,7 @@ export function MultiSampleEntryGrid({
                             onChangeRow(idx, "targetSectionIds", undefined);
                           }}
                           sx={{ fontSize: 12 }}
+                          inputProps={{ "aria-label": `Sample ${idx + 1} item` }}
                         >
                           <MenuItem value="">
                             <em style={{ color: theme.palette.text.secondary }}>Select Item</em>
@@ -342,7 +343,7 @@ export function MultiSampleEntryGrid({
                             error={Boolean(errors.previousProductName)}
                             onChange={(e) => onChangeRow(idx, "previousProductName", e.target.value)}
                             slotProps={{
-                              htmlInput: { style: { fontSize: 12 } }
+                              htmlInput: { "aria-label": `Sample ${idx + 1} previous product name`, style: { fontSize: 12 } }
                             }}
                           />
                         </TableCell>
@@ -355,7 +356,7 @@ export function MultiSampleEntryGrid({
                             error={Boolean(errors.previousProductBatchNumber)}
                             onChange={(e) => onChangeRow(idx, "previousProductBatchNumber", e.target.value)}
                             slotProps={{
-                              htmlInput: { style: { fontSize: 12 } }
+                              htmlInput: { "aria-label": `Sample ${idx + 1} previous batch number`, style: { fontSize: 12 } }
                             }}
                           />
                         </TableCell>
@@ -373,6 +374,7 @@ export function MultiSampleEntryGrid({
                           error={Boolean(errors.productionStage)}
                           onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
                           sx={{ fontSize: 12 }}
+                          inputProps={{ "aria-label": `Sample ${idx + 1} production stage` }}
                         >
                           <MenuItem value="">
                             <em style={{ color: theme.palette.text.secondary }}>Stage</em>
@@ -397,6 +399,7 @@ export function MultiSampleEntryGrid({
                           error={Boolean(errors.departmentId)}
                           onChange={(e) => onChangeRow(idx, "departmentId", e.target.value)}
                           sx={{ fontSize: 12 }}
+                          inputProps={{ "aria-label": `Sample ${idx + 1} department` }}
                         >
                           <MenuItem value="">
                             <em style={{ color: theme.palette.text.secondary }}>Select Department</em>
@@ -421,6 +424,7 @@ export function MultiSampleEntryGrid({
                           error={Boolean(errors.departmentId)}
                           onChange={(e) => onChangeRow(idx, "departmentId", e.target.value)}
                           sx={{ fontSize: 12 }}
+                          inputProps={{ "aria-label": `Sample ${idx + 1} department` }}
                         >
                           <MenuItem value="">
                             <em style={{ color: theme.palette.text.secondary }}>Select Department</em>
@@ -445,6 +449,7 @@ export function MultiSampleEntryGrid({
                           error={Boolean(errors.machineId)}
                           onChange={(e) => onChangeRow(idx, "machineId", e.target.value)}
                           sx={{ fontSize: 12 }}
+                          inputProps={{ "aria-label": `Sample ${idx + 1} machine` }}
                         >
                           <MenuItem value="">
                             <em style={{ color: theme.palette.text.secondary }}>Select Machine</em>
@@ -468,6 +473,7 @@ export function MultiSampleEntryGrid({
                         error={Boolean(errors.causeOfTestingId)}
                         onChange={(e) => onChangeRow(idx, "causeOfTestingId", e.target.value)}
                         sx={{ fontSize: 12 }}
+                        inputProps={{ "aria-label": `Sample ${idx + 1} cause of testing` }}
                       >
                         <MenuItem value="">
                           <em style={{ color: theme.palette.text.secondary }}>Cause of Testing</em>
@@ -490,7 +496,7 @@ export function MultiSampleEntryGrid({
                           value={row.sampleQuantity ?? ""}
                           onChange={(e) => onChangeRow(idx, "sampleQuantity", e.target.value)}
                           slotProps={{
-                            htmlInput: { style: { fontSize: 12 } }
+                            htmlInput: { "aria-label": `Sample ${idx + 1} quantity`, style: { fontSize: 12 } }
                           }}
                         />
                       </TableCell>
@@ -528,7 +534,7 @@ export function MultiSampleEntryGrid({
                           value={row.batchNumber ?? ""}
                           onChange={(e) => onChangeRow(idx, "batchNumber", e.target.value)}
                           slotProps={{
-                            htmlInput: { style: { fontSize: 12 } }
+                            htmlInput: { "aria-label": `Sample ${idx + 1} batch number`, style: { fontSize: 12 } }
                           }}
                         />
                       </TableCell>
@@ -543,7 +549,7 @@ export function MultiSampleEntryGrid({
                         value={row.controlNumber ?? ""}
                         onChange={(e) => onChangeRow(idx, "controlNumber", e.target.value)}
                         slotProps={{
-                          htmlInput: { style: { fontSize: 12 } }
+                          htmlInput: { "aria-label": `Sample ${idx + 1} control number`, style: { fontSize: 12 } }
                         }}
                       />
                     </TableCell>
@@ -559,7 +565,7 @@ export function MultiSampleEntryGrid({
                             value={row.mfgDate ?? ""}
                             onChange={(e) => onChangeRow(idx, "mfgDate", e.target.value)}
                             slotProps={{
-                              htmlInput: { style: { fontSize: 12 } }
+                              htmlInput: { "aria-label": `Sample ${idx + 1} manufacturing date`, style: { fontSize: 12 } }
                             }}
                           />
                         </TableCell>
@@ -572,7 +578,7 @@ export function MultiSampleEntryGrid({
                             error={Boolean(errors.expDate)}
                             onChange={(e) => onChangeRow(idx, "expDate", e.target.value)}
                             slotProps={{
-                              htmlInput: { style: { fontSize: 12 } }
+                              htmlInput: { "aria-label": `Sample ${idx + 1} expiry date`, style: { fontSize: 12 } }
                             }}
                           />
                         </TableCell>
@@ -583,7 +589,7 @@ export function MultiSampleEntryGrid({
                     <TableCell align="center">
                       <Tooltip title={rows.length === 1 ? "At least one row is required" : "Delete sample row"}>
                         <span>
-                          <IconButton
+                          <IconButton aria-label={rows.length === 1 ? "At least one row is required" : "Delete sample row"}
                             size="small"
                             disabled={rows.length === 1}
                             onClick={() => onDeleteRow(idx)}

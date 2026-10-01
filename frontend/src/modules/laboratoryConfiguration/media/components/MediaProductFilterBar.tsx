@@ -39,7 +39,7 @@ export function MediaProductFilterBar({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: 280 } }}
-          slotProps={{
+          slotProps={{ htmlInput: { "aria-label": "Search by media name or code" },
             input: {
               startAdornment: (
                 <InputAdornment position="start">

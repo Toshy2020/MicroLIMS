@@ -47,6 +47,7 @@ import {
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
+import { clickable } from "../../../utils/clickable";
 
 export const EQUIPMENT_TYPES = [
   { value: "Incubator", label: "Incubator" },
@@ -554,7 +555,7 @@ export function EquipmentPage() {
           subtitle="Configure equipment used by this laboratory, set points, and autoclave programs."
         />
         <Stack direction="row" spacing={1}>
-          <IconButton onClick={loadData} title="Refresh data">
+          <IconButton aria-label="Refresh data" onClick={loadData} title="Refresh data">
             <RefreshIcon />
           </IconButton>
           <Button
@@ -612,8 +613,9 @@ export function EquipmentPage() {
                     placeholder="Search by code or name…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    slotProps={{ htmlInput: { "aria-label": "Search by code or name" } }}
                   />
-                  <Select size="small" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                  <Select size="small" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} inputProps={{ "aria-label": "Equipment type filter" }}>
                     <MenuItem value="All">All Types</MenuItem>
                     {MICRO_EQUIPMENT_TYPES.map((t) => (
                       <MenuItem key={t.value} value={t.value}>
@@ -648,6 +650,7 @@ export function EquipmentPage() {
                           transition: "all 0.15s ease",
                           "&:hover": { borderColor: theme.palette.primary.main }
                         }}
+                        {...clickable(() => setSelectedEqId(eq.id), { pressed: selectedEqId === eq.id })}
                       >
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
                           <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{eq.code}</Typography>
@@ -1263,6 +1266,7 @@ export function EquipmentPage() {
                 label="Laboratory Section *"
                 value={selectedSectionId}
                 onChange={(e) => setSelectedSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+                inputProps={{ "aria-label": "Laboratory Section" }}
               >
                 <MenuItem value="">
                   <em>Select Laboratory Section…</em>
@@ -1456,6 +1460,7 @@ export function EquipmentPage() {
             value={programForm.isActive ? "Active" : "Inactive"}
             onChange={(e) => setProgramForm({ ...programForm, isActive: e.target.value === "Active" })}
             fullWidth
+            inputProps={{ "aria-label": "Program status" }}
           >
             <MenuItem value="Active">Active</MenuItem>
             <MenuItem value="Inactive">Inactive</MenuItem>

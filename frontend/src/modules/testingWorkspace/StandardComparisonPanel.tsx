@@ -622,7 +622,7 @@ export function StandardComparisonPanel({
         </Stack>
       ) : (
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <Select size="small" displayEmpty value={runChoice} onChange={(e) => setRunChoice(e.target.value as number)} sx={{ minWidth: 320 }}>
+          <Select size="small" displayEmpty value={runChoice} onChange={(e) => setRunChoice(e.target.value as number)} sx={{ minWidth: 320 }} inputProps={{ "aria-label": "System suitability run" }}>
             <MenuItem value="" disabled>{selectable.length ? "Choose a passed run" : "No passed run for this method yet"}</MenuItem>
             {selectable.map((r) => (
               <MenuItem key={r.id} value={r.id}>
@@ -694,6 +694,7 @@ export function StandardComparisonPanel({
             value={selectedEquipmentId}
             onChange={(e) => setSelectedEquipmentId(e.target.value as number | "")}
             sx={{ flex: 1.5 }}
+            inputProps={{ "aria-label": "Instrument (optional)" }}
           >
             <MenuItem value=""><em>Select instrument (optional)</em></MenuItem>
             {fpEquipment.map((eq) => (

@@ -282,6 +282,7 @@ export function ReferenceStrainResultsTable({
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               sx={{ fontSize: 12, height: 32 }}
+              inputProps={{ "aria-label": "Rows per page" }}
             >
               {ROWS_PER_PAGE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>{opt}</MenuItem>
@@ -296,14 +297,14 @@ export function ReferenceStrainResultsTable({
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Page {page} of {totalPages}
           </Typography>
-          <IconButton
+          <IconButton aria-label="Previous page"
             size="small"
             disabled={page <= 1 || loading}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeftIcon />
           </IconButton>
-          <IconButton
+          <IconButton aria-label="Next page"
             size="small"
             disabled={page >= totalPages || loading}
             onClick={() => onPageChange(page + 1)}

@@ -134,7 +134,7 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
               Category
             </Typography>
-            <Select size="small" value={category} onChange={(e) => setCategory(e.target.value)} fullWidth>
+            <Select size="small" value={category} onChange={(e) => setCategory(e.target.value)} fullWidth inputProps={{ "aria-label": "Category" }}>
               {CATEGORIES.map((c) => (
                 <MenuItem key={c.value} value={c.value}>
                   {c.label}

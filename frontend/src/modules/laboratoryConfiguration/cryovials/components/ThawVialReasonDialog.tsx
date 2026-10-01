@@ -171,6 +171,7 @@ export function ThawVialReasonDialog({
                   ? "Reason must be at least 5 characters."
                   : ""
               }
+              slotProps={{ htmlInput: { "aria-label": "Enter reason for thawing this cryovial" } }}
             />
             <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>

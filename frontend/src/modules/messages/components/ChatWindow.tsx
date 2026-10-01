@@ -110,7 +110,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
         }}
       >
         {onBack && (
-          <IconButton onClick={onBack} size="small" sx={{ mr: 0.5, display: { md: "none" } }}>
+          <IconButton aria-label="Back to conversations" onClick={onBack} size="small" sx={{ mr: 0.5, display: { md: "none" } }}>
             <ArrowBackIcon fontSize="small" />
           </IconButton>
         )}
@@ -234,8 +234,9 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
               borderRadius: 2
             }
           }}
+          slotProps={{ htmlInput: { "aria-label": "Message" } }}
         />
-        <IconButton
+        <IconButton aria-label="Send message"
           color="primary"
           onClick={handleSend}
           disabled={!text.trim() || sending}

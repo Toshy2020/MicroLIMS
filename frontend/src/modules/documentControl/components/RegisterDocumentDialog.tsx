@@ -324,6 +324,7 @@ export function RegisterDocumentDialog({
                     }
                   }}
                   disabled={saving}
+                  slotProps={{ htmlInput: { "aria-label": "Enter keyword" } }}
                 />
                 <Button size="small" variant="outlined" onClick={handleAddKeyword} disabled={saving || !keywordInput.trim()}>
                   Add Keyword

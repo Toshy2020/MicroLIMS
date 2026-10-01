@@ -91,7 +91,7 @@ export function AuditEventDrawer({
           </Typography>
         </Box>
 
-        <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+        <IconButton aria-label="Close audit event details" size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>

@@ -205,6 +205,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label="Parameter / Test"
               value={criteria.testCode}
               onChange={(e) => setCriteria((c) => ({ ...c, testCode: e.target.value }))}
+              inputProps={{ "aria-label": "Parameter / Test" }}
             >
               {filterOptions.testCodes.length > 0 ? (
                 filterOptions.testCodes.map((t) => (
@@ -236,6 +237,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 label="Product / Item"
                 value={criteria.subjectName}
                 onChange={(e) => setCriteria((c) => ({ ...c, subjectName: e.target.value }))}
+                inputProps={{ "aria-label": "Product / Item" }}
               >
                 {filterOptions.subjectNames.length > 0 ? (
                   filterOptions.subjectNames.map((s) => (
@@ -262,6 +264,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label="Category"
               value={criteria.category ?? ""}
               onChange={(e) => setCriteria((c) => ({ ...c, category: (e.target.value || "") as any }))}
+              inputProps={{ "aria-label": "Category" }}
             >
               {filterOptions.categories.length > 0 ? (
                 filterOptions.categories.map((cat) => (
@@ -286,6 +289,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label="Date Range"
               value={criteria.dateRange}
               onChange={(e) => setCriteria((c) => ({ ...c, dateRange: e.target.value as any }))}
+              inputProps={{ "aria-label": "Date Range" }}
             >
               <MenuItem value="30d">Last 30 Days</MenuItem>
               <MenuItem value="3m">Last 3 Months</MenuItem>
@@ -313,6 +317,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   setCompareDialogOpen(true);
                 }
               }}
+              inputProps={{ "aria-label": "Compare With" }}
             >
               <MenuItem value="None">None</MenuItem>
               <MenuItem value="Previous Period">Previous Period</MenuItem>

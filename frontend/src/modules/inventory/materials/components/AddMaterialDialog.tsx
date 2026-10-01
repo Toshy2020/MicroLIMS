@@ -865,6 +865,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                   }
                 }
               }}
+              inputProps={{ "aria-label": "Laboratory Section" }}
             >
               <MenuItem value="">
                 <em>Select Laboratory Section...</em>

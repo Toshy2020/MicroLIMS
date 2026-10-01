@@ -172,7 +172,7 @@ export function HplcElutionSection({
                           type="number"
                           value={step.timeMin}
                           onChange={(e) => onGradientStepChange(idx, "timeMin", e.target.value)}
-                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                          slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} time (min)`, min: 0, step: "any" } }}
                           disabled={idx === 0}
                           error={Boolean(errors[`gradient.${idx}.timeMin`])}
                           helperText={errors[`gradient.${idx}.timeMin`] ?? (idx === 0 ? "Initial (0 min)" : undefined)}
@@ -188,7 +188,7 @@ export function HplcElutionSection({
                           disabled={!hasChannel("A")}
                           error={Boolean(errors[`gradient.${idx}.percentA`])}
                           helperText={errors[`gradient.${idx}.percentA`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
+                          slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % A`, min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
                       </TableCell>
@@ -201,7 +201,7 @@ export function HplcElutionSection({
                           disabled={!hasChannel("B")}
                           error={Boolean(errors[`gradient.${idx}.percentB`])}
                           helperText={errors[`gradient.${idx}.percentB`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
+                          slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % B`, min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
                       </TableCell>
@@ -214,7 +214,7 @@ export function HplcElutionSection({
                           disabled={!hasChannel("C")}
                           error={Boolean(errors[`gradient.${idx}.percentC`])}
                           helperText={errors[`gradient.${idx}.percentC`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
+                          slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % C`, min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
                       </TableCell>
@@ -227,7 +227,7 @@ export function HplcElutionSection({
                           disabled={!hasChannel("D")}
                           error={Boolean(errors[`gradient.${idx}.percentD`])}
                           helperText={errors[`gradient.${idx}.percentD`]}
-                          slotProps={{ htmlInput: { min: 0, max: 100, step: "any" } }}
+                          slotProps={{ htmlInput: { "aria-label": `Step ${idx + 1} % D`, min: 0, max: 100, step: "any" } }}
                           sx={{ width: 85 }}
                         />
                       </TableCell>
@@ -242,7 +242,7 @@ export function HplcElutionSection({
                       <TableCell align="right">
                         <Tooltip title="Remove step">
                           <span>
-                            <IconButton
+                            <IconButton aria-label="Remove step"
                               size="small"
                               onClick={() => onRemoveGradientStep(idx)}
                               disabled={gradientSteps.length <= 2}

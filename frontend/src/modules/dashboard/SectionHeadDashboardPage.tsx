@@ -33,6 +33,7 @@ import { SectionHeadDashboard, MonthlyTrendPoint, DistributionSlice } from "./ty
 import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
 import { tableHeadSx } from "../../theme";
+import { clickable } from "../../utils/clickable";
 
 export function SectionHeadDashboardPage() {
   const theme = useTheme();
@@ -342,6 +343,10 @@ export function SectionHeadDashboardPage() {
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
+            {...clickable(() => {
+              const el = document.getElementById("attention-section");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            })}
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>

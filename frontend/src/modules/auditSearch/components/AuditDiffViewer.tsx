@@ -1,6 +1,7 @@
 import { Box, Typography, Chip, Tooltip, useTheme } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { computeAuditDiff } from "../utils/auditDiffUtils";
+import { clickable } from "../../../utils/clickable";
 
 interface Props {
   action: string;
@@ -190,6 +191,7 @@ export function AuditDiffViewer({
                   cursor: "pointer",
                   "&:hover": { textDecoration: "underline" }
                 }}
+                {...clickable(() => onViewAll?.())}
               >
                 +{extraCount} more changed {extraCount === 1 ? "field" : "fields"}
               </Typography>

@@ -52,6 +52,7 @@ import type {
   DocumentDepartmentDto,
   DocumentRevisionStatus
 } from "../types/documentControlTypes";
+import { clickable } from "../../../utils/clickable";
 
 export function DocumentLibraryPage() {
   const theme = useTheme();
@@ -241,7 +242,7 @@ export function DocumentLibraryPage() {
               setPage(0);
             }}
             sx={{ minWidth: 280, flexGrow: 1 }}
-            slotProps={{
+            slotProps={{ htmlInput: { "aria-label": "Search code, title, or keywords" },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -425,6 +426,7 @@ export function DocumentLibraryPage() {
                         "&:hover": { textDecoration: "underline" }
                       }}
                       onClick={() => navigate(`/document-control/documents/${doc.id}`)}
+                      {...clickable(() => navigate(`/document-control/documents/${doc.id}`))}
                     >
                       {doc.companyDocumentCode}
                     </Typography>

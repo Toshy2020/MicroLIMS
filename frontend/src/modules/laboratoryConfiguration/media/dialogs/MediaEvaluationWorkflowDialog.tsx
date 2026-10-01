@@ -17,8 +17,8 @@ import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEval
 import { CryovialService } from "../../cryovials/services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
-import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
+import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 
 interface Props {
   open: boolean;
@@ -286,6 +286,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 }
                               }}
                               sx={{ minWidth: 320 }}
+                              inputProps={{ "aria-label": "Reference lot" }}
                             >
                               {referenceLotOptions.map((m: any) => (
                                 <MenuItem key={m.id} value={m.id}>
@@ -339,6 +340,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               value={form.sourceSelection ?? ""}
                               onChange={(e) => setField(c.id, "sourceSelection", e.target.value)}
                               sx={{ minWidth: 320 }}
+                              inputProps={{ "aria-label": "Cryovial or Disk" }}
                             >
                               <MenuItem value="">
                                 <em>Select Cryovial or Disk</em>
@@ -393,6 +395,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             value={form.incubatorEquipmentId ?? ""}
                             onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)}
                             sx={{ minWidth: 220 }}
+                            inputProps={{ "aria-label": "Incubator" }}
                           >
                             <MenuItem value="">
                               <em>Select Incubator</em>
@@ -490,6 +493,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               displayEmpty
                               value={form.growthObserved ?? ""}
                               onChange={(e) => setField(c.id, "growthObserved", e.target.value)}
+                              inputProps={{ "aria-label": "Growth Observed?" }}
                             >
                               <MenuItem value="">
                                 <em>Growth Observed?</em>
@@ -521,6 +525,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 displayEmpty
                                 value={form.manualConform ?? ""}
                                 onChange={(e) => setField(c.id, "manualConform", e.target.value)}
+                                inputProps={{ "aria-label": "Judgment" }}
                               >
                                 <MenuItem value="">
                                   <em>Judgment</em>
@@ -537,6 +542,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               displayEmpty
                               value={form.isTurbid ?? ""}
                               onChange={(e) => setField(c.id, "isTurbid", e.target.value)}
+                              inputProps={{ "aria-label": "Turbid or Clear?" }}
                             >
                               <MenuItem value="">
                                 <em>Turbid or Clear?</em>

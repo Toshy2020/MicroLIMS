@@ -435,7 +435,7 @@ export function SystemSuitabilityRunsPage() {
         >
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>Result</InputLabel>
-            <Select label="Result" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+            <Select label="Result" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} inputProps={{ "aria-label": "Result" }}>
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="passed">Passed</MenuItem>
               <MenuItem value="failed">Failed</MenuItem>
@@ -443,7 +443,7 @@ export function SystemSuitabilityRunsPage() {
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel>Method</InputLabel>
-            <Select label="Method" value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}>
+            <Select label="Method" value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)} inputProps={{ "aria-label": "Method" }}>
               <MenuItem value="all">All methods</MenuItem>
               {sstMethods.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.displayName}</MenuItem>)}
             </Select>
@@ -499,6 +499,7 @@ export function SystemSuitabilityRunsPage() {
               <Select
                 label="Method" value={form.testDefinitionId}
                 onChange={(e) => setForm({ ...emptyForm, testDefinitionId: e.target.value })}
+                inputProps={{ "aria-label": "Method" }}
               >
                 {sstMethods.map((t) => (
                   <MenuItem key={t.id} value={String(t.id)}>{t.displayName} ({t.methodAbbreviation})</MenuItem>
@@ -512,14 +513,14 @@ export function SystemSuitabilityRunsPage() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" fullWidth disabled={!method}>
                 <InputLabel>{isTitrationRun ? "Titrator" : "HPLC instrument"}</InputLabel>
-                <Select label={isTitrationRun ? "Titrator" : "HPLC instrument"} value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)}>
+                <Select label={isTitrationRun ? "Titrator" : "HPLC instrument"} value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)} inputProps={{ "aria-label": isTitrationRun ? "Titrator" : "HPLC instrument" }}>
                   {sectionInstruments.map((i) => <MenuItem key={i.id} value={String(i.id)}>{i.code} — {i.name}</MenuItem>)}
                 </Select>
               </FormControl>
               {!isTitrationRun && (
                 <FormControl size="small" fullWidth disabled={!method}>
                   <InputLabel>Column</InputLabel>
-                  <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)}>
+                  <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)} inputProps={{ "aria-label": "Column" }}>
                     {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</MenuItem>)}
                   </Select>
                 </FormControl>
@@ -534,7 +535,7 @@ export function SystemSuitabilityRunsPage() {
             {!isMulti && (
               <FormControl size="small" fullWidth disabled={!method}>
                 <InputLabel>Reference standard</InputLabel>
-                <Select label="Reference standard" value={form.standardId} onChange={(e) => set("standardId")(e.target.value)}>
+                <Select label="Reference standard" value={form.standardId} onChange={(e) => set("standardId")(e.target.value)} inputProps={{ "aria-label": "Reference standard" }}>
                   {sectionStandards.map((s) => (
                     <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — batch {s.batchNumber} (purity {s.purity}%)</MenuItem>
                   ))}
@@ -604,6 +605,7 @@ export function SystemSuitabilityRunsPage() {
                               label="Reference standard"
                               value={a.referenceStandardMaterialId}
                               onChange={(e) => updateAnalyteRow(idx, { referenceStandardMaterialId: e.target.value })}
+                              inputProps={{ "aria-label": "Reference standard" }}
                             >
                               {sectionStandards.map((s) => (
                                 <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — {s.batchNumber} (purity {s.purity}%)</MenuItem>
@@ -664,7 +666,7 @@ export function SystemSuitabilityRunsPage() {
                                 value={resp}
                                 onChange={(e) => updateResponse(idx, respIdx, e.target.value)}
                               />
-                              <IconButton
+                              <IconButton aria-label={`Remove response ${respIdx + 1}`}
                                 size="small"
                                 disabled={a.responses.length <= 1}
                                 onClick={() => removeResponseRow(idx, respIdx)}

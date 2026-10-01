@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { TodaysWorkItem } from "../types/dashboard";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
+import { useDashboardLab } from "../DashboardLabContext";
 
 type Tab = "All" | "Returned" | "Incubating" | "ReadyToRead" | "AwaitingReview" | "UnderApproval" | "Overdue";
 const OVERDUE_THRESHOLD_HOURS = 24;
@@ -27,6 +28,7 @@ function matchesTab(item: TodaysWorkItem, tab: Tab): boolean {
 
 export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
   const [tab, setTab] = useState<Tab>("All");
+  const lab = useDashboardLab();
 
   const counts = useMemo(() => ({
     All: items.length,
@@ -40,11 +42,14 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
 
   const visible = useMemo(() => items.filter((i) => matchesTab(i, tab)), [items, tab]);
 
+  // Incubating / Ready to Read are Microbiology stages.
   const tabs: { key: Tab; label: string }[] = [
     { key: "All", label: `All (${counts.All})` },
     { key: "Returned", label: `Returned (${counts.Returned})` },
-    { key: "Incubating", label: `Incubating (${counts.Incubating})` },
-    { key: "ReadyToRead", label: `Ready to Read (${counts.ReadyToRead})` },
+    ...(lab.isPhyschem ? [] : [
+      { key: "Incubating" as Tab, label: `Incubating (${counts.Incubating})` },
+      { key: "ReadyToRead" as Tab, label: `Ready to Read (${counts.ReadyToRead})` }
+    ]),
     { key: "AwaitingReview", label: `Awaiting Review (${counts.AwaitingReview})` },
     { key: "UnderApproval", label: `Under Approval (${counts.UnderApproval})` },
     { key: "Overdue", label: `Overdue (${counts.Overdue})` }
@@ -52,7 +57,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
 
   return (
     <>
-      <SectionTitle tabs={[{ label: "View all", to: "/receiving-testing" }]}>Today's Laboratory Work</SectionTitle>
+      <SectionTitle tabs={[{ label: "View all", to: lab.workspace() }]}>Today's Laboratory Work</SectionTitle>
       <ToggleButtonGroup
         value={tab} exclusive size="small"
         onChange={(_, v) => v && setTab(v)}
@@ -93,7 +98,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
                 <TableCell>
                   <Typography
                     component={Link}
-                    to={`/receiving-testing?sampleId=${item.sampleId}`}
+                    to={lab.workspace(`?sampleId=${item.sampleId}`)}
                     sx={{
                       fontWeight: 600,
                       fontSize: 13,

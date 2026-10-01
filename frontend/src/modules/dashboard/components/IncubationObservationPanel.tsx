@@ -4,6 +4,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { IncubationOverviewRow } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { brandColors } from "../../../theme";
+import { useDashboardLab } from "../DashboardLabContext";
 
 interface IncubationObservationPanelProps {
   rows: IncubationOverviewRow[];
@@ -12,6 +13,7 @@ interface IncubationObservationPanelProps {
 
 export function IncubationObservationPanel({ rows }: IncubationObservationPanelProps) {
   const theme = useTheme();
+  const lab = useDashboardLab();
 
   return (
     <Paper sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
@@ -19,7 +21,7 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
         tabs={[
           {
             label: "Open Workspace",
-            to: "/receiving-testing"
+            to: lab.workspace()
           }
         ]}
       >

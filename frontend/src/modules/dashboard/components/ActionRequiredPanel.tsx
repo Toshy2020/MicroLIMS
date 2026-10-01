@@ -7,6 +7,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { useActionableGroups } from "../../testingWorkspace/hooks/useActionableGroups";
+import { DashboardLab, useDashboardLab } from "../DashboardLabContext";
 
 const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
   Overdue: (t) => `Overdue ${Math.round(Math.abs(Date.now() - new Date(t.dueAt).getTime()) / 3_600_000)}h`,
@@ -15,15 +16,15 @@ const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
   DueTomorrow: () => "Due tomorrow"
 };
 
-function getTaskRoute(task: MyTask): string {
+function getTaskRoute(task: MyTask, lab: DashboardLab): string {
   if (task.mediaId) {
     return "/laboratory-configuration/media";
   } else if (task.sampleId && task.testOrderId) {
-    return `/receiving-testing?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`;
+    return lab.workspace(`?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`);
   } else if (task.sampleId) {
-    return `/receiving-testing?sampleId=${task.sampleId}`;
+    return lab.workspace(`?sampleId=${task.sampleId}`);
   } else {
-    return "/receiving-testing?scope=mine";
+    return lab.workspace("?scope=mine");
   }
 }
 
@@ -34,7 +35,10 @@ interface ActionRequiredPanelProps {
 
 export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps) {
   const theme = useTheme();
-  const { groups: actionableGroups } = useActionableGroups({ scope: "mine" });
+  const lab = useDashboardLab();
+  // Grouped actions are batch media/incubator set-up - Microbiology work by
+  // nature - so a Physicochemical dashboard does not load them.
+  const { groups: actionableGroups } = useActionableGroups({ scope: "mine", enabled: !lab.isPhyschem });
 
   const multiSampleGroups = actionableGroups.filter((g) => g.testOrderCount >= 2);
 
@@ -44,7 +48,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
         tabs={[
           {
             label: "Open Testing Workspace",
-            to: "/receiving-testing"
+            to: lab.workspace()
           }
         ]}
       >
@@ -93,7 +97,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
               <Box sx={{ flexShrink: 0 }}>
                 <Button
                   component={Link}
-                  to={`/receiving-testing?sampleIds=${g.testOrders.map((t) => t.sampleId).join(",")}`}
+                  to={lab.workspace(`?sampleIds=${g.testOrders.map((t) => t.sampleId).join(",")}`)}
                   size="small"
                   variant="contained"
                   startIcon={<LayersIcon sx={{ fontSize: 16 }} />}
@@ -146,7 +150,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
               <Box sx={{ flexShrink: 0 }}>
                 <Button
                   component={Link}
-                  to={getTaskRoute(t)}
+                  to={getTaskRoute(t, lab)}
                   size="small"
                   variant="contained"
                   endIcon={<ArrowForwardIcon sx={{ fontSize: 16 }} />}

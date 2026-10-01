@@ -42,19 +42,19 @@ CryovialController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewe
 CryovialController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.PrepareCryovials(PrepareCryovialsHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.ThawVial(Int32, ThawVialRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.Get(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetAnalystMetrics(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetCategoryDistribution(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetIncubationOverview(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetKpiDeltas(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetMonthlyTrend(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetMyTasks(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetNotifications(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetRecentActivity(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetReviewerDashboard(): SystemAdministrator,SectionHead,Reviewer
-DashboardController.GetSectionHeadDashboard(): SystemAdministrator,SectionHead
-DashboardController.GetStatusDistribution(): SystemAdministrator,SectionHead,Reviewer,Analyst
-DashboardController.GetTodaysWork(): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetAnalystMetrics(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetCategoryDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetIncubationOverview(Boolean, String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetKpiDeltas(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetMonthlyTrend(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetMyTasks(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetNotifications(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetRecentActivity(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetReviewerDashboard(String): SystemAdministrator,SectionHead,Reviewer
+DashboardController.GetSectionHeadDashboard(String): SystemAdministrator,SectionHead
+DashboardController.GetStatusDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+DashboardController.GetTodaysWork(String): SystemAdministrator,SectionHead,Reviewer,Analyst
 DashboardController.MarkAllNotificationsRead(): SystemAdministrator,SectionHead,Reviewer,Analyst
 DashboardController.MarkNotificationRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 DiscussionController.AddComment(Int32, CreateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst

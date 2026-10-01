@@ -6,6 +6,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { MyTask } from "../types/dashboard";
+import { useDashboardLab } from "../DashboardLabContext";
 
 interface SummaryCardProps {
   label: string;
@@ -61,11 +62,12 @@ function SummaryCard({ label, count, icon: Icon, color, bgWash, to }: SummaryCar
   );
 }
 
-const CATEGORY_ROUTES: Record<string, string> = {
-  Overdue: "/receiving-testing?scope=mine&urgency=overdue",
-  DueNow: "/receiving-testing?scope=mine",
-  DueToday: "/receiving-testing?scope=mine",
-  ReadyToRead: "/receiving-testing?scope=mine&testStatus=ReadyToRead"
+// Workspace filters per tile; the path is the dashboard's own laboratory.
+const CATEGORY_QUERIES: Record<string, string> = {
+  Overdue: "?scope=mine&urgency=overdue",
+  DueNow: "?scope=mine",
+  DueToday: "?scope=mine",
+  ReadyToRead: "?scope=mine&testStatus=ReadyToRead"
 };
 
 interface AnalystWorkSummaryProps {
@@ -75,12 +77,13 @@ interface AnalystWorkSummaryProps {
 
 export function AnalystWorkSummary({ tasks, readyToReadCount }: AnalystWorkSummaryProps) {
   const theme = useTheme();
+  const lab = useDashboardLab();
 
   const overdueCount = tasks.filter((t) => t.urgency === "Overdue").length;
   const dueNowCount = tasks.filter((t) => t.urgency === "DueSoon").length;
   const dueTodayCount = tasks.filter((t) => t.urgency === "DueToday").length;
 
-  const cards = [
+  const allCards = [
     {
       label: "Overdue",
       count: overdueCount,
@@ -114,6 +117,8 @@ export function AnalystWorkSummary({ tasks, readyToReadCount }: AnalystWorkSumma
       category: "ReadyToRead" as const
     }
   ];
+  // "Ready to Read" is the end of an incubation - Microbiology only.
+  const cards = lab.isPhyschem ? allCards.filter((c) => c.category !== "ReadyToRead") : allCards;
 
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -123,7 +128,7 @@ export function AnalystWorkSummary({ tasks, readyToReadCount }: AnalystWorkSumma
           size={{
             xs: 12,
             sm: 6,
-            md: 3
+            md: 12 / cards.length
           }}>
           <SummaryCard
             label={c.label}
@@ -131,7 +136,7 @@ export function AnalystWorkSummary({ tasks, readyToReadCount }: AnalystWorkSumma
             icon={c.icon}
             color={c.color}
             bgWash={c.bgWash}
-            to={CATEGORY_ROUTES[c.category]}
+            to={lab.workspace(CATEGORY_QUERIES[c.category])}
           />
         </Grid>
       ))}

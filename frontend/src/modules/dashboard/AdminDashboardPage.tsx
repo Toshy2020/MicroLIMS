@@ -20,11 +20,33 @@ import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { DashboardSummary, KpiDeltas } from "./types/dashboard";
 import { brandColors } from "../../theme";
+import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+
+// Configuration shortcuts per laboratory, matching the sidebar's
+// laboratory configuration areas; Items and Specifications are shared.
+const MICRO_CONFIG_LINKS = [
+  { label: "Test Master", path: "/laboratory-configuration/test-master" },
+  { label: "Specifications", path: "/laboratory-configuration/specifications" },
+  { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
+  { label: "Organisms", path: "/laboratory-configuration/organisms" },
+  { label: "Items & Materials", path: "/laboratory-configuration/items" },
+  { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" }
+];
+
+const FP_CONFIG_LINKS = [
+  { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
+  { label: "Specifications", path: "/laboratory-configuration/specifications" },
+  { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" },
+  { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
+  { label: "Items & Materials", path: "/laboratory-configuration/items" },
+  { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" }
+];
 
 export function AdminDashboardPage() {
   const theme = useTheme();
   const { username, fullName } = useAuth();
   const displayName = fullName ?? username ?? "System Administrator";
+  const lab = useDashboardLab();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [kpis, setKpis] = useState<KpiDeltas | null>(null);
@@ -41,7 +63,7 @@ export function AdminDashboardPage() {
     // The summary IS this page, so its failure surfaces as an error with a
     // retry. The KPI deltas are supplementary - a failure there degrades that
     // one panel rather than taking the whole dashboard down.
-    Promise.all([DashboardService.getSummary(), DashboardService.getKpiDeltas().catch(() => null)])
+    Promise.all([DashboardService.getSummary(lab.code), DashboardService.getKpiDeltas(lab.code).catch(() => null)])
       .then(([sumData, kpiData]) => {
         if (cancelled) return;
         setSummary(sumData);
@@ -55,7 +77,7 @@ export function AdminDashboardPage() {
       });
 
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, lab.code]);
 
   if (!summary) {
     return (
@@ -69,7 +91,9 @@ export function AdminDashboardPage() {
     <>
       <PageHeader
         title={`Administrator Command Center — ${displayName}`}
-        subtitle="System administration, access control, audit compliance, and laboratory operations."
+        subtitle={lab.code
+          ? `System administration, access control and audit compliance · ${LAB_LABELS[lab.code]} operations.`
+          : "System administration, access control, audit compliance, and laboratory operations."}
       >
         <Button
           variant="outlined"
@@ -280,7 +304,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?status=Active"
+              to={lab.workspace("?status=Active")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -306,7 +330,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?status=UnderReview"
+              to={lab.workspace("?status=UnderReview")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -333,7 +357,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?status=UnderApproval"
+              to={lab.workspace("?status=UnderApproval")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -388,7 +412,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?urgency=overdue"
+              to={lab.workspace("?urgency=overdue")}
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -415,14 +439,7 @@ export function AdminDashboardPage() {
           Master Data & System Configuration
         </Typography>
         <Grid container spacing={1.5}>
-          {[
-            { label: "Test Master", path: "/laboratory-configuration/test-master" },
-            { label: "Specifications", path: "/laboratory-configuration/specifications" },
-            { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
-            { label: "Organisms", path: "/laboratory-configuration/organisms" },
-            { label: "Items & Materials", path: "/laboratory-configuration/items" },
-            { label: "Equipment Inventory", path: "/inventory/equipment" }
-          ].map((item, idx) => (
+          {(lab.isPhyschem ? FP_CONFIG_LINKS : MICRO_CONFIG_LINKS).map((item, idx) => (
             <Grid
               key={idx}
               size={{

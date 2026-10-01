@@ -48,9 +48,12 @@ public class MyTasksService
         _scope = scope;
     }
 
-    public async Task<List<MyTaskDto>> GetMyTasksAsync(int userId)
+    // `lab` (a laboratory dashboard) narrows the tasks to that laboratory:
+    // its test orders, and media-lot evaluations only from Microbiology
+    // material. Without it every laboratory the analyst belongs to counts.
+    public async Task<List<MyTaskDto>> GetMyTasksAsync(int userId, DashboardLabScope? lab = null)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var scope = lab?.LabCode != null ? lab.SectionIds : await _scope.GetAccessibleSectionIdsAsync(userId);
         var now = _time.GetUtcNow().UtcDateTime;
         var horizon = now.Add(LookaheadWindow);
         var tasks = new List<MyTaskDto>();
@@ -124,12 +127,19 @@ public class MyTasksService
                 MediaId: null));
         }
 
-        var mediaEvaluations = await _db.MediaEvaluations
+        var mediaEvaluationsQuery = _db.MediaEvaluations
             .Where(e => e.Status != MediaEvaluationStatus.Completed)
             .Include(e => e.Media!).ThenInclude(m => m.Material)
             .Include(e => e.Challenges).ThenInclude(c => c.Incubation)
-            .Where(e => e.Media!.PreparedByUserId == userId)
-            .ToListAsync();
+            .Where(e => e.Media!.PreparedByUserId == userId);
+
+        // A prepared media lot belongs to the section of its Material.
+        if (lab?.LabCode != null && scope != null)
+        {
+            mediaEvaluationsQuery = mediaEvaluationsQuery.Where(e => scope.Contains(e.Media!.Material!.SectionId));
+        }
+
+        var mediaEvaluations = await mediaEvaluationsQuery.ToListAsync();
 
         foreach (var e in mediaEvaluations)
         {

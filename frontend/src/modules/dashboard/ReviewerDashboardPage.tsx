@@ -29,6 +29,7 @@ import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { ReviewerDashboard } from "./types/dashboard";
 import { brandColors, tableHeadSx } from "../../theme";
+import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 function formatAge(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -43,6 +44,7 @@ export function ReviewerDashboardPage() {
   const theme = useTheme();
   const { username, fullName } = useAuth();
   const displayName = fullName ?? username ?? "Reviewer";
+  const lab = useDashboardLab();
 
   const [data, setData] = useState<ReviewerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export function ReviewerDashboardPage() {
     setLoading(true);
     setError(null);
 
-    DashboardService.getReviewerDashboard()
+    DashboardService.getReviewerDashboard(lab.code)
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -68,7 +70,7 @@ export function ReviewerDashboardPage() {
       });
 
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, lab.code]);
 
   if (!data) {
     return (
@@ -82,7 +84,9 @@ export function ReviewerDashboardPage() {
     <>
       <PageHeader
         title={`Reviewer Command Center — ${displayName}`}
-        subtitle="What results are waiting for your scientific review today?"
+        subtitle={lab.code
+          ? `${LAB_LABELS[lab.code]} · results waiting for your scientific review today.`
+          : "What results are waiting for your scientific review today?"}
       >
         <Button
           variant="outlined"
@@ -94,7 +98,7 @@ export function ReviewerDashboardPage() {
         </Button>
         <Button
           component={Link}
-          to="/receiving-testing"
+          to={lab.workspace()}
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
         >
@@ -112,7 +116,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?status=UnderReview"
+            to={lab.workspace("?status=UnderReview")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -147,7 +151,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?status=UnderReview&workload=reviewOverdue"
+            to={lab.workspace("?status=UnderReview&workload=reviewOverdue")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -182,7 +186,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?status=UnderReview"
+            to={lab.workspace("?status=UnderReview")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -217,7 +221,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?workload=retestInProgress"
+            to={lab.workspace("?workload=retestInProgress")}
             sx={{
               p: 2,
               cursor: "pointer",
@@ -317,7 +321,7 @@ export function ReviewerDashboardPage() {
                   </Box>
                   <Button
                     component={Link}
-                    to={`/receiving-testing?sampleId=${item.sampleId}&openSummary=true`}
+                    to={lab.workspace(`?sampleId=${item.sampleId}&openSummary=true`)}
                     variant="outlined"
                     color="error"
                     size="small"
@@ -352,7 +356,7 @@ export function ReviewerDashboardPage() {
               </Box>
               <Button
                 component={Link}
-                to="/receiving-testing?status=UnderReview"
+                to={lab.workspace("?status=UnderReview")}
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600 }}
@@ -393,7 +397,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}`}
+                            to={lab.workspace(`?sampleId=${row.sampleId}`)}
                             sx={{
                               fontSize: 12,
                               fontWeight: 700,
@@ -490,7 +494,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&openSummary=true`}
+                            to={lab.workspace(`?sampleId=${row.sampleId}&openSummary=true`)}
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
@@ -535,7 +539,7 @@ export function ReviewerDashboardPage() {
                   <Paper
                     key={rec.sampleId}
                     component={Link}
-                    to={`/receiving-testing?sampleId=${rec.sampleId}`}
+                    to={lab.workspace(`?sampleId=${rec.sampleId}`)}
                     variant="outlined"
                     sx={{
                       p: 1.5,

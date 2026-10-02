@@ -23,16 +23,18 @@ public static class DissolutionCalculator
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public static decimal CalculateCs(decimal standardWeightMg, decimal standardPurityPercent, decimal standardDilution)
+    public static decimal CalculateCs(decimal standardWeightMg, decimal standardPurityPercent, decimal standardMoisturePercent, decimal standardDilution)
     {
         if (standardWeightMg <= 0m)
             throw new InvalidOperationException("Standard weight must be greater than zero.");
         if (standardPurityPercent <= 0m)
             throw new InvalidOperationException("Standard purity must be greater than zero.");
+        if (standardMoisturePercent < 0m || standardMoisturePercent >= 100m)
+            throw new InvalidOperationException("Standard moisture content must be from 0 to below 100 %.");
         if (standardDilution <= 0m)
             throw new InvalidOperationException("Standard dilution must be greater than zero.");
 
-        return (standardWeightMg * (standardPurityPercent / 100m)) / standardDilution;
+        return standardWeightMg * (standardPurityPercent / 100m) * ((100m - standardMoisturePercent) / 100m) / standardDilution;
     }
 
     public static decimal CalculateVesselPercent(

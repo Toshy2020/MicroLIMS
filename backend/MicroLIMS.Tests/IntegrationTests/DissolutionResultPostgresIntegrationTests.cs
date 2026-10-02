@@ -61,7 +61,7 @@ public class DissolutionResultPostgresIntegrationTests
         };
         db.Equipment.Add(equip);
 
-        // The suitability run is performed on the HPLC; the vessels run in the dissolution tester.
+        // The standard comes from an HPLC workspace run; the vessels run in the dissolution tester.
         var hplc = new Equipment
         {
             Name = $"HPLC {uid}",
@@ -83,45 +83,39 @@ public class DissolutionResultPostgresIntegrationTests
         };
         db.ChromatographyColumns.Add(col);
 
-        var standard = new Material
+        var diluent = new SolutionMaster
         {
-            MaterialName = $"Dissolution Standard {uid}",
-            MaterialType = MaterialType.ReferenceStandard,
-            ManufacturerName = "USP",
-            BatchNumber = $"LOT-DIS-{uid}",
-            ReceivingDate = DateTime.UtcNow.AddDays(-10),
-            ExpiryDate = DateTime.UtcNow.AddYears(1),
-            QuantityReceived = 100m,
-            QuantityRemaining = 100m,
-            Unit = MaterialUnit.Gram,
-            Location = "Standard Storage",
-            SectionId = section.Id,
-            Purity = 100m,
-            CreatedByUserId = _fixture.SeededUserId,
-            LastModifiedByUserId = _fixture.SeededUserId
+            SectionId = section.Id, Name = $"Diluent {uid}", Type = SolutionType.Diluent,
+            ShelfLifeValue = 30, ShelfLifeUnit = ShelfLifeUnit.Days, StorageCondition = "Room", FinalVolumeMl = 1000m,
+            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId
         };
-        db.Materials.Add(standard);
+        var stdEntry = new MaterialMasterEntry
+        {
+            SectionId = section.Id, Code = $"STD-DIS-{uid}", Name = $"Dissolution Standard {uid}",
+            Category = MaterialMasterCategory.ReferenceStandard, BaseUnit = MaterialUnit.Gram,
+            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId
+        };
+        db.SolutionMasters.Add(diluent);
+        db.MaterialMasterEntries.Add(stdEntry);
         await db.SaveChangesAsync();
 
-        // Create suitability run
-        var sstService = TestServiceFactory.SystemSuitability(db);
-        var sstRequest = new CreateSystemSuitabilityRunRequest(
-            TestDefinitionId: testDef.Id,
-            EquipmentId: hplc.Id,
-            ChromatographyColumnId: col.Id,
-            ReferenceStandardMaterialId: standard.Id,
-            StandardWeightMg: 50.0m,
-            StandardDilution: 2500.0m, // C_s = 0.02 mg/mL
-            StandardMeanArea: 0.500m,
-            RsdPercent: 1.0m,
-            Resolution: 2.5m,
-            TailingFactor: 1.1m,
-            TheoreticalPlates: 5000m,
-            Password: "IntegrationPassword123!",
-            Comment: "Integration suitability run");
-
-        var run = await sstService.CreateAsync(sstRequest, _fixture.SeededUserId, "127.0.0.1");
-        Assert.True(run.Passed);
+        var method = new HplcMethod
+        {
+            SectionId = section.Id, Name = $"Dissolution HPLC {uid}", Abbreviation = $"D{uid}".ToUpperInvariant(),
+            ColumnDesignation = "L1", DiluentSolutionId = diluent.Id, EffectiveDate = DateTime.UtcNow,
+            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId,
+            Analytes =
+            {
+                new HplcMethodAnalyte
+                {
+                    DisplayOrder = 1, Name = "Analyte", WavelengthNm = 290m, StandardEntryId = stdEntry.Id,
+                    TheoreticalWeightStdMg = 50m, TheoreticalWeightTestMg = 50m, StandardInjections = 5,
+                    StandardDilution = 2500m // C_s = 50 * 1.0 / 2500 = 0.02 mg/mL
+                }
+            }
+        };
+        db.HplcMethods.Add(method);
+        await db.SaveChangesAsync();
 
         var item = new Item
         {
@@ -170,11 +164,15 @@ public class DissolutionResultPostgresIntegrationTests
             TestCode = testDef.Code,
             SectionId = section.Id,
             CurrentStep = WorkflowStep.Running,
-            Status = ApprovalStatus.InProgress,
-            SystemSuitabilityRunId = run.Id
+            Status = ApprovalStatus.InProgress
         };
         db.TestOrders.Add(order);
         await db.SaveChangesAsync();
+
+        // Standard: mean area 0.500, 50 mg, 100 %, 0 % moisture, 2500 mL
+        UnitTests.HplcDissolutionStandardTests.SeedRun(db, order.Id, sectionId: section.Id, equipmentId: hplc.Id,
+            columnId: col.Id, methodId: method.Id, userId: _fixture.SeededUserId,
+            firstAnalyteId: method.Analytes[0].Id, codeSuffix: uid);
 
         var engine = TestServiceFactory.TestWorkflow(db);
 

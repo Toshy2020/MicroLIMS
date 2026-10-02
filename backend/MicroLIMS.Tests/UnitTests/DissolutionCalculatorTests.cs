@@ -223,16 +223,31 @@ public class DissolutionCalculatorTests
     public void CalculateCs_ComputesCorrectly()
     {
         // W_std = 50 mg, P = 100%, D_std = 2500 -> C_s = 50 * 1.0 / 2500 = 0.0200 mg/mL
-        decimal cs = DissolutionCalculator.CalculateCs(50m, 100m, 2500m);
+        decimal cs = DissolutionCalculator.CalculateCs(50m, 100m, 0m, 2500m);
         Assert.Equal(0.02m, cs);
+    }
+
+    [Fact]
+    public void CalculateCs_AppliesMoisture()
+    {
+        // 50 mg x 99.5 % x (100 - 2.0) % / 2500 mL = 0.019502 mg/mL
+        var cs = DissolutionCalculator.CalculateCs(50m, 99.5m, 2.0m, 2500m);
+        Assert.Equal(0.019502m, Math.Round(cs, 6));
+    }
+
+    [Fact]
+    public void CalculateCs_MoistureOutOfRange_Throws()
+    {
+        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 99.5m, 100m, 2500m));
+        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 99.5m, -1m, 2500m));
     }
 
     [Fact]
     public void CalculateCs_ZeroOrNegative_ThrowsInvalidOperationException()
     {
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(0m, 100m, 100m));
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 0m, 100m));
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 100m, 0m));
+        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(0m, 100m, 0m, 100m));
+        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 0m, 0m, 100m));
+        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 100m, 0m, 0m));
     }
 
     [Fact]
@@ -258,11 +273,13 @@ public class DissolutionCalculatorTests
     public void DissolutionCalculator_FullCalculate_ProducesValidResultAndJson()
     {
         var std = new DissolutionStandardData(
-            SystemSuitabilityRunId: 10,
-            RunCode: "SST-2026-001",
+            HplcRunId: 10,
+            RunCode: "SILD RUN 01/102026",
+            SstCode: "SILD S.S 01/102026",
             StandardWeightMg: 50m,
             StandardDilution: 2500m,
             StandardPurityPercent: 100m,
+            StandardMoisturePercent: 0m,
             StandardMeanArea: 0.500m,
             Cs: 0.0200m);
 

@@ -1,11 +1,13 @@
 namespace MicroLIMS.Domain.Entities;
 
 public record DissolutionStandardData(
-    int SystemSuitabilityRunId,
-    string? RunCode,
+    int HplcRunId,
+    string RunCode,
+    string SstCode,
     decimal StandardWeightMg,
     decimal StandardDilution,
     decimal StandardPurityPercent,
+    decimal StandardMoisturePercent,
     decimal StandardMeanArea,
     decimal Cs);
 

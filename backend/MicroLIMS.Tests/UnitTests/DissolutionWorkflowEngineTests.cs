@@ -19,7 +19,7 @@ public class DissolutionWorkflowEngineTests
         return new MicroLimsDbContext(options);
     }
 
-    private static (TestDefinition testDef, Equipment equip, SystemSuitabilityRun run, Item item, Specification spec, Sample sample, TestOrder order, User analyst, User head)
+    private static (TestDefinition testDef, Equipment equip, Item item, Specification spec, Sample sample, TestOrder order, User analyst, User head)
         SetupDissolutionScenario(MicroLimsDbContext db)
     {
         var microSec = TestServiceFactory.EnsureMicroSection(db);
@@ -95,56 +95,6 @@ public class DissolutionWorkflowEngineTests
         };
         db.Equipment.Add(equip);
 
-        var col = new ChromatographyColumn
-        {
-            Name = "C18 Column",
-            Code = "COL-C18-01",
-            SerialNumber = "SN-C18-01",
-            SectionId = fpSec.Id,
-            IsActive = true,
-            CreatedByUserId = analyst.Id,
-            LastModifiedByUserId = analyst.Id
-        };
-        db.ChromatographyColumns.Add(col);
-
-        var standard = new Material
-        {
-            MaterialName = "Sildenafil Citrate Standard",
-            MaterialType = MaterialType.ReferenceStandard,
-            ManufacturerName = "USP",
-            BatchNumber = "LOT-STD-01",
-            ReceivingDate = DateTime.UtcNow.AddDays(-10),
-            ExpiryDate = DateTime.UtcNow.AddYears(1),
-            QuantityReceived = 100m,
-            QuantityRemaining = 100m,
-            Unit = MaterialUnit.Gram,
-            Location = "Standard Storage",
-            SectionId = fpSec.Id,
-            Purity = 100m,
-            CreatedByUserId = analyst.Id,
-            LastModifiedByUserId = analyst.Id
-        };
-        db.Materials.Add(standard);
-        db.SaveChanges();
-
-        var sstRun = new SystemSuitabilityRun
-        {
-            Code = "SST-DIS-001",
-            TestDefinitionId = testDef.Id,
-            EquipmentId = equip.Id,
-            ChromatographyColumnId = col.Id,
-            ReferenceStandardMaterialId = standard.Id,
-            StandardWeightMg = 50m,
-            StandardDilution = 2500m, // C_s = 50 * 1.0 / 2500 = 0.02 mg/mL
-            StandardPurityPercent = 100m,
-            StandardMeanArea = 0.500m,
-            Passed = true,
-            SectionId = fpSec.Id,
-            PerformedByUserId = analyst.Id,
-            PerformedAt = DateTime.UtcNow
-        };
-        db.SystemSuitabilityRuns.Add(sstRun);
-
         var item = new Item
         {
             Code = "SILD-50",
@@ -191,20 +141,22 @@ public class DissolutionWorkflowEngineTests
             TestCode = testDef.Code,
             SectionId = fpSec.Id,
             CurrentStep = WorkflowStep.Running,
-            Status = ApprovalStatus.InProgress,
-            SystemSuitabilityRunId = sstRun.Id
+            Status = ApprovalStatus.InProgress
         };
         db.TestOrders.Add(order);
         db.SaveChanges();
 
-        return (testDef, equip, sstRun, item, spec, sample, order, analyst, head);
+        // Standard from an HPLC workspace run: Cs = 50 x 1.0 x 1.0 / 2500 = 0.02 mg/mL, mean area 0.500.
+        HplcDissolutionStandardTests.SeedRun(db, order.Id);
+
+        return (testDef, equip, item, spec, sample, order, analyst, head);
     }
 
     [Fact]
     public async Task Stage1_NextStageRequired_OrderNotFinalized_ApprovalBlocked_Stage2_Finalized()
     {
         using var db = NewDb();
-        var (_, equip, _, _, spec, sample, order, analyst, head) = SetupDissolutionScenario(db);
+        var (_, equip, _, spec, sample, order, analyst, head) = SetupDissolutionScenario(db);
 
         var engine = TestServiceFactory.TestWorkflow(db);
 
@@ -280,27 +232,5 @@ public class DissolutionWorkflowEngineTests
         Assert.Equal(2, pr.StageReached);
         Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal(12, pr.Readings.Count);
-    }
-
-    [Fact]
-    public async Task Relink_AfterStage1_IsBlocked()
-    {
-        using var db = NewDb();
-        var (_, equip, sstRun, _, _, _, order, analyst, _) = SetupDissolutionScenario(db);
-        var engine = TestServiceFactory.TestWorkflow(db);
-
-        await engine.RecordDissolutionResultAsync(order.Id, new DissolutionPayload(
-            AnalysedAt: DateTime.UtcNow,
-            EquipmentId: equip.Id,
-            Conditions: new Dictionary<string, string> { ["Medium"] = "0.01M HCl 900mL", ["RPM"] = "50" },
-            MediumVolumeMl: 900m,
-            DilutionFactor: 1m,
-            VesselAreas: new List<decimal> { 0.4200m, 0.4500m, 0.4500m, 0.4500m, 0.4500m, 0.4500m },
-            Password: "Password123!"), analyst.Id);
-
-        var sst = TestServiceFactory.SystemSuitability(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            sst.LinkTestOrdersAsync(sstRun.Id, new[] { order.Id }, analyst.Id));
-        Assert.Contains("active result already exists", ex.Message);
     }
 }

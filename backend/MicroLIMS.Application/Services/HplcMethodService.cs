@@ -16,7 +16,7 @@ public record HplcAnalyteInput(int? Id, string Name, decimal WavelengthNm, int S
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent = null, decimal? SstMinResolution = null, decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null, decimal? SstMinRetentionFactor = null,
-    decimal? SstMinSignalToNoise = null, decimal? SstMinPeakToValley = null);
+    decimal? SstMinSignalToNoise = null, decimal? SstMinPeakToValley = null, decimal? StandardDilution = null);
 
 public record SaveHplcMethodRequest(
     string Name, string Abbreviation, DateTime EffectiveDate,
@@ -353,6 +353,7 @@ public class HplcMethodService
             analyte.SstMinRetentionFactor = input.SstMinRetentionFactor;
             analyte.SstMinSignalToNoise = input.SstMinSignalToNoise;
             analyte.SstMinPeakToValley = input.SstMinPeakToValley;
+            analyte.StandardDilution = input.StandardDilution;
         }
 
         var toRemove = method.Analytes.Where(a => a.Id != 0 && !keepIds.Contains(a.Id)).ToList();
@@ -496,6 +497,9 @@ public class HplcMethodService
 
             if (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m)
                 throw new InvalidOperationException("Theoretical weights must be greater than zero.");
+
+            if (a.StandardDilution.HasValue && a.StandardDilution.Value <= 0m)
+                throw new InvalidOperationException("Standard dilution must be greater than zero.");
 
             if (a.StandardInjections < 1)
                 throw new InvalidOperationException("Standard injections must be at least 1.");

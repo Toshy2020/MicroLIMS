@@ -78,6 +78,7 @@ public class HplcMethodAnalyteConfiguration : IEntityTypeConfiguration<HplcMetho
         builder.Property(e => e.SstMinRetentionFactor).HasColumnType("decimal(10,3)");
         builder.Property(e => e.SstMinSignalToNoise).HasColumnType("decimal(10,3)");
         builder.Property(e => e.SstMinPeakToValley).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.StandardDilution).HasColumnType("decimal(12,4)");
 
         builder.HasIndex(e => new { e.HplcMethodId, e.Name }).IsUnique();
 

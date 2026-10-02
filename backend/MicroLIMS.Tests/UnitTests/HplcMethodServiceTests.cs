@@ -211,6 +211,36 @@ public class HplcMethodServiceTests
     }
 
     [Fact]
+    public async Task Create_StandardDilutionZero_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var (diluent, mp, standard) = await SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+
+        var analyte = new HplcAnalyteInput(null, "A1", 254m, standard.Id, 50m, 50m, 5, StandardDilution: 0m);
+        var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { analyte });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        Assert.Contains("Standard dilution", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_StandardDilution_RoundTrips()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var (diluent, mp, standard) = await SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+
+        var analyte = new HplcAnalyteInput(null, "A1", 254m, standard.Id, 50m, 50m, 5, StandardDilution: 2500m);
+        var created = await service.CreateAsync(
+            Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { analyte }), userId);
+
+        Assert.Equal(2500m, created.Analytes[0].StandardDilution);
+    }
+
+    [Fact]
     public async Task Create_StandardInjectionsZero_Throws()
     {
         await using var db = NewDb();

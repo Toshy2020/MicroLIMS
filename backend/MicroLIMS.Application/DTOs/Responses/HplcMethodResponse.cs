@@ -15,7 +15,7 @@ public record HplcMethodAnalyteResponse(
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent, decimal? SstMinResolution, decimal? SstMaxTailingFactor,
     decimal? SstMinTheoreticalPlates, decimal? SstMinRetentionFactor, decimal? SstMinSignalToNoise,
-    decimal? SstMinPeakToValley);
+    decimal? SstMinPeakToValley, decimal? StandardDilution = null);
 
 public class HplcMethodResponse
 {
@@ -98,7 +98,7 @@ public class HplcMethodResponse
                 a.TheoreticalWeightStdMg, a.TheoreticalWeightTestMg, a.StandardInjections,
                 a.SstMaxRsdPercent, a.SstMinResolution, a.SstMaxTailingFactor,
                 a.SstMinTheoreticalPlates, a.SstMinRetentionFactor, a.SstMinSignalToNoise,
-                a.SstMinPeakToValley))
+                a.SstMinPeakToValley, a.StandardDilution))
             .ToList(),
         CreatedByUserId = m.CreatedByUserId,
         CreatedAt = m.CreatedAt,

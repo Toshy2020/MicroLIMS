@@ -139,6 +139,45 @@ public class HplcMethodAssayTestMasterTests
             MethodAbbreviation: code,
             HplcMethodId: hplcMethodId);
 
+    private static CreateTestDefinitionRequest DissolutionReq(int sectionId, int? hplcMethodId, string code = "DISS-T1") =>
+        new(
+            Code: code,
+            DisplayName: "Dissolution Test",
+            SectionId: sectionId,
+            WorkflowType: WorkflowType.Dissolution,
+            EquationType: EquationType.Dissolution,
+            RequiresSystemSuitability: true,
+            MethodAbbreviation: code,
+            SstMaxRsdPercent: 2m,
+            HplcMethodId: hplcMethodId);
+
+    [Fact]
+    public async Task TestDef_Dissolution_WithMethod_SavesMethod()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var method = await AddMethodAsync(db, section.Id, userId);
+        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+
+        var created = await service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id));
+
+        Assert.Equal(method.Id, (await db.TestDefinitions.FirstAsync(t => t.Id == created.Id)).HplcMethodId);
+    }
+
+    [Fact]
+    public async Task TestDef_Dissolution_MethodFromOtherSection_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var otherSection = await AddOtherSectionAsync(db, section.DepartmentId);
+        var method = await AddMethodAsync(db, otherSection.Id, userId);
+        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));
+        Assert.Contains("another laboratory", ex.Message);
+    }
+
     [Fact]
     public async Task TestDef_HplcMethodAssay_WithoutMethod_Throws()
     {
@@ -210,7 +249,7 @@ public class HplcMethodAssayTestMasterTests
             HplcMethodId: method.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, req));
-        Assert.Contains("only allowed for HPLC method assay tests", ex.Message);
+        Assert.Contains("only allowed for HPLC method assay and dissolution tests", ex.Message);
     }
 
     [Fact]

@@ -202,7 +202,7 @@ public class TestDefinitionMasterDataService
         if (request.WorkflowType == WorkflowType.Dissolution)
         {
             if (!request.RequiresSystemSuitability)
-                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the HPLC run the sample is assigned to.");
 
             decimal s1 = request.DissolutionS1Offset ?? 5m;
             decimal s2 = request.DissolutionS2MinOffset ?? 15m;
@@ -344,9 +344,19 @@ public class TestDefinitionMasterDataService
             if (!hplcMethod.IsActive)
                 throw new InvalidOperationException("The HPLC method is inactive.");
         }
+        else if (request.WorkflowType == WorkflowType.Dissolution && request.HplcMethodId.HasValue)
+        {
+            // Optional for dissolution: the workspace run of this method supplies the standard.
+            var hplcMethod = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == request.HplcMethodId.Value)
+                ?? throw new InvalidOperationException("HPLC method not found.");
+            if (hplcMethod.SectionId != sectionId)
+                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (!hplcMethod.IsActive)
+                throw new InvalidOperationException("The HPLC method is inactive.");
+        }
         else if (request.HplcMethodId.HasValue)
         {
-            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay tests.");
+            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
 
         if (!Enum.IsDefined(request.ResponseMode))
@@ -411,7 +421,7 @@ public class TestDefinitionMasterDataService
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
             HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.StandardComparison ? request.HplcMaxPreparationRsdPercent : null,
             ResponseMode = request.ResponseMode,
-            HplcMethodId = request.WorkflowType == WorkflowType.HplcMethodAssay ? request.HplcMethodId : null
+            HplcMethodId = request.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution ? request.HplcMethodId : null
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -623,7 +633,7 @@ public class TestDefinitionMasterDataService
         if (effectiveWorkflowType == WorkflowType.Dissolution)
         {
             if (!effectiveRequiresSst)
-                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the HPLC run the sample is assigned to.");
 
             var effectiveS1 = request.DissolutionS1Offset ?? entity.DissolutionS1Offset;
             var effectiveS2 = request.DissolutionS2MinOffset ?? entity.DissolutionS2MinOffset;
@@ -776,9 +786,18 @@ public class TestDefinitionMasterDataService
             if (!hplcMethod.IsActive && methodChanged)
                 throw new InvalidOperationException("The HPLC method is inactive.");
         }
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && effectiveHplcMethodId.HasValue)
+        {
+            var hplcMethod = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == effectiveHplcMethodId.Value)
+                ?? throw new InvalidOperationException("HPLC method not found.");
+            if (hplcMethod.SectionId != entity.SectionId)
+                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (!hplcMethod.IsActive && effectiveHplcMethodId != entity.HplcMethodId)
+                throw new InvalidOperationException("The HPLC method is inactive.");
+        }
         else if (effectiveHplcMethodId.HasValue)
         {
-            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay tests.");
+            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
 
         var effectiveResponseMode = request.ResponseMode ?? entity.ResponseMode;

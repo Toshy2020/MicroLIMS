@@ -272,6 +272,69 @@ public partial class HplcRunServiceTests
         Assert.True(updated.Samples.Single(x => x.TestOrderId == dissOrder.Id).IsDissolution);
     }
 
+    private static void AddActiveAnalysis(MicroLimsDbContext db, TestOrder order, int userId)
+    {
+        db.TestAnalyses.Add(new TestAnalysis { TestOrderId = order.Id, AnalysisType = WorkflowType.Dissolution, EnteredByUserId = userId, IsActive = true });
+    }
+
+    [Fact]
+    public async Task Eligible_DissolutionWithActiveResult_AfterAbandon_NotEligibleNorAssignable()
+    {
+        await using var db = NewDb();
+        var (s, dissOrder, clock) = await SeedDissolutionAsync(db, 2500m);
+        var (service, run) = await StartPassedRunAsync(db, clock, s);
+        await service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId);
+        AddActiveAnalysis(db, dissOrder, s.UserId);
+        await db.SaveChangesAsync();
+        await service.AbandonRunAsync(run.Id, "instrument fault", s.UserId);
+
+        var run2 = await service.StartRunAsync(StartRequest(s), s.UserId);
+        run2 = await PassSstAsync(db, service, s, run2);
+
+        Assert.DoesNotContain(await service.GetEligibleTestsAsync(run2.Id, null, s.UserId), e => e.TestOrderId == dissOrder.Id);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.AssignSamplesAsync(run2.Id, new List<int> { dissOrder.Id }, s.UserId));
+        Assert.Contains("not eligible", ex.Message);
+    }
+
+    [Fact]
+    public async Task Complete_DissolutionStillRunning_IsNotSubmitted_UntilReady()
+    {
+        await using var db = NewDb();
+        var (s, dissOrder, clock) = await SeedDissolutionAsync(db, 2500m);
+        var (service, run) = await StartPassedRunAsync(db, clock, s);
+        await service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId);
+        AddActiveAnalysis(db, dissOrder, s.UserId);
+        await db.SaveChangesAsync();
+
+        var summary = await service.GetRunAsync(run.Id, s.UserId);
+        Assert.False(summary.Samples.Single().Submitted);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteRunAsync(run.Id, s.UserId));
+        Assert.Contains("not been sent for review", ex.Message);
+
+        dissOrder.CurrentStep = WorkflowStep.Ready;
+        await db.SaveChangesAsync();
+
+        Assert.True((await service.GetRunAsync(run.Id, s.UserId)).Samples.Single().Submitted);
+        await service.CompleteRunAsync(run.Id, s.UserId);
+    }
+
+    [Fact]
+    public async Task SaveReplicates_DissolutionOrder_Throws()
+    {
+        await using var db = NewDb();
+        var (s, dissOrder, clock) = await SeedDissolutionAsync(db, 2500m);
+        var (service, run) = await StartPassedRunAsync(db, clock, s);
+        var assigned = await service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId);
+        var runSample = assigned.Samples.Single();
+        var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == s.Method.Id)).Id;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.SaveReplicatesAsync(runSample.Id, Replicates(analyteId, (50m, 1000m)), s.UserId));
+
+        Assert.Contains("Testing page", ex.Message);
+    }
+
     // ---- AssignSamplesAsync ----
 
     // Review Focus: assigning before the SST has passed (even by calling the

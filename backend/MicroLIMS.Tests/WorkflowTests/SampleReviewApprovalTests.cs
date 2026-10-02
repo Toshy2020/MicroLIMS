@@ -197,6 +197,7 @@ public class SampleReviewApprovalTests
         var definition = await db.TestDefinitions.SingleAsync(t => t.Code == order.TestCode);
         definition.WorkflowType = WorkflowType.Dissolution;
         definition.RequiresSystemSuitability = true;
+        db.TestAnalyses.Add(new TestAnalysis { TestOrderId = order.Id, AnalysisType = WorkflowType.Dissolution, EnteredByUserId = 1, IsActive = true });
         await db.SaveChangesAsync();
         MicroLIMS.Tests.UnitTests.HplcDissolutionStandardTests.SeedRun(db, order.Id, runStatus: HplcRunStatus.Abandoned);
 
@@ -204,6 +205,29 @@ public class SampleReviewApprovalTests
             NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
 
         Assert.Contains("lacks an HPLC run with a passed system suitability", ex.Message);
+    }
+
+    [Fact]
+    public async Task DecideAsync_Approve_DissolutionOnPassedRun_Succeeds()
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await CompleteTestAsync(db, order, media, analystId: 1);
+        await NewReviewService(db).CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
+
+        var definition = await db.TestDefinitions.SingleAsync(t => t.Code == order.TestCode);
+        definition.WorkflowType = WorkflowType.Dissolution;
+        definition.RequiresSystemSuitability = true;
+        db.TestAnalyses.Add(new TestAnalysis { TestOrderId = order.Id, AnalysisType = WorkflowType.Dissolution, EnteredByUserId = 1, IsActive = true });
+        await db.SaveChangesAsync();
+        MicroLIMS.Tests.UnitTests.HplcDissolutionStandardTests.SeedRun(db, order.Id);
+
+        await NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null);
+
+        Assert.Equal(ApprovalStatus.Approved, (await db.TestOrders.SingleAsync(t => t.Id == order.Id)).Status);
     }
 
     // CertificateRemarks is the Approver-only, customer-facing field added
@@ -596,6 +620,7 @@ public class SampleReviewApprovalTests
 
         var definition = await db.TestDefinitions.SingleAsync(t => t.Code == order.TestCode);
         definition.RequiresSystemSuitability = true;
+        db.TestAnalyses.Add(new TestAnalysis { TestOrderId = order.Id, AnalysisType = WorkflowType.Dissolution, EnteredByUserId = 1, IsActive = true });
         await db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>

@@ -86,7 +86,8 @@ public partial class HplcRunService
             .Where(o => codes.Contains(o.TestCode) && o.SectionId == run.SectionId
                 && !o.IsSuperseded && !FinalizedSteps.Contains(o.CurrentStep)
                 && o.Sample != null && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled
-                && !busy.Contains(o.Id));
+                && !busy.Contains(o.Id)
+                && !_db.TestAnalyses.Any(a => a.TestOrderId == o.Id && a.IsActive));
     }
 
     // ---- Assign / remove ----
@@ -178,6 +179,8 @@ public partial class HplcRunService
         var problem = context.EditableProblem();
         if (problem != null)
             throw new InvalidOperationException(problem);
+        if (await IsDissolutionOrderAsync(context.Order.Id, ct))
+            throw new InvalidOperationException("Dissolution results are entered on the Testing page, not as replicates.");
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
         var analyteIds = context.Snapshot.Analytes.Select(a => a.Id).ToList();
@@ -236,9 +239,7 @@ public partial class HplcRunService
 
         var assigned = run.Samples.Where(s => s.Status == HplcRunSampleStatus.Assigned).ToList();
         var orderIds = assigned.Select(s => s.TestOrderId).ToList();
-        var submittedOrderIds = await _db.TestAnalyses
-            .Where(a => orderIds.Contains(a.TestOrderId) && a.IsActive)
-            .Select(a => a.TestOrderId).ToListAsync(ct);
+        var submittedOrderIds = await SubmittedOrderIdsAsync(orderIds, ct);
         var pending = assigned.Count(s => !submittedOrderIds.Contains(s.TestOrderId));
         if (pending > 0)
             throw new InvalidOperationException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
@@ -249,6 +250,25 @@ public partial class HplcRunService
         await _db.SaveChangesAsync(ct);
         return await GetRunAsync(runId, userId, ct);
     }
+
+    // Orders whose result went for review: an active result, and for dissolution
+    // (Stage 1 can be signed while the order stays open for the next stage) also a finalized step.
+    private async Task<List<int>> SubmittedOrderIdsAsync(List<int> orderIds, CancellationToken ct)
+    {
+        var withResult = await _db.TestAnalyses
+            .Where(a => orderIds.Contains(a.TestOrderId) && a.IsActive)
+            .Select(a => a.TestOrderId).Distinct().ToListAsync(ct);
+        if (withResult.Count == 0) return withResult;
+        var dissolutionOpen = await _db.TestOrders
+            .Where(o => withResult.Contains(o.Id) && !FinalizedSteps.Contains(o.CurrentStep)
+                && _db.TestDefinitions.Any(t => t.Code == o.TestCode && t.WorkflowType == WorkflowType.Dissolution))
+            .Select(o => o.Id).ToListAsync(ct);
+        return withResult.Except(dissolutionOpen).ToList();
+    }
+
+    private async Task<bool> IsDissolutionOrderAsync(int testOrderId, CancellationToken ct) =>
+        await _db.TestOrders.AnyAsync(o => o.Id == testOrderId
+            && _db.TestDefinitions.Any(t => t.Code == o.TestCode && t.WorkflowType == WorkflowType.Dissolution), ct);
 
     // ---- Mapping ----
 
@@ -332,8 +352,7 @@ public partial class HplcRunService
         var orders = await _db.TestOrders.AsNoTracking()
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
             .Where(o => orderIds.Contains(o.Id)).ToDictionaryAsync(o => o.Id, ct);
-        var submitted = (await _db.TestAnalyses.Where(a => orderIds.Contains(a.TestOrderId) && a.IsActive)
-            .Select(a => a.TestOrderId).ToListAsync(ct)).ToHashSet();
+        var submitted = (await SubmittedOrderIdsAsync(orderIds, ct)).ToHashSet();
 
         var codes = orders.Values.Select(o => o.TestCode).Distinct().ToList();
         var dissolutionCodes = (await _db.TestDefinitions.Where(t => codes.Contains(t.Code) && t.WorkflowType == WorkflowType.Dissolution)

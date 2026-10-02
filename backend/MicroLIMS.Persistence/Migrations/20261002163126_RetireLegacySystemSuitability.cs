@@ -27,6 +27,17 @@ BEGIN
   END IF;
 END $$;
 
+DO $$
+DECLARE codes text;
+BEGIN
+  SELECT string_agg(DISTINCT o.""TestCode"", ', ') INTO codes
+  FROM ""TestOrders"" o JOIN ""TestDefinitions"" d ON d.""Code"" = o.""TestCode""
+  WHERE o.""SystemSuitabilityRunId"" IS NOT NULL AND d.""WorkflowType"" <> 11;
+  IF codes IS NOT NULL THEN
+    RAISE EXCEPTION 'RetireLegacySystemSuitability: orders outside Standard Comparison still link a legacy system suitability run: %', codes;
+  END IF;
+END $$;
+
 CREATE TEMP TABLE sc_orders AS
   SELECT o.""Id"" FROM ""TestOrders"" o JOIN ""TestDefinitions"" d ON d.""Code"" = o.""TestCode"" WHERE d.""WorkflowType"" = 11;
 CREATE TEMP TABLE sc_codes AS SELECT ""Code"" FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 11;

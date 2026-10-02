@@ -30,6 +30,7 @@ export interface AnalyteRowState {
   standardEntryId: number | "";
   theoreticalWeightStdMg: string | number;
   theoreticalWeightTestMg: string | number;
+  standardDilution: string | number;
   standardInjections: string | number;
   sstMaxRsdPercent: string | number;
   sstMinResolution: string | number;
@@ -112,6 +113,7 @@ export function createInitialHplcMethodFormState(defaultSectionId: number | "" =
         standardEntryId: "",
         theoreticalWeightStdMg: "50",
         theoreticalWeightTestMg: "50",
+        standardDilution: "",
         standardInjections: "5",
         sstMaxRsdPercent: "2.0",
         sstMinResolution: "",
@@ -175,6 +177,7 @@ export function hplcMethodEntityToFormState(m: HplcMethodResponse): HplcMethodFo
             standardEntryId: a.standardEntryId,
             theoreticalWeightStdMg: a.theoreticalWeightStdMg,
             theoreticalWeightTestMg: a.theoreticalWeightTestMg,
+            standardDilution: a.standardDilution ?? "",
             standardInjections: a.standardInjections,
             sstMaxRsdPercent: a.sstMaxRsdPercent != null ? a.sstMaxRsdPercent : "",
             sstMinResolution: a.sstMinResolution != null ? a.sstMinResolution : "",
@@ -237,6 +240,7 @@ export function formToSaveRequest(
       standardEntryId: Number(a.standardEntryId),
       theoreticalWeightStdMg: Number(a.theoreticalWeightStdMg),
       theoreticalWeightTestMg: Number(a.theoreticalWeightTestMg),
+      standardDilution: a.standardDilution === "" || a.standardDilution == null ? null : Number(a.standardDilution),
       standardInjections: Number(a.standardInjections),
       sstMaxRsdPercent: a.sstMaxRsdPercent !== "" ? Number(a.sstMaxRsdPercent) : null,
       sstMinResolution: a.sstMinResolution !== "" ? Number(a.sstMinResolution) : null,

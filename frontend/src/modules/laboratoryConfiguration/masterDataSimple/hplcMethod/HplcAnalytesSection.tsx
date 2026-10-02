@@ -230,6 +230,17 @@ export function HplcAnalytesSection({
                 />
                 <TextField
                   size="small"
+                  label="Standard Dilution (mL)"
+                  type="number"
+                  value={a.standardDilution}
+                  onChange={(e) => onAnalyteChange(idx, "standardDilution", e.target.value)}
+                  error={Boolean(err("standardDilution"))}
+                  helperText={err("standardDilution") ?? "Dissolution only: volume the standard is diluted to"}
+                  slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
+                  fullWidth
+                />
+                <TextField
+                  size="small"
                   label="Standard Injections *"
                   type="number"
                   value={a.standardInjections}

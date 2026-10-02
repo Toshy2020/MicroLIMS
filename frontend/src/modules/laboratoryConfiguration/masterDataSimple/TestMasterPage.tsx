@@ -2439,7 +2439,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null,
           responseMode: isHplcMulti ? responseMode : "PeakArea",
-          hplcMethodId: isHplcMethodAssay && hplcMethodId !== "" ? Number(hplcMethodId) : null
+          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -2500,7 +2500,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null,
           responseMode: isHplcMulti ? responseMode : "PeakArea",
-          hplcMethodId: isHplcMethodAssay && hplcMethodId !== "" ? Number(hplcMethodId) : null
+          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -2637,6 +2637,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     ? options.filter((t) => t.code.toLowerCase().includes(q) || t.displayName.toLowerCase().includes(q) || (t.section?.name ?? "").toLowerCase().includes(q))
     : options;
   const detailsTest = expandedId !== null ? options.find((t) => t.id === expandedId) ?? null : null;
+
+  const isDissolutionMethod = workflowType === "Dissolution";
 
   return (
     <>
@@ -2884,23 +2886,23 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </FormControl>
           )}
 
-          {workflowType === "HplcMethodAssay" && (
+          {(workflowType === "HplcMethodAssay" || workflowType === "Dissolution") && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-                HPLC Method Assay Configuration
+                {isDissolutionMethod ? "HPLC Method (supplies the dissolution standard)" : "HPLC Method Assay Configuration"}
               </Typography>
               <Stack spacing={2}>
-                <FormControl size="small" fullWidth required>
-                  <InputLabel id="dialog-hplc-method-label">HPLC Method *</InputLabel>
+                <FormControl size="small" fullWidth required={!isDissolutionMethod}>
+                  <InputLabel id="dialog-hplc-method-label">{isDissolutionMethod ? "HPLC Method" : "HPLC Method *"}</InputLabel>
                   <Select<number | "">
                     labelId="dialog-hplc-method-label"
-                    label="HPLC Method *"
+                    label={isDissolutionMethod ? "HPLC Method" : "HPLC Method *"}
                     value={hplcMethodId}
                     onChange={(e) => {
                       const val = e.target.value === "" ? "" : Number(e.target.value);
                       setHplcMethodId(val);
                       const chosen = hplcMethods.find((m) => m.id === val);
-                      if (chosen) {
+                      if (chosen && workflowType === "HplcMethodAssay") {
                         setMethodAbbreviation(chosen.abbreviation);
                       }
                     }}

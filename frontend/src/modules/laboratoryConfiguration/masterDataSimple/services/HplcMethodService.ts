@@ -25,6 +25,7 @@ export interface HplcAnalyteInput {
   standardEntryId: number;
   theoreticalWeightStdMg: number;
   theoreticalWeightTestMg: number;
+  standardDilution?: number | null;
   standardInjections: number;
   sstMaxRsdPercent?: number | null;
   sstMinResolution?: number | null;
@@ -96,6 +97,7 @@ export interface HplcMethodAnalyteResponse {
   standardEntryCode: string;
   theoreticalWeightStdMg: number;
   theoreticalWeightTestMg: number;
+  standardDilution?: number | null;
   standardInjections: number;
   sstMaxRsdPercent?: number | null;
   sstMinResolution?: number | null;

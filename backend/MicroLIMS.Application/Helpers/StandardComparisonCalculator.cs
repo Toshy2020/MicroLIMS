@@ -1,4 +1,3 @@
-
 namespace MicroLIMS.Application.Helpers;
 
 public static class StandardComparisonCalculator

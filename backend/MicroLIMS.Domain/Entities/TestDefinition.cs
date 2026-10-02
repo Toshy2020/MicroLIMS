@@ -103,7 +103,6 @@ public class TestDefinition : IVersionedEntity
     public int? WvCapsuleS2ExtraUnits { get; set; }
     public int? WvCapsuleS2MaxOutside { get; set; }
 
-
     // HPLC chain S3 - HplcMethodAssay tests point at a method master instead
     // of carrying their own analytes/SST criteria (spec 3.4).
     public int? HplcMethodId { get; set; }

@@ -288,6 +288,9 @@ public class TestDefinitionMasterDataService
             || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison)
             throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
+        if (request.RequiresSystemSuitability && request.WorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
+            throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
+
         // HPLC chain S3: HplcMethodAssay tests carry no analytes/SST criteria of
         // their own - everything comes from the linked HplcMethod (spec 3.4).
         if (request.EquationType == EquationType.HplcMethodAssay)
@@ -683,6 +686,9 @@ public class TestDefinitionMasterDataService
         if ((request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte or WorkflowType.StandardComparison)
             || (request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison))
             throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
+
+        if (effectiveRequiresSst && effectiveWorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
+            throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
 
         // HPLC chain S3: HplcMethodAssay tests carry no analytes/SST criteria of
         // their own - everything comes from the linked HplcMethod (spec 3.4).

@@ -580,4 +580,27 @@ public class SampleReviewApprovalTests
         Assert.Equal(3, rejectHistory.PerformedByUserId);
         Assert.Contains(sectionHead.FullName, rejectHistory.Note);
     }
+
+    // The gate must stay closed for an SST-flagged test that cannot get a
+    // workspace run (legacy suitability runs are gone).
+    [Fact]
+    public async Task DecideAsync_Approve_SstFlaggedNonWorkspaceTest_Throws()
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await CompleteTestAsync(db, order, media, analystId: 1);
+        await NewReviewService(db).CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
+
+        var definition = await db.TestDefinitions.SingleAsync(t => t.Code == order.TestCode);
+        definition.RequiresSystemSuitability = true;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
+
+        Assert.Contains("only HPLC workspace tests (assay, dissolution) can supply one", ex.Message);
+    }
 }

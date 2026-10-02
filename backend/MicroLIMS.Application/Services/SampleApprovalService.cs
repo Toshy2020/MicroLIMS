@@ -191,6 +191,10 @@ public class SampleApprovalService
 
             foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
             {
+                if (!hplcWorkspaceCodes.Contains(sstOrder.TestCode))
+                    throw new InvalidOperationException(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") requires system suitability, but only HPLC workspace tests (assay, dissolution) can supply one. Clear \"Requires system suitability\" for this test in Test Master.");
+
                 // HPLC Workspace tests take their system suitability from the
                 // run they were assigned to.
                 if (hplcWorkspaceCodes.Contains(sstOrder.TestCode))

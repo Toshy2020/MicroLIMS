@@ -78,7 +78,7 @@ public partial class HplcRunServiceTests
         {
             db.TestDefinitionStageReplicates.Add(new TestDefinitionStageReplicate
             {
-                TestDefinitionId = f.Definition.Id, Role = role, StandardReplicates = 3, SampleReplicates = sampleReplicates,
+                TestDefinitionId = f.Definition.Id, Role = role, SampleReplicates = sampleReplicates,
             });
             await db.SaveChangesAsync();
         }

@@ -535,7 +535,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
   const [editingReplicate, setEditingReplicate] = useState<TestDefinitionStageReplicateDto | null>(null);
   const [pendingDelete, setPendingDelete] = useState<TestDefinitionStageReplicateDto | null>(null);
   const [role, setRole] = useState<ProductionStageRole | "">("");
-  const [standardReplicates, setStandardReplicates] = useState("");
   const [sampleReplicates, setSampleReplicates] = useState("");
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -564,7 +563,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
   const openAdd = () => {
     setEditingReplicate(null);
     setRole(availableRoles[0] ?? "");
-    setStandardReplicates("");
     setSampleReplicates("");
     setDialogError(null);
     setDialogOpen(true);
@@ -573,7 +571,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
   const openEdit = (r: TestDefinitionStageReplicateDto) => {
     setEditingReplicate(r);
     setRole(r.role);
-    setStandardReplicates(String(r.standardReplicates));
     setSampleReplicates(String(r.sampleReplicates));
     setDialogError(null);
     setDialogOpen(true);
@@ -582,17 +579,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
   const handleSave = async () => {
     if (!editingReplicate && !role) {
       setDialogError("Production stage role is required.");
-      return;
-    }
-
-    const stdStr = standardReplicates.trim();
-    if (!stdStr) {
-      setDialogError("Standard replicates is required.");
-      return;
-    }
-    const std = Number(stdStr);
-    if (!Number.isInteger(std) || std < 1) {
-      setDialogError("Standard replicates must be an integer greater than or equal to 1.");
       return;
     }
 
@@ -612,13 +598,11 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
     try {
       if (editingReplicate) {
         await masterDataOptions.updateTestDefinitionStageReplicate(testDefinitionId, editingReplicate.id, {
-          standardReplicates: std,
           sampleReplicates: smp
         }, editingReplicate.version);
       } else {
         await masterDataOptions.createTestDefinitionStageReplicate(testDefinitionId, {
           role: role as ProductionStageRole,
-          standardReplicates: std,
           sampleReplicates: smp
         });
       }
@@ -670,7 +654,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
           <TableHead>
             <TableRow sx={tableHeadSx}>
               <TableCell>Stage Role</TableCell>
-              <TableCell>Standard Replicates</TableCell>
               <TableCell>Sample Replicates</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -681,7 +664,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
                 <TableCell>
                   <Chip size="small" label={r.role} variant="outlined" sx={{ fontWeight: 600 }} />
                 </TableCell>
-                <TableCell>{r.standardReplicates}</TableCell>
                 <TableCell>{r.sampleReplicates}</TableCell>
                 <TableCell align="right">
                   <IconButton aria-label="Edit replicates" size="small" onClick={() => openEdit(r)} title="Edit Replicates">
@@ -700,7 +682,7 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
             ))}
             {replicates.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 2, color: "text.secondary" }}>
+                <TableCell colSpan={3} align="center" sx={{ py: 2, color: "text.secondary" }}>
                   No stage replicates configured yet. Click "Add Stage Replicate" to configure replicate counts.
                 </TableCell>
               </TableRow>
@@ -710,7 +692,7 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
       </TableContainer>
 
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-        Production stages without a configured row are not configured for this test (not zero). Both counts must be integers ≥ 1.
+        Production stages without a configured row are not configured for this test (not zero). Counts must be integers ≥ 1. HPLC standard injections are set on the method.
       </Typography>
 
       <FloatingDialog
@@ -757,18 +739,6 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
               </Select>
             </FormControl>
           )}
-          <TextField
-            size="small"
-            type="number"
-            label="Standard Replicates *"
-            placeholder="e.g. 6"
-            value={standardReplicates}
-            onChange={(e) => setStandardReplicates(e.target.value)}
-            slotProps={{ htmlInput: { min: 1, step: 1 } }}
-            helperText="Integer ≥ 1"
-            required
-            fullWidth
-          />
           <TextField
             size="small"
             type="number"
@@ -3353,7 +3323,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {(isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && workflowType !== "HplcMethodAssay" && (
+          {(isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
             editingId ? (
               <TestStageReplicatesSection testDefinitionId={editingId} />
             ) : (

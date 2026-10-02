@@ -78,32 +78,19 @@ public class TestDefinitionStageReplicateTests
         var testDef = await SeedTestDefinitionAsync(db);
 
         var result = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(
-            testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Finished, 6, 2));
+            testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Finished, 2));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<ApiResponse<object>>(ok.Value);
         var dto = Assert.IsType<TestDefinitionStageReplicateDto>(response.Data);
 
         Assert.Equal(ProductionStageRole.Finished, dto.Role);
-        Assert.Equal(6, dto.StandardReplicates);
         Assert.Equal(2, dto.SampleReplicates);
 
         var persisted = await db.TestDefinitionStageReplicates.SingleAsync(r => r.TestDefinitionId == testDef.Id);
-        Assert.Equal(6, persisted.StandardReplicates);
         Assert.Equal(2, persisted.SampleReplicates);
     }
 
-    [Fact]
-    public async Task CreateTestDefinitionStageReplicate_StandardReplicatesBelowOne_Rejected()
-    {
-        using var db = NewDb();
-        var (controller, _) = SetupAdminController(db);
-        var testDef = await SeedTestDefinitionAsync(db);
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 0, 1)));
-        Assert.Contains("Standard replicates must be at least 1", ex.Message);
-    }
 
     [Fact]
     public async Task CreateTestDefinitionStageReplicate_SampleReplicatesBelowOne_Rejected()
@@ -113,7 +100,7 @@ public class TestDefinitionStageReplicateTests
         var testDef = await SeedTestDefinitionAsync(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1, 0)));
+            controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 0)));
         Assert.Contains("Sample replicates must be at least 1", ex.Message);
     }
 
@@ -124,10 +111,10 @@ public class TestDefinitionStageReplicateTests
         var (controller, _) = SetupAdminController(db);
         var testDef = await SeedTestDefinitionAsync(db);
 
-        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 6, 1));
+        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 3, 2)));
+            controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 2)));
         Assert.Contains("already exists", ex.Message);
     }
 
@@ -138,9 +125,9 @@ public class TestDefinitionStageReplicateTests
         var (controller, _) = SetupAdminController(db);
         var testDef = await SeedTestDefinitionAsync(db);
 
-        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 6, 1));
-        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Finished, 6, 2));
-        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Stability, 3, 3));
+        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
+        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Finished, 2));
+        await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Stability, 3));
 
         var count = await db.TestDefinitionStageReplicates.CountAsync(r => r.TestDefinitionId == testDef.Id);
         Assert.Equal(3, count);
@@ -153,12 +140,12 @@ public class TestDefinitionStageReplicateTests
         var (controller, _) = SetupAdminController(db);
         var testDef = await SeedTestDefinitionAsync(db);
 
-        var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 6, 1));
+        var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
         var dto = Assert.IsType<TestDefinitionStageReplicateDto>(Assert.IsType<ApiResponse<object>>(Assert.IsType<OkObjectResult>(created).Value).Data);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.TestStageReplicate.UpdateTestDefinitionStageReplicate(testDef.Id, dto.Id, new UpdateTestDefinitionStageReplicateRequest(StandardReplicates: 0)));
-        Assert.Contains("Standard replicates must be at least 1", ex.Message);
+            controller.TestStageReplicate.UpdateTestDefinitionStageReplicate(testDef.Id, dto.Id, new UpdateTestDefinitionStageReplicateRequest(SampleReplicates: 0)));
+        Assert.Contains("Sample replicates must be at least 1", ex.Message);
     }
 
     [Fact]
@@ -168,13 +155,12 @@ public class TestDefinitionStageReplicateTests
         var (controller, _) = SetupAdminController(db);
         var testDef = await SeedTestDefinitionAsync(db);
 
-        var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 6, 1));
+        var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
         var dto = Assert.IsType<TestDefinitionStageReplicateDto>(Assert.IsType<ApiResponse<object>>(Assert.IsType<OkObjectResult>(created).Value).Data);
 
-        await controller.TestStageReplicate.UpdateTestDefinitionStageReplicate(testDef.Id, dto.Id, new UpdateTestDefinitionStageReplicateRequest(StandardReplicates: 3, SampleReplicates: 2));
+        await controller.TestStageReplicate.UpdateTestDefinitionStageReplicate(testDef.Id, dto.Id, new UpdateTestDefinitionStageReplicateRequest(SampleReplicates: 2));
 
         var reloaded = await db.TestDefinitionStageReplicates.FirstAsync(r => r.Id == dto.Id);
-        Assert.Equal(3, reloaded.StandardReplicates);
         Assert.Equal(2, reloaded.SampleReplicates);
     }
 
@@ -185,7 +171,7 @@ public class TestDefinitionStageReplicateTests
         var (controller, _) = SetupAdminController(db);
         var testDef = await SeedTestDefinitionAsync(db);
 
-        var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 6, 1));
+        var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
         var dto = Assert.IsType<TestDefinitionStageReplicateDto>(Assert.IsType<ApiResponse<object>>(Assert.IsType<OkObjectResult>(created).Value).Data);
 
         await controller.TestStageReplicate.DeleteTestDefinitionStageReplicate(testDef.Id, dto.Id);
@@ -247,7 +233,6 @@ public class TestDefinitionStageReplicateTests
 
         Assert.Equal(StageReplicateResolutionStatus.SampleStageNotReconciled, resolution.Status);
         Assert.False(resolution.IsConfigured);
-        Assert.Null(resolution.StandardReplicates);
         Assert.Null(resolution.SampleReplicates);
         Assert.NotNull(resolution.Message);
     }
@@ -263,7 +248,6 @@ public class TestDefinitionStageReplicateTests
         Assert.Equal(StageReplicateResolutionStatus.NotConfiguredForStage, resolution.Status);
         Assert.False(resolution.IsConfigured);
         Assert.Equal(ProductionStageRole.Finished, resolution.StageRole);
-        Assert.Null(resolution.StandardReplicates);
         Assert.Null(resolution.SampleReplicates);
     }
 
@@ -277,7 +261,6 @@ public class TestDefinitionStageReplicateTests
         {
             TestDefinitionId = testDef.Id,
             Role = ProductionStageRole.Finished,
-            StandardReplicates = 6,
             SampleReplicates = 2
         });
         await db.SaveChangesAsync();
@@ -287,7 +270,6 @@ public class TestDefinitionStageReplicateTests
         Assert.Equal(StageReplicateResolutionStatus.Resolved, resolution.Status);
         Assert.True(resolution.IsConfigured);
         Assert.Equal(ProductionStageRole.Finished, resolution.StageRole);
-        Assert.Equal(6, resolution.StandardReplicates);
         Assert.Equal(2, resolution.SampleReplicates);
         Assert.Null(resolution.Message);
     }
@@ -303,7 +285,6 @@ public class TestDefinitionStageReplicateTests
         {
             TestDefinitionId = testDef.Id,
             Role = ProductionStageRole.Bulk,
-            StandardReplicates = 6,
             SampleReplicates = 1
         });
         await db.SaveChangesAsync();
@@ -323,7 +304,6 @@ public class TestDefinitionStageReplicateTests
         {
             TestDefinitionId = testDef.Id,
             Role = ProductionStageRole.Bulk,
-            StandardReplicates = 6,
             SampleReplicates = 1
         });
         await db.SaveChangesAsync();
@@ -332,7 +312,6 @@ public class TestDefinitionStageReplicateTests
         var resolution = await StageReplicateResolver.ResolveForTestOrderAsync(db, order.Id);
 
         Assert.Equal(StageReplicateResolutionStatus.Resolved, resolution.Status);
-        Assert.Equal(6, resolution.StandardReplicates);
         Assert.Equal(1, resolution.SampleReplicates);
     }
 }

@@ -249,7 +249,6 @@ BEGIN
    ('TestAnalytes','SstMinTheoreticalPlates'),
    ('TestDefinitionStageReplicates','TestDefinitionId'),
    ('TestDefinitionStageReplicates','Role'),
-   ('TestDefinitionStageReplicates','StandardReplicates'),
    ('TestDefinitionStageReplicates','SampleReplicates'),
    ('Items','Name'),
    ('Items','Code'),
@@ -992,35 +991,34 @@ WHERE NOT EXISTS (SELECT 1 FROM "TestAnalytes" a JOIN "TestDefinitions" t ON t."
 -- 6c. Test stage replicate counts
 ------------------------------------------------------------------------------
 INSERT INTO "TestDefinitionStageReplicates"
-  ("TestDefinitionId","Role","StandardReplicates","SampleReplicates")
+  ("TestDefinitionId","Role","SampleReplicates")
 SELECT (SELECT t."Id" FROM "TestDefinitions" t WHERE t."Code" = v."_k_t"),
        v."Role",
-       v."StandardReplicates",
        v."SampleReplicates"
 FROM (VALUES
- ('1'::integer,'2'::integer,'3'::integer,'HPLC-AMOX'::text),
- ('3','2','2','HPLC-AMOX'),
- ('1','2','3','HPLC-APAP'),
- ('3','2','2','HPLC-APAP'),
- ('1','2','3','HPLC-APAP-CAF'),
- ('3','2','2','HPLC-APAP-CAF'),
- ('1','2','3','HPLC-B12'),
- ('3','2','2','HPLC-B12'),
- ('1','2','3','HPLC-DICLO'),
- ('3','2','2','HPLC-DICLO'),
- ('1','2','3','HPLC-FOLIC'),
- ('3','2','2','HPLC-FOLIC'),
- ('1','2','3','HPLC-IBU'),
- ('3','2','2','HPLC-IBU'),
- ('1','2','3','HPLC-VIT-B'),
- ('3','2','2','HPLC-VIT-B'),
- ('1','2','3','HPLC-VIT-C'),
- ('3','2','2','HPLC-VIT-C'),
- ('1','2','3','HPLC-VIT-D3'),
- ('3','2','2','HPLC-VIT-D3'),
- ('1','1','1','Water soluble'),
- ('3','6','2','Water soluble')
-) AS v("Role","StandardReplicates","SampleReplicates","_k_t")
+ ('1'::integer,'3'::integer,'HPLC-AMOX'::text),
+ ('3','2','HPLC-AMOX'),
+ ('1','3','HPLC-APAP'),
+ ('3','2','HPLC-APAP'),
+ ('1','3','HPLC-APAP-CAF'),
+ ('3','2','HPLC-APAP-CAF'),
+ ('1','3','HPLC-B12'),
+ ('3','2','HPLC-B12'),
+ ('1','3','HPLC-DICLO'),
+ ('3','2','HPLC-DICLO'),
+ ('1','3','HPLC-FOLIC'),
+ ('3','2','HPLC-FOLIC'),
+ ('1','3','HPLC-IBU'),
+ ('3','2','HPLC-IBU'),
+ ('1','3','HPLC-VIT-B'),
+ ('3','2','HPLC-VIT-B'),
+ ('1','3','HPLC-VIT-C'),
+ ('3','2','HPLC-VIT-C'),
+ ('1','3','HPLC-VIT-D3'),
+ ('3','2','HPLC-VIT-D3'),
+ ('1','1','Water soluble'),
+ ('3','2','Water soluble')
+) AS v("Role","SampleReplicates","_k_t")
 CROSS JOIN _ctx c
 WHERE NOT EXISTS (SELECT 1 FROM "TestDefinitionStageReplicates" x JOIN "TestDefinitions" t ON t."Id"=x."TestDefinitionId" WHERE t."Code" = v."_k_t" AND x."Role" = v."Role");
 

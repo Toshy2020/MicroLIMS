@@ -79,18 +79,15 @@ export interface TestDefinitionStageReplicateDto {
   version?: number;
   testDefinitionId: number;
   role: ProductionStageRole;
-  standardReplicates: number;
   sampleReplicates: number;
 }
 
 export interface CreateTestDefinitionStageReplicateRequest {
   role: ProductionStageRole;
-  standardReplicates: number;
   sampleReplicates: number;
 }
 
 export interface UpdateTestDefinitionStageReplicateRequest {
-  standardReplicates?: number | null;
   sampleReplicates?: number | null;
 }
 

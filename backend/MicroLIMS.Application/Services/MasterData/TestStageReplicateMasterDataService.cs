@@ -45,8 +45,6 @@ public class TestStageReplicateMasterDataService
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
-        if (request.StandardReplicates < 1)
-            throw new InvalidOperationException("Standard replicates must be at least 1.");
         if (request.SampleReplicates < 1)
             throw new InvalidOperationException("Sample replicates must be at least 1.");
 
@@ -57,7 +55,6 @@ public class TestStageReplicateMasterDataService
         {
             TestDefinitionId = id,
             Role = request.Role,
-            StandardReplicates = request.StandardReplicates,
             SampleReplicates = request.SampleReplicates
         };
 
@@ -79,12 +76,6 @@ public class TestStageReplicateMasterDataService
             ?? throw new NotFoundException($"Stage replicate {replicateId} not found for test {id}.");
         RecordVersion.EnsureCurrent(_db, replicate);
 
-        if (request.StandardReplicates.HasValue)
-        {
-            if (request.StandardReplicates.Value < 1)
-                throw new InvalidOperationException("Standard replicates must be at least 1.");
-            replicate.StandardReplicates = request.StandardReplicates.Value;
-        }
         if (request.SampleReplicates.HasValue)
         {
             if (request.SampleReplicates.Value < 1)

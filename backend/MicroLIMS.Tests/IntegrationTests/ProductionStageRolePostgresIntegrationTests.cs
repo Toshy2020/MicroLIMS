@@ -141,7 +141,6 @@ public class ProductionStageRolePostgresIntegrationTests
         {
             TestDefinitionId = testDef.Id,
             Role = ProductionStageRole.Bulk,
-            StandardReplicates = 6,
             SampleReplicates = 1
         });
         await db.SaveChangesAsync();
@@ -151,7 +150,6 @@ public class ProductionStageRolePostgresIntegrationTests
         {
             TestDefinitionId = testDef.Id,
             Role = ProductionStageRole.Bulk,
-            StandardReplicates = 3,
             SampleReplicates = 2
         });
         await Assert.ThrowsAsync<DbUpdateException>(() => duplicate.SaveChangesAsync());
@@ -169,7 +167,6 @@ public class ProductionStageRolePostgresIntegrationTests
         {
             TestDefinitionId = testDef.Id,
             Role = ProductionStageRole.Finished,
-            StandardReplicates = 6,
             SampleReplicates = 2
         });
         await db.SaveChangesAsync();

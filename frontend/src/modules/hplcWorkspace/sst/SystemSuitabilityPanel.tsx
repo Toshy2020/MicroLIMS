@@ -59,6 +59,8 @@ export function SystemSuitabilityPanel({
   // Actions state
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set by the first save attempt; the missing list then updates as fields are filled.
+  const [checkMissing, setCheckMissing] = useState(false);
 
   // E-Signature dialog state for confirm
   const [signOpen, setSignOpen] = useState(false);
@@ -143,9 +145,37 @@ export function SystemSuitabilityPanel({
     }));
   };
 
+  const methodAnalyteFor = (a: { hplcMethodAnalyteId: number; analyteName: string }) =>
+    method?.analytes.find((ma) => ma.id === a.hplcMethodAnalyteId || ma.name === a.analyteName);
+
+  // Blank entries per analyte, so the analyst is warned before saving. The
+  // backend refuses confirmation on the same gaps.
+  const findMissing = (): string[] =>
+    (sst?.analytes ?? []).flatMap((a) => {
+      const v = analyteInputs[a.id];
+      const ma = methodAnalyteFor(a);
+      const fields: string[] = [];
+      if (!v?.standardMaterialId) fields.push("reference standard lot");
+      if (!(v?.standardWeightMg > 0)) fields.push("actual standard weight");
+      const blank = Array.from({ length: ma?.standardInjections ?? 5 }, (_, i) => i + 1)
+        .filter((n) => !((v?.responses?.[n - 1] ?? 0) > 0));
+      if (blank.length) fields.push(`injection ${blank.map((n) => `#${n}`).join(", ")}`);
+      if (ma?.sstMinResolution != null && v?.resolution == null) fields.push("resolution");
+      if (ma?.sstMaxTailingFactor != null && v?.tailingFactor == null) fields.push("tailing factor");
+      if (ma?.sstMinTheoreticalPlates != null && v?.theoreticalPlates == null) fields.push("theoretical plates");
+      if (ma?.sstMinRetentionFactor != null && v?.retentionFactor == null) fields.push("retention factor");
+      if (ma?.sstMinSignalToNoise != null && v?.signalToNoise == null) fields.push("signal-to-noise");
+      if (ma?.sstMinPeakToValley != null && v?.peakToValley == null) fields.push("peak-to-valley");
+      return fields.length ? [`${a.analyteName}: ${fields.join(", ")}`] : [];
+    });
+
   // Save SST inputs
-  const handleSaveSst = async () => {
-    if (!sst) return;
+  // refresh=false keeps the page mounted (the parent reload shows a spinner),
+  // so the signature dialog can open straight after the save.
+  const handleSaveSst = async (refresh = true): Promise<boolean> => {
+    if (!sst) return false;
+    setCheckMissing(true);
+    if (findMissing().length) return false;
     const analytesPayload: SaveSstAnalyteInput[] = Object.values(analyteInputs);
 
     setSaving(true);
@@ -156,10 +186,12 @@ export function SystemSuitabilityPanel({
       if (savedRun && savedRun.sst) {
         setCurrentRun(savedRun);
       }
-      onRunUpdated();
+      if (refresh) onRunUpdated();
+      return true;
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Could not save system suitability.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -202,6 +234,8 @@ export function SystemSuitabilityPanel({
     }
   };
 
+  const missing = checkMissing ? findMissing() : [];
+
   if (!sst) {
     return (
       <Alert severity="warning">
@@ -227,6 +261,15 @@ export function SystemSuitabilityPanel({
         </Alert>
       )}
 
+      {missing.length > 0 && (
+        <Alert severity="warning">
+          <strong>Fill in the empty fields before saving:</strong>
+          <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
+            {missing.map((m) => <li key={m}>{m}</li>)}
+          </ul>
+        </Alert>
+      )}
+
       {/* Values & Criteria Comparison Table */}
       <SstValuesTable analytes={sst.analytes} method={method} />
 
@@ -241,9 +284,7 @@ export function SystemSuitabilityPanel({
         ) : (
           <Stack spacing={2.5}>
             {sst.analytes.map((a) => {
-              const methodAnalyte = method?.analytes.find(
-                (ma) => ma.id === a.hplcMethodAnalyteId || ma.name === a.analyteName
-              );
+              const methodAnalyte = methodAnalyteFor(a);
               const formVal = analyteInputs[a.id] || {
                 hplcSstAnalyteId: a.id,
                 standardMaterialId: a.standardMaterialId ?? 0,
@@ -260,6 +301,7 @@ export function SystemSuitabilityPanel({
                   formValue={formVal}
                   onChange={(patch) => handleAnalyteChange(a.id, patch)}
                   disabled={isConfirmed || !canOperate}
+                  showMissing={missing.length > 0}
                 />
               );
             })}
@@ -294,7 +336,7 @@ export function SystemSuitabilityPanel({
             <Button
               variant="outlined"
               startIcon={<SaveIcon />}
-              onClick={handleSaveSst}
+              onClick={() => handleSaveSst()}
               disabled={saving}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
@@ -315,7 +357,10 @@ export function SystemSuitabilityPanel({
                     color="success"
                     startIcon={<VerifiedUserIcon />}
                     disabled={!currentRun.canConfirmSst || saving}
-                    onClick={() => {
+                    onClick={async () => {
+                      // Confirm signs what is stored, so save the screen first;
+                      // otherwise unsaved entries are signed as blanks.
+                      if (!(await handleSaveSst(false))) return;
                       setSignComment("");
                       setSignOpen(true);
                     }}

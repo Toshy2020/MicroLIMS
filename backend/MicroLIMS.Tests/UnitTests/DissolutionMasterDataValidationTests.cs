@@ -385,4 +385,48 @@ public class DissolutionMasterDataValidationTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(secondSpec));
         Assert.Contains("Only one specification is allowed for Dissolution test", ex.Message);
     }
+
+    [Fact]
+    public async Task CreateTestDefinition_NonHplcWorkflow_CannotRequireSystemSuitability()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "OBS-SST",
+            DisplayName: "Observation",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Observation,
+            EquationType: EquationType.None,
+            RequiresSystemSuitability: true, MethodAbbreviation: "OBS");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        Assert.Contains("Only HPLC method assay and dissolution tests can require system suitability.", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateTestDefinition_NonHplcWorkflow_CanClearRequiresSystemSuitability()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var testDef = new TestDefinition
+        {
+            Code = "OBS-OLD",
+            DisplayName = "Observation",
+            SectionId = fpSec.Id,
+            WorkflowType = WorkflowType.Observation,
+            EquationType = EquationType.None,
+            RequiresSystemSuitability = true,
+            MethodAbbreviation = "OBS",
+            IsActive = true
+        };
+        db.TestDefinitions.Add(testDef);
+        await db.SaveChangesAsync();
+
+        await controller.TestDefinition.UpdateTestDefinition(testDef.Id,
+            new UpdateTestDefinitionRequest(Code: "OBS-OLD", DisplayName: "Observation", RequiresSystemSuitability: false));
+
+        Assert.False((await db.TestDefinitions.SingleAsync(t => t.Id == testDef.Id)).RequiresSystemSuitability);
+    }
 }

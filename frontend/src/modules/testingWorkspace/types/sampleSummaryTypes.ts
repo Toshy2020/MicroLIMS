@@ -344,7 +344,7 @@ export interface ParameterResultDetail {
 export interface AnalysisDetail {
   id: number;
   testOrderId: number;
-  analysisType: "CountTest" | "Observation" | "StandardComparison" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
+  analysisType: "CountTest" | "Observation" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
   equipmentId: number | null;
   equipmentCode: string | null;
   equipmentName: string | null;

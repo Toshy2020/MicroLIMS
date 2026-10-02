@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -31,7 +32,8 @@ import { masterDataOptions } from "../../services/masterDataOptions";
 import { TestDefinitionOption } from "../../hooks/useTestDefinitions";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
-import { SystemSuitabilityService, SystemSuitabilityRun } from "../systemSuitability/services/SystemSuitabilityService";
+import { HplcWorkspaceService } from "../hplcWorkspace/services/HplcWorkspaceService";
+import type { HplcDissolutionStandardResult } from "../hplcWorkspace/types";
 import {
   AnalysisDetail,
   ParameterResultDetail,
@@ -87,11 +89,8 @@ export function DissolutionPanel({
   const [fpEquipment, setFpEquipment] = useState<ConfiguredEquipmentSummary[]>([]);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | "">("");
 
-  // System suitability runs
-  const [linkedRun, setLinkedRun] = useState<SystemSuitabilityRun | null>(null);
-  const [selectableRuns, setSelectableRuns] = useState<SystemSuitabilityRun[]>([]);
-  const [runChoice, setRunChoice] = useState<number | "">("");
-  const [changingRun, setChangingRun] = useState(false);
+  // Standard from the HPLC workspace run this sample is assigned to.
+  const [hplcStandard, setHplcStandard] = useState<HplcDissolutionStandardResult | null>(null);
 
   // Stage 1 form
   const [analysedAt, setAnalysedAt] = useState(() => getLocalIsoString());
@@ -156,18 +155,11 @@ export function DissolutionPanel({
         matchedSpec = disSpecs[0] ?? null;
       }
 
-      // 4. Fetch suitability runs
+      // 4. Fetch the HPLC run standard
       try {
-        const [l, s] = await Promise.all([
-          SystemSuitabilityService.getLinkedForTestOrder(testOrderId),
-          SystemSuitabilityService.getSelectableForTestOrder(testOrderId)
-        ]);
-        setLinkedRun(l);
-        setSelectableRuns(s);
-        setRunChoice("");
-        setChangingRun(false);
+        setHplcStandard(await HplcWorkspaceService.getDissolutionStandard(testOrderId));
       } catch {
-        // non-blocking
+        setHplcStandard({ standard: null, problem: "The HPLC run standard could not be loaded." });
       }
 
       // 5. Load FP section equipment (dissolution testers)
@@ -242,25 +234,6 @@ export function DissolutionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testOrderId, effectiveTestCode, itemId, sampleId]);
 
-  // Suitability linking
-  const linkRun = async () => {
-    if (!runChoice) return;
-    setError(null);
-    try {
-      await SystemSuitabilityService.linkTestOrders(Number(runChoice), [testOrderId]);
-      const [l, s] = await Promise.all([
-        SystemSuitabilityService.getLinkedForTestOrder(testOrderId),
-        SystemSuitabilityService.getSelectableForTestOrder(testOrderId)
-      ]);
-      setLinkedRun(l);
-      setSelectableRuns(s);
-      setRunChoice("");
-      setChangingRun(false);
-    } catch (e) {
-      setError(errorMessage(e, "Could not link this test to the system suitability run."));
-    }
-  };
-
   const conditionLabels = useMemo(() => {
     if (!testDef?.conditionFields) return [];
     return testDef.conditionFields
@@ -296,7 +269,7 @@ export function DissolutionPanel({
 
   // Validation: Stage 1
   const isStage1Valid = useMemo(() => {
-    if (!linkedRun) return false;
+    if (!hplcStandard?.standard) return false;
     if (!spec) return false;
     if (!analysedAt.trim()) return false;
     const parsedDate = new Date(analysedAt);
@@ -321,7 +294,7 @@ export function DissolutionPanel({
       }
     }
     return true;
-  }, [linkedRun, spec, analysedAt, conditionLabels, conditions, mediumVolumeMl, dilutionFactor, vesselAreasS1]);
+  }, [hplcStandard, spec, analysedAt, conditionLabels, conditions, mediumVolumeMl, dilutionFactor, vesselAreasS1]);
 
   // Validation: Next Stage (Stage 2 or 3)
   const isNextStageValid = useMemo(() => {
@@ -583,52 +556,25 @@ export function DissolutionPanel({
         </Alert>
       )}
 
-      {/* Suitability Run Link Block */}
+      {/* HPLC run standard block */}
       <Stack spacing={2}>
-      <ResultSection step={1} title="System suitability run">
-      {linkedRun && !changingRun ? (
-        <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-          <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{linkedRun.code}</Typography>
-          <StatusBadge status="Passed" />
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            {linkedRun.equipmentCode} / {linkedRun.columnCode} · standard {linkedRun.referenceStandardName} ({linkedRun.standardPurityPercent}%)
-          </Typography>
-          {!isNextStageRequired && selectableRuns.length > 1 && (
-            <Button size="small" onClick={() => setChangingRun(true)}>
-              Change
+      <ResultSection step={1} title="HPLC run standard">
+        {hplcStandard?.standard ? (
+          <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+            <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{hplcStandard.standard.runCode}</Typography>
+            <StatusBadge status="Passed" label={hplcStandard.standard.sstCode} />
+            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+              Mean area {hplcStandard.standard.meanResponse} · weight {hplcStandard.standard.standardWeightMg} mg · P {hplcStandard.standard.purityPercent}% · MC {hplcStandard.standard.moisturePercent}% · dilution {hplcStandard.standard.standardDilution} mL · Cs {hplcStandard.standard.cs.toFixed(6)} mg/mL
+            </Typography>
+            <Button size="small" component={RouterLink} to={`/hplc-workspace/${hplcStandard.standard.equipmentId}/run/${hplcStandard.standard.hplcRunId}/samples`}>
+              Open run
             </Button>
-          )}
-        </Stack>
-      ) : (
-        <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-          <Select
-            size="small"
-            displayEmpty
-            value={runChoice}
-            onChange={(e) => setRunChoice(e.target.value as number)}
-            sx={{ minWidth: 320 }}
-            inputProps={{ "aria-label": "System suitability run" }}
-          >
-            <MenuItem value="" disabled>
-              {selectableRuns.length ? "Choose a passed run" : "No passed run for this method yet"}
-            </MenuItem>
-            {selectableRuns.map((r) => (
-              <MenuItem key={r.id} value={r.id}>
-                {r.code}: {r.equipmentCode}, {new Date(r.performedAt).toLocaleDateString()}
-              </MenuItem>
-            ))}
-          </Select>
-          <Button variant="contained" disabled={!runChoice} onClick={linkRun}>
-            Link
-          </Button>
-          {changingRun && <Button onClick={() => setChangingRun(false)}>Cancel</Button>}
-        </Stack>
-      )}
-      {!linkedRun && selectableRuns.length === 0 && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Perform a passing System Suitability run for this method first (Laboratory → System Suitability).
-        </Alert>
-      )}
+          </Stack>
+        ) : (
+          <Alert severity="info">
+            {hplcStandard?.problem ?? "Assign this sample to an HPLC run with a passed system suitability."} Use the HPLC Workspace.
+          </Alert>
+        )}
       </ResultSection>
 
       {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}

@@ -260,6 +260,7 @@ export function HplcMethodDialog({
                         standardEntryId: "",
                         theoreticalWeightStdMg: "50",
                         theoreticalWeightTestMg: "50",
+                        standardDilution: "",
                         standardInjections: "5",
                         sstMaxRsdPercent: "2.0",
                         sstMinResolution: "",

@@ -206,6 +206,12 @@ export function validateHplcMethodForm(
     if (!a.theoreticalWeightTestMg || isNaN(twTest) || twTest <= 0) {
       add(key("theoreticalWeightTestMg"), `Analyte "${aName}" Theoretical Weight Test must be greater than zero.`);
     }
+    if (a.standardDilution !== "" && a.standardDilution != null) {
+      const dil = Number(a.standardDilution);
+      if (isNaN(dil) || dil <= 0) {
+        add(key("standardDilution"), `Analyte "${aName}" standard dilution must be greater than zero.`);
+      }
+    }
 
     const stdInj = Number(a.standardInjections);
     if (!a.standardInjections || isNaN(stdInj) || stdInj < 1 || !Number.isInteger(stdInj)) {

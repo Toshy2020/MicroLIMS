@@ -91,4 +91,5 @@ public class HplcMethodAnalyte
     public decimal? SstMinRetentionFactor { get; set; }
     public decimal? SstMinSignalToNoise { get; set; }
     public decimal? SstMinPeakToValley { get; set; }
+    public decimal? StandardDilution { get; set; } // mL; dissolution standard only (Cs = W x P x (100-MC) / dilution)
 }

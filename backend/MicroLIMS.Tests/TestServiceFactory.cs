@@ -225,16 +225,6 @@ public static class TestServiceFactory
             storage ?? new InMemoryFileStorageService(),
             clock);
 
-    public static SystemSuitabilityService SystemSuitability(
-        MicroLimsDbContext db,
-        IUserSectionScopeService? scope = null,
-        IElectronicSignatureService? signatures = null,
-        ILabClock? clock = null) =>
-        new(db,
-            signatures ?? new ElectronicSignatureService(db),
-            scope ?? new UserSectionScopeService(db),
-            clock);
-
     public static CalibrationRunService CalibrationRun(
         MicroLimsDbContext db,
         IFileStorageService? storage = null,

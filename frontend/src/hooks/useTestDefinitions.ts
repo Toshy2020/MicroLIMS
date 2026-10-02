@@ -64,10 +64,6 @@ export interface TestDefinitionOption {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
-  hplcMaxPreparationRsdPercent?: number | null;
-  // StandardComparison only - how the assay measures its response (SC-5a).
-  // Absent/undefined on non-StandardComparison tests.
-  responseMode?: "PeakArea" | "TitrationVolume" | null;
   hplcMethodId?: number | null;
   sectionId?: number;
   section?: {

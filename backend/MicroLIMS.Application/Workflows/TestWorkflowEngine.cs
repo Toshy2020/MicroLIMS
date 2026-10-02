@@ -26,8 +26,8 @@ namespace MicroLIMS.Application.Workflows;
 // its own class under Workflows/TestWorkflow: TestStepNavigator,
 // IncubationStepRecorder, PathogenConfirmationRecorder,
 // ElementalAssayRecorder, SingleResultRecorder, DissolutionRecorder,
-// DisintegrationRecorder, WeightVariationRecorder,
-// StandardComparisonRecorder and HplcMethodAssayRecorder. They all derive from TestWorkflowSupport,
+// DisintegrationRecorder, WeightVariationRecorder
+// and HplcMethodAssayRecorder. They all derive from TestWorkflowSupport,
 // which holds what they share.
 public class TestWorkflowEngine : ITestWorkflowEngine
 {
@@ -39,7 +39,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly DissolutionRecorder _dissolutionRecorder;
     private readonly DisintegrationRecorder _disintegrationRecorder;
     private readonly WeightVariationRecorder _weightVariationRecorder;
-    private readonly StandardComparisonRecorder _standardComparisonRecorder;
     private readonly HplcMethodAssayRecorder _hplcMethodAssayRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
 
@@ -65,7 +64,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _dissolutionRecorder = new DissolutionRecorder(deps);
         _disintegrationRecorder = new DisintegrationRecorder(deps);
         _weightVariationRecorder = new WeightVariationRecorder(deps);
-        _standardComparisonRecorder = new StandardComparisonRecorder(deps);
         _hplcMethodAssayRecorder = new HplcMethodAssayRecorder(deps);
         _pathogenConfirmationRecorder = new PathogenConfirmationRecorder(deps);
     }
@@ -168,10 +166,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> RecordWeightVariationStageAsync(
         int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null) =>
         _weightVariationRecorder.RecordWeightVariationStageAsync(testOrderId, payload, userId, ipAddress);
-
-    public Task<TestWorkflowResult> RecordStandardComparisonResultAsync(
-        int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null) =>
-        _standardComparisonRecorder.RecordStandardComparisonResultAsync(testOrderId, payload, userId, ipAddress);
 
     public Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(
         int runSampleId, string password, string? comment, int userId, string? ipAddress = null) =>

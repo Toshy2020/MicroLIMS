@@ -216,24 +216,6 @@ public record WeightVariationStagePayload(
     string Password,
     string? Comment = null);
 
-public record StandardComparisonPreparationInput(
-    decimal TheoreticalWeightMg,
-    decimal ActualWeightMg,
-    string? WeighInJustification = null);
-
-public record StandardComparisonResponseInput(
-    int TestAnalyteId,
-    int PreparationIndex,
-    decimal Response);
-
-public record StandardComparisonPayload(
-    DateTime AnalysedAt,
-    int? EquipmentId,
-    List<StandardComparisonPreparationInput> Preparations,
-    List<StandardComparisonResponseInput> Responses,
-    string Password,
-    string? Comment = null);
-
 // One location's CFU reading submitted from the LocationResultGrid -
 // EM/After Cleaning batch results, never used by the single-value
 // RecordResultAsync path.
@@ -265,7 +247,6 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
-    Task<TestWorkflowResult> RecordStandardComparisonResultAsync(int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);

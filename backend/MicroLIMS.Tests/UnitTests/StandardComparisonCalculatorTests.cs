@@ -114,69 +114,11 @@ public class StandardComparisonCalculatorTests
         Assert.Equal(expectedPrep2, prep2);
         Assert.Equal(100.5m, Math.Round(prep2, 1, MidpointRounding.AwayFromZero));
 
-        // Full Calculate with 2 preparations
-        var spec = new Specification
-        {
-            ParameterName = "Ascorbic Acid",
-            LimitType = LimitType.Range,
-            LowerLimit = 90.0m,
-            UpperLimit = 110.0m,
-            LowerInclusive = true,
-            UpperInclusive = true
-        };
-
-        var preps = new List<StandardComparisonPreparationInput>
-        {
-            new(100.0m, 100.5m, null),
-            new(100.0m, 99.8m, null)
-        };
-
-        var responses = new List<StandardComparisonResponseInput>
-        {
-            new(TestAnalyteId: 1, PreparationIndex: 1, Response: 2490000m),
-            new(TestAnalyteId: 1, PreparationIndex: 2, Response: 2515000m)
-        };
-
-        var result = StandardComparisonCalculator.Calculate(
-            analyteName: "Ascorbic Acid",
-            testAnalyteId: 1,
-            systemSuitabilityRunAnalyteId: 10,
-            standardTheoreticalWeightMg: 50.0m,
-            standardActualWeightMg: 50.2m,
-            standardPurityPercent: 99.8m,
-            moisturePercent: 0.5m,
-            standardMeanArea: 2500000m,
-            spec: spec,
-            preparations: preps,
-            responses: responses,
-            maxPreparationRsdPercent: 2.0m);
-
-        decimal expectedMean = (expectedPrep1 + expectedPrep2) / 2m;
-        Assert.Equal(expectedMean, result.ReportedValue);
-        Assert.Equal("99.7 %", result.ReportedDisplay);
-        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
-        Assert.False(result.RsdExceeded);
-        Assert.NotNull(result.PreparationRsdPercent);
-        Assert.InRange(result.PreparationRsdPercent.Value, 1.20m, 1.21m);
-    }
-
-    [Theory]
-    [InlineData(100.0, 100.0, 0.0, false)]
-    [InlineData(100.0, 105.0, 5.0, false)]
-    [InlineData(100.0, 95.0, -5.0, false)]
-    [InlineData(100.0, 110.0, 10.0, false)] // Boundary: +10% is inside window
-    [InlineData(100.0, 90.0, -10.0, false)]  // Boundary: -10% is inside window
-    [InlineData(100.0, 110.1, 10.1, true)]   // Outside window
-    [InlineData(100.0, 89.9, -10.1, true)]   // Outside window
-    public void SampleWeighIn_WindowTolerance_EvaluatesCorrectly(double thWt, double actWt, double expectedDev, bool expectedOutOfWindow)
-    {
-        decimal th = (decimal)thWt;
-        decimal act = (decimal)actWt;
-        decimal dev = (act - th) / th * 100m;
-        bool outOfWindow = Math.Abs(dev) > StandardComparisonCalculator.SampleWeighInTolerancePercent;
-
-        Assert.Equal((decimal)expectedDev, Math.Round(dev, 1));
-        Assert.Equal(expectedOutOfWindow, outOfWindow);
+        // RSD of the two preparations
+        var (rsd, exceeded, _) = StandardComparisonCalculator.CalculatePreparationRsd(new[] { prep1, prep2 }, 2.0m);
+        Assert.False(exceeded);
+        Assert.NotNull(rsd);
+        Assert.InRange(rsd.Value, 1.20m, 1.21m);
     }
 
     [Fact]
@@ -238,87 +180,10 @@ public class StandardComparisonCalculatorTests
     [Fact]
     public void PreparationRsd_OverLimit_SetsRequiresReview()
     {
-        var spec = new Specification
-        {
-            ParameterName = "Paracetamol",
-            LimitType = LimitType.Range,
-            LowerLimit = 90.0m,
-            UpperLimit = 110.0m,
-            LowerInclusive = true,
-            UpperInclusive = true
-        };
+        var (_, exceeded, reason) = StandardComparisonCalculator.CalculatePreparationRsd(new[] { 95.0m, 104.5m }, 2.0m);
 
-        // Two preparations with significantly different responses -> high RSD
-        var preps = new List<StandardComparisonPreparationInput>
-        {
-            new(100.0m, 100.0m, null),
-            new(100.0m, 100.0m, null)
-        };
-
-        var responses = new List<StandardComparisonResponseInput>
-        {
-            new(TestAnalyteId: 1, PreparationIndex: 1, Response: 1000m), // yields 95.0%
-            new(TestAnalyteId: 1, PreparationIndex: 2, Response: 1100m)  // yields 104.5%
-        };
-
-        var result = StandardComparisonCalculator.Calculate(
-            analyteName: "Paracetamol",
-            testAnalyteId: 1,
-            systemSuitabilityRunAnalyteId: 5,
-            standardTheoreticalWeightMg: 50.0m,
-            standardActualWeightMg: 50.0m,
-            standardPurityPercent: 95.0m,
-            moisturePercent: 0m,
-            standardMeanArea: 1000m,
-            spec: spec,
-            preparations: preps,
-            responses: responses,
-            maxPreparationRsdPercent: 2.0m);
-
-        Assert.True(result.RsdExceeded);
-        Assert.Equal(ResultStatus.RequiresReview, result.ComparisonStatus);
-        Assert.NotNull(result.ReviewReason);
-        Assert.Contains("exceeds maximum allowed 2.00%", result.ReviewReason);
-    }
-
-    [Fact]
-    public void CalculationData_Json_RoundTripsAccurately()
-    {
-        var prepData = new List<StandardComparisonPreparationData>
-        {
-            new(1, 100.0m, 100.5m, 0.5m, false, null, 2490000m, 98.805m),
-            new(2, 100.0m, 112.0m, 12.0m, true, "Balance fluctuation justified.", 2515000m, 100.497m)
-        };
-
-        var original = new StandardComparisonCalculationData(
-            AnalyteName: "Ascorbic Acid",
-            TestAnalyteId: 1,
-            SystemSuitabilityRunAnalyteId: 10,
-            StandardTheoreticalWeightMg: 50.0m,
-            StandardActualWeightMg: 50.2m,
-            StandardPurityPercent: 99.8m,
-            MoisturePercent: 0.5m,
-            StandardMeanArea: 2500000m,
-            Preparations: prepData,
-            ReportedPercentAssay: 99.651m,
-            PreparationRsdPercent: 1.20m,
-            MaxPreparationRsdPercent: 2.0m,
-            RsdExceeded: false,
-            ReviewReason: null);
-
-        var json = JsonSerializer.Serialize(original, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-        var deserialized = JsonSerializer.Deserialize<StandardComparisonCalculationData>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        Assert.NotNull(deserialized);
-        Assert.Equal(original.AnalyteName, deserialized.AnalyteName);
-        Assert.Equal(original.StandardTheoreticalWeightMg, deserialized.StandardTheoreticalWeightMg);
-        Assert.Equal(original.StandardActualWeightMg, deserialized.StandardActualWeightMg);
-        Assert.Equal(original.MoisturePercent, deserialized.MoisturePercent);
-        Assert.Equal(original.StandardPurityPercent, deserialized.StandardPurityPercent);
-        Assert.Equal(original.StandardMeanArea, deserialized.StandardMeanArea);
-        Assert.Equal(2, deserialized.Preparations.Count);
-        Assert.Equal(12.0m, deserialized.Preparations[1].WeighInDeviationPercent);
-        Assert.True(deserialized.Preparations[1].WeighInOutOfWindow);
-        Assert.Equal("Balance fluctuation justified.", deserialized.Preparations[1].WeighInJustification);
+        Assert.True(exceeded);
+        Assert.NotNull(reason);
+        Assert.Contains("exceeds maximum allowed 2.00%", reason);
     }
 }

@@ -218,16 +218,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   const currentTestDef = testDefs[testCode];
   const isCalibrationCurve = currentTestDef?.equationType === "CalibrationCurve";
-  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - one
-  // specification per analyte, each tied to a TestAnalyte row, same
-  // analyte picker as Calibration Curve but with none of Calibration
-  // Curve's result basis/sample matrix/conversion factor: the test always
-  // reports % assay (mirrors backend SpecificationService.ValidateAsync's
-  // WorkflowType.StandardComparison branch, which only requires
-  // TestAnalyteId and restricts LimitType).
-  const isStandardComparison =
-    currentTestDef?.equationType === "StandardComparison" || currentTestDef?.workflowType === "StandardComparison";
-  const usesAnalytePicker = isCalibrationCurve || isStandardComparison;
   const isDissolution =
     workflowTypeByCode[testCode] === "Dissolution" ||
     currentTestDef?.workflowType === "Dissolution" ||
@@ -242,7 +232,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     limitType === "WeightVariation";
 
   useEffect(() => {
-    if (!usesAnalytePicker || !currentTestDef?.id) {
+    if (!isCalibrationCurve || !currentTestDef?.id) {
       setAnalytes([]);
       return;
     }
@@ -258,7 +248,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       .finally(() => {
         setLoadingAnalytes(false);
       });
-  }, [usesAnalytePicker, currentTestDef?.id]);
+  }, [isCalibrationCurve, currentTestDef?.id]);
 
   const isHplcMethodAssay =
     currentTestDef?.equationType === "HplcMethodAssay" ||
@@ -366,9 +356,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
       const def = testDefs[initialCode];
       const isCal = def?.equationType === "CalibrationCurve";
-      const isStdComp = def?.equationType === "StandardComparison" || def?.workflowType === "StandardComparison";
       const isInitHplc = def?.equationType === "HplcMethodAssay" || def?.workflowType === "HplcMethodAssay" || workflowTypeByCode[initialCode] === "HplcMethodAssay";
-      const defaultType = isCal || isStdComp || isInitHplc ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
+      const defaultType = isCal || isInitHplc ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
       setLimitType(defaultType);
 
       setReferenceStandard("");
@@ -421,7 +410,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     const def = testDefs[newCode];
     const isHplcAssay = def?.equationType === "HplcMethodAssay" || def?.workflowType === "HplcMethodAssay" || workflowTypeByCode[newCode] === "HplcMethodAssay";
     const isCal = def?.equationType === "CalibrationCurve";
-    const isStdComp = def?.equationType === "StandardComparison" || def?.workflowType === "StandardComparison";
     const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
     const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
@@ -442,12 +430,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setTestAnalyteId("");
       setDilutionFactor("");
       setResultBasis("MgPerKg");
-    } else if (isStdComp) {
-      setLimitType("Range");
-      setTestAnalyteId("");
-      setDilutionFactor("");
-      setResultBasis("");
-      setSampleMatrix("");
     } else if (isDis) {
       setLimitType("DissolutionQ");
       setDilutionFactor("");
@@ -547,14 +529,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       }
     }
 
-    if (isCalibrationCurve || isStandardComparison) {
+    if (isCalibrationCurve) {
       if (!testAnalyteId) {
-        setError(isStandardComparison ? "Please select an analyte." : "Please select an element analyte.");
+        setError("Please select an element analyte.");
         return;
       }
-      // StandardComparison always reports % assay - no result basis, sample
-      // matrix or conversion factor to validate (backend SpecificationService
-      // only requires TestAnalyteId for this branch).
       if (isCalibrationCurve) {
         if (!resultBasis) {
           setError("Please select a result basis.");
@@ -649,7 +628,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             : (unit.trim() || null),
       dosageForm: limitType === "WeightVariation" ? (dosageForm || null) : null,
       dilutionFactor:
-        !usesAnalytePicker && limitType === "CountTiered" && dilutionFactor.trim() !== ""
+        !isCalibrationCurve && limitType === "CountTiered" && dilutionFactor.trim() !== ""
           ? Number(dilutionFactor)
           : null,
       lowerLimit:
@@ -704,7 +683,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               acceptanceCriteriaText: s.acceptanceCriteriaText.trim()
             }))
           : undefined,
-      testAnalyteId: usesAnalytePicker && testAnalyteId !== "" ? Number(testAnalyteId) : null,
+      testAnalyteId: isCalibrationCurve && testAnalyteId !== "" ? Number(testAnalyteId) : null,
       hplcMethodAnalyteId: isHplcMethodAssay && hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null,
       resultBasis: isHplcMethodAssay && resultBasis
         ? (resultBasis as ResultBasis)
@@ -848,7 +827,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           )}
 
           {/* Calibration Curve (ICP-OES) / Standard-Comparison Assay Parameters Block */}
-          {usesAnalytePicker && (
+          {isCalibrationCurve && (
             <Box
               sx={{
                 border: "1px solid",
@@ -869,18 +848,16 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   mb: 1.5
                 }}
               >
-                {isStandardComparison
-                  ? "Standard-Comparison Assay Specifications"
-                  : "Calibration Curve Specifications (ICP-OES / AAS)"}
+                Calibration Curve Specifications (ICP-OES / AAS)
               </Typography>
 
               <Stack spacing={2}>
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: isStandardComparison ? "1fr" : "1fr 1fr 1fr" }, gap: 2 }}>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
                   <FormControl size="small" fullWidth required>
-                    <InputLabel id="element-analyte-label">{isStandardComparison ? "Analyte *" : "Element *"}</InputLabel>
+                    <InputLabel id="element-analyte-label">Element *</InputLabel>
                     <Select
                       labelId="element-analyte-label"
-                      label={isStandardComparison ? "Analyte *" : "Element *"}
+                      label="Element *"
                       value={testAnalyteId}
                       onChange={(e) => handleAnalyteChange(Number(e.target.value))}
                       disabled={loadingAnalytes}
@@ -892,9 +869,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       ) : (
                         analytes.map((a) => (
                           <MenuItem key={a.id} value={a.id}>
-                            {isStandardComparison
-                              ? a.element
-                              : `${a.element} (${a.wavelengthNm} nm${a.view ? ` · ${a.view}` : ""})`}
+                            {`${a.element} (${a.wavelengthNm} nm${a.view ? ` · ${a.view}` : ""})`}
                           </MenuItem>
                         ))
                       )}
@@ -932,11 +907,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                     </FormControl>
                   )}
                 </Box>
-                {isStandardComparison && (
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    This test always reports % assay - no result basis, sample matrix or conversion factor to set here.
-                  </Typography>
-                )}
 
                 {isCalibrationCurve && (
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
@@ -1131,7 +1101,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
                 : isDissolution
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
-                : (usesAnalytePicker || isHplcMethodAssay)
+                : (isCalibrationCurve || isHplcMethodAssay)
                 ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                     ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
                   )
@@ -1603,7 +1573,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          {!usesAnalytePicker && !isHplcMethodAssay && limitType !== "WeightVariation" && (
+          {!isCalibrationCurve && !isHplcMethodAssay && limitType !== "WeightVariation" && (
             <TextField
               size="small"
               label="Dilution Factor"

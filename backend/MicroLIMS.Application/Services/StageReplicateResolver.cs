@@ -20,7 +20,6 @@ public enum StageReplicateResolutionStatus
 public record StageReplicateResolution(
     StageReplicateResolutionStatus Status,
     ProductionStageRole? StageRole,
-    int? StandardReplicates,
     int? SampleReplicates,
     string? Message)
 {
@@ -67,7 +66,7 @@ public static class StageReplicateResolver
         {
             return new StageReplicateResolution(
                 StageReplicateResolutionStatus.SampleStageNotReconciled,
-                null, null, null,
+                null, null,
                 "Sample has no reconciled production stage - it cannot be resolved to a stage role. Contact a Section Head to set its stage.");
         }
 
@@ -80,25 +79,25 @@ public static class StageReplicateResolver
         {
             return new StageReplicateResolution(
                 StageReplicateResolutionStatus.SampleStageNotReconciled,
-                null, null, null,
+                null, null,
                 "Sample has no reconciled production stage - it cannot be resolved to a stage role. Contact a Section Head to set its stage.");
         }
 
         var replicate = await db.TestDefinitionStageReplicates
             .Where(r => r.TestDefinitionId == testDefinitionId && r.Role == stageRole.Value)
-            .Select(r => new { r.StandardReplicates, r.SampleReplicates })
+            .Select(r => (int?)r.SampleReplicates)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (replicate is null)
         {
             return new StageReplicateResolution(
                 StageReplicateResolutionStatus.NotConfiguredForStage,
-                stageRole, null, null,
+                stageRole, null,
                 $"No replicate configuration is set for stage role {stageRole} on this test - configure it in Test Master.");
         }
 
         return new StageReplicateResolution(
             StageReplicateResolutionStatus.Resolved,
-            stageRole, replicate.StandardReplicates, replicate.SampleReplicates, null);
+            stageRole, replicate, null);
     }
 }

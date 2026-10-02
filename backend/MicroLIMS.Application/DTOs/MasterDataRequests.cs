@@ -226,8 +226,6 @@ public record CreateTestDefinitionRequest(
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
-    decimal? HplcMaxPreparationRsdPercent = null,
-    ResponseMode ResponseMode = ResponseMode.PeakArea,
     int? HplcMethodId = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
@@ -286,8 +284,6 @@ public record UpdateTestDefinitionRequest(
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
-    decimal? HplcMaxPreparationRsdPercent = null,
-    ResponseMode? ResponseMode = null,
     int? HplcMethodId = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
@@ -306,3 +302,9 @@ public record MoveTestWorkflowStepRequest(string Direction);
 // Specification, Water -> Sampling Points, EM -> Rooms, After Cleaning
 // -> Machine Parts (gap analysis - "Dynamic Forms").
 public record SetAutoclaveProgramStatusHttpRequest(bool IsActive, string? Comment);
+
+public record EquationTypeDto(
+    string Code,
+    string Name,
+    string FormulaText,
+    IReadOnlyList<string> RequiredInputs);

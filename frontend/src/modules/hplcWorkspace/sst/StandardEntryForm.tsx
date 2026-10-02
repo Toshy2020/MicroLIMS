@@ -36,6 +36,8 @@ export interface StandardEntryFormProps {
   formValue: SaveSstAnalyteInput;
   onChange: (patch: Partial<SaveSstAnalyteInput>) => void;
   disabled?: boolean;
+  // Outline blank required fields red after a save attempt found gaps.
+  showMissing?: boolean;
 }
 
 export function StandardEntryForm({
@@ -44,7 +46,8 @@ export function StandardEntryForm({
   standardLots,
   formValue,
   onChange,
-  disabled = false
+  disabled = false,
+  showMissing = false
 }: StandardEntryFormProps) {
   const theme = useTheme();
 
@@ -133,7 +136,7 @@ export function StandardEntryForm({
         {/* Row 1: Reference Standard Lot & Weights */}
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl fullWidth size="small" required disabled={disabled}>
+            <FormControl fullWidth size="small" required disabled={disabled} error={showMissing && !formValue.standardMaterialId}>
               <InputLabel id={`std-lot-label-${analyte.id}`}>Reference Standard Lot</InputLabel>
               <Select
                 labelId={`std-lot-label-${analyte.id}`}
@@ -192,6 +195,7 @@ export function StandardEntryForm({
               type="number"
               required
               disabled={disabled}
+              error={showMissing && !(formValue.standardWeightMg > 0)}
               value={formValue.standardWeightMg === 0 ? "" : formValue.standardWeightMg}
               onChange={(e) => onChange({ standardWeightMg: Number(e.target.value) })}
               helperText="Weighed on analytical balance"
@@ -219,6 +223,7 @@ export function StandardEntryForm({
                   label={`Injection #${i + 1}`}
                   type="number"
                   disabled={disabled}
+                  error={showMissing && !((responses[i] ?? 0) > 0)}
                   value={responses[i] !== undefined && responses[i] !== 0 ? responses[i] : ""}
                   onChange={(e) => handleResponseChange(i, e.target.value)}
                   placeholder="Peak area"
@@ -255,6 +260,7 @@ export function StandardEntryForm({
                 label="Resolution"
                 type="number"
                 disabled={disabled}
+                error={showMissing && methodAnalyte?.sstMinResolution != null && formValue.resolution == null}
                 value={formValue.resolution ?? ""}
                 onChange={(e) => handleNumChange("resolution", e.target.value)}
                 helperText={methodAnalyte?.sstMinResolution != null ? `Criterion: ≥ ${methodAnalyte.sstMinResolution}` : undefined}
@@ -268,6 +274,7 @@ export function StandardEntryForm({
                 label="Tailing Factor"
                 type="number"
                 disabled={disabled}
+                error={showMissing && methodAnalyte?.sstMaxTailingFactor != null && formValue.tailingFactor == null}
                 value={formValue.tailingFactor ?? ""}
                 onChange={(e) => handleNumChange("tailingFactor", e.target.value)}
                 helperText={methodAnalyte?.sstMaxTailingFactor != null ? `Criterion: ≤ ${methodAnalyte.sstMaxTailingFactor}` : undefined}
@@ -281,6 +288,7 @@ export function StandardEntryForm({
                 label="Theoretical Plates"
                 type="number"
                 disabled={disabled}
+                error={showMissing && methodAnalyte?.sstMinTheoreticalPlates != null && formValue.theoreticalPlates == null}
                 value={formValue.theoreticalPlates ?? ""}
                 onChange={(e) => handleNumChange("theoreticalPlates", e.target.value)}
                 helperText={methodAnalyte?.sstMinTheoreticalPlates != null ? `Criterion: ≥ ${methodAnalyte.sstMinTheoreticalPlates}` : undefined}
@@ -296,6 +304,7 @@ export function StandardEntryForm({
                   label="Retention Factor (k')"
                   type="number"
                   disabled={disabled}
+                  error={showMissing && methodAnalyte?.sstMinRetentionFactor != null && formValue.retentionFactor == null}
                   value={formValue.retentionFactor ?? ""}
                   onChange={(e) => handleNumChange("retentionFactor", e.target.value)}
                   helperText={methodAnalyte?.sstMinRetentionFactor != null ? `Criterion: ≥ ${methodAnalyte.sstMinRetentionFactor}` : undefined}
@@ -311,6 +320,7 @@ export function StandardEntryForm({
                   label="Signal-to-Noise (S/N)"
                   type="number"
                   disabled={disabled}
+                  error={showMissing && methodAnalyte?.sstMinSignalToNoise != null && formValue.signalToNoise == null}
                   value={formValue.signalToNoise ?? ""}
                   onChange={(e) => handleNumChange("signalToNoise", e.target.value)}
                   helperText={methodAnalyte?.sstMinSignalToNoise != null ? `Criterion: ≥ ${methodAnalyte.sstMinSignalToNoise}` : undefined}
@@ -326,6 +336,7 @@ export function StandardEntryForm({
                   label="Peak-to-Valley (P/V)"
                   type="number"
                   disabled={disabled}
+                  error={showMissing && methodAnalyte?.sstMinPeakToValley != null && formValue.peakToValley == null}
                   value={formValue.peakToValley ?? ""}
                   onChange={(e) => handleNumChange("peakToValley", e.target.value)}
                   helperText={methodAnalyte?.sstMinPeakToValley != null ? `Criterion: ≥ ${methodAnalyte.sstMinPeakToValley}` : undefined}

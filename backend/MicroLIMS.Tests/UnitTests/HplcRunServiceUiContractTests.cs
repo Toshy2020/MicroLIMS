@@ -16,11 +16,17 @@ public partial class HplcRunServiceTests
     {
         await using var db = NewDb();
         var (_, clock) = NewClock(SepFirst);
-        var s = await SeedScenarioAsync(db, clock);
+        var s = await SeedScenarioAsync(db, clock, standardInjections: 3);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
 
+        // Blank entries are reported first, then the missing report.
+        Assert.False(run.CanConfirmSst);
+        Assert.StartsWith("Complete these entries", run.CanConfirmSstReason);
+        run = await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(run.Sst!.Analytes[0].Id, lot.Id, 50m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
         Assert.False(run.CanConfirmSst);
         Assert.Equal("Upload the standard report before confirming system suitability.", run.CanConfirmSstReason);
         Assert.Equal(s.StandardEntry.Id, run.Sst!.Analytes[0].StandardEntryId);

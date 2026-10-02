@@ -486,11 +486,11 @@ WHERE m."SectionId" = c.sec AND m."IsActive"
   AND m."Abbreviation" IN ('APAP','APAP-CAF','AMOX','DICLO','IBU','VIT-C','FOLIC','B12','VIT-D3','VIT-B')
   AND NOT EXISTS (SELECT 1 FROM "TestDefinitions" t WHERE t."Code" = 'HPLC-' || m."Abbreviation");
 
--- Stage replicates: Finished 2 std / 2 sample (role 3), Bulk 2 std / 3 sample (role 1)
-INSERT INTO "TestDefinitionStageReplicates" ("TestDefinitionId","Role","StandardReplicates","SampleReplicates")
-SELECT t."Id", r.role, r.std, r.smp
+-- Stage sample replicates: Finished 2 (role 3), Bulk 3 (role 1); standard injections live on the method analyte
+INSERT INTO "TestDefinitionStageReplicates" ("TestDefinitionId","Role","SampleReplicates")
+SELECT t."Id", r.role, r.smp
 FROM "TestDefinitions" t
-CROSS JOIN (VALUES (3,2,2),(1,2,3)) AS r(role,std,smp)
+CROSS JOIN (VALUES (3,2),(1,3)) AS r(role,smp)
 WHERE t."Code" LIKE 'HPLC-%' AND t."WorkflowType" = 12
   AND NOT EXISTS (SELECT 1 FROM "TestDefinitionStageReplicates" x WHERE x."TestDefinitionId" = t."Id" AND x."Role" = r.role);
 

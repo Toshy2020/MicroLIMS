@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -550,11 +551,14 @@ public partial class HplcRunServiceTests
     {
         await using var db = NewDb();
         var (_, clock) = NewClock(SepFirst);
-        var s = await SeedScenarioAsync(db, clock);
+        var s = await SeedScenarioAsync(db, clock, standardInjections: 3, sstMaxRsdPercent: null);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
 
         Assert.False(run.CanConfirmSst);
+        await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(run.Sst!.Analytes[0].Id, lot.Id, 50m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
         await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", PdfBytes(), s.UserId);
         run = await service.GetRunAsync(run.Id, s.UserId);
 
@@ -758,6 +762,30 @@ public partial class HplcRunServiceTests
         Assert.Contains("standard report", ex.Message);
     }
 
+    // A blank injection box is sent as 0; confirming must refuse before signing
+    // instead of recording a permanent SST failure.
+    [Fact]
+    public async Task ConfirmSst_BlankInjection_ThrowsAndBlocksConfirm()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock, standardInjections: 3, sstMaxRsdPercent: null);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry);
+        var service = TestServiceFactory.HplcRun(db, clock: clock);
+        var run = await service.StartRunAsync(StartRequest(s), s.UserId);
+        var analyteId = run.Sst!.Analytes[0].Id;
+        var saved = await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(analyteId, lot.Id, 50m, new List<decimal> { 1000m, 0m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
+        await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", PdfBytes(), s.UserId);
+
+        Assert.False(saved.CanConfirmSst);
+        Assert.Contains("injection #2", saved.CanConfirmSstReason);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null));
+        Assert.Contains("injection #2", ex.Message);
+        Assert.Equal(HplcSstStatus.Pending, (await service.GetRunAsync(run.Id, s.UserId)).Sst!.Status);
+    }
+
     // Review Focus line 2: a mobile-phase preparation that expires after it
     // was selected for the run - ConfirmSstAsync re-checks and refuses.
     [Fact]
@@ -911,5 +939,37 @@ public partial class HplcRunServiceTests
         Assert.Equal(run2.Id, history[0].Id);
         Assert.Equal(run1.Id, history[1].Id);
         Assert.Equal(HplcRunStatus.Abandoned, history[1].Status);
+    }
+
+    // Run/SST code series (SystemSuitabilityRunCode helper shared with calibration).
+    [Fact]
+    public async Task CodeFormat_InitialRun_FollowsFormat()
+    {
+        var code = await SystemSuitabilityRunCode.NextAsync(new List<string>().AsQueryable(), "VIT-C", new DateTime(2026, 11, 5, 14, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("VIT-C S.S 01/112026", code);
+    }
+
+    [Fact]
+    public async Task CodeFormat_ContinuousAcrossMonths_InSameYear()
+    {
+        var issued = new List<string> { "VIT-C S.S 01/012026", "VIT-C S.S 02/032026", "VIT-C S.S 03/052026" }.AsQueryable();
+        var next = await SystemSuitabilityRunCode.NextAsync(issued, "VIT-C", new DateTime(2026, 11, 20, 10, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("VIT-C S.S 04/112026", next);
+    }
+
+    [Fact]
+    public async Task CodeFormat_ResetsInJanuaryOfNewYear()
+    {
+        var issued = new List<string> { "VIT-C S.S 01/012026", "VIT-C S.S 02/052026", "VIT-C S.S 03/122026" }.AsQueryable();
+        var next = await SystemSuitabilityRunCode.NextAsync(issued, "VIT-C", new DateTime(2027, 1, 15, 9, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("VIT-C S.S 01/012027", next);
+    }
+
+    [Fact]
+    public async Task CodeFormat_SequencingIndependentPerMethodAbbreviation()
+    {
+        var issued = new List<string> { "VIT-C S.S 01/032026", "VIT-C S.S 02/052026" }.AsQueryable();
+        var next = await SystemSuitabilityRunCode.NextAsync(issued, "IBU", new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("IBU S.S 01/052026", next);
     }
 }

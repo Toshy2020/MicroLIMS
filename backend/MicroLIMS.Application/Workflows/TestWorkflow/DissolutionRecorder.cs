@@ -37,24 +37,8 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Dissolution, userId);
 
-        if (!order.SystemSuitabilityRunId.HasValue)
-            throw new InvalidOperationException("Test order must be linked to a system suitability run before recording a dissolution result.");
-
-        var run = await _db.SystemSuitabilityRuns
-            .FirstOrDefaultAsync(r => r.Id == order.SystemSuitabilityRunId.Value)
-            ?? throw new InvalidOperationException($"Linked system suitability run {order.SystemSuitabilityRunId.Value} not found.");
-
-        if (!run.Passed)
-            throw new InvalidOperationException("Linked system suitability run did not pass.");
-
-        if (run.TestDefinitionId != definition.Id)
-            throw new InvalidOperationException("Linked system suitability run is for a different test method.");
-
-        if (run.SectionId != definition.SectionId)
-            throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
-
-        if (run.StandardMeanArea <= 0 || run.StandardWeightMg <= 0 || run.StandardDilution <= 0 || run.StandardPurityPercent <= 0)
-            throw new InvalidOperationException("Linked system suitability run contains invalid standard values.");
+        var resolved = await HplcDissolutionStandard.ResolveAsync(_db, order.Id);
+        var std = resolved.Standard ?? throw new InvalidOperationException(resolved.Problem);
 
         var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
             ? Array.Empty<string>()
@@ -105,15 +89,17 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         decimal s3MaxBelow = definition.DissolutionS3MaxBelowS2Min ?? 2m;
 
         var offsets = new DissolutionOffsetsData(s1Offset, s2MinOffset, s3MinOffset, s3MaxBelow);
-        decimal cs = DissolutionCalculator.CalculateCs(run.StandardWeightMg, run.StandardPurityPercent, run.StandardDilution);
+        decimal cs = std.Cs;
 
         var standardData = new DissolutionStandardData(
-            SystemSuitabilityRunId: run.Id,
-            RunCode: run.Code,
-            StandardWeightMg: run.StandardWeightMg,
-            StandardDilution: run.StandardDilution,
-            StandardPurityPercent: run.StandardPurityPercent,
-            StandardMeanArea: run.StandardMeanArea,
+            HplcRunId: std.HplcRunId,
+            RunCode: std.RunCode,
+            SstCode: std.SstCode,
+            StandardWeightMg: std.StandardWeightMg,
+            StandardDilution: std.StandardDilution,
+            StandardPurityPercent: std.PurityPercent,
+            StandardMoisturePercent: std.MoisturePercent,
+            StandardMeanArea: std.MeanResponse,
             Cs: cs);
 
         var vesselInputs = payload.VesselAreas

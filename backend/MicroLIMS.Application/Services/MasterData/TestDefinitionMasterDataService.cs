@@ -56,14 +56,6 @@ public class TestDefinitionMasterDataService
 
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
-
-            if (request.EquationType != EquationType.StandardComparison && request.WorkflowType != WorkflowType.StandardComparison &&
-                request.EquationType != EquationType.HplcMethodAssay && request.WorkflowType != WorkflowType.HplcMethodAssay &&
-                !request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
-                !request.SstMaxTailingFactor.HasValue && !request.SstMinTheoreticalPlates.HasValue)
-            {
-                throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
-            }
         }
         else if (request.EquationType == EquationType.CalibrationCurve)
         {
@@ -202,7 +194,7 @@ public class TestDefinitionMasterDataService
         if (request.WorkflowType == WorkflowType.Dissolution)
         {
             if (!request.RequiresSystemSuitability)
-                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the HPLC run the sample is assigned to.");
 
             decimal s1 = request.DissolutionS1Offset ?? 5m;
             decimal s2 = request.DissolutionS2MinOffset ?? 15m;
@@ -291,30 +283,13 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({unitCount + capS2Extra}).");
         }
 
-        // Retired by SC-3: both old HPLC types are folded into StandardComparison.
-        if (request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte
-            || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte)
-            throw new InvalidOperationException("HPLC Assay and HPLC Multi-Analyte are retired; use Standard-Comparison.");
+        // Retired: the old HPLC types and Standard-Comparison are replaced by HPLC method assay.
+        if (request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte or WorkflowType.StandardComparison
+            || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison)
+            throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
-        if (request.EquationType == EquationType.StandardComparison)
-        {
-            if (request.WorkflowType != WorkflowType.StandardComparison)
-                throw new InvalidOperationException("Workflow type must be StandardComparison when equation type is StandardComparison.");
-        }
-        else if (request.WorkflowType == WorkflowType.StandardComparison)
-        {
-            if (request.EquationType != EquationType.StandardComparison)
-                throw new InvalidOperationException("Equation type must be StandardComparison when workflow type is StandardComparison.");
-        }
-
-        if (request.WorkflowType == WorkflowType.StandardComparison)
-        {
-            if (!request.RequiresSystemSuitability)
-                throw new InvalidOperationException("Standard comparison tests must require system suitability.");
-
-            if (request.HplcMaxPreparationRsdPercent.HasValue && request.HplcMaxPreparationRsdPercent.Value <= 0m)
-                throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
-        }
+        if (request.RequiresSystemSuitability && request.WorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
+            throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
 
         // HPLC chain S3: HplcMethodAssay tests carry no analytes/SST criteria of
         // their own - everything comes from the linked HplcMethod (spec 3.4).
@@ -344,15 +319,20 @@ public class TestDefinitionMasterDataService
             if (!hplcMethod.IsActive)
                 throw new InvalidOperationException("The HPLC method is inactive.");
         }
+        else if (request.WorkflowType == WorkflowType.Dissolution && request.HplcMethodId.HasValue)
+        {
+            // Optional for dissolution: the workspace run of this method supplies the standard.
+            var hplcMethod = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == request.HplcMethodId.Value)
+                ?? throw new InvalidOperationException("HPLC method not found.");
+            if (hplcMethod.SectionId != sectionId)
+                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (!hplcMethod.IsActive)
+                throw new InvalidOperationException("The HPLC method is inactive.");
+        }
         else if (request.HplcMethodId.HasValue)
         {
-            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay tests.");
+            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
-
-        if (!Enum.IsDefined(request.ResponseMode))
-            throw new InvalidOperationException("Unknown response mode.");
-        if (request.ResponseMode != ResponseMode.PeakArea && request.WorkflowType != WorkflowType.StandardComparison)
-            throw new InvalidOperationException("Response mode applies only to standard-comparison tests.");
 
         var entity = new TestDefinition
         {
@@ -409,9 +389,7 @@ public class TestDefinitionMasterDataService
             WvCapsuleS1MaxForRetest = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxForRetest ?? 6) : request.WvCapsuleS1MaxForRetest,
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
-            HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.StandardComparison ? request.HplcMaxPreparationRsdPercent : null,
-            ResponseMode = request.ResponseMode,
-            HplcMethodId = request.WorkflowType == WorkflowType.HplcMethodAssay ? request.HplcMethodId : null
+            HplcMethodId = request.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution ? request.HplcMethodId : null
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -441,10 +419,6 @@ public class TestDefinitionMasterDataService
         var effectiveMethodAbbr = request.MethodAbbreviation != null
             ? (string.IsNullOrWhiteSpace(request.MethodAbbreviation) ? null : request.MethodAbbreviation.Trim().ToUpperInvariant())
             : entity.MethodAbbreviation;
-        var effectiveRsd = request.SstMaxRsdPercent ?? entity.SstMaxRsdPercent;
-        var effectiveRes = request.SstMinResolution ?? entity.SstMinResolution;
-        var effectiveTailing = request.SstMaxTailingFactor ?? entity.SstMaxTailingFactor;
-        var effectivePlates = request.SstMinTheoreticalPlates ?? entity.SstMinTheoreticalPlates;
 
         var effectiveCalMinCorr = request.CalMinCorrelation ?? entity.CalMinCorrelation;
         var effectiveCalCorrType = request.CalCorrelationType ?? entity.CalCorrelationType;
@@ -477,13 +451,6 @@ public class TestDefinitionMasterDataService
 
             if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
-
-            if (effectiveEquationType != EquationType.StandardComparison && effectiveWorkflowType != WorkflowType.StandardComparison &&
-                effectiveEquationType != EquationType.HplcMethodAssay && effectiveWorkflowType != WorkflowType.HplcMethodAssay &&
-                !effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
-            {
-                throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
-            }
         }
         else if (effectiveEquationType == EquationType.CalibrationCurve)
         {
@@ -623,7 +590,7 @@ public class TestDefinitionMasterDataService
         if (effectiveWorkflowType == WorkflowType.Dissolution)
         {
             if (!effectiveRequiresSst)
-                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the HPLC run the sample is assigned to.");
 
             var effectiveS1 = request.DissolutionS1Offset ?? entity.DissolutionS1Offset;
             var effectiveS2 = request.DissolutionS2MinOffset ?? entity.DissolutionS2MinOffset;
@@ -715,33 +682,13 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({effectiveUnitCount + effectiveCapS2Extra}).");
         }
 
-        // Retired by SC-3: both old HPLC types are folded into StandardComparison.
-        if ((request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte)
-            || (request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte))
-            throw new InvalidOperationException("HPLC Assay and HPLC Multi-Analyte are retired; use Standard-Comparison.");
+        // Retired: the old HPLC types and Standard-Comparison are replaced by HPLC method assay.
+        if ((request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte or WorkflowType.StandardComparison)
+            || (request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison))
+            throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
-        if (effectiveEquationType == EquationType.StandardComparison)
-        {
-            if (effectiveWorkflowType != WorkflowType.StandardComparison)
-                throw new InvalidOperationException("Workflow type must be StandardComparison when equation type is StandardComparison.");
-        }
-        else if (effectiveWorkflowType == WorkflowType.StandardComparison)
-        {
-            if (effectiveEquationType != EquationType.StandardComparison)
-                throw new InvalidOperationException("Equation type must be StandardComparison when workflow type is StandardComparison.");
-        }
-
-        if (effectiveWorkflowType == WorkflowType.StandardComparison)
-        {
-            if (!effectiveRequiresSst)
-                throw new InvalidOperationException("Standard comparison tests must require system suitability.");
-
-            var effectiveRsdPercent = request.HplcMaxPreparationRsdPercent.HasValue
-                ? request.HplcMaxPreparationRsdPercent
-                : entity.HplcMaxPreparationRsdPercent;
-            if (effectiveRsdPercent.HasValue && effectiveRsdPercent.Value <= 0m)
-                throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
-        }
+        if (effectiveRequiresSst && effectiveWorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
+            throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
 
         // HPLC chain S3: HplcMethodAssay tests carry no analytes/SST criteria of
         // their own - everything comes from the linked HplcMethod (spec 3.4).
@@ -776,19 +723,19 @@ public class TestDefinitionMasterDataService
             if (!hplcMethod.IsActive && methodChanged)
                 throw new InvalidOperationException("The HPLC method is inactive.");
         }
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && effectiveHplcMethodId.HasValue)
+        {
+            var hplcMethod = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == effectiveHplcMethodId.Value)
+                ?? throw new InvalidOperationException("HPLC method not found.");
+            if (hplcMethod.SectionId != entity.SectionId)
+                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (!hplcMethod.IsActive && effectiveHplcMethodId != entity.HplcMethodId)
+                throw new InvalidOperationException("The HPLC method is inactive.");
+        }
         else if (effectiveHplcMethodId.HasValue)
         {
-            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay tests.");
+            throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
-
-        var effectiveResponseMode = request.ResponseMode ?? entity.ResponseMode;
-        if (!Enum.IsDefined(effectiveResponseMode))
-            throw new InvalidOperationException("Unknown response mode.");
-        if (effectiveResponseMode != ResponseMode.PeakArea && effectiveWorkflowType != WorkflowType.StandardComparison)
-            throw new InvalidOperationException("Response mode applies only to standard-comparison tests.");
-        // Runs and results are measured one way; switching HPLC <-> titration after that would misread them.
-        if (effectiveResponseMode != entity.ResponseMode && await _db.SystemSuitabilityRuns.AnyAsync(r => r.TestDefinitionId == entity.Id))
-            throw new InvalidOperationException("Response mode cannot be changed once suitability runs exist for this test.");
 
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
@@ -865,8 +812,6 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = 40;
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
-        if (request.HplcMaxPreparationRsdPercent.HasValue) entity.HplcMaxPreparationRsdPercent = request.HplcMaxPreparationRsdPercent.Value;
-        entity.ResponseMode = effectiveResponseMode;
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
 
         await _db.SaveChangesAsync();
@@ -902,11 +847,6 @@ public class TestDefinitionMasterDataService
                 Name: "None",
                 FormulaText: string.Empty,
                 RequiredInputs: Array.Empty<string>()),
-            new EquationTypeDto(
-                Code: nameof(EquationType.StandardComparison),
-                Name: "Standard-Comparison Assay",
-                FormulaText: "% Assay = (Response_test / Response_std) * (ActWt_std / ThWt_std) * (ThWt_test / ActWt_test) * ((100 - MC) / 100) * P",
-                RequiredInputs: new[] { "Response_test", "Response_std", "ActWt_std", "ThWt_std", "ThWt_test", "ActWt_test", "MC", "P" }),
             new EquationTypeDto(
                 Code: nameof(EquationType.SystemSuitability),
                 Name: "System Suitability",

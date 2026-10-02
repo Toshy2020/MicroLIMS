@@ -46,52 +46,30 @@ public class TestAnalyteMasterDataService
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
-        var isAnalyteBasedSst = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
-
         if (string.IsNullOrWhiteSpace(request.Element))
             throw new InvalidOperationException("Element is required.");
 
         var element = request.Element.Trim();
         if (element.Length > 20)
-            throw new InvalidOperationException(isAnalyteBasedSst ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
+            throw new InvalidOperationException("Element symbol cannot exceed 20 characters.");
 
         if (request.WavelengthNm <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
 
-        if (isAnalyteBasedSst)
+        // AAS calibration-curve tests have no plasma view (torch-only ICP-OES
+        // concept); only require it for ICP-OES (CalInstrumentType null defaults
+        // to ICP-OES for legacy tests).
+        var isAas = test.CalInstrumentType == EquipmentType.Aas;
+        if (!isAas && !request.View.HasValue)
+            throw new InvalidOperationException("View is required for calibration curve tests.");
+
+        if (!request.LoqMgPerL.HasValue || request.LoqMgPerL.Value <= 0)
+            throw new InvalidOperationException("LOQ must be greater than 0.");
+
+        if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
+            request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
         {
-            if (request.View.HasValue)
-                throw new InvalidOperationException("View is not allowed for analyte-based tests.");
-
-            if (request.LoqMgPerL.HasValue && request.LoqMgPerL.Value <= 0)
-                throw new InvalidOperationException("LOQ must be greater than 0.");
-
-            if (request.SstMaxRsdPercent.HasValue && request.SstMaxRsdPercent.Value <= 0)
-                throw new InvalidOperationException("SST max RSD percent must be greater than 0.");
-            if (request.SstMinResolution.HasValue && request.SstMinResolution.Value <= 0)
-                throw new InvalidOperationException("SST min resolution must be greater than 0.");
-            if (request.SstMaxTailingFactor.HasValue && request.SstMaxTailingFactor.Value <= 0)
-                throw new InvalidOperationException("SST max tailing factor must be greater than 0.");
-            if (request.SstMinTheoreticalPlates.HasValue && request.SstMinTheoreticalPlates.Value <= 0)
-                throw new InvalidOperationException("SST min theoretical plates must be greater than 0.");
-        }
-        else
-        {
-            // AAS calibration-curve tests have no plasma view (torch-only ICP-OES
-            // concept); only require it for ICP-OES (CalInstrumentType null defaults
-            // to ICP-OES for legacy tests).
-            var isAas = test.CalInstrumentType == EquipmentType.Aas;
-            if (!isAas && !request.View.HasValue)
-                throw new InvalidOperationException("View is required for calibration curve tests.");
-
-            if (!request.LoqMgPerL.HasValue || request.LoqMgPerL.Value <= 0)
-                throw new InvalidOperationException("LOQ must be greater than 0.");
-
-            if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
-                request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
-            {
-                throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
-            }
+            throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
         }
 
         if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Element == element && a.WavelengthNm == request.WavelengthNm))
@@ -102,13 +80,9 @@ public class TestAnalyteMasterDataService
             TestDefinitionId = id,
             Element = element,
             WavelengthNm = request.WavelengthNm,
-            View = (isAnalyteBasedSst || test.CalInstrumentType == EquipmentType.Aas) ? null : request.View,
+            View = test.CalInstrumentType == EquipmentType.Aas ? null : request.View,
             LoqMgPerL = request.LoqMgPerL,
             DisplayOrder = request.DisplayOrder,
-            SstMaxRsdPercent = isAnalyteBasedSst ? request.SstMaxRsdPercent : null,
-            SstMinResolution = isAnalyteBasedSst ? request.SstMinResolution : null,
-            SstMaxTailingFactor = isAnalyteBasedSst ? request.SstMaxTailingFactor : null,
-            SstMinTheoreticalPlates = isAnalyteBasedSst ? request.SstMinTheoreticalPlates : null,
             IsActive = true
         };
 
@@ -130,69 +104,27 @@ public class TestAnalyteMasterDataService
             ?? throw new NotFoundException($"Analyte {analyteId} not found for test {id}.");
         RecordVersion.EnsureCurrent(_db, analyte);
 
-        var isAnalyteBasedSst = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
-
         var effectiveElement = request.Element != null ? request.Element.Trim() : analyte.Element;
         var effectiveWavelength = request.WavelengthNm ?? analyte.WavelengthNm;
 
         if (string.IsNullOrWhiteSpace(effectiveElement))
             throw new InvalidOperationException("Element is required.");
         if (effectiveElement.Length > 20)
-            throw new InvalidOperationException(isAnalyteBasedSst ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
+            throw new InvalidOperationException("Element symbol cannot exceed 20 characters.");
         if (effectiveWavelength <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
 
-        if (isAnalyteBasedSst)
+        if (request.View.HasValue) analyte.View = request.View.Value;
+        if (request.LoqMgPerL.HasValue)
         {
-            if (request.View.HasValue)
-                throw new InvalidOperationException("View is not allowed for analyte-based tests.");
-
-            if (request.LoqMgPerL.HasValue)
-            {
-                if (request.LoqMgPerL.Value <= 0)
-                    throw new InvalidOperationException("LOQ must be greater than 0.");
-                analyte.LoqMgPerL = request.LoqMgPerL.Value;
-            }
-
-            if (request.SstMaxRsdPercent.HasValue)
-            {
-                if (request.SstMaxRsdPercent.Value <= 0)
-                    throw new InvalidOperationException("SST max RSD percent must be greater than 0.");
-                analyte.SstMaxRsdPercent = request.SstMaxRsdPercent.Value;
-            }
-            if (request.SstMinResolution.HasValue)
-            {
-                if (request.SstMinResolution.Value <= 0)
-                    throw new InvalidOperationException("SST min resolution must be greater than 0.");
-                analyte.SstMinResolution = request.SstMinResolution.Value;
-            }
-            if (request.SstMaxTailingFactor.HasValue)
-            {
-                if (request.SstMaxTailingFactor.Value <= 0)
-                    throw new InvalidOperationException("SST max tailing factor must be greater than 0.");
-                analyte.SstMaxTailingFactor = request.SstMaxTailingFactor.Value;
-            }
-            if (request.SstMinTheoreticalPlates.HasValue)
-            {
-                if (request.SstMinTheoreticalPlates.Value <= 0)
-                    throw new InvalidOperationException("SST min theoretical plates must be greater than 0.");
-                analyte.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates.Value;
-            }
+            if (request.LoqMgPerL.Value <= 0)
+                throw new InvalidOperationException("LOQ must be greater than 0.");
+            analyte.LoqMgPerL = request.LoqMgPerL.Value;
         }
-        else
+        if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
+            request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
         {
-            if (request.View.HasValue) analyte.View = request.View.Value;
-            if (request.LoqMgPerL.HasValue)
-            {
-                if (request.LoqMgPerL.Value <= 0)
-                    throw new InvalidOperationException("LOQ must be greater than 0.");
-                analyte.LoqMgPerL = request.LoqMgPerL.Value;
-            }
-            if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
-                request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
-            {
-                throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
-            }
+            throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
         }
 
         if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Id != analyteId && a.Element == effectiveElement && a.WavelengthNm == effectiveWavelength))
@@ -220,17 +152,13 @@ public class TestAnalyteMasterDataService
             ?? throw new NotFoundException($"Analyte {analyteId} not found for test {id}.");
 
         var inUseCalibration = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
-        var inUseSuitability = await _db.SystemSuitabilityRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
-        if (inUseCalibration || inUseSuitability)
+        if (inUseCalibration)
         {
             analyte.IsActive = false;
             await _db.SaveChangesAsync();
-            var runType = inUseCalibration && inUseSuitability ? "calibration and suitability runs"
-                : inUseCalibration ? "calibration runs"
-                : "suitability runs";
             return new
             {
-                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by {runType} and has been deactivated instead of deleted.",
+                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by calibration runs and has been deactivated instead of deleted.",
                 deactivated = true
             };
         }

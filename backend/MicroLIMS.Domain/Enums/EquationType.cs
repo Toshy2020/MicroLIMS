@@ -14,6 +14,6 @@ public enum EquationType
     Disintegration,
     WeightVariation,
     HplcMultiAnalyte, // retired (SC-3), value kept
-    StandardComparison,
+    StandardComparison, // retired, value kept
     HplcMethodAssay // HPLC chain S3 - assay against an HplcMethod master (spec 3.3-3.4)
 }

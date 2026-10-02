@@ -224,8 +224,6 @@ public class TestDefinitionResponse
     public int? WvCapsuleS1MaxForRetest { get; init; }
     public int? WvCapsuleS2ExtraUnits { get; init; }
     public int? WvCapsuleS2MaxOutside { get; init; }
-    public decimal? HplcMaxPreparationRsdPercent { get; init; }
-    public ResponseMode ResponseMode { get; init; }
     public int? HplcMethodId { get; init; }
 
     public static TestDefinitionResponse From(TestDefinition e) => new()
@@ -287,8 +285,6 @@ public class TestDefinitionResponse
         WvCapsuleS1MaxForRetest = e.WvCapsuleS1MaxForRetest,
         WvCapsuleS2ExtraUnits = e.WvCapsuleS2ExtraUnits,
         WvCapsuleS2MaxOutside = e.WvCapsuleS2MaxOutside,
-        HplcMaxPreparationRsdPercent = e.HplcMaxPreparationRsdPercent,
-        ResponseMode = e.ResponseMode,
         HplcMethodId = e.HplcMethodId,
     };
 }

@@ -109,7 +109,7 @@ export function SampleAssignmentPanel({
               startIcon={s.submitted ? <VisibilityIcon fontSize="small" /> : <EditNoteIcon fontSize="small" />}
               onClick={() =>
                 s.isDissolution
-                  ? navigate(`/receiving-testing?search=${encodeURIComponent(s.sampleNumber)}`)
+                  ? navigate(`/physicochemical/workspace?search=${encodeURIComponent(s.sampleNumber)}`)
                   : navigate(`/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`)
               }
               sx={{ textTransform: "none", py: 0.25 }}

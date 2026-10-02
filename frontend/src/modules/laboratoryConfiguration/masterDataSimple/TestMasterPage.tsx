@@ -2929,7 +2929,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                       readOnly: true,
                     },
                   }}
-                  helperText="Auto-populated from the selected HPLC method (read-only)."
+                  helperText={workflowType === "Dissolution" ? "Dissolution keeps its own abbreviation." : "Auto-populated from the selected HPLC method (read-only)."}
                   fullWidth
                 />
               </Stack>
@@ -3614,7 +3614,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 }
                 label={
                   workflowType === "Dissolution"
-                    ? "Requires system suitability (standard from linked SST run)"
+                    ? "Requires system suitability (standard from the assigned HPLC run)"
                     : workflowType === "StandardComparison"
                     ? "Requires system suitability (one row per analyte, from linked SST run)"
                     : "Requires system suitability"

@@ -306,6 +306,7 @@ export function EquipmentInventoryPage() {
           ) : (
             /* Active Equipment View (Tab 1) */
             <ActiveEquipmentView
+              labSectionId={labParam ? sections.find((s) => s.sectionCode === labParam)?.sectionId ?? -1 : null}
               onOpenDetails={(eqId) => {
                 const eq = items.find((e) => e.id === eqId);
                 if (eq) setDetailsItem(eq);

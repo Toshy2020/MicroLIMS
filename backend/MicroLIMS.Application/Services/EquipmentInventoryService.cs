@@ -41,7 +41,8 @@ public record ActiveEquipmentItemDto(
     DateTime? CalibrationDueDate,
     decimal? SetPointTemperature,
     string PrimaryActivityCategory,
-    int ActiveItemCount);
+    int ActiveItemCount,
+    int? SectionId);
 
 public record EquipmentActivityDto(
     int ActivityId,
@@ -264,7 +265,8 @@ public class EquipmentInventoryService
                 eq.CalibrationDueDate,
                 masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.SetPointTemperature,
                 primaryCategory,
-                activeActivities.Count
+                activeActivities.Count,
+                eq.SectionId
             ));
         }
 

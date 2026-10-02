@@ -64,6 +64,29 @@ public class ActiveEquipmentTraceabilityTests
     }
 
     [Fact]
+    public async Task ActiveEquipment_CarriesTheAssetsLab()
+    {
+        // The Active Equipment tab filters by lab (?lab=MICRO|FP) on this
+        // field, so a Physicochemical asset never shows in Microbiology.
+        using var db = NewDb();
+        db.EquipmentInventories.Add(new EquipmentInventory
+        {
+            Id = 11,
+            Code = "HPLC-01",
+            InstrumentType = "HPLC",
+            Location = "Physicochemical lab",
+            Status = EquipmentOperationalStatus.InService,
+            SectionId = 7
+        });
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var activeList = await service.GetActiveEquipmentAsync(null);
+
+        Assert.Equal(7, Assert.Single(activeList, e => e.Code == "HPLC-01").SectionId);
+    }
+
+    [Fact]
     public async Task IncubatorWithActiveActivity_AppearsInActiveEquipment()
     {
         using var db = NewDb();

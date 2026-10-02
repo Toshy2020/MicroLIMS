@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box, Paper, Stack, Typography, TextField, Button, Alert,
   Grid, CircularProgress, useTheme
@@ -21,14 +21,21 @@ import { clickable } from "../../../../utils/clickable";
 
 interface ActiveEquipmentViewProps {
   onOpenDetails: (equipmentId: number) => void;
+  // Set when the page was opened from a lab workspace (?lab=MICRO|FP):
+  // only that lab's assets are listed, same as the register tab.
+  labSectionId?: number | null;
 }
 
-export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps) {
+export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquipmentViewProps) {
   const navigate = useNavigate();
   const theme = useTheme();
 
   // Active Equipment state
-  const [activeEquipment, setActiveEquipment] = useState<ActiveEquipmentDto[]>([]);
+  const [allEquipment, setAllEquipment] = useState<ActiveEquipmentDto[]>([]);
+  const activeEquipment = useMemo(
+    () => (labSectionId == null ? allEquipment : allEquipment.filter((eq) => eq.sectionId === labSectionId)),
+    [allEquipment, labSectionId]
+  );
   const [selectedEqId, setSelectedEqId] = useState<number | null>(null);
   const [loadingActive, setLoadingActive] = useState(true);
 
@@ -52,11 +59,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   const loadActiveEquipment = async () => {
     try {
       setLoadingActive(true);
-      const list = await EquipmentInventoryService.getActiveEquipment();
-      setActiveEquipment(list);
-      if (list.length > 0 && !selectedEqId) {
-        setSelectedEqId(list[0].id);
-      }
+      setAllEquipment(await EquipmentInventoryService.getActiveEquipment());
     } catch {
       // Error handled
     } finally {
@@ -67,6 +70,13 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   useEffect(() => {
     loadActiveEquipment();
   }, []);
+
+  // Keep the selection inside the visible (lab-filtered) list.
+  useEffect(() => {
+    if (!activeEquipment.some((eq) => eq.id === selectedEqId)) {
+      setSelectedEqId(activeEquipment[0]?.id ?? null);
+    }
+  }, [activeEquipment]);
 
   // Load active activities when selected equipment changes
   useEffect(() => {

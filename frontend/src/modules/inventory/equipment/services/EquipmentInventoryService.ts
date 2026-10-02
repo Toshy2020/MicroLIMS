@@ -16,6 +16,7 @@ export interface ActiveEquipmentDto {
   setPointTemperature: number | null;
   primaryActivityCategory: string;
   activeItemCount: number;
+  sectionId: number | null;
 }
 
 export interface EquipmentActivityDto {

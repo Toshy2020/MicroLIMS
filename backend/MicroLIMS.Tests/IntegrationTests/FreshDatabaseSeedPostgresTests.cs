@@ -49,7 +49,10 @@ public class FreshDatabaseSeedPostgresTests
         {
             NpgsqlConnection.ClearAllPools();
             PostgresTestConfiguration.EnsureSafeToDrop(name, admin);
-            await ExecuteAsync(admin, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE);");
+            // No WITH (FORCE): it must signal every backend on the database,
+            // and the non-superuser CI role may not signal an autovacuum
+            // worker started by the seed. A plain DROP cancels autovacuum itself.
+            await ExecuteAsync(admin, $"DROP DATABASE IF EXISTS \"{name}\";");
         }
     }
 

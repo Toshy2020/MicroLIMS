@@ -169,6 +169,109 @@ public partial class HplcRunServiceTests
         Assert.Equal(beta.Id, Assert.Single(eligible).TestOrderId);
     }
 
+    // ---- Dissolution on the workspace ----
+
+    // Dissolution TestDefinition on the run's method plus one order; the
+    // method analyte's standard dilution is set before the run starts so the
+    // snapshot carries it (extraAnalyte makes the method two-analyte).
+    private static async Task<(Scenario S, TestOrder Order, ILabClock Clock)> SeedDissolutionAsync(
+        MicroLimsDbContext db, decimal? dilution, bool extraAnalyte = false)
+    {
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+        var analyte = await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == s.Method.Id);
+        analyte.StandardDilution = dilution;
+        if (extraAnalyte)
+        {
+            db.HplcMethodAnalytes.Add(new HplcMethodAnalyte
+            {
+                HplcMethodId = s.Method.Id, DisplayOrder = 2, Name = "Analyte 2", WavelengthNm = 290m,
+                StandardEntryId = analyte.StandardEntryId, TheoreticalWeightStdMg = 50m, TheoreticalWeightTestMg = 50m,
+                StandardInjections = 3, StandardDilution = dilution,
+            });
+        }
+        db.TestDefinitions.Add(new TestDefinition
+        {
+            Code = "DISS-1", DisplayName = "Dissolution", SectionId = s.Section.Id,
+            WorkflowType = WorkflowType.Dissolution, EquationType = EquationType.Dissolution,
+            RequiresSystemSuitability = true, HplcMethodId = s.Method.Id, IsActive = true,
+        });
+        var item = new Item { Code = "ITM-D", Name = "Dissolution Tablets", Category = SampleCategory.FinishedProduct, IsActive = true };
+        db.Items.Add(item);
+        var cause = new CauseOfTesting { Name = "Release", IsActive = true };
+        db.CausesOfTesting.Add(cause);
+        await db.SaveChangesAsync();
+        var sample = new Sample
+        {
+            ReferenceNumber = "FP-DISS01", ItemId = item.Id, Category = SampleCategory.FinishedProduct, BatchNumber = "B-D",
+            ReceivedAt = SepFirst.UtcDateTime, CauseOfTesting = cause, ReceivedByUserId = s.UserId, Status = SampleStatus.InTesting,
+        };
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+        var order = new TestOrder
+        {
+            SampleId = sample.Id, TestCode = "DISS-1", SectionId = s.Section.Id,
+            CurrentStep = WorkflowStep.Running, Status = ApprovalStatus.InProgress,
+        };
+        db.TestOrders.Add(order);
+        await db.SaveChangesAsync();
+        return (s, order, clock);
+    }
+
+    [Fact]
+    public async Task Eligible_IncludesDissolutionOrderOfSameMethod()
+    {
+        await using var db = NewDb();
+        var (s, _, clock) = await SeedDissolutionAsync(db, 2500m);
+        var (service, run) = await StartPassedRunAsync(db, clock, s);
+
+        var eligible = await service.GetEligibleTestsAsync(run.Id, null, s.UserId);
+
+        Assert.Contains(eligible, e => e.TestCode == "DISS-1");
+    }
+
+    [Fact]
+    public async Task Assign_DissolutionWithoutStandardDilution_Throws()
+    {
+        await using var db = NewDb();
+        var (s, dissOrder, clock) = await SeedDissolutionAsync(db, null);
+        var (service, run) = await StartPassedRunAsync(db, clock, s);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId));
+
+        Assert.Contains("standard dilution", ex.Message);
+    }
+
+    [Fact]
+    public async Task Assign_DissolutionMultiAnalyteMethod_Throws()
+    {
+        await using var db = NewDb();
+        var (s, dissOrder, clock) = await SeedDissolutionAsync(db, 2500m, extraAnalyte: true);
+        var service = TestServiceFactory.HplcRun(db, clock: clock);
+        var run = await service.StartRunAsync(StartRequest(s), s.UserId);
+        // PassSstAsync records only the first analyte, so mark the SST passed directly.
+        (await db.HplcRuns.Include(r => r.Sst).SingleAsync(r => r.Id == run.Id)).Sst!.Status = HplcSstStatus.Passed;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId));
+
+        Assert.Contains("exactly one analyte", ex.Message);
+    }
+
+    [Fact]
+    public async Task Summary_FlagsDissolutionSample()
+    {
+        await using var db = NewDb();
+        var (s, dissOrder, clock) = await SeedDissolutionAsync(db, 2500m);
+        var (service, run) = await StartPassedRunAsync(db, clock, s);
+
+        var updated = await service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId);
+
+        Assert.True(updated.Samples.Single(x => x.TestOrderId == dissOrder.Id).IsDissolution);
+    }
+
     // ---- AssignSamplesAsync ----
 
     // Review Focus: assigning before the SST has passed (even by calling the

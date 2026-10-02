@@ -55,7 +55,7 @@ public record HplcSstRecordDto(
     List<HplcSstAnalyteDto> Analytes);
 public record HplcRunSampleSummaryDto(
     int Id, int TestOrderId, HplcRunSampleStatus Status,
-    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, bool Submitted);
+    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, bool Submitted, bool IsDissolution);
 
 public record HplcRunDto(
     int Id, uint Version, string Code, int SectionId,
@@ -621,6 +621,12 @@ public partial class HplcRunService
 
         var content = await _storage.ReadAsync(evidence.FilePath);
         return (content, evidence.ContentType, evidence.FileName);
+    }
+
+    public async Task<HplcDissolutionStandardResult> GetDissolutionStandardAsync(int testOrderId, int userId, CancellationToken ct = default)
+    {
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+        return await HplcDissolutionStandard.ResolveAsync(_db, testOrderId, ct);
     }
 
     // What a reviewer needs for one test order: the current sample evidence of

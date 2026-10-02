@@ -58,6 +58,10 @@ public class HplcWorkspaceController : ControllerBase
     public async Task<IActionResult> GetTestOrderEvidence(int testOrderId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestOrderEvidenceAsync(testOrderId, CurrentUserId)));
 
+    [HttpGet("test-orders/{testOrderId:int}/dissolution-standard")]
+    public async Task<IActionResult> GetDissolutionStandard(int testOrderId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetDissolutionStandardAsync(testOrderId, CurrentUserId)));
+
     [HttpGet("evidence/{id:int}/file")]
     public async Task<IActionResult> DownloadEvidence(int id)
     {

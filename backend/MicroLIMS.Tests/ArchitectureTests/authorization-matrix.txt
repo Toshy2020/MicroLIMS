@@ -208,6 +208,7 @@ HplcWorkspaceController.AssignSamples(Int32, AssignHplcSamplesRequest): SystemAd
 HplcWorkspaceController.Complete(Int32): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.ConfirmSst(Int32, ConfirmSstRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetDissolutionStandard(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst

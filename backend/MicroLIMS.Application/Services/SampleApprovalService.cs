@@ -185,7 +185,9 @@ public class SampleApprovalService
                 .Select(t => new { t.Code, t.WorkflowType })
                 .ToListAsync();
             var sstCodes = sstDefinitions.Select(t => t.Code).ToList();
-            var hplcWorkspaceCodes = sstDefinitions.Where(t => t.WorkflowType == WorkflowType.HplcMethodAssay).Select(t => t.Code).ToList();
+            var hplcWorkspaceCodes = sstDefinitions
+                .Where(t => t.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution)
+                .Select(t => t.Code).ToList();
 
             foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
             {
@@ -194,7 +196,7 @@ public class SampleApprovalService
                 if (hplcWorkspaceCodes.Contains(sstOrder.TestCode))
                 {
                     var runPassed = await _db.HplcRunSamples.AnyAsync(s =>
-                        s.TestOrderId == sstOrder.Id && s.Status == HplcRunSampleStatus.Assigned
+                        s.TestOrderId == sstOrder.Id && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned
                         && s.HplcRun!.Sst != null && s.HplcRun.Sst.Status == HplcSstStatus.Passed);
                     if (!runPassed)
                     {

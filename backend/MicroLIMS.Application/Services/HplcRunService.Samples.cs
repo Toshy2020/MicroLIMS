@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -72,7 +73,8 @@ public partial class HplcRunService
     private IQueryable<TestOrder> EligibleOrdersQuery(HplcRun run)
     {
         var codes = _db.TestDefinitions
-            .Where(t => t.WorkflowType == WorkflowType.HplcMethodAssay && t.HplcMethodId == run.HplcMethodId)
+            .Where(t => (t.WorkflowType == WorkflowType.HplcMethodAssay || t.WorkflowType == WorkflowType.Dissolution)
+                && t.HplcMethodId == run.HplcMethodId)
             .Select(t => t.Code);
         var busy = _db.HplcRunSamples
             .Where(s => s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
@@ -112,6 +114,18 @@ public partial class HplcRunService
             throw new InvalidOperationException(busyRun != null
                 ? $"Test order {id} is already assigned to run {busyRun}."
                 : $"Test order {id} is not eligible for this run.");
+        }
+
+        var dissolutionCodes = await _db.TestDefinitions
+            .Where(t => t.WorkflowType == WorkflowType.Dissolution && t.HplcMethodId == run.HplcMethodId)
+            .Select(t => t.Code).ToListAsync(ct);
+        if (await _db.TestOrders.AnyAsync(o => ids.Contains(o.Id) && dissolutionCodes.Contains(o.TestCode), ct))
+        {
+            var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)!;
+            if (snapshot.Analytes.Count != 1)
+                throw new InvalidOperationException("Dissolution needs an HPLC method with exactly one analyte.");
+            if (snapshot.Analytes[0].StandardDilution is not > 0m)
+                throw new InvalidOperationException($"Method {snapshot.Abbreviation} needs a standard dilution before dissolution samples can be assigned.");
         }
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -321,12 +335,17 @@ public partial class HplcRunService
         var submitted = (await _db.TestAnalyses.Where(a => orderIds.Contains(a.TestOrderId) && a.IsActive)
             .Select(a => a.TestOrderId).ToListAsync(ct)).ToHashSet();
 
+        var codes = orders.Values.Select(o => o.TestCode).Distinct().ToList();
+        var dissolutionCodes = (await _db.TestDefinitions.Where(t => codes.Contains(t.Code) && t.WorkflowType == WorkflowType.Dissolution)
+            .Select(t => t.Code).ToListAsync(ct)).ToHashSet();
+
         return run.Samples.OrderBy(s => s.Id).Select(s =>
         {
             orders.TryGetValue(s.TestOrderId, out var o);
             return new HplcRunSampleSummaryDto(
                 s.Id, s.TestOrderId, s.Status, o?.Sample?.ReferenceNumber ?? string.Empty, o?.Sample?.BatchNumber,
-                o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, submitted.Contains(s.TestOrderId));
+                o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, submitted.Contains(s.TestOrderId),
+                o != null && dissolutionCodes.Contains(o.TestCode));
         }).ToList();
     }
 }

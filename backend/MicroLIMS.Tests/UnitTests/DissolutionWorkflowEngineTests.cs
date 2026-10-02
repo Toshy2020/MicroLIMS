@@ -233,4 +233,20 @@ public class DissolutionWorkflowEngineTests
         Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal(12, pr.Readings.Count);
     }
+
+    [Fact]
+    public async Task Record_DissolutionOnAbandonedRun_Blocked()
+    {
+        using var db = NewDb();
+        var (_, equip, _, _, _, order, analyst, _) = SetupDissolutionScenario(db);
+        db.HplcRuns.Single().Status = HplcRunStatus.Abandoned;
+        db.SaveChanges();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.TestWorkflow(db).RecordDissolutionResultAsync(order.Id, new DissolutionPayload(
+                DateTime.UtcNow, equip.Id, new Dictionary<string, string> { ["Medium"] = "0.01M HCl 900mL", ["RPM"] = "50" },
+                900m, 1m, new List<decimal> { 0.45m, 0.45m, 0.45m, 0.45m, 0.45m, 0.45m }, "Password123!"), analyst.Id));
+
+        Assert.Equal(HplcDissolutionStandard.NotAssigned, ex.Message);
+    }
 }

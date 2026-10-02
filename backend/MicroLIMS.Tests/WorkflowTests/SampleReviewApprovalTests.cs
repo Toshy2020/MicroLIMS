@@ -181,6 +181,31 @@ public class SampleReviewApprovalTests
         Assert.Contains(histories, h => h.FromStep == WorkflowStep.Reviewed && h.ToStep == WorkflowStep.Approved && h.PerformedByUserId == 3);
     }
 
+    // Dissolution takes its system suitability from the workspace run: a sole
+    // run sample on an abandoned run cannot reach approval.
+    [Fact]
+    public async Task DecideAsync_Approve_DissolutionOnAbandonedRun_Throws()
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await CompleteTestAsync(db, order, media, analystId: 1);
+        await NewReviewService(db).CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
+
+        var definition = await db.TestDefinitions.SingleAsync(t => t.Code == order.TestCode);
+        definition.WorkflowType = WorkflowType.Dissolution;
+        definition.RequiresSystemSuitability = true;
+        await db.SaveChangesAsync();
+        MicroLIMS.Tests.UnitTests.HplcDissolutionStandardTests.SeedRun(db, order.Id, runStatus: HplcRunStatus.Abandoned);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
+
+        Assert.Contains("lacks an HPLC run with a passed system suitability", ex.Message);
+    }
+
     // CertificateRemarks is the Approver-only, customer-facing field added
     // for the Product/RM/PM Certificate of Analysis - distinct from the
     // internal Comment above, and must round-trip exactly as typed.

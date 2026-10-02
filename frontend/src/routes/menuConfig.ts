@@ -125,7 +125,6 @@ const physchemArea: MenuItem = {
   group: "LABORATORIES",
   children: [
     { label: "Workspace", path: "/physicochemical/workspace" },
-    { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
     { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
     { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
     { label: "HPLC Workspace", path: "/hplc-workspace" },

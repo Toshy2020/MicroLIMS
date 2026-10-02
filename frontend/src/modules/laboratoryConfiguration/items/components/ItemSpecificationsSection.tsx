@@ -201,11 +201,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         const hplcMethodIds: number[] = [];
         for (const d of defs) {
           byCode[d.code] = d;
-          // Both spec dialogs (Calibration Curve / ICP-OES elements and
-          // Standard-Comparison Assay / analytes) attach a specification to a
-          // TestAnalyte row, so both need their analytes prefetched here
-          // for the badge below to resolve testAnalyteId -> name.
-          if (d.equationType === "CalibrationCurve" || d.equationType === "StandardComparison" || d.workflowType === "StandardComparison") {
+          // The Calibration Curve (ICP-OES) spec dialog attaches a specification
+          // to a TestAnalyte row, so its analytes are prefetched here for the
+          // badge below to resolve testAnalyteId -> name.
+          if (d.equationType === "CalibrationCurve") {
             calDefs.push(d);
           }
           if ((d.workflowType === "HplcMethodAssay" || d.equationType === "HplcMethodAssay") && d.hplcMethodId) {

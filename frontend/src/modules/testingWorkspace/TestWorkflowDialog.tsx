@@ -22,7 +22,6 @@ import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
 import { WeightVariationPanel } from "./WeightVariationPanel";
-import { StandardComparisonPanel } from "./StandardComparisonPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props {
@@ -298,24 +297,6 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       <Box sx={{ py: 4 }}>
         {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
       </Box>
-    );
-  }
-
-  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - system
-  // suitability run link + per-preparation weigh-in + per-analyte response
-  // (peak area or titration volume) entry (SC-5b).
-  if (current.workflowType === "StandardComparison") {
-    return (
-      <StandardComparisonPanel
-        testOrderId={testOrderId}
-        displayName={displayName}
-        testCode={testCode}
-        itemId={itemId}
-        sampleId={sampleId}
-        current={current}
-        onRecorded={load}
-        onClose={onClose}
-      />
     );
   }
 

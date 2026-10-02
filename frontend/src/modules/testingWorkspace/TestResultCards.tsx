@@ -217,8 +217,6 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";
             const isWeightVariation = a.analysisType === "WeightVariation";
-            const isStandardComparison = a.analysisType === "StandardComparison";
-            const isTitration = isStandardComparison && p.readings.some((r) => r.kind === "Titration");
             const isTablet = isWeightVariation && p.readings.every((r) => r.value2 == null);
             const hasStage = p.readings.some((r) => r.stage !== null && r.stage !== undefined);
             const hasTimePoint = !isDisintegration && !isWeightVariation && p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
@@ -239,7 +237,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                     <thead>
                       <tr>
                         <th>#</th>
-                        {hasStage && <th>{isStandardComparison ? "Prep" : "Stage"}</th>}
+                        {hasStage && <th>Stage</th>}
                         {hasTimePoint && <th>Time Point (min)</th>}
                         {hasValue1 && (
                           <th>
@@ -249,15 +247,13 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                               ? "Time (min)"
                               : isWeightVariation
                               ? (isTablet ? "Weight (mg)" : "Gross (mg)")
-                              : isStandardComparison
-                              ? (isTitration ? "Titre (mL)" : "Peak area")
                               : "Value 1"}
                           </th>
                         )}
                         {hasValue2 && <th>{isWeightVariation ? "Shell (mg)" : "Value 2"}</th>}
                         {hasValue3 && <th>{isWeightVariation ? "Deviation %" : "Value 3"}</th>}
                         {hasText && <th>Text</th>}
-                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isStandardComparison ? "% Assay" : "Computed"}</th>}
+                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed"}</th>}
                         {hasPassed && <th>Passed</th>}
                       </tr>
                     </thead>
@@ -265,13 +261,13 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                       {p.readings.map((r, rIdx) => (
                         <tr key={r.id || rIdx}>
                           <td>{r.index}</td>
-                          {hasStage && <td>{r.stage != null ? (isStandardComparison ? `P${r.stage}` : isVessel || isDisintegration || isWeightVariation ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
+                          {hasStage && <td>{r.stage != null ? (isVessel || isDisintegration || isWeightVariation ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
                           {hasTimePoint && <td>{r.timePointMinutes !== null ? String(r.timePointMinutes) : "—"}</td>}
                           {hasValue1 && <td>{r.value1 !== null ? String(r.value1) : (isDisintegration && r.text ? r.text : "—")}</td>}
                           {hasValue2 && <td>{r.value2 !== null ? String(r.value2) : "—"}</td>}
                           {hasValue3 && <td>{r.value3 !== null ? (isWeightVariation ? `${Number(r.value3).toFixed(2)} %` : String(r.value3)) : "—"}</td>}
                           {hasText && <td>{r.text ?? "—"}</td>}
-                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : isStandardComparison ? `${r.computedValue} %` : String(r.computedValue)) : "—"}</td>}
+                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : String(r.computedValue)) : "—"}</td>}
                           {hasPassed && (
                             <td>
                               {r.passed === null || r.passed === undefined ? "—" : r.passed ? "Pass" : "Fail"}

@@ -101,12 +101,12 @@ export interface TestAnalyteDto {
   testDefinitionId: number;
   element: string;
   wavelengthNm: number;
-  // Set for CalibrationCurve (ICP-OES) analytes; always null for StandardComparison.
+  // Set for CalibrationCurve (ICP-OES) analytes.
   view: "Axial" | "Radial" | null;
   loqMgPerL: number | null;
   displayOrder: number;
   isActive: boolean;
-  // StandardComparison only - per-analyte system suitability criteria
+  // Legacy per-analyte system suitability criteria
   // (null = not checked). CalibrationCurve (ICP-OES) analytes never set these.
   sstMaxRsdPercent?: number | null;
   sstMinResolution?: number | null;
@@ -195,10 +195,6 @@ export interface CreateTestDefinitionPayload {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
-  hplcMaxPreparationRsdPercent?: number | null;
-  // StandardComparison only - "PeakArea" (HPLC) or "TitrationVolume". Rejected
-  // by the backend for non-StandardComparison tests unless left as PeakArea.
-  responseMode?: "PeakArea" | "TitrationVolume";
   hplcMethodId?: number | null;
 }
 
@@ -258,10 +254,6 @@ export interface UpdateTestDefinitionPayload {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
-  hplcMaxPreparationRsdPercent?: number | null;
-  // StandardComparison only - cannot change once suitability runs exist
-  // against the test (backend rejects the change with an error message).
-  responseMode?: "PeakArea" | "TitrationVolume";
   hplcMethodId?: number | null;
 }
 

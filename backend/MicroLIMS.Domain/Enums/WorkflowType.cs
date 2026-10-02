@@ -4,7 +4,7 @@ public enum WorkflowType
 {
     CountTest,   // plate readings + dilution factor (TAMC, TYMC)
     Observation, // staged pathogen detection chain, driven by each step's StepType
-    HplcAssay,   // retired (SC-3): folded into StandardComparison; value kept, stored as int
+    HplcAssay,   // retired (SC-3): replaced by HplcMethodAssay; value kept, stored as int
     ElementalAssay, // Finished Product ICP-OES elemental assay workflow
     Measurement,
     Gravimetric,
@@ -12,7 +12,7 @@ public enum WorkflowType
     Dissolution,
     Disintegration,
     WeightVariation,
-    HplcMultiAnalyte, // retired (SC-3): folded into StandardComparison; value kept, stored as int
-    StandardComparison,
+    HplcMultiAnalyte, // retired (SC-3): replaced by HplcMethodAssay; value kept, stored as int
+    StandardComparison, // retired: replaced by HplcMethodAssay; value kept, stored as int
     HplcMethodAssay // HPLC chain S3 - assay against an HplcMethod master (spec 3.3-3.4)
 }

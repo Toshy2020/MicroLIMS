@@ -560,7 +560,7 @@ public class TestWorkflowSupport
     {
         if (string.IsNullOrWhiteSpace(password))
             throw new InvalidOperationException("Password is required to sign the result.");
-        if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.StandardComparison && expectedWorkflowType != WorkflowType.HplcMethodAssay && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
+        if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.HplcMethodAssay && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
             throw new InvalidOperationException("At least one parameter result is required.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -644,11 +644,6 @@ public class TestWorkflowSupport
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.WeightVariation)
                 throw new InvalidOperationException("Weight variation tests require exactly one WeightVariation specification.");
-        }
-        else if (expectedWorkflowType == WorkflowType.StandardComparison)
-        {
-            if (specs.Any(s => !s.TestAnalyteId.HasValue))
-                throw new InvalidOperationException("Every specification for Standard-Comparison must be linked to a test analyte.");
         }
         else if (expectedWorkflowType == WorkflowType.HplcMethodAssay)
         {

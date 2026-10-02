@@ -192,7 +192,7 @@ public class SampleApprovalService
             foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
             {
                 // HPLC Workspace tests take their system suitability from the
-                // run they were assigned to, not from SystemSuitabilityRunId.
+                // run they were assigned to.
                 if (hplcWorkspaceCodes.Contains(sstOrder.TestCode))
                 {
                     var runPassed = await _db.HplcRunSamples.AnyAsync(s =>
@@ -203,22 +203,6 @@ public class SampleApprovalService
                         throw new InvalidOperationException(
                             $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks an HPLC run with a passed system suitability.");
                     }
-                    continue;
-                }
-
-                if (sstOrder.SystemSuitabilityRunId is null)
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks a linked system suitability run.");
-                }
-
-                var run = await _db.SystemSuitabilityRuns
-                    .FirstOrDefaultAsync(r => r.Id == sstOrder.SystemSuitabilityRunId.Value);
-
-                if (run is null || !run.Passed)
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks a linked passed system suitability run.");
                 }
             }
 

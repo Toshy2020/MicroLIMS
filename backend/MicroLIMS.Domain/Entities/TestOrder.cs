@@ -34,10 +34,6 @@ public class TestOrder
     public int? RoomId { get; set; }
     public Room? Room { get; set; }
 
-    // HPLC System Suitability Run link (REQ-FP-003)
-    public int? SystemSuitabilityRunId { get; set; }
-    public SystemSuitabilityRun? SystemSuitabilityRun { get; set; }
-
     // Set when the lab closes its testing after another lab rejected the
     // sample: the step (and incubation stage, when there was one) the test
     // had reached, shown in the sample summary.

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -938,5 +939,37 @@ public partial class HplcRunServiceTests
         Assert.Equal(run2.Id, history[0].Id);
         Assert.Equal(run1.Id, history[1].Id);
         Assert.Equal(HplcRunStatus.Abandoned, history[1].Status);
+    }
+
+    // Run/SST code series (SystemSuitabilityRunCode helper shared with calibration).
+    [Fact]
+    public async Task CodeFormat_InitialRun_FollowsFormat()
+    {
+        var code = await SystemSuitabilityRunCode.NextAsync(new List<string>().AsQueryable(), "VIT-C", new DateTime(2026, 11, 5, 14, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("VIT-C S.S 01/112026", code);
+    }
+
+    [Fact]
+    public async Task CodeFormat_ContinuousAcrossMonths_InSameYear()
+    {
+        var issued = new List<string> { "VIT-C S.S 01/012026", "VIT-C S.S 02/032026", "VIT-C S.S 03/052026" }.AsQueryable();
+        var next = await SystemSuitabilityRunCode.NextAsync(issued, "VIT-C", new DateTime(2026, 11, 20, 10, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("VIT-C S.S 04/112026", next);
+    }
+
+    [Fact]
+    public async Task CodeFormat_ResetsInJanuaryOfNewYear()
+    {
+        var issued = new List<string> { "VIT-C S.S 01/012026", "VIT-C S.S 02/052026", "VIT-C S.S 03/122026" }.AsQueryable();
+        var next = await SystemSuitabilityRunCode.NextAsync(issued, "VIT-C", new DateTime(2027, 1, 15, 9, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("VIT-C S.S 01/012027", next);
+    }
+
+    [Fact]
+    public async Task CodeFormat_SequencingIndependentPerMethodAbbreviation()
+    {
+        var issued = new List<string> { "VIT-C S.S 01/032026", "VIT-C S.S 02/052026" }.AsQueryable();
+        var next = await SystemSuitabilityRunCode.NextAsync(issued, "IBU", new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Utc));
+        Assert.Equal("IBU S.S 01/052026", next);
     }
 }

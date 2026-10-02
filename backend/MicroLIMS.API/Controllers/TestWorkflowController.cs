@@ -22,9 +22,6 @@ namespace MicroLIMS.API.Controllers;
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null, string? DilutionFactorOverrideNote = null);
-public record RecordStandardComparisonPreparationRequest(decimal TheoreticalWeightMg, decimal ActualWeightMg, string? WeighInJustification = null);
-public record RecordStandardComparisonResponseRequest(int TestAnalyteId, int PreparationIndex, decimal Response);
-public record RecordStandardComparisonResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordStandardComparisonPreparationRequest> Preparations, List<RecordStandardComparisonResponseRequest> Responses, string Password, string? Comment = null);
 public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
@@ -170,17 +167,6 @@ public class TestWorkflowController : ControllerBase
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() => _currentStepView.GetAsync(testOrderId));
-    }
-
-    // What the Standard-Comparison entry screen needs before any typing: the
-    // response mode and how many sample preparations the sample's stage
-    // requires. Message is set when the stage can't be resolved; entry is
-    // still validated server-side on submit.
-    [HttpGet("{testOrderId}/standard-comparison-context")]
-    public async Task<IActionResult> GetStandardComparisonContext(int testOrderId, CancellationToken ct)
-    {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
-        return await RunAsync(() => _queries.GetStandardComparisonContextAsync(testOrderId, ct));
     }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]
@@ -341,24 +327,6 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
-        });
-    }
-
-    [HttpPost("{testOrderId}/record-standard-comparison-result")]
-    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordStandardComparisonResult(int testOrderId, RecordStandardComparisonResultRequest request)
-    {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        return await RunAsync(() =>
-        {
-            var payload = new StandardComparisonPayload(
-                request.AnalysedAt,
-                request.EquipmentId,
-                request.Preparations?.Select(p => new StandardComparisonPreparationInput(p.TheoreticalWeightMg, p.ActualWeightMg, p.WeighInJustification)).ToList() ?? new(),
-                request.Responses?.Select(r => new StandardComparisonResponseInput(r.TestAnalyteId, r.PreparationIndex, r.Response)).ToList() ?? new(),
-                request.Password,
-                request.Comment);
-            return _engine.RecordStandardComparisonResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

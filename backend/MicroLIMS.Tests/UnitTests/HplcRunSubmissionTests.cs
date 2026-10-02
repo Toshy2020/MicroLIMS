@@ -343,22 +343,4 @@ public partial class HplcRunServiceTests
 
         Assert.Equal(SampleStatus.Approved, (await db.Samples.SingleAsync(x => x.Id == sample.Id)).Status);
     }
-
-    [Fact]
-    public async Task Approval_OtherWorkflow_StillNeedsItsOwnSystemSuitabilityRunId()
-    {
-        await using var db = NewDb();
-        var t = await ArrangeSubmittableAsync(db);
-        await SubmitAsync(db, t);
-        // Same order, but the test is not an HPLC-workspace test any more: the
-        // legacy SystemSuitabilityRunId check applies (and fails - none linked).
-        t.Fixture.Definition.WorkflowType = WorkflowType.StandardComparison;
-        await db.SaveChangesAsync();
-        var (head, sample, section) = await PrepareForApprovalAsync(db, t);
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            TestServiceFactory.SampleApproval(db).DecideAsync(sample.Id, head.Id, Password, ApprovalDecision.Approve, "approve", "127.0.0.1", sectionId: section.Id));
-
-        Assert.Contains("lacks a linked system suitability run", ex.Message);
-    }
 }

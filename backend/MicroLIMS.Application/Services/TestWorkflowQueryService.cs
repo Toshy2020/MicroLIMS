@@ -28,29 +28,6 @@ public class TestWorkflowQueryService
         _time = timeProvider ?? TimeProvider.System;
     }
 
-    // The response mode and how many sample preparations the sample's stage
-    // requires. Message is set when the stage can't be resolved; entry is
-    // still validated server-side on submit.
-    public async Task<StandardComparisonContextDto> GetStandardComparisonContextAsync(int testOrderId, CancellationToken ct = default)
-    {
-        var testCode = await _db.TestOrders.Where(o => o.Id == testOrderId).Select(o => o.TestCode).FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
-        var definition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode, ct)
-            ?? throw new InvalidOperationException($"Test code '{testCode}' is not in the Test Master.");
-        if (definition.WorkflowType != WorkflowType.StandardComparison)
-            throw new InvalidOperationException($"Test \"{testCode}\" is not a standard-comparison test.");
-
-        var resolution = await StageReplicateResolver.ResolveForTestOrderAsync(_db, testOrderId, ct);
-        return new StandardComparisonContextDto(
-            definition.ResponseMode.ToString(),
-            resolution.StageRole?.ToString(),
-            resolution.IsConfigured ? resolution.SampleReplicates : null,
-            resolution.IsConfigured ? resolution.StandardReplicates : null,
-            StandardComparisonCalculator.SampleWeighInTolerancePercent,
-            definition.HplcMaxPreparationRsdPercent,
-            resolution.IsConfigured ? null : resolution.Message);
-    }
-
     public async Task<object> GetEligibleIncubatorsAsync(int stepMediaId)
     {
         var incubators = await _incubatorEligibility.GetEligibleIncubatorsAsync(stepMediaId);

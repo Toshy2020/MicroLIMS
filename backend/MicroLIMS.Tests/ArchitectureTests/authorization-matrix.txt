@@ -431,13 +431,6 @@ SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,
 SpecificationMasterDataController.GetSpecificationsForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SpecificationMasterDataController.UpdateSpecification(Int32, UpdateSpecificationRequest): SystemAdministrator,SectionHead
 SystemController.ReportClientError(ClientErrorReportRequest, CancellationToken): anonymous
-SystemSuitabilityController.Create(CreateSystemSuitabilityRunRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
-SystemSuitabilityController.GetAll(Nullable`1, String, Nullable`1, String, Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
-SystemSuitabilityController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-SystemSuitabilityController.GetLinked(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-SystemSuitabilityController.GetReport(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-SystemSuitabilityController.GetSelectable(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-SystemSuitabilityController.LinkBulk(Int32, BulkLinkOrdersToSuitabilityRunRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestAnalyteMasterDataController.CreateTestAnalyte(Int32, CreateTestAnalyteRequest): SystemAdministrator,SectionHead
 TestAnalyteMasterDataController.DeleteTestAnalyte(Int32, Int32): SystemAdministrator,SectionHead
 TestAnalyteMasterDataController.GetTestAnalytes(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -460,7 +453,6 @@ TestWorkflowController.GetEligibleIncubators(Int32, Int32): SystemAdministrator,
 TestWorkflowController.GetLocations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetPermittedConfirmatoryMedia(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetSiblingPathogenOrders(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
-TestWorkflowController.GetStandardComparisonContext(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.OverrideMinimumDuration(Int32): SystemAdministrator,SectionHead
 TestWorkflowController.RecordAnalystDecision(Int32, AnalystDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordBatchPathogenResults(Int32, BatchPathogenResultsRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -475,7 +467,6 @@ TestWorkflowController.RecordGravimetricResult(Int32, RecordGravimetricResultReq
 TestWorkflowController.RecordMeasurementResult(Int32, RecordMeasurementResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordQualitativeResult(Int32, RecordQualitativeResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordResult(Int32, RecordTestResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
-TestWorkflowController.RecordStandardComparisonResult(Int32, RecordStandardComparisonResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordWaterBatchReadings(Int32, WaterBatchReadingsRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordWeightVariationResult(Int32, RecordWeightVariationResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordWeightVariationStage(Int32, RecordWeightVariationStageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst

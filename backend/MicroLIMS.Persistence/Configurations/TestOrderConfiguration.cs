@@ -20,12 +20,5 @@ public class TestOrderConfiguration : IEntityTypeConfiguration<TestOrder>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(t => t.SectionId);
-
-        builder.HasOne(t => t.SystemSuitabilityRun)
-            .WithMany()
-            .HasForeignKey(t => t.SystemSuitabilityRunId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasIndex(t => t.SystemSuitabilityRunId);
     }
 }

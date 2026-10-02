@@ -332,9 +332,8 @@ public partial class HplcRunService
         var snapshotJson = JsonSerializer.Serialize(HplcMethodResponse.From(method), JsonOptions);
         var labLocal = _clock.ToLabLocal(nowUtc);
         var runCode = await SystemSuitabilityRunCode.NextAsync(_db.HplcRuns.Select(x => x.Code), method.Abbreviation, labLocal, "RUN", ct);
-        // Concatenated with the legacy SystemSuitabilityRuns series so old and new SST codes never repeat (Global Constraints).
         var sstCode = await SystemSuitabilityRunCode.NextAsync(
-            _db.SystemSuitabilityRuns.Select(x => x.Code).Concat(_db.HplcSstRecords.Select(x => x.Code)),
+            _db.HplcSstRecords.Select(x => x.Code),
             method.Abbreviation, labLocal, "S.S", ct);
 
         var run = new HplcRun

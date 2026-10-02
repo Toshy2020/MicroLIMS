@@ -187,7 +187,6 @@ public static class UserReferenceRegistry
         // FP HPLC Phase 3 - Slice A1 ChromatographyColumn
         new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
-        new UserReferenceEntry(typeof(SystemSuitabilityRun), nameof(SystemSuitabilityRun.PerformedByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who performed the signed run"),
 
         // Shared Result Foundation (Slice F0)
         new UserReferenceEntry(typeof(TestAnalysis), nameof(TestAnalysis.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered test analysis result"),

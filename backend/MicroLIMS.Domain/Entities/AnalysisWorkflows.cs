@@ -17,7 +17,6 @@ public static class AnalysisWorkflows
         WorkflowType.Dissolution,
         WorkflowType.Disintegration,
         WorkflowType.WeightVariation,
-        WorkflowType.StandardComparison,
         WorkflowType.HplcMethodAssay
     };
 
@@ -34,7 +33,6 @@ public static class AnalysisWorkflows
         WorkflowType.Dissolution => "dissolution",
         WorkflowType.Disintegration => "disintegration",
         WorkflowType.WeightVariation => "weight variation",
-        WorkflowType.StandardComparison => "standard comparison",
         WorkflowType.HplcMethodAssay => "HPLC method assay",
         _ => "test analysis"
     };

@@ -1,32 +1,8 @@
-using System.Globalization;
-using System.Text.Json;
-using MicroLIMS.Application.Services;
-using MicroLIMS.Domain.Entities;
-using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
 
-public record StandardComparisonCalculationResult(
-    IReadOnlyList<StandardComparisonPreparationData> Preparations,
-    decimal ReportedValue,
-    string ReportedDisplay,
-    decimal? PreparationRsdPercent,
-    bool RsdExceeded,
-    string? ReviewReason,
-    ResultStatus ComparisonStatus,
-    string CalculationJson,
-    StandardComparisonCalculationData CalculationData);
-
 public static class StandardComparisonCalculator
 {
-    // SOP STM-PC-013 6.9.2.5 / STM-PC-023: sample weigh-in tolerance is ±10% of theoretical weight (warning only)
-    public const decimal SampleWeighInTolerancePercent = 10m;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     public static decimal CalculatePreparationAssay(
         decimal responseTest,
         decimal responseStd,
@@ -110,110 +86,5 @@ public static class StandardComparisonCalculator
             : null;
 
         return (rsd, rsdExceeded, reviewReason);
-    }
-
-    public static StandardComparisonCalculationResult Calculate(
-        string analyteName,
-        int testAnalyteId,
-        int systemSuitabilityRunAnalyteId,
-        decimal standardTheoreticalWeightMg,
-        decimal standardActualWeightMg,
-        decimal standardPurityPercent,
-        decimal moisturePercent,
-        decimal standardMeanArea,
-        Specification spec,
-        IReadOnlyList<Workflows.StandardComparisonPreparationInput> preparations,
-        IReadOnlyList<Workflows.StandardComparisonResponseInput> responses,
-        decimal? maxPreparationRsdPercent,
-        ResponseMode responseMode = ResponseMode.PeakArea,
-        decimal? blankTitreMl = null)
-    {
-        if (responseMode == ResponseMode.TitrationVolume && !blankTitreMl.HasValue)
-            throw new InvalidOperationException("Blank titre is required for titration.");
-        if (responseMode == ResponseMode.PeakArea && blankTitreMl.HasValue)
-            throw new InvalidOperationException("Blank titre applies only to titration.");
-
-        ArgumentNullException.ThrowIfNull(spec);
-        ArgumentNullException.ThrowIfNull(preparations);
-        ArgumentNullException.ThrowIfNull(responses);
-
-        var prepDataList = new List<StandardComparisonPreparationData>();
-
-        for (int p = 1; p <= preparations.Count; p++)
-        {
-            var prep = preparations[p - 1];
-            var respMatch = responses.FirstOrDefault(r => r.PreparationIndex == p)
-                ?? throw new InvalidOperationException($"Missing response for preparation {p}.");
-
-            decimal deviation = (prep.ActualWeightMg - prep.TheoreticalWeightMg) / prep.TheoreticalWeightMg * 100m;
-            bool outOfWindow = Math.Abs(deviation) > SampleWeighInTolerancePercent;
-
-            decimal prepAssay = CalculatePreparationAssay(
-                respMatch.Response,
-                standardMeanArea,
-                standardActualWeightMg,
-                standardTheoreticalWeightMg,
-                prep.TheoreticalWeightMg,
-                prep.ActualWeightMg,
-                moisturePercent,
-                standardPurityPercent,
-                blankTitreMl);
-
-            prepDataList.Add(new StandardComparisonPreparationData(
-                PreparationIndex: p,
-                TheoreticalWeightMg: prep.TheoreticalWeightMg,
-                ActualWeightMg: prep.ActualWeightMg,
-                WeighInDeviationPercent: deviation,
-                WeighInOutOfWindow: outOfWindow,
-                WeighInJustification: prep.WeighInJustification,
-                TestResponse: respMatch.Response,
-                PercentAssay: prepAssay));
-        }
-
-        decimal reportedValue = prepDataList.Select(p => p.PercentAssay).Average();
-
-        var (rsdPercent, rsdExceeded, reviewReason) = CalculatePreparationRsd(
-            prepDataList.Select(p => p.PercentAssay).ToList(),
-            maxPreparationRsdPercent);
-
-        var rounded = Math.Round(reportedValue, 1, MidpointRounding.AwayFromZero).ToString("0.0", CultureInfo.InvariantCulture);
-        string reportedDisplay = $"{rounded} %";
-
-        ResultStatus status = SpecificationEvaluator.Evaluate(spec, reportedValue);
-        if (rsdExceeded)
-        {
-            status = ResultStatus.RequiresReview;
-        }
-
-        var calcData = new StandardComparisonCalculationData(
-            AnalyteName: analyteName,
-            TestAnalyteId: testAnalyteId,
-            SystemSuitabilityRunAnalyteId: systemSuitabilityRunAnalyteId,
-            StandardTheoreticalWeightMg: standardTheoreticalWeightMg,
-            StandardActualWeightMg: standardActualWeightMg,
-            StandardPurityPercent: standardPurityPercent,
-            MoisturePercent: moisturePercent,
-            StandardMeanArea: standardMeanArea,
-            Preparations: prepDataList,
-            ReportedPercentAssay: reportedValue,
-            PreparationRsdPercent: rsdPercent,
-            MaxPreparationRsdPercent: maxPreparationRsdPercent,
-            RsdExceeded: rsdExceeded,
-            ReviewReason: reviewReason,
-            ResponseMode: responseMode.ToString(),
-            BlankTitreMl: blankTitreMl);
-
-        string calculationJson = JsonSerializer.Serialize(calcData, JsonOptions);
-
-        return new StandardComparisonCalculationResult(
-            Preparations: prepDataList,
-            ReportedValue: reportedValue,
-            ReportedDisplay: reportedDisplay,
-            PreparationRsdPercent: rsdPercent,
-            RsdExceeded: rsdExceeded,
-            ReviewReason: reviewReason,
-            ComparisonStatus: status,
-            CalculationJson: calculationJson,
-            CalculationData: calcData);
     }
 }

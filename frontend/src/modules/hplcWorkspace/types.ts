@@ -167,6 +167,26 @@ export interface HplcRunSampleSummaryDto {
   productName?: string | null;
   testCode: string;
   submitted: boolean;
+  isDissolution: boolean;
+}
+
+export interface HplcDissolutionStandardValues {
+  hplcRunId: number;
+  runSampleId: number;
+  equipmentId: number;
+  runCode: string;
+  sstCode: string;
+  meanResponse: number;
+  standardWeightMg: number;
+  purityPercent: number;
+  moisturePercent: number;
+  standardDilution: number;
+  cs: number;
+}
+
+export interface HplcDissolutionStandardResult {
+  standard: HplcDissolutionStandardValues | null;
+  problem: string | null;
 }
 
 export interface HplcRunDto {

@@ -7,6 +7,7 @@ import type {
   EligibleTestDto,
   HplcSampleEntryDto,
   HplcEvidenceDto,
+  HplcDissolutionStandardResult,
   HplcEvidenceContext,
   HplcEvidenceKind,
   StartHplcRunRequest,
@@ -76,6 +77,14 @@ export const HplcWorkspaceService = {
       `/hplc-workspace/test-orders/${testOrderId}/evidence`
     );
     return res.data?.data ?? [];
+  },
+
+  // The standard (and Cs) from the HPLC run a dissolution test is assigned to.
+  getDissolutionStandard: async (testOrderId: number): Promise<HplcDissolutionStandardResult> => {
+    const res = await apiClient.get<ApiResponse<HplcDissolutionStandardResult>>(
+      `/hplc-workspace/test-orders/${testOrderId}/dissolution-standard`
+    );
+    return res.data?.data ?? { standard: null, problem: null };
   },
 
   downloadEvidence: async (id: number): Promise<{ blob: Blob; contentType: string; fileName: string }> => {

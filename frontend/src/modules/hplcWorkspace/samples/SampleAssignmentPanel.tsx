@@ -107,10 +107,14 @@ export function SampleAssignmentPanel({
               variant={s.submitted ? "outlined" : "contained"}
               color="primary"
               startIcon={s.submitted ? <VisibilityIcon fontSize="small" /> : <EditNoteIcon fontSize="small" />}
-              onClick={() => navigate(`/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`)}
+              onClick={() =>
+                s.isDissolution
+                  ? navigate(`/receiving-testing?search=${encodeURIComponent(s.sampleNumber)}`)
+                  : navigate(`/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`)
+              }
               sx={{ textTransform: "none", py: 0.25 }}
             >
-              {s.submitted ? "View Entry" : "Enter Replicates"}
+              {s.submitted ? "View Entry" : s.isDissolution ? "Enter Dissolution" : "Enter Replicates"}
             </Button>
 
             {canRemove && (

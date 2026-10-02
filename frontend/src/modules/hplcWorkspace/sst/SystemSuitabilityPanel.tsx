@@ -170,10 +170,12 @@ export function SystemSuitabilityPanel({
     });
 
   // Save SST inputs
-  const handleSaveSst = async () => {
-    if (!sst) return;
+  // refresh=false keeps the page mounted (the parent reload shows a spinner),
+  // so the signature dialog can open straight after the save.
+  const handleSaveSst = async (refresh = true): Promise<boolean> => {
+    if (!sst) return false;
     setCheckMissing(true);
-    if (findMissing().length) return;
+    if (findMissing().length) return false;
     const analytesPayload: SaveSstAnalyteInput[] = Object.values(analyteInputs);
 
     setSaving(true);
@@ -184,10 +186,12 @@ export function SystemSuitabilityPanel({
       if (savedRun && savedRun.sst) {
         setCurrentRun(savedRun);
       }
-      onRunUpdated();
+      if (refresh) onRunUpdated();
+      return true;
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Could not save system suitability.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -332,7 +336,7 @@ export function SystemSuitabilityPanel({
             <Button
               variant="outlined"
               startIcon={<SaveIcon />}
-              onClick={handleSaveSst}
+              onClick={() => handleSaveSst()}
               disabled={saving}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
@@ -353,7 +357,10 @@ export function SystemSuitabilityPanel({
                     color="success"
                     startIcon={<VerifiedUserIcon />}
                     disabled={!currentRun.canConfirmSst || saving}
-                    onClick={() => {
+                    onClick={async () => {
+                      // Confirm signs what is stored, so save the screen first;
+                      // otherwise unsaved entries are signed as blanks.
+                      if (!(await handleSaveSst(false))) return;
                       setSignComment("");
                       setSignOpen(true);
                     }}

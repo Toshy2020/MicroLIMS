@@ -550,11 +550,14 @@ public partial class HplcRunServiceTests
     {
         await using var db = NewDb();
         var (_, clock) = NewClock(SepFirst);
-        var s = await SeedScenarioAsync(db, clock);
+        var s = await SeedScenarioAsync(db, clock, standardInjections: 3, sstMaxRsdPercent: null);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
 
         Assert.False(run.CanConfirmSst);
+        await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(run.Sst!.Analytes[0].Id, lot.Id, 50m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
         await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", PdfBytes(), s.UserId);
         run = await service.GetRunAsync(run.Id, s.UserId);
 
@@ -756,6 +759,30 @@ public partial class HplcRunServiceTests
             () => service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null));
 
         Assert.Contains("standard report", ex.Message);
+    }
+
+    // A blank injection box is sent as 0; confirming must refuse before signing
+    // instead of recording a permanent SST failure.
+    [Fact]
+    public async Task ConfirmSst_BlankInjection_ThrowsAndBlocksConfirm()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock, standardInjections: 3, sstMaxRsdPercent: null);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry);
+        var service = TestServiceFactory.HplcRun(db, clock: clock);
+        var run = await service.StartRunAsync(StartRequest(s), s.UserId);
+        var analyteId = run.Sst!.Analytes[0].Id;
+        var saved = await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(analyteId, lot.Id, 50m, new List<decimal> { 1000m, 0m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
+        await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", PdfBytes(), s.UserId);
+
+        Assert.False(saved.CanConfirmSst);
+        Assert.Contains("injection #2", saved.CanConfirmSstReason);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null));
+        Assert.Contains("injection #2", ex.Message);
+        Assert.Equal(HplcSstStatus.Pending, (await service.GetRunAsync(run.Id, s.UserId)).Sst!.Status);
     }
 
     // Review Focus line 2: a mobile-phase preparation that expires after it

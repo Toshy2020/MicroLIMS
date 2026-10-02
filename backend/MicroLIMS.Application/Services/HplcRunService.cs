@@ -98,6 +98,40 @@ public partial class HplcRunService
 
     private const string MissingStandardReportReason = "Upload the standard report before confirming system suitability.";
 
+    // A blank SST entry would be signed as a permanent failure, so confirmation
+    // waits until every required value is in. Returns "Analyte: field, field" lines.
+    private static List<string> MissingSstEntries(HplcRun run)
+    {
+        var missing = new List<string>();
+        if (run.Sst == null) return missing;
+        var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
+        var methodById = snapshot?.Analytes.ToDictionary(a => a.Id) ?? new Dictionary<int, HplcMethodAnalyteResponse>();
+
+        foreach (var a in run.Sst.Analytes.OrderBy(x => x.Id))
+        {
+            var fields = new List<string>();
+            if (a.StandardMaterialId == null) fields.Add("reference standard lot");
+            if (!(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
+            if (methodById.TryGetValue(a.HplcMethodAnalyteId, out var m))
+            {
+                var blank = Enumerable.Range(1, m.StandardInjections)
+                    .Where(n => !(a.Injections.FirstOrDefault(i => i.InjectionNo == n)?.Response > 0)).ToList();
+                if (blank.Count > 0) fields.Add($"injection {string.Join(", ", blank.Select(n => $"#{n}"))}");
+                if (m.SstMinResolution.HasValue && a.Resolution == null) fields.Add("resolution");
+                if (m.SstMaxTailingFactor.HasValue && a.TailingFactor == null) fields.Add("tailing factor");
+                if (m.SstMinTheoreticalPlates.HasValue && a.TheoreticalPlates == null) fields.Add("theoretical plates");
+                if (m.SstMinRetentionFactor.HasValue && a.RetentionFactor == null) fields.Add("retention factor");
+                if (m.SstMinSignalToNoise.HasValue && a.SignalToNoise == null) fields.Add("signal-to-noise");
+                if (m.SstMinPeakToValley.HasValue && a.PeakToValley == null) fields.Add("peak-to-valley");
+            }
+            if (fields.Count > 0) missing.Add($"{a.AnalyteName}: {string.Join(", ", fields)}");
+        }
+        return missing;
+    }
+
+    private static string MissingSstReason(List<string> missing) =>
+        $"Complete these entries and save before confirming. {string.Join("; ", missing)}.";
+
     private static bool IsCurrentSstStandardReport(HplcEvidence e) =>
         e.Context == HplcEvidenceContext.Sst && e.Kind == HplcEvidenceKind.StandardReport && e.SupersededByEvidenceId == null;
 
@@ -419,6 +453,10 @@ public partial class HplcRunService
             throw new InvalidOperationException("The run is closed.");
         if (run.Sst == null || run.Sst.Status != HplcSstStatus.Pending)
             throw new InvalidOperationException("System suitability has already been confirmed.");
+
+        var missingEntries = MissingSstEntries(run);
+        if (missingEntries.Count > 0)
+            throw new InvalidOperationException(MissingSstReason(missingEntries));
 
         if (!run.Evidence.Any(IsCurrentSstStandardReport))
             throw new InvalidOperationException(MissingStandardReportReason);
@@ -743,14 +781,18 @@ public partial class HplcRunService
             e.UploadedByUserId, NameOf(e.UploadedByUserId), e.UploadedAt, e.SupersededByEvidenceId == null, e.SupersedeReason)).ToList();
 
         var hasStandardReport = run.Evidence.Any(IsCurrentSstStandardReport);
-        var canConfirmSst = run.Status == HplcRunStatus.Open && run.Sst?.Status == HplcSstStatus.Pending && hasStandardReport;
+        var missingSst = run.Sst?.Status == HplcSstStatus.Pending ? MissingSstEntries(run) : new List<string>();
+        var canConfirmSst = run.Status == HplcRunStatus.Open && run.Sst?.Status == HplcSstStatus.Pending
+            && missingSst.Count == 0 && hasStandardReport;
         string? canConfirmSstReason = run.Status != HplcRunStatus.Open
             ? "The run is closed."
             : run.Sst?.Status != HplcSstStatus.Pending
                 ? "System suitability has already been confirmed."
-                : !hasStandardReport
-                    ? MissingStandardReportReason
-                    : null;
+                : missingSst.Count > 0
+                    ? MissingSstReason(missingSst)
+                    : !hasStandardReport
+                        ? MissingStandardReportReason
+                        : null;
 
         var canAssignSamples = run.Status == HplcRunStatus.Open && run.Sst?.Status == HplcSstStatus.Passed;
         string? canAssignSamplesReason = canAssignSamples

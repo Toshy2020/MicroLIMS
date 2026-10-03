@@ -10,7 +10,7 @@ public record HplcMethodGradientStepResponse(
     int Id, decimal TimeMin, decimal PercentA, decimal PercentB, decimal PercentC, decimal PercentD);
 
 public record HplcMethodAnalyteResponse(
-    int Id, int DisplayOrder, string Name, decimal WavelengthNm,
+    int Id, int DisplayOrder, string Name, decimal? WavelengthNm,
     int StandardEntryId, string StandardEntryCode,
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent, decimal? SstMinResolution, decimal? SstMaxTailingFactor,
@@ -31,10 +31,10 @@ public class HplcMethodResponse
     public string ColumnDesignation { get; init; } = null!;
     public decimal ColumnLengthMm { get; init; }
     public decimal ColumnInternalDiameterMm { get; init; }
-    public decimal ParticleSizeUm { get; init; }
+    public decimal? ParticleSizeUm { get; init; }
     public string? ColumnBrand { get; init; }
     public string? ColumnPartNumber { get; init; }
-    public decimal ColumnTemperatureC { get; init; }
+    public decimal? ColumnTemperatureC { get; init; }
 
     public ElutionMode ElutionMode { get; init; }
     public decimal? EquilibrationMin { get; init; }

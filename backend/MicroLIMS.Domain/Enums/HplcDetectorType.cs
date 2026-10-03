@@ -8,5 +8,9 @@ public enum HplcDetectorType
     FLD,
     RI,
     ELSD,
-    Other
+    Other,
+    Fid,
+    Tcd,
+    Ecd,
+    Ms
 }

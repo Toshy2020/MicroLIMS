@@ -111,6 +111,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<HplcMethodAnalyte> HplcMethodAnalytes => Set<HplcMethodAnalyte>();
     public DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases => Set<HplcMethodMobilePhase>();
     public DbSet<HplcMethodGradientStep> HplcMethodGradientSteps => Set<HplcMethodGradientStep>();
+    public DbSet<HplcMethodOvenStep> HplcMethodOvenSteps => Set<HplcMethodOvenStep>();
     public DbSet<SolutionPreparation> SolutionPreparations => Set<SolutionPreparation>();
     public DbSet<SolutionPreparationComponent> SolutionPreparationComponents => Set<SolutionPreparationComponent>();
     public DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories => Set<SolutionPreparationStatusHistory>();

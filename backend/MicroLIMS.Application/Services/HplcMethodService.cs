@@ -12,7 +12,7 @@ namespace MicroLIMS.Application.Services;
 
 public record HplcMobilePhaseInput(string Channel, int SolutionMasterId, decimal? RatioPercent);
 public record HplcGradientStepInput(decimal TimeMin, decimal PercentA, decimal PercentB, decimal PercentC, decimal PercentD);
-public record HplcAnalyteInput(int? Id, string Name, decimal WavelengthNm, int StandardEntryId,
+public record HplcAnalyteInput(int? Id, string Name, decimal? WavelengthNm, int StandardEntryId,
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent = null, decimal? SstMinResolution = null, decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null, decimal? SstMinRetentionFactor = null,
@@ -20,8 +20,8 @@ public record HplcAnalyteInput(int? Id, string Name, decimal WavelengthNm, int S
 
 public record SaveHplcMethodRequest(
     string Name, string Abbreviation, DateTime EffectiveDate,
-    string ColumnDesignation, decimal ColumnLengthMm, decimal ColumnInternalDiameterMm, decimal ParticleSizeUm,
-    decimal ColumnTemperatureC, ElutionMode ElutionMode, decimal FlowRateMlPerMin,
+    string ColumnDesignation, decimal ColumnLengthMm, decimal ColumnInternalDiameterMm, decimal? ParticleSizeUm,
+    decimal? ColumnTemperatureC, ElutionMode ElutionMode, decimal FlowRateMlPerMin,
     HplcDetectorType DetectorType, decimal InjectionVolumeUl, decimal RunTimeMin, int DiluentSolutionId,
     List<HplcMobilePhaseInput> MobilePhases, List<HplcGradientStepInput> GradientSteps, List<HplcAnalyteInput> Analytes,
     string? ColumnBrand = null, string? ColumnPartNumber = null, decimal? EquilibrationMin = null,
@@ -387,7 +387,7 @@ public class HplcMethodService
         if (string.IsNullOrWhiteSpace(r.ColumnDesignation))
             throw new InvalidOperationException("Column designation is required.");
 
-        if (r.ColumnLengthMm <= 0m || r.ColumnInternalDiameterMm <= 0m || r.ParticleSizeUm <= 0m || r.ColumnTemperatureC <= 0m
+        if (r.ColumnLengthMm <= 0m || r.ColumnInternalDiameterMm <= 0m || !(r.ParticleSizeUm > 0m) || !(r.ColumnTemperatureC > 0m)
             || r.FlowRateMlPerMin <= 0m || r.InjectionVolumeUl <= 0m || r.RunTimeMin <= 0m)
             throw new InvalidOperationException("Column and run parameters must be greater than zero.");
 
@@ -494,7 +494,7 @@ public class HplcMethodService
             if (!names.Add(a.Name.Trim()))
                 throw new InvalidOperationException($"Analyte name \"{a.Name}\" is used more than once.");
 
-            if (a.WavelengthNm < 190m || a.WavelengthNm > 900m)
+            if (!(a.WavelengthNm >= 190m && a.WavelengthNm <= 900m))
                 throw new InvalidOperationException("Analyte wavelength must be between 190 and 900 nm.");
 
             if (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m)

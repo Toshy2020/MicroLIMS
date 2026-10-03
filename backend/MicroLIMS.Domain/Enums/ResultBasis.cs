@@ -7,5 +7,6 @@ public enum ResultBasis
     PercentLabelClaim,
     PercentAsIs,
     PercentDriedBasis,
-    PercentAnhydrousBasis
+    PercentAnhydrousBasis,
+    Ppm
 }

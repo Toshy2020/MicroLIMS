@@ -609,4 +609,29 @@ public class DocumentControlUnitTests
         Assert.NotNull(audit);
         Assert.Contains(audit.Changes, c => c.FieldName == "IsActive" && c.PreviousValue == "True" && c.NewValue == "False");
     }
+
+    [Fact]
+    public async Task SearchAuditLogs_ReturnsOnlyDocumentControlRows()
+    {
+        var now = DateTime.UtcNow;
+        _db.AuditLogs.AddRange(
+            new AuditLog { EntityName = nameof(Sample), EntityId = "1", Action = "Create", Timestamp = now },
+            new AuditLog { EntityName = nameof(User), EntityId = "2", Action = "Update", Timestamp = now },
+            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = "3", Action = "Create", Timestamp = now },
+            new AuditLog { EntityName = nameof(DocumentKeyword), EntityId = "4", Action = "Create", Timestamp = now },
+            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = "5", Action = "Create", DocumentMasterId = 7, Timestamp = now },
+            new AuditLog { EntityName = nameof(AuditLog), EntityId = "", Action = "AuditTrailExported", ActionCode = "AuditTrailExported", Timestamp = now });
+        await _db.SaveChangesAsync();
+
+        var result = await _docAuditService.SearchAuditLogsAsync(new DocumentAuditFilterRequest(PageSize: 100), _adminUserId);
+
+        // The fixture's own seeding adds captured rows (roles, users, document
+        // types...), so check what is in and out rather than an exact count.
+        Assert.DoesNotContain(result.Items, i => i.EntityName == nameof(Sample) || i.EntityName == nameof(User) || i.EntityName == nameof(Role));
+        Assert.DoesNotContain(result.Items, i => i.EntityName == nameof(ElectronicSignature) && i.DocumentMasterId == null);
+        Assert.Contains(result.Items, i => i.EntityName == nameof(DocumentKeyword) && i.EntityId == "4");
+        Assert.Contains(result.Items, i => i.EntityName == nameof(ElectronicSignature) && i.EntityId == "5");
+        Assert.Contains(result.Items, i => i.EntityName == nameof(AuditLog) && i.ActionCode == "AuditTrailExported");
+        Assert.Equal(result.Items.Count, result.TotalCount);
+    }
 }

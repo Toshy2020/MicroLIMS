@@ -121,7 +121,7 @@ public class DocumentAuditService : IDocumentAuditService
 
         // Record export in audit trail (DC-URS-131: audit trail export is itself an audited action)
         await _auditEventService.RecordUserEventAsync(
-            actionCode: "AuditTrailExported",
+            actionCode: AuditTrailExportedActionCode,
             actionCategory: AuditActionCategory.Security,
             recordType: nameof(AuditLog),
             reason: $"Exported {logs.Count} audit records to CSV.",
@@ -135,12 +135,32 @@ public class DocumentAuditService : IDocumentAuditService
         return (bytes, "text/csv", fileName);
     }
 
+    // The global trail is a Document Control screen, so it only shows rows
+    // about Document Control records. The automatic change capture writes
+    // rows for these entities without a DocumentMasterId (configuration,
+    // keywords, curricula...), hence the entity list as well as the id.
+    private static readonly string[] DocumentControlEntityNames =
+    {
+        nameof(DocumentAcknowledgementRecord), nameof(DocumentApprovalTask), nameof(DocumentDepartment),
+        nameof(DocumentEscalationRecord), nameof(DocumentKeyword), nameof(DocumentMaster),
+        nameof(DocumentMasterAssignment), nameof(DocumentNumberingConfiguration), nameof(DocumentReviewFinding),
+        nameof(DocumentReviewTask), nameof(DocumentRevision), nameof(DocumentRoleCurriculum),
+        nameof(DocumentRoleCurriculumItem), nameof(DocumentSection), nameof(DocumentTrainingAssignment),
+        nameof(DocumentTrainingConfiguration), nameof(DocumentType), nameof(PeriodicReviewFinding),
+        nameof(PeriodicReviewTask), nameof(RevisionChangeItem), nameof(RevisionFile),
+        nameof(RevisionImpactAssessment), nameof(ConfigurationSetting)
+    };
+
+    private const string AuditTrailExportedActionCode = "AuditTrailExported";
+
     private IQueryable<AuditLog> BuildAuditQuery(DocumentAuditFilterRequest filter)
     {
         var query = _db.AuditLogs
             .Include(a => a.Changes)
             .AsNoTracking()
-            .AsQueryable();
+            .Where(a => a.DocumentMasterId != null
+                     || DocumentControlEntityNames.Contains(a.EntityName)
+                     || (a.EntityName == nameof(AuditLog) && a.ActionCode == AuditTrailExportedActionCode));
 
         if (filter.DateFrom.HasValue)
             query = query.Where(a => a.Timestamp >= filter.DateFrom.Value);

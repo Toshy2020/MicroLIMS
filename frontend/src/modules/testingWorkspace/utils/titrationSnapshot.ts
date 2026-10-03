@@ -1,6 +1,6 @@
-// Reads the TitrationSnapshot stored on TestAnalysis.ConditionsJson. Key names
-// are matched case-insensitively against a few likely spellings so a small
-// naming difference on the server does not blank the display.
+// Reads the TitrationSnapshot stored on TestAnalysis.ConditionsJson
+// (TitrationRecorder: titrant details nested under "titrant"). Keys are
+// matched case-insensitively.
 
 const pick = (o: Record<string, unknown>, ...names: string[]): unknown => {
   const lower = new Map(Object.keys(o).map((k) => [k.toLowerCase(), k]));
@@ -24,12 +24,17 @@ export function parseTitrationSnapshot(conditionsJson: string | null | undefined
     const o = JSON.parse(conditionsJson);
     if (typeof o !== "object" || o === null || Array.isArray(o)) return null;
     const rec = o as Record<string, unknown>;
-    const factor = pick(rec, "factorUsed", "factor");
+    // The server nests the titrant details: { titrant: { code, factorUsed, factorState, ... } }.
+    const nested = pick(rec, "titrant");
+    const titrant = typeof nested === "object" && nested !== null && !Array.isArray(nested)
+      ? (nested as Record<string, unknown>)
+      : rec;
+    const factor = pick(titrant, "factorUsed", "factor");
     const warnings = pick(rec, "warnings");
     return {
-      titrantCode: (pick(rec, "titrantPreparationCode", "titrantCode", "titrantPrepCode") as string | null),
+      titrantCode: (pick(titrant, "code", "titrantPreparationCode", "titrantCode") as string | null),
       factor: factor != null && !isNaN(Number(factor)) ? Number(factor) : null,
-      factorState: (pick(rec, "factorState") as string | null),
+      factorState: (pick(titrant, "factorState") as string | null),
       warnings: Array.isArray(warnings) ? warnings.map(String) : []
     };
   } catch {

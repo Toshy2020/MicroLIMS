@@ -12045,7 +12045,7 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardQualification", b =>
                 {
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ApprovedSignature")
                         .WithMany()
                         .HasForeignKey("ApprovedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -12061,17 +12061,17 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "PreparedSignature")
                         .WithMany()
                         .HasForeignKey("PreparedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "RejectedSignature")
                         .WithMany()
                         .HasForeignKey("RejectedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ReviewedSignature")
                         .WithMany()
                         .HasForeignKey("ReviewedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -12092,7 +12092,15 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("WorkingStandardMaterialId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("ApprovedSignature");
+
                     b.Navigation("MaterialMasterEntry");
+
+                    b.Navigation("PreparedSignature");
+
+                    b.Navigation("RejectedSignature");
+
+                    b.Navigation("ReviewedSignature");
 
                     b.Navigation("Section");
 

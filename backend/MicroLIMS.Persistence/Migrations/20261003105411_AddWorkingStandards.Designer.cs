@@ -3359,6 +3359,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("SstMinTheoreticalPlates")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<decimal?>("StandardDilution")
+                        .HasColumnType("decimal(12,4)");
+
                     b.Property<int>("StandardEntryId")
                         .HasColumnType("integer");
 
@@ -7814,290 +7817,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("SpecificationStages");
                 });
 
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityRun", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("ChromatographyColumnId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<decimal?>("ComputedRsdPercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<int>("EquipmentId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FailureReasons")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal?>("MoisturePercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<bool>("Passed")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("PerformedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PerformedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ReferenceStandardMaterialId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("Resolution")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal?>("RsdPercent")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<int>("SectionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SignatureId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("StandardDilution")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("StandardMeanArea")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("StandardPurityPercent")
-                        .HasPrecision(6, 3)
-                        .HasColumnType("numeric(6,3)");
-
-                    b.Property<decimal?>("StandardWeighInDeviationPercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<bool>("StandardWeighInOutOfWindow")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("StandardWeightMg")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal?>("TailingFactor")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<int>("TestDefinitionId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("TheoreticalPlates")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal?>("TheoreticalWeightMg")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<string>("WeighInJustification")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChromatographyColumnId");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("EquipmentId");
-
-                    b.HasIndex("PerformedAt");
-
-                    b.HasIndex("PerformedByUserId");
-
-                    b.HasIndex("ReferenceStandardMaterialId");
-
-                    b.HasIndex("SectionId");
-
-                    b.HasIndex("SignatureId");
-
-                    b.HasIndex("TestDefinitionId");
-
-                    b.ToTable("SystemSuitabilityRuns");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityRunAnalyte", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AnalyteName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<decimal?>("BlankTitreMl")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<decimal?>("ComputedRsdPercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<string>("FailureReasons")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal?>("MoisturePercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<bool>("Passed")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ReferenceStandardMaterialId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("Resolution")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<decimal?>("RsdPercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<decimal>("StandardDilution")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<decimal>("StandardMeanArea")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<decimal>("StandardPurityPercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<decimal?>("StandardWeighInDeviationPercent")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<bool>("StandardWeighInOutOfWindow")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("StandardWeightMg")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<int>("SystemSuitabilityRunId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("TailingFactor")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<int>("TestAnalyteId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("TheoreticalPlates")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<decimal?>("TheoreticalWeightMg")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<decimal>("WavelengthNm")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("numeric(10,4)");
-
-                    b.Property<string>("WeighInJustification")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReferenceStandardMaterialId");
-
-                    b.HasIndex("SystemSuitabilityRunId");
-
-                    b.HasIndex("TestAnalyteId");
-
-                    b.HasIndex("SystemSuitabilityRunId", "TestAnalyteId")
-                        .IsUnique();
-
-                    b.ToTable("SystemSuitabilityRunAnalytes", (string)null);
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityStandardResponse", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Index")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Response")
-                        .HasPrecision(28, 10)
-                        .HasColumnType("numeric(28,10)");
-
-                    b.Property<int>("SystemSuitabilityRunAnalyteId")
-                        .HasColumnType("integer");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SystemSuitabilityRunAnalyteId");
-
-                    b.HasIndex("SystemSuitabilityRunAnalyteId", "Index")
-                        .IsUnique()
-                        .HasDatabaseName("IX_SystemSuitabilityStandardResponses_SystemSuitabilityRunAna~1");
-
-                    b.ToTable("SystemSuitabilityStandardResponses", (string)null);
-                });
-
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.Property<int>("Id")
@@ -8348,10 +8067,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("EvaluationBasis")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("HplcMaxPreparationRsdPercent")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
-
                     b.Property<int?>("HplcMethodId")
                         .HasColumnType("integer");
 
@@ -8370,9 +8085,6 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<bool>("RequiresSystemSuitability")
                         .HasColumnType("boolean");
-
-                    b.Property<int>("ResponseMode")
-                        .HasColumnType("integer");
 
                     b.Property<int>("SectionId")
                         .HasColumnType("integer");
@@ -8477,9 +8189,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("SampleReplicates")
                         .HasColumnType("integer");
 
-                    b.Property<int>("StandardReplicates")
-                        .HasColumnType("integer");
-
                     b.Property<int>("TestDefinitionId")
                         .HasColumnType("integer");
 
@@ -8532,9 +8241,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("SystemSuitabilityRunId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("TestCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -8552,8 +8258,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("SampleId");
 
                     b.HasIndex("SectionId");
-
-                    b.HasIndex("SystemSuitabilityRunId");
 
                     b.ToTable("TestOrders");
                 });
@@ -12007,102 +11711,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Specification");
                 });
 
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityRun", b =>
-                {
-                    b.HasOne("MicroLIMS.Domain.Entities.ChromatographyColumn", "ChromatographyColumn")
-                        .WithMany()
-                        .HasForeignKey("ChromatographyColumnId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("MicroLIMS.Domain.Entities.Equipment", "Equipment")
-                        .WithMany()
-                        .HasForeignKey("EquipmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.User", "PerformedByUser")
-                        .WithMany()
-                        .HasForeignKey("PerformedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.Material", "ReferenceStandardMaterial")
-                        .WithMany()
-                        .HasForeignKey("ReferenceStandardMaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
-                        .WithMany()
-                        .HasForeignKey("SectionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "Signature")
-                        .WithMany()
-                        .HasForeignKey("SignatureId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.TestDefinition", "TestDefinition")
-                        .WithMany()
-                        .HasForeignKey("TestDefinitionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ChromatographyColumn");
-
-                    b.Navigation("Equipment");
-
-                    b.Navigation("PerformedByUser");
-
-                    b.Navigation("ReferenceStandardMaterial");
-
-                    b.Navigation("Section");
-
-                    b.Navigation("Signature");
-
-                    b.Navigation("TestDefinition");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityRunAnalyte", b =>
-                {
-                    b.HasOne("MicroLIMS.Domain.Entities.Material", "ReferenceStandardMaterial")
-                        .WithMany()
-                        .HasForeignKey("ReferenceStandardMaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.SystemSuitabilityRun", "SystemSuitabilityRun")
-                        .WithMany("Analytes")
-                        .HasForeignKey("SystemSuitabilityRunId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MicroLIMS.Domain.Entities.TestAnalyte", "TestAnalyte")
-                        .WithMany()
-                        .HasForeignKey("TestAnalyteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ReferenceStandardMaterial");
-
-                    b.Navigation("SystemSuitabilityRun");
-
-                    b.Navigation("TestAnalyte");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityStandardResponse", b =>
-                {
-                    b.HasOne("MicroLIMS.Domain.Entities.SystemSuitabilityRunAnalyte", "SystemSuitabilityRunAnalyte")
-                        .WithMany("Responses")
-                        .HasForeignKey("SystemSuitabilityRunAnalyteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SystemSuitabilityRunAnalyte");
-                });
-
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.User", "EnteredByUser")
@@ -12196,18 +11804,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MicroLIMS.Domain.Entities.SystemSuitabilityRun", "SystemSuitabilityRun")
-                        .WithMany()
-                        .HasForeignKey("SystemSuitabilityRunId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Room");
 
                     b.Navigation("Sample");
 
                     b.Navigation("Section");
-
-                    b.Navigation("SystemSuitabilityRun");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestReturnEvent", b =>
@@ -12447,7 +12048,7 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardQualification", b =>
                 {
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ApprovedSignature")
                         .WithMany()
                         .HasForeignKey("ApprovedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -12463,17 +12064,17 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "PreparedSignature")
                         .WithMany()
                         .HasForeignKey("PreparedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "RejectedSignature")
                         .WithMany()
                         .HasForeignKey("RejectedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ReviewedSignature")
                         .WithMany()
                         .HasForeignKey("ReviewedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -12494,7 +12095,15 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("WorkingStandardMaterialId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("ApprovedSignature");
+
                     b.Navigation("MaterialMasterEntry");
+
+                    b.Navigation("PreparedSignature");
+
+                    b.Navigation("RejectedSignature");
+
+                    b.Navigation("ReviewedSignature");
 
                     b.Navigation("Section");
 
@@ -12736,16 +12345,6 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Specification", b =>
                 {
                     b.Navigation("Stages");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityRun", b =>
-                {
-                    b.Navigation("Analytes");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSuitabilityRunAnalyte", b =>
-                {
-                    b.Navigation("Responses");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>

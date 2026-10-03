@@ -84,6 +84,26 @@ public partial class HplcRunServiceTests
     }
 
     [Fact]
+    public async Task WsEligible_SstUsedWorkingStandard_Empty()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+        var q = await AddQualificationAsync(db, s);
+        var service = TestServiceFactory.HplcRun(db, clock: clock);
+        var run = await service.StartRunAsync(StartRequest(s), s.UserId);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry);
+        lot.MaterialType = MaterialType.WorkingStandard;
+        await db.SaveChangesAsync();
+        await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(run.Sst!.Analytes[0].Id, lot.Id, 50m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
+        await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "std.pdf", "application/pdf", PdfBytes(), s.UserId);
+        await service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null);
+
+        Assert.Empty(await service.GetEligibleQualificationsAsync(run.Id, s.UserId));
+    }
+
+    [Fact]
     public async Task WsAssign_SetsAnalyteAndShowsInRunSummary()
     {
         await using var db = NewDb();

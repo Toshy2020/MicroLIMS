@@ -39,6 +39,7 @@ public partial class HplcRunService
     private async Task<List<(WorkingStandardQualification Q, HplcMethodAnalyteResponse Analyte, EligibleQualificationDto Dto)>>
         EligibleQualificationsAsync(HplcRun run, List<int>? ids, CancellationToken ct)
     {
+        if (SstUsedWorkingStandard(run)) return new();
         var snapshot = ReadSnapshot(run);
         var entryIds = snapshot.Analytes.Select(a => a.StandardEntryId).ToList();
         var busy = _db.HplcRunSamples
@@ -59,6 +60,9 @@ public partial class HplcRunService
         }).ToList();
     }
 
+    private static bool SstUsedWorkingStandard(HplcRun run) =>
+        run.Sst != null && run.Sst.Analytes.Any(a => a.StandardMaterial?.MaterialType != MaterialType.ReferenceStandard);
+
     public async Task<HplcRunDto> AssignQualificationsAsync(int runId, List<int> qualificationIds, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
@@ -68,7 +72,7 @@ public partial class HplcRunService
             throw new InvalidOperationException("The run is closed.");
         if (run.Sst?.Status != HplcSstStatus.Passed)
             throw new InvalidOperationException("Sample assignment is locked until system suitability passes.");
-        if (run.Sst.Analytes.Any(a => a.StandardMaterial?.MaterialType != MaterialType.ReferenceStandard))
+        if (SstUsedWorkingStandard(run))
             throw new InvalidOperationException(
                 "A working standard can only be qualified against a primary reference standard - this run's system suitability used a working standard.");
 

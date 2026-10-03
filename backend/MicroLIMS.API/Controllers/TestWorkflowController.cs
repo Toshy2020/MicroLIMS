@@ -58,6 +58,14 @@ public record ConfirmatorySelectionRequest(int StepMediaId, int MediaLotId, int 
 public record SubmitConfirmatorySetupRequest(string StepName, List<ConfirmatorySelectionRequest> Selections,
     DateTime IncubationStartUtc, DateTime IncubationEndUtc);
 
+public record TitrationStandardRequest(int MaterialId, decimal WeightMg, decimal TitreMl);
+public record TitrationReplicateRequest(decimal SampleWeightMg, decimal TitrantVolumeMl);
+public record RecordTitrationResultRequest(
+    DateTime AnalysedAt, int? EquipmentId, int TitrantPreparationId, int? ExcessPreparationId, decimal? BlankVolumeMl,
+    decimal? TitrationTemperatureC, decimal? LossOnDryingPercent, decimal? AverageUnitWeightMg,
+    List<TitrationStandardRequest>? Standards, List<int> SpecificationIds, List<TitrationReplicateRequest> Replicates,
+    string Password, string? Comment = null);
+
 public record ConfirmatoryObservationRequest(int MaterialId, GrowthObservation Observation);
 public record SubmitConfirmatoryObservationsRequest(string StepName, List<ConfirmatoryObservationRequest> Observations);
 
@@ -307,6 +315,28 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordGravimetricResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpGet("{testOrderId}/titration-context")]
+    public async Task<IActionResult> GetTitrationContext(int testOrderId, [FromServices] TitrationContextService context, CancellationToken ct) =>
+        await RunAsync(() => context.GetContextAsync(testOrderId, CurrentUserId, ct));
+
+    [HttpPost("{testOrderId}/record-titration-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordTitrationResult(int testOrderId, RecordTitrationResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new TitrationPayload(
+                request.AnalysedAt, request.EquipmentId, request.TitrantPreparationId, request.ExcessPreparationId,
+                request.BlankVolumeMl, request.TitrationTemperatureC, request.LossOnDryingPercent, request.AverageUnitWeightMg,
+                request.Standards?.Select(s => new TitrationStandardInput(s.MaterialId, s.WeightMg, s.TitreMl)).ToList(),
+                request.SpecificationIds ?? new List<int>(),
+                request.Replicates?.Select(r => new TitrationReplicateInput(r.SampleWeightMg, r.TitrantVolumeMl)).ToList() ?? new List<TitrationReplicateInput>(),
+                request.Password, request.Comment);
+            return _engine.RecordTitrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

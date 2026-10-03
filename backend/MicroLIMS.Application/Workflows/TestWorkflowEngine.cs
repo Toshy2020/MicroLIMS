@@ -40,6 +40,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly DisintegrationRecorder _disintegrationRecorder;
     private readonly WeightVariationRecorder _weightVariationRecorder;
     private readonly HplcMethodAssayRecorder _hplcMethodAssayRecorder;
+    private readonly TitrationRecorder _titrationRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
 
     public TestWorkflowEngine(
@@ -65,6 +66,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _disintegrationRecorder = new DisintegrationRecorder(deps);
         _weightVariationRecorder = new WeightVariationRecorder(deps);
         _hplcMethodAssayRecorder = new HplcMethodAssayRecorder(deps);
+        _titrationRecorder = new TitrationRecorder(deps);
         _pathogenConfirmationRecorder = new PathogenConfirmationRecorder(deps);
     }
 
@@ -134,6 +136,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> RecordMeasurementResultAsync(
         int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null) =>
         _singleResultRecorder.RecordMeasurementResultAsync(testOrderId, payload, userId, ipAddress);
+
+    public Task<TestWorkflowResult> RecordTitrationResultAsync(
+        int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null) =>
+        _titrationRecorder.RecordTitrationResultAsync(testOrderId, payload, userId, ipAddress);
 
     public Task<TestWorkflowResult> RecordGravimetricResultAsync(
         int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null) =>

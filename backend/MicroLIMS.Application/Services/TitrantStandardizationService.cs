@@ -324,10 +324,10 @@ public class TitrantStandardizationService
             return new CurrentFactorDto(null, null, null, "NotStandardized");
 
         if (current.ValidUntil == null)
-            return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, null, "BeforeEachUse", current.TemperatureC);
+            return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, null, "BeforeEachUse", current.TemperatureC, current.Id);
 
         var state = current.ValidUntil.Value > nowUtc ? "Valid" : "Due";
-        return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, current.ValidUntil, state, current.TemperatureC);
+        return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, current.ValidUntil, state, current.TemperatureC, current.Id);
     }
 
     public async Task<List<LotOption>> GetStandardLotOptionsAsync(int preparationId, int userId, CancellationToken ct = default)

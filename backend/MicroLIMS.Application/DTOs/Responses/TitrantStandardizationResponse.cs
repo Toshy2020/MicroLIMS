@@ -15,7 +15,7 @@ public record TitrantStandardizationReplicateResponse(
 // "Due" (a passed record whose ValidUntil has passed),
 // "BeforeEachUse" (a passed record with ValidityDays = 0 - ValidUntil is
 // always null, so this titrant must be restandardized before every use).
-public record CurrentFactorDto(decimal? Factor, DateTime? StandardizedAt, DateTime? ValidUntil, string State, decimal? TemperatureC = null);
+public record CurrentFactorDto(decimal? Factor, DateTime? StandardizedAt, DateTime? ValidUntil, string State, decimal? TemperatureC = null, int? StandardizationId = null);
 
 public class TitrantStandardizationResponse
 {

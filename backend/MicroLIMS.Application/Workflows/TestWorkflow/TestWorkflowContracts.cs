@@ -251,6 +251,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordTitrationResultAsync(int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordQualitativeResultAsync(int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordDissolutionResultAsync(int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordDissolutionStageAsync(int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null);

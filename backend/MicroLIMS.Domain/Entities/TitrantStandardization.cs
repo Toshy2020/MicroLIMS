@@ -22,6 +22,7 @@ public class TitrantStandardization
     public int StandardizedByUserId { get; set; }
     public DateTime StandardizedAt { get; set; }
     public DateTime? ValidUntil { get; set; }
+    public decimal? TemperatureC { get; set; } // lab temperature when standardized (needed for temperature-corrected titrations)
     public int SignatureId { get; set; }
     public ElectronicSignature? Signature { get; set; }
     public List<TitrantStandardizationReplicate> Replicates { get; set; } = new();

@@ -30,10 +30,10 @@ public static class GravimetricCalculator
     public static string FormatReportedDisplay(decimal reportedValue, Specification spec)
     {
         int decimals = 2;
-        if (spec.Target.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.Target.Value));
-        if (spec.Tolerance.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.Tolerance.Value));
-        if (spec.LowerLimit.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.LowerLimit.Value));
-        if (spec.UpperLimit.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.UpperLimit.Value));
+        if (spec.Target.HasValue) decimals = Math.Max(decimals, MeasurementCalculator.GetSpecDecimalPlaces(spec.Target.Value));
+        if (spec.Tolerance.HasValue) decimals = Math.Max(decimals, MeasurementCalculator.GetSpecDecimalPlaces(spec.Tolerance.Value));
+        if (spec.LowerLimit.HasValue) decimals = Math.Max(decimals, MeasurementCalculator.GetSpecDecimalPlaces(spec.LowerLimit.Value));
+        if (spec.UpperLimit.HasValue) decimals = Math.Max(decimals, MeasurementCalculator.GetSpecDecimalPlaces(spec.UpperLimit.Value));
 
         decimal rounded = Math.Round(reportedValue, decimals, MidpointRounding.AwayFromZero);
         string format = "0." + new string('0', decimals);

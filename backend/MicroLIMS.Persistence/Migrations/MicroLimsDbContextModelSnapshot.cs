@@ -8102,6 +8102,56 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
 
+                    b.Property<int?>("TitrantSolutionMasterId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("TitrationBlankRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TitrationCalculation")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TitrationEndpoint")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("TitrationEquivalencyFactor")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<int?>("TitrationExcessSolutionMasterId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("TitrationExcessVolumeMl")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)");
+
+                    b.Property<decimal?>("TitrationExpansionCoefficient")
+                        .HasPrecision(8, 6)
+                        .HasColumnType("numeric(8,6)");
+
+                    b.Property<string>("TitrationIndicator")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("TitrationMaxRsdPercent")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<int?>("TitrationMode")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("TitrationNonAqueous")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TitrationStandardEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("TitrationTempCorrection")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("TitrationType")
+                        .HasColumnType("integer");
+
                     b.Property<bool?>("UsesTare")
                         .HasColumnType("boolean");
 
@@ -8168,6 +8218,12 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("HplcMethodId");
 
                     b.HasIndex("SectionId");
+
+                    b.HasIndex("TitrantSolutionMasterId");
+
+                    b.HasIndex("TitrationExcessSolutionMasterId");
+
+                    b.HasIndex("TitrationStandardEntryId");
 
                     b.ToTable("TestDefinitions");
                 });
@@ -8565,6 +8621,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<int>("StandardizedByUserId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("TemperatureC")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<DateTime?>("ValidUntil")
                         .HasColumnType("timestamp with time zone");
@@ -11766,9 +11826,30 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.SolutionMaster", "TitrantSolutionMaster")
+                        .WithMany()
+                        .HasForeignKey("TitrantSolutionMasterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.SolutionMaster", "TitrationExcessSolutionMaster")
+                        .WithMany()
+                        .HasForeignKey("TitrationExcessSolutionMasterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MaterialMasterEntry", "TitrationStandardEntry")
+                        .WithMany()
+                        .HasForeignKey("TitrationStandardEntryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("HplcMethod");
 
                     b.Navigation("Section");
+
+                    b.Navigation("TitrantSolutionMaster");
+
+                    b.Navigation("TitrationExcessSolutionMaster");
+
+                    b.Navigation("TitrationStandardEntry");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestDefinitionStageReplicate", b =>

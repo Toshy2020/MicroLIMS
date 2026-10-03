@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAfterCleaningWorkflowEngine, AfterCleaningWorkflowEngine>();
         services.AddScoped<IMediaEvaluationEngine, MediaEvaluationEngine>();
         services.AddScoped<ITestWorkflowEngine, TestWorkflowEngine>();
+        services.AddScoped<TitrationContextService>();
 
         // Application services
         services.AddScoped<IReceivingService, ReceivingService>();

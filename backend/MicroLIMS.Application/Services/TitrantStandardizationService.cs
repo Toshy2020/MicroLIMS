@@ -13,7 +13,7 @@ namespace MicroLIMS.Application.Services;
 public record StandardizationReplicateInput(int? StandardMaterialId, decimal? StandardWeightMg,
     int? ReferencePreparationId, decimal? ReferenceVolumeMl, decimal TitrantVolumeMl, decimal? BlankMl);
 
-public record StandardizeRequest(List<StandardizationReplicateInput> Replicates, string Password, string? Comment);
+public record StandardizeRequest(List<StandardizationReplicateInput> Replicates, string Password, string? Comment, decimal? TemperatureC = null);
 
 // The titrant settings snapshotted onto each TitrantStandardization at the
 // moment it was performed (the master may change afterwards - the record
@@ -230,6 +230,9 @@ public class TitrantStandardizationService
             deductions.Add((lot, quantity));
         }
 
+        if (r.TemperatureC.HasValue && (r.TemperatureC < -20m || r.TemperatureC > 60m))
+            throw new InvalidOperationException("Temperature must be between -20 and 60 C.");
+
         var evaluation = TitrationEngine.Evaluate(factors, snapshot.FactorMin.Value, snapshot.FactorMax.Value, snapshot.MaxRsdPercent.Value);
 
         // Signs first - see the class comment. Only after this succeeds does
@@ -256,6 +259,7 @@ public class TitrantStandardizationService
             StandardizedByUserId = userId,
             StandardizedAt = nowUtc,
             ValidUntil = validityDays <= 0 ? null : nowUtc.AddDays(validityDays),
+            TemperatureC = r.TemperatureC,
             Signature = signature,
             Replicates = replicateEntities,
         };
@@ -320,10 +324,10 @@ public class TitrantStandardizationService
             return new CurrentFactorDto(null, null, null, "NotStandardized");
 
         if (current.ValidUntil == null)
-            return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, null, "BeforeEachUse");
+            return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, null, "BeforeEachUse", current.TemperatureC, current.Id);
 
         var state = current.ValidUntil.Value > nowUtc ? "Valid" : "Due";
-        return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, current.ValidUntil, state);
+        return new CurrentFactorDto(current.MeanFactor, current.StandardizedAt, current.ValidUntil, state, current.TemperatureC, current.Id);
     }
 
     public async Task<List<LotOption>> GetStandardLotOptionsAsync(int preparationId, int userId, CancellationToken ct = default)

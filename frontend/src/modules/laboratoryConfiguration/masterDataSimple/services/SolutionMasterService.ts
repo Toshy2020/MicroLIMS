@@ -4,7 +4,7 @@ import type { ApiResponse } from "./EquipmentConfigurationService";
 export type SolutionType = "MobilePhase" | "Diluent" | "Titrant";
 export type ShelfLifeUnit = "Hours" | "Days";
 export type SolutionComponentUnit = "Gram" | "Milligram" | "Milliliter" | "Liter" | "PercentVolume" | "Parts";
-export type TitrantStrengthUnit = "Normal" | "Molar";
+export type TitrantStrengthUnit = "Normal" | "Molar" | "MgWaterPerMl";
 export type StandardizationMode = "PrimaryStandard" | "AgainstVolumetricSolution";
 
 export interface SolutionComponentResponse {

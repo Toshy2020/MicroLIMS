@@ -2,6 +2,7 @@ import { CollapsibleTestCard, SecondaryToggle } from "./CollapsibleTestCard";
 import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } from "./SampleReportPage";
 import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
+import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
 import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
@@ -123,7 +124,14 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
     ? "Superseded"
     : `${a.parameterResults.length} parameter${a.parameterResults.length === 1 ? "" : "s"} · ${hasException ? "Out of Limits" : "Within Limits"}`;
 
-  const conditionsDisplay = formatConditions(a.conditionsJson);
+  const titration = a.analysisType === "Titration" ? parseTitrationSnapshot(a.conditionsJson) : null;
+  const conditionsDisplay = titration
+    ? [
+        titration.titrantCode ? `Titrant: ${titration.titrantCode}` : null,
+        titration.factor != null ? `Factor used: ${titration.factor}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
+        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null
+      ].filter(Boolean).join(" · ") || null
+    : formatConditions(a.conditionsJson);
 
   return (
     <CollapsibleTestCard
@@ -217,6 +225,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";
             const isWeightVariation = a.analysisType === "WeightVariation";
+            const isTitrationRun = a.analysisType === "Titration";
             const isTablet = isWeightVariation && p.readings.every((r) => r.value2 == null);
             const hasStage = p.readings.some((r) => r.stage !== null && r.stage !== undefined);
             const hasTimePoint = !isDisintegration && !isWeightVariation && p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
@@ -247,13 +256,15 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                               ? "Time (min)"
                               : isWeightVariation
                               ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+                              : isTitrationRun
+                              ? "Sample weight (mg)"
                               : "Value 1"}
                           </th>
                         )}
-                        {hasValue2 && <th>{isWeightVariation ? "Shell (mg)" : "Value 2"}</th>}
-                        {hasValue3 && <th>{isWeightVariation ? "Deviation %" : "Value 3"}</th>}
+                        {hasValue2 && <th>{isWeightVariation ? "Shell (mg)" : isTitrationRun ? "Titrant volume (mL)" : "Value 2"}</th>}
+                        {hasValue3 && <th>{isWeightVariation ? "Deviation %" : isTitrationRun ? "Corrected volume (mL)" : "Value 3"}</th>}
                         {hasText && <th>Text</th>}
-                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed"}</th>}
+                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isTitrationRun ? "Result" : "Computed"}</th>}
                         {hasPassed && <th>Passed</th>}
                       </tr>
                     </thead>

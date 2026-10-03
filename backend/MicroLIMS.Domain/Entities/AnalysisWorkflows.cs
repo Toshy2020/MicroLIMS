@@ -17,7 +17,8 @@ public static class AnalysisWorkflows
         WorkflowType.Dissolution,
         WorkflowType.Disintegration,
         WorkflowType.WeightVariation,
-        WorkflowType.HplcMethodAssay
+        WorkflowType.HplcMethodAssay,
+        WorkflowType.Titration
     };
 
     public static bool UsesTestAnalysis(WorkflowType workflowType) => Workflows.Contains(workflowType);
@@ -34,6 +35,7 @@ public static class AnalysisWorkflows
         WorkflowType.Disintegration => "disintegration",
         WorkflowType.WeightVariation => "weight variation",
         WorkflowType.HplcMethodAssay => "HPLC method assay",
+        WorkflowType.Titration => "titration",
         _ => "test analysis"
     };
 }

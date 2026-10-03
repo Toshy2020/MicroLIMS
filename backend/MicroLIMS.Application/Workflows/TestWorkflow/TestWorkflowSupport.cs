@@ -679,7 +679,8 @@ public class TestWorkflowSupport
         decimal? unitAmount = null,
         SampleMatrix? sampleMatrix = null,
         string? validityRecordType = null,
-        int? validityRecordId = null)
+        int? validityRecordId = null,
+        Action? afterSigned = null)
     {
         _db.CurrentUserId = userId;
         var signature = await _signatureService.SignAsync(
@@ -711,6 +712,7 @@ public class TestWorkflowSupport
         };
 
         _db.TestAnalyses.Add(entry);
+        afterSigned?.Invoke(); // runs only once the signature succeeded; saved in the same SaveChanges
 
         ResultStatus overallStatus;
         if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.OutOfSpecification))

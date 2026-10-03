@@ -4,5 +4,6 @@ namespace MicroLIMS.Domain.Enums;
 public enum TitrantStrengthUnit
 {
     Normal,
-    Molar
+    Molar,
+    MgWaterPerMl // Karl Fischer reagent: mg water per mL
 }

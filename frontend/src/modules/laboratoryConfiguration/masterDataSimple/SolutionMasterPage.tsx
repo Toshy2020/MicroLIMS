@@ -190,7 +190,7 @@ export function SolutionMasterPage() {
             )}
             {sol.type === "Titrant" && sol.nominalStrength != null && (
               <Typography variant="caption" color="text.secondary">
-                • {sol.nominalStrength} {sol.strengthUnit === "Molar" ? "M" : "N"} ({sol.standardizationMode === "PrimaryStandard" ? "Primary Standard" : "vs Volumetric Solution"})
+                • {sol.nominalStrength} {sol.strengthUnit === "Molar" ? "M" : sol.strengthUnit === "MgWaterPerMl" ? "mg H2O/mL" : "N"} ({sol.standardizationMode === "PrimaryStandard" ? "Primary Standard" : "vs Volumetric Solution"})
               </Typography>
             )}
           </Stack>

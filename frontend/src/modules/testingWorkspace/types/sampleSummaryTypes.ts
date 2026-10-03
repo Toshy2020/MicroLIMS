@@ -305,7 +305,13 @@ export type ReadingKind =
   | "Weight"
   | "Titration";
 
-export type ResultBasis = "MgPerKg" | "MgPerUnit" | "PercentLabelClaim";
+export type ResultBasis =
+  | "MgPerKg"
+  | "MgPerUnit"
+  | "PercentLabelClaim"
+  | "PercentAsIs"
+  | "PercentDriedBasis"
+  | "PercentAnhydrousBasis";
 
 export type SampleMatrix = "Solid" | "Liquid";
 

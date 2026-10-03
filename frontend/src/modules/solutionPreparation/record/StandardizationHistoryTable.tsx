@@ -140,10 +140,11 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
           />
         </TableCell>
         <TableCell>{validUntilText}</TableCell>
+        <TableCell>{record.temperatureC != null ? record.temperatureC : "—"}</TableCell>
       </TableRow>
 
       <TableRow>
-        <TableCell sx={{ py: 0, px: 2 }} colSpan={8}>
+        <TableCell sx={{ py: 0, px: 2 }} colSpan={9}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ my: 2, pl: 4 }}>
               {!record.passed && record.failureReasons && (
@@ -202,6 +203,7 @@ export function StandardizationHistoryTable({ standardizations, loading }: Props
             <TableCell sx={{ fontWeight: 700 }}>RSD (%)</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Valid Until</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Temp (°C)</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

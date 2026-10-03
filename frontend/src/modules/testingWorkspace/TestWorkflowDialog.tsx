@@ -18,6 +18,7 @@ import { StepChainStrip } from "./components/StepChainStrip";
 import { ElementalAssayPanel } from "./ElementalAssayPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
+import { TitrationPanel } from "./TitrationPanel";
 import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
@@ -337,6 +338,22 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "Gravimetric") {
     return (
       <GravimetricPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Titration assay (volumetric titrimetry, USP <541>)
+  if (current.workflowType === "Titration") {
+    return (
+      <TitrationPanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

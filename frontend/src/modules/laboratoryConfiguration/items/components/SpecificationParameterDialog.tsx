@@ -38,6 +38,7 @@ import {
   PRODUCTION_STAGE_ROLE_OPTIONS
 } from "../../specifications/services/SpecificationService";
 import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
+import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { HplcMethodService, HplcMethodAnalyteResponse } from "../../masterDataSimple/services/HplcMethodService";
@@ -229,6 +230,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     workflowTypeByCode[testCode] === "Disintegration" ||
     currentTestDef?.workflowType === "Disintegration" ||
     limitType === "DisintegrationTime";
+  const isTitration =
+    workflowTypeByCode[testCode] === "Titration" || currentTestDef?.workflowType === "Titration";
   const isWeightVariation =
     workflowTypeByCode[testCode] === "WeightVariation" ||
     currentTestDef?.workflowType === "WeightVariation" ||
@@ -416,8 +419,16 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
     const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
+    const isTit = workflowTypeByCode[newCode] === "Titration" || def?.workflowType === "Titration";
 
-    if (isHplcAssay) {
+    if (isTit) {
+      setLimitType("Range");
+      setDilutionFactor("");
+      setResultBasis("PercentAsIs");
+      setUnit("%");
+      setLabelClaim("");
+      setLabelClaimUnit("");
+    } else if (isHplcAssay) {
       setLimitType("Range");
       setHplcMethodAnalyteId("");
       setTestAnalyteId("");
@@ -529,6 +540,14 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           setError("Label claim unit is required for Amount per unit.");
           return;
         }
+      }
+    }
+
+    if (isTitration) {
+      const basisError = validateTitrationSpecBasis(resultBasis, labelClaim);
+      if (basisError) {
+        setError(basisError);
+        return;
       }
     }
 
@@ -688,7 +707,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           : undefined,
       testAnalyteId: isCalibrationCurve && testAnalyteId !== "" ? Number(testAnalyteId) : null,
       hplcMethodAnalyteId: isHplcMethodAssay && hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null,
-      resultBasis: isHplcMethodAssay && resultBasis
+      resultBasis: (isHplcMethodAssay || isTitration) && resultBasis
         ? (resultBasis as ResultBasis)
         : (isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null),
       sampleMatrix: isHplcMethodAssay ? null : (isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null),
@@ -697,7 +716,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           ? null
           : (limitType === "DissolutionQ"
             ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
-            : (isHplcMethodAssay && resultBasis === "MgPerUnit" && labelClaim.trim() !== ""
+            : (((isHplcMethodAssay && resultBasis === "MgPerUnit") || (isTitration && titrationBasisNeedsLabelClaim(resultBasis))) && labelClaim.trim() !== ""
               ? Number(labelClaim)
               : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null))),
       labelClaimUnit:
@@ -705,7 +724,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           ? null
           : (limitType === "DissolutionQ"
             ? "mg"
-            : (isHplcMethodAssay && resultBasis === "MgPerUnit"
+            : (isTitration
+              ? (titrationBasisNeedsLabelClaim(resultBasis) ? "mg" : null)
+              : isHplcMethodAssay && resultBasis === "MgPerUnit"
               ? labelClaimUnit.trim() || null
               : (isCalibrationCurve ? labelClaimUnit.trim() || null : null))),
       conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1,
@@ -1097,6 +1118,16 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             </Box>
           )}
 
+          {isTitration && (
+            <TitrationSpecBasisFields
+              finishedProduct={item.category === "FinishedProduct"}
+              resultBasis={resultBasis}
+              labelClaim={labelClaim}
+              onBasisChange={setResultBasis}
+              onLabelClaimChange={setLabelClaim}
+            />
+          )}
+
           {/* Row 2: Limit Type */}
           <FormControl size="small" fullWidth>
             <InputLabel id="limit-type-label">Limit Type *</InputLabel>
@@ -1112,7 +1143,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
                 : isDissolution
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
-                : (isCalibrationCurve || isHplcMethodAssay)
+                : (isCalibrationCurve || isHplcMethodAssay || isTitration)
                 ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                     ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
                   )
@@ -1584,7 +1615,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          {!isCalibrationCurve && !isHplcMethodAssay && limitType !== "WeightVariation" && (
+          {!isCalibrationCurve && !isHplcMethodAssay && !isTitration && limitType !== "WeightVariation" && (
             <TextField
               size="small"
               label="Dilution Factor"

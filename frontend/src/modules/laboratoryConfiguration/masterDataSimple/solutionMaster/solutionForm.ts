@@ -71,7 +71,8 @@ export const COMPONENT_UNIT_OPTIONS: Array<{ value: SolutionComponentUnit; label
 
 export const STRENGTH_UNIT_OPTIONS: Array<{ value: TitrantStrengthUnit; label: string }> = [
   { value: "Normal", label: "Normal (N)" },
-  { value: "Molar", label: "Molar (M)" }
+  { value: "Molar", label: "Molar (M)" },
+  { value: "MgWaterPerMl", label: "mg H2O/mL (Karl Fischer)" }
 ];
 
 export function createInitialSolutionFormState(

@@ -15,7 +15,7 @@ public record TitrantStandardizationReplicateResponse(
 // "Due" (a passed record whose ValidUntil has passed),
 // "BeforeEachUse" (a passed record with ValidityDays = 0 - ValidUntil is
 // always null, so this titrant must be restandardized before every use).
-public record CurrentFactorDto(decimal? Factor, DateTime? StandardizedAt, DateTime? ValidUntil, string State);
+public record CurrentFactorDto(decimal? Factor, DateTime? StandardizedAt, DateTime? ValidUntil, string State, decimal? TemperatureC = null, int? StandardizationId = null);
 
 public class TitrantStandardizationResponse
 {
@@ -30,6 +30,7 @@ public class TitrantStandardizationResponse
     public string? StandardizedByUserName { get; init; }
     public DateTime StandardizedAt { get; init; }
     public DateTime? ValidUntil { get; init; }
+    public decimal? TemperatureC { get; init; }
     public List<TitrantStandardizationReplicateResponse> Replicates { get; init; } = new();
 
     public static TitrantStandardizationResponse From(TitrantStandardization r, string? standardizedByUserName) => new()
@@ -45,6 +46,7 @@ public class TitrantStandardizationResponse
         StandardizedByUserName = standardizedByUserName,
         StandardizedAt = r.StandardizedAt,
         ValidUntil = r.ValidUntil,
+        TemperatureC = r.TemperatureC,
         Replicates = r.Replicates
             .OrderBy(x => x.ReplicateNo)
             .Select(x => new TitrantStandardizationReplicateResponse(

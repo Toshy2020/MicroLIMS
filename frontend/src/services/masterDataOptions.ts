@@ -1,4 +1,5 @@
 import { apiClient, ifMatch } from "./apiClient";
+import type { TitrationDefinitionFields } from "../modules/laboratoryConfiguration/masterDataSimple/titrationConfig";
 
 export type MediaProductOption = {
   id: number;
@@ -136,7 +137,7 @@ export interface UpdateTestAnalyteRequest {
   sstMinTheoreticalPlates?: number | null;
 }
 
-export interface CreateTestDefinitionPayload {
+export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   code: string;
   displayName: string;
   sectionId?: number | null;
@@ -195,7 +196,7 @@ export interface CreateTestDefinitionPayload {
   hplcMethodId?: number | null;
 }
 
-export interface UpdateTestDefinitionPayload {
+export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   code?: string;
   displayName?: string;
   sectionId?: number | null;

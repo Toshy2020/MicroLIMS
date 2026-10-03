@@ -21,7 +21,8 @@ export type WorkflowType =
   | "Qualitative"
   | "Dissolution"
   | "Disintegration"
-  | "WeightVariation";
+  | "WeightVariation"
+  | "Titration";
 
 export interface TestWorkflowResult {
   outcomeSummary: string;
@@ -285,3 +286,92 @@ export interface BatchSelectMediaResponse {
   skipped: BatchActionSkippedItem[];
 }
 
+
+// ---- Titration (spec 2026-10-03, section 5 + amendments) ----
+export type TitrationType = "AcidBase" | "Redox" | "Complexometric" | "Precipitation" | "KarlFischer";
+export type TitrantStrengthUnit = "Normal" | "Molar" | "MgWaterPerMl";
+export type TitrantFactorState = "Valid" | "BeforeEachUse" | "Due" | "NotStandardized";
+
+export interface TitrationTitrantInfo {
+  solutionMasterId: number;
+  name: string;
+  nominalStrength: number;
+  strengthUnit: TitrantStrengthUnit;
+}
+
+export interface TitrantPreparationOption {
+  preparationId: number;
+  code: string;
+  expiresAt: string | null;
+  factor: number | null;
+  factorState: TitrantFactorState;
+  standardizedAt: string | null;
+  validUntil: string | null;
+  standardizationId: number | null;
+  standardizationTemperatureC: number | null;
+  usable: boolean;
+  warning: string | null;
+  blockReason: string | null;
+}
+
+export interface TitrationStandardLotOption {
+  materialId: number;
+  lotLabel: string;
+  kind: "ReferenceStandard" | "WorkingStandard";
+  purityPercent: number;
+  moisturePercent: number | null;
+  expiryDate: string | null;
+  quantityRemaining: number;
+  unit: string;
+}
+
+export interface TitrationSpecInfo {
+  specificationId: number;
+  parameterName: string;
+  resultBasis: string;
+  unit: string | null;
+  specLimit: string | null;
+  labelClaim: number | null;
+  labelClaimUnit: string | null;
+}
+
+export interface TitrationContext {
+  testOrderId: number;
+  testCode: string;
+  displayName: string;
+  titrationType: TitrationType;
+  nonAqueous: boolean;
+  mode: "Direct" | "Residual";
+  calculation: "UspFactor" | "Relative";
+  endpoint: "Visual" | "Potentiometric";
+  indicator: string | null;
+  equivalencyFactor: number | null;
+  blankRequired: boolean;
+  replicateCount: number;
+  maxRsdPercent: number | null;
+  tempCorrection: boolean;
+  expansionCoefficient: number | null;
+  excessVolumeMl: number | null;
+  titrant: TitrationTitrantInfo;
+  excessTitrant: TitrationTitrantInfo | null;
+  titrantPreparations: TitrantPreparationOption[];
+  excessPreparations: TitrantPreparationOption[];
+  standardLots: TitrationStandardLotOption[];
+  specifications: TitrationSpecInfo[];
+}
+
+export interface RecordTitrationResultRequest {
+  analysedAt: string;
+  equipmentId: number | null;
+  titrantPreparationId: number;
+  excessPreparationId: number | null;
+  blankVolumeMl: number | null;
+  titrationTemperatureC: number | null;
+  lossOnDryingPercent: number | null;
+  averageUnitWeightMg: number | null;
+  standards: { materialId: number; weightMg: number; titreMl: number }[] | null;
+  specificationIds: number[];
+  replicates: { sampleWeightMg: number; titrantVolumeMl: number }[];
+  password: string;
+  comment: string | null;
+}

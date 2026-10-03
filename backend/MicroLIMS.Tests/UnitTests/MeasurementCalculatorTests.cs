@@ -172,6 +172,24 @@ public class MeasurementCalculatorTests
     }
 
     [Fact]
+    public void GetSpecDecimalPlaces_IgnoresTheStorageZeros()
+    {
+        // Specification limits come back from numeric(18,6) columns as e.g. 98.000000.
+        Assert.Equal(0, MeasurementCalculator.GetSpecDecimalPlaces(98.000000m));
+        Assert.Equal(1, MeasurementCalculator.GetSpecDecimalPlaces(4.600000m));
+        Assert.Equal(3, MeasurementCalculator.GetSpecDecimalPlaces(0.125000m));
+    }
+
+    [Fact]
+    public void FormatReportedDisplay_LimitsLoadedWithStorageScale_DoNotForceSixDecimals()
+    {
+        // pH 4.6-5.2 loaded from the database: reported with the reading's precision, not 5.000000.
+        var spec = new Specification { LimitType = LimitType.Range, LowerLimit = 4.600000m, UpperLimit = 5.200000m, Unit = "" };
+
+        Assert.Equal("5.0", MeasurementCalculator.FormatReportedDisplay(5.0m, new List<decimal> { 5.0m }, spec));
+    }
+
+    [Fact]
     public void DecimalMathSqrt_BasicCasesAndErrors()
     {
         Assert.Equal(0m, DecimalMath.Sqrt(0m));

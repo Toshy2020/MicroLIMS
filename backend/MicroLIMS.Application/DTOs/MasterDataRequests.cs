@@ -226,7 +226,22 @@ public record CreateTestDefinitionRequest(
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
-    int? HplcMethodId = null);
+    int? HplcMethodId = null,
+    TitrationType? TitrationType = null,
+    bool? TitrationNonAqueous = null,
+    TitrationMode? TitrationMode = null,
+    TitrationCalculation? TitrationCalculation = null,
+    int? TitrantSolutionMasterId = null,
+    decimal? TitrationEquivalencyFactor = null,
+    bool? TitrationBlankRequired = null,
+    int? TitrationExcessSolutionMasterId = null,
+    decimal? TitrationExcessVolumeMl = null,
+    decimal? TitrationMaxRsdPercent = null,
+    TitrationEndpoint? TitrationEndpoint = null,
+    string? TitrationIndicator = null,
+    bool? TitrationTempCorrection = null,
+    decimal? TitrationExpansionCoefficient = null,
+    int? TitrationStandardEntryId = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -284,7 +299,22 @@ public record UpdateTestDefinitionRequest(
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
-    int? HplcMethodId = null);
+    int? HplcMethodId = null,
+    TitrationType? TitrationType = null,
+    bool? TitrationNonAqueous = null,
+    TitrationMode? TitrationMode = null,
+    TitrationCalculation? TitrationCalculation = null,
+    int? TitrantSolutionMasterId = null,
+    decimal? TitrationEquivalencyFactor = null,
+    bool? TitrationBlankRequired = null,
+    int? TitrationExcessSolutionMasterId = null,
+    decimal? TitrationExcessVolumeMl = null,
+    decimal? TitrationMaxRsdPercent = null,
+    TitrationEndpoint? TitrationEndpoint = null,
+    string? TitrationIndicator = null,
+    bool? TitrationTempCorrection = null,
+    decimal? TitrationExpansionCoefficient = null,
+    int? TitrationStandardEntryId = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);

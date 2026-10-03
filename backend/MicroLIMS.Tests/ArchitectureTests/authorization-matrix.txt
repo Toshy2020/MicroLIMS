@@ -198,7 +198,7 @@ ErrorMonitoringController.Reopen(Guid, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Resolve(Guid, ResolveIncidentRequest, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Search(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator
 HplcMethodController.Create(SaveHplcMethodRequest): SystemAdministrator,SectionHead
-HplcMethodController.GetAll(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcMethodController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
@@ -212,8 +212,8 @@ HplcWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead
 HplcWorkspaceController.GetDissolutionStandard(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetEligibleQualifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
-HplcWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst
-HplcWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetInstruments(HplcTechnique): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetMethodOptions(HplcTechnique): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetQualificationEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

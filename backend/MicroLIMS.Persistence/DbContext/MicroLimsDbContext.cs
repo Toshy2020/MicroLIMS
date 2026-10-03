@@ -122,6 +122,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<HplcSstAnalyte> HplcSstAnalytes => Set<HplcSstAnalyte>();
     public DbSet<HplcSstInjection> HplcSstInjections => Set<HplcSstInjection>();
     public DbSet<HplcRunSample> HplcRunSamples => Set<HplcRunSample>();
+    public DbSet<WorkingStandardQualification> WorkingStandardQualifications => Set<WorkingStandardQualification>();
+    public DbSet<WorkingStandardDocument> WorkingStandardDocuments => Set<WorkingStandardDocument>();
     public DbSet<HplcSampleReplicate> HplcSampleReplicates => Set<HplcSampleReplicate>();
     public DbSet<HplcReplicateResponse> HplcReplicateResponses => Set<HplcReplicateResponse>();
     public DbSet<HplcEvidence> HplcEvidences => Set<HplcEvidence>();

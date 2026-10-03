@@ -216,6 +216,12 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(HplcSstRecord), nameof(HplcSstRecord.ConfirmedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the system suitability confirmation"),
         new UserReferenceEntry(typeof(HplcRunSample), nameof(HplcRunSample.AssignedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample assignment"),
         new UserReferenceEntry(typeof(HplcRunSample), nameof(HplcRunSample.RemovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample removal"),
+        new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, creator of the qualification"),
+        new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.PreparedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the assay"),
+        new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.ReviewedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, reviewer signature"),
+        new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.ApprovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, approver signature"),
+        new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.RejectedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, rejection signature"),
+        new UserReferenceEntry(typeof(WorkingStandardDocument), nameof(WorkingStandardDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, uploader of the attachment"),
         new UserReferenceEntry(typeof(HplcEvidence), nameof(HplcEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
     };
 }

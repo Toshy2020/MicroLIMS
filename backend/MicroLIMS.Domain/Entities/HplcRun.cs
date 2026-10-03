@@ -95,15 +95,19 @@ public class HplcSstInjection
     public decimal Response { get; set; }
 }
 
-// A sample assigned to a run after its SST passed. Removed = Status Removed +
+// A sample assigned to a run after its SST passed: either a test order or a
+// working standard qualification (exactly one - CK_HplcRunSamples_OneSubject).
+// Removed = Status Removed +
 // reason, never deleted (Global Constraints).
 public class HplcRunSample
 {
     public int Id { get; set; }
     public int HplcRunId { get; set; }
     public HplcRun? HplcRun { get; set; }
-    public int TestOrderId { get; set; }
+    public int? TestOrderId { get; set; }
     public TestOrder? TestOrder { get; set; }
+    public int? WorkingStandardQualificationId { get; set; }
+    public WorkingStandardQualification? WorkingStandardQualification { get; set; }
     public HplcRunSampleStatus Status { get; set; }
     public DateTime AssignedAt { get; set; }
     public int AssignedByUserId { get; set; }

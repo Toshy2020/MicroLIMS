@@ -29,6 +29,9 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.HasIndex(m => m.Code);
         builder.HasIndex(m => m.MaterialType);
         builder.HasIndex(m => m.MediaProductId);
+        // WS-nn/MM/yyyy codes are generated (WorkingStandardService.ApproveAsync);
+        // other types reuse master-entry codes, so the uniqueness is WS-only.
+        builder.HasIndex(m => m.Code, "IX_Materials_WorkingStandardCode").IsUnique().HasFilter("\"MaterialType\" = 12");
         builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(m => m.MediaProduct).WithMany().HasForeignKey(m => m.MediaProductId).OnDelete(DeleteBehavior.Restrict);
 

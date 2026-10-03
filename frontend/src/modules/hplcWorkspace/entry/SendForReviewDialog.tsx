@@ -21,11 +21,12 @@ import DrawIcon from "@mui/icons-material/Draw";
 import { toast } from "sonner";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
-import type { HplcSampleEntryDto } from "../types";
+import type { HplcSampleEntryDto, HplcQualificationEntryDto } from "../types";
 
 export interface SendForReviewDialogProps {
   open: boolean;
-  sampleEntry: HplcSampleEntryDto;
+  sampleEntry?: HplcSampleEntryDto;
+  qualificationEntry?: HplcQualificationEntryDto;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -33,6 +34,7 @@ export interface SendForReviewDialogProps {
 export function SendForReviewDialog({
   open,
   sampleEntry,
+  qualificationEntry,
   onClose,
   onSuccess
 }: SendForReviewDialogProps) {
@@ -41,12 +43,16 @@ export function SendForReviewDialog({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const hasRequiredReps =
-    sampleEntry.requiredReplicates == null ||
-    sampleEntry.replicates.length >= sampleEntry.requiredReplicates;
+  const isQualification = qualificationEntry != null;
+  const target = qualificationEntry ?? sampleEntry;
+  if (!target) return null;
 
-  const currentEvidenceCount = sampleEntry.evidence.filter((e) => e.isCurrent).length;
-  const sstPassed = sampleEntry.sstStatus === "Passed";
+  const hasRequiredReps =
+    target.requiredReplicates == null ||
+    target.replicates.length >= target.requiredReplicates;
+
+  const currentEvidenceCount = target.evidence.filter((e) => e.isCurrent).length;
+  const sstPassed = target.sstStatus === "Passed";
 
   const handleProceedToSign = () => {
     setSubmitError(null);
@@ -57,12 +63,20 @@ export function SendForReviewDialog({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await HplcWorkspaceService.submitSample(sampleEntry.runSampleId, {
-        password,
-        comment: comment.trim() || null
-      });
+      if (qualificationEntry) {
+        await HplcWorkspaceService.submitQualification(qualificationEntry.runSampleId, {
+          password,
+          comment: comment.trim() || null
+        });
+        toast.success(`Qualification ${qualificationEntry.qualificationCode} submitted for review.`);
+      } else if (sampleEntry) {
+        await HplcWorkspaceService.submitSample(sampleEntry.runSampleId, {
+          password,
+          comment: comment.trim() || null
+        });
+        toast.success(`Sample ${sampleEntry.sampleNumber} submitted for review.`);
+      }
       setSignatureOpen(false);
-      toast.success(`Sample ${sampleEntry.sampleNumber} submitted for review.`);
       onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -75,6 +89,10 @@ export function SendForReviewDialog({
     }
   };
 
+  const meaningStatement = qualificationEntry
+    ? `I confirm that chromatographic replicate data and evidence for working standard ${qualificationEntry.qualificationCode} (${qualificationEntry.materialName}) are complete, accurate, and ready for review.`
+    : `I confirm that chromatographic replicate data and evidence for sample ${sampleEntry?.sampleNumber} (${sampleEntry?.testCode}) are complete, accurate, and ready for review.`;
+
   return (
     <>
       <Dialog
@@ -84,24 +102,33 @@ export function SendForReviewDialog({
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          Send Sample for Review
+          {isQualification ? "Submit Qualification for Review" : "Send Sample for Review"}
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
             {submitError && <Alert severity="error">{submitError}</Alert>}
 
-            {!sampleEntry.canSubmit && (
+            {!target.canSubmit && (
               <Alert severity="warning">
                 <strong>Cannot submit for review:</strong>{" "}
-                {sampleEntry.canSubmitReason || "Submission criteria are not met."}
+                {target.canSubmitReason || "Submission criteria are not met."}
               </Alert>
             )}
 
             <Box>
               <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-                Sample: <strong>{sampleEntry.sampleNumber}</strong> · Test:{" "}
-                <strong>{sampleEntry.testCode}</strong>
-                {sampleEntry.productName ? ` · Product: ${sampleEntry.productName}` : ""}
+                {qualificationEntry ? (
+                  <>
+                    Qualification: <strong>{qualificationEntry.qualificationCode}</strong> · Material:{" "}
+                    <strong>{qualificationEntry.materialName}</strong>
+                  </>
+                ) : (
+                  <>
+                    Sample: <strong>{sampleEntry?.sampleNumber}</strong> · Test:{" "}
+                    <strong>{sampleEntry?.testCode}</strong>
+                    {sampleEntry?.productName ? ` · Product: ${sampleEntry.productName}` : ""}
+                  </>
+                )}
               </Typography>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 Verify the pre-submission readiness checklist below before applying your electronic signature.
@@ -121,7 +148,7 @@ export function SendForReviewDialog({
                 </ListItemIcon>
                 <ListItemText
                   primary="System Suitability"
-                  secondary={`Status: ${sampleEntry.sstStatus} (Code: ${sampleEntry.sstCode})`}
+                  secondary={`Status: ${target.sstStatus} (Code: ${target.sstCode})`}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -139,7 +166,7 @@ export function SendForReviewDialog({
                 </ListItemIcon>
                 <ListItemText
                   primary="Replicate Count"
-                  secondary={`${sampleEntry.replicates.length} replicate(s) entered · Required: ${sampleEntry.requiredReplicates ?? "—"}`}
+                  secondary={`${target.replicates.length} replicate(s) entered · Required: ${target.requiredReplicates ?? "—"}`}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -167,7 +194,7 @@ export function SendForReviewDialog({
 
               <ListItem disableGutters>
                 <ListItemIcon sx={{ minWidth: 36 }}>
-                  {sampleEntry.canSubmit ? (
+                  {target.canSubmit ? (
                     <CheckCircleIcon color="success" fontSize="small" />
                   ) : (
                     <CancelIcon color="error" fontSize="small" />
@@ -175,7 +202,7 @@ export function SendForReviewDialog({
                 </ListItemIcon>
                 <ListItemText
                   primary="Submission Gate"
-                  secondary={sampleEntry.canSubmit ? "Ready for electronic signature" : (sampleEntry.canSubmitReason || "Gated")}
+                  secondary={target.canSubmit ? "Ready for electronic signature" : (target.canSubmitReason || "Gated")}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -185,7 +212,13 @@ export function SendForReviewDialog({
             </List>
 
             <Alert severity="info" sx={{ fontSize: 12 }}>
-              Signing will freeze this sample entry, calculate official results, and move the test order to <strong>Under Review</strong> in the testing workspace.
+              {isQualification
+                ? "Signing will freeze replicate data, record qualification results, and move the working standard qualification to Assayed status for review."
+                : (
+                  <>
+                    Signing will freeze this sample entry, calculate official results, and move the test order to <strong>Under Review</strong> in the testing workspace.
+                  </>
+                )}
             </Alert>
           </Stack>
         </DialogContent>
@@ -200,7 +233,7 @@ export function SendForReviewDialog({
             variant="contained"
             color="primary"
             onClick={handleProceedToSign}
-            disabled={!sampleEntry.canSubmit || submitting}
+            disabled={!target.canSubmit || submitting}
             startIcon={<DrawIcon />}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
@@ -212,7 +245,7 @@ export function SendForReviewDialog({
       {/* 21 CFR Part 11 Electronic Signature Dialog */}
       <SignatureDialog
         open={signatureOpen}
-        meaningStatement={`I confirm that chromatographic replicate data and evidence for sample ${sampleEntry.sampleNumber} (${sampleEntry.testCode}) are complete, accurate, and ready for review.`}
+        meaningStatement={meaningStatement}
         showComment={true}
         comment={comment}
         onCommentChange={setComment}

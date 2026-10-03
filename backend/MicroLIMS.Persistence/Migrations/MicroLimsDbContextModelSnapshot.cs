@@ -3631,7 +3631,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<int>("TestOrderId")
+                    b.Property<int?>("TestOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("WorkingStandardQualificationId")
                         .HasColumnType("integer");
 
                     b.Property<uint>("xmin")
@@ -3646,7 +3649,12 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("TestOrderId");
 
-                    b.ToTable("HplcRunSamples");
+                    b.HasIndex("WorkingStandardQualificationId");
+
+                    b.ToTable("HplcRunSamples", t =>
+                        {
+                            t.HasCheckConstraint("CK_HplcRunSamples_OneSubject", "(\"TestOrderId\" IS NULL) <> (\"WorkingStandardQualificationId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcSampleReplicate", b =>
@@ -4642,6 +4650,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("OrganismId");
 
                     b.HasIndex("SectionId");
+
+                    b.HasIndex(new[] { "Code" }, "IX_Materials_WorkingStandardCode")
+                        .IsUnique()
+                        .HasFilter("\"MaterialType\" = 12");
 
                     b.ToTable("Materials");
                 });
@@ -8934,6 +8946,218 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("WorkflowStepResults");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SupersededByDocumentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WorkingStandardQualificationId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkingStandardQualificationId");
+
+                    b.ToTable("WorkingStandardDocuments");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardQualification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ApprovedSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FailureReasons")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("HplcMethodAnalyteId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("MaterialMasterEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("MeanAssayPercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<decimal?>("MoisturePercent")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("PotencyPercent")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<DateTime?>("PreparedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PreparedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PreparedSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("QuantityGrams")
+                        .HasPrecision(12, 4)
+                        .HasColumnType("numeric(12,4)");
+
+                    b.Property<string>("RejectReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RejectedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RejectedSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReplicateAssaysJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ReviewedSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("RsdPercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceBatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SourceMaterialName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("SourceSampleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int?>("WorkingStandardMaterialId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedSignatureId");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_WorkingStandardQualifications_Code");
+
+                    b.HasIndex("HplcMethodAnalyteId");
+
+                    b.HasIndex("MaterialMasterEntryId");
+
+                    b.HasIndex("PreparedSignatureId");
+
+                    b.HasIndex("RejectedSignatureId");
+
+                    b.HasIndex("ReviewedSignatureId");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("SourceSampleId");
+
+                    b.HasIndex("WorkingStandardMaterialId", "Status");
+
+                    b.ToTable("WorkingStandardQualifications");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkloadWeight", b =>
                 {
                     b.Property<int>("Id")
@@ -10275,12 +10499,18 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
                         .WithMany()
                         .HasForeignKey("TestOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.WorkingStandardQualification", "WorkingStandardQualification")
+                        .WithMany()
+                        .HasForeignKey("WorkingStandardQualificationId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("HplcRun");
 
                     b.Navigation("TestOrder");
+
+                    b.Navigation("WorkingStandardQualification");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcSampleReplicate", b =>
@@ -11802,6 +12032,83 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("TestOrder");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardDocument", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.WorkingStandardQualification", "WorkingStandardQualification")
+                        .WithMany("Documents")
+                        .HasForeignKey("WorkingStandardQualificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkingStandardQualification");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardQualification", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ApprovedSignature")
+                        .WithMany()
+                        .HasForeignKey("ApprovedSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethodAnalyte", null)
+                        .WithMany()
+                        .HasForeignKey("HplcMethodAnalyteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MaterialMasterEntry", "MaterialMasterEntry")
+                        .WithMany()
+                        .HasForeignKey("MaterialMasterEntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "PreparedSignature")
+                        .WithMany()
+                        .HasForeignKey("PreparedSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "RejectedSignature")
+                        .WithMany()
+                        .HasForeignKey("RejectedSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ReviewedSignature")
+                        .WithMany()
+                        .HasForeignKey("ReviewedSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Sample", "SourceSample")
+                        .WithMany()
+                        .HasForeignKey("SourceSampleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Material", "WorkingStandardMaterial")
+                        .WithMany()
+                        .HasForeignKey("WorkingStandardMaterialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedSignature");
+
+                    b.Navigation("MaterialMasterEntry");
+
+                    b.Navigation("PreparedSignature");
+
+                    b.Navigation("RejectedSignature");
+
+                    b.Navigation("ReviewedSignature");
+
+                    b.Navigation("Section");
+
+                    b.Navigation("SourceSample");
+
+                    b.Navigation("WorkingStandardMaterial");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkloadWeightHistory", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.WorkloadWeight", "WorkloadWeight")
@@ -12084,6 +12391,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("ConfirmatoryObservations");
 
                     b.Navigation("Selections");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkingStandardQualification", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkloadWeight", b =>

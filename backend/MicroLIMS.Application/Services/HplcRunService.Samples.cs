@@ -77,8 +77,8 @@ public partial class HplcRunService
                 && t.HplcMethodId == run.HplcMethodId)
             .Select(t => t.Code);
         var busy = _db.HplcRunSamples
-            .Where(s => s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
-            .Select(s => s.TestOrderId);
+            .Where(s => s.TestOrderId != null && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
+            .Select(s => s.TestOrderId!.Value);
 
         return _db.TestOrders
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
@@ -149,7 +149,13 @@ public partial class HplcRunService
             ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
         if (sample.Status != HplcRunSampleStatus.Assigned)
             throw new InvalidOperationException("This sample was already removed from the run.");
-        if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == sample.TestOrderId && a.IsActive, ct))
+        if (sample.WorkingStandardQualificationId != null)
+        {
+            if (!await _db.WorkingStandardQualifications.AnyAsync(
+                    q => q.Id == sample.WorkingStandardQualificationId && q.Status == WorkingStandardQualificationStatus.Draft, ct))
+                throw new InvalidOperationException("The qualification has already been submitted.");
+        }
+        else if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == sample.TestOrderId && a.IsActive, ct))
             throw new InvalidOperationException("A result has already been sent for review for this sample.");
 
         var trimmedReason = ValidateReason(reason);
@@ -203,17 +209,24 @@ public partial class HplcRunService
             }
         }
 
-        // Replace-all: the old rows are removed first so the (sample, replicate no)
-        // unique index never sees both generations at once.
+        await ReplaceReplicatesAsync(context.RunSample, inputs, ct);
+
+        return await GetSampleEntryAsync(runSampleId, userId, ct);
+    }
+
+    // Replace-all: the old rows are removed first so the (sample, replicate no)
+    // unique index never sees both generations at once.
+    private async Task ReplaceReplicatesAsync(HplcRunSample runSample, List<HplcReplicateInput> inputs, CancellationToken ct)
+    {
         await UnitOfWork.RunAsync(_db, async () =>
         {
-            _db.HplcSampleReplicates.RemoveRange(context.RunSample.Replicates);
-            context.RunSample.Replicates.Clear();
+            _db.HplcSampleReplicates.RemoveRange(runSample.Replicates);
+            runSample.Replicates.Clear();
             await _db.SaveChangesAsync(ct);
 
             for (var i = 0; i < inputs.Count; i++)
             {
-                context.RunSample.Replicates.Add(new HplcSampleReplicate
+                runSample.Replicates.Add(new HplcSampleReplicate
                 {
                     ReplicateNo = i + 1,
                     ActualWeightMg = inputs[i].ActualWeightMg,
@@ -223,8 +236,15 @@ public partial class HplcRunService
             }
             await _db.SaveChangesAsync(ct);
         });
+    }
 
-        return await GetSampleEntryAsync(runSampleId, userId, ct);
+    // Current-and-past evidence of one run sample, newest first.
+    private async Task<List<HplcEvidenceDto>> LoadSampleEvidenceAsync(HplcRun run, int runSampleId, CancellationToken ct)
+    {
+        var rows = run.Evidence.Where(e => e.HplcRunSampleId == runSampleId).OrderByDescending(e => e.UploadedAt).ToList();
+        var uploaderIds = rows.Select(e => e.UploadedByUserId).Distinct().ToList();
+        var names = await _db.Users.Where(u => uploaderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+        return rows.Select(e => ToEvidenceDto(e, names.GetValueOrDefault(e.UploadedByUserId))).ToList();
     }
 
     // ---- Run completion ----
@@ -238,9 +258,12 @@ public partial class HplcRunService
             throw new InvalidOperationException("The run is closed.");
 
         var assigned = run.Samples.Where(s => s.Status == HplcRunSampleStatus.Assigned).ToList();
-        var orderIds = assigned.Select(s => s.TestOrderId).ToList();
+        var orderIds = assigned.Where(s => s.TestOrderId != null).Select(s => s.TestOrderId!.Value).ToList();
         var submittedOrderIds = await SubmittedOrderIdsAsync(orderIds, ct);
-        var pending = assigned.Count(s => !submittedOrderIds.Contains(s.TestOrderId));
+        var draftQualificationIds = assigned.Where(s => s.WorkingStandardQualificationId != null).Select(s => s.WorkingStandardQualificationId!.Value).ToList();
+        var pending = assigned.Count(s => s.TestOrderId != null && !submittedOrderIds.Contains(s.TestOrderId.Value))
+            + await _db.WorkingStandardQualifications.CountAsync(
+                q => draftQualificationIds.Contains(q.Id) && q.Status == WorkingStandardQualificationStatus.Draft, ct);
         if (pending > 0)
             throw new InvalidOperationException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
 
@@ -292,10 +315,7 @@ public partial class HplcRunService
 
         var official = c.Submitted ? await LoadOfficialResultsAsync(c.Order.Id, ct) : new List<HplcOfficialResultDto>();
 
-        var evidenceRows = c.Run.Evidence.Where(e => e.HplcRunSampleId == c.RunSample.Id).OrderByDescending(e => e.UploadedAt).ToList();
-        var uploaderIds = evidenceRows.Select(e => e.UploadedByUserId).Distinct().ToList();
-        var names = await _db.Users.Where(u => uploaderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
-        var evidence = evidenceRows.Select(e => ToEvidenceDto(e, names.GetValueOrDefault(e.UploadedByUserId))).ToList();
+        var evidence = await LoadSampleEvidenceAsync(c.Run, c.RunSample.Id, ct);
 
         var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new HplcReplicateDto(r.ReplicateNo, r.ActualWeightMg,
@@ -348,7 +368,7 @@ public partial class HplcRunService
     {
         if (run.Samples.Count == 0) return new List<HplcRunSampleSummaryDto>();
 
-        var orderIds = run.Samples.Select(s => s.TestOrderId).ToList();
+        var orderIds = run.Samples.Where(s => s.TestOrderId != null).Select(s => s.TestOrderId!.Value).ToList();
         var orders = await _db.TestOrders.AsNoTracking()
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
             .Where(o => orderIds.Contains(o.Id)).ToDictionaryAsync(o => o.Id, ct);
@@ -357,14 +377,23 @@ public partial class HplcRunService
         var codes = orders.Values.Select(o => o.TestCode).Distinct().ToList();
         var dissolutionCodes = (await _db.TestDefinitions.Where(t => codes.Contains(t.Code) && t.WorkflowType == WorkflowType.Dissolution)
             .Select(t => t.Code).ToListAsync(ct)).ToHashSet();
+        var qualIds = run.Samples.Where(s => s.WorkingStandardQualificationId != null).Select(s => s.WorkingStandardQualificationId!.Value).ToList();
+        var quals = await _db.WorkingStandardQualifications.AsNoTracking()
+            .Where(q => qualIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id, ct);
 
         return run.Samples.OrderBy(s => s.Id).Select(s =>
         {
-            orders.TryGetValue(s.TestOrderId, out var o);
+            if (s.WorkingStandardQualificationId is int qId && quals.TryGetValue(qId, out var q))
+                return new HplcRunSampleSummaryDto(
+                    s.Id, null, s.Status, q.Code, q.SourceBatchNumber, q.SourceMaterialName, "WS qualification",
+                    q.Status != WorkingStandardQualificationStatus.Draft, false, q.Id);
+
+            TestOrder? o = null;
+            if (s.TestOrderId is int id) orders.TryGetValue(id, out o);
             return new HplcRunSampleSummaryDto(
                 s.Id, s.TestOrderId, s.Status, o?.Sample?.ReferenceNumber ?? string.Empty, o?.Sample?.BatchNumber,
-                o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, submitted.Contains(s.TestOrderId),
-                o != null && dissolutionCodes.Contains(o.TestCode));
+                o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, s.TestOrderId is int tid && submitted.Contains(tid),
+                o != null && dissolutionCodes.Contains(o.TestCode), s.WorkingStandardQualificationId);
         }).ToList();
     }
 }

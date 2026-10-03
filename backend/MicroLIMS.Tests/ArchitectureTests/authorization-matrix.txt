@@ -204,23 +204,28 @@ HplcMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer
 HplcMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
 HplcMethodController.Update(Int32, SaveHplcMethodRequest): SystemAdministrator,SectionHead
 HplcWorkspaceController.Abandon(Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.AssignQualifications(Int32, AssignQualificationsRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.AssignSamples(Int32, AssignHplcSamplesRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.Complete(Int32): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.ConfirmSst(Int32, ConfirmSstRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetDissolutionStandard(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetEligibleQualifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcWorkspaceController.GetQualificationEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.SaveQualificationReplicates(Int32, SaveReplicatesRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.SaveReplicates(Int32, SaveReplicatesRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.SaveSst(Int32, SaveSstRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.StartRun(StartHplcRunRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SystemAdministrator,SectionHead,Analyst
+HplcWorkspaceController.SubmitQualification(Int32, SubmitHplcSampleRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.UploadEvidence(Int32, IFormFile, HplcEvidenceContext, HplcEvidenceKind, Nullable`1): SystemAdministrator,SectionHead,Analyst
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
@@ -519,3 +524,16 @@ WaterMasterDataController.GetWaterSamplingPoints(): SystemAdministrator,SectionH
 WaterMasterDataController.UpdateWaterDepartment(Int32, UpdateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingConfiguration(Int32, UpdateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingPoint(Int32, UpdateWaterSamplingPointRequest): SystemAdministrator,SectionHead
+WorkingStandardsController.Approve(Int32, WorkingStandardSignRequest): SystemAdministrator,SectionHead
+WorkingStandardsController.Create(CreateQualificationRequest): SystemAdministrator,SectionHead,Analyst
+WorkingStandardsController.DownloadDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+WorkingStandardsController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+WorkingStandardsController.GetEligibleSourceSamples(String): SystemAdministrator,SectionHead,Reviewer,Analyst
+WorkingStandardsController.GetLots(): SystemAdministrator,SectionHead,Reviewer,Analyst
+WorkingStandardsController.GetQualifications(): SystemAdministrator,SectionHead,Reviewer,Analyst
+WorkingStandardsController.RejectAtApproval(Int32, WorkingStandardReasonRequest): SystemAdministrator,SectionHead
+WorkingStandardsController.RejectAtReview(Int32, WorkingStandardReasonRequest): SystemAdministrator,SectionHead,Reviewer
+WorkingStandardsController.Return(Int32, WorkingStandardReturnRequest): SystemAdministrator,SectionHead,Reviewer
+WorkingStandardsController.Review(Int32, WorkingStandardSignRequest): SystemAdministrator,SectionHead,Reviewer
+WorkingStandardsController.UpdateDraft(Int32, UpdateQualificationRequest): SystemAdministrator,SectionHead,Analyst
+WorkingStandardsController.UploadDocument(Int32, IFormFile, WorkingStandardDocumentKind): SystemAdministrator,SectionHead,Analyst

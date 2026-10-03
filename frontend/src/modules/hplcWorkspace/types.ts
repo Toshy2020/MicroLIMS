@@ -160,7 +160,8 @@ export interface HplcSstRecordDto {
 
 export interface HplcRunSampleSummaryDto {
   id: number;
-  testOrderId: number;
+  testOrderId: number | null;
+  workingStandardQualificationId?: number | null;
   status: HplcRunSampleStatus;
   sampleNumber: string;
   batchNumber?: string | null;
@@ -327,4 +328,63 @@ export interface HplcSampleEntryDto {
 
 export interface ReasonRequest {
   reason: string;
+}
+
+// ---- Working Standard Qualifications (Task 10) ----
+
+export type WorkingStandardQualificationStatus =
+  | "Draft"
+  | "Assayed"
+  | "Reviewed"
+  | "Approved"
+  | "Rejected";
+
+export type WorkingStandardQualificationKind =
+  | "Initial"
+  | "Requalification";
+
+export interface EligibleQualificationDto {
+  qualificationId: number;
+  code: string;
+  kind: WorkingStandardQualificationKind;
+  materialName: string;
+  batchNumber: string;
+  analyteName: string;
+}
+
+export interface AssignQualificationsRequest {
+  qualificationIds: number[];
+}
+
+export interface WorkingStandardPreviewDto {
+  replicateAssayPercents: number[];
+  meanAssayPercent: number;
+  rsdPercent?: number | null;
+  potencyPercent: number;
+  passed: boolean;
+  failureReasons?: string | null;
+}
+
+export interface HplcQualificationEntryDto {
+  runSampleId: number;
+  hplcRunId: number;
+  runCode: string;
+  sstCode: string;
+  sstStatus: HplcSstStatus;
+  qualificationId: number;
+  qualificationCode: string;
+  qualificationStatus: WorkingStandardQualificationStatus;
+  materialName: string;
+  batchNumber: string;
+  moisturePercent?: number | null;
+  methodWeights: HplcMethodWeightDto[];
+  requiredReplicates: number;
+  replicates: HplcReplicateDto[];
+  preview?: WorkingStandardPreviewDto | null;
+  evidence: HplcEvidenceDto[];
+  editable: boolean;
+  editableReason?: string | null;
+  submitted: boolean;
+  canSubmit: boolean;
+  canSubmitReason?: string | null;
 }

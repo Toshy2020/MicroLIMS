@@ -118,6 +118,8 @@ public interface IMicroLimsDbContext
     DbSet<HplcSstAnalyte> HplcSstAnalytes { get; }
     DbSet<HplcSstInjection> HplcSstInjections { get; }
     DbSet<HplcRunSample> HplcRunSamples { get; }
+    DbSet<WorkingStandardQualification> WorkingStandardQualifications { get; }
+    DbSet<WorkingStandardDocument> WorkingStandardDocuments { get; }
     DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
     DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
     DbSet<HplcEvidence> HplcEvidences { get; }

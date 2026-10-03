@@ -19,6 +19,12 @@ public class HplcRunSampleConfiguration : IEntityTypeConfiguration<HplcRunSample
 
         builder.HasOne(e => e.TestOrder).WithMany().HasForeignKey(e => e.TestOrderId).OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasIndex(e => e.WorkingStandardQualificationId);
+        builder.HasOne(e => e.WorkingStandardQualification).WithMany()
+            .HasForeignKey(e => e.WorkingStandardQualificationId).OnDelete(DeleteBehavior.Restrict);
+        builder.ToTable(t => t.HasCheckConstraint("CK_HplcRunSamples_OneSubject",
+            "(\"TestOrderId\" IS NULL) <> (\"WorkingStandardQualificationId\" IS NULL)"));
+
         builder.HasMany(e => e.Replicates).WithOne(r => r.HplcRunSample).HasForeignKey(r => r.HplcRunSampleId).OnDelete(DeleteBehavior.Cascade);
     }
 }

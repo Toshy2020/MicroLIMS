@@ -159,6 +159,8 @@ public class HplcMethodService
         {
             if (await _db.Specifications.AnyAsync(s => s.HplcMethodAnalyteId == existingAnalyte.Id, ct))
                 throw new InvalidOperationException($"Analyte \"{existingAnalyte.Name}\" is used by specifications; it can't be removed.");
+            if (await _db.WorkingStandardQualifications.AnyAsync(w => w.HplcMethodAnalyteId == existingAnalyte.Id, ct))
+                throw new InvalidOperationException($"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.");
         }
 
         ApplyFields(method, r, abbr);

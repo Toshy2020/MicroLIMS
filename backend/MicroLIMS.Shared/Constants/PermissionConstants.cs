@@ -98,6 +98,7 @@ public static class PermissionConstants
     // HplcRun (start, save/confirm SST, assign/remove samples, replicate
     // entry, submission, evidence, abandon/complete).
     public const string HplcOperate = "Hplc.Operate";
+    public const string WorkingStandardsQualify = "WorkingStandards.Qualify";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
@@ -117,7 +118,7 @@ public static class PermissionConstants
         DashboardsLabOverview, DashboardsReview, KpiView,
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
-        SolutionsPrepare, HplcOperate
+        SolutionsPrepare, HplcOperate, WorkingStandardsQualify
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -132,6 +133,6 @@ public static class PermissionConstants
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
-        SolutionsPrepare, HplcOperate
+        SolutionsPrepare, HplcOperate, WorkingStandardsQualify
     };
 }

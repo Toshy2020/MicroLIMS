@@ -247,6 +247,23 @@ public class FpHplcMastersSliceA1Tests
     }
 
     [Fact]
+    public async Task Column_Create_GcEquipment_Succeeds()
+    {
+        await using var db = NewDb();
+        var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var service = new ChromatographyColumnService(db, new UserSectionScopeService(db));
+        var gc = new Equipment { Name = "GC Agilent", Code = "GC-FP-01", Type = EquipmentType.Gc, SectionId = fpSec.Id };
+        db.Equipment.Add(gc);
+        await db.SaveChangesAsync();
+
+        var created = await service.CreateAsync(new CreateChromatographyColumnRequest(
+            Code: "COL-GC-001", Name: "DB-624", SectionId: fpSec.Id,
+            CompatibleEquipmentIds: new List<int> { gc.Id }), fpUser.Id);
+
+        Assert.Equal(gc.Id, Assert.Single(created.CompatibleEquipment).Id);
+    }
+
+    [Fact]
     public async Task Column_Create_NonHplcEquipment_ThrowsInvalidOperationException()
     {
         await using var db = NewDb();
@@ -271,7 +288,7 @@ public class FpHplcMastersSliceA1Tests
                 CompatibleEquipmentIds: new List<int> { incubator.Id }
             ), fpUser.Id));
 
-        Assert.Contains("is not an HPLC instrument", ex.Message);
+        Assert.Contains("is not an HPLC or GC instrument", ex.Message);
     }
 
     [Fact]

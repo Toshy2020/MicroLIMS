@@ -15,7 +15,14 @@ namespace MicroLIMS.Application.Services;
 
 public record HplcActiveRunSummaryDto(int RunId, string Code, string MethodAbbreviation, string AnalystName, int SampleCount, HplcSstStatus SstStatus);
 public record HplcInstrumentDto(int EquipmentId, string Code, string Name, string State, string? Reason, HplcActiveRunSummaryDto? ActiveRun);
-public record HplcMethodOptionDto(int Id, string Abbreviation, string Name, string ColumnDesignation, int EligibleTestOrderCount);
+public static class HplcTechniqueEquipment
+{
+    public static EquipmentType For(HplcTechnique t) => t == HplcTechnique.Gc ? EquipmentType.Gc : EquipmentType.Hplc;
+    public static string Label(HplcTechnique t) => t == HplcTechnique.Gc ? "GC" : "HPLC";
+}
+
+public record HplcMethodOptionDto(int Id, string Abbreviation, string Name, string ColumnDesignation, int EligibleTestOrderCount,
+    HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay);
 
 // ---- Start run ----
 
@@ -158,10 +165,10 @@ public partial class HplcRunService
 
     // ---- Instruments / methods ----
 
-    public async Task<List<HplcInstrumentDto>> GetInstrumentsAsync(int userId, CancellationToken ct = default)
+    public async Task<List<HplcInstrumentDto>> GetInstrumentsAsync(int userId, HplcTechnique technique = HplcTechnique.Hplc, CancellationToken ct = default)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
-        var query = _db.Equipment.Where(e => e.Type == EquipmentType.Hplc).AsNoTracking();
+        var query = _db.Equipment.Where(e => e.Type == HplcTechniqueEquipment.For(technique)).AsNoTracking();
         if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         var equipmentList = await query.OrderBy(e => e.Code).ToListAsync(ct);
 
@@ -204,10 +211,10 @@ public partial class HplcRunService
         return result;
     }
 
-    public async Task<List<HplcMethodOptionDto>> GetMethodOptionsAsync(int userId, CancellationToken ct = default)
+    public async Task<List<HplcMethodOptionDto>> GetMethodOptionsAsync(int userId, HplcTechnique technique = HplcTechnique.Hplc, CancellationToken ct = default)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
-        var query = _db.HplcMethods.Where(m => m.IsActive).AsNoTracking();
+        var query = _db.HplcMethods.Where(m => m.IsActive && m.Technique == technique).AsNoTracking();
         if (scope != null) query = query.Where(m => scope.Contains(m.SectionId));
         var methods = await query.OrderBy(m => m.Name).ToListAsync(ct);
 
@@ -228,7 +235,7 @@ public partial class HplcRunService
                     codes.Contains(o.TestCode) && !o.IsSuperseded && o.CurrentStep != WorkflowStep.Ready
                     && o.Sample != null && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled, ct);
             }
-            result.Add(new HplcMethodOptionDto(m.Id, m.Abbreviation, m.Name, m.ColumnDesignation, count));
+            result.Add(new HplcMethodOptionDto(m.Id, m.Abbreviation, m.Name, m.ColumnDesignation, count, m.Technique, m.ResultMode));
         }
 
         return result;
@@ -262,9 +269,6 @@ public partial class HplcRunService
         if (scope != null && !scope.Contains(equipment.SectionId))
             throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
-        if (equipment.Type != EquipmentType.Hplc)
-            throw new InvalidOperationException($"\"{equipment.Name}\" is not an HPLC instrument.");
-
         var hasOpenRun = await _db.HplcRuns.AnyAsync(run => run.EquipmentId == equipment.Id && run.Status == HplcRunStatus.Open, ct);
         if (hasOpenRun)
             throw new InvalidOperationException($"\"{equipment.Name}\" already has an open run.");
@@ -278,9 +282,13 @@ public partial class HplcRunService
             .Include(m => m.DiluentSolution)
             .Include(m => m.MobilePhases).ThenInclude(mp => mp.SolutionMaster)
             .Include(m => m.GradientSteps)
+            .Include(m => m.OvenSteps)
             .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry)
             .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId, ct)
             ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
+
+        if (equipment.Type != HplcTechniqueEquipment.For(method.Technique))
+            throw new InvalidOperationException($"\"{equipment.Name}\" is not a {HplcTechniqueEquipment.Label(method.Technique)} instrument; method {method.Abbreviation} needs one.");
 
         if (!method.IsActive)
             throw new InvalidOperationException($"HPLC method \"{method.Name}\" is inactive.");

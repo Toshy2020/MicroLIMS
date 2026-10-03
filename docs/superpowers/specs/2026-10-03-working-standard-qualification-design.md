@@ -5,7 +5,7 @@ Date: 2026-10-03. Closes open item O4 of `2026-09-29-hplc-chain-design.md`.
 ## 1. Purpose
 Let the lab make an in-house working (secondary) standard from a raw material, qualify it by HPLC assay against a
 primary reference standard, approve it with e-signatures, and then use it wherever a primary reference standard lot
-is accepted today (solution preparations, HPLC SST). Requalify the same lot every 12 months.
+is accepted today (the HPLC SST standard). Requalify the same lot every 12 months.
 
 ## 2. Regulatory basis
 - USP <11> (USP 35): covers official USP RS only — use per label (As Is / Dry Before Use / Determine Water Content),
@@ -17,14 +17,14 @@ is accepted today (solution preparations, HPLC SST). Requalify the same lot ever
 ## 3. User decisions (2026-10-03)
 | ID | Decision |
 |---|---|
-| D1 | Scope: qualification of in-house working standards. Daily standard solutions stay in Solution Preparation. |
+| D1 | Scope: qualification of in-house working standards. Solution Preparation (mobile phases, diluents, titrants) never takes a standard lot. |
 | D2 | Potency assigned by HPLC assay against the primary RS. Site rule: exactly 6 replicates, RSD ≤ 2.0 %, potency = mean. |
 | D3 | The qualification assay runs in the existing HPLC workspace. |
 | D4 | Moisture measured once at qualification, stored on the WS lot until requalification. |
 | D5 | Potency stored on the dried basis: `potency = mean as-is assay × 100 / (100 − MC)`. Both purity and moisture live on the lot and are applied at use exactly like a primary RS lot. |
 | D6 | Valid 12 months from approval; then requalify or retire. Expired = blocked. |
 | D7 | Sign-off: prepare (analyst) → review (reviewer) → approve (QC head), each with e-signature. Only an approved WS is usable. |
-| D8 | Stock: one WS lot, grams remaining, deducted by solution preparations. |
+| D8 | Stock: one WS lot, grams remaining (not deducted by SST use, same as primary RS lots today). |
 | D9 | Source: either a received raw-material sample with an approved assay result, or a manually entered RM name + batch with its first test report attached. Nothing is deducted from the source (a received RM is a testing sample, data only). |
 | D10 | Code `WS-nn/MM/yyyy`, same style as titrants (`VS-nn/MM/yyyy`). |
 | D11 | Requalification extends the same lot (new potency, moisture, expiry); no new code. |
@@ -36,7 +36,7 @@ is accepted today (solution preparations, HPLC SST). Requalify the same lot ever
 A WS lot is a `Material` row:
 - `MaterialType = WorkingStandard`, `Code = WS-nn/MM/yyyy`, `Unit = Gram`.
 - `MaterialMasterEntryId` = the primary standard's master entry (category ReferenceStandard). This is what makes
-  D12 work without new code paths: Solution Preparation matches lots by master entry, and HPLC SST checks
+  D12 work without new code paths: HPLC SST (and titrant standardization) checks
   `LotUsability.Check(lot, methodAnalyte.StandardEntryId, …)`.
 - `MaterialName`, `BatchNumber` copied from the source; `ManufacturerName` = "In-house"; `Location` entered.
 - `Purity` = dried-basis potency (D5), `MoisturePercent` = MC (D4), `ExpiryDate` = approval date + 12 months (D6).
@@ -122,11 +122,11 @@ sequence table).
 - Unit: dried-basis potency, RSD, 6-replicate rule, pass/fail boundary (RSD exactly 2.0 % passes), hand-checked numbers.
 - Postgres integration: approval creates the lot with code and expiry; requalify updates the same lot; WS rejected as
   SST standard on a run carrying a qualification; exactly-one FK constraint; code sequence under concurrency;
-  approved WS appears in solution-prep lot match and the SST picker; expired WS blocked; source sample without an
+  approved WS appears in the SST picker and passes LotUsability; expired WS blocked; source sample without an
   approved assay refused; manual source without a report refused; WorkingStandard refused in Material receive.
 - Frontend: create dialog validation, assign list tag, approval panel.
-- Browser E2E: RM sample → qualification → run with primary RS → 6 reps → review → approve → WS lot used in a
-  solution preparation and as SST standard in another run.
+- Browser E2E: RM sample → qualification → run with primary RS → 6 reps → review → approve → WS lot used
+  as SST standard in another run.
 
 ## 9. Out of scope
 - Balance check-weight log (<1251>), primary RS "Current Lot" catalog check, working standards for non-HPLC methods

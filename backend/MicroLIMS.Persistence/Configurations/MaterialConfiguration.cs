@@ -16,8 +16,8 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(m => m.Code).HasMaxLength(50);
         builder.Property(m => m.Location).HasMaxLength(150);
         builder.Property(m => m.AtccNumber).HasMaxLength(50);
-        builder.Property(m => m.QuantityReceived).HasColumnType("decimal(18,3)");
-        builder.Property(m => m.QuantityRemaining).HasColumnType("decimal(18,3)");
+        builder.Property(m => m.QuantityReceived).HasColumnType("decimal(18,6)");
+        builder.Property(m => m.QuantityRemaining).HasColumnType("decimal(18,6)");
         builder.Property(m => m.MinimumStockLevel).HasColumnType("decimal(18,3)");
         builder.Property(m => m.Purity).HasColumnType("decimal(6,3)");
         builder.Property(m => m.MoisturePercent).HasColumnType("decimal(6,3)");
@@ -44,5 +44,6 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
 
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);
+        builder.Ignore(m => m.LotLabel);
     }
 }

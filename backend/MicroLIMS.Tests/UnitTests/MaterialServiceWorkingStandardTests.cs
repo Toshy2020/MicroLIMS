@@ -68,4 +68,16 @@ public class MaterialServiceWorkingStandardTests
 
         Assert.Equal(new[] { "RS1", "WS1" }, lots.Select(l => l.BatchNumber).OrderBy(b => b));
     }
+
+    [Fact]
+    public void LotLabel_WorkingStandardShowsCode_OtherLotsShowBatch()
+    {
+        var ws = Lot(1, MaterialType.WorkingStandard, "RM-77");
+        ws.Code = "WS-02/10/2026";
+        var rs = Lot(1, MaterialType.ReferenceStandard, "R15030");
+        rs.Code = "RS-012";
+
+        Assert.Equal("WS-02/10/2026", ws.LotLabel);
+        Assert.Equal("R15030", rs.LotLabel);
+    }
 }

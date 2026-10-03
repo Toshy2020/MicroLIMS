@@ -89,4 +89,10 @@ public class Material : IVersionedEntity
     // Used by MediaPreparationService's consumption guard before any
     // mutation - same shape as EquipmentGuard-style checks elsewhere.
     public bool IsUsable => Status == StockStatus.InStock;
+
+    // How a lot is named on screens: a working standard by its WS-nn/MM/yyyy
+    // code (its BatchNumber is the source raw-material batch), any other lot
+    // by its batch number.
+    public string LotLabel =>
+        MaterialType == MaterialType.WorkingStandard && !string.IsNullOrWhiteSpace(Code) ? Code : BatchNumber;
 }

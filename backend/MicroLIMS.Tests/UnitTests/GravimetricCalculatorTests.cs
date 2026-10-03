@@ -190,8 +190,10 @@ public class GravimetricCalculatorTests
         var spec0 = CreateNmtSpec(5m);
         Assert.Equal("4.50 %", GravimetricCalculator.FormatReportedDisplay(4.5m, spec0));
 
-        // NMT 5.000 (3 dp) -> 3 dp
-        var spec3 = CreateNmtSpec(5.000m);
+        // NMT 5.125 (3 significant dp) -> 3 dp. Trailing zeros (5.000, or 5.000000 as
+        // loaded from numeric(18,6)) do not count - that would force 6 dp on every result.
+        var spec3 = CreateNmtSpec(5.125m);
         Assert.Equal("4.500 %", GravimetricCalculator.FormatReportedDisplay(4.5m, spec3));
+        Assert.Equal("4.50 %", GravimetricCalculator.FormatReportedDisplay(4.5m, CreateNmtSpec(5.000000m)));
     }
 }

@@ -47,6 +47,7 @@ public class TitrationRecorderTests
         Assert.NotNull(a.Signature);
         var pr = Assert.Single(a.ParameterResults);
         Assert.Equal(99.07m, pr.ReportedValue);
+        Assert.Equal("99.07 %", pr.ReportedDisplay); // the mean, rounded - this is what the CoA prints
         Assert.Equal(ResultBasis.PercentAsIs, pr.ResultBasis);
         Assert.Equal(2, pr.Readings.Count);
         Assert.All(pr.Readings, r => Assert.Equal(ReadingKind.Titration, r.Kind));

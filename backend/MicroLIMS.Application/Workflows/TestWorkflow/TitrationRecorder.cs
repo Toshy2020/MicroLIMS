@@ -235,7 +235,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
 
             var summary = TitrationEngine.Summarize(values, t.TitrationMaxRsdPercent);
             int decimals = Math.Max(2, new[] { spec.LowerLimit, spec.UpperLimit, spec.Target, spec.Tolerance }
-                .Where(x => x.HasValue).Select(x => MeasurementCalculator.GetDecimalPlaces(x!.Value)).DefaultIfEmpty(0).Max());
+                .Where(x => x.HasValue).Select(x => MeasurementCalculator.GetSpecDecimalPlaces(x!.Value)).DefaultIfEmpty(0).Max());
             decimal reported = Math.Round(summary.Mean, decimals, MidpointRounding.AwayFromZero);
             var status = SpecificationEvaluator.Evaluate(spec, reported);
             if (summary.RsdExceeded)

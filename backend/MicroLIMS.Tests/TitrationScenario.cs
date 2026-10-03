@@ -145,7 +145,7 @@ public class TitrationScenario
         s.Spec = new Specification
         {
             ItemId = item.Id, TestCode = s.Test.Code, ParameterName = "Assay", LimitType = LimitType.Range,
-            LowerLimit = 98.0m, UpperLimit = 102.0m, Unit = "%", SpecLimit = "98.0-102.0%", DisplayOrder = 1,
+            LowerLimit = 98.000000m, UpperLimit = 102.000000m, /* scale as loaded from numeric(18,6) */ Unit = "%", SpecLimit = "98.0-102.0%", DisplayOrder = 1,
             ResultBasis = ResultBasis.PercentAsIs,
         };
         o.TweakSpec?.Invoke(s.Spec);

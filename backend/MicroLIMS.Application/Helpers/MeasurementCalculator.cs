@@ -29,13 +29,19 @@ public static class MeasurementCalculator
     public static int GetDecimalPlaces(decimal value) =>
         (decimal.GetBits(value)[3] >> 16) & 0x7F;
 
+    // Decimal places a specification limit is written with. Limits are stored as
+    // numeric(18,6), so 98.0 comes back as 98.000000; strip the storage zeros
+    // first or every result would be reported to 6 decimals.
+    public static int GetSpecDecimalPlaces(decimal value) =>
+        GetDecimalPlaces(value / 1.000000000000000000000000000000000m);
+
     public static string FormatReportedDisplay(decimal reportedValue, IReadOnlyList<decimal> readings, Specification spec)
     {
         int decimals = readings.Select(GetDecimalPlaces).DefaultIfEmpty(0).Max();
-        if (spec.Target.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.Target.Value));
-        if (spec.Tolerance.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.Tolerance.Value));
-        if (spec.LowerLimit.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.LowerLimit.Value));
-        if (spec.UpperLimit.HasValue) decimals = Math.Max(decimals, GetDecimalPlaces(spec.UpperLimit.Value));
+        if (spec.Target.HasValue) decimals = Math.Max(decimals, GetSpecDecimalPlaces(spec.Target.Value));
+        if (spec.Tolerance.HasValue) decimals = Math.Max(decimals, GetSpecDecimalPlaces(spec.Tolerance.Value));
+        if (spec.LowerLimit.HasValue) decimals = Math.Max(decimals, GetSpecDecimalPlaces(spec.LowerLimit.Value));
+        if (spec.UpperLimit.HasValue) decimals = Math.Max(decimals, GetSpecDecimalPlaces(spec.UpperLimit.Value));
 
         decimal rounded = Math.Round(reportedValue, decimals, MidpointRounding.AwayFromZero);
         string format = decimals > 0 ? "0." + new string('0', decimals) : "0";

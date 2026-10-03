@@ -87,7 +87,10 @@ export const getDefaultLimitType = (workflowType?: string): LimitType => {
   return "Range";
 };
 
-export const formatTrimmedDecimal = (val: number | string | null | undefined): string => {
+const hplcParameterName = (analyteName: string, basis: ResultBasis | ""): string =>
+  basis === "MgPerUnit" ? `${analyteName} (amount per unit)` : analyteName;
+
+export const formatTrimmedDecimal =(val: number | string | null | undefined): string => {
   if (val == null || val === "") return "";
   const n = typeof val === "number" ? val : Number(val);
   if (Number.isNaN(n)) return String(val);
@@ -995,12 +998,14 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                         setHplcMethodAnalyteId(id);
                         const chosen = methodAnalytes.find((a) => a.id === id);
                         if (chosen) {
-                          const prevMatchesAnalyte = methodAnalytes.some((a) => a.name === parameterName);
+                          const prevMatchesAnalyte = methodAnalytes.some(
+                            (a) => a.name === parameterName || hplcParameterName(a.name, "MgPerUnit") === parameterName
+                          );
                           const prevMatchesTest = assignedTests.some(
                             (t) => t.displayName === parameterName || t.testCode === parameterName
                           );
                           if (!parameterName.trim() || prevMatchesAnalyte || prevMatchesTest) {
-                            setParameterName(chosen.name);
+                            setParameterName(hplcParameterName(chosen.name, resultBasis));
                           }
                         }
                       }}
@@ -1034,6 +1039,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       onChange={(e) => {
                         const val = e.target.value as ResultBasis;
                         setResultBasis(val);
+                        // Both basis rows of one analyte share the parameter name
+                        // unique key, so the mg/unit row carries a suffix.
+                        const analyte = methodAnalytes.find((a) => a.id === hplcMethodAnalyteId);
+                        if (analyte && (parameterName === analyte.name || parameterName === hplcParameterName(analyte.name, "MgPerUnit"))) {
+                          setParameterName(hplcParameterName(analyte.name, val));
+                        }
                         if (val === "PercentLabelClaim") {
                           setUnit("%");
                         } else if (val === "MgPerUnit") {

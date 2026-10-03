@@ -122,6 +122,8 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
       >
         {steps.map((step, idx) => {
           const isClickable = !step.isLocked && onTabChange;
+          // A finished step stays readable even when it can no longer be opened.
+          const lockedLook = step.isLocked && !step.isCompleted;
 
           const stepContent = (
             <Box
@@ -135,7 +137,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
                 alignItems: "center",
                 gap: 1,
                 cursor: isClickable ? "pointer" : "default",
-                opacity: step.isLocked ? 0.6 : 1,
+                opacity: lockedLook ? 0.6 : 1,
                 py: 0.5,
                 px: 1.5,
                 borderRadius: 1.5,
@@ -196,7 +198,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
                       ? theme.palette.error.main
                       : step.isCurrent
                       ? theme.palette.primary.main
-                      : step.isLocked
+                      : lockedLook
                       ? theme.palette.text.disabled
                       : theme.palette.text.primary,
                     lineHeight: 1.2
@@ -210,7 +212,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
                     fontSize: 11,
                     color: step.isFailed
                       ? theme.palette.error.main
-                      : step.isLocked
+                      : lockedLook
                       ? theme.palette.warning.main
                       : theme.palette.text.secondary
                   }}

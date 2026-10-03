@@ -1,4 +1,5 @@
 import { createTheme, Theme } from "@mui/material/styles";
+import { deepmerge } from "@mui/utils";
 import { baseThemeOptions, lightThemeOptions, darkThemeOptions } from "./palette";
 
 // Design system extracted from the provided Sample Receiving mockup:
@@ -42,8 +43,11 @@ export const tableHeadSx = (theme: Theme) => ({
   }
 });
 
-export const lightTheme = createTheme(baseThemeOptions, lightThemeOptions);
-const darkTheme = createTheme(baseThemeOptions, darkThemeOptions);
+// Merge before createTheme: its extra arguments are pasted over the finished
+// theme, so the palette would be built in light mode and dark mode kept the
+// light text.disabled / action / divider values (black disabled text on dark).
+export const lightTheme = createTheme(deepmerge(baseThemeOptions, lightThemeOptions));
+const darkTheme = createTheme(deepmerge(baseThemeOptions, darkThemeOptions));
 
 export function getTheme(mode: "light" | "dark") {
   return mode === "dark" ? darkTheme : lightTheme;

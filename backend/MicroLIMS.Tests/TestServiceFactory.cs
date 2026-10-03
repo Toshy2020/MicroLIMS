@@ -180,6 +180,9 @@ public static class TestServiceFactory
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
 
+    public static MaterialService Material(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
+        new(db, scope ?? new UserSectionScopeService(db));
+
     public static MaterialMasterService MaterialMaster(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db));
 

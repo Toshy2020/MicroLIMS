@@ -10,7 +10,8 @@ export type MaterialType =
   | "ReferenceBuffer"
   | "DisposableTool"
   | "Other"
-  | "ReferenceStandard";
+  | "ReferenceStandard"
+  | "WorkingStandard";
 
 export type MaterialUnit =
   | "Gram"

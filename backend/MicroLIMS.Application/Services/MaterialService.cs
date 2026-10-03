@@ -59,6 +59,7 @@ public class MaterialService
         MaterialType.ReferenceBuffer => MaterialUnit.Bottle,
         MaterialType.DisposableTool => MaterialUnit.Piece,
         MaterialType.ReferenceStandard => MaterialUnit.Gram,
+        MaterialType.WorkingStandard => MaterialUnit.Gram,
         _ => MaterialUnit.Piece
     };
 
@@ -129,6 +130,9 @@ public class MaterialService
 
     public async Task<MaterialResponse> CreateAsync(SaveMaterialRequest r, int currentUserId)
     {
+        if (r.MaterialType == MaterialType.WorkingStandard)
+            throw new InvalidOperationException("Working standards are created by approving a qualification, not received here.");
+
         int? mediaProductId = null;
         string materialName = r.MaterialName;
         string? code = r.Code;
@@ -208,6 +212,9 @@ public class MaterialService
         var entity = await _db.Materials.FindAsync(id)
             ?? throw new NotFoundException($"Material {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+
+        if (entity.MaterialType == MaterialType.WorkingStandard || r.MaterialType == MaterialType.WorkingStandard)
+            throw new InvalidOperationException("Working standards change only through their qualifications.");
 
         int? mediaProductId = null;
         string materialName = r.MaterialName;
@@ -335,7 +342,7 @@ public class MaterialService
         return existing ?? custom;
     }
 
-    // Suitability Run picker (REQ-FP-012): usable (in stock, not expired) reference standards in the caller's sections.
+    // SST picker: usable primary and working standards (in stock, not expired) in the caller's sections.
     public async Task<List<MaterialResponse>> GetUsableReferenceStandardsAsync(int currentUserId)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
@@ -344,7 +351,7 @@ public class MaterialService
         {
             query = query.Where(m => scope.Contains(m.SectionId));
         }
-        query = query.Where(m => m.MaterialType == MaterialType.ReferenceStandard);
+        query = query.Where(m => m.MaterialType == MaterialType.ReferenceStandard || m.MaterialType == MaterialType.WorkingStandard);
 
         var today = _time.GetUtcNow().UtcDateTime.Date;
         query = query.Where(m => m.QuantityRemaining > 0 && (!m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= today));

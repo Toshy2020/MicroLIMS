@@ -106,7 +106,8 @@ public partial class WorkingStandardService
         var orders = _db.TestOrders.AsNoTracking()
             .Where(o => o.CurrentStep == WorkflowStep.Approved && !o.IsSuperseded
                 && o.Sample!.Category == SampleCategory.RawMaterial
-                && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled);
+                && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled
+                && o.Sample.Status != SampleStatus.Rejected && o.Sample.Status != SampleStatus.RetestRequested);
         if (scope != null) orders = orders.Where(o => scope.Contains(o.SectionId));
 
         var rows = await (from o in orders
@@ -382,7 +383,7 @@ public partial class WorkingStandardService
 
         var runSample = await _db.HplcRunSamples.AsNoTracking().Include(s => s.HplcRun)
             .Where(s => s.WorkingStandardQualificationId == q.Id && s.Status == HplcRunSampleStatus.Assigned
-                && s.HplcRun!.Status != HplcRunStatus.Abandoned)
+                && (q.Status != WorkingStandardQualificationStatus.Draft || s.HplcRun!.Status != HplcRunStatus.Abandoned))
             .OrderByDescending(s => s.Id).FirstOrDefaultAsync(ct);
 
         WorkingStandardRunLinkDto? run = null;

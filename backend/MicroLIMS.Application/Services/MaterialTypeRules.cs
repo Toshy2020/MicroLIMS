@@ -40,7 +40,7 @@ public static class MaterialTypeRules
     {
         "MICRO" => Microbiology,
         "FP" => Physicochemical,
-        _ => Enum.GetValues<MaterialType>()
+        _ => Enum.GetValues<MaterialType>().Where(t => t != MaterialType.WorkingStandard).ToArray()
     };
 
     // Display label of a built-in type ("ReferenceStandard" -> "Reference Standard").

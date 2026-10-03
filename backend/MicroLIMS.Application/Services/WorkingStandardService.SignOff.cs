@@ -3,6 +3,7 @@ using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace MicroLIMS.Application.Services;
 
@@ -20,6 +21,7 @@ public partial class WorkingStandardService
         if (!q.Passed) throw new InvalidOperationException("A failed qualification can only be rejected.");
         if (userId == q.PreparedByUserId)
             throw new InvalidOperationException("The analyst who submitted the qualification cannot review it.");
+        await RequireRunNotAbandonedAsync(q.Id, ct);
 
         var sig = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.Reviewed, EntityType, q.Id, r.Comment, ip);
         q.Status = WorkingStandardQualificationStatus.Reviewed;
@@ -59,6 +61,8 @@ public partial class WorkingStandardService
     {
         var q = await LoadAsync(id, userId, ct);
         RequireStatus(q, WorkingStandardQualificationStatus.Assayed, "Only an assayed qualification can be rejected at review.");
+        if (userId == q.PreparedByUserId)
+            throw new InvalidOperationException("The analyst who submitted the qualification cannot reject it at review.");
         return await RejectAsync(q, r, userId, ip, ct);
     }
 
@@ -68,6 +72,8 @@ public partial class WorkingStandardService
         RequireStatus(q, WorkingStandardQualificationStatus.Reviewed, "Only a reviewed qualification can be rejected at approval.");
         if (userId == q.PreparedByUserId)
             throw new InvalidOperationException("The analyst who submitted the qualification cannot reject it at approval.");
+        if (userId == q.ReviewedByUserId)
+            throw new InvalidOperationException("The reviewer cannot also reject the qualification at approval.");
         return await RejectAsync(q, r, userId, ip, ct);
     }
 
@@ -80,6 +86,7 @@ public partial class WorkingStandardService
             throw new InvalidOperationException("The analyst who submitted the qualification cannot approve it.");
         if (userId == q.ReviewedByUserId)
             throw new InvalidOperationException("The reviewer cannot also approve the qualification.");
+        await RequireRunNotAbandonedAsync(q.Id, ct);
 
         var sig = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.Approved, EntityType, q.Id, r.Comment, ip);
 
@@ -136,6 +143,13 @@ public partial class WorkingStandardService
         return await GetAsync(q.Id, userId, ct);
     }
 
+    private async Task RequireRunNotAbandonedAsync(int qualificationId, CancellationToken ct)
+    {
+        if (await _db.HplcRunSamples.AnyAsync(s => s.WorkingStandardQualificationId == qualificationId
+                && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status == HplcRunStatus.Abandoned, ct))
+            throw new InvalidOperationException("The run that carried this assay was abandoned - reject the qualification.");
+    }
+
     private static void RequireStatus(WorkingStandardQualification q, WorkingStandardQualificationStatus expected, string message)
     {
         if (q.Status != expected) throw new InvalidOperationException(message);
@@ -144,7 +158,8 @@ public partial class WorkingStandardService
     private static string RequireReason(string? reason)
     {
         var t = reason?.Trim();
-        if (string.IsNullOrEmpty(t) || t.Length > 500) throw new InvalidOperationException("Enter a reason.");
+        if (string.IsNullOrEmpty(t)) throw new InvalidOperationException("Enter a reason.");
+        if (t.Length > 500) throw new InvalidOperationException("The reason must be 500 characters or fewer.");
         return t;
     }
 }

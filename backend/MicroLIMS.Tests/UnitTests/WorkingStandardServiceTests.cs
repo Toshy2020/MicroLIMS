@@ -366,4 +366,32 @@ public class WorkingStandardServiceTests
             new CreateQualificationRequest(WorkingStandardQualificationKind.Initial, null, entry.Id, sample.Id, null, null, 10m, "F", null), uid));
         Assert.Equal("That sample has no item name.", ex.Message);
     }
+
+    [Fact]
+    public async Task RejectedRmSample_NotEligible_AndCreateRefuses()
+    {
+        await using var db = NewDb();
+        var (section, uid) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "STD-01", MaterialMasterCategory.ReferenceStandard);
+        var (sample, _) = await AddRmSampleAsync(db, section, WorkflowStep.Approved, "RM-9");
+        var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
+        Assert.Single(await svc.GetEligibleSourceSamplesAsync(null, uid));
+
+        foreach (var status in new[] { SampleStatus.Rejected, SampleStatus.RetestRequested })
+        {
+            (await db.Samples.FindAsync(sample.Id))!.Status = status;
+            await db.SaveChangesAsync();
+            Assert.Empty(await svc.GetEligibleSourceSamplesAsync(null, uid));
+            var req = new CreateQualificationRequest(WorkingStandardQualificationKind.Initial, null, entry.Id, sample.Id, null, null, 10m, "Fridge 2", null);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, uid));
+        }
+    }
+
+    [Fact]
+    public void BuiltInTypesFor_UnknownSection_ExcludesWorkingStandard()
+    {
+        var types = MaterialTypeRules.BuiltInTypesFor("OTHER");
+        Assert.DoesNotContain(MaterialType.WorkingStandard, types);
+        Assert.Contains(MaterialType.ReferenceStandard, types);
+    }
 }

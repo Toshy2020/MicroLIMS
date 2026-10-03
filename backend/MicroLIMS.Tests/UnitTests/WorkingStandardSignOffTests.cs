@@ -201,4 +201,90 @@ public class WorkingStandardSignOffTests
         await Assert.ThrowsAsync<SignatureVerificationException>(() => c.Svc.ReviewAsync(q.Id, new WorkingStandardSignRequest("bad", null), c.R, null));
         Assert.Equal(WorkingStandardQualificationStatus.Assayed, (await ReloadAsync(c, q.Id)).Status);
     }
+
+    private static async Task<(HplcRun Run, HplcRunSample Sample)> AddAbandonedRunSampleAsync(Ctx c, WorkingStandardQualification q)
+    {
+        var run = new HplcRun { SectionId = c.Section.Id, Code = "HR-1", Status = HplcRunStatus.Abandoned, StartedAt = DateTime.UtcNow };
+        var rs = new HplcRunSample { HplcRun = run, WorkingStandardQualificationId = q.Id, Status = HplcRunSampleStatus.Assigned, AssignedAt = DateTime.UtcNow };
+        c.Db.HplcRunSamples.Add(rs);
+        await c.Db.SaveChangesAsync();
+        return (run, rs);
+    }
+
+    [Fact]
+    public async Task RejectAtReview_BySubmitter_ThrowsAndNoSignature()
+    {
+        var c = await NewCtxAsync();
+        var q = await AddAssayedAsync(c, passed: false);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => c.Svc.RejectAtReviewAsync(q.Id, new WorkingStandardReasonRequest(Password, "RSD too high"), c.A, null));
+        Assert.Equal("The analyst who submitted the qualification cannot reject it at review.", ex.Message);
+        Assert.Equal(WorkingStandardQualificationStatus.Assayed, (await ReloadAsync(c, q.Id)).Status);
+    }
+
+    [Fact]
+    public async Task RejectAtApproval_ByReviewer_Throws()
+    {
+        var c = await NewCtxAsync();
+        var q = await AddAssayedAsync(c);
+        await c.Svc.ReviewAsync(q.Id, Sign(), c.R, null);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => c.Svc.RejectAtApprovalAsync(q.Id, new WorkingStandardReasonRequest(Password, "no"), c.R, null));
+        Assert.Equal("The reviewer cannot also reject the qualification at approval.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Review_And_Approve_OnAbandonedRun_Throw_ButRejectAllowed()
+    {
+        var c = await NewCtxAsync();
+        var q = await AddAssayedAsync(c);
+        await AddAbandonedRunSampleAsync(c, q);
+        const string msg = "The run that carried this assay was abandoned - reject the qualification.";
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.R, null));
+        Assert.Equal(msg, ex.Message);
+
+        q.Status = WorkingStandardQualificationStatus.Reviewed;
+        q.ReviewedByUserId = c.R;
+        await c.Db.SaveChangesAsync();
+        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ApproveAsync(q.Id, Sign(), c.P, null));
+        Assert.Equal(msg, ex.Message);
+
+        await c.Svc.RejectAtApprovalAsync(q.Id, new WorkingStandardReasonRequest(Password, "Run abandoned"), c.P, null);
+        Assert.Equal(WorkingStandardQualificationStatus.Rejected, (await ReloadAsync(c, q.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Dto_AfterSubmit_KeepsAbandonedRunLinkAndEvidence_DraftDoesNot()
+    {
+        var c = await NewCtxAsync();
+        var q = await AddAssayedAsync(c);
+        var (run, rs) = await AddAbandonedRunSampleAsync(c, q);
+        c.Db.HplcEvidences.Add(new HplcEvidence { HplcRunId = run.Id, HplcRunSampleId = rs.Id, Context = HplcEvidenceContext.Sample,
+            Kind = HplcEvidenceKind.SampleReport, FileName = "s.pdf", ContentType = "application/pdf", FilePath = "x", UploadedAt = DateTime.UtcNow });
+        await c.Db.SaveChangesAsync();
+
+        var dto = await c.Svc.GetAsync(q.Id, c.R);
+        Assert.Equal(run.Id, dto.Run!.HplcRunId);
+        Assert.Single(dto.RunEvidenceIds);
+
+        q.Status = WorkingStandardQualificationStatus.Draft;
+        await c.Db.SaveChangesAsync();
+        dto = await c.Svc.GetAsync(q.Id, c.R);
+        Assert.Null(dto.Run);
+        Assert.Empty(dto.RunEvidenceIds);
+    }
+
+    [Fact]
+    public async Task Return_ReasonOver500_Throws_BlankStillEnterReason()
+    {
+        var c = await NewCtxAsync();
+        var q = await AddAssayedAsync(c);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => c.Svc.ReturnAsync(q.Id, new WorkingStandardReturnRequest(new string('x', 501)), c.R));
+        Assert.Equal("The reason must be 500 characters or fewer.", ex.Message);
+        ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => c.Svc.ReturnAsync(q.Id, new WorkingStandardReturnRequest("  "), c.R));
+        Assert.Equal("Enter a reason.", ex.Message);
+    }
 }

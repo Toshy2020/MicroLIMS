@@ -125,6 +125,7 @@ public class HplcWorkspaceController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.GetEligibleQualificationsAsync(id, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
+    [Authorize(Policy = PermissionConstants.WorkingStandardsQualify)]
     [HttpPost("runs/{id:int}/qualifications")]
     public async Task<IActionResult> AssignQualifications(int id, [FromBody] AssignQualificationsRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.AssignQualificationsAsync(id, r.QualificationIds, CurrentUserId)));
@@ -134,11 +135,13 @@ public class HplcWorkspaceController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.GetQualificationEntryAsync(runSampleId, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
+    [Authorize(Policy = PermissionConstants.WorkingStandardsQualify)]
     [HttpPut("qualification-samples/{runSampleId:int}/replicates")]
     public async Task<IActionResult> SaveQualificationReplicates(int runSampleId, [FromBody] SaveReplicatesRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.SaveQualificationReplicatesAsync(runSampleId, r, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
+    [Authorize(Policy = PermissionConstants.WorkingStandardsQualify)]
     [HttpPost("qualification-samples/{runSampleId:int}/submit")]
     public async Task<IActionResult> SubmitQualification(int runSampleId, [FromBody] SubmitHplcSampleRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.SubmitQualificationAsync(runSampleId, r, CurrentUserId, ClientIpAddress)));

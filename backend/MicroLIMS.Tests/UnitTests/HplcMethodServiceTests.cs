@@ -503,4 +503,28 @@ public class HplcMethodServiceTests
         var history = await service.GetHistoryAsync(created.Id, userId);
         Assert.Contains(history, h => h.Action == "HplcMethod.Deactivated" && h.Reason == "No longer used");
     }
+
+    [Fact]
+    public async Task Update_RemovingAnalyteUsedByWorkingStandardQualification_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var (diluent, mp, standard) = await SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+        var created = await service.CreateAsync(Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) },
+            new List<HplcAnalyteInput> { AnalyteInput(standard.Id, "Analyte 1") }), userId);
+
+        db.WorkingStandardQualifications.Add(new WorkingStandardQualification
+        {
+            SectionId = section.Id, Code = "WSQ-1", MaterialMasterEntryId = standard.Id,
+            HplcMethodAnalyteId = created.Analytes[0].Id, CreatedByUserId = userId, CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var standard2 = await AddEntryAsync(db, section.Id, "STD-02");
+        var updateReq = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) },
+            new List<HplcAnalyteInput> { AnalyteInput(standard2.Id, "Analyte 2") }, reason: "Swap analyte");
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, updateReq, userId));
+        Assert.Contains("working standard qualifications", ex.Message);
+    }
 }

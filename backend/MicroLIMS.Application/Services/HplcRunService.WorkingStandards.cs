@@ -194,7 +194,8 @@ public partial class HplcRunService
         var run = await LoadRunAsync(runSample.HplcRunId, ct);
         var q = await _db.WorkingStandardQualifications.Include(x => x.Documents).FirstAsync(x => x.Id == qId, ct);
         var snapshot = ReadSnapshot(run);
-        var analyte = snapshot.Analytes.First(a => a.Id == q.HplcMethodAnalyteId);
+        var analyte = snapshot.Analytes.FirstOrDefault(a => a.Id == q.HplcMethodAnalyteId)
+            ?? throw new InvalidOperationException("This qualification is no longer measured on this run's method analyte.");
         return new QualificationSampleContext(run, runSample, q, snapshot, analyte);
     }
 
@@ -256,7 +257,14 @@ public partial class HplcRunService
         var submitProblem = QualificationSubmitProblem(c);
 
         WorkingStandardPreviewDto? preview = null;
-        if (QualificationEntryProblem(c) == null)
+        if (c.Q.Status != WorkingStandardQualificationStatus.Draft && c.Q.MeanAssayPercent.HasValue)
+        {
+            var stored = string.IsNullOrWhiteSpace(c.Q.ReplicateAssaysJson)
+                ? new List<decimal>() : JsonSerializer.Deserialize<List<decimal>>(c.Q.ReplicateAssaysJson)!;
+            preview = new WorkingStandardPreviewDto(stored, c.Q.MeanAssayPercent.Value, c.Q.RsdPercent,
+                c.Q.PotencyPercent ?? 0m, c.Q.Passed, c.Q.FailureReasons);
+        }
+        else if (QualificationEntryProblem(c) == null)
         {
             var result = EvaluateQualification(c);
             preview = new WorkingStandardPreviewDto(result.ReplicateAssayPercents.ToList(), result.MeanAssayPercent,

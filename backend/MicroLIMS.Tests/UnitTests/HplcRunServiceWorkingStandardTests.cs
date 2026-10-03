@@ -230,4 +230,42 @@ public partial class HplcRunServiceTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetSampleEntryAsync(rsId, s.UserId));
         Assert.Equal("This run sample is a working standard qualification - open it from its qualification entry.", ex.Message);
     }
+
+    [Fact]
+    public async Task WsEntry_AnalyteRemovedFromSnapshot_ThrowsClearError()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+        var (service, _, q, rsId) = await AssignedWsAsync(db, clock, s);
+        (await db.WorkingStandardQualifications.FindAsync(q.Id))!.HplcMethodAnalyteId = 999999;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetQualificationEntryAsync(rsId, s.UserId));
+        Assert.Equal("This qualification is no longer measured on this run's method analyte.", ex.Message);
+    }
+
+    [Fact]
+    public async Task WsEntry_AfterSubmit_ShowsStoredPreview()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+        var (service, run, q, rsId) = await AssignedWsAsync(db, clock, s);
+        var analyte = await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == s.Method.Id);
+        await service.SaveQualificationReplicatesAsync(rsId, SixReplicates(analyte.Id), s.UserId);
+        await service.UploadEvidenceAsync(run.Id, rsId, HplcEvidenceContext.Sample, HplcEvidenceKind.SampleReport,
+            "s.pdf", "application/pdf", PdfBytes(), s.UserId);
+        await service.SubmitQualificationAsync(rsId, new SubmitHplcSampleRequest(Password, null), s.UserId, null);
+
+        var entry = await service.GetQualificationEntryAsync(rsId, s.UserId);
+
+        var saved = await db.WorkingStandardQualifications.AsNoTracking().FirstAsync(x => x.Id == q.Id);
+        Assert.NotNull(entry.Preview);
+        Assert.Equal(saved.MeanAssayPercent, entry.Preview!.MeanAssayPercent);
+        Assert.Equal(saved.PotencyPercent, entry.Preview.PotencyPercent);
+        Assert.Equal(saved.RsdPercent, entry.Preview.RsdPercent);
+        Assert.Equal(6, entry.Preview.ReplicateAssayPercents.Count);
+        Assert.True(entry.Preview.Passed);
+    }
 }

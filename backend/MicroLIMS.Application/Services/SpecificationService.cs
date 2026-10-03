@@ -311,6 +311,13 @@ public class SpecificationService
                 throw new InvalidOperationException("Label claim (mg per unit) must be greater than zero when the result basis is % of label claim or mg per unit.");
             if (!needsClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
                 throw new InvalidOperationException("Label claim is only used with the % of label claim and mg per unit result bases.");
+            if (needsClaim)
+            {
+                // A label claim (mg per unit) exists only for dosage units.
+                var itemCategory = await _db.Items.Where(i => i.Id == spec.ItemId).Select(i => (SampleCategory?)i.Category).FirstOrDefaultAsync(cancellationToken);
+                if (itemCategory != SampleCategory.FinishedProduct)
+                    throw new InvalidOperationException("% of label claim and mg per unit are only available for Finished Product items.");
+            }
 
             if (spec.LimitType != LimitType.Range &&
                 spec.LimitType != LimitType.NotMoreThan &&

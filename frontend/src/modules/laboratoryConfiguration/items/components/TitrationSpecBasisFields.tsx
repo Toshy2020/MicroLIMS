@@ -24,14 +24,19 @@ export const validateTitrationSpecBasis = (basis: string, labelClaim: string): s
 };
 
 interface Props {
+  // Label claim bases are offered only for finished products (the server enforces it).
+  finishedProduct: boolean;
   resultBasis: string;
   labelClaim: string;
   onBasisChange: (b: ResultBasis) => void;
   onLabelClaimChange: (v: string) => void;
 }
 
-export function TitrationSpecBasisFields({ resultBasis, labelClaim, onBasisChange, onLabelClaimChange }: Props) {
+export function TitrationSpecBasisFields({ finishedProduct, resultBasis, labelClaim, onBasisChange, onLabelClaimChange }: Props) {
   const needsClaim = titrationBasisNeedsLabelClaim(resultBasis);
+  const options = finishedProduct
+    ? TITRATION_BASIS_OPTIONS
+    : TITRATION_BASIS_OPTIONS.filter((o) => !titrationBasisNeedsLabelClaim(o.value));
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: needsClaim ? "1fr 1fr" : "1fr" }, gap: 2 }}>
       <FormControl size="small" fullWidth required>
@@ -42,7 +47,7 @@ export function TitrationSpecBasisFields({ resultBasis, labelClaim, onBasisChang
           value={resultBasis}
           onChange={(e) => onBasisChange(e.target.value as ResultBasis)}
         >
-          {TITRATION_BASIS_OPTIONS.map((o) => (
+          {options.map((o) => (
             <MenuItem key={o.value} value={o.value}>
               {o.label}
             </MenuItem>

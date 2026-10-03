@@ -586,5 +586,12 @@ public class TitrationRecorderTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => sp.ResultBasis = ResultBasis.PercentLabelClaim)));
         await Run(NewSpec(sp => { sp.ResultBasis = ResultBasis.PercentLabelClaim; sp.LabelClaim = 500m; sp.LabelClaimUnit = "mg"; }));
         await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => sp.LabelClaim = 500m)));
+
+        // Label claim bases exist only for dosage units: a raw material may use % bases only.
+        item.Category = SampleCategory.RawMaterial;
+        await db.SaveChangesAsync();
+        await Run(NewSpec(sp => sp.ResultBasis = ResultBasis.PercentDriedBasis));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => { sp.ResultBasis = ResultBasis.MgPerUnit; sp.LabelClaim = 500m; sp.LabelClaimUnit = "mg"; })));
+        Assert.Contains("Finished Product", ex.Message);
     }
 }

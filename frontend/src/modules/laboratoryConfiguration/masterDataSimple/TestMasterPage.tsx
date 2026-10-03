@@ -3383,7 +3383,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {(isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
+          {/* Titration uses its own replicate count, not replicates per stage. */}
+          {workflowType !== "Titration" && (isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
             editingId ? (
               <TestStageReplicatesSection testDefinitionId={editingId} />
             ) : (

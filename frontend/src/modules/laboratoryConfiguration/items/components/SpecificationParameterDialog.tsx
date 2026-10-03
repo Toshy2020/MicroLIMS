@@ -1120,6 +1120,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
           {isTitration && (
             <TitrationSpecBasisFields
+              finishedProduct={item.category === "FinishedProduct"}
               resultBasis={resultBasis}
               labelClaim={labelClaim}
               onBasisChange={setResultBasis}

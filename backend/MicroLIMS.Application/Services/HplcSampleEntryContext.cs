@@ -30,6 +30,7 @@ public sealed class HplcSampleEntryContext
     public required bool HasCurrentSampleReport { get; init; }
 
     public ProductionStageRole? StageRole => Replicates.StageRole;
+    public bool IsResidualSolvents => Snapshot.ResultMode == HplcResultMode.ResidualSolvents;
     public string? StageName => Sample.ProductionStageRef?.Name ?? Sample.ProductionStage;
 
     // Editable while the run is open, or - after a submitted result was
@@ -73,16 +74,46 @@ public sealed class HplcSampleEntryContext
                     return $"Replicate {rep.ReplicateNo}: a response for {analyte.Name} is required.";
             }
 
+            var sstRow = Run.Sst!.Analytes.FirstOrDefault(a => a.HplcMethodAnalyteId == analyte.Id);
+            if (IsResidualSolvents)
+            {
+                if (!Specs.Any(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.Ppm))
+                    return $"No residual-solvent specification for {analyte.Name} on this item.";
+                if (sstRow?.MeanResponse is null or <= 0)
+                    return $"{analyte.Name}: the system suitability standard values are incomplete.";
+                continue;
+            }
+
             if (!Specs.Any(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.PercentLabelClaim))
                 return $"No assay specification for {analyte.Name} on this item.";
 
-            var sstRow = Run.Sst!.Analytes.FirstOrDefault(a => a.HplcMethodAnalyteId == analyte.Id);
             if (sstRow?.MeanResponse is null or <= 0 || sstRow.StandardWeightMg is null or <= 0
                 || sstRow.StandardPurityPercent is null or <= 0 || sstRow.StandardMoisturePercent is null)
                 return $"{analyte.Name}: the system suitability standard values are incomplete.";
         }
 
         return null;
+    }
+
+    public List<HplcAssayRow> EvaluateRows() => IsResidualSolvents
+        ? HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs())
+        : HplcSampleAssayEvaluator.Evaluate(BuildAnalyteInputs(), StageRole);
+
+    public List<HplcResidualSolventInput> BuildResidualSolventInputs()
+    {
+        var inputs = new List<HplcResidualSolventInput>();
+        foreach (var analyte in Snapshot.Analytes.OrderBy(a => a.DisplayOrder))
+        {
+            var sstRow = Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == analyte.Id);
+            var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
+                .Select(r => new ResidualSolventReplicateInput(r.ReplicateNo, r.ActualWeightMg,
+                    r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response))
+                .ToList();
+            inputs.Add(new HplcResidualSolventInput(analyte.Id, analyte.Name, analyte.StandardConcentrationUgPerMl!.Value,
+                Snapshot.SampleSolutionVolumeMl!.Value, sstRow.MeanResponse!.Value, reps,
+                Specs.First(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.Ppm)));
+        }
+        return inputs;
     }
 
     public List<HplcAssayAnalyteInput> BuildAnalyteInputs()

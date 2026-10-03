@@ -31,16 +31,48 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         var (order, _, _, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             c.Order.Id, _clock.UtcNow.UtcDateTime, null, null, password, WorkflowType.HplcMethodAssay, userId);
 
-        var inputs = c.BuildAnalyteInputs();
-        var rows = HplcSampleAssayEvaluator.Evaluate(inputs, c.StageRole);
+        var rows = c.EvaluateRows();
+        var inputs = c.IsResidualSolvents ? new List<HplcAssayAnalyteInput>() : c.BuildAnalyteInputs();
+        var rsInputs = c.IsResidualSolvents ? c.BuildResidualSolventInputs() : new List<HplcResidualSolventInput>();
         var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var sst = c.Run.Sst!;
 
         var parameterResults = new List<ParameterResult>();
         foreach (var row in rows)
         {
+            string calculationJson;
+            if (c.IsResidualSolvents)
+            {
+                var rs = rsInputs.First(i => i.AnalyteId == row.AnalyteId);
+                calculationJson = JsonSerializer.Serialize(new
+                {
+                    analyte = rs.Name,
+                    hplcMethodAnalyteId = rs.AnalyteId,
+                    quantity = "ResidualSolventPpm",
+                    basis = "Mean",
+                    standardConcentrationUgPerMl = rs.StandardConcentrationUgPerMl,
+                    sampleSolutionVolumeMl = rs.SampleSolutionVolumeMl,
+                    standardMeanResponse = rs.StandardMeanResponse,
+                    replicates = row.Readings.Select(r => new
+                    {
+                        replicateNo = r.ReplicateNo,
+                        sampleWeightMg = rs.Reps.First(x => x.ReplicateNo == r.ReplicateNo).SampleWeightMg,
+                        response = r.Response,
+                        ppm = r.AssayPercent,
+                        ppmDisplay = ResidualSolventCalculator.FormatPpm(r.AssayPercent),
+                    }),
+                    reportedValue = row.Value,
+                    runCode = c.Run.Code,
+                    sstCode = sst.Code,
+                    hplcMethodId = c.Run.HplcMethodId,
+                    hplcRunId = c.Run.Id,
+                    hplcRunSampleId = c.RunSample.Id,
+                }, JsonOptions);
+            }
+            else
+            {
             var input = inputs.First(i => i.AnalyteId == row.AnalyteId);
-            var calculationJson = JsonSerializer.Serialize(new
+            calculationJson = JsonSerializer.Serialize(new
             {
                 analyte = input.Name,
                 hplcMethodAnalyteId = input.AnalyteId,
@@ -69,6 +101,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                 hplcRunId = c.Run.Id,
                 hplcRunSampleId = c.RunSample.Id,
             }, JsonOptions);
+            }
 
             var parameterResult = new ParameterResult
             {

@@ -114,12 +114,13 @@ public partial class HplcRunService
         if (run.Sst == null) return missing;
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
         var methodById = snapshot?.Analytes.ToDictionary(a => a.Id) ?? new Dictionary<int, HplcMethodAnalyteResponse>();
+        var residualSolvents = snapshot?.ResultMode == HplcResultMode.ResidualSolvents;
 
         foreach (var a in run.Sst.Analytes.OrderBy(x => x.Id))
         {
             var fields = new List<string>();
             if (a.StandardMaterialId == null) fields.Add("reference standard lot");
-            if (!(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
+            if (!residualSolvents && !(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
             if (methodById.TryGetValue(a.HplcMethodAnalyteId, out var m))
             {
                 var blank = Enumerable.Range(1, m.StandardInjections)
@@ -398,6 +399,7 @@ public partial class HplcRunService
         var method = await _db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == run.HplcMethodId, ct);
         var methodAnalyteById = method.Analytes.ToDictionary(a => a.Id);
         var today = _clock.LabToday;
+        var residualSolvents = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)?.ResultMode == HplcResultMode.ResidualSolvents;
 
         foreach (var input in r.Analytes ?? new List<SaveSstAnalyteInput>())
         {
@@ -407,7 +409,7 @@ public partial class HplcRunService
             if (!methodAnalyteById.TryGetValue(analyteRow.HplcMethodAnalyteId, out var methodAnalyte))
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: method analyte not found.");
 
-            if (input.StandardWeightMg <= 0)
+            if (!residualSolvents && input.StandardWeightMg <= 0)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: standard weight must be greater than zero.");
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId, ct)
@@ -420,13 +422,16 @@ public partial class HplcRunService
             if (!check.Usable)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
 
-            if (!lot.Purity.HasValue)
-                throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");
-            if (!lot.MoisturePercent.HasValue)
-                throw new InvalidOperationException($"Lot {lot.LotLabel} has no moisture content recorded.");
+            if (!residualSolvents)
+            {
+                if (!lot.Purity.HasValue)
+                    throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");
+                if (!lot.MoisturePercent.HasValue)
+                    throw new InvalidOperationException($"Lot {lot.LotLabel} has no moisture content recorded.");
+            }
 
             analyteRow.StandardMaterialId = lot.Id;
-            analyteRow.StandardWeightMg = input.StandardWeightMg;
+            analyteRow.StandardWeightMg = input.StandardWeightMg > 0 ? input.StandardWeightMg : null;
             analyteRow.StandardPurityPercent = lot.Purity;
             analyteRow.StandardMoisturePercent = lot.MoisturePercent;
             analyteRow.ReportedRsdPercent = input.ReportedRsdPercent;

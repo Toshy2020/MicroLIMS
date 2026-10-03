@@ -305,10 +305,10 @@ public partial class HplcRunService
         var preview = new List<HplcPreviewResultDto>();
         if (c.EntryProblem() == null)
         {
-            var rows = HplcSampleAssayEvaluator.Evaluate(c.BuildAnalyteInputs(), c.StageRole);
+            var rows = c.EvaluateRows();
             preview = rows.Select(row => new HplcPreviewResultDto(
                 row.AnalyteId, row.AnalyteName,
-                row.Basis == ResultBasis.MgPerUnit ? "Amount per unit" : "Assay %", row.ReplicateNo,
+                row.Basis == ResultBasis.Ppm ? "Residual solvent (ppm)" : row.Basis == ResultBasis.MgPerUnit ? "Amount per unit" : "Assay %", row.ReplicateNo,
                 row.Value, row.Display, row.Unit, row.Status,
                 !string.IsNullOrWhiteSpace(row.Spec.SpecLimit) ? row.Spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(row.Spec))).ToList();
         }

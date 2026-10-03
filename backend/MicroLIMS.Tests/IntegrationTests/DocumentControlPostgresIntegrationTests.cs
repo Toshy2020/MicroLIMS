@@ -914,4 +914,24 @@ public class DocumentControlPostgresIntegrationTests
         Assert.NotNull(exportLog);
         Assert.Equal(AuditActionCategory.Security, exportLog.ActionCategory);
     }
+
+    [PostgresFact]
+    public async Task SearchAuditLogs_OnPostgres_ReturnsOnlyDocumentControlRows()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var marker = Guid.NewGuid().ToString("N");
+        var now = DateTime.UtcNow;
+        db.AuditLogs.AddRange(
+            new AuditLog { EntityName = nameof(Sample), EntityId = $"{marker}-sample", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now },
+            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = $"{marker}-esig", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now },
+            new AuditLog { EntityName = nameof(DocumentKeyword), EntityId = $"{marker}-keyword", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now });
+        await db.SaveChangesAsync();
+
+        var service = new DocumentAuditService(db, new AuditEventService(db, new DatabaseSequenceHelper(db)), new DocumentAuthorizationService(db));
+        var result = await service.SearchAuditLogsAsync(new DocumentAuditFilterRequest(SearchTerm: marker), _fixture.SeededUserId);
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal($"{marker}-keyword", item.EntityId);
+        Assert.Equal(1, result.TotalCount);
+    }
 }

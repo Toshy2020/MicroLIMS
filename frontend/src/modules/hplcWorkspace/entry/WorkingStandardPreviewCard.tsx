@@ -28,9 +28,9 @@ export function WorkingStandardPreviewCard({
   const theme = useTheme();
 
   const metrics = preview ? [
-    { label: "Mean % Assay", value: `${preview.meanAssayPercent}%` },
-    { label: "% RSD", value: preview.rsdPercent != null ? `${preview.rsdPercent}%` : "—" },
-    { label: "Potency", value: `${preview.potencyPercent}%` },
+    { label: "Mean % Assay", value: `${preview.meanAssayPercent.toFixed(2)}%` },
+    { label: "% RSD", value: preview.rsdPercent != null ? `${preview.rsdPercent.toFixed(2)}%` : "—" },
+    { label: "Potency", value: `${preview.potencyPercent.toFixed(3)}%` },
     {
       label: "Acceptance Criteria",
       value: preview.passed ? "Passed" : "Failed",
@@ -121,7 +121,7 @@ export function WorkingStandardPreviewCard({
                     <TableRow key={`rep-assay-${idx}`} hover>
                       <TableCell sx={{ fontWeight: 600 }}>Replicate #{idx + 1}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                        {val}%
+                        {val.toFixed(2)}%
                       </TableCell>
                     </TableRow>
                   ))}

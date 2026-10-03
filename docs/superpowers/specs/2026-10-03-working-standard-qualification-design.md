@@ -125,7 +125,7 @@ sequence table).
   approved WS appears in the SST picker and passes LotUsability; expired WS blocked; source sample without an
   approved assay refused; manual source without a report refused; WorkingStandard refused in Material receive.
 - Frontend: create dialog validation, assign list tag, approval panel.
-- Browser E2E: RM sample → qualification → run with primary RS → 6 reps → review → approve → WS lot used in a
+- Browser E2E: RM sample → qualification → run with primary RS → 6 reps → review → approve → WS lot used
   as SST standard in another run.
 
 ## 9. Out of scope

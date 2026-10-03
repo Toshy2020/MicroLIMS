@@ -172,6 +172,8 @@ export function AppRoutes() {
             <Route path="/hplc-workspace/:instrumentId/run/:runId" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/sst" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/samples" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/evidence" element={<HplcInstrumentWorkspace />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/history" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
 

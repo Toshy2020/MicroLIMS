@@ -82,7 +82,12 @@ export function SampleAssignmentPanel({
     : "";
 
   const columns: RegisterColumn<HplcRunSampleSummaryDto>[] = [
-    { key: "sampleNumber", label: "Sample Number", sortable: true, render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span> },
+    {
+      key: "sampleNumber",
+      label: "Sample Number",
+      sortable: true,
+      render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span>
+    },
     { key: "batchNumber", label: "Batch", sortable: true, render: (s) => s.batchNumber ?? "—" },
     { key: "productName", label: "Product", sortable: true, render: (s) => s.productName ?? "—" },
     {
@@ -159,7 +164,15 @@ export function SampleAssignmentPanel({
         </Alert>
       )}
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 1.5
+        }}
+      >
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             Assigned Run Samples ({run.samples.length})

@@ -138,18 +138,13 @@ export function QualificationEntryPage() {
               {` · Run: ${entry.runCode}`}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1.5}>
-            <Button variant="outlined" color="primary" startIcon={<SaveIcon />} onClick={handleSaveReplicates} disabled={!isEditable || saving || !canSave} sx={{ textTransform: "none", fontWeight: 600 }}>
-              {saving ? "Saving..." : "Save Replicates"}
-            </Button>
-            <Tooltip title={!entry.canSubmit ? (entry.canSubmitReason || "Prerequisites not met") : ""}>
-              <span>
-                <Button variant="contained" color="primary" startIcon={<SendIcon />} onClick={() => setReviewDialogOpen(true)} disabled={!entry.canSubmit || entry.submitted || saving || !canOperate} sx={{ textTransform: "none", fontWeight: 600 }}>
-                  Send for Review
-                </Button>
-              </span>
-            </Tooltip>
-          </Stack>
+          <Tooltip title={!entry.canSubmit ? (entry.canSubmitReason || "Prerequisites not met") : ""}>
+            <span>
+              <Button variant="contained" color="primary" startIcon={<SendIcon />} onClick={() => setReviewDialogOpen(true)} disabled={!entry.canSubmit || entry.submitted || saving || !canOperate} sx={{ textTransform: "none", fontWeight: 600 }}>
+                Send for Review
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
         {entry.submitted && (
           <Alert severity="success" sx={{ mt: 2 }}>

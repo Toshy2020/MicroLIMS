@@ -8,12 +8,10 @@ import {
   TableHead,
   TableRow,
   Alert,
-  Link,
   Stack,
   Paper,
   useTheme
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { WorkingStandardPreviewDto } from "../types";
@@ -29,33 +27,34 @@ export function WorkingStandardPreviewCard({
 }: WorkingStandardPreviewCardProps) {
   const theme = useTheme();
 
+  const metrics = preview ? [
+    { label: "Mean % Assay", value: `${preview.meanAssayPercent}%` },
+    { label: "% RSD", value: preview.rsdPercent != null ? `${preview.rsdPercent}%` : "—" },
+    { label: "Potency", value: `${preview.potencyPercent}%` },
+    {
+      label: "Acceptance Criteria",
+      value: preview.passed ? "Passed" : "Failed",
+      color: preview.passed ? "success.main" : "error.main"
+    }
+  ] : [];
+
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
         {preview && (
           <StatusBadge
-            status={preview.passed ? "Active" : "OOS"}
+            status={preview.passed ? "Passed" : "Failed"}
             label={preview.passed ? "Evaluation: Passed" : "Evaluation: Failed"}
           />
         )}
         <StatusBadge
-          status={submitted ? "Completed" : "Pending Review"}
+          status={submitted ? "Completed" : "PendingReview"}
           label={submitted ? "Official, Recorded for Review" : "Provisional Preview"}
         />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Calculations are computed server-side from current SST reference standard calibration.
         </Typography>
       </Box>
-
-      {submitted && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Submitted — review on the{" "}
-          <Link component={RouterLink} to="/working-standards" sx={{ fontWeight: 600, color: "inherit", textDecoration: "underline" }}>
-            Working Standards page
-          </Link>
-          .
-        </Alert>
-      )}
 
       {!preview ? (
         <Box sx={{ p: 2 }}>
@@ -73,79 +72,32 @@ export function WorkingStandardPreviewCard({
               gap: 1.5
             }}
           >
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.5,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
-                bgcolor: theme.palette.background.paper
-              }}
-            >
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Mean % Assay
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                {preview.meanAssayPercent}%
-              </Typography>
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.5,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
-                bgcolor: theme.palette.background.paper
-              }}
-            >
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                % RSD
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                {preview.rsdPercent != null ? `${preview.rsdPercent}%` : "—"}
-              </Typography>
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.5,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
-                bgcolor: theme.palette.background.paper
-              }}
-            >
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Potency
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                {preview.potencyPercent}%
-              </Typography>
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                p: 1.5,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
-                bgcolor: theme.palette.background.paper
-              }}
-            >
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Acceptance Criteria
-              </Typography>
-              <Typography
-                variant="h6"
+            {metrics.map((m) => (
+              <Paper
+                key={m.label}
+                elevation={0}
                 sx={{
-                  fontWeight: 700,
-                  color: preview.passed ? "success.main" : "error.main"
+                  p: 1.5,
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.background.paper
                 }}
               >
-                {preview.passed ? "Passed" : "Failed"}
-              </Typography>
-            </Paper>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  {m.label}
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    fontVariantNumeric: "tabular-nums",
+                    ...(m.color ? { color: m.color } : {})
+                  }}
+                >
+                  {m.value}
+                </Typography>
+              </Paper>
+            ))}
           </Box>
 
           {!preview.passed && preview.failureReasons && (

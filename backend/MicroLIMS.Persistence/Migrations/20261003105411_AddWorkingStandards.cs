@@ -287,7 +287,11 @@ namespace MicroLIMS.Persistence.Migrations
                 name: "WorkingStandardQualificationId",
                 table: "HplcRunSamples");
 
+            migrationBuilder.Sql(@"DELETE FROM ""HplcEvidences"" WHERE ""HplcRunSampleId"" IN
+                (SELECT ""Id"" FROM ""HplcRunSamples"" WHERE ""TestOrderId"" IS NULL);");
+            // Replicates and their responses cascade with the run sample.
             migrationBuilder.Sql(@"DELETE FROM ""HplcRunSamples"" WHERE ""TestOrderId"" IS NULL;");
+            migrationBuilder.Sql(@"DELETE FROM ""Materials"" WHERE ""MaterialType"" = 12;");
 
             migrationBuilder.AlterColumn<int>(
                 name: "TestOrderId",

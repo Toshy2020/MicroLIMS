@@ -152,7 +152,7 @@ public partial class WorkingStandardService
                 throw new InvalidOperationException("Choose the working standard lot to requalify.");
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == r.WorkingStandardMaterialId.Value && m.MaterialType == MaterialType.WorkingStandard, ct)
                 ?? throw new NotFoundException("Working standard lot not found.");
-            await EnsureSectionAsync(lot.SectionId, userId, ct);
+            await EnsureSectionAsync(lot.SectionId, userId, ct, "Working standard lot not found.");
 
             var openCodes = await _db.WorkingStandardQualifications
                 .Where(x => x.WorkingStandardMaterialId == lot.Id)
@@ -162,6 +162,8 @@ public partial class WorkingStandardService
                 throw new InvalidOperationException($"Lot {lot.Code} already has an open qualification ({openCode}).");
             if (!lot.MaterialMasterEntryId.HasValue)
                 throw new InvalidOperationException("The lot has no master entry.");
+            if (r.QuantityGrams.HasValue || !string.IsNullOrWhiteSpace(r.Location))
+                throw new InvalidOperationException("Quantity and location belong to the lot for a requalification.");
 
             q.SectionId = lot.SectionId;
             q.WorkingStandardMaterialId = lot.Id;
@@ -175,7 +177,7 @@ public partial class WorkingStandardService
                 throw new InvalidOperationException("Choose the reference standard master entry.");
             var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.MaterialMasterEntryId.Value, ct)
                 ?? throw new NotFoundException("Master entry not found.");
-            await EnsureSectionAsync(entry.SectionId, userId, ct);
+            await EnsureSectionAsync(entry.SectionId, userId, ct, "Material master entry not found.");
             if (entry.Category != MaterialMasterCategory.ReferenceStandard)
                 throw new InvalidOperationException($"Master entry \"{entry.Name}\" is not a reference standard.");
             if (!entry.IsActive)
@@ -188,6 +190,8 @@ public partial class WorkingStandardService
             {
                 var eligible = (await GetEligibleSourceSamplesAsync(null, userId, ct)).FirstOrDefault(s => s.SampleId == r.SourceSampleId.Value)
                     ?? throw new InvalidOperationException("That sample has no approved assay result.");
+                if (string.IsNullOrWhiteSpace(eligible.MaterialName))
+                    throw new InvalidOperationException("That sample has no item name.");
                 q.SourceSampleId = eligible.SampleId;
                 q.SourceMaterialName = eligible.MaterialName;
                 q.SourceBatchNumber = eligible.BatchNumber ?? string.Empty;
@@ -280,9 +284,19 @@ public partial class WorkingStandardService
         _db.WorkingStandardDocuments.Add(doc);
         await _db.SaveChangesAsync(ct);
 
+        try
+        {
+            doc.FilePath = await _storage.SaveAsync($"working-standards/{q.Id}/{doc.Id}{Path.GetExtension(doc.FileName)}", content);
+        }
+        catch
+        {
+            // No half-saved current document: drop the row, previous stays current.
+            _db.WorkingStandardDocuments.Remove(doc);
+            await _db.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
         foreach (var old in q.Documents.Where(d => d.Kind == kind && d.Id != doc.Id && d.SupersededByDocumentId == null))
             old.SupersededByDocumentId = doc.Id;
-        doc.FilePath = await _storage.SaveAsync($"working-standards/{q.Id}/{doc.Id}{Path.GetExtension(doc.FileName)}", content);
         await _db.SaveChangesAsync(ct);
 
         var name = await _db.Users.Where(u => u.Id == userId).Select(u => u.FullName).FirstOrDefaultAsync(ct);
@@ -304,7 +318,7 @@ public partial class WorkingStandardService
             return "Only a draft qualification can be assigned.";
         if (q.MoisturePercent == null)
             return "Enter the moisture content first.";
-        if (q.SourceSampleId == null
+        if (q.Kind == WorkingStandardQualificationKind.Initial && q.SourceSampleId == null
             && !q.Documents.Any(d => d.Kind == WorkingStandardDocumentKind.SourceReport && d.SupersededByDocumentId == null))
             return "Attach the raw material's first test report first.";
         return null;
@@ -334,11 +348,11 @@ public partial class WorkingStandardService
 
     private static string NormalizeContentType(string contentType) => contentType.Split(';')[0].Trim().ToLowerInvariant();
 
-    private async Task EnsureSectionAsync(int sectionId, int userId, CancellationToken ct)
+    private async Task EnsureSectionAsync(int sectionId, int userId, CancellationToken ct, string notFound = "Working standard qualification not found.")
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(sectionId))
-            throw new NotFoundException("Working standard qualification not found.");
+            throw new NotFoundException(notFound);
     }
 
     private async Task<WorkingStandardQualification> LoadAsync(int id, int userId, CancellationToken ct)

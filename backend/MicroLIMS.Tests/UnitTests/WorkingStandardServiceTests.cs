@@ -295,4 +295,75 @@ public class WorkingStandardServiceTests
         Assert.Equal("Valid", lots["L-OK"]);
         Assert.Equal("Depleted", lots["L-ZERO"]);
     }
+
+    private class ThrowingStorage : MicroLIMS.Application.Abstractions.Storage.IFileStorageService
+    {
+        public Task<string> SaveAsync(string fileName, byte[] content) => throw new IOException("disk full");
+        public Task<byte[]> ReadAsync(string path) => throw new IOException("disk full");
+    }
+
+    [Fact]
+    public async Task AssignProblem_RequalificationWithMoistureAndNoDocuments_ReturnsNull()
+    {
+        await using var db = NewDb();
+        var (section, uid) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "STD-01", MaterialMasterCategory.ReferenceStandard);
+        var lot = await AddLotAsync(db, section.Id, entry, "WS-01/10/2026", DateTime.UtcNow.AddYears(1));
+        var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
+        var dto = await svc.CreateAsync(new CreateQualificationRequest(WorkingStandardQualificationKind.Requalification, lot.Id, null, null, null, null, null, null, 0.4m), uid);
+        var q = await db.WorkingStandardQualifications.Include(x => x.Documents).FirstAsync(x => x.Id == dto.Id);
+
+        Assert.Null(WorkingStandardService.AssignProblem(q));
+    }
+
+    [Fact]
+    public async Task UploadDocument_StorageFails_LeavesPreviousCurrent()
+    {
+        await using var db = NewDb();
+        var (section, uid) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "STD-01", MaterialMasterCategory.ReferenceStandard);
+        var clock = NewClock(SepFirst);
+        var q = await TestServiceFactory.WorkingStandard(db, clock: clock).CreateAsync(Manual(entry.Id), uid);
+        var good = await TestServiceFactory.WorkingStandard(db, clock: clock)
+            .UploadDocumentAsync(q.Id, WorkingStandardDocumentKind.SourceReport, "a.pdf", "application/pdf", new byte[] { 1 }, uid);
+        var bad = TestServiceFactory.WorkingStandard(db, storage: new ThrowingStorage(), clock: clock);
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            bad.UploadDocumentAsync(q.Id, WorkingStandardDocumentKind.SourceReport, "b.pdf", "application/pdf", new byte[] { 2 }, uid));
+
+        var docs = (await bad.GetAsync(q.Id, uid)).Documents;
+        var only = Assert.Single(docs);
+        Assert.Equal(good.Id, only.Id);
+        Assert.True(only.IsCurrent);
+    }
+
+    [Fact]
+    public async Task CreateRequalification_WithQuantityOrLocation_Throws()
+    {
+        await using var db = NewDb();
+        var (section, uid) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "STD-01", MaterialMasterCategory.ReferenceStandard);
+        var lot = await AddLotAsync(db, section.Id, entry, "WS-01/10/2026", DateTime.UtcNow.AddYears(1));
+        var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(
+            new CreateQualificationRequest(WorkingStandardQualificationKind.Requalification, lot.Id, null, null, null, null, 5m, "X", null), uid));
+        Assert.Equal("Quantity and location belong to the lot for a requalification.", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateInitial_SampleWithoutItem_Throws()
+    {
+        await using var db = NewDb();
+        var (section, uid) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "STD-01", MaterialMasterCategory.ReferenceStandard);
+        var (sample, _) = await AddRmSampleAsync(db, section, WorkflowStep.Approved);
+        sample.ItemId = null;
+        await db.SaveChangesAsync();
+        var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(
+            new CreateQualificationRequest(WorkingStandardQualificationKind.Initial, null, entry.Id, sample.Id, null, null, 10m, "F", null), uid));
+        Assert.Equal("That sample has no item name.", ex.Message);
+    }
 }

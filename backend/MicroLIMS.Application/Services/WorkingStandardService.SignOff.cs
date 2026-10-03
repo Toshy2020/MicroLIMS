@@ -25,7 +25,7 @@ public partial class WorkingStandardService
         q.Status = WorkingStandardQualificationStatus.Reviewed;
         q.ReviewedByUserId = userId;
         q.ReviewedAt = _clock.UtcNow.UtcDateTime;
-        q.ReviewedSignatureId = sig.Id;
+        q.ReviewedSignature = sig;
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync(ct);
         return await GetAsync(id, userId, ct);
@@ -48,6 +48,7 @@ public partial class WorkingStandardService
         q.Passed = false;
         q.PreparedByUserId = null;
         q.PreparedAt = null;
+        q.PreparedSignature = null;
         q.PreparedSignatureId = null;
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync(ct);
@@ -114,7 +115,7 @@ public partial class WorkingStandardService
         q.Status = WorkingStandardQualificationStatus.Approved;
         q.ApprovedByUserId = userId;
         q.ApprovedAt = nowUtc;
-        q.ApprovedSignatureId = sig.Id;
+        q.ApprovedSignature = sig;
         _db.CurrentUserId = userId;
         if (!await _db.TrySaveChangesAsync(UniqueIndexNames.WorkingStandardCode))
             throw new InvalidOperationException("Another approval took that working standard code at the same moment - sign again.");
@@ -128,7 +129,7 @@ public partial class WorkingStandardService
         q.Status = WorkingStandardQualificationStatus.Rejected;
         q.RejectedByUserId = userId;
         q.RejectedAt = _clock.UtcNow.UtcDateTime;
-        q.RejectedSignatureId = sig.Id;
+        q.RejectedSignature = sig;
         q.RejectReason = reason;
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync(ct);

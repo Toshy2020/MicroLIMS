@@ -49,15 +49,19 @@ public class WorkingStandardQualification : IVersionedEntity
     public int? PreparedByUserId { get; set; }
     public DateTime? PreparedAt { get; set; }
     public int? PreparedSignatureId { get; set; }
+    public ElectronicSignature? PreparedSignature { get; set; }
     public int? ReviewedByUserId { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public int? ReviewedSignatureId { get; set; }
+    public ElectronicSignature? ReviewedSignature { get; set; }
     public int? ApprovedByUserId { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public int? ApprovedSignatureId { get; set; }
+    public ElectronicSignature? ApprovedSignature { get; set; }
     public int? RejectedByUserId { get; set; }
     public DateTime? RejectedAt { get; set; }
     public int? RejectedSignatureId { get; set; }
+    public ElectronicSignature? RejectedSignature { get; set; }
     public string? RejectReason { get; set; }
     public string? ReturnReason { get; set; } // last return to Draft
 

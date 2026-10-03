@@ -32,10 +32,10 @@ public class WorkingStandardQualificationConfiguration : IEntityTypeConfiguratio
         builder.HasOne(e => e.MaterialMasterEntry).WithMany().HasForeignKey(e => e.MaterialMasterEntryId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(e => e.SourceSample).WithMany().HasForeignKey(e => e.SourceSampleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<HplcMethodAnalyte>().WithMany().HasForeignKey(e => e.HplcMethodAnalyteId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<ElectronicSignature>().WithMany().HasForeignKey(e => e.PreparedSignatureId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<ElectronicSignature>().WithMany().HasForeignKey(e => e.ReviewedSignatureId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<ElectronicSignature>().WithMany().HasForeignKey(e => e.ApprovedSignatureId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<ElectronicSignature>().WithMany().HasForeignKey(e => e.RejectedSignatureId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.PreparedSignature).WithMany().HasForeignKey(e => e.PreparedSignatureId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.ReviewedSignature).WithMany().HasForeignKey(e => e.ReviewedSignatureId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.ApprovedSignature).WithMany().HasForeignKey(e => e.ApprovedSignatureId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.RejectedSignature).WithMany().HasForeignKey(e => e.RejectedSignatureId).OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(e => e.Documents).WithOne(d => d.WorkingStandardQualification)
             .HasForeignKey(d => d.WorkingStandardQualificationId).OnDelete(DeleteBehavior.Cascade);
     }

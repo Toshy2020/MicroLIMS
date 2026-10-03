@@ -164,7 +164,7 @@ public partial class HplcRunService
         q.Status = WorkingStandardQualificationStatus.Assayed;
         q.PreparedByUserId = userId;
         q.PreparedAt = _clock.UtcNow.UtcDateTime;
-        q.PreparedSignatureId = signature.Id;
+        q.PreparedSignature = signature;
         q.ReturnReason = null;
 
         await _db.SaveChangesAsync(ct);

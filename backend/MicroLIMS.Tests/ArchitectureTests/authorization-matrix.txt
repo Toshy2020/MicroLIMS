@@ -458,6 +458,7 @@ TestWorkflowController.GetEligibleIncubators(Int32, Int32): SystemAdministrator,
 TestWorkflowController.GetLocations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetPermittedConfirmatoryMedia(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetSiblingPathogenOrders(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
+TestWorkflowController.GetTitrationContext(Int32, TitrationContextService, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.OverrideMinimumDuration(Int32): SystemAdministrator,SectionHead
 TestWorkflowController.RecordAnalystDecision(Int32, AnalystDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordBatchPathogenResults(Int32, BatchPathogenResultsRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -472,6 +473,7 @@ TestWorkflowController.RecordGravimetricResult(Int32, RecordGravimetricResultReq
 TestWorkflowController.RecordMeasurementResult(Int32, RecordMeasurementResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordQualitativeResult(Int32, RecordQualitativeResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordResult(Int32, RecordTestResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+TestWorkflowController.RecordTitrationResult(Int32, RecordTitrationResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordWaterBatchReadings(Int32, WaterBatchReadingsRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordWeightVariationResult(Int32, RecordWeightVariationResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordWeightVariationStage(Int32, RecordWeightVariationStageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst

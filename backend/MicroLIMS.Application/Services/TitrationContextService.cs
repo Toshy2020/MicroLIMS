@@ -183,6 +183,11 @@ public static class TitrationTitrants
         {
             warning = "Titrant standardization is due - factor not used in the relative calculation.";
         }
+        else if (cur.State == "BeforeEachUse"
+                 && !(cur.StandardizedAt.HasValue && DateOnly.FromDateTime(toLabLocal(cur.StandardizedAt.Value)) == today))
+        {
+            warning = "This titrant is restandardized before each use and was not standardized today - factor not used in the relative calculation.";
+        }
 
         if (usable && requireTemperature && !cur.TemperatureC.HasValue)
         {

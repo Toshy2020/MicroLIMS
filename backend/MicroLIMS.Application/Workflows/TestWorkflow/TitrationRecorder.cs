@@ -296,7 +296,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
             excess = excess == null ? null : new
             {
                 preparationId = excess.Value.Prep.Id, code = excess.Value.Prep.Code, masterName = excess.Value.Snap.Name,
-                nominalStrength = excess.Value.Snap.NominalStrength, factor = excess.Value.Opt.Factor,
+                nominalStrength = excess.Value.Snap.NominalStrength, strengthUnit = excess.Value.Snap.StrengthUnit, factor = excess.Value.Opt.Factor,
                 standardizationId = excess.Value.Opt.StandardizationId, volumeMl = t.TitrationExcessVolumeMl,
             },
             temperatureCorrection = cfg.TempCorrection ? new

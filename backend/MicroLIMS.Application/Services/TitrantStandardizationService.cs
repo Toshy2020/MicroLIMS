@@ -208,6 +208,28 @@ public class TitrantStandardizationService
             });
         }
 
+        // Each replicate weighed standard from its lot: deduct the per-lot sum
+        // (mg -> lot unit, g / kg only). Validated here, before signing; the
+        // decrement happens after SignAsync in the same SaveChanges.
+        var deductions = new List<(Material Lot, decimal Quantity)>();
+        foreach (var g in replicateEntities.Where(x => x.StandardMaterialId.HasValue && x.StandardWeightMg.HasValue)
+                     .GroupBy(x => x.StandardMaterialId!.Value))
+        {
+            var lot = await _db.Materials.FirstAsync(m => m.Id == g.Key, ct);
+            var mg = g.Sum(x => x.StandardWeightMg!.Value);
+            var quantity = lot.Unit switch
+            {
+                MaterialUnit.Gram => mg / 1000m,
+                MaterialUnit.Kilogram => mg / 1_000_000m,
+                _ => throw new InvalidOperationException(
+                    $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it."),
+            };
+            var check = LotUsability.Check(lot, snapshot.StandardEntryId!.Value, quantity, today);
+            if (!check.Usable)
+                throw new InvalidOperationException($"Standard lot {lot.LotLabel}: {check.Reason}");
+            deductions.Add((lot, quantity));
+        }
+
         var evaluation = TitrationEngine.Evaluate(factors, snapshot.FactorMin.Value, snapshot.FactorMax.Value, snapshot.MaxRsdPercent.Value);
 
         // Signs first - see the class comment. Only after this succeeds does
@@ -237,6 +259,13 @@ public class TitrantStandardizationService
             Signature = signature,
             Replicates = replicateEntities,
         };
+
+        foreach (var (lot, quantity) in deductions)
+        {
+            lot.QuantityRemaining -= quantity;
+            lot.LastModifiedByUserId = userId;
+            lot.LastModifiedAt = nowUtc;
+        }
 
         _db.CurrentUserId = userId;
         _db.TitrantStandardizations.Add(record);

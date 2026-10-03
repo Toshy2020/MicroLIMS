@@ -461,4 +461,65 @@ public class TitrantStandardizationServiceTests
         Assert.Equal("Valid", reloaded.CurrentFactor!.State);
         Assert.Equal(1.0000m, decimal.Round(reloaded.CurrentFactor.Factor!.Value, 4));
     }
+
+    // --- Stock deduction ---
+
+    private static async Task<(TitrantStandardizationService Service, int PrepId, int LotId, int UserId)> ArrangeStockAsync(
+        MicroLimsDbContext db, decimal lotQuantity)
+    {
+        var s = await SeedScenarioAsync(db);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: lotQuantity);
+        var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
+            replicateCount: 3, factorMin: 0.5m, factorMax: 1.5m, maxRsd: 5m);
+        var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
+        return (TestServiceFactory.TitrantStandardization(db), prep.Id, lot.Id, s.UserId);
+    }
+
+    private static StandardizeRequest ThreeReplicates(int lotId) => new(
+        Enumerable.Range(0, 3).Select(_ => new StandardizationReplicateInput(lotId, 200m, null, null, 10m, null)).ToList(),
+        Password, null);
+
+    [Fact]
+    public async Task Standardize_DeductsSummedWeightFromLot()
+    {
+        await using var db = NewDb();
+        var (svc, prepId, lotId, uid) = await ArrangeStockAsync(db, 50m);
+        await svc.StandardizeAsync(prepId, ThreeReplicates(lotId), uid, null);
+        Assert.Equal(49.4m, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lotId)).QuantityRemaining);
+    }
+
+    [Fact]
+    public async Task Standardize_InsufficientStock_RefusedWithNoSignatureAndStockUnchanged()
+    {
+        await using var db = NewDb();
+        var (svc, prepId, lotId, uid) = await ArrangeStockAsync(db, 0.5m);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.StandardizeAsync(prepId, ThreeReplicates(lotId), uid, null));
+        Assert.Equal(0.5m, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lotId)).QuantityRemaining);
+        Assert.Equal(0, await db.ElectronicSignatures.CountAsync(x => x.MeaningOfSignature == SignatureMeaning.TitrantStandardized));
+    }
+
+    [Fact]
+    public async Task Standardize_AgainstReferencePreparation_DeductsNothing()
+    {
+        await using var db = NewDb();
+        var s = await SeedScenarioAsync(db);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        var refTitrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH (ref)", s.SolventEntry, s.StandardEntry,
+            replicateCount: 1, factorMin: 0.5m, factorMax: 1.5m, nominalStrength: 0.1m);
+        var refPrep = await PrepareTitrantAsync(db, s.Section, s.UserId, refTitrant, s.SolventEntry);
+        var service = TestServiceFactory.TitrantStandardization(db);
+        await service.StandardizeAsync(refPrep.Id,
+            new StandardizeRequest(new List<StandardizationReplicateInput> { new(lot.Id, 204.6084m, null, null, 10m, null) }, Password, null),
+            s.UserId, null);
+        var afterRef = (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lot.Id)).QuantityRemaining;
+
+        var titrant = await AddAgainstVsTitrantAsync(db, s.Section.Id, "0.1N HCl", s.SolventEntry, refTitrant.Id,
+            replicateCount: 1, factorMin: 0.5m, factorMax: 1.5m, nominalStrength: 0.1m);
+        var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
+        await service.StandardizeAsync(prep.Id,
+            new StandardizeRequest(new List<StandardizationReplicateInput> { new(null, null, refPrep.Id, 25.00m, 24.90m, null) }, Password, null),
+            s.UserId, null);
+
+        Assert.Equal(afterRef, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lot.Id)).QuantityRemaining);
+    }
 }

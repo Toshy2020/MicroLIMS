@@ -15,7 +15,9 @@ import type {
   ConfirmSstRequest,
   HplcSstRecordDto,
   SaveReplicatesRequest,
-  SubmitHplcSampleRequest
+  SubmitHplcSampleRequest,
+  EligibleQualificationDto,
+  HplcQualificationEntryDto
 } from "../types";
 
 interface ApiResponse<T> {
@@ -172,6 +174,33 @@ export const HplcWorkspaceService = {
       `/hplc-workspace/samples/${runSampleId}/submit`,
       req
     );
+    return res.data?.data;
+  },
+
+  // ---- Working Standard Qualifications (Task 10) ----
+
+  getEligibleQualifications: async (runId: number): Promise<EligibleQualificationDto[]> => {
+    const res = await apiClient.get<ApiResponse<EligibleQualificationDto[]>>(`/hplc-workspace/runs/${runId}/eligible-qualifications`);
+    return Array.isArray(res.data?.data) ? res.data.data : [];
+  },
+
+  assignQualifications: async (runId: number, qualificationIds: number[]): Promise<HplcRunDto> => {
+    const res = await apiClient.post<ApiResponse<HplcRunDto>>(`/hplc-workspace/runs/${runId}/qualifications`, { qualificationIds });
+    return res.data?.data;
+  },
+
+  getQualificationEntry: async (runSampleId: number): Promise<HplcQualificationEntryDto> => {
+    const res = await apiClient.get<ApiResponse<HplcQualificationEntryDto>>(`/hplc-workspace/qualification-samples/${runSampleId}`);
+    return res.data?.data;
+  },
+
+  saveQualificationReplicates: async (runSampleId: number, req: SaveReplicatesRequest): Promise<HplcQualificationEntryDto> => {
+    const res = await apiClient.put<ApiResponse<HplcQualificationEntryDto>>(`/hplc-workspace/qualification-samples/${runSampleId}/replicates`, req);
+    return res.data?.data;
+  },
+
+  submitQualification: async (runSampleId: number, req: SubmitHplcSampleRequest): Promise<HplcQualificationEntryDto> => {
+    const res = await apiClient.post<ApiResponse<HplcQualificationEntryDto>>(`/hplc-workspace/qualification-samples/${runSampleId}/submit`, req);
     return res.data?.data;
   },
 

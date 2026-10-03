@@ -6,7 +6,8 @@ import {
   Button,
   Alert,
   Stack,
-  Tooltip
+  Tooltip,
+  Chip
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -16,6 +17,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { toast } from "sonner";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { EligibleSampleTable } from "./EligibleSampleTable";
+import { EligibleQualificationTable } from "./EligibleQualificationTable";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { RegisterTable } from "../../../components/lab";
@@ -38,6 +40,7 @@ export function SampleAssignmentPanel({
   const navigate = useNavigate();
 
   const [eligibleDialogOpen, setEligibleDialogOpen] = useState(false);
+  const [eligibleWsDialogOpen, setEligibleWsDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [sampleToRemove, setSampleToRemove] = useState<HplcRunSampleSummaryDto | null>(null);
   const [removeReason, setRemoveReason] = useState("");
@@ -70,21 +73,25 @@ export function SampleAssignmentPanel({
   };
 
   const canAssign = run.canAssignSamples && canOperate && run.status === "Open";
+  const assignTooltip = !run.canAssignSamples
+    ? run.canAssignSamplesReason || "System suitability must pass first"
+    : run.status !== "Open"
+    ? "Run is no longer open"
+    : !canOperate
+    ? "Permission required"
+    : "";
 
   const columns: RegisterColumn<HplcRunSampleSummaryDto>[] = [
-    {
-      key: "sampleNumber",
-      label: "Sample Number",
-      sortable: true,
-      render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span>
-    },
+    { key: "sampleNumber", label: "Sample Number", sortable: true, render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span> },
     { key: "batchNumber", label: "Batch", sortable: true, render: (s) => s.batchNumber ?? "—" },
     { key: "productName", label: "Product", sortable: true, render: (s) => s.productName ?? "—" },
     {
       key: "testCode",
       label: "Test Code",
       sortable: true,
-      render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.testCode}</span>
+      render: (s) => s.workingStandardQualificationId
+        ? <Chip label="WS qualification" size="small" color="secondary" />
+        : <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.testCode}</span>
     },
     { key: "status", label: "Run Status", sortable: true, render: (s) => <HplcStatusBadge status={s.status} /> },
     {
@@ -100,6 +107,9 @@ export function SampleAssignmentPanel({
       align: "right",
       render: (s) => {
         const canRemove = canOperate && run.status === "Open" && s.status === "Assigned" && !s.submitted;
+        const entryPath = s.workingStandardQualificationId
+          ? `/hplc-workspace/${run.equipmentId}/run/${run.id}/qualification/${s.id}`
+          : `/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`;
         return (
           <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
             <Button
@@ -110,7 +120,7 @@ export function SampleAssignmentPanel({
               onClick={() =>
                 s.isDissolution
                   ? navigate(`/physicochemical/workspace?search=${encodeURIComponent(s.sampleNumber)}`)
-                  : navigate(`/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`)
+                  : navigate(entryPath)
               }
               sx={{ textTransform: "none", py: 0.25 }}
             >
@@ -149,15 +159,7 @@ export function SampleAssignmentPanel({
         </Alert>
       )}
 
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1.5
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             Assigned Run Samples ({run.samples.length})
@@ -167,31 +169,39 @@ export function SampleAssignmentPanel({
           </Typography>
         </Box>
 
-        <Tooltip
-          title={
-            !run.canAssignSamples
-              ? run.canAssignSamplesReason || "System suitability must pass first"
-              : run.status !== "Open"
-              ? "Run is no longer open"
-              : !canOperate
-              ? "Permission required"
-              : ""
-          }
-        >
-          <span>
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<AddIcon />}
-              disabled={!canAssign}
-              onClick={() => setEligibleDialogOpen(true)}
-              sx={{ textTransform: "none", fontWeight: 600 }}
-            >
-              Assign Samples...
-            </Button>
-          </span>
-        </Tooltip>
+        <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap" }}>
+          <Tooltip title={assignTooltip}>
+            <span>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<AddIcon />}
+                disabled={!canAssign}
+                onClick={() => setEligibleDialogOpen(true)}
+                sx={{ textTransform: "none", fontWeight: 600 }}
+              >
+                Assign Samples...
+              </Button>
+            </span>
+          </Tooltip>
+
+          <Tooltip title={assignTooltip}>
+            <span>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                startIcon={<AddIcon />}
+                disabled={!canAssign}
+                onClick={() => setEligibleWsDialogOpen(true)}
+                sx={{ textTransform: "none", fontWeight: 600 }}
+              >
+                Assign Working Standard...
+              </Button>
+            </span>
+          </Tooltip>
+        </Stack>
       </Box>
 
       <RegisterTable
@@ -209,6 +219,14 @@ export function SampleAssignmentPanel({
         open={eligibleDialogOpen}
         runId={run.id}
         onClose={() => setEligibleDialogOpen(false)}
+        onAssigned={onRunUpdated}
+      />
+
+      {/* Eligible Working Standard Qualifications Dialog */}
+      <EligibleQualificationTable
+        open={eligibleWsDialogOpen}
+        runId={run.id}
+        onClose={() => setEligibleWsDialogOpen(false)}
         onAssigned={onRunUpdated}
       />
 

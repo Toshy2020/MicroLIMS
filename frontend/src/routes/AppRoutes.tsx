@@ -61,6 +61,7 @@ const HplcInstrumentWorkspace = lazy(() => import("../modules/hplcWorkspace/run/
 const StartHplcRunWizard = lazy(() => import("../modules/hplcWorkspace/run/StartHplcRunWizard").then((m) => ({ default: m.StartHplcRunWizard })));
 const HplcSampleEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/HplcSampleEntryPage").then((m) => ({ default: m.HplcSampleEntryPage })));
 const WorkingStandardsPage = lazy(() => import("../modules/workingStandards/WorkingStandardsPage").then((m) => ({ default: m.WorkingStandardsPage })));
+const QualificationEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/QualificationEntryPage").then((m) => ({ default: m.QualificationEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -176,6 +177,7 @@ export function AppRoutes() {
             <Route path="/hplc-workspace/:instrumentId/run/:runId/evidence" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/history" element={<HplcInstrumentWorkspace />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+            <Route path="/hplc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 

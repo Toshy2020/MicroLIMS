@@ -7,7 +7,7 @@ using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
 
-public class HplcMethodServiceTests
+public partial class HplcMethodServiceTests
 {
     private static MicroLimsDbContext NewDb()
     {

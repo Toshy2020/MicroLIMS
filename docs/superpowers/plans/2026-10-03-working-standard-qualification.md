@@ -14,7 +14,7 @@
 
 - Site rule: exactly **6 replicates**, **RSD ≤ 2.0 %** (compared after rounding to 2 decimals, midpoint away from zero), potency = mean.
 - Potency on the **dried basis**: `potency = mean as-is assay × 100 / (100 − MC)`, stored on the lot as `Purity` (rounded to 3 decimals), MC stored as `MoisturePercent`.
-- A potency above **100.000 %** fails the qualification ("Assigned potency is above 100 %.") — see Open decision OD1.
+- A potency above **100.000 %** is accepted as measured (user, 2026-10-03, OD1) — no cap, no failure.
 - Validity **12 months** from the approval date (lab-local date); due-soon window **30 days**.
 - Lot code `WS-nn/MM/yyyy`; qualification code `WSQ-nn/MM/yyyy`; both continuous per calendar year (`SolutionPreparationCode.NextAsync`).
 - Sign-off: submit (analyst, `ResultRecorded`) → review (`Samples.Review`, `Reviewed`) → approve (`Samples.Approve`, `Approved`); reviewer ≠ submitter; approver ≠ submitter and ≠ reviewer.
@@ -36,9 +36,9 @@ These resolve details the spec left open; Task 1 also writes them into the spec.
 5. Attachments are `WorkingStandardDocument` rows (kinds `SourceReport`, `MoistureReport`); a new upload of the same kind supersedes the previous one.
 6. Return (reviewer sends an `Assayed` qualification back to `Draft`) requires a reason, clears the computed results, and makes the replicates editable again even if the run is `Completed`.
 
-## Open decision
+## Decided
 
-- **OD1** — Dried-basis potency above 100 %: this plan fails the qualification. If the user prefers capping at 100.000 % or allowing it, change only `WorkingStandardCalculator.Evaluate` and its test in Task 2.
+- **OD1** — Dried-basis potency above 100 % is allowed as measured (user, 2026-10-03).
 
 ## Execution routing (user, 2026-10-03: "agy for easy, sonnet for advanced")
 
@@ -496,15 +496,14 @@ public class WorkingStandardCalculatorTests
         Assert.Contains("Exactly 6 replicates are required (5 entered).", r.FailureReasons);
     }
 
-    // OD1: dried-basis potency above 100 % fails. 99.8 x 100 / 99.5 = 100.3015.
+    // OD1: dried-basis potency above 100 % is allowed as measured. 99.8 x 100 / 99.5 = 100.3015.
     [Fact]
-    public void Evaluate_PotencyAbove100_Fails()
+    public void Evaluate_PotencyAbove100_AllowedAsMeasured()
     {
         var r = WorkingStandardCalculator.Evaluate(new[] { 99.8m, 99.8m, 99.8m, 99.8m, 99.8m, 99.8m }, 0.5m);
 
-        Assert.False(r.Passed);
+        Assert.True(r.Passed);
         Assert.Equal(100.302m, r.PotencyPercent);
-        Assert.Contains("Assigned potency is above 100 %.", r.FailureReasons);
     }
 
     [Theory]
@@ -577,8 +576,6 @@ public static class WorkingStandardCalculator
             reasons.Add($"Exactly {WorkingStandardRules.Replicates} replicates are required ({replicateAssayPercents.Count} entered).");
         if (rsd.HasValue && !PassesRsd(rsd.Value))
             reasons.Add($"RSD {Math.Round(rsd.Value, 2, MidpointRounding.AwayFromZero):0.00} % is above {WorkingStandardRules.MaxRsdPercent:0.0} %.");
-        if (potency > 100m)
-            reasons.Add("Assigned potency is above 100 %.");
 
         return new WorkingStandardResult(replicateAssayPercents.ToList(), mean, rsd, potency,
             reasons.Count == 0, reasons.Count == 0 ? null : string.Join(" ", reasons));

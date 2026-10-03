@@ -22,7 +22,6 @@ import {
 } from "./newDialog/qualificationFormState";
 import { InitialQualificationFields } from "./newDialog/InitialQualificationFields";
 
-export { type NewQualificationFormState, isNewQualificationSaveEnabled } from "./newDialog/qualificationFormState";
 
 interface NewQualificationDialogProps {
   open: boolean;

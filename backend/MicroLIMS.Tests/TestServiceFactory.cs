@@ -183,6 +183,18 @@ public static class TestServiceFactory
     public static MaterialService Material(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
         new(db, scope ?? new UserSectionScopeService(db));
 
+    public static WorkingStandardService WorkingStandard(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        IFileStorageService? storage = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            signatures ?? new ElectronicSignatureService(db),
+            storage ?? new InMemoryFileStorageService(),
+            clock);
+
     public static MaterialMasterService MaterialMaster(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db));
 

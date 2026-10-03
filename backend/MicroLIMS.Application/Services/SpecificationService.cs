@@ -293,6 +293,33 @@ public class SpecificationService
                 throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for HPLC method assay specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
             }
         }
+        else if (testDef?.WorkflowType == WorkflowType.Titration)
+        {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
+            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue)
+                throw new InvalidOperationException("Test analyte and sample matrix are not used for titration specifications.");
+            if (spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Conversion factor must be 1.0 for titration specifications.");
+
+            if (spec.ResultBasis is not (ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis
+                or ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
+                throw new InvalidOperationException("Result basis is required for titration specifications: % as is, % dried basis, % anhydrous basis, % of label claim or mg per unit.");
+
+            bool needsClaim = spec.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit;
+            if (needsClaim && (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0))
+                throw new InvalidOperationException("Label claim (mg per unit) must be greater than zero when the result basis is % of label claim or mg per unit.");
+            if (!needsClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                throw new InvalidOperationException("Label claim is only used with the % of label claim and mg per unit result bases.");
+
+            if (spec.LimitType != LimitType.Range &&
+                spec.LimitType != LimitType.NotMoreThan &&
+                spec.LimitType != LimitType.NotLessThan &&
+                spec.LimitType != LimitType.TargetWithTolerance)
+            {
+                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for titration specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
+            }
+        }
         else if (testDef?.EquationType == EquationType.CalibrationCurve)
         {
             if (spec.HplcMethodAnalyteId.HasValue)

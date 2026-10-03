@@ -4,5 +4,8 @@ public enum ResultBasis
 {
     MgPerKg,
     MgPerUnit,
-    PercentLabelClaim
+    PercentLabelClaim,
+    PercentAsIs,
+    PercentDriedBasis,
+    PercentAnhydrousBasis
 }

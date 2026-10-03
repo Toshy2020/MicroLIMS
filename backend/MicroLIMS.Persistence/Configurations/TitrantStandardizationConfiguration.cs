@@ -8,6 +8,7 @@ public class TitrantStandardizationConfiguration : IEntityTypeConfiguration<Titr
 {
     public void Configure(EntityTypeBuilder<TitrantStandardization> builder)
     {
+        builder.Property(x => x.TemperatureC).HasPrecision(5, 2);
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.SettingsSnapshotJson).IsRequired().HasColumnType("jsonb");

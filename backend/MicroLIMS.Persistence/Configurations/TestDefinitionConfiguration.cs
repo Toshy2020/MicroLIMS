@@ -48,6 +48,19 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.WvCapsuleInnerPercent).HasPrecision(28, 10);
         builder.Property(t => t.WvCapsuleOuterPercent).HasPrecision(28, 10);
 
+        builder.Property(t => t.TitrationEquivalencyFactor).HasPrecision(18, 6);
+        builder.Property(t => t.TitrationExcessVolumeMl).HasPrecision(10, 3);
+        builder.Property(t => t.TitrationMaxRsdPercent).HasPrecision(6, 3);
+        builder.Property(t => t.TitrationIndicator).HasMaxLength(200);
+        builder.Property(t => t.TitrationExpansionCoefficient).HasPrecision(8, 6);
+
+        builder.HasOne(t => t.TitrantSolutionMaster).WithMany()
+            .HasForeignKey(t => t.TitrantSolutionMasterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(t => t.TitrationExcessSolutionMaster).WithMany()
+            .HasForeignKey(t => t.TitrationExcessSolutionMasterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(t => t.TitrationStandardEntry).WithMany()
+            .HasForeignKey(t => t.TitrationStandardEntryId).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(t => t.Analytes)
             .WithOne(a => a.TestDefinition)
             .HasForeignKey(a => a.TestDefinitionId)

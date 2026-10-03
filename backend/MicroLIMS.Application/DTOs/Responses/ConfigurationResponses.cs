@@ -225,6 +225,21 @@ public class TestDefinitionResponse
     public int? WvCapsuleS2ExtraUnits { get; init; }
     public int? WvCapsuleS2MaxOutside { get; init; }
     public int? HplcMethodId { get; init; }
+    public TitrationType? TitrationType { get; init; }
+    public bool? TitrationNonAqueous { get; init; }
+    public TitrationMode? TitrationMode { get; init; }
+    public TitrationCalculation? TitrationCalculation { get; init; }
+    public int? TitrantSolutionMasterId { get; init; }
+    public decimal? TitrationEquivalencyFactor { get; init; }
+    public bool? TitrationBlankRequired { get; init; }
+    public int? TitrationExcessSolutionMasterId { get; init; }
+    public decimal? TitrationExcessVolumeMl { get; init; }
+    public decimal? TitrationMaxRsdPercent { get; init; }
+    public TitrationEndpoint? TitrationEndpoint { get; init; }
+    public string? TitrationIndicator { get; init; }
+    public bool? TitrationTempCorrection { get; init; }
+    public decimal? TitrationExpansionCoefficient { get; init; }
+    public int? TitrationStandardEntryId { get; init; }
 
     public static TestDefinitionResponse From(TestDefinition e) => new()
     {
@@ -286,6 +301,21 @@ public class TestDefinitionResponse
         WvCapsuleS2ExtraUnits = e.WvCapsuleS2ExtraUnits,
         WvCapsuleS2MaxOutside = e.WvCapsuleS2MaxOutside,
         HplcMethodId = e.HplcMethodId,
+        TitrationType = e.TitrationType,
+        TitrationNonAqueous = e.TitrationNonAqueous,
+        TitrationMode = e.TitrationMode,
+        TitrationCalculation = e.TitrationCalculation,
+        TitrantSolutionMasterId = e.TitrantSolutionMasterId,
+        TitrationEquivalencyFactor = e.TitrationEquivalencyFactor,
+        TitrationBlankRequired = e.TitrationBlankRequired,
+        TitrationExcessSolutionMasterId = e.TitrationExcessSolutionMasterId,
+        TitrationExcessVolumeMl = e.TitrationExcessVolumeMl,
+        TitrationMaxRsdPercent = e.TitrationMaxRsdPercent,
+        TitrationEndpoint = e.TitrationEndpoint,
+        TitrationIndicator = e.TitrationIndicator,
+        TitrationTempCorrection = e.TitrationTempCorrection,
+        TitrationExpansionCoefficient = e.TitrationExpansionCoefficient,
+        TitrationStandardEntryId = e.TitrationStandardEntryId,
     };
 }
 

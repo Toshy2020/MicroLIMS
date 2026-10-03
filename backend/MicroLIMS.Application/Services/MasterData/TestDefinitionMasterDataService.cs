@@ -389,8 +389,24 @@ public class TestDefinitionMasterDataService
             WvCapsuleS1MaxForRetest = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxForRetest ?? 6) : request.WvCapsuleS1MaxForRetest,
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
-            HplcMethodId = request.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution ? request.HplcMethodId : null
+            HplcMethodId = request.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution ? request.HplcMethodId : null,
+            TitrationType = request.TitrationType,
+            TitrationNonAqueous = request.TitrationNonAqueous,
+            TitrationMode = request.TitrationMode,
+            TitrationCalculation = request.TitrationCalculation,
+            TitrantSolutionMasterId = request.TitrantSolutionMasterId,
+            TitrationEquivalencyFactor = request.TitrationEquivalencyFactor,
+            TitrationBlankRequired = request.TitrationBlankRequired,
+            TitrationExcessSolutionMasterId = request.TitrationExcessSolutionMasterId,
+            TitrationExcessVolumeMl = request.TitrationExcessVolumeMl,
+            TitrationMaxRsdPercent = request.TitrationMaxRsdPercent,
+            TitrationEndpoint = request.TitrationEndpoint,
+            TitrationIndicator = request.TitrationIndicator,
+            TitrationTempCorrection = request.TitrationTempCorrection,
+            TitrationExpansionCoefficient = request.TitrationExpansionCoefficient,
+            TitrationStandardEntryId = request.TitrationStandardEntryId
         };
+        await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);
@@ -813,6 +829,22 @@ public class TestDefinitionMasterDataService
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
+        if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
+        if (request.TitrationNonAqueous.HasValue) entity.TitrationNonAqueous = request.TitrationNonAqueous;
+        if (request.TitrationMode.HasValue) entity.TitrationMode = request.TitrationMode;
+        if (request.TitrationCalculation.HasValue) entity.TitrationCalculation = request.TitrationCalculation;
+        if (request.TitrantSolutionMasterId.HasValue) entity.TitrantSolutionMasterId = request.TitrantSolutionMasterId;
+        if (request.TitrationEquivalencyFactor.HasValue) entity.TitrationEquivalencyFactor = request.TitrationEquivalencyFactor;
+        if (request.TitrationBlankRequired.HasValue) entity.TitrationBlankRequired = request.TitrationBlankRequired;
+        if (request.TitrationExcessSolutionMasterId.HasValue) entity.TitrationExcessSolutionMasterId = request.TitrationExcessSolutionMasterId;
+        if (request.TitrationExcessVolumeMl.HasValue) entity.TitrationExcessVolumeMl = request.TitrationExcessVolumeMl;
+        if (request.TitrationMaxRsdPercent.HasValue) entity.TitrationMaxRsdPercent = request.TitrationMaxRsdPercent;
+        if (request.TitrationEndpoint.HasValue) entity.TitrationEndpoint = request.TitrationEndpoint;
+        if (request.TitrationIndicator != null) entity.TitrationIndicator = request.TitrationIndicator;
+        if (request.TitrationTempCorrection.HasValue) entity.TitrationTempCorrection = request.TitrationTempCorrection;
+        if (request.TitrationExpansionCoefficient.HasValue) entity.TitrationExpansionCoefficient = request.TitrationExpansionCoefficient;
+        if (request.TitrationStandardEntryId.HasValue) entity.TitrationStandardEntryId = request.TitrationStandardEntryId;
+        await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
 
         await _db.SaveChangesAsync();
 

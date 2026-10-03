@@ -108,6 +108,26 @@ public class TestDefinition : IVersionedEntity
     public int? HplcMethodId { get; set; }
     public HplcMethod? HplcMethod { get; set; }
 
+    // Titration assay criteria (null for every other workflow)
+    public TitrationType? TitrationType { get; set; }
+    public bool? TitrationNonAqueous { get; set; }
+    public TitrationMode? TitrationMode { get; set; }
+    public TitrationCalculation? TitrationCalculation { get; set; }
+    public int? TitrantSolutionMasterId { get; set; }
+    public SolutionMaster? TitrantSolutionMaster { get; set; }
+    public decimal? TitrationEquivalencyFactor { get; set; }   // F, mg per mEq/mmol
+    public bool? TitrationBlankRequired { get; set; }
+    public int? TitrationExcessSolutionMasterId { get; set; }  // Residual: the VS added in excess
+    public SolutionMaster? TitrationExcessSolutionMaster { get; set; }
+    public decimal? TitrationExcessVolumeMl { get; set; }
+    public decimal? TitrationMaxRsdPercent { get; set; }
+    public TitrationEndpoint? TitrationEndpoint { get; set; }
+    public string? TitrationIndicator { get; set; }
+    public bool? TitrationTempCorrection { get; set; }
+    public decimal? TitrationExpansionCoefficient { get; set; }
+    public int? TitrationStandardEntryId { get; set; }         // Relative: reference standard master entry
+    public MaterialMasterEntry? TitrationStandardEntry { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 
     // Finished Product / Standard-Comparison Assay - per-stage-role

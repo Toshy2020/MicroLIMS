@@ -14,5 +14,6 @@ public enum WorkflowType
     WeightVariation,
     HplcMultiAnalyte, // retired (SC-3): replaced by HplcMethodAssay; value kept, stored as int
     StandardComparison, // retired: replaced by HplcMethodAssay; value kept, stored as int
-    HplcMethodAssay // HPLC chain S3 - assay against an HplcMethod master (spec 3.3-3.4)
+    HplcMethodAssay, // HPLC chain S3 - assay against an HplcMethod master (spec 3.3-3.4)
+    Titration // volumetric titration assay
 }

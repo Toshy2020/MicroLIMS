@@ -27,7 +27,14 @@ export interface StandardMaterialOption {
   moisturePercent?: number | null;
   materialMasterEntryId?: number | null;
   materialMasterEntryCode?: string | null;
+  materialType?: string | null;
+  code?: string | null;
 }
+
+// A working standard lot is named by its WS code; its batch number is the
+// source raw-material batch.
+const lotLabel = (lot: StandardMaterialOption) =>
+  lot.materialType === "WorkingStandard" && lot.code ? `${lot.code} (working standard)` : `Lot ${lot.batchNumber}`;
 
 export interface StandardEntryFormProps {
   analyte: HplcSstAnalyteDto;
@@ -146,7 +153,7 @@ export function StandardEntryForm({
               >
                 {selectableLots.map((lot) => (
                   <MenuItem key={lot.id} value={lot.id}>
-                    {lot.materialName}, Lot {lot.batchNumber} (Purity: {lot.purity ?? "—"}% | MC: {lot.moisturePercent ?? "—"}%)
+                    {lot.materialName}, {lotLabel(lot)} (Purity: {lot.purity ?? "—"}% | MC: {lot.moisturePercent ?? "—"}%)
                   </MenuItem>
                 ))}
               </Select>

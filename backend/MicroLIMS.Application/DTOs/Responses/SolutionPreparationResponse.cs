@@ -84,7 +84,7 @@ public class SolutionPreparationResponse
                 .Select(c => new SolutionPreparationComponentResponse(
                     c.Id, c.Order, c.MaterialMasterEntryId, c.EntryCode, c.EntryName,
                     c.RecipeQuantity, c.RecipeUnit,
-                    c.MaterialId, c.Material?.BatchNumber, c.Material?.Unit, c.QuantityUsed))
+                    c.MaterialId, c.Material?.LotLabel, c.Material?.Unit, c.QuantityUsed))
                 .ToList(),
             StatusHistory = p.StatusHistory
                 .OrderBy(h => h.ChangedAt)

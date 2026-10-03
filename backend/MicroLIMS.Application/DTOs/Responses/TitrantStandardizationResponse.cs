@@ -49,7 +49,7 @@ public class TitrantStandardizationResponse
             .OrderBy(x => x.ReplicateNo)
             .Select(x => new TitrantStandardizationReplicateResponse(
                 x.Id, x.ReplicateNo,
-                x.StandardMaterialId, x.StandardMaterial?.BatchNumber, x.StandardWeightMg, x.StandardPurityPercent,
+                x.StandardMaterialId, x.StandardMaterial?.LotLabel, x.StandardWeightMg, x.StandardPurityPercent,
                 x.ReferencePreparationId, x.ReferencePreparation?.Code, x.ReferenceVolumeMl, x.ReferenceFactor,
                 x.TitrantVolumeMl, x.BlankMl, x.Factor))
             .ToList(),

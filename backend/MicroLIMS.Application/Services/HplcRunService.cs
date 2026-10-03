@@ -410,12 +410,12 @@ public partial class HplcRunService
 
             var check = LotUsability.Check(lot, methodAnalyte.StandardEntryId, null, today);
             if (!check.Usable)
-                throw new InvalidOperationException($"{analyteRow.AnalyteName}: lot {lot.BatchNumber}: {check.Reason}");
+                throw new InvalidOperationException($"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
 
             if (!lot.Purity.HasValue)
-                throw new InvalidOperationException($"Lot {lot.BatchNumber} has no purity recorded.");
+                throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");
             if (!lot.MoisturePercent.HasValue)
-                throw new InvalidOperationException($"Lot {lot.BatchNumber} has no moisture content recorded.");
+                throw new InvalidOperationException($"Lot {lot.LotLabel} has no moisture content recorded.");
 
             analyteRow.StandardMaterialId = lot.Id;
             analyteRow.StandardWeightMg = input.StandardWeightMg;
@@ -770,7 +770,7 @@ public partial class HplcRunService
             run.Sst.Id, run.Sst.Code, run.Sst.Status, run.Sst.FailureReasons,
             run.Sst.ConfirmedByUserId, NameOf(run.Sst.ConfirmedByUserId), run.Sst.ConfirmedAt,
             run.Sst.Analytes.OrderBy(a => a.Id).Select(a => new HplcSstAnalyteDto(
-                a.Id, a.HplcMethodAnalyteId, a.AnalyteName, standardEntryByAnalyte.GetValueOrDefault(a.HplcMethodAnalyteId), a.StandardMaterialId, a.StandardMaterial?.BatchNumber,
+                a.Id, a.HplcMethodAnalyteId, a.AnalyteName, standardEntryByAnalyte.GetValueOrDefault(a.HplcMethodAnalyteId), a.StandardMaterialId, a.StandardMaterial?.LotLabel,
                 a.StandardPurityPercent, a.StandardMoisturePercent, a.StandardWeightMg,
                 a.Injections.OrderBy(i => i.InjectionNo).Select(i => new HplcSstInjectionDto(i.InjectionNo, i.Response)).ToList(),
                 a.ReportedRsdPercent, a.Resolution, a.TailingFactor, a.TheoreticalPlates, a.RetentionFactor, a.SignalToNoise, a.PeakToValley,

@@ -178,11 +178,11 @@ public class SolutionPreparationService
                 ?? throw new NotFoundException($"Material {input.MaterialId} not found.");
 
             if (lot.SectionId != prep.SectionId)
-                throw new InvalidOperationException($"Lot \"{lot.BatchNumber}\" belongs to another laboratory.");
+                throw new InvalidOperationException($"Lot \"{lot.LotLabel}\" belongs to another laboratory.");
 
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId, input.QuantityUsed, today);
             if (!check.Usable)
-                throw new InvalidOperationException($"{component.EntryName} (batch {lot.BatchNumber}): {check.Reason}");
+                throw new InvalidOperationException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
 
             component.MaterialId = lot.Id;
             component.QuantityUsed = input.QuantityUsed;
@@ -220,7 +220,7 @@ public class SolutionPreparationService
         return lots.Select(lot =>
         {
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId, component.QuantityUsed, today);
-            return new LotOption(lot.Id, lot.BatchNumber, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason);
+            return new LotOption(lot.Id, lot.LotLabel, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason);
         }).ToList();
     }
 
@@ -270,7 +270,7 @@ public class SolutionPreparationService
 
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId, component.QuantityUsed, today);
             if (!check.Usable)
-                throw new InvalidOperationException($"{component.EntryName} (batch {lot.BatchNumber}): {check.Reason}");
+                throw new InvalidOperationException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
 
             picks.Add((component, lot));
         }

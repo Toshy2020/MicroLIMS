@@ -44,5 +44,6 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
 
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);
+        builder.Ignore(m => m.LotLabel);
     }
 }

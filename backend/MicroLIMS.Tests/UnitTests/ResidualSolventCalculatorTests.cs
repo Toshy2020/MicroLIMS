@@ -46,4 +46,25 @@ public class ResidualSolventCalculatorTests
     {
         Assert.Throws<InvalidOperationException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 1000m, Array.Empty<ResidualSolventReplicateInput>()));
     }
+
+    [Fact]
+    public void Calculate_ZeroAndNonZeroReplicate_MeanIncludesZero()
+    {
+        var r = ResidualSolventCalculator.Calculate(60m, 20m, 1000m, new[]
+        {
+            new ResidualSolventReplicateInput(1, 400m, 0m),
+            new ResidualSolventReplicateInput(2, 400m, 1000m),
+        });
+        Assert.Equal(0m, r.Replicates[0].Ppm);
+        Assert.Equal(3000m, r.Replicates[1].Ppm);
+        Assert.Equal(1500m, r.MeanPpm);
+    }
+
+    [Fact]
+    public void Calculate_NegativeResponse_Throws()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 1000m,
+            new[] { new ResidualSolventReplicateInput(1, 400m, 900m), new ResidualSolventReplicateInput(2, 400m, -1m) }));
+        Assert.Equal("Replicate 2: the response must be zero or more.", ex.Message);
+    }
 }

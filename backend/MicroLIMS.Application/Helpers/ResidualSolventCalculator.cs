@@ -21,6 +21,7 @@ public static class ResidualSolventCalculator
         var results = reps.Select(rep =>
         {
             if (rep.SampleWeightMg <= 0m) throw new InvalidOperationException($"Replicate {rep.ReplicateNo}: the sample weight must be greater than zero.");
+            if (rep.Response < 0m) throw new InvalidOperationException($"Replicate {rep.ReplicateNo}: the response must be zero or more.");
             var ppm = standardConcentrationUgPerMl * sampleSolutionVolumeMl / (rep.SampleWeightMg / 1000m) * (rep.Response / standardMeanResponse);
             return new ResidualSolventReplicateResult(rep.ReplicateNo, ppm);
         }).ToList();

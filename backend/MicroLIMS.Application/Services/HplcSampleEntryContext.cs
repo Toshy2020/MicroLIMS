@@ -70,7 +70,7 @@ public sealed class HplcSampleEntryContext
             {
                 if (rep.ActualWeightMg <= 0)
                     return $"Replicate {rep.ReplicateNo}: the sample weight is required.";
-                if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && x.Response > 0))
+                if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && (IsResidualSolvents ? x.Response >= 0 : x.Response > 0)))
                     return $"Replicate {rep.ReplicateNo}: a response for {analyte.Name} is required.";
             }
 

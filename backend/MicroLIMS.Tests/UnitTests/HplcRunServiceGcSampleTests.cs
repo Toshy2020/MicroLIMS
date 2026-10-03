@@ -152,4 +152,72 @@ public partial class HplcRunServiceTests
         Assert.Equal("Mean", entry.Basis);
         Assert.Equal(2850m, Assert.Single(entry.Preview).Value);
     }
+
+    [Fact]
+    public async Task RsEntry_AllZeroResponses_PreviewsNotDetected()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var (service, run, order, g) = await ArrangeRsRunAsync(db, clock);
+        run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, g.UserId);
+        var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id)).Id;
+
+        var entry = await service.SaveReplicatesAsync(run.Samples.Single().Id, Replicates(analyteId, (400m, 0m), (400m, 0m)), g.UserId);
+
+        var row = Assert.Single(entry.Preview);
+        Assert.Equal(0m, row.Value);
+        Assert.Equal("Not detected", row.Display);
+        Assert.Equal(ResultStatus.WithinLimits, row.Status);
+    }
+
+    [Fact]
+    public async Task RsEntry_OneZeroReplicate_MeanIncludesZero()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var (service, run, order, g) = await ArrangeRsRunAsync(db, clock);
+        run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, g.UserId);
+        var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id)).Id;
+
+        var entry = await service.SaveReplicatesAsync(run.Samples.Single().Id, Replicates(analyteId, (400m, 0m), (400m, 1000m)), g.UserId);
+
+        var row = Assert.Single(entry.Preview);
+        Assert.Equal(1500m, row.Value);
+        Assert.Equal("1500.0 ppm", row.Display);
+    }
+
+    [Fact]
+    public async Task RsEntry_NegativeResponse_Throws()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var (service, run, order, g) = await ArrangeRsRunAsync(db, clock);
+        run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, g.UserId);
+        var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id)).Id;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveReplicatesAsync(run.Samples.Single().Id, Replicates(analyteId, (400m, -1m), (400m, 1000m)), g.UserId));
+        Assert.Equal("Replicate 1: the response for Methanol must be zero or more.", ex.Message);
+    }
+
+    [Fact]
+    public async Task RsSubmit_AllZeroResponses_StoresNotDetected()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var (service, run, order, g) = await ArrangeRsRunAsync(db, clock);
+        run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, g.UserId);
+        var runSampleId = run.Samples.Single().Id;
+        var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id)).Id;
+        await service.SaveReplicatesAsync(runSampleId, Replicates(analyteId, (400m, 0m), (400m, 0m)), g.UserId);
+        await service.UploadEvidenceAsync(run.Id, runSampleId, HplcEvidenceContext.Sample, HplcEvidenceKind.SampleReport, "s.pdf", "application/pdf", PdfBytes(), g.UserId);
+
+        await TestServiceFactory.TestWorkflow(db, clock: clock).SubmitHplcMethodAssayAsync(runSampleId, Password, "ok", g.UserId, "127.0.0.1");
+
+        var result = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id && p.IsActive);
+        Assert.Equal(0m, result.ReportedValue);
+        Assert.Equal("Not detected", result.ReportedDisplay);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
+        Assert.Contains("\"notDetected\":true", result.CalculationJson);
+    }
 }

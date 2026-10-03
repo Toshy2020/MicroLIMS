@@ -204,7 +204,13 @@ public partial class HplcRunService
                 var matches = responses.Where(x => x.HplcMethodAnalyteId == analyte.Id).ToList();
                 if (matches.Count != 1)
                     throw new InvalidOperationException($"Replicate {i + 1}: exactly one response for {analyte.Name} is required.");
-                if (matches[0].Response <= 0)
+                if (context.IsResidualSolvents)
+                {
+                    // A solvent that is not detected gives a zero response.
+                    if (matches[0].Response < 0)
+                        throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
+                }
+                else if (matches[0].Response <= 0)
                     throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
             }
         }

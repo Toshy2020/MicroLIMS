@@ -62,6 +62,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                         ppmDisplay = ResidualSolventCalculator.FormatPpm(r.AssayPercent),
                     }),
                     reportedValue = row.Value,
+                    notDetected = HplcResidualSolventEvaluator.IsNotDetected(rs),
                     runCode = c.Run.Code,
                     sstCode = sst.Code,
                     hplcMethodId = c.Run.HplcMethodId,

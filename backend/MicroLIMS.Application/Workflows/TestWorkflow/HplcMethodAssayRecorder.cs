@@ -71,36 +71,36 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             }
             else
             {
-            var input = inputs.First(i => i.AnalyteId == row.AnalyteId);
-            calculationJson = JsonSerializer.Serialize(new
-            {
-                analyte = input.Name,
-                hplcMethodAnalyteId = input.AnalyteId,
-                quantity = row.Basis == ResultBasis.MgPerUnit ? "AmountPerUnit" : "AssayPercent",
-                basis = individual ? "Individual" : "Mean",
-                replicateNo = row.ReplicateNo,
-                thWtStdMg = input.ThWtStdMg,
-                thWtTestMg = input.ThWtTestMg,
-                standardWeightMg = input.Std.StandardWeightMg,
-                standardPurityPercent = input.Std.PurityPercent,
-                standardMoisturePercent = input.Std.MoisturePercent,
-                standardMeanResponse = input.Std.MeanResponse,
-                labelClaim = row.Basis == ResultBasis.MgPerUnit ? row.Spec.LabelClaim : null,
-                replicates = row.Readings.Select(r => new
+                var input = inputs.First(i => i.AnalyteId == row.AnalyteId);
+                calculationJson = JsonSerializer.Serialize(new
                 {
-                    replicateNo = r.ReplicateNo,
-                    actualWeightMg = input.Reps.First(x => x.ReplicateNo == r.ReplicateNo).ActualWeightMg,
-                    response = r.Response,
-                    assayPercent = r.AssayPercent,
-                    assayPercentDisplay = HplcSampleAssayEvaluator.FormatPercent(r.AssayPercent),
-                }),
-                reportedValue = row.Value,
-                runCode = c.Run.Code,
-                sstCode = sst.Code,
-                hplcMethodId = c.Run.HplcMethodId,
-                hplcRunId = c.Run.Id,
-                hplcRunSampleId = c.RunSample.Id,
-            }, JsonOptions);
+                    analyte = input.Name,
+                    hplcMethodAnalyteId = input.AnalyteId,
+                    quantity = row.Basis == ResultBasis.MgPerUnit ? "AmountPerUnit" : "AssayPercent",
+                    basis = individual ? "Individual" : "Mean",
+                    replicateNo = row.ReplicateNo,
+                    thWtStdMg = input.ThWtStdMg,
+                    thWtTestMg = input.ThWtTestMg,
+                    standardWeightMg = input.Std.StandardWeightMg,
+                    standardPurityPercent = input.Std.PurityPercent,
+                    standardMoisturePercent = input.Std.MoisturePercent,
+                    standardMeanResponse = input.Std.MeanResponse,
+                    labelClaim = row.Basis == ResultBasis.MgPerUnit ? row.Spec.LabelClaim : null,
+                    replicates = row.Readings.Select(r => new
+                    {
+                        replicateNo = r.ReplicateNo,
+                        actualWeightMg = input.Reps.First(x => x.ReplicateNo == r.ReplicateNo).ActualWeightMg,
+                        response = r.Response,
+                        assayPercent = r.AssayPercent,
+                        assayPercentDisplay = HplcSampleAssayEvaluator.FormatPercent(r.AssayPercent),
+                    }),
+                    reportedValue = row.Value,
+                    runCode = c.Run.Code,
+                    sstCode = sst.Code,
+                    hplcMethodId = c.Run.HplcMethodId,
+                    hplcRunId = c.Run.Id,
+                    hplcRunSampleId = c.RunSample.Id,
+                }, JsonOptions);
             }
 
             var parameterResult = new ParameterResult

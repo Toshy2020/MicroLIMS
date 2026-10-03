@@ -12,7 +12,7 @@ namespace MicroLIMS.Tests.UnitTests;
 public partial class HplcRunServiceTests
 {
     private static async Task<(HplcRunService Service, HplcRunDto Run, TestOrder Order, GcScenario G)> ArrangeRsRunAsync(
-        MicroLimsDbContext db, ILabClock clock, bool ppmSpec = true, List<decimal>? stdResponses = null)
+        MicroLimsDbContext db, ILabClock clock, bool ppmSpec = true, List<decimal>? stdResponses = null, ProductionStageRole role = ProductionStageRole.Finished)
     {
         var g = await SeedGcScenarioAsync(db);
         var analyte = await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id);
@@ -44,7 +44,7 @@ public partial class HplcRunServiceTests
             Equipment = g.Equipment, Column = g.Column, StandardEntry = g.StandardEntry, MobilePhasePrep = null!,
         };
         var fixture = new AssayFixture { Item = item, Definition = def, Analyte = analyte, AssaySpec = null! };
-        var order = await AddAssayOrderAsync(db, scenario, fixture, ProductionStageRole.Finished, sampleReplicates: 2);
+        var order = await AddAssayOrderAsync(db, scenario, fixture, role, sampleReplicates: 2);
 
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(GcStart(g), g.UserId);
@@ -136,5 +136,20 @@ public partial class HplcRunServiceTests
         Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
         Assert.Contains("\"quantity\":\"ResidualSolventPpm\"", result.CalculationJson);
         Assert.Equal(new[] { 2700m, 3000m }, result.Readings.OrderBy(r => r.Stage).Select(r => r.ComputedValue!.Value).ToArray());
+    }
+
+    [Fact]
+    public async Task RsEntry_BulkStage_StillMeanBasisSingleRow()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var (service, run, order, g) = await ArrangeRsRunAsync(db, clock, role: ProductionStageRole.Bulk);
+        run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, g.UserId);
+        var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id)).Id;
+
+        var entry = await service.SaveReplicatesAsync(run.Samples.Single().Id, Replicates(analyteId, (400m, 900m), (400m, 1000m)), g.UserId);
+
+        Assert.Equal("Mean", entry.Basis);
+        Assert.Equal(2850m, Assert.Single(entry.Preview).Value);
     }
 }

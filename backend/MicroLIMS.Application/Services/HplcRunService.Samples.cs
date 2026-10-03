@@ -297,7 +297,7 @@ public partial class HplcRunService
 
     private async Task<HplcSampleEntryDto> BuildEntryDtoAsync(HplcSampleEntryContext c, CancellationToken ct)
     {
-        var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
+        var individual = !c.IsResidualSolvents && HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var problem = c.SubmitProblem();
 
         // The preview is what submission would store; shown only once every

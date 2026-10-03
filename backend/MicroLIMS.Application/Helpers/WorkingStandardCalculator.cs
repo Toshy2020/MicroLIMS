@@ -22,6 +22,16 @@ public static class WorkingStandardCalculator
     public static bool PassesRsd(decimal rsdPercent) =>
         Math.Round(rsdPercent, 2, MidpointRounding.AwayFromZero) <= WorkingStandardRules.MaxRsdPercent;
 
+    // Sample RSD % (n-1); null below two values. (Was SystemSuitabilityService.CalculateStandardRsd, retired on main.)
+    private static decimal? SampleRsd(IReadOnlyList<decimal> values)
+    {
+        if (values.Count < 2) return null;
+        var mean = values.Average();
+        if (mean == 0m) return 0m;
+        var variance = values.Sum(v => (v - mean) * (v - mean)) / (values.Count - 1);
+        return DecimalMath.Sqrt(variance, 10) / mean * 100m;
+    }
+
     public static decimal DriedBasisPotency(decimal meanAssayPercent, decimal moisturePercent)
     {
         if (moisturePercent < 0m || moisturePercent >= 100m)
@@ -36,7 +46,7 @@ public static class WorkingStandardCalculator
             throw new InvalidOperationException("At least one replicate is required.");
 
         var mean = replicateAssayPercents.Average();
-        var rsd = SystemSuitabilityService.CalculateStandardRsd(replicateAssayPercents);
+        var rsd = SampleRsd(replicateAssayPercents);
         var potency = DriedBasisPotency(mean, moisturePercent);
 
         var reasons = new List<string>();

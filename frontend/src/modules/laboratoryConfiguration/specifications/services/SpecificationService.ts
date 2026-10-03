@@ -19,7 +19,13 @@ export type ToleranceMode = "Absolute" | "Percent";
 
 export type ExpectedPresence = "Presence" | "Absence";
 
-export type ResultBasis = "MgPerKg" | "MgPerUnit" | "PercentLabelClaim";
+export type ResultBasis =
+  | "MgPerKg"
+  | "MgPerUnit"
+  | "PercentLabelClaim"
+  | "PercentAsIs"
+  | "PercentDriedBasis"
+  | "PercentAnhydrousBasis";
 
 export type SampleMatrix = "Solid" | "Liquid";
 

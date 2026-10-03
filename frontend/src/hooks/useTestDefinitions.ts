@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import type { TitrationDefinitionFields } from "../modules/laboratoryConfiguration/masterDataSimple/titrationConfig";
 import {
   masterDataOptions,
   CreateTestDefinitionPayload,
   UpdateTestDefinitionPayload
 } from "../services/masterDataOptions";
 
-export interface TestDefinitionOption {
+export interface TestDefinitionOption extends TitrationDefinitionFields {
   id: number;
   // Row version, sent back as If-Match when this record is edited.
   version?: number;

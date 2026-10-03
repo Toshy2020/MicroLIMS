@@ -5,7 +5,8 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Stack
+  Stack,
+  TextField
 } from "@mui/material";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
@@ -55,6 +56,7 @@ export function TitrantStandardizationDialog({
   const [optionsLoadFailed, setOptionsLoadFailed] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [temperatureC, setTemperatureC] = useState("");
 
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [signatureComment, setSignatureComment] = useState("");
@@ -68,6 +70,7 @@ export function TitrantStandardizationDialog({
       setSignatureOpen(false);
       setSignatureComment("");
       setSubmitting(false);
+      setTemperatureC("");
       return;
     }
 
@@ -141,6 +144,7 @@ export function TitrantStandardizationDialog({
   };
 
   const validate = (): string | null => {
+    if (temperatureC.trim() !== "" && isNaN(Number(temperatureC))) return "Temperature must be a number.";
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const repNo = i + 1;
@@ -192,6 +196,7 @@ export function TitrantStandardizationDialog({
           titrantVolumeMl: parseFloat(r.titrantVolumeMl),
           blankMl: blankRequired ? parseFloat(r.blankMl) : undefined
         })),
+        temperatureC: temperatureC.trim() !== "" ? Number(temperatureC) : null,
         password,
         comment: signatureComment.trim() || null
       };
@@ -256,6 +261,17 @@ export function TitrantStandardizationDialog({
                 Target Factor: {recipe?.factorMin ?? "—"} – {recipe?.factorMax ?? "—"} · Max RSD: {recipe?.maxRsdPercent ?? "—"}% · Replicates: {replicateCount} · Blank: {blankRequired ? "Required" : "None"}
               </Typography>
             </Box>
+
+            <TextField
+              size="small"
+              type="number"
+              label="Temperature (°C)"
+              value={temperatureC}
+              onChange={(e) => setTemperatureC(e.target.value)}
+              helperText="Optional. Needed later for non-aqueous temperature volume correction."
+              slotProps={{ htmlInput: { step: "any" } }}
+              sx={{ maxWidth: 240 }}
+            />
 
             {validationError && <Alert severity="error">{validationError}</Alert>}
 

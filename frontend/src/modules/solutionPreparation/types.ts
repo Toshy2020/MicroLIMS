@@ -121,6 +121,7 @@ export interface TitrantStandardizationResponse {
   standardizedByUserName: string | null;
   standardizedAt: string;
   validUntil: string | null;
+  temperatureC?: number | null;
   replicates: TitrantStandardizationReplicateResponse[];
 }
 
@@ -135,6 +136,7 @@ export interface StandardizationReplicateInput {
 
 export interface StandardizeRequest {
   replicates: StandardizationReplicateInput[];
+  temperatureC?: number | null;
   password: string;
   comment?: string | null;
 }

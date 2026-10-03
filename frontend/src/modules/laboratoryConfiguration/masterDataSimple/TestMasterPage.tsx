@@ -53,6 +53,14 @@ import {
 } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
+import { TitrationConfigSection } from "./TitrationConfigSection";
+import {
+  TitrationFormState,
+  createInitialTitrationForm,
+  titrationFormFromDefinition,
+  titrationPayloadFields,
+  validateTitrationForm
+} from "./titrationConfig";
 
 // Microbiology and the Finished Product (chemistry) lab each have their own
 // Test Master page: same component, filtered to the lab's section and
@@ -61,7 +69,7 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcMethodAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
+  fp: ["HplcMethodAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation", "Titration"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
@@ -73,7 +81,8 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   Qualitative: "Qualitative",
   Dissolution: "Dissolution",
   Disintegration: "Disintegration",
-  WeightVariation: "Weight Variation"
+  WeightVariation: "Weight Variation",
+  Titration: "Titration (assay)"
 };
 
 const EQUATION_TYPES = [
@@ -87,7 +96,8 @@ const EQUATION_TYPES = [
   "Qualitative",
   "Dissolution",
   "Disintegration",
-  "WeightVariation"
+  "WeightVariation",
+  "Titration"
 ];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
@@ -100,7 +110,8 @@ const EQUATION_TYPE_LABELS: Record<string, string> = {
   Qualitative: "Qualitative (appearance, ID)",
   Dissolution: "Dissolution (HPLC finish, staged S1-S3)",
   Disintegration: "Disintegration (time per unit, staged)",
-  WeightVariation: "Weight Variation (USP <2091>, staged)"
+  WeightVariation: "Weight Variation (USP <2091>, staged)",
+  Titration: "Titration (USP <541>)"
 };
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
@@ -999,7 +1010,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "Titration"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": "Workflow type" }}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
@@ -1161,6 +1172,29 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Gravimetric tests have no workflow steps: container/sample weights and condition fields are entered directly.
+          </Typography>
+        </Box>
+      ) : test.workflowType === "Titration" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Titration Configuration
+          </Typography>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            {[
+              ["Type", test.titrationType],
+              ["Mode", test.titrationMode],
+              ["Calculation", test.titrationCalculation],
+              ["Endpoint", test.titrationEndpoint],
+              ["Replicates", test.replicateCount]
+            ].map(([label, value]) => (
+              <Box key={String(label)}>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{label}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{value ?? "-"}</Typography>
+              </Box>
+            ))}
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Titration tests have no workflow steps: replicate weights and titrant volumes are entered directly.
           </Typography>
         </Box>
       ) : test.workflowType === "Qualitative" ? (
@@ -1733,6 +1767,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [evaluationBasis, setEvaluationBasis] = useState<"Mean" | "EachValue" | "Min" | "Max">("Mean");
   const [conditionFields, setConditionFields] = useState<string>("");
   const [usesTare, setUsesTare] = useState<boolean>(false);
+  const [titration, setTitration] = useState<TitrationFormState>(createInitialTitrationForm);
 
   const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>("5");
   const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>("15");
@@ -1809,6 +1844,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setEvaluationBasis("Mean");
     setConditionFields("");
     setUsesTare(false);
+    setTitration(createInitialTitrationForm());
     setDissolutionS1Offset("5");
     setDissolutionS2MinOffset("15");
     setDissolutionS3MinOffset("25");
@@ -1842,7 +1878,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : "None"));
     setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setHplcMethodId(t.hplcMethodId ?? "");
@@ -1865,6 +1901,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setEvaluationBasis(t.evaluationBasis || "Mean");
     setConditionFields(t.conditionFields || "");
     setUsesTare(!!t.usesTare);
+    setTitration(titrationFormFromDefinition(t));
     setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : "5");
     setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
     setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : "25");
@@ -2091,6 +2128,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     const isGravimetric = workflowType === "Gravimetric";
     const isQualitative = workflowType === "Qualitative";
     const isHplcMethodAssay = workflowType === "HplcMethodAssay";
+    const isTitration = workflowType === "Titration";
+
+    if (isTitration) {
+      const hint = validateTitrationForm(titration);
+      if (hint) {
+        setDialogError(hint);
+        return;
+      }
+    }
 
     if (isHplcMethodAssay) {
       if (!hplcMethodId) {
@@ -2145,6 +2191,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         ? "Disintegration"
         : isWeightVariation
         ? "WeightVariation"
+        : isTitration
+        ? "Titration"
         : "None";
 
       if (editingId) {
@@ -2177,7 +2225,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 ? calStandardLevelsMgPerL.trim()
                 : (editingTest?.calStandardLevelsMgPerL ? "" : null))
             : null,
-          replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
+          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
@@ -2202,6 +2250,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
+          ...titrationPayloadFields(titration, isTitration),
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null
         };
         await update(editingId, payload);
@@ -2232,7 +2281,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           calInstrumentType: isCalCurve ? calInstrumentType : null,
           calStandardLevelsMgPerL: isCalCurve && calStandardLevelsMgPerL.trim() !== "" ? calStandardLevelsMgPerL.trim() : null,
-          replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
+          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
@@ -2257,6 +2306,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
+          ...titrationPayloadFields(titration, isTitration),
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null
         };
         await addNew(payload);
@@ -2546,6 +2596,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   } else if (next === "WeightVariation") {
                     setEquationType("WeightVariation");
                     setRequiresSystemSuitability(false);
+                  } else if (next === "Titration") {
+                    setEquationType("Titration");
+                    setRequiresSystemSuitability(false);
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
@@ -2598,6 +2651,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "WeightVariation") {
                     return eq === "WeightVariation";
                   }
+                  if (workflowType === "Titration") {
+                    return eq === "Titration";
+                  }
                   if (workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
@@ -2613,7 +2669,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "HplcMethodAssay";
+                  return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "Titration" && eq !== "HplcMethodAssay";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2749,6 +2805,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 />
               </Stack>
             </Box>
+          )}
+
+          {workflowType === "Titration" && (
+            <TitrationConfigSection form={titration} onChange={setTitration} sectionId={sectionId} />
           )}
 
           {workflowType === "Qualitative" && (

@@ -160,6 +160,12 @@ const formatResultBasis = (basis?: string | null, matrix?: string | null) => {
       return matrix === "Liquid" ? "mg per dose" : "mg per unit";
     case "PercentLabelClaim":
       return "% label claim";
+    case "PercentAsIs":
+      return "% as is";
+    case "PercentDriedBasis":
+      return "% dried basis";
+    case "PercentAnhydrousBasis":
+      return "% anhydrous basis";
     default:
       return basis;
   }

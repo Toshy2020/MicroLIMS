@@ -444,6 +444,11 @@ public partial class HplcRunService
         return await GetRunAsync(runId, userId, ct);
     }
 
+    // Confirming SST (pass or fail - the standard was weighed either way)
+    // deducts each analyte's standard weight from its stock lot, primary
+    // reference standard or working standard alike. Weights are summed per
+    // lot, converted from mg to the lot's unit (g / kg only), validated
+    // BEFORE signing, and applied in the same SaveChanges as the SST status.
     public async Task<HplcRunDto> ConfirmSstAsync(int runId, ConfirmSstRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
@@ -497,6 +502,8 @@ public partial class HplcRunService
         var overallPassed = outcomes.Values.All(o => o.Passed);
         var combinedFailures = outcomes.Values.SelectMany(o => o.FailureReasons).ToList();
 
+        var lotDeductions = await PlanSstStockDeductionsAsync(run, snapshotAnalyteById, ct);
+
         // Signs first - a wrong password must leave nothing else persisted
         // (ElectronicSignatureService.SignAsync saves its own failure audit
         // row immediately). Only after this succeeds does anything below
@@ -513,6 +520,13 @@ public partial class HplcRunService
             analyteRow.FailureReasons = outcome.FailureReasons.Count > 0 ? string.Join(" ", outcome.FailureReasons) : null;
         }
 
+        foreach (var (lot, quantity) in lotDeductions)
+        {
+            lot.QuantityRemaining -= quantity;
+            lot.LastModifiedByUserId = userId;
+            lot.LastModifiedAt = nowUtc;
+        }
+
         run.Sst.Status = overallPassed ? HplcSstStatus.Passed : HplcSstStatus.Failed;
         run.Sst.FailureReasons = combinedFailures.Count > 0 ? string.Join(" ", combinedFailures) : null;
         run.Sst.ConfirmedByUserId = userId;
@@ -521,6 +535,37 @@ public partial class HplcRunService
 
         await _db.SaveChangesAsync(ct);
         return await GetRunAsync(runId, userId, ct);
+    }
+
+    private async Task<List<(Material Lot, decimal Quantity)>> PlanSstStockDeductionsAsync(
+        HplcRun run, Dictionary<int, HplcMethodAnalyteResponse> snapshotAnalyteById, CancellationToken ct)
+    {
+        var plan = new List<(Material Lot, decimal Quantity)>();
+        var today = _clock.LabToday;
+        var groups = run.Sst!.Analytes
+            .Where(a => a.StandardMaterialId.HasValue && a.StandardWeightMg.HasValue)
+            .GroupBy(a => a.StandardMaterialId!.Value);
+        foreach (var g in groups)
+        {
+            var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == g.Key, ct)
+                ?? throw new InvalidOperationException($"{g.First().AnalyteName}: standard material not found.");
+            var mg = g.Sum(a => a.StandardWeightMg!.Value);
+            var quantity = lot.Unit switch
+            {
+                MaterialUnit.Gram => mg / 1000m,
+                MaterialUnit.Kilogram => mg / 1_000_000m,
+                _ => throw new InvalidOperationException(
+                    $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it."),
+            };
+            foreach (var a in g)
+            {
+                var check = LotUsability.Check(lot, snapshotAnalyteById[a.HplcMethodAnalyteId].StandardEntryId, quantity, today);
+                if (!check.Usable)
+                    throw new InvalidOperationException($"{a.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
+            }
+            plan.Add((lot, quantity));
+        }
+        return plan;
     }
 
     // ---- Evidence ----

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -47,6 +47,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docKind, setDocKind] = useState<WorkingStandardDocumentKind>("SourceReport");
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -61,6 +62,9 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
       const doc = await WorkingStandardService.uploadDocument(qualificationId, selectedFile, docKind);
       toast.success(`Document ${selectedFile.name} uploaded`);
       setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       onDocumentUploaded(doc);
     } catch {
       toast.error("Failed to upload document");
@@ -145,7 +149,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
                 sx={{ whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", maxWidth: 180 }}
               >
                 {selectedFile ? selectedFile.name : "Choose File"}
-                <input type="file" hidden onChange={handleFileChange} />
+                <input ref={fileInputRef} type="file" hidden onChange={handleFileChange} />
               </Button>
 
               <FormControl size="small" sx={{ minWidth: 150 }}>

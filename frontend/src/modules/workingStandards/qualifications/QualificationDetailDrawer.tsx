@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Drawer,
   Box,
   Stack,
   CircularProgress,
   Typography,
+  Alert,
   useTheme
 } from "@mui/material";
 import { toast } from "sonner";
@@ -40,20 +41,28 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
   const [qualification, setQualification] = useState<WorkingStandardQualificationDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [signOffAction, setSignOffAction] = useState<SignOffActionType | null>(null);
+  const activeIdRef = useRef<number | null>(null);
 
   const canReview = permissions.includes(PERMISSIONS.SAMPLES_REVIEW);
   const canApprove = permissions.includes(PERMISSIONS.SAMPLES_APPROVE);
   const canQualify = permissions.includes(PERMISSIONS.WORKING_STANDARDS_QUALIFY);
 
   const fetchDetail = useCallback(async (id: number) => {
+    activeIdRef.current = id;
     setLoading(true);
     try {
       const data = await WorkingStandardService.getQualification(id);
-      setQualification(data);
+      if (activeIdRef.current === id) {
+        setQualification(data);
+      }
     } catch {
-      toast.error("Failed to load qualification details");
+      if (activeIdRef.current === id) {
+        toast.error("Failed to load qualification details");
+      }
     } finally {
-      setLoading(false);
+      if (activeIdRef.current === id) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -61,6 +70,7 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
     if (open && qualificationId) {
       fetchDetail(qualificationId);
     } else {
+      activeIdRef.current = null;
       setQualification(null);
     }
   }, [open, qualificationId, fetchDetail]);
@@ -79,6 +89,14 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
     setQualification(updated);
     onUpdated(updated);
   };
+
+  const needsSourceReport = Boolean(
+    qualification &&
+    qualification.kind === "Initial" &&
+    qualification.sourceSampleId == null &&
+    qualification.status === "Draft" &&
+    !qualification.documents.some((d) => d.kind === "SourceReport" && d.isCurrent)
+  );
 
   return (
     <>
@@ -112,6 +130,12 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
 
             <Box sx={{ p: 2.5, overflowY: "auto", flexGrow: 1 }}>
               <Stack spacing={2.5}>
+                {needsSourceReport && (
+                  <Alert severity="info">
+                    Upload the raw material&apos;s first test report before this qualification can be assigned to an HPLC run.
+                  </Alert>
+                )}
+
                 <QualificationSourceSection qualification={qualification} />
                 <QualificationResultsSection qualification={qualification} />
                 <QualificationDocumentsSection

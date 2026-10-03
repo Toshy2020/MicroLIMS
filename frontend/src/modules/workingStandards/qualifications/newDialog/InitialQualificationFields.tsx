@@ -18,6 +18,7 @@ import type { EligibleSourceSampleDto } from "../../types";
 interface InitialQualificationFieldsProps {
   sourceMode: "Manual" | "Received";
   onSourceModeChange: (mode: "Manual" | "Received") => void;
+  sourceSampleId: number | null;
   sourceSamples: EligibleSourceSampleDto[];
   onSourceSampleChange: (sample: EligibleSourceSampleDto | null) => void;
   sourceMaterialName: string;
@@ -36,6 +37,7 @@ interface InitialQualificationFieldsProps {
 export const InitialQualificationFields: React.FC<InitialQualificationFieldsProps> = ({
   sourceMode,
   onSourceModeChange,
+  sourceSampleId,
   sourceSamples,
   onSourceSampleChange,
   sourceMaterialName,
@@ -70,6 +72,7 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
         <Autocomplete
           size="small"
           options={sourceSamples}
+          value={sourceSamples.find((s) => s.sampleId === sourceSampleId) ?? null}
           getOptionLabel={(o) => `${o.referenceNumber} - ${o.materialName} (${o.batchNumber ?? "No batch"})`}
           onChange={(_, val) => onSourceSampleChange(val)}
           renderInput={(params) => (

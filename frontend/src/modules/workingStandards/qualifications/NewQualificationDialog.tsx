@@ -96,6 +96,13 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
     }
   };
 
+  const handleSourceModeChange = (mode: "Manual" | "Received") => {
+    setSourceMode(mode);
+    setSourceSampleId(null);
+    setSourceMaterialName("");
+    setSourceBatchNumber("");
+  };
+
   const formState: NewQualificationFormState = {
     kind: isRequalification ? "Requalification" : "Initial",
     sourceMode,
@@ -179,7 +186,8 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
         ) : (
           <InitialQualificationFields
             sourceMode={sourceMode}
-            onSourceModeChange={setSourceMode}
+            onSourceModeChange={handleSourceModeChange}
+            sourceSampleId={sourceSampleId}
             sourceSamples={sourceSamples}
             onSourceSampleChange={handleSourceSampleChange}
             sourceMaterialName={sourceMaterialName}

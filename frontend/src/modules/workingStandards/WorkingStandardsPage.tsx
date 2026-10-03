@@ -38,8 +38,8 @@ export function WorkingStandardsPage() {
   const [targetLot, setTargetLot] = useState<WorkingStandardLotDto | null>(null);
   const [selectedQualificationId, setSelectedQualificationId] = useState<number | null>(null);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [lotsData, qualsData] = await Promise.all([
@@ -54,7 +54,7 @@ export function WorkingStandardsPage() {
       setError(msg);
       toast.error(msg);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -80,7 +80,7 @@ export function WorkingStandardsPage() {
   };
 
   const handleQualificationUpdated = () => {
-    loadData();
+    loadData(true);
   };
 
   const kpis = useMemo(() => {
@@ -118,7 +118,7 @@ export function WorkingStandardsPage() {
             variant="outlined"
             size="small"
             startIcon={<RefreshIcon fontSize="small" />}
-            onClick={loadData}
+            onClick={() => loadData()}
             disabled={loading}
           >
             Refresh

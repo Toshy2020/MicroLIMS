@@ -96,7 +96,13 @@ export const WorkingStandardLotsTable: React.FC<WorkingStandardLotsTableProps> =
                 </TableCell>
                 <TableCell>
                   <StatusBadge
-                    status={lot.status === "Depleted" ? "Expired" : lot.status}
+                    status={
+                      lot.status === "DueSoon"
+                        ? "Due Soon"
+                        : lot.status === "Depleted"
+                          ? "Expired"
+                          : lot.status
+                    }
                     label={lot.status === "Depleted" ? "Depleted" : undefined}
                   />
                 </TableCell>

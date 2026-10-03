@@ -262,21 +262,32 @@ public class SpecificationService
             if (!spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is required for HPLC method assay specifications.");
 
-            var analyte = await _db.HplcMethodAnalytes.FirstOrDefaultAsync(a => a.Id == spec.HplcMethodAnalyteId.Value, cancellationToken);
+            var analyte = await _db.HplcMethodAnalytes.Include(a => a.HplcMethod).FirstOrDefaultAsync(a => a.Id == spec.HplcMethodAnalyteId.Value, cancellationToken);
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
                 throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
 
-            if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
-                throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
+            bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
+            if (residualSolvents)
+            {
+                if (spec.ResultBasis != ResultBasis.Ppm || spec.LimitType != LimitType.NotMoreThan
+                    || spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                    throw new InvalidOperationException("Residual-solvent specifications use ppm with a not-more-than limit.");
+            }
+            else
+            {
+                if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
+                    throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
 
-            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
+                if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                    throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
 
-            if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
+                if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                    throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
 
-            if (spec.ResultBasis == ResultBasis.PercentLabelClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
+                if (spec.ResultBasis == ResultBasis.PercentLabelClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                    throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
+
+            }
 
             var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId.Value

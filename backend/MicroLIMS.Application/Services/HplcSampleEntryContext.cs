@@ -112,6 +112,9 @@ public sealed class HplcSampleEntryContext
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
             ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
 
+        if (runSample.TestOrderId is not int testOrderId)
+            throw new InvalidOperationException("This run sample is a working standard qualification - open it from its qualification entry.");
+
         var run = await db.HplcRuns
             .Include(r => r.Sst).ThenInclude(s => s!.Analytes)
             .Include(r => r.Evidence)
@@ -120,7 +123,7 @@ public sealed class HplcSampleEntryContext
         var order = await db.TestOrders
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
             .Include(o => o.Sample).ThenInclude(s => s!.ProductionStageRef)
-            .FirstAsync(o => o.Id == runSample.TestOrderId, ct);
+            .FirstAsync(o => o.Id == testOrderId, ct);
 
         var definition = await db.TestDefinitions.FirstAsync(t => t.Code == order.TestCode, ct);
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)

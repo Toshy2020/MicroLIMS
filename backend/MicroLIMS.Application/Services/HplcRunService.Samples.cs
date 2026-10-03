@@ -77,8 +77,8 @@ public partial class HplcRunService
                 && t.HplcMethodId == run.HplcMethodId)
             .Select(t => t.Code);
         var busy = _db.HplcRunSamples
-            .Where(s => s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
-            .Select(s => s.TestOrderId);
+            .Where(s => s.TestOrderId != null && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
+            .Select(s => s.TestOrderId!.Value);
 
         return _db.TestOrders
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
@@ -238,9 +238,9 @@ public partial class HplcRunService
             throw new InvalidOperationException("The run is closed.");
 
         var assigned = run.Samples.Where(s => s.Status == HplcRunSampleStatus.Assigned).ToList();
-        var orderIds = assigned.Select(s => s.TestOrderId).ToList();
+        var orderIds = assigned.Where(s => s.TestOrderId != null).Select(s => s.TestOrderId!.Value).ToList();
         var submittedOrderIds = await SubmittedOrderIdsAsync(orderIds, ct);
-        var pending = assigned.Count(s => !submittedOrderIds.Contains(s.TestOrderId));
+        var pending = assigned.Count(s => !submittedOrderIds.Contains(s.TestOrderId ?? 0));
         if (pending > 0)
             throw new InvalidOperationException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
 
@@ -348,7 +348,7 @@ public partial class HplcRunService
     {
         if (run.Samples.Count == 0) return new List<HplcRunSampleSummaryDto>();
 
-        var orderIds = run.Samples.Select(s => s.TestOrderId).ToList();
+        var orderIds = run.Samples.Where(s => s.TestOrderId != null).Select(s => s.TestOrderId!.Value).ToList();
         var orders = await _db.TestOrders.AsNoTracking()
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
             .Where(o => orderIds.Contains(o.Id)).ToDictionaryAsync(o => o.Id, ct);
@@ -360,11 +360,11 @@ public partial class HplcRunService
 
         return run.Samples.OrderBy(s => s.Id).Select(s =>
         {
-            orders.TryGetValue(s.TestOrderId, out var o);
+            orders.TryGetValue(s.TestOrderId ?? 0, out var o);
             return new HplcRunSampleSummaryDto(
                 s.Id, s.TestOrderId, s.Status, o?.Sample?.ReferenceNumber ?? string.Empty, o?.Sample?.BatchNumber,
-                o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, submitted.Contains(s.TestOrderId),
-                o != null && dissolutionCodes.Contains(o.TestCode));
+                o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, submitted.Contains(s.TestOrderId ?? 0),
+                o != null && dissolutionCodes.Contains(o.TestCode), s.WorkingStandardQualificationId);
         }).ToList();
     }
 }

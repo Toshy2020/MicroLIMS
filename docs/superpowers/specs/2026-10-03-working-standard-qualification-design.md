@@ -131,3 +131,14 @@ sequence table).
 ## 9. Out of scope
 - Balance check-weight log (<1251>), primary RS "Current Lot" catalog check, working standards for non-HPLC methods
   (titration/UV), mass-balance potency, aliquot vials.
+
+## 10. Amendments (plan 2026-10-03)
+
+These resolve details the spec left open.
+
+1. The run link lives only on `HplcRunSample.WorkingStandardQualificationId` (no `HplcRunSampleId` on the qualification, which avoids a two-way FK). The "current" run sample is the `Assigned` one on a run that is not `Abandoned`.
+2. WS entry uses its own workspace endpoints/page (`/hplc-workspace/:instrumentId/run/:runId/qualification/:runSampleId`) reusing `ReplicateEntryTable`; responses are entered only for the qualified analyte (the method analyte whose `StandardEntryId` equals the qualification's master entry), so multi-analyte methods work.
+3. The page lives at `/working-standards` in the labs menu next to Solution Preparation (the `/laboratory-configuration/*` area is gated by `MasterData.Manage`, which analysts and reviewers lack).
+4. `Material.MaterialName` of the WS lot is the master entry name (same as every master-linked lot); the source name stays on the qualification.
+5. Attachments are `WorkingStandardDocument` rows (kinds `SourceReport`, `MoistureReport`); a new upload of the same kind supersedes the previous one.
+6. Return (reviewer sends an `Assayed` qualification back to `Draft`) requires a reason, clears the computed results, and makes the replicates editable again even if the run is `Completed`.

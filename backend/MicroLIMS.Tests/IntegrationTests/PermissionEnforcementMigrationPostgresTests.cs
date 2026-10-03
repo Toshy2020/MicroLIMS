@@ -28,7 +28,8 @@ public class PermissionEnforcementMigrationPostgresTests
     private static readonly string[] AddedByLaterMigrations =
     {
         PermissionConstants.SolutionsPrepare,
-        PermissionConstants.HplcOperate
+        PermissionConstants.HplcOperate,
+        PermissionConstants.WorkingStandardsQualify
     };
 
     private readonly PostgresTestFixture _fixture;

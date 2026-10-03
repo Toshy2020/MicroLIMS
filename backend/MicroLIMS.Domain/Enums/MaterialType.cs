@@ -20,5 +20,8 @@ public enum MaterialType
     ReferenceBuffer,
     DisposableTool,
     Other,
-    ReferenceStandard
+    ReferenceStandard,
+    // In-house secondary standard, created only by approving a working
+    // standard qualification (never received through Materials Stock).
+    WorkingStandard
 }

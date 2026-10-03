@@ -242,6 +242,7 @@ export const PERMISSIONS = {
   MEDIA_RELEASE: "Media.Release",
   OOS_MANAGE: "Oos.Manage",
   SOLUTIONS_PREPARE: "Solutions.Prepare",
+  WORKING_STANDARDS_QUALIFY: "WorkingStandards.Qualify",
   HPLC_OPERATE: "Hplc.Operate"
 } as const;
 

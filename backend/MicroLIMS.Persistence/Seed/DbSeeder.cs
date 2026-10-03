@@ -497,6 +497,7 @@ public static class DbSeeder
             (PermissionConstants.SamplesAssignAnalyst, "Assign an analyst to a sample."),
             (PermissionConstants.SolutionsPrepare, "Start, edit, complete, cancel or discard a solution preparation (HPLC chain)."),
             (PermissionConstants.HplcOperate, "Operate the HPLC workspace: start runs, confirm system suitability, assign samples, enter replicates and submit for review."),
+            (PermissionConstants.WorkingStandardsQualify, "Create and prepare working standard qualifications, attach documents, enter and submit qualification replicates."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -540,7 +541,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsApprove,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
-                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -570,7 +571,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate,
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
-                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify
                 })
             };
 

@@ -54,8 +54,9 @@ public record HplcSstRecordDto(
     int? ConfirmedByUserId, string? ConfirmedByUserName, DateTime? ConfirmedAt,
     List<HplcSstAnalyteDto> Analytes);
 public record HplcRunSampleSummaryDto(
-    int Id, int TestOrderId, HplcRunSampleStatus Status,
-    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, bool Submitted, bool IsDissolution);
+    int Id, int? TestOrderId, HplcRunSampleStatus Status,
+    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, bool Submitted, bool IsDissolution,
+    int? WorkingStandardQualificationId = null);
 
 public record HplcRunDto(
     int Id, uint Version, string Code, int SectionId,

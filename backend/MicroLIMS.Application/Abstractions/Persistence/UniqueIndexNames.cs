@@ -14,4 +14,9 @@ public static class UniqueIndexNames
     // and leaves the preparation InProgress for the analyst to sign again
     // (HPLC chain S4 plan's "keep it simple" simplification).
     public const string SolutionPreparationCode = "IX_SolutionPreparations_Code";
+
+    // Like SolutionPreparationCode: a clash is reported, not retried
+    // (WorkingStandardService asks the user to sign again).
+    public const string WorkingStandardCode = "IX_Materials_WorkingStandardCode";
+    public const string WorkingStandardQualificationCode = "IX_WorkingStandardQualifications_Code";
 }

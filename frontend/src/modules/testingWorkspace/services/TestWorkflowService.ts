@@ -4,7 +4,7 @@ import {
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
   GrowthObservation, SiblingPathogenOrder,
   ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
-  TestWorkflowResult
+  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -92,6 +92,13 @@ export const TestWorkflowService = {
     }
   ) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-gravimetric-result`, payload).then((r) => r.data.data),
+
+  // Titration assay (titration-context + signed record). Server is authoritative.
+  getTitrationContext: (testOrderId: number): Promise<TitrationContext> =>
+    apiClient.get(`/test-workflow/${testOrderId}/titration-context`).then((r) => r.data.data),
+
+  recordTitrationResult: (testOrderId: number, payload: RecordTitrationResultRequest): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-titration-result`, payload).then((r) => r.data.data),
 
   // Qualitative analysis (appearance, ID, odor, etc.). Signed.
   recordQualitativeResult: (

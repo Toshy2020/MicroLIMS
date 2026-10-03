@@ -66,6 +66,7 @@ import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { CloseTestingDialog } from "../approval/CloseTestingDialog";
 import { humanize } from "./SampleReportPage";
+import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
 
 interface Props {
   open: boolean;
@@ -569,7 +570,15 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
   const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
 
   let conditionsDisplay: string | null = null;
-  if (analysis.conditionsJson) {
+  const titration = analysis.analysisType === "Titration" ? parseTitrationSnapshot(analysis.conditionsJson) : null;
+  if (titration) {
+    conditionsDisplay =
+      [
+        titration.titrantCode ? `Titrant: ${titration.titrantCode}` : null,
+        titration.factor != null ? `Factor used: ${titration.factor}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
+        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null
+      ].filter(Boolean).join(" · ") || null;
+  } else if (analysis.conditionsJson) {
     try {
       const parsed = JSON.parse(analysis.conditionsJson);
       if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
@@ -649,6 +658,7 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
   const isVessel = r.some((x) => x.kind === "Vessel");
   const isDisintegration = analysisType === "Disintegration";
   const isWeightVariation = analysisType === "WeightVariation";
+  const isTitration = analysisType === "Titration";
   const isTablet = isWeightVariation && r.every((x) => x.value2 == null);
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
@@ -672,15 +682,17 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
         ? "Time (min)"
         : isWeightVariation
         ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+        : isTitration
+        ? "Sample weight (mg)"
         : "Value 1",
       get: (x) => (x.value1 != null ? num(x.value1) : isDisintegration && x.text ? x.text : null)
     },
     {
-      label: isWeightVariation ? "Shell (mg)" : "Value 2",
+      label: isWeightVariation ? "Shell (mg)" : isTitration ? "Titrant volume (mL)" : "Value 2",
       get: (x) => (!isTablet && x.value2 != null ? num(x.value2) : null)
     },
     {
-      label: isWeightVariation ? "Deviation %" : "Value 3",
+      label: isWeightVariation ? "Deviation %" : isTitration ? "Corrected volume (mL)" : "Value 3",
       get: (x) => (x.value3 != null ? (isWeightVariation ? `${num(x.value3)} %` : num(x.value3)) : null)
     },
     {
@@ -688,7 +700,7 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
       get: (x) => (isDisintegration || isWeightVariation ? null : (x.text || null))
     },
     {
-      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed",
+      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isTitration ? "Result" : "Computed",
       get: (x) =>
         isDisintegration || isTablet
           ? null

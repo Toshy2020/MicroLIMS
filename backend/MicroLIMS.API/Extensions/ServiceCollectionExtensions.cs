@@ -144,6 +144,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MaterialMasterService>();
         services.AddScoped<SolutionMasterService>();
         services.AddScoped<HplcMethodService>();
+        services.AddScoped<IcpMethodService>();
         services.AddScoped<SolutionPreparationService>();
         services.AddScoped<TitrantStandardizationService>();
         services.AddScoped<HplcRunService>();

@@ -228,6 +228,12 @@ HplcWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SystemAdministra
 HplcWorkspaceController.SubmitQualification(Int32, SubmitHplcSampleRequest): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SystemAdministrator,SectionHead,Analyst
 HplcWorkspaceController.UploadEvidence(Int32, IFormFile, HplcEvidenceContext, HplcEvidenceKind, Nullable`1): SystemAdministrator,SectionHead,Analyst
+IcpMethodController.Create(SaveIcpMethodRequest): SystemAdministrator,SectionHead
+IcpMethodController.GetAll(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
+IcpMethodController.Update(Int32, SaveIcpMethodRequest): SystemAdministrator,SectionHead
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead

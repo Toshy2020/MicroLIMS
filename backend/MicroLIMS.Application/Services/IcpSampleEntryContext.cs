@@ -73,7 +73,7 @@ public sealed class IcpSampleEntryContext
         EntryProblem()
         ?? BlockedElementProblem()
         ?? EvaluateRows().FirstOrDefault(r => r.Problem != null)?.Problem
-        ?? (HasCurrentSampleReport ? null : "Upload the sample report before sending for review.");
+        ?? (HasCurrentSampleReport ? null : "Upload the sample result report before sending for review.");
 
     // Everything the submission needs except the sample report and element validity: when this is null the
     // rows can be calculated (and previewed; a blocked element shows as a row problem).
@@ -104,7 +104,7 @@ public sealed class IcpSampleEntryContext
     private string? BlockedElementProblem()
     {
         var blocked = NeededStates().FirstOrDefault(s => !s.Valid);
-        return blocked == null ? null : $"{blocked.Symbol}: {blocked.Reason}";
+        return blocked == null ? null : $"{blocked.Symbol} is not valid on this run: {blocked.Reason}";
     }
 
     public List<IcpSampleRow> EvaluateRows() =>

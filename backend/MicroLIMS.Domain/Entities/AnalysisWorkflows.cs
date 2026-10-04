@@ -18,6 +18,7 @@ public static class AnalysisWorkflows
         WorkflowType.Disintegration,
         WorkflowType.WeightVariation,
         WorkflowType.HplcMethodAssay,
+        WorkflowType.IcpMethodAssay,
         WorkflowType.Titration
     };
 
@@ -35,6 +36,7 @@ public static class AnalysisWorkflows
         WorkflowType.Disintegration => "disintegration",
         WorkflowType.WeightVariation => "weight variation",
         WorkflowType.HplcMethodAssay => "HPLC method assay",
+        WorkflowType.IcpMethodAssay => "ICP method assay",
         WorkflowType.Titration => "titration",
         _ => "test analysis"
     };

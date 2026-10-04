@@ -9,9 +9,9 @@ namespace MicroLIMS.Tests.UnitTests;
 
 public class IcpRunSampleTests
 {
-    private const string Password = "ValidPassword123!";
+    internal const string Password = "ValidPassword123!";
 
-    private sealed class Fixture
+    internal sealed class Fixture
     {
         public required Scenario S;
         public required TestDefinition Definition;
@@ -21,7 +21,7 @@ public class IcpRunSampleTests
     }
 
     // Method elements come from the scenario; the test, item and its specs are added here.
-    private static async Task<Fixture> SeedFixtureAsync(
+    internal static async Task<Fixture> SeedFixtureAsync(
         Scenario s, bool znBases = true, LimitType znLimit = LimitType.Range, IcpMethodMode? mode = null)
     {
         var db = s.Db;
@@ -58,7 +58,7 @@ public class IcpRunSampleTests
         return new Fixture { S = s, Definition = def, Item = item, ZnId = zn.Id, CaId = ca.Id };
     }
 
-    private static async Task<TestOrder> AddOrderAsync(Fixture f, string batch = "B-001")
+    internal static async Task<TestOrder> AddOrderAsync(Fixture f, string batch = "B-001")
     {
         var db = f.S.Db;
         var cause = await db.CausesOfTesting.FirstOrDefaultAsync() ?? new CauseOfTesting { Name = "Release", IsActive = true };
@@ -81,7 +81,7 @@ public class IcpRunSampleTests
         return order;
     }
 
-    private static async Task<IcpRunDto> ConfirmedRunAsync(Scenario s, decimal znR = 0.9995m)
+    internal static async Task<IcpRunDto> ConfirmedRunAsync(Scenario s, decimal znR = 0.9995m)
     {
         var run = await StartAsync(s);
         await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: znR), s.UserId);
@@ -89,7 +89,7 @@ public class IcpRunSampleTests
         return await s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null);
     }
 
-    private static async Task<(Fixture F, IcpRunDto Run, int RunSampleId)> AssignedAsync(
+    internal static async Task<(Fixture F, IcpRunDto Run, int RunSampleId)> AssignedAsync(
         bool znBases = true, LimitType znLimit = LimitType.Range, IcpMethodMode? mode = null)
     {
         var s = await SeedAsync();
@@ -100,10 +100,10 @@ public class IcpRunSampleTests
         return (f, run, run.Samples.Single().Id);
     }
 
-    private static IcpReplicateInputDto Rep(Fixture f, decimal w, decimal zn) =>
+    internal static IcpReplicateInputDto Rep(Fixture f, decimal w, decimal zn) =>
         new(w, 50m, 10m, new List<IcpConcentrationInput> { new(f.ZnId, zn) });
 
-    private static Task<IcpSampleEntryDto> SaveAsync(Fixture f, int runSampleId, params IcpReplicateInputDto[] reps) =>
+    internal static Task<IcpSampleEntryDto> SaveAsync(Fixture f, int runSampleId, params IcpReplicateInputDto[] reps) =>
         f.S.Service.SaveReplicatesAsync(runSampleId, new SaveIcpReplicatesRequest(IcpAmountUnit.Gram, 1.25m, reps.ToList()), f.S.UserId);
 
     [Fact]
@@ -260,7 +260,7 @@ public class IcpRunSampleTests
         Assert.Equal("100.2 %", pct.Display);
         Assert.Equal(ResultStatus.WithinLimits, pct.Status);
         Assert.False(entry.CanSubmit);
-        Assert.Equal("Upload the sample report before sending for review.", entry.CanSubmitReason);
+        Assert.Equal("Upload the sample result report before sending for review.", entry.CanSubmitReason);
     }
 
     [Fact]

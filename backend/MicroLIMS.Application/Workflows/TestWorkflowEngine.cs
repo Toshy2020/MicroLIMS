@@ -40,6 +40,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly DisintegrationRecorder _disintegrationRecorder;
     private readonly WeightVariationRecorder _weightVariationRecorder;
     private readonly HplcMethodAssayRecorder _hplcMethodAssayRecorder;
+    private readonly IcpMethodAssayRecorder _icpMethodAssayRecorder;
     private readonly TitrationRecorder _titrationRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
 
@@ -66,6 +67,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _disintegrationRecorder = new DisintegrationRecorder(deps);
         _weightVariationRecorder = new WeightVariationRecorder(deps);
         _hplcMethodAssayRecorder = new HplcMethodAssayRecorder(deps);
+        _icpMethodAssayRecorder = new IcpMethodAssayRecorder(deps);
         _titrationRecorder = new TitrationRecorder(deps);
         _pathogenConfirmationRecorder = new PathogenConfirmationRecorder(deps);
     }
@@ -176,6 +178,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(
         int runSampleId, string password, string? comment, int userId, string? ipAddress = null) =>
         _hplcMethodAssayRecorder.SubmitAsync(runSampleId, password, comment, userId, ipAddress);
+
+    public Task<TestWorkflowResult> SubmitIcpMethodAssayAsync(
+        int runSampleId, string password, string? comment, int userId, string? ipAddress = null) =>
+        _icpMethodAssayRecorder.SubmitAsync(runSampleId, password, comment, userId, ipAddress);
 
     public Task<StepResultDto> SubmitBrothAsync(
         int testOrderId, string stepName, string? observation, int userId) =>

@@ -11,7 +11,7 @@ namespace MicroLIMS.Tests.UnitTests;
 public class IcpRunServiceTests
 {
     private const string Password = "ValidPassword123!";
-    private static readonly DateTimeOffset SepFirst = new(2026, 9, 1, 10, 0, 0, TimeSpan.Zero);
+    internal static readonly DateTimeOffset SepFirst = new(2026, 9, 1, 10, 0, 0, TimeSpan.Zero);
 
     private sealed class FakeTime : TimeProvider
     {
@@ -20,7 +20,7 @@ public class IcpRunServiceTests
         public override DateTimeOffset GetUtcNow() => _now;
     }
 
-    private static ILabClock NewClock() => new LabClock(new FakeTime(SepFirst), LabClock.ResolveTimeZone("Africa/Cairo"));
+    internal static ILabClock NewClock() => new LabClock(new FakeTime(SepFirst), LabClock.ResolveTimeZone("Africa/Cairo"));
 
     private static MicroLimsDbContext NewDb()
     {
@@ -30,7 +30,7 @@ public class IcpRunServiceTests
         return db;
     }
 
-    private sealed class Scenario
+    internal sealed class Scenario
     {
         public required MicroLimsDbContext Db;
         public required DocumentSection Section;
@@ -70,7 +70,7 @@ public class IcpRunServiceTests
         return lot;
     }
 
-    private static async Task<Scenario> SeedAsync(bool requireIcv = false)
+    internal static async Task<Scenario> SeedAsync(bool requireIcv = false, bool requireCcv = false)
     {
         var db = NewDb();
         var section = TestServiceFactory.EnsureMicroSection(db);
@@ -92,6 +92,7 @@ public class IcpRunServiceTests
             "Minerals by ICP-OES", "MIN-ICP", new DateTime(2026, 8, 1), IcpMethodMode.MineralAssay,
             "0.1, 0.5, 1, 3, 6", calEntry.Id, 0.999m, 50m,
             new() { new IcpElementInput(null, "Zn", 213.857m, AnalyteView.Axial), new IcpElementInput(null, "Ca", 317.933m, AnalyteView.Radial) },
+            RequireCcv: requireCcv, CcvNominalMgPerL: requireCcv ? 1m : null, CcvRecoveryLowPercent: requireCcv ? 90m : null, CcvRecoveryHighPercent: requireCcv ? 110m : null,
             RequireIcv: requireIcv, IcvStandardEntryId: requireIcv ? icvEntry.Id : null,
             IcvNominalMgPerL: requireIcv ? 1m : null, IcvRecoveryLowPercent: requireIcv ? 90m : null, IcvRecoveryHighPercent: requireIcv ? 110m : null,
             SectionId: section.Id);
@@ -115,15 +116,15 @@ public class IcpRunServiceTests
 
     private static byte[] PdfBytes() => new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D };
 
-    private static Task<IcpRunDto> StartAsync(Scenario s) =>
+    internal static Task<IcpRunDto> StartAsync(Scenario s) =>
         s.Service.StartRunAsync(new StartIcpRunRequest(s.Equipment.Id, s.MethodId), s.UserId);
 
-    private static async Task UploadCalibrationReportAsync(Scenario s, int runId) =>
+    internal static async Task UploadCalibrationReportAsync(Scenario s, int runId) =>
         await s.Service.UploadEvidenceAsync(runId, null, IcpEvidenceContext.Calibration, IcpEvidenceKind.CalibrationReport,
             "cal.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId);
 
     // Zn fails at r 0.9989 < 0.999, Ca passes.
-    private static SaveIcpCalibrationRequest Save(IcpRunDto run, int? lotId, int? icvLotId = null, decimal znR = 0.9989m, decimal caR = 0.9995m) => new(
+    internal static SaveIcpCalibrationRequest Save(IcpRunDto run, int? lotId, int? icvLotId = null, decimal znR = 0.9989m, decimal caR = 0.9995m) => new(
         lotId, icvLotId, run.Calibration.Elements.Select(e =>
             new SaveIcpCalibrationElementInput(e.Id, e.Symbol == "Zn" ? znR : caR, null, null)).ToList());
 

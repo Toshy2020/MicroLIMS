@@ -57,7 +57,8 @@ public record IcpRunDto(
     int IcpMethodId, string IcpMethodAbbreviation, IcpMethodResponse Method,
     int AnalystUserId, string? AnalystUserName, DateTime StartedAt, IcpRunStatus Status, DateTime? ClosedAt, string? CloseReason,
     IcpCalibrationDto Calibration, List<IcpCcvReadingDto> CcvReadings, List<IcpRunSampleSummaryDto> Samples, List<IcpEvidenceDto> Evidence,
-    bool CanConfirmCalibration, string? CanConfirmCalibrationReason);
+    bool CanConfirmCalibration, string? CanConfirmCalibrationReason,
+    List<IcpElementStateDto> ElementStates);
 
 public record IcpRunListItem(int Id, string Code, string MethodAbbreviation, string AnalystUserName, DateTime StartedAt, IcpRunStatus Status, IcpCalibrationStatus CalibrationStatus, int SampleCount);
 
@@ -391,6 +392,7 @@ public partial class IcpRunService
             run.IcpMethodId, run.IcpMethod?.Abbreviation ?? snapshot.Abbreviation, snapshot,
             run.AnalystUserId, NameOf(run.AnalystUserId), run.StartedAt, run.Status, run.ClosedAt, run.CloseReason,
             calDto, ccv, samples, evidence,
-            reason == null, reason);
+            reason == null, reason,
+            IcpElementAvailability.Evaluate(snapshot, cal, run.CcvReadings, _clock.UtcNow.UtcDateTime, _clock));
     }
 }

@@ -510,7 +510,8 @@ public partial class HplcMethodService
 
         if (r.FilmThicknessUm.HasValue || r.CarrierGas.HasValue || r.SplitRatio.HasValue || r.InletTemperatureC.HasValue
             || r.DetectorTemperatureC.HasValue || r.SampleSolutionVolumeMl.HasValue
-            || r.OvenSteps?.Count > 0 || r.HeadspaceEnabled)
+            || r.OvenSteps?.Count > 0 || r.HeadspaceEnabled
+            || r.Analytes.Any(a => a.StandardConcentrationUgPerMl.HasValue))
             throw new InvalidOperationException("GC settings are not used on an HPLC method.");
 
         // Mobile phases

@@ -198,4 +198,17 @@ public partial class HplcMethodServiceTests
         Assert.Equal(HplcTechnique.Gc, gc[0].Technique);
         Assert.Equal(2, all.Count);
     }
+
+    [Fact]
+    public async Task CreateHplc_WithStandardConcentration_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var (diluent, mp, standard) = await SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+        var hplc = Req(diluent.Id, new() { new("A", mp.Id, null) }, new() { AnalyteInput(standard.Id) with { StandardConcentrationUgPerMl = 10m } });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(hplc, userId));
+        Assert.Equal("GC settings are not used on an HPLC method.", ex.Message);
+    }
 }

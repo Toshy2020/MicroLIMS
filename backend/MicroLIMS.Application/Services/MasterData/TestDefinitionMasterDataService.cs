@@ -328,6 +328,8 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
             if (!hplcMethod.IsActive)
                 throw new InvalidOperationException("The HPLC method is inactive.");
+            if (hplcMethod.Technique != HplcTechnique.Hplc)
+                throw new InvalidOperationException("Dissolution needs an HPLC method.");
         }
         else if (request.HplcMethodId.HasValue)
         {

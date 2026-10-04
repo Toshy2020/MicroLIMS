@@ -543,4 +543,55 @@ public class HplcMethodAssayTestMasterTests
                 ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: method.Analytes[0].Id)));
         Assert.Contains("Result basis must be assay %", ex.Message);
     }
+
+    [Fact]
+    public async Task Spec_RsMethod_RejectsLabelClaim()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId, LabelClaim: 100m)));
+        Assert.Equal("Residual-solvent specifications use ppm with a not-more-than limit.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Spec_RsMethod_RejectsConversionFactor()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId, ConversionFactor: 2m)));
+        Assert.Equal("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Spec_RsMethod_DuplicateAnalyte_Throws()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var req = new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId);
+        await a.Svc.CreateSpecificationAsync(a.UserId, req);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, req));
+        Assert.Equal("A specification for this analyte and basis already exists.", ex.Message);
+    }
+
+    [Fact]
+    public async Task TestDef_Dissolution_WithGcMethod_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var method = await AddRsMethodAsync(db, section.Id);
+        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));
+        Assert.Equal("Dissolution needs an HPLC method.", ex.Message);
+    }
 }

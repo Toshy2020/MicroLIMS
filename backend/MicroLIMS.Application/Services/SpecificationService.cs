@@ -77,6 +77,9 @@ public class SpecificationService
         if (string.IsNullOrWhiteSpace(spec.ParameterName))
             throw new InvalidOperationException("Parameter name is required.");
 
+        if (spec.ResultBasis == ResultBasis.Ppm && !spec.HplcMethodAnalyteId.HasValue)
+            throw new InvalidOperationException("ppm is only used for residual-solvent specifications.");
+
         if (spec.LimitType != LimitType.CountTiered && spec.DilutionFactor.HasValue)
             throw new InvalidOperationException("Dilution factor is only allowed for Count-Tiered specifications.");
 
@@ -195,6 +198,18 @@ public class SpecificationService
                 throw new InvalidOperationException("Stage-specific specifications are only available for Finished Product items.");
         }
 
+        // Method-analyte rows are keyed by analyte + basis; checked first so the
+        // clearer message wins over the parameter-name duplicate below.
+        if (spec.HplcMethodAnalyteId is int methodAnalyteId)
+        {
+            var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == methodAnalyteId
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateAnalyteBasis)
+                throw new InvalidOperationException("A specification for this analyte and basis already exists.");
+        }
+
         var duplicate = await _db.Specifications.AnyAsync(
             s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName
                  && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
@@ -266,6 +281,9 @@ public class SpecificationService
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
                 throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
 
+            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
+
             bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
             if (residualSolvents)
             {
@@ -278,9 +296,6 @@ public class SpecificationService
                 if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
                     throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
 
-                if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                    throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
-
                 if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
                     throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
 
@@ -288,13 +303,6 @@ public class SpecificationService
                     throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
 
             }
-
-            var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId.Value
-                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
-                cancellationToken);
-            if (duplicateAnalyteBasis)
-                throw new InvalidOperationException("A specification for this analyte and basis already exists.");
 
             if (spec.LimitType != LimitType.Range &&
                 spec.LimitType != LimitType.NotMoreThan &&

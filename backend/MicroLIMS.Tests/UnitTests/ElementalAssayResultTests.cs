@@ -967,6 +967,25 @@ public class ElementalAssayResultTests
     }
 
     [Fact]
+    public async Task SpecificationValidation_CalibrationCurve_RejectsPpmBasis()
+    {
+        using var db = NewDb();
+        var (_, _, _, testDef, _, _, znAnalyte, _) = SeedElementalPrerequisites(db, DateTime.UtcNow.AddHours(-1));
+        var item = new Item { Code = "ITM-PPM", Name = "Test Item", IsActive = true };
+        db.Items.Add(item);
+        db.SaveChanges();
+
+        var spec = new Specification
+        {
+            ItemId = item.Id, TestCode = testDef.Code, ParameterName = "P", TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid, ResultBasis = ResultBasis.Ppm,
+            LimitType = LimitType.Range, LowerLimit = 90m, UpperLimit = 110m
+        };
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(spec));
+        Assert.Equal("ppm is only used for residual-solvent specifications.", ex.Message);
+    }
+
+    [Fact]
     public async Task SpecificationValidationRules_EnforcesAllRules()
     {
         using var db = NewDb();

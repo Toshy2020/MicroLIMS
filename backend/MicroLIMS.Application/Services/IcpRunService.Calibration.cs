@@ -116,7 +116,13 @@ public partial class IcpRunService
         if (blocked != null) throw new InvalidOperationException(blocked);
         var cal = run.Calibration!;
 
-        var verdicts = Evaluate(cal, ReadSnapshot(run));
+        var snapshot = ReadSnapshot(run);
+        // The lots were checked at save; they may have expired or run out since.
+        await RequireStandardLotAsync(cal.CalibrationStandardMaterialId!.Value, snapshot.CalibrationStandardEntryId, snapshot.CalibrationStandardEntryCode, "calibration", run.SectionId, ct);
+        if (snapshot.RequireIcv)
+            await RequireStandardLotAsync(cal.IcvStandardMaterialId!.Value, snapshot.IcvStandardEntryId ?? 0, snapshot.IcvStandardEntryCode, "ICV", run.SectionId, ct);
+
+        var verdicts = Evaluate(cal, snapshot);
 
         // Signs first - a wrong password must leave nothing else persisted.
         var signature = await _signatures.SignAsync(

@@ -285,6 +285,23 @@ public class IcpRunServiceTests
     }
 
     [Fact]
+    public async Task ConfirmCalibration_LotExpiredAfterSave_ThrowsAndStaysPending()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        await UploadCalibrationReportAsync(s, run.Id);
+        s.CalLot.ExpiryDate = DateTime.UtcNow.AddDays(-400);
+        await s.Db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
+        Assert.Equal("The calibration standard lot must be a usable lot of ICP-CAL.", ex.Message);
+        Assert.Equal(IcpCalibrationStatus.Pending, (await s.Service.GetRunAsync(run.Id, s.UserId)).Calibration.Status);
+        Assert.Empty(s.Db.ElectronicSignatures.Where(x => x.EntityType == nameof(IcpCalibration)));
+    }
+
+    [Fact]
     public async Task ConfirmCalibration_AllFail_RunBlocksAssignment()
     {
         var s = await SeedAsync();

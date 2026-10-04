@@ -36,17 +36,11 @@ export function getTechniqueRoutes(basePath: "/gc-workspace" | "/hplc-workspace"
   };
 }
 
+// Built once so callers can list `routes` / the context in effect dependencies.
+const HPLC_CONTEXT: TechniqueContext = { technique: "Hplc", label: "HPLC", basePath: "/hplc-workspace", routes: getTechniqueRoutes("/hplc-workspace") };
+const GC_CONTEXT: TechniqueContext = { technique: "Gc", label: "GC", basePath: "/gc-workspace", routes: getTechniqueRoutes("/gc-workspace") };
+
 export function useTechnique(): TechniqueContext {
   const location = useLocation();
-  const isGc = location.pathname.startsWith("/gc-workspace");
-  const technique: HplcTechnique = isGc ? "Gc" : "Hplc";
-  const label = isGc ? "GC" : "HPLC";
-  const basePath = isGc ? "/gc-workspace" : "/hplc-workspace";
-
-  return {
-    technique,
-    label,
-    basePath,
-    routes: getTechniqueRoutes(basePath)
-  };
+  return location.pathname.startsWith("/gc-workspace") ? GC_CONTEXT : HPLC_CONTEXT;
 }

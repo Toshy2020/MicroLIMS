@@ -64,7 +64,7 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
                 s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -114,6 +114,7 @@ public class SpecificationMasterDataService
             ConversionFactor = request.ConversionFactor ?? 1.0m,
             DosageForm = request.DosageForm,
             HplcMethodAnalyteId = request.HplcMethodAnalyteId,
+            IcpMethodElementId = request.IcpMethodElementId,
             ProductionStageRole = request.ProductionStageRole,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
@@ -179,6 +180,7 @@ public class SpecificationMasterDataService
         spec.LabelClaimUnit = request.LabelClaimUnit;
         spec.DosageForm = request.DosageForm;
         spec.HplcMethodAnalyteId = request.HplcMethodAnalyteId;
+        spec.IcpMethodElementId = request.IcpMethodElementId;
         spec.ProductionStageRole = request.ProductionStageRole;
         if (request.ConversionFactor.HasValue)
             spec.ConversionFactor = request.ConversionFactor.Value;

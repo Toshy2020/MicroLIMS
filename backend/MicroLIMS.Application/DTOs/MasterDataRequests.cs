@@ -56,7 +56,8 @@ public record CreateSpecificationRequest(
     decimal? ConversionFactor = null,
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
-    ProductionStageRole? ProductionStageRole = null);
+    ProductionStageRole? ProductionStageRole = null,
+    int? IcpMethodElementId = null);
 
 public record UpdateSpecificationRequest(
     string TestCode,
@@ -89,7 +90,8 @@ public record UpdateSpecificationRequest(
     decimal? ConversionFactor = null,
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
-    ProductionStageRole? ProductionStageRole = null);
+    ProductionStageRole? ProductionStageRole = null,
+    int? IcpMethodElementId = null);
 
 // GET shape for specifications - every field the frontend already binds to,
 // unchanged, plus CanEdit/SectionName so the UI can show the other lab's
@@ -129,7 +131,8 @@ public record SpecificationRowDto(
     bool CanEdit,
     string SectionName,
     int? HplcMethodAnalyteId = null,
-    ProductionStageRole? ProductionStageRole = null)
+    ProductionStageRole? ProductionStageRole = null,
+    int? IcpMethodElementId = null)
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }

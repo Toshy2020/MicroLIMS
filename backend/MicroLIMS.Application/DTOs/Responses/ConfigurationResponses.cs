@@ -355,6 +355,7 @@ public class SpecificationResponse
     public decimal ConversionFactor { get; init; }
     public DosageForm? DosageForm { get; init; }
     public int? HplcMethodAnalyteId { get; init; }
+    public int? IcpMethodElementId { get; init; }
     public ProductionStageRole? ProductionStageRole { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
@@ -393,6 +394,7 @@ public class SpecificationResponse
         ConversionFactor = e.ConversionFactor,
         DosageForm = e.DosageForm,
         HplcMethodAnalyteId = e.HplcMethodAnalyteId,
+        IcpMethodElementId = e.IcpMethodElementId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

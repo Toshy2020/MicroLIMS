@@ -36,7 +36,7 @@ public class IcpMethodTestMasterTests
         return (section, user.Id);
     }
 
-    private static async Task<int> AddMethodAsync(MicroLimsDbContext db, int sectionId, int userId, bool active = true)
+    private static async Task<int> AddMethodAsync(MicroLimsDbContext db, int sectionId, int userId, bool active = true, string abbr = "min-icp")
     {
         var std = new MaterialMasterEntry
         {
@@ -49,7 +49,7 @@ public class IcpMethodTestMasterTests
 
         var svc = TestServiceFactory.IcpMethod(db);
         var m = await svc.CreateAsync(new SaveIcpMethodRequest(
-            Name: "Minerals by ICP-OES", Abbreviation: "min-icp", EffectiveDate: new DateTime(2026, 10, 1),
+            Name: "Minerals by ICP-OES", Abbreviation: abbr, EffectiveDate: new DateTime(2026, 10, 1),
             Mode: IcpMethodMode.MineralAssay, StandardLevelsMgPerL: "0.1, 0.5, 1",
             CalibrationStandardEntryId: std.Id, MinCorrelation: 0.999m, SampleVolumeMl: 50m,
             Elements: new() { new IcpElementInput(null, "zn", 213.857m, AnalyteView.Axial) }), userId);
@@ -131,5 +131,44 @@ public class IcpMethodTestMasterTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CreateTestDefinitionAsync(userId, Req(section.Id, methodId, requiresSst: true)));
         Assert.Equal("ICP method assay tests use the run calibration, not system suitability.", ex.Message);
+    }
+
+    private static async Task<(TestDefinitionMasterDataService Svc, int TestId, int UserId, int Section, int Method1, int Method2)> ArrangeChangeAsync(MicroLimsDbContext db)
+    {
+        var (section, userId) = await SeedAsync(db);
+        var m1 = await AddMethodAsync(db, section.Id, userId);
+        var m2 = await AddMethodAsync(db, section.Id, userId, abbr: "min-two");
+        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var created = await service.CreateTestDefinitionAsync(userId, Req(section.Id, m1));
+        return (service, created.Id, userId, section.Id, m1, m2);
+    }
+
+    private static UpdateTestDefinitionRequest ChangeReq(int sectionId, int methodId) =>
+        new(Code: "ICP-T1", DisplayName: "ICP Assay Test", SectionId: sectionId,
+            WorkflowType: WorkflowType.IcpMethodAssay, EquationType: EquationType.IcpMethodAssay,
+            RequiresSystemSuitability: false, MethodAbbreviation: "ICP-T1", IcpMethodId: methodId);
+
+    [Fact]
+    public async Task TestDef_IcpAssay_ChangeMethodWithSpecs_Throws()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeChangeAsync(db);
+        var elementId = (await db.IcpMethodElements.FirstAsync(e => e.IcpMethodId == a.Method1)).Id;
+        db.Specifications.Add(new Specification { ItemId = 1, TestCode = "ICP-T1", ParameterName = "Zn", IcpMethodElementId = elementId, LimitType = LimitType.Range, LowerLimit = 90, UpperLimit = 110 });
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.UpdateTestDefinitionAsync(a.UserId, a.TestId, ChangeReq(a.Section, a.Method2)));
+        Assert.Equal("This test has specifications linked to elements of its current ICP method; remove them before changing the method.", ex.Message);
+    }
+
+    [Fact]
+    public async Task TestDef_IcpAssay_ChangeMethodWithoutSpecs_IsAllowed()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeChangeAsync(db);
+
+        var updated = await a.Svc.UpdateTestDefinitionAsync(a.UserId, a.TestId, ChangeReq(a.Section, a.Method2));
+
+        Assert.Equal(a.Method2, updated.IcpMethodId);
     }
 }

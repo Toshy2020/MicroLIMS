@@ -353,6 +353,8 @@ public class SpecificationService
                     throw new InvalidOperationException("Result basis must be µg/g (MgPerKg) for elemental impurities.");
                 if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
                     throw new InvalidOperationException("Label claim is not used for elemental impurities.");
+                if (spec.LimitType != LimitType.NotMoreThan)
+                    throw new InvalidOperationException("Elemental impurity specifications use a not-more-than limit.");
             }
 
             if (spec.LimitType != LimitType.Range &&

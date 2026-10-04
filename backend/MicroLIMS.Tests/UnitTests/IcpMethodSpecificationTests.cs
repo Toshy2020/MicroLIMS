@@ -144,6 +144,15 @@ public class IcpMethodSpecificationTests
     }
 
     [Fact]
+    public async Task Spec_Impurities_RejectsRange()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeAsync(db, IcpMethodMode.ElementalImpurities);
+        await AssertThrowsAsync("Elemental impurity specifications use a not-more-than limit.",
+            () => a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, ResultBasis.MgPerKg, claim: null, unit: null)));
+    }
+
+    [Fact]
     public async Task Spec_ElementFromOtherMethod_Throws()
     {
         await using var db = NewDb();

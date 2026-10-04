@@ -765,6 +765,9 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("The ICP method belongs to another laboratory.");
             if (!icpMethod.IsActive && effectiveIcpMethodId != entity.IcpMethodId)
                 throw new InvalidOperationException("The ICP method is inactive.");
+            if (entity.IcpMethodId.HasValue && effectiveIcpMethodId != entity.IcpMethodId
+                && await _db.Specifications.AnyAsync(s => s.TestCode == entity.Code && s.IcpMethodElementId != null))
+                throw new InvalidOperationException("This test has specifications linked to elements of its current ICP method; remove them before changing the method.");
         }
         else if (effectiveIcpMethodId.HasValue)
         {

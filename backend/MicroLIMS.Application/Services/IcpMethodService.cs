@@ -154,11 +154,22 @@ public class IcpMethodService
             throw new InvalidOperationException($"An ICP method abbreviated \"{abbr}\" already exists.");
 
         // Never orphan a specification row - refuse before any child is touched.
-        var incomingIds = r.Elements.Where(e => e.Id.HasValue).Select(e => e.Id!.Value).ToHashSet();
+        var incomingIdList = r.Elements.Where(e => e.Id.HasValue).Select(e => e.Id!.Value).ToList();
+        var duplicateId = incomingIdList.GroupBy(i => i).FirstOrDefault(g => g.Count() > 1);
+        if (duplicateId != null)
+            throw new InvalidOperationException($"Element {duplicateId.Key} is listed more than once.");
+        var incomingIds = incomingIdList.ToHashSet();
         foreach (var dropped in method.Elements.Where(e => !incomingIds.Contains(e.Id)))
         {
             if (await _db.Specifications.AnyAsync(s => s.IcpMethodElementId == dropped.Id, ct))
                 throw new InvalidOperationException($"Element \"{dropped.Symbol}\" is used by specifications; it can't be removed.");
+        }
+        foreach (var input in r.Elements.Where(e => e.Id.HasValue))
+        {
+            var kept = method.Elements.First(e => e.Id == input.Id!.Value);
+            if (kept.Symbol != NormaliseSymbol(input.Symbol)
+                && await _db.Specifications.AnyAsync(s => s.IcpMethodElementId == kept.Id, ct))
+                throw new InvalidOperationException($"Element \"{kept.Symbol}\" is used by specifications; its symbol can't be changed.");
         }
 
         ApplyFields(method, r, abbr, levels);
@@ -384,14 +395,14 @@ public class IcpMethodService
                 || r.CcvRecoveryLowPercent.HasValue || r.CcvRecoveryHighPercent.HasValue)))
             throw new InvalidOperationException("Blank, ICV and CCV values are only used when that check is on.");
 
-        if (r.Elements.Count < 1)
+        if (r.Elements is not { Count: > 0 })
             throw new InvalidOperationException("At least one element is required.");
 
         var symbols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var e in r.Elements)
         {
             var raw = e.Symbol?.Trim() ?? string.Empty;
-            if (raw.Length < 1 || raw.Length > 3)
+            if (!Regex.IsMatch(raw, "^[A-Za-z]{1,3}$"))
                 throw new InvalidOperationException("Element symbol must be 1-3 letters.");
             var symbol = NormaliseSymbol(raw);
             if (!symbols.Add(symbol))

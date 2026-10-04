@@ -137,6 +137,48 @@ public class IcpMethodServiceTests
         Assert.Equal("Element \"Ca\" is used by specifications; it can't be removed.", ex.Message);
     }
 
+    [Fact]
+    public async Task Update_DuplicateElementId_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var std = await AddEntryAsync(db, section.Id, "RS-ICP-1");
+        var svc = TestServiceFactory.IcpMethod(db);
+        var m = await svc.CreateAsync(Req(std.Id), userId);
+        var id = m.Elements[0].Id;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.UpdateAsync(m.Id, Req(std.Id, new IcpElementInput(id, "Zn", 213.857m, AnalyteView.Axial), new IcpElementInput(id, "Ca", 317.933m, AnalyteView.Axial)) with { Reason = "x" }, userId));
+        Assert.Equal($"Element {id} is listed more than once.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Update_ChangingSymbolUsedBySpec_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var std = await AddEntryAsync(db, section.Id, "RS-ICP-1");
+        var svc = TestServiceFactory.IcpMethod(db);
+        var m = await svc.CreateAsync(Req(std.Id), userId);
+        var id = m.Elements[0].Id;
+        db.Specifications.Add(new Specification { ItemId = 1, TestCode = "ICP-T", ParameterName = "Zn", IcpMethodElementId = id, LimitType = LimitType.Range, LowerLimit = 90, UpperLimit = 110 });
+        await db.SaveChangesAsync();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.UpdateAsync(m.Id, Req(std.Id, new IcpElementInput(id, "Cu", 213.857m, AnalyteView.Axial)) with { Reason = "x" }, userId));
+        Assert.Equal("Element \"Zn\" is used by specifications; its symbol can't be changed.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Update_ChangingSymbolNotUsed_IsAllowed()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var std = await AddEntryAsync(db, section.Id, "RS-ICP-1");
+        var svc = TestServiceFactory.IcpMethod(db);
+        var m = await svc.CreateAsync(Req(std.Id), userId);
+        var updated = await svc.UpdateAsync(m.Id, Req(std.Id, new IcpElementInput(m.Elements[0].Id, "Cu", 213.857m, AnalyteView.Axial)) with { Reason = "x" }, userId);
+        Assert.Equal("Cu", updated.Elements.Single().Symbol);
+    }
+
     public static IEnumerable<object[]> InvalidRequests() => new[]
     {
         Case("name blank", r => r with { Name = " " }, "Method name is required."),
@@ -157,6 +199,8 @@ public class IcpMethodServiceTests
         Case("blank value with check off", r => r with { BlankMaxMgPerL = 0.1m }, "Blank, ICV and CCV values are only used when that check is on."),
         Case("no elements", r => r with { Elements = new() }, "At least one element is required."),
         Case("symbol too long", r => r with { Elements = new() { new IcpElementInput(null, "Abcd", 200m, AnalyteView.Axial) } }, "Element symbol must be 1-3 letters."),
+        Case("symbol not letters", r => r with { Elements = new() { new IcpElementInput(null, "1!", 200m, AnalyteView.Axial) } }, "Element symbol must be 1-3 letters."),
+        Case("null elements", r => r with { Elements = null! }, "At least one element is required."),
         Case("symbol blank", r => r with { Elements = new() { new IcpElementInput(null, " ", 200m, AnalyteView.Axial) } }, "Element symbol must be 1-3 letters."),
         Case("duplicate symbol", r => r with { Elements = new() { new IcpElementInput(null, "zn", 200m, AnalyteView.Axial), new IcpElementInput(null, "Zn", 201m, AnalyteView.Radial) } },
             "Element \"Zn\" is listed more than once."),

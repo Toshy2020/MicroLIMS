@@ -24,6 +24,7 @@ public class TitrationScenario
     public TitrantStandardization? Standardization;
     public SolutionMaster? ExcessMaster;
     public SolutionPreparation? ExcessPrep;
+    public MaterialMasterEntry IndicatorEntry = null!;
     public MaterialMasterEntry? StandardEntry;
     public Material? StandardLot;
 
@@ -99,6 +100,15 @@ public class TitrationScenario
             s.Standardization = db.TitrantStandardizations.First(x => x.SolutionPreparationId == s.TitrantPrep.Id);
         }
 
+        s.IndicatorEntry = new MaterialMasterEntry
+        {
+            SectionId = s.Section.Id, Code = $"IND-{uid}", Name = "Starch", Category = MaterialMasterCategory.Indicator,
+            BaseUnit = MaterialUnit.Gram, IsActive = true, CreatedByUserId = s.UserId, CreatedAt = DateTime.UtcNow,
+            LastModifiedByUserId = s.UserId, LastModifiedAt = DateTime.UtcNow,
+        };
+        db.MaterialMasterEntries.Add(s.IndicatorEntry);
+        db.SaveChanges();
+
         if (o.WithStandard)
         {
             s.StandardEntry = new MaterialMasterEntry
@@ -130,7 +140,7 @@ public class TitrationScenario
             ReplicateCount = 2, TitrationType = TitrationType.Redox, TitrationNonAqueous = null, TitrationMode = TitrationMode.Direct,
             TitrationCalculation = TitrationCalculation.UspFactor, TitrantSolutionMasterId = s.TitrantMaster.Id,
             TitrationEquivalencyFactor = 88.06m, TitrationBlankRequired = true, TitrationMaxRsdPercent = 2m,
-            TitrationEndpoint = TitrationEndpoint.Visual, TitrationIndicator = "Starch", TitrationTempCorrection = false,
+            TitrationEndpoint = TitrationEndpoint.Visual, TitrationIndicatorEntryId = s.IndicatorEntry.Id, TitrationIndicator = "Starch", TitrationTempCorrection = false,
         };
         o.Tweak?.Invoke(s.Test);
         if (s.StandardEntry != null && s.Test.TitrationCalculation == TitrationCalculation.Relative) s.Test.TitrationStandardEntryId = s.StandardEntry.Id;

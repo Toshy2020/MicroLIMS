@@ -166,7 +166,7 @@ public class TitrationRecorderTests
             Tweak = t =>
             {
                 t.TitrationType = TitrationType.AcidBase; t.TitrationNonAqueous = true; t.TitrationEndpoint = TitrationEndpoint.Potentiometric;
-                t.TitrationIndicator = null; t.TitrationTempCorrection = true; t.TitrationExpansionCoefficient = 0.0011m;
+                t.TitrationIndicatorEntryId = null; t.TitrationIndicator = null; t.TitrationTempCorrection = true; t.TitrationExpansionCoefficient = 0.0011m;
             },
             TweakSpec = sp => { sp.LowerLimit = 0m; sp.UpperLimit = 500m; },
         });
@@ -257,7 +257,7 @@ public class TitrationRecorderTests
             Tweak = t =>
             {
                 t.TitrationType = TitrationType.KarlFischer; t.TitrationEquivalencyFactor = null; t.TitrationEndpoint = TitrationEndpoint.Potentiometric;
-                t.TitrationIndicator = null; t.TitrationBlankRequired = true;
+                t.TitrationIndicatorEntryId = null; t.TitrationIndicator = null; t.TitrationBlankRequired = true;
             },
             TweakSpec = sp => { sp.LowerLimit = null; sp.LimitType = LimitType.NotMoreThan; sp.UpperLimit = 6m; },
         });
@@ -493,7 +493,7 @@ public class TitrationRecorderTests
         var r = new CreateTestDefinitionRequest(code, "Titration test", s.Section.Id, WorkflowType.Titration, EquationType.Titration,
             ReplicateCount: 3, TitrationType: TitrationType.Redox, TitrationMode: TitrationMode.Direct,
             TitrationCalculation: TitrationCalculation.UspFactor, TitrantSolutionMasterId: s.TitrantMaster.Id,
-            TitrationEquivalencyFactor: 88.06m, TitrationEndpoint: TitrationEndpoint.Visual, TitrationIndicator: "Starch");
+            TitrationEquivalencyFactor: 88.06m, TitrationEndpoint: TitrationEndpoint.Visual, TitrationIndicatorEntryId: s.IndicatorEntry.Id);
         return tweak == null ? r : tweak(r);
     }
 
@@ -507,6 +507,8 @@ public class TitrationRecorderTests
         Assert.Equal(false, created.TitrationTempCorrection);
         Assert.Null(created.TitrationNonAqueous);   // only acid-base keeps it
         Assert.False(created.TitrationBlankRequired);
+        Assert.Equal(s.IndicatorEntry.Id, created.TitrationIndicatorEntryId);
+        Assert.Equal("Starch", created.TitrationIndicator);   // copied from the Indicator entry
     }
 
     [Theory]
@@ -514,6 +516,7 @@ public class TitrationRecorderTests
     [InlineData("fnull")]
     [InlineData("replicates")]
     [InlineData("indicator")]
+    [InlineData("indicatorNotIndicator")]
     [InlineData("kfunit")]
     [InlineData("relativeNoStd")]
     [InlineData("relativeResidual")]
@@ -530,7 +533,8 @@ public class TitrationRecorderTests
             "type" => Create(s, "X1", r => r with { TitrationType = null }),
             "fnull" => Create(s, "X1", r => r with { TitrationEquivalencyFactor = null }),
             "replicates" => Create(s, "X1", r => r with { ReplicateCount = 11 }),
-            "indicator" => Create(s, "X1", r => r with { TitrationIndicator = null }),
+            "indicator" => Create(s, "X1", r => r with { TitrationIndicatorEntryId = null }),
+            "indicatorNotIndicator" => Create(s, "X1", r => r with { TitrationIndicatorEntryId = s.StandardEntry!.Id }),
             "kfunit" => Create(s, "X1", r => r with { TitrationType = TitrationType.KarlFischer, TitrationEquivalencyFactor = null }),
             "relativeNoStd" => Create(s, "X1", r => r with { TitrationCalculation = TitrationCalculation.Relative }),
             "relativeResidual" => Create(s, "X1", r => r with { TitrationCalculation = TitrationCalculation.Relative, TitrationMode = TitrationMode.Residual, TitrationStandardEntryId = s.StandardEntry!.Id, TitrationExcessSolutionMasterId = s.ExcessMaster!.Id, TitrationExcessVolumeMl = 25m }),

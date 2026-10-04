@@ -60,6 +60,8 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
             .HasForeignKey(t => t.TitrationExcessSolutionMasterId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(t => t.TitrationStandardEntry).WithMany()
             .HasForeignKey(t => t.TitrationStandardEntryId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(t => t.TitrationIndicatorEntry).WithMany()
+            .HasForeignKey(t => t.TitrationIndicatorEntryId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(t => t.Analytes)
             .WithOne(a => a.TestDefinition)

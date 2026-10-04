@@ -122,7 +122,9 @@ public class TestDefinition : IVersionedEntity
     public decimal? TitrationExcessVolumeMl { get; set; }
     public decimal? TitrationMaxRsdPercent { get; set; }
     public TitrationEndpoint? TitrationEndpoint { get; set; }
-    public string? TitrationIndicator { get; set; }
+    public int? TitrationIndicatorEntryId { get; set; }        // Visual: Indicator entry in Reagents & Reference Standards
+    public MaterialMasterEntry? TitrationIndicatorEntry { get; set; }
+    public string? TitrationIndicator { get; set; }            // the indicator entry's name, copied on save
     public bool? TitrationTempCorrection { get; set; }
     public decimal? TitrationExpansionCoefficient { get; set; }
     public int? TitrationStandardEntryId { get; set; }         // Relative: reference standard master entry

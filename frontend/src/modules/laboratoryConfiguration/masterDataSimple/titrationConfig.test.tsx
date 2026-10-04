@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   createInitialTitrationForm,
   normaliseTitrationForm,
@@ -20,7 +20,15 @@ vi.mock("./services/SolutionMasterService", () => ({
   }
 }));
 vi.mock("./services/MaterialMasterService", () => ({
-  MaterialMasterService: { getAll: vi.fn().mockResolvedValue([{ id: 9, sectionId: 1, name: "Ascorbic acid RS", code: "RS-1" }]) }
+  MaterialMasterService: {
+    getAll: vi.fn((category: string) =>
+      Promise.resolve(
+        category === "Indicator"
+          ? [{ id: 4, sectionId: 1, name: "Phenolphthalein TS", code: "IND-1" }]
+          : [{ id: 9, sectionId: 1, name: "Ascorbic acid RS", code: "RS-1" }]
+      )
+    )
+  }
 }));
 
 afterEach(cleanup);
@@ -54,12 +62,12 @@ describe("titration visibility rules", () => {
 });
 
 describe("titration required-field hints", () => {
-  const ok = form({ type: "Redox", titrantSolutionMasterId: 1, equivalencyFactor: "88.06", indicator: "starch" });
+  const ok = form({ type: "Redox", titrantSolutionMasterId: 1, equivalencyFactor: "88.06", indicatorEntryId: 4 });
   it("accepts a complete direct USP-factor test", () => expect(validateTitrationForm(ok)).toBeNull());
   it("requires titrant, F and indicator", () => {
     expect(validateTitrationForm({ ...ok, titrantSolutionMasterId: "" })).toMatch(/Titrant/);
     expect(validateTitrationForm({ ...ok, equivalencyFactor: "" })).toMatch(/factor/i);
-    expect(validateTitrationForm({ ...ok, indicator: " " })).toMatch(/Indicator/);
+    expect(validateTitrationForm({ ...ok, indicatorEntryId: "" })).toMatch(/Indicator/);
   });
   it("residual always needs excess master and volume (blank or not)", () => {
     const r = { ...ok, mode: "Residual" as const, blankRequired: true };
@@ -79,6 +87,8 @@ describe("titration required-field hints", () => {
     expect(p.titrationExcessVolumeMl).toBeNull();
     expect(p.titrationTempCorrection).toBeNull();
     expect(p.titrationEquivalencyFactor).toBe(88.06);
+    expect(p.titrationIndicatorEntryId).toBe(4);
+    expect(titrationPayloadFields({ ...ok, endpoint: "Potentiometric" }, true).titrationIndicatorEntryId).toBeNull();
     expect(titrationPayloadFields(ok, false).titrationType).toBeNull();
   });
 });
@@ -109,5 +119,11 @@ describe("TitrationConfigSection", () => {
     expect(screen.getByLabelText(/Reference standard/)).toBeTruthy();
     expect(screen.queryByLabelText(/Equivalency factor/)).toBeNull();
     expect(screen.queryByLabelText(/theoretical/i)).toBeNull();
+  });
+  it("picks the visual-endpoint indicator from the Indicator entries", async () => {
+    render(<TitrationConfigSection form={form({ type: "AcidBase", endpoint: "Visual" })} onChange={() => {}} sectionId={1} />);
+    fireEvent.mouseDown(screen.getByLabelText(/Indicator/));
+    expect(await screen.findByRole("option", { name: /Phenolphthalein TS/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /Ascorbic acid RS/ })).toBeNull();
   });
 });

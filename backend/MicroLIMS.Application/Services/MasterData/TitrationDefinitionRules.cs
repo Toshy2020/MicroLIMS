@@ -105,13 +105,25 @@ public static class TitrationDefinitionRules
         if (t.TitrationMaxRsdPercent.HasValue && t.TitrationMaxRsdPercent <= 0)
             throw new InvalidOperationException("Maximum RSD must be greater than zero when set.");
 
+        // Visual endpoint: the indicator is an Indicator entry of Reagents &
+        // Reference Standards; its name is copied for display and the record.
         if (t.TitrationEndpoint == TitrationEndpoint.Visual)
         {
-            t.TitrationIndicator = t.TitrationIndicator?.Trim();
-            if (string.IsNullOrEmpty(t.TitrationIndicator))
+            if (!t.TitrationIndicatorEntryId.HasValue)
                 throw new InvalidOperationException("Indicator is required for a visual endpoint.");
+            var indicator = await db.MaterialMasterEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == t.TitrationIndicatorEntryId.Value)
+                ?? throw new InvalidOperationException("Indicator master entry not found.");
+            if (indicator.Category != MaterialMasterCategory.Indicator)
+                throw new InvalidOperationException("The indicator must be an Indicator entry in Reagents & Reference Standards.");
+            if (indicator.SectionId != t.SectionId)
+                throw new InvalidOperationException("The indicator belongs to another laboratory.");
+            t.TitrationIndicator = indicator.Name;
         }
-        else t.TitrationIndicator = null;
+        else
+        {
+            t.TitrationIndicatorEntryId = null;
+            t.TitrationIndicator = null;
+        }
 
         if (t.TitrationTempCorrection == true)
         {
@@ -139,7 +151,7 @@ public static class TitrationDefinitionRules
         t.TitrationType = null; t.TitrationNonAqueous = null; t.TitrationMode = null; t.TitrationCalculation = null;
         t.TitrantSolutionMasterId = null; t.TitrationEquivalencyFactor = null; t.TitrationBlankRequired = null;
         t.TitrationExcessSolutionMasterId = null; t.TitrationExcessVolumeMl = null; t.TitrationMaxRsdPercent = null;
-        t.TitrationEndpoint = null; t.TitrationIndicator = null; t.TitrationTempCorrection = null;
+        t.TitrationEndpoint = null; t.TitrationIndicatorEntryId = null; t.TitrationIndicator = null; t.TitrationTempCorrection = null;
         t.TitrationExpansionCoefficient = null; t.TitrationStandardEntryId = null;
     }
 }

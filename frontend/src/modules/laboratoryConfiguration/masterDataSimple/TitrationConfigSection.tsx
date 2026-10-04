@@ -23,17 +23,23 @@ interface Props {
 export function TitrationConfigSection({ form, onChange, sectionId }: Props) {
   const [titrants, setTitrants] = useState<SolutionMaster[]>([]);
   const [standards, setStandards] = useState<MaterialMasterEntry[]>([]);
+  const [indicators, setIndicators] = useState<MaterialMasterEntry[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([SolutionMasterService.getAll("Titrant", true), MaterialMasterService.getAll("ReferenceStandard", true)])
-      .then(([t, s]) => {
+    Promise.all([
+      SolutionMasterService.getAll("Titrant", true),
+      MaterialMasterService.getAll("ReferenceStandard", true),
+      MaterialMasterService.getAll("Indicator", true)
+    ])
+      .then(([t, s, i]) => {
         if (!active) return;
         setTitrants(t);
         setStandards(s);
+        setIndicators(i);
       })
-      .catch(() => active && setLoadError("Could not load titrants or reference standards."));
+      .catch(() => active && setLoadError("Could not load titrants, indicators or reference standards."));
     return () => {
       active = false;
     };
@@ -56,6 +62,12 @@ export function TitrationConfigSection({ form, onChange, sectionId }: Props) {
     () => standards.filter(inSection),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [standards, sectionId]
+  );
+
+  const indicatorOptions = useMemo(
+    () => indicators.filter(inSection),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [indicators, sectionId]
   );
 
   const titrantLabel = (s: SolutionMaster) =>
@@ -148,16 +160,15 @@ export function TitrationConfigSection({ form, onChange, sectionId }: Props) {
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "flex-start" }}>
           {select("titration-endpoint-label", "Endpoint", form.endpoint, TITRATION_ENDPOINT_OPTIONS, (e) => set({ endpoint: e }))}
-          {v.indicator && (
-            <TextField
-              size="small"
-              label="Indicator *"
-              value={form.indicator}
-              onChange={(e) => set({ indicator: e.target.value })}
-              slotProps={{ htmlInput: { maxLength: 200 } }}
-              sx={{ flex: 1, minWidth: 200 }}
-            />
-          )}
+          {v.indicator &&
+            select(
+              "titration-indicator-label",
+              "Indicator",
+              form.indicatorEntryId,
+              indicatorOptions.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })),
+              (id) => set({ indicatorEntryId: id }),
+              indicatorOptions.length === 0 ? "No active Indicator entries in Reagents & Reference Standards" : "From Reagents & Reference Standards"
+            )}
         </Stack>
 
         <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }} useFlexGap>

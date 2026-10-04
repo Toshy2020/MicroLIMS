@@ -66,5 +66,10 @@ public class Specification : IVersionedEntity
     [JsonIgnore]
     public HplcMethodAnalyte? HplcMethodAnalyte { get; set; }
 
+    // ICP workspace - IcpMethodAssay specification rows are keyed by method element + basis.
+    public int? IcpMethodElementId { get; set; }
+    [JsonIgnore]
+    public IcpMethodElement? IcpMethodElement { get; set; }
+
     public List<SpecificationStage> Stages { get; set; } = new();
 }

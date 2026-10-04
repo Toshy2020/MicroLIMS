@@ -42,6 +42,11 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
             .HasForeignKey(s => s.HplcMethodAnalyteId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(s => s.IcpMethodElement)
+            .WithMany()
+            .HasForeignKey(s => s.IcpMethodElementId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(s => s.Stages)
                .WithOne(st => st.Specification)
                .HasForeignKey(st => st.SpecificationId)

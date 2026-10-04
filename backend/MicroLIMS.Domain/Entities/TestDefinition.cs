@@ -108,6 +108,10 @@ public class TestDefinition : IVersionedEntity
     public int? HplcMethodId { get; set; }
     public HplcMethod? HplcMethod { get; set; }
 
+    // ICP workspace - IcpMethodAssay tests point at an ICP method master
+    public int? IcpMethodId { get; set; }
+    public IcpMethod? IcpMethod { get; set; }
+
     // Titration assay criteria (null for every other workflow)
     public TitrationType? TitrationType { get; set; }
     public bool? TitrationNonAqueous { get; set; }

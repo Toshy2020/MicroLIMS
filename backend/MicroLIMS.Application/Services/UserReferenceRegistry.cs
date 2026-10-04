@@ -225,5 +225,11 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.RejectedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, rejection signature"),
         new UserReferenceEntry(typeof(WorkingStandardDocument), nameof(WorkingStandardDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, uploader of the attachment"),
         new UserReferenceEntry(typeof(HplcEvidence), nameof(HplcEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
+        new UserReferenceEntry(typeof(IcpRun), nameof(IcpRun.AnalystUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the run"),
+        new UserReferenceEntry(typeof(IcpCalibration), nameof(IcpCalibration.ConfirmedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the calibration confirmation"),
+        new UserReferenceEntry(typeof(IcpCcvReading), nameof(IcpCcvReading.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who entered the CCV reading"),
+        new UserReferenceEntry(typeof(IcpRunSample), nameof(IcpRunSample.AssignedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample assignment"),
+        new UserReferenceEntry(typeof(IcpRunSample), nameof(IcpRunSample.RemovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample removal"),
+        new UserReferenceEntry(typeof(IcpEvidence), nameof(IcpEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
     };
 }

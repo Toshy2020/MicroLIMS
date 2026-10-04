@@ -126,6 +126,14 @@ public interface IMicroLimsDbContext
     DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
     DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
     DbSet<HplcEvidence> HplcEvidences { get; }
+    DbSet<IcpRun> IcpRuns { get; }
+    DbSet<IcpCalibration> IcpCalibrations { get; }
+    DbSet<IcpCalibrationElement> IcpCalibrationElements { get; }
+    DbSet<IcpCcvReading> IcpCcvReadings { get; }
+    DbSet<IcpRunSample> IcpRunSamples { get; }
+    DbSet<IcpSampleReplicate> IcpSampleReplicates { get; }
+    DbSet<IcpReplicateConcentration> IcpReplicateConcentrations { get; }
+    DbSet<IcpEvidence> IcpEvidences { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }

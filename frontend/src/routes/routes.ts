@@ -55,6 +55,7 @@ const APP_ROUTES = {
   MATERIAL_MASTER: "/laboratory-configuration/material-master",
   SOLUTION_MASTER: "/laboratory-configuration/solution-master",
   HPLC_METHODS: "/laboratory-configuration/hplc-methods",
+  ICP_METHODS: "/laboratory-configuration/icp-methods",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
 
   // Inventory & Stock
@@ -202,6 +203,9 @@ export function resolveTraceabilityRoute(
   }
   if (type === "hplcmethod" || type === "hplcmethods") {
     return APP_ROUTES.HPLC_METHODS;
+  }
+  if (type === "icpmethod" || type === "icpmethods") {
+    return APP_ROUTES.ICP_METHODS;
   }
   if (type === "hplcrun" || type === "hplcworkspace" || target === "hplc-workspace") {
     return APP_ROUTES.HPLC_WORKSPACE;

@@ -147,7 +147,8 @@ const physchemConfigArea: MenuItem = {
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
     { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
     { label: "Solutions", path: "/laboratory-configuration/solution-master" },
-    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" }
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" },
+    { label: "ICP Methods", path: "/laboratory-configuration/icp-methods" }
   ]
 };
 

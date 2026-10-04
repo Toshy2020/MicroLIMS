@@ -53,6 +53,7 @@ const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfig
 const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
+const IcpMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/IcpMethodsPage").then((m) => ({ default: m.IcpMethodsPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -221,6 +222,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/material-master" element={<MaterialMasterPage />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
+              <Route path="/laboratory-configuration/icp-methods" element={<IcpMethodsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

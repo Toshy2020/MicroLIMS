@@ -28,22 +28,29 @@ export interface ReplicateEntryTableProps {
   onChange: (replicates: HplcReplicateDto[]) => void;
   requiredReplicates?: number | null;
   disabled?: boolean;
+  isResidualSolvents?: boolean;
   // Rendered under the table (the page puts the sticky Save button here).
   footer?: ReactNode;
 }
 
 const isPositive = (n: number | undefined) => typeof n === "number" && Number.isFinite(n) && n > 0;
+const isNonNegative = (n: number | undefined) => typeof n === "number" && Number.isFinite(n) && n >= 0;
 
-// True when every weight and every analyte response is a positive number.
-// A cleared cell is held as 0 in the model, so it counts as missing.
-export function replicatesComplete(methodWeights: HplcMethodWeightDto[], replicates: HplcReplicateDto[]): boolean {
+// True when every weight and every analyte response is valid.
+// In ResidualSolvents mode, response 0 is allowed (= not detected).
+export function replicatesComplete(
+  methodWeights: HplcMethodWeightDto[],
+  replicates: HplcReplicateDto[],
+  isResidualSolvents = false
+): boolean {
   if (replicates.length === 0) return false;
   return replicates.every(
     (rep) =>
       isPositive(rep.actualWeightMg) &&
-      methodWeights.every((mw) =>
-        isPositive(rep.responses.find((r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId)?.response)
-      )
+      methodWeights.every((mw) => {
+        const resp = rep.responses.find((r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId)?.response;
+        return isResidualSolvents ? isNonNegative(resp) : isPositive(resp);
+      })
   );
 }
 
@@ -59,6 +66,7 @@ export function ReplicateEntryTable({
   onChange,
   requiredReplicates,
   disabled = false,
+  isResidualSolvents = false,
   footer
 }: ReplicateEntryTableProps) {
   const theme = useTheme();
@@ -71,9 +79,12 @@ export function ReplicateEntryTable({
 
   // A draft is only shown while it still matches the model value; after a
   // server refresh (or row removal) the model value wins.
-  const cellText = (key: string, modelValue: number): string => {
+  const cellText = (key: string, modelValue: number, isResidualResponse = false): string => {
     const draft = drafts[key];
     if (draft !== undefined && parseDraft(draft) === modelValue) return draft;
+    if (isResidualResponse) {
+      return String(modelValue);
+    }
     return modelValue === 0 ? "" : String(modelValue);
   };
 
@@ -129,8 +140,13 @@ export function ReplicateEntryTable({
     next?.select();
   };
 
-  const helper = (value: number): string | undefined => {
+  const helper = (value: number, isResidualResponse = false): string | undefined => {
     if (disabled) return undefined;
+    if (isResidualResponse) {
+      if (value === 0) return "0 = not detected";
+      if (value < 0) return "Must be ≥ 0";
+      return undefined;
+    }
     if (value === 0) return "Required";
     if (!(value > 0)) return "Must be > 0";
     return undefined;
@@ -152,7 +168,9 @@ export function ReplicateEntryTable({
             <StatusBadge status="Pending" label={`${replicates.length} entered`} />
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Record actual test weight (mg) and peak response per analyte for each replicate injection. Press Enter to move to the next replicate.
+            {isResidualSolvents
+              ? "Record sample weight (mg) and peak area per solvent for each replicate injection (0 = not detected). Press Enter to move to the next replicate."
+              : "Record actual test weight (mg) and peak response per analyte for each replicate injection. Press Enter to move to the next replicate."}
           </Typography>
         </Box>
 
@@ -173,10 +191,12 @@ export function ReplicateEntryTable({
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ width: 80 }}>Rep #</TableCell>
-              <TableCell align="right" sx={{ minWidth: 160 }}>Actual Weight *</TableCell>
+              <TableCell align="right" sx={{ minWidth: 160 }}>
+                {isResidualSolvents ? "Sample weight (mg) *" : "Actual Weight *"}
+              </TableCell>
               {methodWeights.map((mw) => (
                 <TableCell key={mw.hplcMethodAnalyteId} align="right" sx={{ minWidth: 180 }}>
-                  {mw.analyteName} Response *
+                  {isResidualSolvents ? `${mw.analyteName} Area *` : `${mw.analyteName} Response *`}
                 </TableCell>
               ))}
               <TableCell align="right" sx={{ width: 60 }}>Action</TableCell>
@@ -208,7 +228,14 @@ export function ReplicateEntryTable({
                       error={!disabled && !isPositive(rep.actualWeightMg)}
                       helperText={helper(rep.actualWeightMg)}
                       slotProps={{
-                        htmlInput: { min: 0, step: "any", "data-cell": `w-${repIdx}`, "aria-label": `Replicate ${rep.replicateNo} actual weight (mg)` },
+                        htmlInput: {
+                          min: 0,
+                          step: "any",
+                          "data-cell": `w-${repIdx}`,
+                          "aria-label": isResidualSolvents
+                            ? `Replicate ${rep.replicateNo} sample weight (mg)`
+                            : `Replicate ${rep.replicateNo} actual weight (mg)`
+                        },
                         input: { endAdornment: <InputAdornment position="end">mg</InputAdornment> }
                       }}
                       sx={cellSx}
@@ -222,19 +249,21 @@ export function ReplicateEntryTable({
                         <TextField
                           type="number"
                           size="small"
-                          value={cellText(respKey(rep.replicateNo, mw.hplcMethodAnalyteId), val)}
+                          value={cellText(respKey(rep.replicateNo, mw.hplcMethodAnalyteId), val, isResidualSolvents)}
                           onChange={(e) => handleResponseChange(repIdx, mw.hplcMethodAnalyteId, e.target.value)}
                           onKeyDown={(e) => handleEnter(e, `a${mw.hplcMethodAnalyteId}`, repIdx)}
                           placeholder="0.00"
                           disabled={disabled}
-                          error={!disabled && !isPositive(val)}
-                          helperText={helper(val)}
+                          error={!disabled && (isResidualSolvents ? val < 0 : !isPositive(val))}
+                          helperText={helper(val, isResidualSolvents)}
                           slotProps={{
                             htmlInput: {
                               min: 0,
                               step: "any",
                               "data-cell": `a${mw.hplcMethodAnalyteId}-${repIdx}`,
-                              "aria-label": `Replicate ${rep.replicateNo} ${mw.analyteName} response`
+                              "aria-label": isResidualSolvents
+                                ? `Replicate ${rep.replicateNo} ${mw.analyteName} area`
+                                : `Replicate ${rep.replicateNo} ${mw.analyteName} response`
                             }
                           }}
                           sx={cellSx}

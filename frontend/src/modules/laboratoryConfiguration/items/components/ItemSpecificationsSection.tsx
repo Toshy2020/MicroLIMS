@@ -166,6 +166,8 @@ const formatResultBasis = (basis?: string | null, matrix?: string | null) => {
       return "% dried basis";
     case "PercentAnhydrousBasis":
       return "% anhydrous basis";
+    case "Ppm":
+      return "ppm";
     default:
       return basis;
   }

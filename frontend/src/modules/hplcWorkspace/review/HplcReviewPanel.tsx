@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -9,24 +8,20 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   Alert,
   Stack,
-  Button,
-  CircularProgress,
   useTheme
 } from "@mui/material";
 import LinkIcon from "@mui/icons-material/Link";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ImageIcon from "@mui/icons-material/Image";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { ParameterResultDetail } from "../../testingWorkspace/types/sampleSummaryTypes";
-import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
-import type { HplcEvidenceDto } from "../types";
+import {
+  ResidualSolventCalculationView,
+  type ResidualSolventCalculationData
+} from "../components/ResidualSolventCalculationView";
+import { HplcReportsSection } from "./HplcReportsSection";
 
 export interface HplcMethodAssayReplicateData {
   replicateNo: number;
@@ -63,30 +58,13 @@ export interface HplcReviewPanelProps {
   testOrderId: number;
 }
 
-function parseHplcCalc(json: string | null): HplcMethodAssayCalculationData | null {
+function parseHplcCalc(json: string | null): HplcMethodAssayCalculationData | ResidualSolventCalculationData | null {
   if (!json) return null;
   try {
-    return JSON.parse(json) as HplcMethodAssayCalculationData;
+    return JSON.parse(json);
   } catch {
     return null;
   }
-}
-
-function formatEvidenceKind(kind: string): string {
-  switch (kind) {
-    case "StandardReport":
-      return "Standard Report";
-    case "SampleReport":
-      return "Sample Report";
-    default:
-      return kind;
-  }
-}
-
-function getFileIcon(contentType: string) {
-  if (contentType?.includes("pdf")) return <PictureAsPdfIcon color="error" sx={{ fontSize: 16 }} />;
-  if (contentType?.includes("image")) return <ImageIcon color="primary" sx={{ fontSize: 16 }} />;
-  return <InsertDriveFileIcon color="action" sx={{ fontSize: 16 }} />;
 }
 
 function formatReplicateAssay(r: HplcMethodAssayReplicateData): string {
@@ -103,154 +81,6 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
   const theme = useTheme();
   const calc = parseHplcCalc(parameter.calculationJson);
 
-  const [evidenceList, setEvidenceList] = useState<HplcEvidenceDto[]>([]);
-  const [evidenceLoading, setEvidenceLoading] = useState(false);
-  const [evidenceError, setEvidenceError] = useState<string | null>(null);
-  const [openingEvidenceId, setOpeningEvidenceId] = useState<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    if (!testOrderId) return;
-    setEvidenceLoading(true);
-    setEvidenceError(null);
-
-    HplcWorkspaceService.getTestOrderEvidence(testOrderId)
-      .then((data) => {
-        if (active) {
-          setEvidenceList(Array.isArray(data) ? data : []);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setEvidenceError("Unable to load reports.");
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setEvidenceLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [testOrderId]);
-
-  const handleOpenEvidence = async (id: number) => {
-    setOpeningEvidenceId(id);
-    try {
-      const svc = HplcWorkspaceService as unknown as Record<string, (id: number) => Promise<unknown>>;
-      if (typeof svc.viewEvidence === "function") {
-        await svc.viewEvidence(id);
-      } else {
-        await HplcWorkspaceService.openEvidenceInNewTab(id);
-      }
-    } catch {
-      // Quiet error handling
-    } finally {
-      setOpeningEvidenceId(null);
-    }
-  };
-
-  const renderReportsSection = () => (
-    <Box sx={{ mt: 1.5, mb: 1.5 }}>
-      <Typography
-        sx={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: "text.secondary",
-          mb: 0.75,
-          textTransform: "uppercase"
-        }}
-      >
-        Reports
-      </Typography>
-
-      {evidenceLoading && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
-          <CircularProgress size={14} />
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Loading reports...
-          </Typography>
-        </Box>
-      )}
-
-      {evidenceError && (
-        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-          {evidenceError}
-        </Typography>
-      )}
-
-      {!evidenceLoading && !evidenceError && evidenceList.length === 0 && (
-        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-          No reports available for this test order.
-        </Typography>
-      )}
-
-      {!evidenceLoading && !evidenceError && evidenceList.length > 0 && (
-        <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-          <Table size="small">
-            <TableHead sx={tableHeadSx(theme)}>
-              <TableRow>
-                <TableCell sx={{ fontSize: 11 }}>Report / Context</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>File Name</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Uploaded By</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Uploaded At</TableCell>
-                <TableCell sx={{ fontSize: 11 }} align="right">Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {evidenceList.map((e) => (
-                <TableRow key={e.id} hover>
-                  <TableCell sx={{ fontSize: 11 }}>
-                    <Chip
-                      label={`${formatEvidenceKind(e.kind)} (${e.context})`}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: 11, height: 20 }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 11 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                      {getFileIcon(e.contentType)}
-                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>
-                        {e.fileName}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 11 }}>
-                    {e.uploadedByUserName ?? (e.uploadedByUserId ? `User #${e.uploadedByUserId}` : "—")}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 11 }}>
-                    {e.uploadedAt ? new Date(e.uploadedAt).toLocaleString() : "—"}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 11 }} align="right">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={
-                        openingEvidenceId === e.id ? (
-                          <CircularProgress size={12} color="inherit" />
-                        ) : (
-                          <VisibilityOutlinedIcon sx={{ fontSize: 14 }} />
-                        )
-                      }
-                      onClick={() => handleOpenEvidence(e.id)}
-                      disabled={openingEvidenceId === e.id}
-                      sx={{ textTransform: "none", fontSize: 11, py: 0.25, px: 1, minHeight: 24 }}
-                    >
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Box>
-  );
-
   if (!calc) {
     return (
       <Box sx={{ mt: 1.5, p: 1.5, border: "1px dashed", borderColor: "divider", borderRadius: 1.5 }}>
@@ -263,10 +93,24 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
         <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1 }}>
           Detailed chromatographic calculation payload was not found or is in historical format.
         </Alert>
-        {renderReportsSection()}
+        <HplcReportsSection testOrderId={testOrderId} />
       </Box>
     );
   }
+
+  if (calc.quantity === "ResidualSolventPpm") {
+    return (
+      <ResidualSolventCalculationView
+        calc={calc as ResidualSolventCalculationData}
+        reportedDisplay={parameter.reportedDisplay}
+        specLimit={parameter.specLimit}
+        status={parameter.comparisonStatus}
+        reportsSection={<HplcReportsSection testOrderId={testOrderId} />}
+      />
+    );
+  }
+
+  const assayCalc = calc as HplcMethodAssayCalculationData;
 
   return (
     <Box
@@ -282,14 +126,14 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-            HPLC Assay Review · {calc.analyte}
+            HPLC Assay Review · {assayCalc.analyte}
           </Typography>
-          <StatusBadge status="Prepared" label={`Basis: ${calc.basis}`} />
-          <StatusBadge status="Draft" label={calc.quantity === "AmountPerUnit" ? "Amount per unit" : "% Assay"} />
+          <StatusBadge status="Prepared" label={`Basis: ${assayCalc.basis}`} />
+          <StatusBadge status="Draft" label={assayCalc.quantity === "AmountPerUnit" ? "Amount per unit" : "% Assay"} />
         </Box>
 
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Run: <strong>{calc.runCode}</strong> · SST: <strong>{calc.sstCode}</strong>
+          Run: <strong>{assayCalc.runCode}</strong> · SST: <strong>{assayCalc.sstCode}</strong>
         </Typography>
       </Box>
 
@@ -313,7 +157,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
               Theoretical Weights
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Std: {calc.thWtStdMg} mg · Test: {calc.thWtTestMg} mg
+              Std: {assayCalc.thWtStdMg} mg · Test: {assayCalc.thWtTestMg} mg
             </Typography>
           </Box>
           <Box>
@@ -321,7 +165,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
               Standard Reference
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Act.Wt: {calc.standardWeightMg} mg · Purity: {calc.standardPurityPercent}% · MC: {calc.standardMoisturePercent}%
+              Act.Wt: {assayCalc.standardWeightMg} mg · Purity: {assayCalc.standardPurityPercent}% · MC: {assayCalc.standardMoisturePercent}%
             </Typography>
           </Box>
           <Box>
@@ -329,16 +173,16 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
               Standard Mean Response
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              {calc.standardMeanResponse}
+              {assayCalc.standardMeanResponse}
             </Typography>
           </Box>
-          {calc.labelClaim != null && (
+          {assayCalc.labelClaim != null && (
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                 Label Claim
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {calc.labelClaim}
+                {assayCalc.labelClaim}
               </Typography>
             </Box>
           )}
@@ -346,7 +190,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
       </Paper>
 
       {/* Replicate Injections & Calculations Table */}
-      {calc.replicates && calc.replicates.length > 0 && (
+      {assayCalc.replicates && assayCalc.replicates.length > 0 && (
         <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1, mb: 1.5 }}>
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
@@ -358,7 +202,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
               </TableRow>
             </TableHead>
             <TableBody>
-              {calc.replicates.map((r) => (
+              {assayCalc.replicates.map((r) => (
                 <TableRow key={r.replicateNo} hover>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>#{r.replicateNo}</TableCell>
                   <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.actualWeightMg}</TableCell>
@@ -374,7 +218,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
       )}
 
       {/* Reports Section */}
-      {renderReportsSection()}
+      <HplcReportsSection testOrderId={testOrderId} />
 
       {/* Final Outcome & GxP Note */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
@@ -393,7 +237,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LinkIcon fontSize="small" sx={{ fontSize: 14, color: "text.secondary" }} />
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-            Chromatograms and raw evidence stored under HPLC Run <strong>{calc.runCode}</strong>
+            Chromatograms and raw evidence stored under HPLC Run <strong>{assayCalc.runCode}</strong>
           </Typography>
         </Box>
       </Box>

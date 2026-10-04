@@ -2,7 +2,20 @@ import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type { ApiResponse } from "./EquipmentConfigurationService";
 
 export type ElutionMode = "Isocratic" | "Gradient";
-export type HplcDetectorType = "UV" | "PDA" | "FLD" | "RI" | "ELSD" | "Other";
+export type HplcTechnique = "Hplc" | "Gc";
+export type HplcResultMode = "Assay" | "ResidualSolvents";
+export type CarrierGas = "Helium" | "Nitrogen" | "Hydrogen";
+export type HplcDetectorType =
+  | "UV"
+  | "PDA"
+  | "FLD"
+  | "RI"
+  | "ELSD"
+  | "Other"
+  | "Fid"
+  | "Tcd"
+  | "Ecd"
+  | "Ms";
 
 export interface HplcMobilePhaseInput {
   channel: string;
@@ -18,10 +31,16 @@ export interface HplcGradientStepInput {
   percentD: number;
 }
 
+export interface GcOvenStepInput {
+  rateCPerMin?: number | null;
+  temperatureC: number;
+  holdMin: number;
+}
+
 export interface HplcAnalyteInput {
   id?: number | null;
   name: string;
-  wavelengthNm: number;
+  wavelengthNm?: number | null;
   standardEntryId: number;
   theoreticalWeightStdMg: number;
   theoreticalWeightTestMg: number;
@@ -34,6 +53,7 @@ export interface HplcAnalyteInput {
   sstMinRetentionFactor?: number | null;
   sstMinSignalToNoise?: number | null;
   sstMinPeakToValley?: number | null;
+  standardConcentrationUgPerMl?: number | null;
 }
 
 export interface SaveHplcMethodRequest {
@@ -43,8 +63,8 @@ export interface SaveHplcMethodRequest {
   columnDesignation: string;
   columnLengthMm: number;
   columnInternalDiameterMm: number;
-  particleSizeUm: number;
-  columnTemperatureC: number;
+  particleSizeUm?: number | null;
+  columnTemperatureC?: number | null;
   elutionMode: ElutionMode;
   flowRateMlPerMin: number;
   detectorType: HplcDetectorType;
@@ -59,6 +79,19 @@ export interface SaveHplcMethodRequest {
   equilibrationMin?: number | null;
   sectionId?: number | null;
   reason?: string | null;
+  technique?: HplcTechnique;
+  resultMode?: HplcResultMode;
+  filmThicknessUm?: number | null;
+  carrierGas?: CarrierGas | null;
+  splitRatio?: number | null;
+  inletTemperatureC?: number | null;
+  detectorTemperatureC?: number | null;
+  ovenSteps?: GcOvenStepInput[];
+  headspaceEnabled?: boolean;
+  headspaceEquilibrationTemperatureC?: number | null;
+  headspaceEquilibrationMin?: number | null;
+  headspaceTransferLineTemperatureC?: number | null;
+  sampleSolutionVolumeMl?: number | null;
 }
 
 export interface HplcMethodListItem {
@@ -69,6 +102,8 @@ export interface HplcMethodListItem {
   analyteCount: number;
   sectionName: string;
   lastModifiedAt: string;
+  technique?: HplcTechnique;
+  resultMode?: HplcResultMode;
 }
 
 export interface HplcMethodMobilePhaseResponse {
@@ -88,11 +123,19 @@ export interface HplcMethodGradientStepResponse {
   percentD: number;
 }
 
+export interface HplcMethodOvenStepResponse {
+  id: number;
+  stepNo: number;
+  rateCPerMin?: number | null;
+  temperatureC: number;
+  holdMin: number;
+}
+
 export interface HplcMethodAnalyteResponse {
   id: number;
   displayOrder: number;
   name: string;
-  wavelengthNm: number;
+  wavelengthNm?: number | null;
   standardEntryId: number;
   standardEntryCode: string;
   theoreticalWeightStdMg: number;
@@ -106,6 +149,7 @@ export interface HplcMethodAnalyteResponse {
   sstMinRetentionFactor?: number | null;
   sstMinSignalToNoise?: number | null;
   sstMinPeakToValley?: number | null;
+  standardConcentrationUgPerMl?: number | null;
 }
 
 export interface HplcMethodResponse {
@@ -120,10 +164,10 @@ export interface HplcMethodResponse {
   columnDesignation: string;
   columnLengthMm: number;
   columnInternalDiameterMm: number;
-  particleSizeUm: number;
+  particleSizeUm?: number | null;
   columnBrand?: string | null;
   columnPartNumber?: string | null;
-  columnTemperatureC: number;
+  columnTemperatureC?: number | null;
   elutionMode: ElutionMode;
   equilibrationMin?: number | null;
   flowRateMlPerMin: number;
@@ -139,6 +183,19 @@ export interface HplcMethodResponse {
   createdAt?: string;
   lastModifiedByUserId?: number;
   lastModifiedAt?: string;
+  technique?: HplcTechnique;
+  resultMode?: HplcResultMode;
+  filmThicknessUm?: number | null;
+  carrierGas?: CarrierGas | null;
+  splitRatio?: number | null;
+  inletTemperatureC?: number | null;
+  detectorTemperatureC?: number | null;
+  ovenSteps?: HplcMethodOvenStepResponse[];
+  headspaceEnabled?: boolean;
+  headspaceEquilibrationTemperatureC?: number | null;
+  headspaceEquilibrationMin?: number | null;
+  headspaceTransferLineTemperatureC?: number | null;
+  sampleSolutionVolumeMl?: number | null;
 }
 
 export interface HplcMethodHistoryEntry {
@@ -151,9 +208,10 @@ export interface HplcMethodHistoryEntry {
 }
 
 export const HplcMethodService = {
-  getAll: async (activeOnly?: boolean): Promise<HplcMethodListItem[]> => {
-    const params: Record<string, boolean> = {};
+  getAll: async (activeOnly?: boolean, technique?: HplcTechnique): Promise<HplcMethodListItem[]> => {
+    const params: Record<string, boolean | string> = {};
     if (activeOnly !== undefined) params.activeOnly = activeOnly;
+    if (technique !== undefined) params.technique = technique;
     const res = await apiClient.get<ApiResponse<HplcMethodListItem[]>>("/masterdata/hplc-methods", { params });
     const data = res.data?.data;
     return Array.isArray(data) ? data : [];

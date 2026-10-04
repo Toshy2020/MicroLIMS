@@ -3,7 +3,9 @@ import { toast } from "sonner";
 import {
   HplcMethodService,
   HplcMethodResponse,
-  SaveHplcMethodRequest
+  SaveHplcMethodRequest,
+  HplcTechnique,
+  HplcResultMode
 } from "../services/HplcMethodService";
 import { SolutionMaster } from "../services/SolutionMasterService";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
@@ -140,14 +142,114 @@ export function useHplcMethodDialogState({
   const tabErrorCounts = useMemo(() => {
     const counts: Record<number, number> = {};
     for (const key of Object.keys(errors)) {
-      const tab = hplcErrorTab(key);
+      const tab = hplcErrorTab(key, form.technique);
       if (tab !== null) counts[tab] = (counts[tab] ?? 0) + 1;
     }
     return counts;
-  }, [errors]);
+  }, [errors, form.technique]);
 
   const updateField = <K extends keyof HplcMethodFormState>(field: K, val: HplcMethodFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: val }));
+  };
+
+  const handleTechniqueChange = (nextTech: HplcTechnique) => {
+    if (editingId) return; // Read-only on edit
+    setTabIndex(0);
+    setForm((prev) => {
+      if (nextTech === "Gc") {
+        return {
+          ...prev,
+          technique: "Gc",
+          resultMode: prev.resultMode ?? "Assay",
+          columnDesignation: "",
+          columnLength: "30",
+          columnInternalDiameterMm: "0.32",
+          particleSizeUm: "",
+          filmThicknessUm: "1.8",
+          columnTemperatureC: "",
+          elutionMode: "Isocratic",
+          equilibrationMin: "",
+          flowRateMlPerMin: "2.0",
+          detectorType: "Fid",
+          injectionVolumeUl: "1",
+          runTimeMin: "20",
+          carrierGas: "Nitrogen",
+          splitRatio: "",
+          inletTemperatureC: "200",
+          detectorTemperatureC: "250",
+          headspaceEnabled: false,
+          headspaceEquilibrationTemperatureC: "",
+          headspaceEquilibrationMin: "",
+          headspaceTransferLineTemperatureC: "",
+          sampleSolutionVolumeMl: "",
+          ovenSteps: [{ rateCPerMin: "", temperatureC: "40", holdMin: "5" }],
+          mobilePhases: [],
+          gradientSteps: [],
+          analytes: prev.analytes.map((a) => ({
+            ...a,
+            wavelengthNm: "",
+            standardConcentrationUgPerMl: ""
+          }))
+        };
+      } else {
+        return {
+          ...prev,
+          technique: "Hplc",
+          resultMode: "Assay",
+          columnDesignation: "",
+          columnLength: "150",
+          columnInternalDiameterMm: "4.6",
+          particleSizeUm: "5",
+          filmThicknessUm: "",
+          columnTemperatureC: "25",
+          elutionMode: "Isocratic",
+          equilibrationMin: "",
+          flowRateMlPerMin: "1.0",
+          detectorType: "UV",
+          injectionVolumeUl: "10",
+          runTimeMin: "15",
+          carrierGas: "",
+          splitRatio: "",
+          inletTemperatureC: "",
+          detectorTemperatureC: "",
+          headspaceEnabled: false,
+          headspaceEquilibrationTemperatureC: "",
+          headspaceEquilibrationMin: "",
+          headspaceTransferLineTemperatureC: "",
+          sampleSolutionVolumeMl: "",
+          ovenSteps: [],
+          mobilePhases: [{ channel: "A", solutionMasterId: "", ratioPercent: "100" }],
+          gradientSteps: [
+            { timeMin: "0", percentA: "100", percentB: "0", percentC: "0", percentD: "0" },
+            { timeMin: "10", percentA: "50", percentB: "50", percentC: "0", percentD: "0" }
+          ],
+          analytes: prev.analytes.map((a) => ({
+            ...a,
+            wavelengthNm: a.wavelengthNm || "254",
+            standardConcentrationUgPerMl: ""
+          }))
+        };
+      }
+    });
+  };
+
+  const handleResultModeChange = (nextMode: HplcResultMode) => {
+    if (editingId) return; // Read-only on edit
+    setForm((prev) => {
+      const isResidual = nextMode === "ResidualSolvents";
+      return {
+        ...prev,
+        resultMode: nextMode,
+        sampleSolutionVolumeMl: isResidual ? (prev.sampleSolutionVolumeMl || "5") : "",
+        analytes: prev.analytes.map((a) => ({
+          ...a,
+          theoreticalWeightStdMg: isResidual ? "0" : a.theoreticalWeightStdMg || "50",
+          theoreticalWeightTestMg: isResidual ? "0" : a.theoreticalWeightTestMg || "50",
+          standardDilution: isResidual ? "" : a.standardDilution,
+          standardConcentrationUgPerMl: isResidual ? a.standardConcentrationUgPerMl || "100" : ""
+        }))
+      };
+    });
   };
 
   const executeCreate = async (payload: SaveHplcMethodRequest) => {
@@ -155,12 +257,14 @@ export function useHplcMethodDialogState({
     setDialogError(null);
     try {
       await HplcMethodService.create(payload);
-      toast.success(`HPLC method "${payload.name}" created.`);
+      const label = payload.technique === "Gc" ? "GC" : "HPLC";
+      toast.success(`${label} method "${payload.name}" created.`);
       onClose();
       onSuccess();
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setDialogError(errObj.response?.data?.message ?? errObj.message ?? "Could not create HPLC method.");
+      const label = payload.technique === "Gc" ? "GC" : "HPLC";
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? `Could not create ${label} method.`);
     } finally {
       setSaving(false);
     }
@@ -172,8 +276,10 @@ export function useHplcMethodDialogState({
     if (keys.length > 0) {
       setShowErrors(true);
       // The general header is always visible; otherwise jump to the first tab with an error.
-      const hasGeneralError = keys.some((key) => hplcErrorTab(key) === null);
-      const tabs = keys.map(hplcErrorTab).filter((tab): tab is number => tab !== null);
+      const hasGeneralError = keys.some((key) => hplcErrorTab(key, form.technique) === null);
+      const tabs = keys
+        .map((k) => hplcErrorTab(k, form.technique))
+        .filter((tab): tab is number => tab !== null);
       if (!hasGeneralError && tabs.length > 0) setTabIndex(Math.min(...tabs));
       setScrollTick((tick) => tick + 1);
       return;
@@ -198,14 +304,16 @@ export function useHplcMethodDialogState({
     try {
       const finalPayload: SaveHplcMethodRequest = { ...pendingPayload, reason: trimmedReason };
       await HplcMethodService.update(editingId, finalPayload, loadedEntity?.version);
-      toast.success(`HPLC method "${finalPayload.name}" updated.`);
+      const label = finalPayload.technique === "Gc" ? "GC" : "HPLC";
+      toast.success(`${label} method "${finalPayload.name}" updated.`);
       setReasonDialogOpen(false);
       setPendingPayload(null);
       onClose();
       onSuccess();
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setDialogError(errObj.response?.data?.message ?? errObj.message ?? "Could not update HPLC method.");
+      const label = pendingPayload.technique === "Gc" ? "GC" : "HPLC";
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? `Could not update ${label} method.`);
       setReasonDialogOpen(false);
     } finally {
       setSaving(false);
@@ -219,6 +327,8 @@ export function useHplcMethodDialogState({
     loadedEntity,
     form,
     updateField,
+    handleTechniqueChange,
+    handleResultModeChange,
     dialogError,
     setDialogError,
     errors,

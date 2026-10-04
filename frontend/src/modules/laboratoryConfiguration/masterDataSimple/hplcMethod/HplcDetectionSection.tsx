@@ -5,13 +5,15 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  FormHelperText
 } from "@mui/material";
-import { HplcDetectorType } from "../services/HplcMethodService";
-import { DETECTOR_TYPE_OPTIONS } from "./hplcMethodForm";
+import { HplcDetectorType, HplcTechnique } from "../services/HplcMethodService";
+import { HPLC_DETECTOR_OPTIONS, GC_DETECTOR_OPTIONS } from "./hplcMethodForm";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcDetectionSectionProps {
+  technique?: HplcTechnique;
   detectorType: HplcDetectorType;
   injectionVolumeUl: string | number;
   runTimeMin: string | number;
@@ -22,6 +24,7 @@ export interface HplcDetectionSectionProps {
 }
 
 export function HplcDetectionSection({
+  technique = "Hplc",
   detectorType,
   injectionVolumeUl,
   runTimeMin,
@@ -30,6 +33,9 @@ export function HplcDetectionSection({
   onInjectionVolumeUlChange,
   onRunTimeMinChange
 }: HplcDetectionSectionProps) {
+  const options = technique === "Gc" ? GC_DETECTOR_OPTIONS : HPLC_DETECTOR_OPTIONS;
+  const detectorError = errors["detection.detectorType"];
+
   return (
     <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
@@ -40,7 +46,7 @@ export function HplcDetectionSection({
       </Typography>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
-        <FormControl size="small" fullWidth required>
+        <FormControl size="small" fullWidth required error={Boolean(detectorError)}>
           <InputLabel id="detector-type-label">Detector Type *</InputLabel>
           <Select
             labelId="detector-type-label"
@@ -48,12 +54,13 @@ export function HplcDetectionSection({
             value={detectorType}
             onChange={(e) => onDetectorTypeChange(e.target.value as HplcDetectorType)}
           >
-            {DETECTOR_TYPE_OPTIONS.map((opt) => (
+            {options.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
               </MenuItem>
             ))}
           </Select>
+          {detectorError && <FormHelperText>{detectorError}</FormHelperText>}
         </FormControl>
 
         <TextField
@@ -66,7 +73,7 @@ export function HplcDetectionSection({
           placeholder="e.g. 10 or 20"
           error={Boolean(errors["detection.injectionVolumeUl"])}
           helperText={errors["detection.injectionVolumeUl"] ?? "Autosampler injection volume"}
-          slotProps={{ htmlInput: { min: 0.1, step: "any" } }}
+          slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
           fullWidth
         />
 

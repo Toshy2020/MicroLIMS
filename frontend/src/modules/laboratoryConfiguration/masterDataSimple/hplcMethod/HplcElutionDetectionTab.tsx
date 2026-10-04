@@ -1,11 +1,12 @@
 import { Stack } from "@mui/material";
-import { ElutionMode, HplcDetectorType } from "../services/HplcMethodService";
+import { ElutionMode, HplcDetectorType, HplcTechnique } from "../services/HplcMethodService";
 import { GradientStepRowState, MobilePhaseRowState } from "./hplcMethodForm";
 import { HplcElutionSection } from "./HplcElutionSection";
 import { HplcDetectionSection } from "./HplcDetectionSection";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcElutionDetectionTabProps {
+  technique?: HplcTechnique;
   elutionMode: ElutionMode;
   flowRateMlPerMin: string | number;
   equilibrationMin: string | number;
@@ -25,6 +26,7 @@ export interface HplcElutionDetectionTabProps {
 }
 
 export function HplcElutionDetectionTab({
+  technique = "Hplc",
   elutionMode,
   flowRateMlPerMin,
   equilibrationMin,
@@ -79,6 +81,7 @@ export function HplcElutionDetectionTab({
       />
 
       <HplcDetectionSection
+        technique={technique}
         detectorType={detectorType}
         injectionVolumeUl={injectionVolumeUl}
         runTimeMin={runTimeMin}

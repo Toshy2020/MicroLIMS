@@ -25,7 +25,8 @@ export type ResultBasis =
   | "PercentLabelClaim"
   | "PercentAsIs"
   | "PercentDriedBasis"
-  | "PercentAnhydrousBasis";
+  | "PercentAnhydrousBasis"
+  | "Ppm";
 
 export type SampleMatrix = "Solid" | "Liquid";
 

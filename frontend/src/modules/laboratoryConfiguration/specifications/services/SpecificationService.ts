@@ -94,6 +94,7 @@ export interface SpecificationDto {
   canEdit?: boolean;
   sectionName?: string;
   hplcMethodAnalyteId?: number | null;
+  icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | string | null;
 }
 
@@ -129,6 +130,7 @@ export interface CreateSpecificationPayload {
   conversionFactor?: number | null;
   dosageForm?: DosageForm | null;
   hplcMethodAnalyteId?: number | null;
+  icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | null;
 }
 

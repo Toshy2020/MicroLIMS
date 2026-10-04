@@ -35,6 +35,7 @@ import {
   formatTrimmedDecimal
 } from "./SpecificationParameterDialog";
 import { HplcMethodService } from "../../masterDataSimple/services/HplcMethodService";
+import { IcpMethodService } from "../../masterDataSimple/services/IcpMethodService";
 
 interface ItemSpecificationsSectionProps {
   item: Item;
@@ -151,8 +152,9 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
   }
 };
 
-const formatResultBasis = (basis?: string | null, matrix?: string | null) => {
+const formatResultBasis = (basis?: string | null, matrix?: string | null, isIcp?: boolean) => {
   if (!basis) return null;
+  if (isIcp && basis === "MgPerKg") return "µg/g";
   switch (basis) {
     case "MgPerKg":
       return matrix === "Liquid" ? "mg/L per sample" : "mg/kg per sample";
@@ -185,6 +187,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [testDefinitionByCode, setTestDefinitionByCode] = useState<Record<string, TestDefinitionSummary>>({});
   const [analyteById, setAnalyteById] = useState<Record<number, TestAnalyteDto>>({});
   const [hplcAnalyteById, setHplcAnalyteById] = useState<Record<number, { name: string }>>({});
+  const [icpElementById, setIcpElementById] = useState<Record<number, { symbol: string }>>({});
   const [error, setError] = useState<string | null>(null);
   // Test-definition and analyte-name lookups that failed. Without them the
   // "Analyte: ..." chips silently disappear, so per-analyte specifications
@@ -207,6 +210,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         const byCode: Record<string, TestDefinitionSummary> = {};
         const calDefs: TestDefinitionSummary[] = [];
         const hplcMethodIds: number[] = [];
+        const icpMethodIds: number[] = [];
         for (const d of defs) {
           byCode[d.code] = d;
           // The Calibration Curve (ICP-OES) spec dialog attaches a specification
@@ -217,6 +221,9 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           }
           if ((d.workflowType === "HplcMethodAssay" || d.equationType === "HplcMethodAssay") && d.hplcMethodId) {
             hplcMethodIds.push(d.hplcMethodId);
+          }
+          if ((d.workflowType === "IcpMethodAssay" || d.equationType === "IcpMethodAssay") && d.icpMethodId) {
+            icpMethodIds.push(d.icpMethodId);
           }
         }
         setTestDefinitionByCode(byCode);
@@ -254,6 +261,23 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
             )
           );
           setHplcAnalyteById(hMap);
+        }
+
+        const uniqueIcpMethodIds = Array.from(new Set(icpMethodIds));
+        if (uniqueIcpMethodIds.length > 0) {
+          const iMap: Record<number, { symbol: string }> = {};
+          await Promise.all(
+            uniqueIcpMethodIds.map((mId) =>
+              IcpMethodService.getById(mId)
+                .then((method) => {
+                  for (const el of method.elements ?? []) {
+                    iMap[el.id] = { symbol: el.symbol };
+                  }
+                })
+                .catch(() => setLookupsIncomplete(true))
+            )
+          );
+          setIcpElementById(iMap);
         }
       })
       .catch(() => {
@@ -555,10 +579,29 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       }}
                                     />
                                   )}
+                                  {spec.icpMethodElementId && icpElementById[spec.icpMethodElementId] && (
+                                    <Chip
+                                      size="small"
+                                      label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: 11,
+                                        color: "primary.main",
+                                        bgcolor: "primary.50",
+                                        border: "1px solid",
+                                        borderColor: "primary.200"
+                                      }}
+                                    />
+                                  )}
                                   {spec.resultBasis && (
                                     <Chip
                                       size="small"
-                                      label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                      label={`Basis: ${formatResultBasis(
+                                        spec.resultBasis as string,
+                                        spec.sampleMatrix as string,
+                                        workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
+                                          testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay"
+                                      )}`}
                                       sx={{
                                         height: 20,
                                         fontSize: 11,
@@ -789,10 +832,29 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                               }}
                                             />
                                           )}
+                                          {spec.icpMethodElementId && icpElementById[spec.icpMethodElementId] && (
+                                            <Chip
+                                              size="small"
+                                              label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
+                                              sx={{
+                                                height: 20,
+                                                fontSize: 11,
+                                                color: "primary.main",
+                                                bgcolor: "primary.50",
+                                                border: "1px solid",
+                                                borderColor: "primary.200"
+                                              }}
+                                            />
+                                          )}
                                           {spec.resultBasis && (
                                             <Chip
                                               size="small"
-                                              label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                              label={`Basis: ${formatResultBasis(
+                                         spec.resultBasis as string,
+                                         spec.sampleMatrix as string,
+                                         workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
+                                           testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay"
+                                       )}`}
                                               sx={{
                                                 height: 20,
                                                 fontSize: 11,

@@ -53,6 +53,7 @@ import {
 } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
+import { IcpMethodService, IcpMethodListItem } from "./services/IcpMethodService";
 import { TitrationConfigSection } from "./TitrationConfigSection";
 import {
   TitrationFormState,
@@ -69,12 +70,13 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcMethodAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation", "Titration"]
+  fp: ["HplcMethodAssay", "IcpMethodAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation", "Titration"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
   HplcMethodAssay: "HPLC method assay",
+  IcpMethodAssay: "ICP method assay",
   ElementalAssay: "Elemental Assay (ICP-OES / AAS)",
   Measurement: "Measurement",
   Gravimetric: "Gravimetric",
@@ -88,6 +90,7 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
 const EQUATION_TYPES = [
   "None",
   "HplcMethodAssay",
+  "IcpMethodAssay",
   "SystemSuitability",
   "CalibrationCurve",
   "Measurement",
@@ -102,6 +105,7 @@ const EQUATION_TYPES = [
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
   HplcMethodAssay: "HPLC method assay",
+  IcpMethodAssay: "ICP method assay",
   SystemSuitability: "System Suitability",
   CalibrationCurve: "Calibration Curve",
   Measurement: "Measurement (pH, density…)",
@@ -1010,7 +1014,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "Titration"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "IcpMethodAssay", "Titration"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": "Workflow type" }}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
@@ -1031,6 +1035,21 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Required (from HPLC Method Master)</Typography>
+            </Box>
+          </Stack>
+        </Box>
+      )}
+      {test.workflowType === "IcpMethodAssay" && (
+        <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>ICP Method Assay Configuration</Typography>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "IcpMethodAssay"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Method Abbreviation</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.methodAbbreviation ?? "—"}</Typography>
             </Box>
           </Stack>
         </Box>
@@ -1123,6 +1142,10 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       ) : test.workflowType === "HplcMethodAssay" ? (
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
           HPLC Method Assay tests have no workflow steps or local test analytes: parameters, analytes, standard weights, and system suitability criteria are configured centrally in HPLC Methods Master.
+        </Typography>
+      ) : test.workflowType === "IcpMethodAssay" ? (
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          ICP Method Assay tests have no workflow steps or local test analytes: elements, calibration standards, and quality controls are configured centrally in ICP Methods Master.
         </Typography>
       ) : test.workflowType === "Measurement" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
@@ -1736,6 +1759,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
   const [hplcMethodId, setHplcMethodId] = useState<number | "">("");
   const [hplcMethods, setHplcMethods] = useState<HplcMethodListItem[]>([]);
+  const [icpMethodId, setIcpMethodId] = useState<number | "">("");
+  const [icpMethods, setIcpMethods] = useState<IcpMethodListItem[]>([]);
 
   // Lists the Add/Edit Test dialog picks from; a failure is named in the
   // dialog instead of leaving an empty picker.
@@ -1745,6 +1770,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     HplcMethodService.getAll(false)
       .then((data) => setHplcMethods(data))
       .catch(failDialogList("HPLC methods"));
+    IcpMethodService.getAll(false)
+      .then((data) => setIcpMethods(data))
+      .catch(failDialogList("ICP methods"));
   }, [failDialogList]);
 
   const [calMinCorrelation, setCalMinCorrelation] = useState<string>("0.999");
@@ -1825,6 +1853,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setRequiresSystemSuitability(false);
     setMethodAbbreviation("");
     setHplcMethodId("");
+    setIcpMethodId("");
     setCalMinCorrelation("0.999");
     setCalCorrelationType("R");
     setCalMinStandards("5");
@@ -1878,10 +1907,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : "None"));
-    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "IcpMethodAssay" ? "IcpMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : "None"));
+    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setHplcMethodId(t.hplcMethodId ?? "");
+    setIcpMethodId(t.icpMethodId ?? "");
     setCalMinCorrelation(t.calMinCorrelation != null ? String(t.calMinCorrelation) : "0.999");
     setCalCorrelationType((t.calCorrelationType as "R" | "RSquared") || "R");
     setCalMinStandards(t.calMinStandards != null ? String(t.calMinStandards) : "5");
@@ -2128,6 +2158,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     const isGravimetric = workflowType === "Gravimetric";
     const isQualitative = workflowType === "Qualitative";
     const isHplcMethodAssay = workflowType === "HplcMethodAssay";
+    const isIcpMethodAssay = workflowType === "IcpMethodAssay";
     const isTitration = workflowType === "Titration";
 
     if (isTitration) {
@@ -2141,6 +2172,13 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     if (isHplcMethodAssay) {
       if (!hplcMethodId) {
         setDialogError("HPLC method is required for HPLC method assay tests.");
+        return;
+      }
+    }
+
+    if (isIcpMethodAssay) {
+      if (!icpMethodId) {
+        setDialogError("ICP method is required for ICP method assay tests.");
         return;
       }
     }
@@ -2179,6 +2217,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         ? "CalibrationCurve"
         : isHplcMethodAssay
         ? "HplcMethodAssay"
+        : isIcpMethodAssay
+        ? "IcpMethodAssay"
         : isMeasurement
         ? "Measurement"
         : isGravimetric
@@ -2203,7 +2243,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           workflowType,
           equationType: resolvedEquationType,
           requiresSystemSuitability: (isDissolution || isHplcMethodAssay) ? true : false,
-          methodAbbreviation: isDissolution || isCalCurve || isHplcMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
+          methodAbbreviation: isDissolution || isCalCurve || isHplcMethodAssay || isIcpMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
           calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
           calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
           calCorrelationType: isCalCurve ? calCorrelationType : null,
@@ -2251,7 +2291,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           ...titrationPayloadFields(titration, isTitration),
-          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null
+          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
+          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -2263,7 +2304,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           workflowType,
           equationType: resolvedEquationType,
           requiresSystemSuitability: (isDissolution || isHplcMethodAssay) ? true : false,
-          methodAbbreviation: isDissolution || isCalCurve || isHplcMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
+          methodAbbreviation: isDissolution || isCalCurve || isHplcMethodAssay || isIcpMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
           calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
           calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
           calCorrelationType: isCalCurve ? calCorrelationType : null,
@@ -2307,7 +2348,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           ...titrationPayloadFields(titration, isTitration),
-          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null
+          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
+          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -2347,6 +2389,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="primary"
                           variant="outlined"
                           label="HPLC Assay"
+                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.workflowType === "IcpMethodAssay" && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label="ICP Assay"
                           sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
                         />
                       )}
@@ -2573,6 +2624,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (next === "HplcMethodAssay") {
                     setEquationType("HplcMethodAssay");
                     setRequiresSystemSuitability(true);
+                  } else if (next === "IcpMethodAssay") {
+                    setEquationType("IcpMethodAssay");
+                    setRequiresSystemSuitability(false);
                   } else if (next === "ElementalAssay") {
                     setEquationType("CalibrationCurve");
                     setRequiresSystemSuitability(false);
@@ -2627,6 +2681,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (next === "HplcMethodAssay") {
                     setWorkflowType("HplcMethodAssay");
                     setRequiresSystemSuitability(true);
+                  } else if (next === "IcpMethodAssay") {
+                    setWorkflowType("IcpMethodAssay");
+                    setRequiresSystemSuitability(false);
                   } else if (next === "Disintegration") {
                     setWorkflowType("Disintegration");
                     setRequiresSystemSuitability(false);
@@ -2644,6 +2701,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 {EQUATION_TYPES.filter((eq) => {
                   if (workflowType === "HplcMethodAssay") {
                     return eq === "HplcMethodAssay";
+                  }
+                  if (workflowType === "IcpMethodAssay") {
+                    return eq === "IcpMethodAssay";
                   }
                   if (workflowType === "Disintegration") {
                     return eq === "Disintegration";
@@ -2669,7 +2729,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "Titration" && eq !== "HplcMethodAssay";
+                  return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "Titration" && eq !== "HplcMethodAssay" && eq !== "IcpMethodAssay";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2723,6 +2783,56 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                     },
                   }}
                   helperText={workflowType === "Dissolution" ? "Dissolution keeps its own abbreviation." : "Auto-populated from the selected HPLC method (read-only)."}
+                  fullWidth
+                />
+              </Stack>
+            </Box>
+          )}
+
+          {workflowType === "IcpMethodAssay" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                ICP Method Assay Configuration
+              </Typography>
+              <Stack spacing={2}>
+                <FormControl size="small" fullWidth required>
+                  <InputLabel id="dialog-icp-method-label">ICP Method *</InputLabel>
+                  <Select<number | "">
+                    labelId="dialog-icp-method-label"
+                    label="ICP Method *"
+                    value={icpMethodId}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? "" : Number(e.target.value);
+                      setIcpMethodId(val);
+                      const chosen = icpMethods.find((m) => m.id === val);
+                      if (chosen) {
+                        setMethodAbbreviation(chosen.abbreviation);
+                      }
+                    }}
+                    inputProps={{ "aria-label": "ICP Method" }}
+                  >
+                    <MenuItem value=""><em>Select ICP Method</em></MenuItem>
+                    {icpMethods
+                      .filter((m) => m.isActive || m.id === icpMethodId)
+                      .map((m) => (
+                        <MenuItem key={m.id} value={m.id}>
+                          {m.name} ({m.abbreviation}){!m.isActive ? " (Inactive)" : ""}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                  <FormHelperText>Select the active master ICP method that defines this test&apos;s elements and calibration standards.</FormHelperText>
+                </FormControl>
+
+                <TextField
+                  size="small"
+                  label="Method Abbreviation"
+                  value={methodAbbreviation}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
+                  }}
+                  helperText="Auto-populated from the selected ICP method (read-only)."
                   fullWidth
                 />
               </Stack>

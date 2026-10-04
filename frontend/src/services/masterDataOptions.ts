@@ -194,6 +194,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
+  icpMethodId?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -253,6 +254,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
+  icpMethodId?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

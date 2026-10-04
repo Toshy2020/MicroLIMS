@@ -22,7 +22,9 @@ export type WorkflowType =
   | "Dissolution"
   | "Disintegration"
   | "WeightVariation"
-  | "Titration";
+  | "Titration"
+  | "HplcMethodAssay"
+  | "IcpMethodAssay";
 
 export interface TestWorkflowResult {
   outcomeSummary: string;

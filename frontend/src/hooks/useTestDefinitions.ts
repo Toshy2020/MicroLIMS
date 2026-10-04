@@ -66,6 +66,7 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
+  icpMethodId?: number | null;
   sectionId?: number;
   section?: {
     id: number;

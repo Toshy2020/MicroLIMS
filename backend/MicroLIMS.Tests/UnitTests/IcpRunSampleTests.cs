@@ -253,6 +253,8 @@ public class IcpRunSampleTests
         Assert.Equal(2, entry.Replicates.Count);
         Assert.Equal(2, entry.Preview.Count);
         var amount = entry.Preview.Single(p => p.ParameterName == "Zn (amount)");
+        Assert.Equal("IcpMgPerUnit", amount.Quantity);
+        Assert.Equal("IcpPercentLabelClaim", entry.Preview.Single(p => p.ParameterName == "Zn (%LC)").Quantity);
         Assert.Equal("1.002 mg", amount.Display);
         Assert.Equal(ResultStatus.WithinLimits, amount.Status);
         Assert.Equal(1.002451m, Math.Round(amount.Value!.Value, 6));
@@ -295,6 +297,164 @@ public class IcpRunSampleTests
         var row = Assert.Single(entry.Preview);
         Assert.Equal("800.00 µg/g (some replicates <LOQ)", row.Display);
         Assert.Equal(ResultStatus.RequiresReview, row.Status);
+    }
+
+    [Fact]
+    public async Task Preview_ImpurityQuantity_IsIcpMgPerKg()
+    {
+        var (f, _, rsId) = await AssignedAsync(znBases: false, znLimit: LimitType.NotMoreThan);
+        var entry = await SaveAsync(f, rsId, Rep(f, 0.5m, 0.8m));
+        Assert.Equal("IcpMgPerKg", Assert.Single(entry.Preview).Quantity);
+    }
+
+    // ---- returned / submitted samples ----
+
+    private static async Task SubmitSampleAsync(Fixture f, int runId, int rsId)
+    {
+        await SaveAsync(f, rsId, Rep(f, 0.5000m, 0.80m), Rep(f, 0.5100m, 0.82m));
+        await f.S.Service.UploadEvidenceAsync(runId, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport,
+            "s.pdf", "application/pdf", new MemoryStream(new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D }), f.S.UserId);
+        await TestServiceFactory.TestWorkflow(f.S.Db, clock: NewClock()).SubmitIcpMethodAssayAsync(rsId, Password, "ok", f.S.UserId, "127.0.0.1");
+    }
+
+    private static async Task ReturnOrderAsync(Fixture f, int orderId)
+    {
+        var db = f.S.Db;
+        var role = new Role { Name = "Section Head", Type = RoleType.SectionHead, IsActive = true };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        var head = new User
+        {
+            Username = "head_" + Guid.NewGuid().ToString("N")[..6], FullName = "Head", RoleId = role.Id, IsActive = true,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password),
+        };
+        db.Users.Add(head);
+        await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, head.Id);
+        await TestServiceFactory.Review(db).ReturnToAnalystAsync(orderId, head.Id, "Recheck");
+    }
+
+    [Fact]
+    public async Task Remove_AfterSubmit_Throws()
+    {
+        var (f, run, rsId) = await AssignedAsync();
+        await SubmitSampleAsync(f, run.Id, rsId);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, "Oops", f.S.UserId));
+        Assert.Equal("A result has already been sent for review for this sample.", ex.Message);
+
+        // Still refused once the run is completed while the result is active.
+        await f.S.Service.CompleteRunAsync(run.Id, f.S.UserId);
+        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, "Oops", f.S.UserId));
+        Assert.Equal("A result has already been sent for review for this sample.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Remove_AbandonedRun_Throws()
+    {
+        var (f, run, rsId) = await AssignedAsync();
+        await f.S.Service.AbandonRunAsync(run.Id, "Torch out", f.S.UserId);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, "x", f.S.UserId));
+        Assert.Equal("The run is closed.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Remove_ReturnedSampleOnCompletedRun_FreesOrder()
+    {
+        var (f, run, rsId) = await AssignedAsync();
+        var orderId = run.Samples.Single().TestOrderId;
+        await SubmitSampleAsync(f, run.Id, rsId);
+        await f.S.Service.CompleteRunAsync(run.Id, f.S.UserId);
+        await ReturnOrderAsync(f, orderId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, " ", f.S.UserId));
+        Assert.Equal("A reason is required.", ex.Message);
+        var after = await f.S.Service.RemoveSampleAsync(run.Id, rsId, "Calibration expired", f.S.UserId);
+        Assert.Equal(IcpRunSampleStatus.Removed, after.Samples.Single().Status);
+        Assert.Equal(IcpRunStatus.Completed, after.Status);
+
+        // The order is free again: a new run can take it.
+        var next = await ConfirmedRunAsync(f.S);
+        next = await f.S.Service.AssignSamplesAsync(next.Id, new List<int> { orderId }, f.S.UserId);
+        Assert.Equal(IcpRunSampleStatus.Assigned, next.Samples.Single().Status);
+    }
+
+    // ---- specification linkage ----
+
+    private static Specification ExtraSpec(Fixture f, string name, int? elementId) => new()
+    {
+        ItemId = f.Item.Id, TestCode = f.Definition.Code, ParameterName = name, IcpMethodElementId = elementId,
+        ResultBasis = ResultBasis.MgPerUnit, LimitType = LimitType.Range, LowerLimit = 0.9m, UpperLimit = 1.1m,
+        LabelClaim = 1m, LabelClaimUnit = "mg", Unit = "mg", DisplayOrder = 9,
+    };
+
+    [Fact]
+    public async Task Entry_SpecForElementNotOnMethod_BlocksSubmit()
+    {
+        var (f, _, rsId) = await AssignedAsync();
+        await SaveAsync(f, rsId, Rep(f, 0.5m, 0.8m));
+        f.S.Db.Specifications.Add(ExtraSpec(f, "Fe (amount)", 99999));
+        await f.S.Db.SaveChangesAsync();
+
+        var entry = await f.S.Service.GetSampleEntryAsync(rsId, f.S.UserId);
+
+        Assert.False(entry.CanSubmit);
+        Assert.Equal("Specification \"Fe (amount)\" refers to an element that is not on this run's method.", entry.CanSubmitReason);
+        Assert.Empty(entry.Preview);
+    }
+
+    [Fact]
+    public async Task Entry_SpecWithoutElement_BlocksSubmit()
+    {
+        var (f, _, rsId) = await AssignedAsync();
+        await SaveAsync(f, rsId, Rep(f, 0.5m, 0.8m));
+        f.S.Db.Specifications.Add(ExtraSpec(f, "Loose", null));
+        await f.S.Db.SaveChangesAsync();
+
+        var entry = await f.S.Service.GetSampleEntryAsync(rsId, f.S.UserId);
+
+        Assert.False(entry.CanSubmit);
+        Assert.Equal("Specification \"Loose\" is not linked to an ICP method element.", entry.CanSubmitReason);
+    }
+
+    // ---- method options ----
+
+    [Fact]
+    public async Task MethodOptions_CountsOnlyEligibleOrders()
+    {
+        var s = await SeedAsync();
+        var f = await SeedFixtureAsync(s);
+        var busy = await AddOrderAsync(f, "BUSY");
+        var finalized = await AddOrderAsync(f, "DONE");
+        await AddOrderAsync(f, "FREE");
+        finalized.CurrentStep = WorkflowStep.Reviewed;
+        await s.Db.SaveChangesAsync();
+        var run = await ConfirmedRunAsync(s);
+        await s.Service.AssignSamplesAsync(run.Id, new List<int> { busy.Id }, s.UserId);
+
+        var option = Assert.Single(await s.Service.GetMethodOptionsAsync(s.UserId));
+
+        Assert.Equal(1, option.EligibleTestOrderCount);
+    }
+
+    // ---- assignment gate on the run DTO ----
+
+    [Fact]
+    public async Task RunDto_CanAssignSamples_FollowsCalibrationAndCcv()
+    {
+        var s = await SeedAsync(requireCcv: true);
+        var run = await StartAsync(s);
+        Assert.False(run.CanAssignSamples);
+        Assert.Equal("Confirm the calibration before assigning samples.", run.CanAssignSamplesReason);
+
+        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 0.9995m), s.UserId);
+        await UploadCalibrationReportAsync(s, run.Id);
+        run = await s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null);
+        Assert.False(run.CanAssignSamples);
+        Assert.Equal("No element is valid on this run: Needs a passing CCV.", run.CanAssignSamplesReason);
+
+        run = await s.Service.AddCcvReadingAsync(run.Id, new AddIcpCcvRequest(run.Method.Elements.First().Id, 1.0m), s.UserId);
+        Assert.True(run.CanAssignSamples);
+        Assert.Null(run.CanAssignSamplesReason);
     }
 
     [Fact]

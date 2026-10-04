@@ -59,12 +59,11 @@ public sealed class IcpSampleEntryContext
     // Null while the calibration is confirmed and inside its validity window.
     public string? CalibrationProblem()
     {
-        var cal = Run.Calibration!;
-        if (cal.Status != IcpCalibrationStatus.Confirmed || cal.ConfirmedAt is null)
+        var expiresAt = IcpElementAvailability.ExpiresAt(Run.Calibration!, Snapshot.MaxCalibrationAgeHours);
+        if (expiresAt is null)
             return "Confirm the calibration before entering results.";
-        var expiresAt = cal.ConfirmedAt.Value.AddHours(Snapshot.MaxCalibrationAgeHours);
         if (expiresAt < Clock.UtcNow.UtcDateTime)
-            return $"Calibration expired at {Clock.ToLabLocal(expiresAt).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}.";
+            return $"Calibration expired at {Clock.ToLabLocal(expiresAt.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}.";
         return null;
     }
 
@@ -83,6 +82,14 @@ public sealed class IcpSampleEntryContext
         if (editable != null) return editable;
         var cal = CalibrationProblem();
         if (cal != null) return cal;
+
+        foreach (var spec in Specs.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id))
+        {
+            if (spec.IcpMethodElementId is not int specElementId)
+                return $"Specification \"{spec.ParameterName}\" is not linked to an ICP method element.";
+            if (Snapshot.Elements.All(e => e.Id != specElementId))
+                return $"Specification \"{spec.ParameterName}\" refers to an element that is not on this run's method.";
+        }
 
         var needed = NeededElements;
         if (needed.Count == 0) return "No specification is configured for this test on this item.";
@@ -134,7 +141,7 @@ public sealed class IcpSampleEntryContext
             ?? throw new InvalidOperationException("The run's method snapshot could not be read.");
 
         var specs = order.Sample?.ItemId is int itemId
-            ? (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).Where(s => s.IcpMethodElementId != null).ToList()
+            ? (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).ToList()
             : new List<Specification>();
 
         var submitted = await db.TestAnalyses.AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);

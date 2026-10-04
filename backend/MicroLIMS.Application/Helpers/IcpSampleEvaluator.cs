@@ -25,10 +25,11 @@ public static class IcpSampleEvaluator
         var highest = levels.Max();
         var rows = new List<IcpSampleRow>();
 
-        foreach (var spec in specs.Where(s => s.IcpMethodElementId != null).OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id))
+        foreach (var spec in specs.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id))
         {
-            var element = snapshot.Elements.FirstOrDefault(e => e.Id == spec.IcpMethodElementId);
-            if (element == null) continue;
+            // Callers gate on IcpSampleEntryContext.EntryProblem, which rejects unlinked or foreign-element specs.
+            var element = snapshot.Elements.FirstOrDefault(e => e.Id == spec.IcpMethodElementId)
+                ?? throw new InvalidOperationException($"Specification \"{spec.ParameterName}\" is not linked to an element of this method.");
             var basis = spec.ResultBasis ?? ResultBasis.MgPerKg;
 
             IcpSampleRow Problem(string text) => new(spec, element.Id, element.Symbol, basis, null, string.Empty, UnitOf(spec, basis), null, text);

@@ -153,6 +153,10 @@ public class IcpRunPostgresIntegrationTests
             Assert.Equal(equipment.Id, analysis.EquipmentId);
             var result = Assert.Single(analysis.ParameterResults);
             Assert.Equal("Ca (amount)", result.ParameterName);
+            // Hand check: mean(800, 803.921569) = 801.960784 ug/g x 1.25 g / 1000 = 1.002451 mg/unit.
+            Assert.Equal(1.002451m, Math.Round(result.ReportedValue!.Value, 6));
+            Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
+            Assert.NotNull((await check.IcpCalibrations.SingleAsync(c => c.IcpRunId == run.Id)).SignatureId);
             Assert.NotNull(result.CalculationJson);
             using var json = JsonDocument.Parse(result.CalculationJson!);
             Assert.Equal(run.Id, json.RootElement.GetProperty("icpRunId").GetInt32());

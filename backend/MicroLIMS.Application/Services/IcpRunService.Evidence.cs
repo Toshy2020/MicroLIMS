@@ -24,6 +24,15 @@ public partial class IcpRunService
         if (run.Status != IcpRunStatus.Open)
             throw new InvalidOperationException("The run is closed.");
 
+        var allowed = context switch
+        {
+            IcpEvidenceContext.Calibration => kind == IcpEvidenceKind.CalibrationReport,
+            IcpEvidenceContext.Sample => kind is IcpEvidenceKind.SampleReport or IcpEvidenceKind.Other,
+            _ => kind == IcpEvidenceKind.Other,
+        };
+        if (!allowed)
+            throw new InvalidOperationException($"{kind} evidence can't be attached to the {context} context.");
+
         var bytes = await ReadBoundedAsync(content, ct);
         ValidateEvidenceFile(fileName, contentType, bytes);
 
@@ -34,6 +43,8 @@ public partial class IcpRunService
                 throw new InvalidOperationException("Choose the sample this evidence belongs to.");
             runSample = run.Samples.FirstOrDefault(s => s.Id == runSampleId.Value)
                 ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
+            if (runSample.Status == IcpRunSampleStatus.Removed)
+                throw new InvalidOperationException("Evidence can't be added to a removed sample.");
         }
         else if (runSampleId.HasValue)
             throw new InvalidOperationException("Only sample evidence can be linked to a sample.");
@@ -76,6 +87,10 @@ public partial class IcpRunService
             throw new InvalidOperationException("The run is closed.");
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("A reason is required.");
+
+        if (old.IcpRunSampleId is int oldSampleId
+            && await _db.IcpRunSamples.AnyAsync(s => s.Id == oldSampleId && s.Status == IcpRunSampleStatus.Removed, ct))
+            throw new InvalidOperationException("Evidence can't be added to a removed sample.");
 
         var bytes = await ReadBoundedAsync(content, ct);
         ValidateEvidenceFile(fileName, contentType, bytes);

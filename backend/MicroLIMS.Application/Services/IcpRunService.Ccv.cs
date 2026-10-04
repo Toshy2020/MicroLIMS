@@ -20,7 +20,7 @@ public partial class IcpRunService
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         var cal = run.Calibration!;
-        if (cal.Status != IcpCalibrationStatus.Confirmed || cal.ConfirmedAt!.Value.AddHours(snapshot.MaxCalibrationAgeHours) < nowUtc)
+        if (!(IcpElementAvailability.ExpiresAt(cal, snapshot.MaxCalibrationAgeHours) >= nowUtc))
             throw new InvalidOperationException("Confirm a valid calibration before entering CCV.");
 
         var element = snapshot.Elements.FirstOrDefault(e => e.Id == r.IcpMethodElementId)

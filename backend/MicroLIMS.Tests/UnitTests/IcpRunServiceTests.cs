@@ -368,6 +368,82 @@ public class IcpRunServiceTests
     }
 
     [Fact]
+    public async Task SaveCalibration_CorrelationOutOfRange_Throws()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 9.99m), s.UserId));
+        Assert.Equal("r must be between 0 and 1.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_RoundsCorrelationToSixDecimalsBeforeJudging()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+
+        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 0.9989996m), s.UserId);
+
+        var zn = saved.Calibration.Elements.Single(e => e.Symbol == "Zn");
+        Assert.Equal(0.999000m, zn.CorrelationR);
+        Assert.True(zn.Passed); // 0.999000 meets the minimum 0.999; unrounded 0.9989996 would not
+    }
+
+    [Fact]
+    public async Task Evidence_ContextKindPairs_Enforced()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+        Task<IcpEvidenceDto> Up(IcpEvidenceContext c, IcpEvidenceKind k) =>
+            s.Service.UploadEvidenceAsync(run.Id, null, c, k, "x.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Up(IcpEvidenceContext.Calibration, IcpEvidenceKind.SampleReport));
+        Assert.Equal("SampleReport evidence can't be attached to the Calibration context.", ex.Message);
+        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Up(IcpEvidenceContext.Sample, IcpEvidenceKind.CalibrationReport));
+        Assert.Equal("CalibrationReport evidence can't be attached to the Sample context.", ex.Message);
+        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Up(IcpEvidenceContext.Run, IcpEvidenceKind.CalibrationReport));
+        Assert.Equal("CalibrationReport evidence can't be attached to the Run context.", ex.Message);
+
+        Assert.Equal(IcpEvidenceKind.Other, (await Up(IcpEvidenceContext.Run, IcpEvidenceKind.Other)).Kind);
+    }
+
+    [Fact]
+    public async Task ConfirmCalibration_GateRequiresCalibrationReportKind()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 0.9995m), s.UserId);
+        // A wrong-kind row (as legacy data could hold) must not satisfy the gate.
+        s.Db.IcpEvidences.Add(new IcpEvidence
+        {
+            IcpRunId = run.Id, Context = IcpEvidenceContext.Calibration, Kind = IcpEvidenceKind.Other, FilePath = "p",
+            FileName = "x.pdf", ContentType = "application/pdf", UploadedByUserId = s.UserId, UploadedAt = SepFirst.UtcDateTime,
+        });
+        await s.Db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
+        Assert.Equal("Upload the Syngistix calibration report before confirming.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Evidence_SampleGateRequiresSampleReportKind_AndRemovedSampleRefused()
+    {
+        var (f, run, rsId) = await IcpRunSampleTests.AssignedAsync();
+        MemoryStream Pdf() => new(PdfBytes());
+        await f.S.Service.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.Other, "o.pdf", "application/pdf", Pdf(), f.S.UserId);
+        await IcpRunSampleTests.SaveAsync(f, rsId, IcpRunSampleTests.Rep(f, 0.5m, 0.8m));
+        Assert.Equal("Upload the sample result report before sending for review.",
+            (await f.S.Service.GetSampleEntryAsync(rsId, f.S.UserId)).CanSubmitReason);
+
+        await f.S.Service.RemoveSampleAsync(run.Id, rsId, "Wrong sample", f.S.UserId);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            f.S.Service.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport, "s.pdf", "application/pdf", Pdf(), f.S.UserId));
+        Assert.Equal("Evidence can't be added to a removed sample.", ex.Message);
+    }
+
+    [Fact]
     public async Task Evidence_SampleContextNeedsRunSample()
     {
         var s = await SeedAsync();

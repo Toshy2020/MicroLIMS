@@ -12,12 +12,17 @@ public record IcpElementStateDto(int IcpMethodElementId, string Symbol, bool Val
 // One rule for "may this element be reported now", used by the run DTO, entry preview and submission.
 public static class IcpElementAvailability
 {
+    // When a confirmed calibration stops being usable; null while it is not confirmed.
+    public static DateTime? ExpiresAt(IcpCalibration calibration, int maxAgeHours) =>
+        calibration.Status == IcpCalibrationStatus.Confirmed && calibration.ConfirmedAt.HasValue
+            ? calibration.ConfirmedAt.Value.AddHours(maxAgeHours) : null;
+
     public static List<IcpElementStateDto> Evaluate(IcpMethodResponse snapshot, IcpCalibration calibration,
         IReadOnlyList<IcpCcvReading> ccv, DateTime nowUtc, ILabClock? clock = null)
     {
         clock ??= LabClock.Default;
-        var confirmed = calibration.Status == IcpCalibrationStatus.Confirmed && calibration.ConfirmedAt.HasValue;
-        var expiresAt = confirmed ? calibration.ConfirmedAt!.Value.AddHours(snapshot.MaxCalibrationAgeHours) : (DateTime?)null;
+        var expiresAt = ExpiresAt(calibration, snapshot.MaxCalibrationAgeHours);
+        var confirmed = expiresAt != null;
 
         return snapshot.Elements.Select(el =>
         {

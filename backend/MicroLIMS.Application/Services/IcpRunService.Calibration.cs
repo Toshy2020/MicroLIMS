@@ -11,7 +11,7 @@ public partial class IcpRunService
     private const string MissingCalibrationReportReason = "Upload the Syngistix calibration report before confirming.";
 
     private static bool IsCurrentCalibrationReport(IcpEvidence e) =>
-        e.Context == IcpEvidenceContext.Calibration && e.SupersededByEvidenceId == null;
+        e.Context == IcpEvidenceContext.Calibration && e.Kind == IcpEvidenceKind.CalibrationReport && e.SupersededByEvidenceId == null;
 
     // First reason the calibration cannot be confirmed now, or null. Shared by
     // ConfirmCalibrationAsync and the DTO so the two never disagree.
@@ -90,6 +90,8 @@ public partial class IcpRunService
         {
             var row = cal.Elements.FirstOrDefault(e => e.Id == input.IcpCalibrationElementId)
                 ?? throw new InvalidOperationException($"Element {input.IcpCalibrationElementId} does not belong to this calibration.");
+            if (input.CorrelationR is < 0m or > 1m)
+                throw new InvalidOperationException("r must be between 0 and 1.");
             rows.Add((row, input));
         }
 
@@ -97,7 +99,8 @@ public partial class IcpRunService
         cal.IcvStandardMaterialId = icvLot?.Id;
         foreach (var (row, input) in rows)
         {
-            row.CorrelationR = input.CorrelationR;
+            // numeric(8,6): round before judging so save-time and confirm-time verdicts match what is stored.
+            row.CorrelationR = input.CorrelationR is decimal r6 ? Math.Round(r6, 6, MidpointRounding.AwayFromZero) : null;
             row.BlankMgPerL = input.BlankMgPerL;
             row.IcvMeasuredMgPerL = input.IcvMeasuredMgPerL;
         }

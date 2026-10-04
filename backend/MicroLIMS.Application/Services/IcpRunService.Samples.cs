@@ -58,10 +58,12 @@ public partial class IcpRunService
 
     // The method's ICP assay tests in the run's laboratory, not finalized, not cancelled/voided, and not
     // already assigned to another run that has not been abandoned.
-    private IQueryable<TestOrder> EligibleOrdersQuery(IcpRun run)
+    private IQueryable<TestOrder> EligibleOrdersQuery(IcpRun run) => EligibleOrdersQuery(run.IcpMethodId, run.SectionId);
+
+    private IQueryable<TestOrder> EligibleOrdersQuery(int icpMethodId, int sectionId)
     {
         var codes = _db.TestDefinitions
-            .Where(t => t.WorkflowType == WorkflowType.IcpMethodAssay && t.IcpMethodId == run.IcpMethodId)
+            .Where(t => t.WorkflowType == WorkflowType.IcpMethodAssay && t.IcpMethodId == icpMethodId)
             .Select(t => t.Code);
         var busy = _db.IcpRunSamples
             .Where(s => s.Status == IcpRunSampleStatus.Assigned && s.IcpRun!.Status != IcpRunStatus.Abandoned)
@@ -70,7 +72,7 @@ public partial class IcpRunService
         return _db.TestOrders
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
             .Include(o => o.Sample).ThenInclude(s => s!.ProductionStageRef)
-            .Where(o => codes.Contains(o.TestCode) && o.SectionId == run.SectionId
+            .Where(o => codes.Contains(o.TestCode) && o.SectionId == sectionId
                 && !o.IsSuperseded && !FinalizedSteps.Contains(o.CurrentStep)
                 && o.Sample != null && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled
                 && !busy.Contains(o.Id)
@@ -79,17 +81,25 @@ public partial class IcpRunService
 
     // ---- Assign / remove ----
 
+    // First reason samples cannot be assigned now, or null. Shared by AssignSamplesAsync and the run DTO.
+    private string? AssignBlockReason(IcpRun run)
+    {
+        if (run.Status != IcpRunStatus.Open) return "The run is closed.";
+        if (run.Calibration?.Status != IcpCalibrationStatus.Confirmed) return "Confirm the calibration before assigning samples.";
+        var states = IcpElementAvailability.Evaluate(ReadSnapshot(run), run.Calibration, run.CcvReadings, _clock.UtcNow.UtcDateTime, _clock);
+        if (states.Any(s => s.Valid)) return null;
+        // When every element is blocked for the same reason (e.g. no passing CCV yet), say so.
+        var reasons = states.Select(s => s.Reason).Distinct().ToList();
+        return reasons.Count == 1 && reasons[0] != null ? $"No element is valid on this run: {reasons[0]}" : "No element is valid on this run.";
+    }
+
     public async Task<IcpRunDto> AssignSamplesAsync(int runId, List<int> testOrderIds, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct);
 
-        if (run.Status != IcpRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
-        if (run.Calibration?.Status != IcpCalibrationStatus.Confirmed)
-            throw new InvalidOperationException("Confirm the calibration before assigning samples.");
-        if (!IcpElementAvailability.Evaluate(ReadSnapshot(run), run.Calibration, run.CcvReadings, _clock.UtcNow.UtcDateTime, _clock).Any(s => s.Valid))
-            throw new InvalidOperationException("No element is valid on this run.");
+        var blocked = AssignBlockReason(run);
+        if (blocked != null) throw new InvalidOperationException(blocked);
 
         var ids = (testOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
@@ -119,7 +129,9 @@ public partial class IcpRunService
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct);
 
-        if (run.Status != IcpRunStatus.Open)
+        // A returned sample on a completed run must be removable, or its order stays busy forever.
+        // The active-analysis check below keeps submitted samples in place.
+        if (run.Status is not (IcpRunStatus.Open or IcpRunStatus.Completed))
             throw new InvalidOperationException("The run is closed.");
 
         var sample = run.Samples.FirstOrDefault(s => s.Id == runSampleId)
@@ -277,9 +289,9 @@ public partial class IcpRunService
 
     private static string QuantityOf(ResultBasis basis) => basis switch
     {
-        ResultBasis.MgPerUnit => "Amount per unit",
-        ResultBasis.PercentLabelClaim => "Label claim %",
-        _ => "Content (µg/g)",
+        ResultBasis.MgPerUnit => "IcpMgPerUnit",
+        ResultBasis.PercentLabelClaim => "IcpPercentLabelClaim",
+        _ => "IcpMgPerKg",
     };
 
     // What the ICP recorder stored; Quantity comes from its calculation payload, tolerating rows without one.
@@ -290,7 +302,7 @@ public partial class IcpRunService
             .OrderBy(p => p.Id).ToListAsync(ct);
         return rows.Select(p =>
         {
-            var quantity = "Content (µg/g)";
+            var quantity = "IcpMgPerKg";
             if (!string.IsNullOrWhiteSpace(p.CalculationJson))
             {
                 try

@@ -58,7 +58,8 @@ public record IcpRunDto(
     int AnalystUserId, string? AnalystUserName, DateTime StartedAt, IcpRunStatus Status, DateTime? ClosedAt, string? CloseReason,
     IcpCalibrationDto Calibration, List<IcpCcvReadingDto> CcvReadings, List<IcpRunSampleSummaryDto> Samples, List<IcpEvidenceDto> Evidence,
     bool CanConfirmCalibration, string? CanConfirmCalibrationReason,
-    List<IcpElementStateDto> ElementStates);
+    List<IcpElementStateDto> ElementStates,
+    bool CanAssignSamples, string? CanAssignSamplesReason);
 
 public record IcpRunListItem(int Id, string Code, string MethodAbbreviation, string AnalystUserName, DateTime StartedAt, IcpRunStatus Status, IcpCalibrationStatus CalibrationStatus, int SampleCount);
 
@@ -145,23 +146,11 @@ public partial class IcpRunService
         if (scope != null) query = query.Where(m => scope.Contains(m.SectionId));
         var methods = await query.OrderBy(m => m.Name).ToListAsync(ct);
 
-        var methodIds = methods.Select(m => m.Id).ToList();
-        var testDefs = await _db.TestDefinitions.AsNoTracking()
-            .Where(t => t.WorkflowType == WorkflowType.IcpMethodAssay && t.IcpMethodId != null && methodIds.Contains(t.IcpMethodId.Value))
-            .Select(t => new { t.Code, IcpMethodId = t.IcpMethodId!.Value })
-            .ToListAsync(ct);
-        var codesByMethod = testDefs.GroupBy(t => t.IcpMethodId).ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
-
         var result = new List<IcpMethodOptionDto>();
         foreach (var m in methods)
         {
-            var count = 0;
-            if (codesByMethod.TryGetValue(m.Id, out var codes) && codes.Count > 0)
-            {
-                count = await _db.TestOrders.AsNoTracking().CountAsync(o =>
-                    codes.Contains(o.TestCode) && !o.IsSuperseded && o.CurrentStep != WorkflowStep.Ready
-                    && o.Sample != null && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled, ct);
-            }
+            // Same rule as the run's eligible-test list.
+            var count = await EligibleOrdersQuery(m.Id, m.SectionId).CountAsync(ct);
             result.Add(new IcpMethodOptionDto(m.Id, m.Abbreviation, m.Name, m.Mode, count));
         }
 
@@ -386,6 +375,7 @@ public partial class IcpRunService
         var evidence = run.Evidence.OrderByDescending(e => e.UploadedAt).Select(e => ToEvidenceDto(e, NameOf(e.UploadedByUserId))).ToList();
 
         var reason = ConfirmBlockReason(run);
+        var assignReason = AssignBlockReason(run);
         return new IcpRunDto(
             run.Id, run.Version, run.Code, run.SectionId,
             run.EquipmentId, run.Equipment?.Code ?? string.Empty, run.Equipment?.Name ?? string.Empty,
@@ -393,6 +383,7 @@ public partial class IcpRunService
             run.AnalystUserId, NameOf(run.AnalystUserId), run.StartedAt, run.Status, run.ClosedAt, run.CloseReason,
             calDto, ccv, samples, evidence,
             reason == null, reason,
-            IcpElementAvailability.Evaluate(snapshot, cal, run.CcvReadings, _clock.UtcNow.UtcDateTime, _clock));
+            IcpElementAvailability.Evaluate(snapshot, cal, run.CcvReadings, _clock.UtcNow.UtcDateTime, _clock),
+            assignReason == null, assignReason);
     }
 }

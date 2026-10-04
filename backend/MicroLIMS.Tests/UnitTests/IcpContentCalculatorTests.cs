@@ -83,6 +83,22 @@ public class IcpContentCalculatorTests
     }
 
     [Fact]
+    public void Calculate_ZeroVolume_Throws()
+    {
+        var bad = new IcpReplicateInput(1, 0.5m, 0m, 10m, 0.8m);
+        var ex = Assert.Throws<InvalidOperationException>(() => IcpContentCalculator.Calculate(new[] { bad }, 0.1m, 6m, 1m, null, null));
+        Assert.Equal("Sample amount, volume and dilution must be positive (dilution at least 1).", ex.Message);
+    }
+
+    [Fact]
+    public void Calculate_DilutionBelowOne_Throws()
+    {
+        var bad = new IcpReplicateInput(1, 0.5m, 50m, 0.5m, 0.8m);
+        var ex = Assert.Throws<InvalidOperationException>(() => IcpContentCalculator.Calculate(new[] { bad }, 0.1m, 6m, 1m, null, null));
+        Assert.Equal("Sample amount, volume and dilution must be positive (dilution at least 1).", ex.Message);
+    }
+
+    [Fact]
     public void Calculate_NoReplicates_Throws()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>

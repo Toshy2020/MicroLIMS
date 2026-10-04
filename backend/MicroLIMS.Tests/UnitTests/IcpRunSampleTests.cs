@@ -170,6 +170,32 @@ public class IcpRunSampleTests
     }
 
     [Fact]
+    public async Task Assign_AfterRemove_SameRun_CreatesNewAssignedRow()
+    {
+        var (f, run, oldId) = await AssignedAsync();
+        var orderId = run.Samples.Single().TestOrderId;
+        await f.S.Service.RemoveSampleAsync(run.Id, oldId, "Wrong prep", f.S.UserId);
+
+        run = await f.S.Service.AssignSamplesAsync(run.Id, new List<int> { orderId }, f.S.UserId);
+
+        Assert.Equal(2, run.Samples.Count);
+        var removed = run.Samples.Single(x => x.Status == IcpRunSampleStatus.Removed);
+        var active = run.Samples.Single(x => x.Status == IcpRunSampleStatus.Assigned);
+        Assert.Equal(oldId, removed.Id);
+        Assert.NotEqual(oldId, active.Id);
+        Assert.Equal("Wrong prep", (await f.S.Db.IcpRunSamples.FirstAsync(x => x.Id == oldId)).RemovedReason);
+        var instrument = (await f.S.Service.GetInstrumentsAsync(f.S.UserId)).Single(i => i.ActiveRun != null);
+        Assert.Equal(1, instrument.ActiveRun!.SampleCount);
+
+        var entry = await SaveAsync(f, active.Id, Rep(f, 0.5m, 0.8m));
+        Assert.Equal(active.Id, entry.RunSampleId);
+        Assert.Equal("This sample was removed from the run.", (await f.S.Service.GetSampleEntryAsync(oldId, f.S.UserId)).EditableReason);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.CompleteRunAsync(run.Id, f.S.UserId));
+        Assert.Equal("1 assigned sample(s) have not been sent for review. Submit or remove them first.", ex.Message);
+    }
+
+    [Fact]
     public async Task CompleteRun_WithUnsubmittedSample_Throws_ThenRemovedCompletes()
     {
         var (f, run, rsId) = await AssignedAsync();

@@ -41,7 +41,7 @@ export interface TitrationFormState {
   replicateCount: string;
   maxRsdPercent: string;
   endpoint: TitrationEndpoint | "";
-  indicator: string;
+  indicatorEntryId: number | ""; // Indicator entry of Reagents & Reference Standards
   tempCorrection: boolean;
   expansionCoefficient: string;
   standardEntryId: number | "";
@@ -62,7 +62,7 @@ export const createInitialTitrationForm = (): TitrationFormState => ({
   replicateCount: "3",
   maxRsdPercent: "",
   endpoint: "Visual",
-  indicator: "",
+  indicatorEntryId: "",
   tempCorrection: false,
   expansionCoefficient: DEFAULT_EXPANSION_COEFFICIENT,
   standardEntryId: ""
@@ -82,6 +82,7 @@ export interface TitrationDefinitionFields {
   titrationExcessVolumeMl?: number | null;
   titrationMaxRsdPercent?: number | null;
   titrationEndpoint?: TitrationEndpoint | null;
+  titrationIndicatorEntryId?: number | null;
   titrationIndicator?: string | null;
   titrationTempCorrection?: boolean | null;
   titrationExpansionCoefficient?: number | null;
@@ -104,7 +105,7 @@ export const titrationFormFromDefinition = (t: TitrationDefinitionFields): Titra
   replicateCount: str(t.replicateCount, "3"),
   maxRsdPercent: str(t.titrationMaxRsdPercent),
   endpoint: t.titrationEndpoint ?? "Visual",
-  indicator: t.titrationIndicator ?? "",
+  indicatorEntryId: t.titrationIndicatorEntryId ?? "",
   tempCorrection: !!t.titrationTempCorrection,
   expansionCoefficient: str(t.titrationExpansionCoefficient, DEFAULT_EXPANSION_COEFFICIENT),
   standardEntryId: t.titrationStandardEntryId ?? "",
@@ -163,7 +164,7 @@ export const validateTitrationForm = (f: TitrationFormState): string | null => {
   const rep = Number(f.replicateCount);
   if (!Number.isInteger(rep) || rep < 1 || rep > 10) return "Replicate count must be between 1 and 10 for Titration tests.";
   if (f.maxRsdPercent.trim() !== "" && !(Number(f.maxRsdPercent) > 0)) return "Maximum RSD % must be greater than zero when set.";
-  if (v.indicator && f.indicator.trim() === "") return "Indicator is required for a visual endpoint.";
+  if (v.indicator && f.indicatorEntryId === "") return "Indicator is required for a visual endpoint.";
   if (v.factor && !positive(f.equivalencyFactor)) return "Equivalency factor (mg per mEq/mmol) must be greater than zero.";
   if (v.excess && (f.excessSolutionMasterId === "" || !positive(f.excessVolumeMl))) {
     return "Residual titration requires the excess titrant and its volume (mL).";
@@ -189,7 +190,7 @@ export const titrationPayloadFields = (f: TitrationFormState, active: boolean) =
       titrationType: null, titrationNonAqueous: null, titrationMode: null, titrationCalculation: null,
       titrantSolutionMasterId: null, titrationEquivalencyFactor: null, titrationBlankRequired: null,
       titrationExcessSolutionMasterId: null, titrationExcessVolumeMl: null, titrationMaxRsdPercent: null,
-      titrationEndpoint: null, titrationIndicator: null, titrationTempCorrection: null,
+      titrationEndpoint: null, titrationIndicatorEntryId: null, titrationTempCorrection: null,
       titrationExpansionCoefficient: null, titrationStandardEntryId: null
     };
   }
@@ -206,7 +207,7 @@ export const titrationPayloadFields = (f: TitrationFormState, active: boolean) =
     titrationExcessVolumeMl: v.excess ? num(f.excessVolumeMl) : null,
     titrationMaxRsdPercent: num(f.maxRsdPercent),
     titrationEndpoint: f.endpoint || null,
-    titrationIndicator: v.indicator ? f.indicator.trim() || null : null,
+    titrationIndicatorEntryId: v.indicator && f.indicatorEntryId !== "" ? f.indicatorEntryId : null,
     titrationTempCorrection: v.tempCorrection ? f.tempCorrection : null,
     titrationExpansionCoefficient: v.tempCorrection && f.tempCorrection ? num(f.expansionCoefficient) : null,
     titrationStandardEntryId: v.standard && f.standardEntryId !== "" ? f.standardEntryId : null

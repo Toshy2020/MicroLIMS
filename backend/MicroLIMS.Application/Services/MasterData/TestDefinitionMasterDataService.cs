@@ -288,6 +288,38 @@ public class TestDefinitionMasterDataService
             || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison)
             throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
+        // ICP workspace: IcpMethodAssay tests are driven by the linked IcpMethod; the
+        // run calibration (not system suitability) is the gate.
+        if (request.EquationType == EquationType.IcpMethodAssay)
+        {
+            if (request.WorkflowType != WorkflowType.IcpMethodAssay)
+                throw new InvalidOperationException("Workflow type must be IcpMethodAssay when equation type is IcpMethodAssay.");
+        }
+        else if (request.WorkflowType == WorkflowType.IcpMethodAssay)
+        {
+            throw new InvalidOperationException("Equation type must be IcpMethodAssay when workflow type is IcpMethodAssay.");
+        }
+
+        if (request.WorkflowType == WorkflowType.IcpMethodAssay)
+        {
+            if (request.RequiresSystemSuitability)
+                throw new InvalidOperationException("ICP method assay tests use the run calibration, not system suitability.");
+
+            if (!request.IcpMethodId.HasValue)
+                throw new InvalidOperationException("ICP method is required for ICP method assay tests.");
+
+            var icpMethod = await _db.IcpMethods.FirstOrDefaultAsync(m => m.Id == request.IcpMethodId.Value)
+                ?? throw new InvalidOperationException("ICP method not found.");
+            if (icpMethod.SectionId != sectionId)
+                throw new InvalidOperationException("The ICP method belongs to another laboratory.");
+            if (!icpMethod.IsActive)
+                throw new InvalidOperationException("The ICP method is inactive.");
+        }
+        else if (request.IcpMethodId.HasValue)
+        {
+            throw new InvalidOperationException("ICP method is only allowed for ICP method assay tests.");
+        }
+
         if (request.RequiresSystemSuitability && request.WorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
             throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
 
@@ -392,6 +424,7 @@ public class TestDefinitionMasterDataService
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
             HplcMethodId = request.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution ? request.HplcMethodId : null,
+            IcpMethodId = request.WorkflowType == WorkflowType.IcpMethodAssay ? request.IcpMethodId : null,
             TitrationType = request.TitrationType,
             TitrationNonAqueous = request.TitrationNonAqueous,
             TitrationMode = request.TitrationMode,
@@ -705,6 +738,39 @@ public class TestDefinitionMasterDataService
             || (request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison))
             throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
+        var effectiveIcpMethodId = request.IcpMethodId ?? entity.IcpMethodId;
+        // ICP workspace: IcpMethodAssay tests are driven by the linked IcpMethod; the
+        // run calibration (not system suitability) is the gate.
+        if (effectiveEquationType == EquationType.IcpMethodAssay)
+        {
+            if (effectiveWorkflowType != WorkflowType.IcpMethodAssay)
+                throw new InvalidOperationException("Workflow type must be IcpMethodAssay when equation type is IcpMethodAssay.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.IcpMethodAssay)
+        {
+            throw new InvalidOperationException("Equation type must be IcpMethodAssay when workflow type is IcpMethodAssay.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.IcpMethodAssay)
+        {
+            if (effectiveRequiresSst)
+                throw new InvalidOperationException("ICP method assay tests use the run calibration, not system suitability.");
+
+            if (!effectiveIcpMethodId.HasValue)
+                throw new InvalidOperationException("ICP method is required for ICP method assay tests.");
+
+            var icpMethod = await _db.IcpMethods.FirstOrDefaultAsync(m => m.Id == effectiveIcpMethodId.Value)
+                ?? throw new InvalidOperationException("ICP method not found.");
+            if (icpMethod.SectionId != entity.SectionId)
+                throw new InvalidOperationException("The ICP method belongs to another laboratory.");
+            if (!icpMethod.IsActive && effectiveIcpMethodId != entity.IcpMethodId)
+                throw new InvalidOperationException("The ICP method is inactive.");
+        }
+        else if (effectiveIcpMethodId.HasValue)
+        {
+            throw new InvalidOperationException("ICP method is only allowed for ICP method assay tests.");
+        }
+
         if (effectiveRequiresSst && effectiveWorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
             throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
 
@@ -831,6 +897,7 @@ public class TestDefinitionMasterDataService
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
+        if (request.IcpMethodId.HasValue) entity.IcpMethodId = request.IcpMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
         if (request.TitrationNonAqueous.HasValue) entity.TitrationNonAqueous = request.TitrationNonAqueous;
         if (request.TitrationMode.HasValue) entity.TitrationMode = request.TitrationMode;

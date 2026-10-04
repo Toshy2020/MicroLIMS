@@ -225,6 +225,7 @@ public class TestDefinitionResponse
     public int? WvCapsuleS2ExtraUnits { get; init; }
     public int? WvCapsuleS2MaxOutside { get; init; }
     public int? HplcMethodId { get; init; }
+    public int? IcpMethodId { get; init; }
     public TitrationType? TitrationType { get; init; }
     public bool? TitrationNonAqueous { get; init; }
     public TitrationMode? TitrationMode { get; init; }
@@ -301,6 +302,7 @@ public class TestDefinitionResponse
         WvCapsuleS2ExtraUnits = e.WvCapsuleS2ExtraUnits,
         WvCapsuleS2MaxOutside = e.WvCapsuleS2MaxOutside,
         HplcMethodId = e.HplcMethodId,
+        IcpMethodId = e.IcpMethodId,
         TitrationType = e.TitrationType,
         TitrationNonAqueous = e.TitrationNonAqueous,
         TitrationMode = e.TitrationMode,

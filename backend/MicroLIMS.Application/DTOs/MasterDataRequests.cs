@@ -241,7 +241,8 @@ public record CreateTestDefinitionRequest(
     string? TitrationIndicator = null,
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
-    int? TitrationStandardEntryId = null);
+    int? TitrationStandardEntryId = null,
+    int? IcpMethodId = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -314,7 +315,8 @@ public record UpdateTestDefinitionRequest(
     string? TitrationIndicator = null,
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
-    int? TitrationStandardEntryId = null);
+    int? TitrationStandardEntryId = null,
+    int? IcpMethodId = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);

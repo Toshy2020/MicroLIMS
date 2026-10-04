@@ -128,7 +128,7 @@ export function ResidualSolventCalculationView({
               Standard Mean Response (r̄_std)
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              {calc.standardMeanResponse}
+              {calc.standardMeanResponse.toLocaleString(undefined, { maximumFractionDigits: 2, useGrouping: false })}
             </Typography>
           </Box>
         </Stack>

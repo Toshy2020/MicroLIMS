@@ -98,7 +98,7 @@ export function GcConditionsSection({
           Inlet &amp; Carrier Gas Conditions
         </Typography>
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-          Specify mobile phase carrier gas, inlet temperature, column flow velocity, and injection split ratio.
+          Specify carrier gas, inlet temperature, column flow velocity, and injection split ratio.
         </Typography>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>

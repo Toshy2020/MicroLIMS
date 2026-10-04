@@ -234,6 +234,25 @@ IcpMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Ana
 IcpMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 IcpMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
 IcpMethodController.Update(Int32, SaveIcpMethodRequest): SystemAdministrator,SectionHead
+IcpWorkspaceController.Abandon(Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.AddCcv(Int32, AddIcpCcvRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.AssignSamples(Int32, AssignIcpSamplesRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.Complete(Int32): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.ConfirmCalibration(Int32, ConfirmIcpCalibrationRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.SaveCalibration(Int32, SaveIcpCalibrationRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.SaveReplicates(Int32, SaveIcpReplicatesRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.StartRun(StartIcpRunRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SystemAdministrator,SectionHead,Analyst
+IcpWorkspaceController.UploadEvidence(Int32, IFormFile, IcpEvidenceContext, IcpEvidenceKind, Nullable`1): SystemAdministrator,SectionHead,Analyst
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead

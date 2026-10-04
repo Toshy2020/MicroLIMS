@@ -148,6 +148,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SolutionPreparationService>();
         services.AddScoped<TitrantStandardizationService>();
         services.AddScoped<HplcRunService>();
+        services.AddScoped<IcpRunService>();
         services.AddScoped<WorkingStandardService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();

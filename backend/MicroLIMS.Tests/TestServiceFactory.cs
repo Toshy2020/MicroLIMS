@@ -244,6 +244,18 @@ public static class TestServiceFactory
             storage ?? new InMemoryFileStorageService(),
             clock);
 
+    public static IcpRunService IcpRun(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        IFileStorageService? storage = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            signatures ?? new ElectronicSignatureService(db),
+            storage ?? new InMemoryFileStorageService(),
+            clock);
+
     public static CalibrationRunService CalibrationRun(
         MicroLimsDbContext db,
         IFileStorageService? storage = null,

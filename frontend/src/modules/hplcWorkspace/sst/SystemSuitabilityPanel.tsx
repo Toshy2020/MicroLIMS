@@ -1,14 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Stack,
-  Alert,
-  CircularProgress,
-  Tooltip,
-  Divider,
-  Typography
-} from "@mui/material";
+import { Box, Button, Stack, Alert, CircularProgress, Tooltip, Divider, Typography } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -18,14 +9,12 @@ import { MaterialService } from "../../inventory/materials/services/MaterialServ
 import { SstStatusCard } from "./SstStatusCard";
 import { SstValuesTable } from "./SstValuesTable";
 import { StandardEntryForm, StandardMaterialOption } from "./StandardEntryForm";
+import { findMissingSstFields } from "./sstValidation";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
-import type {
-  HplcRunDto,
-  HplcSstRecordDto,
-  SaveSstAnalyteInput
-} from "../types";
+import { useTechnique } from "../useTechnique";
+import type { HplcRunDto, HplcSstRecordDto, SaveSstAnalyteInput } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export interface SystemSuitabilityPanelProps {
@@ -41,6 +30,8 @@ export function SystemSuitabilityPanel({
   canOperate,
   onRunUpdated
 }: SystemSuitabilityPanelProps) {
+  const { label } = useTechnique();
+  const isResidualSolvents = method?.resultMode === "ResidualSolvents";
   const [currentRun, setCurrentRun] = useState<HplcRunDto>(run);
 
   useEffect(() => {
@@ -148,26 +139,9 @@ export function SystemSuitabilityPanel({
   const methodAnalyteFor = (a: { hplcMethodAnalyteId: number; analyteName: string }) =>
     method?.analytes.find((ma) => ma.id === a.hplcMethodAnalyteId || ma.name === a.analyteName);
 
-  // Blank entries per analyte, so the analyst is warned before saving. The
-  // backend refuses confirmation on the same gaps.
+  // Blank entries per analyte, so the analyst is warned before saving.
   const findMissing = (): string[] =>
-    (sst?.analytes ?? []).flatMap((a) => {
-      const v = analyteInputs[a.id];
-      const ma = methodAnalyteFor(a);
-      const fields: string[] = [];
-      if (!v?.standardMaterialId) fields.push("reference standard lot");
-      if (!(v?.standardWeightMg > 0)) fields.push("actual standard weight");
-      const blank = Array.from({ length: ma?.standardInjections ?? 5 }, (_, i) => i + 1)
-        .filter((n) => !((v?.responses?.[n - 1] ?? 0) > 0));
-      if (blank.length) fields.push(`injection ${blank.map((n) => `#${n}`).join(", ")}`);
-      if (ma?.sstMinResolution != null && v?.resolution == null) fields.push("resolution");
-      if (ma?.sstMaxTailingFactor != null && v?.tailingFactor == null) fields.push("tailing factor");
-      if (ma?.sstMinTheoreticalPlates != null && v?.theoreticalPlates == null) fields.push("theoretical plates");
-      if (ma?.sstMinRetentionFactor != null && v?.retentionFactor == null) fields.push("retention factor");
-      if (ma?.sstMinSignalToNoise != null && v?.signalToNoise == null) fields.push("signal-to-noise");
-      if (ma?.sstMinPeakToValley != null && v?.peakToValley == null) fields.push("peak-to-valley");
-      return fields.length ? [`${a.analyteName}: ${fields.join(", ")}`] : [];
-    });
+    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, isResidualSolvents);
 
   // Save SST inputs
   // refresh=false keeps the page mounted (the parent reload shows a spinner),
@@ -302,6 +276,7 @@ export function SystemSuitabilityPanel({
                   onChange={(patch) => handleAnalyteChange(a.id, patch)}
                   disabled={isConfirmed || !canOperate}
                   showMissing={missing.length > 0}
+                  isResidualSolvents={isResidualSolvents}
                 />
               );
             })}
@@ -394,7 +369,7 @@ export function SystemSuitabilityPanel({
       {/* Reason Dialog for Abandon Run */}
       <ReasonDialog
         open={abandonOpen}
-        title="Abandon HPLC Run"
+        title={`Abandon ${label} Run`}
         onClose={() => setAbandonOpen(false)}
         onConfirm={handleAbandonRun}
         confirmText="Abandon Run"

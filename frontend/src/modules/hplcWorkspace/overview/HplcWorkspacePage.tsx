@@ -15,10 +15,12 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { HplcInstrumentCard } from "./HplcInstrumentCard";
+import { useTechnique } from "../useTechnique";
 import type { HplcInstrumentDto } from "../types";
 
 export function HplcWorkspacePage() {
   const navigate = useNavigate();
+  const { technique, label, routes } = useTechnique();
   const { permissions, role } = useAuth();
   const canOperate =
     permissions.includes(PERMISSIONS.HPLC_OPERATE) ||
@@ -34,15 +36,15 @@ export function HplcWorkspacePage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await HplcWorkspaceService.getInstruments();
+      const data = await HplcWorkspaceService.getInstruments(technique);
       setInstruments(data);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not load HPLC instruments.");
+      setError(e.response?.data?.message ?? e.message ?? `Could not load ${label} instruments.`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [technique, label]);
 
   useEffect(() => {
     loadInstruments();
@@ -98,7 +100,7 @@ export function HplcWorkspacePage() {
 
   return (
     <LabPage
-      title="HPLC Workspace"
+      title={`${label} Workspace`}
       subtitle="Instrument operations, system suitability, and sample testing workflow"
       actions={
         <Button
@@ -159,7 +161,7 @@ export function HplcWorkspacePage() {
         <EmptyState
           icon={<ScienceIcon />}
           title="No instruments found"
-          description={search ? "Try adjusting your search criteria." : "No HPLC instruments configured for your section."}
+          description={search ? "Try adjusting your search criteria." : `No ${label} instruments configured for your section.`}
         />
       ) : (
         <Box sx={gridSx}>
@@ -168,9 +170,10 @@ export function HplcWorkspacePage() {
               key={inst.equipmentId}
               instrument={inst}
               canOperate={canOperate}
-              onOpenRun={(eqId, runId) => navigate(`/hplc-workspace/${eqId}/run/${runId}`)}
-              onStartRun={(eqId) => navigate(`/hplc-workspace/${eqId}/new-run`)}
-              onViewHistory={(eqId) => navigate(`/hplc-workspace/${eqId}/history`)}
+              technique={technique}
+              onOpenRun={(eqId, runId) => navigate(routes.run(eqId, runId))}
+              onStartRun={(eqId) => navigate(routes.newRun(eqId))}
+              onViewHistory={(eqId) => navigate(routes.history(eqId))}
             />
           ))}
         </Box>

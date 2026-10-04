@@ -19,11 +19,13 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
-import type { HplcInstrumentDto } from "../types";
+import { useTechnique } from "../useTechnique";
+import type { HplcInstrumentDto, HplcTechnique } from "../types";
 
 export interface HplcInstrumentCardProps {
   instrument: HplcInstrumentDto;
   canOperate: boolean;
+  technique?: HplcTechnique;
   onOpenRun: (equipmentId: number, runId: number) => void;
   onStartRun: (equipmentId: number) => void;
   onViewHistory: (equipmentId: number) => void;
@@ -32,11 +34,16 @@ export interface HplcInstrumentCardProps {
 export function HplcInstrumentCard({
   instrument,
   canOperate,
+  technique,
   onOpenRun,
   onStartRun,
   onViewHistory
 }: HplcInstrumentCardProps) {
   const theme = useTheme();
+  const { technique: routeTechnique } = useTechnique();
+  const activeTechnique = technique ?? routeTechnique;
+  const activeLabel = activeTechnique === "Gc" ? "GC" : "HPLC";
+
   const isRunning = instrument.state.toLowerCase() === "running" && Boolean(instrument.activeRun);
   const isAvailable = instrument.state.toLowerCase() === "available";
   const isUnavailable = instrument.state.toLowerCase() === "unavailable";
@@ -137,7 +144,9 @@ export function HplcInstrumentCard({
             }}
           >
             <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
-              Instrument is ready. Start a new run to set up method, column, and mobile phases.
+              {activeTechnique === "Gc"
+                ? "Instrument is ready. Start a new run to set up method and column."
+                : "Instrument is ready. Start a new run to set up method, column, and mobile phases."}
             </Typography>
           </Box>
         )}
@@ -170,7 +179,7 @@ export function HplcInstrumentCard({
         )}
 
         {isAvailable && (
-          <Tooltip title={!canOperate ? "You do not have permission to start an HPLC run." : ""}>
+          <Tooltip title={!canOperate ? `You do not have permission to start ${activeLabel === "GC" ? "a GC" : "an HPLC"} run.` : ""}>
             <span>
               <Button
                 variant="contained"

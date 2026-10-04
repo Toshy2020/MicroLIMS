@@ -24,6 +24,7 @@ import { RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
+import { useTechnique } from "../useTechnique";
 import type { HplcRunDto, HplcRunSampleSummaryDto } from "../types";
 
 export interface SampleAssignmentPanelProps {
@@ -38,6 +39,7 @@ export function SampleAssignmentPanel({
   onRunUpdated
 }: SampleAssignmentPanelProps) {
   const navigate = useNavigate();
+  const { basePath, label } = useTechnique();
 
   const [eligibleDialogOpen, setEligibleDialogOpen] = useState(false);
   const [eligibleWsDialogOpen, setEligibleWsDialogOpen] = useState(false);
@@ -113,8 +115,8 @@ export function SampleAssignmentPanel({
       render: (s) => {
         const canRemove = canOperate && run.status === "Open" && s.status === "Assigned" && !s.submitted;
         const entryPath = s.workingStandardQualificationId
-          ? `/hplc-workspace/${run.equipmentId}/run/${run.id}/qualification/${s.id}`
-          : `/hplc-workspace/${run.equipmentId}/run/${run.id}/sample/${s.id}`;
+          ? `${basePath}/${run.equipmentId}/run/${run.id}/qualification/${s.id}`
+          : `${basePath}/${run.equipmentId}/run/${run.id}/sample/${s.id}`;
         return (
           <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
             <Button
@@ -178,7 +180,7 @@ export function SampleAssignmentPanel({
             Assigned Run Samples ({run.samples.length})
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Samples linked to this HPLC run for testing and replicate entry.
+            Samples linked to this {label} run for testing and replicate entry.
           </Typography>
         </Box>
 

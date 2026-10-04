@@ -4,18 +4,24 @@ import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
-import type { HplcRunListItem } from "../types";
+import { useTechnique } from "../useTechnique";
+import type { HplcRunListItem, HplcTechnique } from "../types";
 
 export interface HplcRunHistoryTableProps {
   historyRuns: HplcRunListItem[];
   equipmentId: number;
+  technique?: HplcTechnique;
   onSelectRun: (runId: number) => void;
 }
 
 export function HplcRunHistoryTable({
   historyRuns,
+  technique,
   onSelectRun
 }: HplcRunHistoryTableProps) {
+  const { technique: routeTechnique } = useTechnique();
+  const activeTechnique = technique ?? routeTechnique;
+  const label = activeTechnique === "Gc" ? "GC" : "HPLC";
   const columns: RegisterColumn<HplcRunListItem>[] = [
     {
       key: "code",
@@ -71,7 +77,7 @@ export function HplcRunHistoryTable({
         defaultSort={{ key: "startedAt", direction: "desc" }}
         empty={{
           title: "No past runs recorded",
-          description: "Completed, abandoned, and past HPLC runs on this instrument appear here."
+          description: `Completed, abandoned, and past ${label} runs on this instrument appear here.`
         }}
       />
     </ResultSection>

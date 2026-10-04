@@ -179,6 +179,19 @@ export function AppRoutes() {
             <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
+
+            {/* GC Workspace (slice G2b) */}
+            <Route path="/gc-workspace" element={<HplcWorkspacePage />} />
+            <Route path="/gc-workspace/:instrumentId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/new-run" element={<StartHplcRunWizard />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/sst" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/samples" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/evidence" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/history" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
+            <Route path="/gc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>

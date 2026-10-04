@@ -45,6 +45,7 @@ export interface StandardEntryFormProps {
   disabled?: boolean;
   // Outline blank required fields red after a save attempt found gaps.
   showMissing?: boolean;
+  isResidualSolvents?: boolean;
 }
 
 export function StandardEntryForm({
@@ -54,7 +55,8 @@ export function StandardEntryForm({
   formValue,
   onChange,
   disabled = false,
-  showMissing = false
+  showMissing = false,
+  isResidualSolvents = false
 }: StandardEntryFormProps) {
   const theme = useTheme();
 
@@ -126,7 +128,7 @@ export function StandardEntryForm({
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
             Analyte: {analyte.analyteName}
           </Typography>
-          {methodAnalyte && (
+          {methodAnalyte && methodAnalyte.wavelengthNm != null && (
             <Chip
               size="small"
               label={`${methodAnalyte.wavelengthNm} nm`}
@@ -153,7 +155,9 @@ export function StandardEntryForm({
               >
                 {selectableLots.map((lot) => (
                   <MenuItem key={lot.id} value={lot.id}>
-                    {lot.materialName}, {lotLabel(lot)} (Purity: {lot.purity ?? "—"}% | MC: {lot.moisturePercent ?? "—"}%)
+                    {isResidualSolvents
+                      ? `${lot.materialName}, ${lotLabel(lot)}`
+                      : `${lot.materialName}, ${lotLabel(lot)} (Purity: ${lot.purity ?? "—"}% | MC: ${lot.moisturePercent ?? "—"}%)`}
                   </MenuItem>
                 ))}
               </Select>
@@ -168,8 +172,18 @@ export function StandardEntryForm({
             {selectedLot ? (
               <Box sx={{ mt: 1, p: 1, borderRadius: 1, backgroundColor: theme.palette.action.hover }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  <strong>Purity (P):</strong> {selectedLot.purity ?? "—"}% ·{" "}
-                  <strong>Moisture Content (MC):</strong> {selectedLot.moisturePercent ?? "—"}%
+                  {isResidualSolvents ? (
+                    <>
+                      <strong>Lot:</strong> {lotLabel(selectedLot)}
+                      {selectedLot.purity != null && ` · P: ${selectedLot.purity}%`}
+                      {selectedLot.moisturePercent != null && ` · MC: ${selectedLot.moisturePercent}%`}
+                    </>
+                  ) : (
+                    <>
+                      <strong>Purity (P):</strong> {selectedLot.purity ?? "—"}% ·{" "}
+                      <strong>Moisture Content (MC):</strong> {selectedLot.moisturePercent ?? "—"}%
+                    </>
+                  )}
                 </Typography>
               </Box>
             ) : (
@@ -184,14 +198,25 @@ export function StandardEntryForm({
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Theoretical Std Wt (mg)"
-              value={methodAnalyte?.theoreticalWeightStdMg ?? "—"}
-              disabled
-              helperText="Method constant (read-only)"
-            />
+            {isResidualSolvents ? (
+              <TextField
+                fullWidth
+                size="small"
+                label="Std Concentration (µg/mL)"
+                value={methodAnalyte?.standardConcentrationUgPerMl ?? "—"}
+                disabled
+                helperText="Method target (read-only)"
+              />
+            ) : (
+              <TextField
+                fullWidth
+                size="small"
+                label="Theoretical Std Wt (mg)"
+                value={methodAnalyte?.theoreticalWeightStdMg ?? "—"}
+                disabled
+                helperText="Method constant (read-only)"
+              />
+            )}
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -200,12 +225,12 @@ export function StandardEntryForm({
               size="small"
               label="Actual Std Weight (mg)"
               type="number"
-              required
+              required={!isResidualSolvents}
               disabled={disabled}
-              error={showMissing && !(formValue.standardWeightMg > 0)}
+              error={showMissing && !isResidualSolvents && !(formValue.standardWeightMg > 0)}
               value={formValue.standardWeightMg === 0 ? "" : formValue.standardWeightMg}
-              onChange={(e) => onChange({ standardWeightMg: Number(e.target.value) })}
-              helperText="Weighed on analytical balance"
+              onChange={(e) => onChange({ standardWeightMg: e.target.value === "" ? 0 : Number(e.target.value) })}
+              helperText={isResidualSolvents ? "Not required for residual solvents (optional)" : "Weighed on analytical balance"}
             />
           </Grid>
         </Grid>

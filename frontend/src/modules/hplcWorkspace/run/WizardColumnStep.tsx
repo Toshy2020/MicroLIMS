@@ -14,12 +14,15 @@ import {
 } from "@mui/material";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type { ChromatographyColumnDto } from "../../laboratoryConfiguration/masterDataSimple/services/ChromatographyColumnService";
+import type { HplcTechnique } from "../types";
+import { useTechnique } from "../useTechnique";
 
 export interface WizardColumnStepProps {
   columns: ChromatographyColumnDto[];
   selectedColumnId: number | null;
   equipmentId: number;
   targetDesignation: string;
+  technique?: HplcTechnique;
   onSelectColumn: (id: number) => void;
 }
 
@@ -28,9 +31,12 @@ export function WizardColumnStep({
   selectedColumnId,
   equipmentId,
   targetDesignation,
+  technique,
   onSelectColumn
 }: WizardColumnStepProps) {
   const theme = useTheme();
+  const { technique: routeTechnique } = useTechnique();
+  const activeTechnique = technique ?? routeTechnique;
 
   const qualifyingColumns = useMemo(() => {
     const reqDesig = targetDesignation.trim().toLowerCase();
@@ -42,11 +48,13 @@ export function WizardColumnStep({
     });
   }, [columns, targetDesignation, equipmentId]);
 
+  const designationLabel = activeTechnique === "Gc" ? "USP G-designation" : "USP designation";
+
   return (
     <Stack spacing={2.5}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          Select Chromatography Column:
+          {activeTechnique === "Gc" ? "Select GC Column:" : "Select Chromatography Column:"}
         </Typography>
         {targetDesignation && (
           <Chip
@@ -62,8 +70,8 @@ export function WizardColumnStep({
       {qualifyingColumns.length === 0 ? (
         <Alert severity="warning" sx={{ borderRadius: 2 }}>
           {targetDesignation
-            ? `No ${targetDesignation} column is registered for this instrument - add the USP designation in the Column master.`
-            : "No qualifying column is registered for this instrument - add the USP designation in the Column master."}
+            ? `No ${targetDesignation} column is registered for this instrument - add the ${designationLabel} in the Column master.`
+            : `No qualifying column is registered for this instrument - add the ${designationLabel} in the Column master.`}
         </Alert>
       ) : (
         <RadioGroup

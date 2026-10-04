@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -26,18 +26,22 @@ import { WizardMethodStep } from "./WizardMethodStep";
 import { WizardColumnStep } from "./WizardColumnStep";
 import { WizardMobilePhasesStep } from "./WizardMobilePhasesStep";
 import { WizardReviewStep } from "./WizardReviewStep";
+import { useTechnique } from "../useTechnique";
 import type {
   HplcInstrumentDto,
   HplcMethodOptionDto,
   HplcMobilePhaseAssignmentInput
 } from "../types";
 
-const STEPS = ["Select Method", "Select Column", "Assign Mobile Phases", "Review & Start"];
+const STEPS_HPLC = ["Select Method", "Select Column", "Assign Mobile Phases", "Review & Start"];
+const STEPS_GC = ["Select Method", "Select Column", "Review & Start"];
 
 export function StartHplcRunWizard() {
   const navigate = useNavigate();
+  const { technique, label, routes } = useTechnique();
   const { instrumentId } = useParams<{ instrumentId: string }>();
   const equipmentId = Number(instrumentId);
+  const steps = technique === "Gc" ? STEPS_GC : STEPS_HPLC;
 
   const [activeStep, setActiveStep] = useState(0);
   const [instrument, setInstrument] = useState<HplcInstrumentDto | null>(null);
@@ -68,8 +72,8 @@ export function StartHplcRunWizard() {
     setError(null);
 
     Promise.all([
-      HplcWorkspaceService.getInstruments(),
-      HplcWorkspaceService.getMethodOptions(),
+      HplcWorkspaceService.getInstruments(technique),
+      HplcWorkspaceService.getMethodOptions(technique),
       ChromatographyColumnService.getAll(true)
     ])
       .then(([instList, methods, cols]) => {
@@ -93,7 +97,7 @@ export function StartHplcRunWizard() {
     return () => {
       active = false;
     };
-  }, [equipmentId]);
+  }, [equipmentId, technique]);
 
   // Load full method details when method is selected
   useEffect(() => {
@@ -148,17 +152,20 @@ export function StartHplcRunWizard() {
   const handleStartRun = async () => {
     if (!selectedMethodId || !selectedColumnId || !selectedMethod) return;
 
-    // Check all mobile phases are assigned
-    const missingChannel = selectedMethod.mobilePhases.find((mp) => !selectedMobilePhases[mp.channel]);
-    if (missingChannel) {
-      setError(`Please select a prepared mobile phase for Channel ${missingChannel.channel}.`);
-      return;
-    }
+    let mobilePhases: HplcMobilePhaseAssignmentInput[] = [];
+    if (technique !== "Gc") {
+      // Check all mobile phases are assigned
+      const missingChannel = selectedMethod.mobilePhases.find((mp) => !selectedMobilePhases[mp.channel]);
+      if (missingChannel) {
+        setError(`Please select a prepared mobile phase for Channel ${missingChannel.channel}.`);
+        return;
+      }
 
-    const mobilePhases: HplcMobilePhaseAssignmentInput[] = selectedMethod.mobilePhases.map((mp) => ({
-      channel: mp.channel,
-      solutionPreparationId: selectedMobilePhases[mp.channel]
-    }));
+      mobilePhases = selectedMethod.mobilePhases.map((mp) => ({
+        channel: mp.channel,
+        solutionPreparationId: selectedMobilePhases[mp.channel]
+      }));
+    }
 
     setStarting(true);
     setError(null);
@@ -169,7 +176,7 @@ export function StartHplcRunWizard() {
         chromatographyColumnId: selectedColumnId,
         mobilePhases
       });
-      navigate(`/hplc-workspace/${equipmentId}/run/${run.id}`, { replace: true });
+      navigate(routes.run(equipmentId, run.id), { replace: true });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Failed to start run.");
@@ -182,12 +189,17 @@ export function StartHplcRunWizard() {
   const canProceed = () => {
     if (activeStep === 0) return Boolean(selectedMethodId);
     if (activeStep === 1) return Boolean(selectedColumnId);
-    if (activeStep === 2) {
+    if (technique !== "Gc" && activeStep === 2) {
       if (!selectedMethod) return false;
       return selectedMethod.mobilePhases.every((mp) => Boolean(selectedMobilePhases[mp.channel]));
     }
     return true;
   };
+
+  const filteredMethodOptions = useMemo(
+    () => methodOptions.filter((m: HplcMethodOptionDto) => !m.technique || m.technique === technique),
+    [methodOptions, technique]
+  );
 
   if (loading) {
     return (
@@ -198,28 +210,28 @@ export function StartHplcRunWizard() {
   }
 
   const selectedCol = columns.find((c) => c.id === selectedColumnId);
-  const selectedMethodOption = methodOptions.find((m) => m.id === selectedMethodId);
+  const selectedMethodOption = filteredMethodOptions.find((m: HplcMethodOptionDto) => m.id === selectedMethodId);
   const targetDesignation = (selectedMethod?.columnDesignation ?? selectedMethodOption?.columnDesignation ?? "").trim();
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100, mx: "auto" }}>
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/hplc-workspace")}
+        onClick={() => navigate(routes.root)}
         sx={{ mb: 2, textTransform: "none", color: "text.secondary" }}
       >
         Back to Instruments
       </Button>
 
       <PageHeader
-        title={`Start HPLC Run: ${instrument?.name || `Instrument #${equipmentId}`}`}
-        subtitle={`Set up method, column, and mobile phases for ${instrument?.code || ""}`}
+        title={`Start ${label} Run: ${instrument?.name || `Instrument #${equipmentId}`}`}
+        subtitle={`Set up method and column${technique !== "Gc" ? ", and mobile phases" : ""} for ${instrument?.code || ""}`}
       />
 
       <Stepper activeStep={activeStep} sx={{ my: 3 }}>
-        {STEPS.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
+        {steps.map((stepLabel) => (
+          <Step key={stepLabel}>
+            <StepLabel>{stepLabel}</StepLabel>
           </Step>
         ))}
       </Stepper>
@@ -232,9 +244,10 @@ export function StartHplcRunWizard() {
 
       {activeStep === 0 && (
         <WizardMethodStep
-          methodOptions={methodOptions}
+          methodOptions={filteredMethodOptions}
           selectedMethodId={selectedMethodId}
           selectedMethod={selectedMethod}
+          technique={technique}
           onSelectMethod={(id) => setSelectedMethodId(id)}
         />
       )}
@@ -245,11 +258,12 @@ export function StartHplcRunWizard() {
           selectedColumnId={selectedColumnId}
           equipmentId={equipmentId}
           targetDesignation={targetDesignation}
+          technique={technique}
           onSelectColumn={(id) => setSelectedColumnId(id)}
         />
       )}
 
-      {activeStep === 2 && selectedMethod && (
+      {technique !== "Gc" && activeStep === 2 && selectedMethod && (
         <WizardMobilePhasesStep
           method={selectedMethod}
           availablePreparations={availablePreparations}
@@ -262,7 +276,7 @@ export function StartHplcRunWizard() {
         />
       )}
 
-      {activeStep === 3 && selectedMethod && (
+      {((technique === "Gc" && activeStep === 2) || (technique !== "Gc" && activeStep === 3)) && selectedMethod && (
         <WizardReviewStep
           instrumentName={instrument?.name}
           instrumentCode={instrument?.code}
@@ -271,6 +285,7 @@ export function StartHplcRunWizard() {
           columnCode={selectedCol?.code}
           availablePreparations={availablePreparations}
           selectedMobilePhases={selectedMobilePhases}
+          technique={technique}
         />
       )}
 
@@ -283,7 +298,7 @@ export function StartHplcRunWizard() {
           Back
         </Button>
 
-        {activeStep < STEPS.length - 1 ? (
+        {activeStep < steps.length - 1 ? (
           <Button
             variant="contained"
             disabled={!canProceed()}
@@ -300,7 +315,7 @@ export function StartHplcRunWizard() {
             onClick={handleStartRun}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {starting ? "Starting Run..." : "Start HPLC Run"}
+            {starting ? "Starting Run..." : `Start ${label} Run`}
           </Button>
         )}
       </Box>

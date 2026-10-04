@@ -26,6 +26,7 @@ import {
   HplcMethodResponse
 } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { tableHeadSx } from "../../../theme";
+import { GcMethodDetails } from "./GcMethodDetails";
 
 export interface MethodReadOnlyPanelProps {
   methodId?: number;
@@ -84,6 +85,24 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
       <Typography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
         No method definition available.
       </Typography>
+    );
+  }
+
+  const isGc = method.technique === "Gc";
+
+  if (isGc) {
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2.5,
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme.palette.background.paper
+        }}
+      >
+        <GcMethodDetails method={method} />
+      </Paper>
     );
   }
 

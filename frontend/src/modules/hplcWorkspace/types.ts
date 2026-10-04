@@ -22,7 +22,6 @@ export type ResultStatus =
   | "Inconclusive";
 
 // ---- Instruments / Methods ----
-
 export interface HplcActiveRunSummaryDto {
   runId: number;
   code: string;
@@ -41,17 +40,27 @@ export interface HplcInstrumentDto {
   activeRun?: HplcActiveRunSummaryDto | null;
 }
 
+import type { HplcTechnique, HplcResultMode } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+
+export type {
+  HplcTechnique,
+  HplcResultMode,
+  CarrierGas,
+  HplcDetectorType,
+  HplcMethodResponse as HplcMethodSnapshot
+} from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+
 export interface HplcMethodOptionDto {
   id: number;
   abbreviation: string;
   name: string;
-  // USP column packing the method requires, e.g. "L1".
   columnDesignation: string;
   eligibleTestOrderCount: number;
+  technique?: HplcTechnique;
+  resultMode?: HplcResultMode;
 }
 
 // ---- Start Run ----
-
 export interface HplcMobilePhaseAssignmentInput {
   channel: string;
   solutionPreparationId: number;
@@ -65,7 +74,6 @@ export interface StartHplcRunRequest {
 }
 
 // ---- SST ----
-
 export interface SaveSstAnalyteInput {
   hplcSstAnalyteId: number;
   standardMaterialId: number;
@@ -90,7 +98,6 @@ export interface ConfirmSstRequest {
 }
 
 // ---- Evidence ----
-
 export interface HplcEvidenceDto {
   id: number;
   hplcRunId: number;
@@ -332,16 +339,8 @@ export interface ReasonRequest {
 
 // ---- Working Standard Qualifications (Task 10) ----
 
-export type WorkingStandardQualificationStatus =
-  | "Draft"
-  | "Assayed"
-  | "Reviewed"
-  | "Approved"
-  | "Rejected";
-
-export type WorkingStandardQualificationKind =
-  | "Initial"
-  | "Requalification";
+export type WorkingStandardQualificationStatus = "Draft" | "Assayed" | "Reviewed" | "Approved" | "Rejected";
+export type WorkingStandardQualificationKind = "Initial" | "Requalification";
 
 export interface EligibleQualificationDto {
   qualificationId: number;

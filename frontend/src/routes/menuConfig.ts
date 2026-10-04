@@ -129,6 +129,7 @@ const physchemArea: MenuItem = {
     { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
     { label: "Working Standards", path: "/working-standards" },
     { label: "HPLC Workspace", path: "/hplc-workspace" },
+    { label: "GC Workspace", path: "/gc-workspace" },
     { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
   ]

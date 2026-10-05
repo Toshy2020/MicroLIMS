@@ -5,7 +5,7 @@ public enum EquationType
     None = 0,
     HplcAssay,        // retired (SC-3), value kept
     SystemSuitability,
-    CalibrationCurve,
+    CalibrationCurve, // retired (slice R)
     Measurement,
     GravimetricLoss,
     GravimetricResidue,

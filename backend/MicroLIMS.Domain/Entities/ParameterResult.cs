@@ -37,23 +37,6 @@ public class ParameterResult
     public List<ResultReading> Readings { get; set; } = new();
 
     [NotMapped]
-    public ElementalCalculationData? ElementalCalculation
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(CalculationJson)) return null;
-            try
-            {
-                return JsonSerializer.Deserialize<ElementalCalculationData>(CalculationJson, JsonOptions);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-    }
-
-    [NotMapped]
     public MeasurementCalculationData? MeasurementCalculation
     {
         get
@@ -69,21 +52,6 @@ public class ParameterResult
             }
         }
     }
-
-    [NotMapped]
-    public string Element => ElementalCalculation?.Element ?? string.Empty;
-
-    [NotMapped]
-    public decimal? ReportedPpm => ElementalCalculation?.ReportedPpm;
-
-    [NotMapped]
-    public decimal? MgPerUnit => ElementalCalculation?.MgPerUnit;
-
-    [NotMapped]
-    public decimal? ResultClaim => ElementalCalculation?.ResultClaim;
-
-    [NotMapped]
-    public decimal? PercentLabelClaim => ElementalCalculation?.PercentLabelClaim;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

@@ -233,14 +233,6 @@ public static class CertificateOfAnalysisBuilder
 
     private static IEnumerable<CoaSimpleRowDto> SimpleRowsFor(TestOrderSummaryDetailDto t)
     {
-        if (t.ElementalAssay is { } assay)
-        {
-            return assay.Elements.Select(e => Row(t, ResultConformanceRules.FromStatus(e.Status),
-                testCode: $"{t.TestCode}:{e.Element}", displayName: e.ParameterName,
-                specification: WithUnit(e.SpecLimit, e.Unit), result: e.ReportedDisplay,
-                analystName: assay.EnteredByName, analystAt: assay.EnteredAt));
-        }
-
         if (t.Analysis is { } analysis)
         {
             return analysis.ParameterResults.Select(p => Row(t, ResultConformanceRules.FromStatus(p.ComparisonStatus),

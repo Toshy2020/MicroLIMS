@@ -10,7 +10,6 @@ public static class AnalysisWorkflows
 {
     private static readonly HashSet<WorkflowType> Workflows = new()
     {
-        WorkflowType.ElementalAssay,
         WorkflowType.Measurement,
         WorkflowType.Gravimetric,
         WorkflowType.Qualitative,
@@ -28,7 +27,6 @@ public static class AnalysisWorkflows
 
     public static string GetDisplayName(WorkflowType workflowType) => workflowType switch
     {
-        WorkflowType.ElementalAssay => "elemental assay",
         WorkflowType.Measurement => "measurement",
         WorkflowType.Gravimetric => "gravimetric",
         WorkflowType.Qualitative => "qualitative",

@@ -22,8 +22,6 @@ namespace MicroLIMS.API.Controllers;
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null, string? DilutionFactorOverrideNote = null);
-public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
-public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
 public record RecordMeasurementResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordMeasurementParameterRequest> Parameters, string Password, string? Comment = null);
 public record GravimetricReplicateRequest(decimal? Container, decimal Initial, decimal Final);
@@ -254,28 +252,6 @@ public class TestWorkflowController : ControllerBase
             }
 
             return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
-        });
-    }
-
-    [HttpPost("{testOrderId}/record-elemental-result")]
-    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordElementalResult(int testOrderId, RecordElementalAssayResultRequest request)
-    {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        return await RunAsync(() =>
-        {
-            var payload = new ElementalAssayPayload(
-                request.UnitAmount,
-                request.AnalysedAt,
-                request.Elements.Select(e => new ElementalAssayElementInput(
-                    e.SpecificationId,
-                    e.CalibrationRunAnalyteId,
-                    e.ReportedPpm,
-                    e.OverRange,
-                    e.BelowLoq)).ToList(),
-                request.Password,
-                request.Comment);
-            return _engine.RecordElementalAssayResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

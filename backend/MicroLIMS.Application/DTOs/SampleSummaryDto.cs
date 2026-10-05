@@ -148,8 +148,6 @@ public class TestOrderSummaryDetailDto
     public List<IncubationDetailDto> Incubations { get; set; } = new();
     public List<ResultDetailDto> Results { get; set; } = new();
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();
-    // Elemental Assay only - the active (not returned) entry and results, null otherwise.
-    public ElementalAssayDetailDto? ElementalAssay { get; set; }
     // Shared Result Foundation - generic test analysis, null if not a TestAnalysis workflow
     public AnalysisDetailDto? Analysis { get; set; }
     public List<PathogenObservationDetailDto> PathogenObservations { get; set; } = new();
@@ -226,35 +224,6 @@ public class ResultDetailDto
     public DateTime EnteredAt { get; set; }
 }
 
-public class ElementalAssayDetailDto
-{
-    public SampleMatrix SampleMatrix { get; set; }
-    public decimal UnitAmount { get; set; }
-    public string UnitAmountUnit { get; set; } = string.Empty;
-    public DateTime AnalysedAt { get; set; }
-    public string? EnteredByName { get; set; }
-    public DateTime EnteredAt { get; set; }
-    public List<ElementalAssayElementDetailDto> Elements { get; set; } = new();
-}
-
-public class ElementalAssayElementDetailDto
-{
-    public string ParameterName { get; set; } = string.Empty;
-    public string Element { get; set; } = string.Empty;
-    public string RunCode { get; set; } = string.Empty;
-    public bool RunAnalytePassed { get; set; }
-    public decimal ReportedPpm { get; set; }
-    public bool OverRange { get; set; }
-    public bool BelowLoq { get; set; }
-    public decimal? MgPerUnit { get; set; }
-    public decimal? ResultClaim { get; set; }
-    public decimal? PercentLabelClaim { get; set; }
-    public string ReportedDisplay { get; set; } = string.Empty;
-    public string? SpecLimit { get; set; }
-    public string? Unit { get; set; }
-    public ResultStatus Status { get; set; }
-}
-
 public class AnalysisDetailDto
 {
     public int Id { get; set; }
@@ -288,7 +257,6 @@ public class ParameterResultDetailDto
     public ResultStatus ComparisonStatus { get; set; }
     public bool OverRange { get; set; }
     public bool BelowLoq { get; set; }
-    public int? ValidityRecordItemId { get; set; }
     public string? CalculationJson { get; set; }
     public int? StageReached { get; set; }
     public List<ResultReadingDetailDto> Readings { get; set; } = new();

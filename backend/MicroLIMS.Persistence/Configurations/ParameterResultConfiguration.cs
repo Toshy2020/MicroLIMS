@@ -35,14 +35,8 @@ public class ParameterResultConfiguration : IEntityTypeConfiguration<ParameterRe
             .HasForeignKey(r => r.SpecificationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(r => r.CalibrationRunAnalyte)
-            .WithMany()
-            .HasForeignKey(r => r.ValidityRecordItemId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasIndex(r => new { r.TestOrderId, r.IsActive });
         builder.HasIndex(r => r.TestAnalysisId);
         builder.HasIndex(r => r.SpecificationId);
-        builder.HasIndex(r => r.ValidityRecordItemId);
     }
 }

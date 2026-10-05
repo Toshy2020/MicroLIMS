@@ -182,23 +182,6 @@ public class TestDefinitionResponse
     public decimal? SstMinResolution { get; init; }
     public decimal? SstMaxTailingFactor { get; init; }
     public decimal? SstMinTheoreticalPlates { get; init; }
-    public CalibrationEntryMode? CalibrationEntryMode { get; init; }
-    public decimal? CalMinCorrelation { get; init; }
-    public CorrelationType? CalCorrelationType { get; init; }
-    public int? CalMinStandards { get; init; }
-    public decimal? CalCheckRecoveryLowPercent { get; init; }
-    public decimal? CalCheckRecoveryHighPercent { get; init; }
-    public decimal? CalBlankMax { get; init; }
-    public decimal? CalIsRecoveryLowPercent { get; init; }
-    public decimal? CalIsRecoveryHighPercent { get; init; }
-    public bool? CalRequireBlank { get; init; }
-    public bool? CalRequireIcv { get; init; }
-    public bool? CalRequireCcv { get; init; }
-    public bool? CalRequireInternalStandard { get; init; }
-    public ReportedConcentrationBasis? ReportedConcentrationBasis { get; init; }
-    public int? CalMaxRunAgeHours { get; init; }
-    public EquipmentType? CalInstrumentType { get; init; }
-    public string? CalStandardLevelsMgPerL { get; init; }
     public int? ReplicateCount { get; init; }
     public MeasurementEvaluationBasis? EvaluationBasis { get; init; }
     public string? ConditionFields { get; init; }
@@ -259,23 +242,6 @@ public class TestDefinitionResponse
         SstMinResolution = e.SstMinResolution,
         SstMaxTailingFactor = e.SstMaxTailingFactor,
         SstMinTheoreticalPlates = e.SstMinTheoreticalPlates,
-        CalibrationEntryMode = e.CalibrationEntryMode,
-        CalMinCorrelation = e.CalMinCorrelation,
-        CalCorrelationType = e.CalCorrelationType,
-        CalMinStandards = e.CalMinStandards,
-        CalCheckRecoveryLowPercent = e.CalCheckRecoveryLowPercent,
-        CalCheckRecoveryHighPercent = e.CalCheckRecoveryHighPercent,
-        CalBlankMax = e.CalBlankMax,
-        CalIsRecoveryLowPercent = e.CalIsRecoveryLowPercent,
-        CalIsRecoveryHighPercent = e.CalIsRecoveryHighPercent,
-        CalRequireBlank = e.CalRequireBlank,
-        CalRequireIcv = e.CalRequireIcv,
-        CalRequireCcv = e.CalRequireCcv,
-        CalRequireInternalStandard = e.CalRequireInternalStandard,
-        ReportedConcentrationBasis = e.ReportedConcentrationBasis,
-        CalMaxRunAgeHours = e.CalMaxRunAgeHours,
-        CalInstrumentType = e.CalInstrumentType,
-        CalStandardLevelsMgPerL = e.CalStandardLevelsMgPerL,
         ReplicateCount = e.ReplicateCount,
         EvaluationBasis = e.EvaluationBasis,
         ConditionFields = e.ConditionFields,

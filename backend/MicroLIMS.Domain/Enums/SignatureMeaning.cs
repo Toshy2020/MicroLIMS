@@ -15,8 +15,8 @@ public enum SignatureMeaning
     MasterDataChanged,
     SuitabilityRunPerformed,
     ResultRecorded,
-    CalibrationRunPerformed,
-    CalibrationRunWithdrawn,
+    CalibrationRunPerformed, // retired (slice R)
+    CalibrationRunWithdrawn, // retired (slice R)
     TestingClosed,
     LaboratoryAdded,
     TitrantStandardized

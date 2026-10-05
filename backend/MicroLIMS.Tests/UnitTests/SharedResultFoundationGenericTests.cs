@@ -142,7 +142,7 @@ public class SharedResultFoundationGenericTests
     public async Task ApprovalGate_BlocksApproval_WhenGenericAnalysisLacksActiveEntry()
     {
         using var db = NewDb();
-        var (sec, analyst, reviewer, head, def, sample, order, _) = SeedGenericFixture(db, WorkflowType.ElementalAssay);
+        var (sec, analyst, reviewer, head, def, sample, order, _) = SeedGenericFixture(db, WorkflowType.Gravimetric);
         order.CurrentStep = WorkflowStep.Reviewed;
         order.Status = ApprovalStatus.Approved;
         sample.Status = SampleStatus.UnderReview;
@@ -161,14 +161,14 @@ public class SharedResultFoundationGenericTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             approvalService.DecideAsync(sample.Id, head.Id, Password, ApprovalDecision.Approve, "Approving without analysis", "127.0.0.1", sectionId: sec.Id));
 
-        Assert.Contains("lacks an active elemental assay entry", ex.Message);
+        Assert.Contains("lacks an active gravimetric entry", ex.Message);
     }
 
     [Fact]
     public async Task ApprovalGate_BlocksApproval_WhenSectionHeadEnteredAnalysis()
     {
         using var db = NewDb();
-        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.ElementalAssay);
+        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.Gravimetric);
 
         var sig = new ElectronicSignature
         {
@@ -187,7 +187,7 @@ public class SharedResultFoundationGenericTests
         var analysis = new TestAnalysis
         {
             TestOrderId = order.Id,
-            AnalysisType = WorkflowType.ElementalAssay,
+            AnalysisType = WorkflowType.Gravimetric,
             AnalysedAt = DateTime.UtcNow,
             IsActive = true,
             EnteredByUserId = head.Id, // Head entered it!
@@ -220,7 +220,7 @@ public class SharedResultFoundationGenericTests
     public async Task ApprovalGate_Succeeds_WhenActiveAnalysisExists_EnteredByAnalyst()
     {
         using var db = NewDb();
-        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.ElementalAssay);
+        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.Gravimetric);
 
         var sig = new ElectronicSignature
         {
@@ -239,7 +239,7 @@ public class SharedResultFoundationGenericTests
         var analysis = new TestAnalysis
         {
             TestOrderId = order.Id,
-            AnalysisType = WorkflowType.ElementalAssay,
+            AnalysisType = WorkflowType.Gravimetric,
             AnalysedAt = DateTime.UtcNow,
             IsActive = true,
             EnteredByUserId = analyst.Id,
@@ -272,7 +272,7 @@ public class SharedResultFoundationGenericTests
     public async Task ReturnToAnalyst_SoftSupersedesGenericAnalysisAndParameterResults()
     {
         using var db = NewDb();
-        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.ElementalAssay);
+        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.Gravimetric);
         order.CurrentStep = WorkflowStep.Ready;
         order.Status = ApprovalStatus.ResultEntered;
 
@@ -293,7 +293,7 @@ public class SharedResultFoundationGenericTests
         var analysis = new TestAnalysis
         {
             TestOrderId = order.Id,
-            AnalysisType = WorkflowType.ElementalAssay,
+            AnalysisType = WorkflowType.Gravimetric,
             AnalysedAt = DateTime.UtcNow,
             IsActive = true,
             EnteredByUserId = analyst.Id,
@@ -330,12 +330,12 @@ public class SharedResultFoundationGenericTests
     public async Task ResultProjection_UpsertFromParameterResult_CreatesResultRecordWithSourceTableParameterResult()
     {
         using var db = NewDb();
-        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.ElementalAssay);
+        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.Gravimetric);
 
         var analysis = new TestAnalysis
         {
             TestOrderId = order.Id,
-            AnalysisType = WorkflowType.ElementalAssay,
+            AnalysisType = WorkflowType.Gravimetric,
             AnalysedAt = DateTime.UtcNow,
             IsActive = true,
             EnteredByUserId = analyst.Id,
@@ -377,12 +377,12 @@ public class SharedResultFoundationGenericTests
     public async Task ResultProjection_Backfill_ProjectsParameterResults()
     {
         using var db = NewDb();
-        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.ElementalAssay);
+        var (sec, analyst, reviewer, head, def, sample, order, spec) = SeedGenericFixture(db, WorkflowType.Gravimetric);
 
         var analysis = new TestAnalysis
         {
             TestOrderId = order.Id,
-            AnalysisType = WorkflowType.ElementalAssay,
+            AnalysisType = WorkflowType.Gravimetric,
             AnalysedAt = DateTime.UtcNow,
             IsActive = true,
             EnteredByUserId = analyst.Id,

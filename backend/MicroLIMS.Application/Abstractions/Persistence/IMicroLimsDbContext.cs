@@ -79,10 +79,6 @@ public interface IMicroLimsDbContext
     DbSet<ChromatographyColumn> ChromatographyColumns { get; }
     DbSet<TestAnalyte> TestAnalytes { get; }
     DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates { get; }
-    DbSet<CalibrationRun> CalibrationRuns { get; }
-    DbSet<CalibrationRunDocument> CalibrationRunDocuments { get; }
-    DbSet<CalibrationRunAnalyte> CalibrationRunAnalytes { get; }
-    DbSet<CalibrationRunCheck> CalibrationRunChecks { get; }
     DbSet<TestAnalysis> TestAnalyses { get; }
     DbSet<ParameterResult> ParameterResults { get; }
     DbSet<ResultReading> ResultReadings { get; }

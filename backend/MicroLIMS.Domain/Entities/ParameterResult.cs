@@ -29,9 +29,6 @@ public class ParameterResult
     public bool OverRange { get; set; }
     public bool BelowLoq { get; set; }
 
-    public int? ValidityRecordItemId { get; set; }
-    public CalibrationRunAnalyte? CalibrationRunAnalyte { get; set; }
-
     public string? CalculationJson { get; set; }
     public int? StageReached { get; set; }
 

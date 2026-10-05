@@ -25,7 +25,7 @@ namespace MicroLIMS.Application.Workflows;
 // The engine itself is a facade over the parts of the workflow, each in
 // its own class under Workflows/TestWorkflow: TestStepNavigator,
 // IncubationStepRecorder, PathogenConfirmationRecorder,
-// ElementalAssayRecorder, SingleResultRecorder, DissolutionRecorder,
+// SingleResultRecorder, DissolutionRecorder,
 // DisintegrationRecorder, WeightVariationRecorder
 // and HplcMethodAssayRecorder. They all derive from TestWorkflowSupport,
 // which holds what they share.
@@ -34,7 +34,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly TestWorkflowSupport _support;
     private readonly TestStepNavigator _testStepNavigator;
     private readonly IncubationStepRecorder _incubationStepRecorder;
-    private readonly ElementalAssayRecorder _elementalAssayRecorder;
     private readonly SingleResultRecorder _singleResultRecorder;
     private readonly DissolutionRecorder _dissolutionRecorder;
     private readonly DisintegrationRecorder _disintegrationRecorder;
@@ -61,7 +60,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _support = new TestWorkflowSupport(deps);
         _testStepNavigator = new TestStepNavigator(deps);
         _incubationStepRecorder = new IncubationStepRecorder(deps);
-        _elementalAssayRecorder = new ElementalAssayRecorder(deps);
         _singleResultRecorder = new SingleResultRecorder(deps);
         _dissolutionRecorder = new DissolutionRecorder(deps);
         _disintegrationRecorder = new DisintegrationRecorder(deps);
@@ -130,10 +128,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     public static (ResultStatus status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
         IncubationStepRecorder.Compare(value, alert, action, spec);
-
-    public Task<TestWorkflowResult> RecordElementalAssayResultAsync(
-        int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null) =>
-        _elementalAssayRecorder.RecordElementalAssayResultAsync(testOrderId, payload, userId, ipAddress);
 
     public Task<TestWorkflowResult> RecordMeasurementResultAsync(
         int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null) =>

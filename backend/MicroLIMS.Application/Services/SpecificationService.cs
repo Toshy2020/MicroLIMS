@@ -401,49 +401,9 @@ public class SpecificationService
                 throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for titration specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
             }
         }
-        else if (testDef?.EquationType == EquationType.CalibrationCurve)
+        else if (testDef?.EquationType == EquationType.CalibrationCurve || testDef?.WorkflowType == WorkflowType.ElementalAssay)
         {
-            if (spec.HplcMethodAnalyteId.HasValue)
-                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-            if (spec.IcpMethodElementId.HasValue)
-                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-
-            if (!spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is required for Calibration Curve specifications.");
-
-            var analyte = await _db.TestAnalytes
-                .FirstOrDefaultAsync(a => a.Id == spec.TestAnalyteId.Value, cancellationToken);
-            if (analyte == null || analyte.TestDefinitionId != testDef.Id)
-                throw new InvalidOperationException($"Test analyte does not belong to test '{spec.TestCode}'.");
-
-            var duplicateAnalyte = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
-                cancellationToken);
-            if (duplicateAnalyte)
-                throw new InvalidOperationException($"A specification for this analyte already exists for test '{spec.TestCode}' on item {spec.ItemId}.");
-
-            if (!spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is required for Calibration Curve specifications.");
-
-            if (!spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is required for Calibration Curve specifications.");
-
-            if (spec.LimitType != LimitType.Range &&
-                spec.LimitType != LimitType.NotMoreThan &&
-                spec.LimitType != LimitType.NotLessThan &&
-                spec.LimitType != LimitType.TargetWithTolerance)
-            {
-                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for Calibration Curve specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
-            }
-
-            if (spec.ConversionFactor <= 0)
-                throw new InvalidOperationException("Conversion factor must be greater than zero.");
-
-            if (spec.ResultBasis == ResultBasis.PercentLabelClaim)
-            {
-                if (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0)
-                    throw new InvalidOperationException("Label claim must be greater than zero when result basis is PercentLabelClaim.");
-            }
+            throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
         }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
         {

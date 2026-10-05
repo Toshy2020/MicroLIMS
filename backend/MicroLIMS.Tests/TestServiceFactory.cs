@@ -256,21 +256,6 @@ public static class TestServiceFactory
             storage ?? new InMemoryFileStorageService(),
             clock);
 
-    public static CalibrationRunService CalibrationRun(
-        MicroLimsDbContext db,
-        IFileStorageService? storage = null,
-        IUserSectionScopeService? scope = null,
-        IElectronicSignatureService? signatures = null,
-        ILogger<CalibrationRunService>? logger = null,
-        ILabClock? clock = null) =>
-        new(db,
-            storage ?? new InMemoryFileStorageService(),
-            signatures ?? new ElectronicSignatureService(db),
-            scope ?? new UserSectionScopeService(db),
-            logger ?? NullLogger<CalibrationRunService>.Instance,
-            clock);
-
-
     // Finished Product receipts and corrections require a known production
     // stage (by name, case-insensitive) - fixtures seed the one they use.
     public static ProductionStage EnsureProductionStage(MicroLimsDbContext db, string name = "F.P")

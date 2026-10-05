@@ -121,20 +121,6 @@ public record TestWorkflowResult(
     string OutcomeSummary, bool IsDefinitive, bool AllStepsComplete, string? FinalResult,
     decimal? Average, decimal? CalculatedResult, ResultStatus? Status);
 
-public record ElementalAssayElementInput(
-    int SpecificationId,
-    int CalibrationRunAnalyteId,
-    decimal ReportedPpm,
-    bool OverRange,
-    bool BelowLoq);
-
-public record ElementalAssayPayload(
-    decimal UnitAmount,
-    DateTime AnalysedAt,
-    List<ElementalAssayElementInput> Elements,
-    string Password,
-    string? Comment = null);
-
 public record MeasurementParameterInput(
     int SpecificationId,
     List<decimal> Readings);
@@ -249,7 +235,6 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> SubmitIcpMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordTitrationResultAsync(int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null);

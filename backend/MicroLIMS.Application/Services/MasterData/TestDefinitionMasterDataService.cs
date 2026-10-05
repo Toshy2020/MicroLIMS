@@ -36,6 +36,9 @@ public class TestDefinitionMasterDataService
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
+        if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
+            throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
+
         var userId = currentUserId;
         var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId);
 
@@ -57,79 +60,10 @@ public class TestDefinitionMasterDataService
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
-        else if (request.EquationType == EquationType.CalibrationCurve)
-        {
-            if (request.WorkflowType != WorkflowType.ElementalAssay)
-                throw new InvalidOperationException("Workflow type must be ElementalAssay when equation type is CalibrationCurve.");
-
-            if (string.IsNullOrEmpty(methodAbbr))
-                throw new InvalidOperationException("Method abbreviation is required when equation type is CalibrationCurve.");
-
-            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
-                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
-
-            if (!request.CalMinCorrelation.HasValue || request.CalMinCorrelation.Value <= 0m || request.CalMinCorrelation.Value > 1m)
-                throw new InvalidOperationException("Minimum correlation must be in (0, 1] when equation type is CalibrationCurve.");
-
-            if (!request.CalCorrelationType.HasValue)
-                throw new InvalidOperationException("Correlation type is required when equation type is CalibrationCurve.");
-
-            if (!request.CalMinStandards.HasValue || request.CalMinStandards.Value < 1)
-                throw new InvalidOperationException("Minimum standards must be at least 1 when equation type is CalibrationCurve.");
-
-            if (!request.CalCheckRecoveryLowPercent.HasValue || !request.CalCheckRecoveryHighPercent.HasValue)
-                throw new InvalidOperationException("Both check recovery window bounds (low and high) are required when equation type is CalibrationCurve.");
-
-            if (request.CalCheckRecoveryLowPercent.Value > request.CalCheckRecoveryHighPercent.Value)
-                throw new InvalidOperationException("Check recovery low percent must be less than or equal to high percent.");
-
-            if (request.CalRequireInternalStandard == true)
-            {
-                if (!request.CalIsRecoveryLowPercent.HasValue || !request.CalIsRecoveryHighPercent.HasValue)
-                    throw new InvalidOperationException("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
-
-                if (request.CalIsRecoveryLowPercent.Value > request.CalIsRecoveryHighPercent.Value)
-                    throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
-            }
-            else if (request.CalIsRecoveryLowPercent.HasValue && request.CalIsRecoveryHighPercent.HasValue &&
-                request.CalIsRecoveryLowPercent.Value > request.CalIsRecoveryHighPercent.Value)
-            {
-                throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
-            }
-
-            if (!request.ReportedConcentrationBasis.HasValue)
-                throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
-            if (request.ReportedConcentrationBasis != ReportedConcentrationBasis.SamplePpm)
-                throw new InvalidOperationException("Only 'ppm in the sample' is supported: Syngistix applies weight, volume and dilution itself.");
-
-            var maxAge = request.CalMaxRunAgeHours ?? 24;
-            if (maxAge < 1)
-                throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");
-        }
         else if (methodAbbr != null)
         {
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
-        }
-
-        // AAS reuses the CalibrationCurve path (D-A4): the instrument choice and standard
-        // levels only make sense there, and only IcpOes/Aas are supported instrument families.
-        if (request.CalInstrumentType.HasValue)
-        {
-            if (request.EquationType != EquationType.CalibrationCurve)
-                throw new InvalidOperationException("Calibration instrument type only applies when equation type is CalibrationCurve.");
-
-            if (request.CalInstrumentType.Value != EquipmentType.IcpOes && request.CalInstrumentType.Value != EquipmentType.Aas)
-                throw new InvalidOperationException("Calibration instrument type must be IcpOes or Aas.");
-        }
-
-        string? normalizedCalLevels = null;
-        if (!string.IsNullOrWhiteSpace(request.CalStandardLevelsMgPerL))
-        {
-            if (request.EquationType != EquationType.CalibrationCurve)
-                throw new InvalidOperationException("Standard levels only apply when equation type is CalibrationCurve.");
-
-            normalizedCalLevels = CalibrationStandardLevelsHelper.ParseAndValidate(request.CalStandardLevelsMgPerL).Normalized;
         }
 
         if (request.EquationType == EquationType.Measurement)
@@ -381,23 +315,6 @@ public class TestDefinitionMasterDataService
             SstMinResolution = request.SstMinResolution,
             SstMaxTailingFactor = request.SstMaxTailingFactor,
             SstMinTheoreticalPlates = request.SstMinTheoreticalPlates,
-            CalibrationEntryMode = request.CalibrationEntryMode,
-            CalMinCorrelation = request.CalMinCorrelation,
-            CalCorrelationType = request.CalCorrelationType,
-            CalMinStandards = request.CalMinStandards,
-            CalCheckRecoveryLowPercent = request.CalCheckRecoveryLowPercent,
-            CalCheckRecoveryHighPercent = request.CalCheckRecoveryHighPercent,
-            CalBlankMax = request.CalBlankMax,
-            CalIsRecoveryLowPercent = request.CalIsRecoveryLowPercent,
-            CalIsRecoveryHighPercent = request.CalIsRecoveryHighPercent,
-            CalRequireBlank = request.CalRequireBlank,
-            CalRequireIcv = request.CalRequireIcv,
-            CalRequireCcv = request.CalRequireCcv,
-            CalRequireInternalStandard = request.CalRequireInternalStandard,
-            ReportedConcentrationBasis = request.ReportedConcentrationBasis,
-            CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24,
-            CalInstrumentType = request.CalInstrumentType,
-            CalStandardLevelsMgPerL = normalizedCalLevels,
             ReplicateCount = request.ReplicateCount,
             EvaluationBasis = request.EvaluationBasis,
             ConditionFields = request.ConditionFields,
@@ -453,6 +370,9 @@ public class TestDefinitionMasterDataService
             ?? throw new NotFoundException($"Test {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
 
+        if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
+            throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
+
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
@@ -471,16 +391,6 @@ public class TestDefinitionMasterDataService
             ? (string.IsNullOrWhiteSpace(request.MethodAbbreviation) ? null : request.MethodAbbreviation.Trim().ToUpperInvariant())
             : entity.MethodAbbreviation;
 
-        var effectiveCalMinCorr = request.CalMinCorrelation ?? entity.CalMinCorrelation;
-        var effectiveCalCorrType = request.CalCorrelationType ?? entity.CalCorrelationType;
-        var effectiveCalMinStds = request.CalMinStandards ?? entity.CalMinStandards;
-        var effectiveCalRecLow = request.CalCheckRecoveryLowPercent ?? entity.CalCheckRecoveryLowPercent;
-        var effectiveCalRecHigh = request.CalCheckRecoveryHighPercent ?? entity.CalCheckRecoveryHighPercent;
-        var effectiveCalIsLow = request.CalIsRecoveryLowPercent ?? entity.CalIsRecoveryLowPercent;
-        var effectiveCalIsHigh = request.CalIsRecoveryHighPercent ?? entity.CalIsRecoveryHighPercent;
-        var effectiveCalRequireIs = request.CalRequireInternalStandard ?? entity.CalRequireInternalStandard;
-        var effectiveBasis = request.ReportedConcentrationBasis ?? entity.ReportedConcentrationBasis;
-        var effectiveMaxAge = request.CalMaxRunAgeHours ?? entity.CalMaxRunAgeHours ?? 24;
         var effectiveReplicateCount = request.ReplicateCount ?? entity.ReplicateCount;
         var effectiveEvaluationBasis = request.EvaluationBasis ?? entity.EvaluationBasis;
         var effectiveConditionFields = request.ConditionFields ?? entity.ConditionFields;
@@ -503,84 +413,11 @@ public class TestDefinitionMasterDataService
             if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
-        else if (effectiveEquationType == EquationType.CalibrationCurve)
-        {
-            if (effectiveWorkflowType != WorkflowType.ElementalAssay)
-                throw new InvalidOperationException("Workflow type must be ElementalAssay when equation type is CalibrationCurve.");
-
-            if (string.IsNullOrEmpty(effectiveMethodAbbr))
-                throw new InvalidOperationException("Method abbreviation is required when equation type is CalibrationCurve.");
-
-            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
-                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
-
-            if (!effectiveCalMinCorr.HasValue || effectiveCalMinCorr.Value <= 0m || effectiveCalMinCorr.Value > 1m)
-                throw new InvalidOperationException("Minimum correlation must be in (0, 1] when equation type is CalibrationCurve.");
-
-            if (!effectiveCalCorrType.HasValue)
-                throw new InvalidOperationException("Correlation type is required when equation type is CalibrationCurve.");
-
-            if (!effectiveCalMinStds.HasValue || effectiveCalMinStds.Value < 1)
-                throw new InvalidOperationException("Minimum standards must be at least 1 when equation type is CalibrationCurve.");
-
-            if (!effectiveCalRecLow.HasValue || !effectiveCalRecHigh.HasValue)
-                throw new InvalidOperationException("Both check recovery window bounds (low and high) are required when equation type is CalibrationCurve.");
-
-            if (effectiveCalRecLow.Value > effectiveCalRecHigh.Value)
-                throw new InvalidOperationException("Check recovery low percent must be less than or equal to high percent.");
-
-            if (effectiveCalRequireIs == true)
-            {
-                if (!effectiveCalIsLow.HasValue || !effectiveCalIsHigh.HasValue)
-                    throw new InvalidOperationException("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
-
-                if (effectiveCalIsLow.Value > effectiveCalIsHigh.Value)
-                    throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
-            }
-            else if (effectiveCalIsLow.HasValue && effectiveCalIsHigh.HasValue && effectiveCalIsLow.Value > effectiveCalIsHigh.Value)
-            {
-                throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
-            }
-
-            if (!effectiveBasis.HasValue)
-                throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
-            if (effectiveBasis != ReportedConcentrationBasis.SamplePpm)
-                throw new InvalidOperationException("Only 'ppm in the sample' is supported: Syngistix applies weight, volume and dilution itself.");
-
-            if (effectiveMaxAge < 1)
-                throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");
-        }
         else if (effectiveMethodAbbr != null)
         {
             if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
-
-        // AAS reuses the CalibrationCurve path (D-A4): the instrument choice and standard
-        // levels only make sense there, and only IcpOes/Aas are supported instrument families.
-        var effectiveCalInstrumentType = request.CalInstrumentType ?? entity.CalInstrumentType;
-        if (effectiveCalInstrumentType.HasValue)
-        {
-            if (effectiveEquationType != EquationType.CalibrationCurve)
-                throw new InvalidOperationException("Calibration instrument type only applies when equation type is CalibrationCurve.");
-
-            if (effectiveCalInstrumentType.Value != EquipmentType.IcpOes && effectiveCalInstrumentType.Value != EquipmentType.Aas)
-                throw new InvalidOperationException("Calibration instrument type must be IcpOes or Aas.");
-        }
-
-        // Empty string clears the levels (explicit "no levels configured"); null (the
-        // default) means keep the existing value - the same convention as every other
-        // Cal* field, but strings need an explicit marker to distinguish "clear" from "keep".
-        string? normalizedCalLevels = entity.CalStandardLevelsMgPerL;
-        if (request.CalStandardLevelsMgPerL != null)
-        {
-            normalizedCalLevels = string.IsNullOrWhiteSpace(request.CalStandardLevelsMgPerL)
-                ? null
-                : CalibrationStandardLevelsHelper.ParseAndValidate(request.CalStandardLevelsMgPerL).Normalized;
-        }
-
-        if (normalizedCalLevels != null && effectiveEquationType != EquationType.CalibrationCurve)
-            throw new InvalidOperationException("Standard levels only apply when equation type is CalibrationCurve.");
 
         if (effectiveEquationType == EquationType.Measurement)
         {
@@ -834,24 +671,6 @@ public class TestDefinitionMasterDataService
         if (request.SstMinResolution.HasValue) entity.SstMinResolution = request.SstMinResolution;
         if (request.SstMaxTailingFactor.HasValue) entity.SstMaxTailingFactor = request.SstMaxTailingFactor;
         if (request.SstMinTheoreticalPlates.HasValue) entity.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates;
-        if (request.CalibrationEntryMode.HasValue) entity.CalibrationEntryMode = request.CalibrationEntryMode.Value;
-        if (request.CalMinCorrelation.HasValue) entity.CalMinCorrelation = request.CalMinCorrelation;
-        if (request.CalCorrelationType.HasValue) entity.CalCorrelationType = request.CalCorrelationType;
-        if (request.CalMinStandards.HasValue) entity.CalMinStandards = request.CalMinStandards;
-        if (request.CalCheckRecoveryLowPercent.HasValue) entity.CalCheckRecoveryLowPercent = request.CalCheckRecoveryLowPercent;
-        if (request.CalCheckRecoveryHighPercent.HasValue) entity.CalCheckRecoveryHighPercent = request.CalCheckRecoveryHighPercent;
-        if (request.CalBlankMax.HasValue) entity.CalBlankMax = request.CalBlankMax;
-        if (request.CalIsRecoveryLowPercent.HasValue) entity.CalIsRecoveryLowPercent = request.CalIsRecoveryLowPercent;
-        if (request.CalIsRecoveryHighPercent.HasValue) entity.CalIsRecoveryHighPercent = request.CalIsRecoveryHighPercent;
-        if (request.CalRequireBlank.HasValue) entity.CalRequireBlank = request.CalRequireBlank;
-        if (request.CalRequireIcv.HasValue) entity.CalRequireIcv = request.CalRequireIcv;
-        if (request.CalRequireCcv.HasValue) entity.CalRequireCcv = request.CalRequireCcv;
-        if (request.CalRequireInternalStandard.HasValue) entity.CalRequireInternalStandard = request.CalRequireInternalStandard;
-        if (request.ReportedConcentrationBasis.HasValue) entity.ReportedConcentrationBasis = request.ReportedConcentrationBasis;
-        if (request.CalMaxRunAgeHours.HasValue) entity.CalMaxRunAgeHours = request.CalMaxRunAgeHours;
-        if (request.CalInstrumentType.HasValue) entity.CalInstrumentType = request.CalInstrumentType;
-        // normalizedCalLevels already folds in the "empty string clears" convention above.
-        if (request.CalStandardLevelsMgPerL != null) entity.CalStandardLevelsMgPerL = normalizedCalLevels;
         if (request.ReplicateCount.HasValue) entity.ReplicateCount = request.ReplicateCount.Value;
         if (request.EvaluationBasis.HasValue) entity.EvaluationBasis = request.EvaluationBasis.Value;
         if (request.ConditionFields != null) entity.ConditionFields = request.ConditionFields;
@@ -962,11 +781,6 @@ public class TestDefinitionMasterDataService
                     "TailingFactor",
                     "TheoreticalPlates"
                 }),
-            new EquationTypeDto(
-                Code: nameof(EquationType.CalibrationCurve),
-                Name: "Calibration Curve",
-                FormulaText: "Linear regression y = mx + b, correlation, blank and check recovery criteria",
-                RequiredInputs: new[] { "ReportedPpm" }),
             new EquationTypeDto(
                 Code: nameof(EquationType.Measurement),
                 Name: "Numeric Measurement",

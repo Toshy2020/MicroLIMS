@@ -5,7 +5,6 @@ namespace MicroLIMS.Application.Abstractions.Persistence;
 // the Persistence configurations create the indexes under these names.
 public static class UniqueIndexNames
 {
-    public const string CalibrationRunCode = "IX_CalibrationRuns_Code";
     public const string MediaLotNumber = "IX_Media_LotNumber";
     public const string CryovialCode = "IX_Cryovials_Code";
 

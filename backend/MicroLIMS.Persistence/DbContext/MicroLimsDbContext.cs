@@ -77,10 +77,6 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<ChromatographyColumn> ChromatographyColumns => Set<ChromatographyColumn>();
     public DbSet<TestAnalyte> TestAnalytes => Set<TestAnalyte>();
     public DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates => Set<TestDefinitionStageReplicate>();
-    public DbSet<CalibrationRun> CalibrationRuns => Set<CalibrationRun>();
-    public DbSet<CalibrationRunDocument> CalibrationRunDocuments => Set<CalibrationRunDocument>();
-    public DbSet<CalibrationRunAnalyte> CalibrationRunAnalytes => Set<CalibrationRunAnalyte>();
-    public DbSet<CalibrationRunCheck> CalibrationRunChecks => Set<CalibrationRunCheck>();
     public DbSet<TestAnalysis> TestAnalyses => Set<TestAnalysis>();
     public DbSet<ParameterResult> ParameterResults => Set<ParameterResult>();
     public DbSet<ResultReading> ResultReadings => Set<ResultReading>();

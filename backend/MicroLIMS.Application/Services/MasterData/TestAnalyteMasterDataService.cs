@@ -56,11 +56,7 @@ public class TestAnalyteMasterDataService
         if (request.WavelengthNm <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
 
-        // AAS calibration-curve tests have no plasma view (torch-only ICP-OES
-        // concept); only require it for ICP-OES (CalInstrumentType null defaults
-        // to ICP-OES for legacy tests).
-        var isAas = test.CalInstrumentType == EquipmentType.Aas;
-        if (!isAas && !request.View.HasValue)
+        if (!request.View.HasValue)
             throw new InvalidOperationException("View is required for calibration curve tests.");
 
         if (!request.LoqMgPerL.HasValue || request.LoqMgPerL.Value <= 0)
@@ -80,7 +76,7 @@ public class TestAnalyteMasterDataService
             TestDefinitionId = id,
             Element = element,
             WavelengthNm = request.WavelengthNm,
-            View = test.CalInstrumentType == EquipmentType.Aas ? null : request.View,
+            View = request.View,
             LoqMgPerL = request.LoqMgPerL,
             DisplayOrder = request.DisplayOrder,
             IsActive = true
@@ -150,18 +146,6 @@ public class TestAnalyteMasterDataService
 
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
             ?? throw new NotFoundException($"Analyte {analyteId} not found for test {id}.");
-
-        var inUseCalibration = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
-        if (inUseCalibration)
-        {
-            analyte.IsActive = false;
-            await _db.SaveChangesAsync();
-            return new
-            {
-                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by calibration runs and has been deactivated instead of deleted.",
-                deactivated = true
-            };
-        }
 
         _db.TestAnalytes.Remove(analyte);
         await _db.SaveChangesAsync();

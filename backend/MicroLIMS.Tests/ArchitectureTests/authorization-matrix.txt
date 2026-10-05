@@ -27,13 +27,6 @@ AuthenticationController.Logout(LogoutRequest): SystemAdministrator,SectionHead,
 AuthenticationController.Me(): SystemAdministrator,SectionHead,Reviewer,Analyst
 AuthenticationController.Refresh(RefreshRequest): anonymous
 AuthenticationController.RequestPasswordReset(RequestPasswordResetRequest): anonymous
-CalibrationRunController.Create(String, IFormFile): SystemAdministrator,SectionHead,Reviewer,Analyst
-CalibrationRunController.GetAll(Nullable`1, String, Nullable`1, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
-CalibrationRunController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-CalibrationRunController.GetDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-CalibrationRunController.GetReport(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-CalibrationRunController.Preview(PreviewCalibrationRunRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
-CalibrationRunController.Withdraw(Int32, WithdrawCalibrationRunRequest): SystemAdministrator,SectionHead
 CryovialController.Approve(Int32, ApproveRequest): SystemAdministrator,SectionHead
 CryovialController.Destroy(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -494,7 +487,6 @@ TestWorkflowController.RecordDisintegrationResult(Int32, RecordDisintegrationRes
 TestWorkflowController.RecordDisintegrationStage(Int32, RecordDisintegrationStageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordDissolutionResult(Int32, RecordDissolutionResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordDissolutionStage(Int32, RecordDissolutionStageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
-TestWorkflowController.RecordElementalResult(Int32, RecordElementalAssayResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordGravimetricResult(Int32, RecordGravimetricResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordMeasurementResult(Int32, RecordMeasurementResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordQualitativeResult(Int32, RecordQualitativeResultRequest): SystemAdministrator,SectionHead,Reviewer,Analyst

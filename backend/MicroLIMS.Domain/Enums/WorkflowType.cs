@@ -5,7 +5,7 @@ public enum WorkflowType
     CountTest,   // plate readings + dilution factor (TAMC, TYMC)
     Observation, // staged pathogen detection chain, driven by each step's StepType
     HplcAssay,   // retired (SC-3): replaced by HplcMethodAssay; value kept, stored as int
-    ElementalAssay, // Finished Product ICP-OES elemental assay workflow
+    ElementalAssay, // retired (slice R): replaced by IcpMethodAssay; value kept, stored as int
     Measurement,
     Gravimetric,
     Qualitative,

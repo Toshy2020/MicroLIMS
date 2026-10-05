@@ -21,6 +21,7 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import { CriteriaCard, NumericCell, RegisterTable, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, RegisterColumn, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
+import { TitrantDueAcknowledgement } from "./TitrantDueAcknowledgement";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import type { ParameterResultDetail, ResultReadingDetail } from "./types/sampleSummaryTypes";
@@ -123,7 +124,6 @@ function PreparationPicker({
           ))}
         </Select>
       </FormControl>
-      {selected?.warning && <Alert severity="warning">{selected.warning}</Alert>}
       {selected && (
         <FormHelperText sx={{ mt: 0 }}>
           Factor {selected.factor ?? "—"}
@@ -144,6 +144,8 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   const [analysedAt, setAnalysedAt] = useState(() => getLocalIsoString());
   const [titrantPrepId, setTitrantPrepId] = useState<number | "">("");
   const [excessPrepId, setExcessPrepId] = useState<number | "">("");
+  const [dueAcknowledged, setDueAcknowledged] = useState(false);
+  const [dueJustification, setDueJustification] = useState("");
   const [blank, setBlank] = useState("");
   const [tempC, setTempC] = useState("");
   const [lod, setLod] = useState("");
@@ -219,6 +221,15 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   const titrant = ctx?.titrantPreparations.find((p) => p.preparationId === titrantPrepId) ?? null;
   const excess = ctx?.excessPreparations.find((p) => p.preparationId === excessPrepId) ?? null;
 
+  const warningMessages = useMemo(() => {
+    const msgs: string[] = [];
+    if (titrant?.warning) msgs.push(titrant.warning);
+    if (isResidual && excess?.warning) msgs.push(excess.warning);
+    return Array.from(new Set(msgs));
+  }, [titrant, isResidual, excess]);
+
+  const hasDueWarning = warningMessages.length > 0;
+
   const standards = useMemo(
     () =>
       lotId === ""
@@ -291,6 +302,11 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     if (isNaN(t.getTime()) || t.getTime() > Date.now() + 5 * 60 * 1000) return false;
     if (titrantPrepId === "" || !titrant?.usable) return false;
     if (isResidual && (excessPrepId === "" || !excess?.usable)) return false;
+    if (hasDueWarning) {
+      if (!dueAcknowledged) return false;
+      const trimmedJustification = dueJustification.trim();
+      if (trimmedJustification.length < 10 || dueJustification.length > 500) return false;
+    }
     if (ctx.blankRequired && !validNum(blank, false)) return false;
     if (ctx.tempCorrection && num(tempC) === null) return false;
     if (needsLod && !(num(lod) !== null && num(lod)! >= 0 && num(lod)! < 100)) return false;
@@ -298,7 +314,11 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     if (isRelative && (lotId === "" || stdRows.length < 1 || stdRows.some((r) => !validNum(r.weightMg) || !validNum(r.titreMl)))) return false;
     if (reps.length !== ctx.replicateCount) return false;
     return reps.every((r) => validNum(r.weight) && validNum(r.volume));
-  }, [ctx, analysedAt, titrantPrepId, titrant, isResidual, excessPrepId, excess, blank, tempC, needsLod, lod, needsAvgWt, avgWt, isRelative, lotId, stdRows, reps]);
+  }, [
+    ctx, analysedAt, titrantPrepId, titrant, isResidual, excessPrepId, excess,
+    hasDueWarning, dueAcknowledged, dueJustification,
+    blank, tempC, needsLod, lod, needsAvgWt, avgWt, isRelative, lotId, stdRows, reps
+  ]);
 
   const submit = async (password: string) => {
     if (!ctx) return;
@@ -318,6 +338,8 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           : null,
         specificationIds: ctx.specifications.map((s) => s.specificationId),
         replicates: reps.map((r) => ({ sampleWeightMg: Number(r.weight), titrantVolumeMl: Number(r.volume) })),
+        dueTitrantAcknowledged: hasDueWarning ? Boolean(dueAcknowledged) : null,
+        dueTitrantJustification: hasDueWarning ? dueJustification.trim() : null,
         password,
         comment: comment.trim() || null
       };
@@ -489,6 +511,17 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
                 onChange={setExcessPrepId}
               />
             )}
+            {hasDueWarning && (
+              <Box sx={{ gridColumn: { xs: "1", sm: "1 / -1" } }}>
+                <TitrantDueAcknowledgement
+                  warnings={warningMessages}
+                  acknowledged={dueAcknowledged}
+                  onAcknowledgedChange={setDueAcknowledged}
+                  justification={dueJustification}
+                  onJustificationChange={setDueJustification}
+                />
+              </Box>
+            )}
             {ctx.tempCorrection && (
               <TextField
                 size="small"
@@ -611,7 +644,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           </ResultSection>
         )}
 
-        <ResultSection step={step++} title={`Sample titrations (${ctx.replicateCount} replicate${ctx.replicateCount === 1 ? "" : "s"})`}>
+        <ResultSection step={step} title={`Sample titrations (${ctx.replicateCount} replicate${ctx.replicateCount === 1 ? "" : "s"})`}>
           <UnitEntryGrid
             rowCount={ctx.replicateCount}
             rowLabel={(i) => `Rep ${i + 1}`}
@@ -650,7 +683,11 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
 
       <SignatureDialog
         open={signing}
-        meaningStatement="I entered these titration measurements and am recording this test result."
+        meaningStatement={
+          hasDueWarning
+            ? "Your signature records the result and your acknowledgement of the due titrant."
+            : "I entered these titration measurements and am recording this test result."
+        }
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

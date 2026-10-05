@@ -373,6 +373,8 @@ export interface RecordTitrationResultRequest {
   standards: { materialId: number; weightMg: number; titreMl: number }[] | null;
   specificationIds: number[];
   replicates: { sampleWeightMg: number; titrantVolumeMl: number }[];
+  dueTitrantAcknowledged?: boolean | null;
+  dueTitrantJustification?: string | null;
   password: string;
   comment: string | null;
 }

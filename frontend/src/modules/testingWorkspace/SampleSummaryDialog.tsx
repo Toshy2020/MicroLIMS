@@ -504,7 +504,10 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
       [
         titration.titrantCode ? `Titrant: ${titration.titrantCode}` : null,
         titration.factor != null ? `Factor used: ${titration.factor}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
-        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null
+        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null,
+        titration.dueTitrantAcknowledgement?.justification
+          ? `Due titrant acknowledged: ${titration.dueTitrantAcknowledgement.justification}`
+          : null
       ].filter(Boolean).join(" · ") || null;
   } else if (analysis.conditionsJson) {
     try {

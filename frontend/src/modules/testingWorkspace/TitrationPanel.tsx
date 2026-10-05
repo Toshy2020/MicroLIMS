@@ -115,7 +115,7 @@ function PreparationPicker({
             <MenuItem key={o.preparationId} value={o.preparationId} disabled={!o.usable}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
                 <span>
-                  {o.code} {"·"} factor {o.factor != null ? o.factor : "—"}
+                  {o.code} {"·"} factor {o.factor != null ? o.factor.toFixed(4) : "—"}
                 </span>
                 <Chip size="small" color={STATE_COLOR[o.factorState] ?? "default"} variant="outlined" label={STATE_LABEL[o.factorState] ?? o.factorState} />
                 {!o.usable && o.blockReason && <Typography variant="caption" color="error">{o.blockReason}</Typography>}
@@ -126,7 +126,7 @@ function PreparationPicker({
       </FormControl>
       {selected && (
         <FormHelperText sx={{ mt: 0 }}>
-          Factor {selected.factor ?? "—"}
+          Factor {selected.factor != null ? selected.factor.toFixed(4) : "—"}
           {selected.standardizationTemperatureC != null ? ` · standardized at ${selected.standardizationTemperatureC} °C` : ""}
         </FormHelperText>
       )}

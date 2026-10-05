@@ -214,10 +214,15 @@ export function MultiSampleEntryGrid({
                 </TableCell>
 
                 {isItemBased && (
-                  <TableCell sx={{ minWidth: 130 }}>Batch No.</TableCell>
+                  <TableCell sx={{ minWidth: 130 }}>
+                    Batch No. <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  </TableCell>
                 )}
 
-                <TableCell sx={{ minWidth: 130 }}>Control No.</TableCell>
+                {/* The server requires both for item-based samples (ReceiveSampleValidator). */}
+                <TableCell sx={{ minWidth: 130 }}>
+                  Control No.{isItemBased && <> <span style={{ color: theme.custom.status.detected.text }}>*</span></>}
+                </TableCell>
 
                 {isItemBased && (
                   <>

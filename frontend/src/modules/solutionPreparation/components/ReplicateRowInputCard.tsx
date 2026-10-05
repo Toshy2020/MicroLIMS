@@ -55,8 +55,8 @@ export function ReplicateRowInputCard({
               inputProps={{ "aria-label": "Standard Lot" }}
             >
               {standardLots.map((lot) => (
-                <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
-                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){lot.purity != null ? ` · Purity: ${lot.purity}%` : ""}{!lot.usable ? `, ${lot.reason}` : ""}
+                <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable || lot.purity == null}>
+                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){lot.purity != null ? ` · Purity: ${lot.purity}%` : ""}{!lot.usable ? `, ${lot.reason}` : lot.purity == null ? ", No purity - enter it in Materials Stock" : ""}
                 </MenuItem>
               ))}
             </Select>

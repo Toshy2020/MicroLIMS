@@ -219,7 +219,7 @@ export interface IcpRunListItem {
 // ---- Sample Entry & Replicates (used in slice 2, defined here per contract) ----
 
 export interface EligibleTestDto {
-  id: number;
+  testOrderId: number;
   sampleNumber: string;
   batchNumber?: string | null;
   productName?: string | null;

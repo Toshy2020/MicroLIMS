@@ -77,7 +77,7 @@ export function IcpEligibleSampleDialog({
 
   const handleToggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(eligibleTests.map((t) => t.id));
+      setSelectedIds(eligibleTests.map((t) => t.testOrderId));
     } else {
       setSelectedIds([]);
     }
@@ -195,13 +195,13 @@ export function IcpEligibleSampleDialog({
                   </TableRow>
                 ) : (
                   eligibleTests.map((t) => {
-                    const isSelected = selectedIds.includes(t.id);
+                    const isSelected = selectedIds.includes(t.testOrderId);
                     return (
                       <TableRow
-                        key={t.id}
+                        key={t.testOrderId}
                         hover
                         selected={isSelected}
-                        onClick={() => !assigning && handleToggleRow(t.id)}
+                        onClick={() => !assigning && handleToggleRow(t.testOrderId)}
                         sx={{ cursor: assigning ? "default" : "pointer" }}
                       >
                         <TableCell padding="checkbox">

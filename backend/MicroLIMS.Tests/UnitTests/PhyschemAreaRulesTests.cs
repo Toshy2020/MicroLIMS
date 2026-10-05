@@ -37,7 +37,7 @@ public class PhyschemAreaRulesTests
         return (fp, micro, user.Id);
     }
 
-    private static TestDefinitionMasterDataService TestSvc(MicroLimsDbContext db) => new(db, new UserSectionScopeService(db));
+    private static TestDefinitionMasterDataService TestSvc(MicroLimsDbContext db) => TestServiceFactory.TestDefinitionMaster(db);
 
     private static CreateTestDefinitionRequest Create(string code, int sectionId, PhyschemArea? area) =>
         new(Code: code, DisplayName: code, SectionId: sectionId, WorkflowType: WorkflowType.Observation, PhyschemArea: area);

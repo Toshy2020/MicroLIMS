@@ -136,7 +136,7 @@ public class TitrationScenario
         s.Test = new TestDefinition
         {
             Code = $"TIT_{uid}", DisplayName = $"Titration {uid}", SectionId = s.Section.Id,
-            WorkflowType = WorkflowType.Titration, EquationType = EquationType.Titration, IsActive = true,
+            WorkflowType = WorkflowType.Titration, EquationType = EquationType.Titration, IsActive = true, PhyschemArea = PhyschemArea.Both,
             ReplicateCount = 2, TitrationType = TitrationType.Redox, TitrationNonAqueous = null, TitrationMode = TitrationMode.Direct,
             TitrationCalculation = TitrationCalculation.UspFactor, TitrantSolutionMasterId = s.TitrantMaster.Id,
             TitrationEquivalencyFactor = 88.06m, TitrationBlankRequired = true, TitrationMaxRsdPercent = 2m,

@@ -69,7 +69,7 @@ public class TitrationTestMasterReasonTests
         using var _ = db;
         var other = new TestDefinition
         {
-            Code = "GRAV_" + Guid.NewGuid().ToString("N")[..6], DisplayName = "Gravimetric", SectionId = s.Section.Id,
+            Code = "GRAV_" + Guid.NewGuid().ToString("N")[..6], DisplayName = "Gravimetric", SectionId = s.Section.Id, PhyschemArea = PhyschemArea.Both,
             WorkflowType = WorkflowType.Gravimetric, EquationType = EquationType.GravimetricLoss, ReplicateCount = 2, IsActive = true,
         };
         db.TestDefinitions.Add(other);

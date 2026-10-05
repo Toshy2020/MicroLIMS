@@ -60,34 +60,37 @@ public class MaterialService
         MaterialType.DisposableTool => MaterialUnit.Piece,
         MaterialType.ReferenceStandard => MaterialUnit.Gram,
         MaterialType.WorkingStandard => MaterialUnit.Gram,
+        MaterialType.PrimaryStandard => MaterialUnit.Gram,
         _ => MaterialUnit.Piece
     };
 
     public static void ValidatePurity(MaterialType type, decimal? purity)
     {
-        if (type == MaterialType.ReferenceStandard)
+        if (type is MaterialType.ReferenceStandard or MaterialType.PrimaryStandard)
         {
             if (!purity.HasValue)
-                throw new InvalidOperationException("Purity is required for reference standards.");
+                throw new InvalidOperationException(type == MaterialType.PrimaryStandard
+                    ? "Purity is required for primary standards." : "Purity is required for reference standards.");
             if (purity.Value <= 0m || purity.Value > 100m)
                 throw new InvalidOperationException("Purity must be greater than 0 and less than or equal to 100.");
         }
         else
         {
             if (purity.HasValue)
-                throw new InvalidOperationException("Purity is only allowed for reference standards.");
+                throw new InvalidOperationException("Purity is only allowed for reference and primary standards.");
         }
     }
 
     // Chemical, Indicator and ReferenceStandard lots must reference a MaterialMasterEntry
     // (HPLC chain S1, spec 3.1); existing rows stay unlinked (D9).
     public static bool RequiresMasterEntry(MaterialType t) =>
-        t is MaterialType.Chemical or MaterialType.Indicator or MaterialType.ReferenceStandard;
+        t is MaterialType.Chemical or MaterialType.Indicator or MaterialType.ReferenceStandard or MaterialType.PrimaryStandard;
 
     private static MaterialMasterCategory CategoryFor(MaterialType t) => t switch
     {
         MaterialType.Indicator => MaterialMasterCategory.Indicator,
         MaterialType.ReferenceStandard => MaterialMasterCategory.ReferenceStandard,
+        MaterialType.PrimaryStandard => MaterialMasterCategory.PrimaryStandard,
         _ => MaterialMasterCategory.Reagent
     };
 

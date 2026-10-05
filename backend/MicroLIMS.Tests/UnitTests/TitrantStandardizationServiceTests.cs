@@ -115,7 +115,7 @@ public class TitrantStandardizationServiceTests
         var lot = new Material
         {
             SectionId = sectionId,
-            MaterialType = MaterialType.ReferenceStandard,
+            MaterialType = MaterialType.PrimaryStandard,
             MaterialMasterEntryId = entry.Id,
             MaterialName = entry.Name,
             ManufacturerName = "Acme",
@@ -195,7 +195,7 @@ public class TitrantStandardizationServiceTests
     {
         var (section, userId) = await SeedAsync(db);
         var solventEntry = await AddEntryAsync(db, section.Id, "SOLV-01");
-        var standardEntry = await AddEntryAsync(db, section.Id, "STD-KHP", MaterialMasterCategory.ReferenceStandard);
+        var standardEntry = await AddEntryAsync(db, section.Id, "STD-KHP", MaterialMasterCategory.PrimaryStandard);
         await AddSolventLotAsync(db, section.Id, solventEntry);
         return new Scenario { Section = section, UserId = userId, SolventEntry = solventEntry, StandardEntry = standardEntry };
     }
@@ -207,7 +207,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
             replicateCount: 3, factorMin: 0.95m, factorMax: 1.05m, maxRsd: 0.5m);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
@@ -237,7 +237,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var refTitrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH (ref)", s.SolventEntry, s.StandardEntry,
             replicateCount: 1, factorMin: 0.5m, factorMax: 1.5m, nominalStrength: 0.1m);
         var refPrep = await PrepareTitrantAsync(db, s.Section, s.UserId, refTitrant, s.SolventEntry);
@@ -270,7 +270,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
             replicateCount: 1, blankRequired: true);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
@@ -310,7 +310,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry, replicateCount: 2);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
         var lot = await db.Materials.AsNoTracking().FirstAsync(m => m.MaterialMasterEntryId == s.StandardEntry.Id);
@@ -328,7 +328,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
             replicateCount: 1, factorMin: 0.95m, factorMax: 1.05m, validityDays: 30);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
@@ -356,7 +356,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry, replicateCount: 1);
         var (fake, clock) = NewClock(SepFirst);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry, clock);
@@ -395,7 +395,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
             replicateCount: 1, validityDays: 1);
         var (fake, clock) = NewClock(SepFirst);
@@ -420,7 +420,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
             replicateCount: 1, validityDays: 0);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
@@ -437,6 +437,70 @@ public class TitrantStandardizationServiceTests
         Assert.Null(current.ValidUntil);
     }
 
+    // --- Primary standard lot rules (physchem areas, B1.3) ---
+
+    private static async Task<(TitrantStandardizationService Service, int PrepId, int LotId, int UserId)> ArrangePrimaryLotAsync(
+        MicroLimsDbContext db, Action<Material> tweak)
+    {
+        var s = await SeedScenarioAsync(db);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 99.95m, quantityRemaining: 10, batch: "B1");
+        tweak(lot);
+        await db.SaveChangesAsync();
+        var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry, replicateCount: 1);
+        var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
+        return (TestServiceFactory.TitrantStandardization(db), prep.Id, lot.Id, s.UserId);
+    }
+
+    [Fact]
+    public async Task Standardize_PrimaryStandardLot_WithoutPurity_IsRefused()
+    {
+        await using var db = NewDb();
+        var (service, prepId, lotId, userId) = await ArrangePrimaryLotAsync(db, l => l.Purity = null);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prepId,
+            new StandardizeRequest(new List<StandardizationReplicateInput> { new(lotId, 510.6m, null, null, 25.00m, null) }, Password, null), userId, null));
+        Assert.Equal("Replicate 1: standard lot (batch B1) has no purity - enter it in Materials Stock before standardizing.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Standardize_ChemicalLot_IsRefused()
+    {
+        await using var db = NewDb();
+        var (service, prepId, lotId, userId) = await ArrangePrimaryLotAsync(db, l => l.MaterialType = MaterialType.Chemical);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prepId,
+            new StandardizeRequest(new List<StandardizationReplicateInput> { new(lotId, 510.6m, null, null, 25.00m, null) }, Password, null), userId, null));
+        Assert.Equal("Replicate 1: standard lot (batch B1) is not a primary standard.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Standardize_UsesLotPurity()
+    {
+        await using var db = NewDb();
+        var (service, prepId, lotId, userId) = await ArrangePrimaryLotAsync(db, _ => { });
+
+        var result = await service.StandardizeAsync(prepId,
+            new StandardizeRequest(new List<StandardizationReplicateInput> { new(lotId, 510.6m, null, null, 25.00m, null) }, Password, null), userId, null);
+        // 510.6 x 0.9995 / (25.00 x 20.42)
+        Assert.Equal(decimal.Round(510.6m * 0.9995m / (25.00m * 20.42m), 6), decimal.Round(result.MeanFactor, 6));
+    }
+
+    [Fact]
+    public async Task StandardLotOptions_ListOnlyPrimaryStandardLots()
+    {
+        await using var db = NewDb();
+        var (service, prepId, _, userId) = await ArrangePrimaryLotAsync(db, _ => { });
+        var entry = await db.MaterialMasterEntries.FirstAsync(e => e.Code == "STD-KHP");
+        await AddStandardLotAsync(db, entry.SectionId, entry, purity: null, batch: "CHEM-LOT");
+        var chem = await db.Materials.FirstAsync(m => m.BatchNumber == "CHEM-LOT");
+        chem.MaterialType = MaterialType.Chemical;
+        await db.SaveChangesAsync();
+
+        var options = await service.GetStandardLotOptionsAsync(prepId, userId);
+        var only = Assert.Single(options);
+        Assert.Equal("B1", only.BatchNumber);
+    }
+
     // --- Wiring into SolutionPreparationResponse ---
 
     [Fact]
@@ -444,7 +508,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry, replicateCount: 1);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
         var lot = await db.Materials.AsNoTracking().FirstAsync(m => m.MaterialMasterEntryId == s.StandardEntry.Id);
@@ -468,7 +532,7 @@ public class TitrantStandardizationServiceTests
         MicroLimsDbContext db, decimal lotQuantity)
     {
         var s = await SeedScenarioAsync(db);
-        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: lotQuantity);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: lotQuantity);
         var titrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH", s.SolventEntry, s.StandardEntry,
             replicateCount: 3, factorMin: 0.5m, factorMax: 1.5m, maxRsd: 5m);
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
@@ -503,7 +567,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var s = await SeedScenarioAsync(db);
-        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, quantityRemaining: 10);
+        var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, quantityRemaining: 10);
         var refTitrant = await AddPrimaryStandardTitrantAsync(db, s.Section.Id, "0.1N NaOH (ref)", s.SolventEntry, s.StandardEntry,
             replicateCount: 1, factorMin: 0.5m, factorMax: 1.5m, nominalStrength: 0.1m);
         var refPrep = await PrepareTitrantAsync(db, s.Section, s.UserId, refTitrant, s.SolventEntry);

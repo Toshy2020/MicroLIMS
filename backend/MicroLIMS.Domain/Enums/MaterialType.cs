@@ -23,5 +23,7 @@ public enum MaterialType
     ReferenceStandard,
     // In-house secondary standard, created only by approving a working
     // standard qualification (never received through Materials Stock).
-    WorkingStandard
+    WorkingStandard,
+    // Titrimetric primary standard (e.g. KHP); purity is mandatory.
+    PrimaryStandard
 }

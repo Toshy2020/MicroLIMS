@@ -278,7 +278,7 @@ public class SolutionMasterServiceTests
     }
 
     [Fact]
-    public async Task Create_Titrant_PrimaryStandard_StandardMustBeReferenceStandardOrReagent()
+    public async Task Create_Titrant_PrimaryStandard_StandardMustBePrimaryStandardEntry()
     {
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
@@ -289,7 +289,50 @@ public class SolutionMasterServiceTests
         var req = TitrantReq(indicator.Id, components: OneComponent(titrantComponent.Id));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
-        Assert.Contains("reference standard or reagent", ex.Message);
+        Assert.Contains("must be a Primary Standard entry", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_Titrant_PrimaryStandard_WithReagentEntry_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var titrantComponent = await AddEntryAsync(db, section.Id, "NAOH-01");
+        var reagent = await AddEntryAsync(db, section.Id, "KHP-R", category: MaterialMasterCategory.Reagent);
+        var service = TestServiceFactory.SolutionMaster(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateAsync(TitrantReq(reagent.Id, components: OneComponent(titrantComponent.Id)), userId));
+        Assert.Equal("The primary standard must be a Primary Standard entry in Reagents & Standards.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_Titrant_PrimaryStandard_WithPrimaryStandardEntry_Succeeds()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var titrantComponent = await AddEntryAsync(db, section.Id, "NAOH-01");
+        var khp = await AddEntryAsync(db, section.Id, "KHP-P", category: MaterialMasterCategory.PrimaryStandard);
+        var service = TestServiceFactory.SolutionMaster(db);
+
+        var created = await service.CreateAsync(TitrantReq(khp.Id, components: OneComponent(titrantComponent.Id)), userId);
+        Assert.True(created.Id > 0);
+    }
+
+    [Fact]
+    public async Task Update_Titrant_PrimaryStandard_ToReagentEntry_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var titrantComponent = await AddEntryAsync(db, section.Id, "NAOH-01");
+        var khp = await AddEntryAsync(db, section.Id, "KHP-P", category: MaterialMasterCategory.PrimaryStandard);
+        var reagent = await AddEntryAsync(db, section.Id, "KHP-R", category: MaterialMasterCategory.Reagent);
+        var service = TestServiceFactory.SolutionMaster(db);
+        var created = await service.CreateAsync(TitrantReq(khp.Id, components: OneComponent(titrantComponent.Id)), userId);
+
+        var req = TitrantReq(reagent.Id, components: OneComponent(titrantComponent.Id)) with { Reason = "Switch standard" };
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, req, userId));
+        Assert.Contains("must be a Primary Standard entry", ex.Message);
     }
 
     [Fact]
@@ -315,7 +358,7 @@ public class SolutionMasterServiceTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var titrantComponent = await AddEntryAsync(db, section.Id, "NAOH-01");
-        var standard = await AddEntryAsync(db, section.Id, "KHP-01", category: MaterialMasterCategory.ReferenceStandard);
+        var standard = await AddEntryAsync(db, section.Id, "KHP-01", category: MaterialMasterCategory.PrimaryStandard);
         var service = TestServiceFactory.SolutionMaster(db);
 
         var req = TitrantReq(standard.Id, components: OneComponent(titrantComponent.Id)) with { FactorMin = 1.10m, FactorMax = 0.90m };
@@ -330,7 +373,7 @@ public class SolutionMasterServiceTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var titrantComponent = await AddEntryAsync(db, section.Id, "NAOH-01");
-        var standard = await AddEntryAsync(db, section.Id, "KHP-01", category: MaterialMasterCategory.ReferenceStandard);
+        var standard = await AddEntryAsync(db, section.Id, "KHP-01", category: MaterialMasterCategory.PrimaryStandard);
         var service = TestServiceFactory.SolutionMaster(db);
 
         var req = TitrantReq(standard.Id, components: OneComponent(titrantComponent.Id)) with { ReplicateCount = 0 };
@@ -409,7 +452,7 @@ public class SolutionMasterServiceTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var titrantComponent = await AddEntryAsync(db, section.Id, "NAOH-01");
-        var standard = await AddEntryAsync(db, section.Id, "KHP-01", category: MaterialMasterCategory.ReferenceStandard);
+        var standard = await AddEntryAsync(db, section.Id, "KHP-01", category: MaterialMasterCategory.PrimaryStandard);
         var service = TestServiceFactory.SolutionMaster(db);
 
         var created = await service.CreateAsync(TitrantReq(standard.Id, components: OneComponent(titrantComponent.Id)), userId);

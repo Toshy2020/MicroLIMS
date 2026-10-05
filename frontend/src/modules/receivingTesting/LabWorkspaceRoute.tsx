@@ -5,7 +5,8 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useMyLabs } from "../../hooks/useMyLabs";
 import { laboratorySectionService, LaboratorySection } from "../../services/laboratorySectionService";
 import { ReceivingTestingWorkspacePage, WorkspaceLab } from "./ReceivingTestingWorkspacePage";
-import { firstWorkspacePath } from "../../routes/physchemWorkspacePath";
+import { FP_WORKSPACE_PATH, RMPM_WORKSPACE_PATH, firstWorkspacePath } from "../../routes/physchemWorkspacePath";
+import { ReceiveService } from "../receiving/services/ReceiveService";
 
 const LAB_NAMES: Record<WorkspaceLab["code"], string> = {
   MICRO: "Microbiology Laboratory",
@@ -86,11 +87,38 @@ export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
     );
   }
 
-  return (
-    <ReceivingTestingWorkspacePage
-      lab={{ sectionId: section.sectionId, code, name: section.sectionName, area }}
-    />
-  );
+  const lab = { sectionId: section.sectionId, code, name: section.sectionName, area };
+  const other = area === "fp" ? "rmpm" : "fp";
+  if (code === "FP" && area && physchemAreas.includes(other)) {
+    return <OtherAreaSampleGuard key={area} lab={lab} otherPath={other === "rmpm" ? RMPM_WORKSPACE_PATH : FP_WORKSPACE_PATH} />;
+  }
+  return <ReceivingTestingWorkspacePage lab={lab} />;
+}
+
+// A per-sample deep link (notification, dashboard row) cannot tell which area its sample is in.
+// When this area's workspace answers 404 for the requested sample and the user has the other
+// area, send them there with the same query. The state flag stops a bounce between the two.
+function OtherAreaSampleGuard({ lab, otherPath }: { lab: WorkspaceLab; otherPath: string }) {
+  const location = useLocation();
+  const sampleId = Number(new URLSearchParams(location.search).get("sampleId"));
+  const alreadyRedirected = (location.state as { areaRedirected?: boolean } | null)?.areaRedirected === true;
+  const check = sampleId > 0 && !alreadyRedirected;
+  const [state, setState] = useState<"checking" | "stay" | "redirect">(check ? "checking" : "stay");
+
+  useEffect(() => {
+    if (!check) return;
+    let cancelled = false;
+    ReceiveService.getSample(sampleId, lab.sectionId, lab.area)
+      .then(() => !cancelled && setState("stay"))
+      .catch((err) => !cancelled && setState(err?.response?.status === 404 ? "redirect" : "stay"));
+    return () => {
+      cancelled = true;
+    };
+  }, [check, sampleId, lab.sectionId, lab.area]);
+
+  if (state === "checking") return <LoadingSpinner />;
+  if (state === "redirect") return <Navigate to={`${otherPath}${location.search}`} replace state={{ areaRedirected: true }} />;
+  return <ReceivingTestingWorkspacePage lab={lab} />;
 }
 
 // /receiving-testing has no lab of its own any more - it lands on the

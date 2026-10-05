@@ -4,6 +4,8 @@ import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
 import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
+import { IcpReviewPanel } from "./icp/IcpReviewPanel";
+import { isIcpCalculation } from "./icp/icpReviewTypes";
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 const isConforming = (status: string | null) => !status || CONFORMING_STATUSES.has(status);
@@ -220,8 +222,19 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
               />
             ))}
 
-          {a.analysisType !== "HplcMethodAssay" && a.parameterResults.map((p, idx) => {
-            if (!p.readings || p.readings.length === 0) return null;
+          {(a.analysisType === "IcpMethodAssay" || a.parameterResults.some((p) => isIcpCalculation(p.calculationJson))) &&
+            a.parameterResults
+              .filter((p) => isIcpCalculation(p.calculationJson) || a.analysisType === "IcpMethodAssay")
+              .map((p) => (
+                <IcpReviewPanel
+                  key={`icp-review-${p.id}`}
+                  parameter={p}
+                  testOrderId={a.testOrderId}
+                />
+              ))}
+
+          {a.analysisType !== "HplcMethodAssay" && a.analysisType !== "IcpMethodAssay" && a.parameterResults.map((p, idx) => {
+            if (!p.readings || p.readings.length === 0 || isIcpCalculation(p.calculationJson)) return null;
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";
             const isWeightVariation = a.analysisType === "WeightVariation";

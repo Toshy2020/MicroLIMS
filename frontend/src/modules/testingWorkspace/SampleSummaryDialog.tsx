@@ -62,6 +62,8 @@ import {
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
+import { IcpReviewPanel } from "./icp/IcpReviewPanel";
+import { isIcpCalculation } from "./icp/icpReviewTypes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { CloseTestingDialog } from "../approval/CloseTestingDialog";
@@ -642,10 +644,22 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
             testOrderId={analysis.testOrderId}
           />
         ))}
-      {analysis.analysisType !== "HplcMethodAssay" &&
-        analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (
-          <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
-        ))}
+      {(analysis.analysisType === "IcpMethodAssay" || analysis.parameterResults.some((p) => isIcpCalculation(p.calculationJson))) &&
+        analysis.parameterResults
+          .filter((p) => isIcpCalculation(p.calculationJson) || analysis.analysisType === "IcpMethodAssay")
+          .map((p) => (
+            <IcpReviewPanel
+              key={`icp-review-${p.id}`}
+              parameter={p}
+              testOrderId={analysis.testOrderId}
+            />
+          ))}
+      {analysis.analysisType !== "HplcMethodAssay" && analysis.analysisType !== "IcpMethodAssay" &&
+        analysis.parameterResults
+          .filter((p) => p.readings.length > 0 && !isIcpCalculation(p.calculationJson))
+          .map((p) => (
+            <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
+          ))}
     </Box>
   );
 }

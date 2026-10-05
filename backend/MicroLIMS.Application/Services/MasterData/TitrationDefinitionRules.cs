@@ -146,6 +146,21 @@ public static class TitrationDefinitionRules
         if (m.SectionId != sectionId) throw new InvalidOperationException($"{what} belongs to another laboratory.");
     }
 
+    // Every titration setting, for the before/after comparison and audit of a reason-for-change edit.
+    // Decimals are normalised so numeric(18,6) scale does not read as a change.
+    public static object Snapshot(TestDefinition t)
+    {
+        static decimal? N(decimal? d) => d / 1.000000000000000000000000000m;
+        return new
+        {
+            t.ReplicateCount, t.TitrantSolutionMasterId, t.TitrationType, t.TitrationNonAqueous, t.TitrationMode, t.TitrationCalculation,
+            TitrationEquivalencyFactor = N(t.TitrationEquivalencyFactor), t.TitrationBlankRequired, t.TitrationExcessSolutionMasterId,
+            TitrationExcessVolumeMl = N(t.TitrationExcessVolumeMl), TitrationMaxRsdPercent = N(t.TitrationMaxRsdPercent),
+            t.TitrationEndpoint, t.TitrationIndicatorEntryId, t.TitrationIndicator, t.TitrationTempCorrection,
+            TitrationExpansionCoefficient = N(t.TitrationExpansionCoefficient), t.TitrationStandardEntryId,
+        };
+    }
+
     private static void Clear(TestDefinition t)
     {
         t.TitrationType = null; t.TitrationNonAqueous = null; t.TitrationMode = null; t.TitrationCalculation = null;

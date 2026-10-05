@@ -650,7 +650,7 @@ public class TitrationRecorderTests
 
         // changing the workflow away from titration clears every titration column
         var upd = await svc.UpdateTestDefinitionAsync(s.UserId, created.Id, new UpdateTestDefinitionRequest(
-            "RES1", "Now a qualitative test", WorkflowType: WorkflowType.Qualitative, EquationType: EquationType.Qualitative));
+            "RES1", "Now a qualitative test", WorkflowType: WorkflowType.Qualitative, EquationType: EquationType.Qualitative) { ChangeReason = "Test retired from titration" });
         Assert.Null(upd.TitrationType);
         Assert.Null(upd.TitrantSolutionMasterId);
         Assert.Null(upd.TitrationExcessVolumeMl);

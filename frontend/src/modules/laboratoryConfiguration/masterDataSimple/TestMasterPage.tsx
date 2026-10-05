@@ -1016,9 +1016,12 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
           {["ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "IcpMethodAssay", "Titration"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
-        <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": "Workflow type" }}>
-          {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
-        </Select>
+        {/* Only step-driven tests can switch; every other workflow is set by the test type. */}
+        {["CountTest", "Observation"].includes(test.workflowType) && (
+          <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": "Workflow type" }}>
+            {workflowTypes.filter((w) => w === "CountTest" || w === "Observation").map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
+          </Select>
+        )}
       </Stack>
       {test.workflowType === "HplcMethodAssay" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>

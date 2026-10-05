@@ -220,6 +220,7 @@ public class TestDefinitionResponse
     public decimal? TitrationExcessVolumeMl { get; init; }
     public decimal? TitrationMaxRsdPercent { get; init; }
     public TitrationEndpoint? TitrationEndpoint { get; init; }
+    public int? TitrationIndicatorEntryId { get; init; }
     public string? TitrationIndicator { get; init; }
     public bool? TitrationTempCorrection { get; init; }
     public decimal? TitrationExpansionCoefficient { get; init; }
@@ -280,6 +281,7 @@ public class TestDefinitionResponse
         TitrationExcessVolumeMl = e.TitrationExcessVolumeMl,
         TitrationMaxRsdPercent = e.TitrationMaxRsdPercent,
         TitrationEndpoint = e.TitrationEndpoint,
+        TitrationIndicatorEntryId = e.TitrationIndicatorEntryId,
         TitrationIndicator = e.TitrationIndicator,
         TitrationTempCorrection = e.TitrationTempCorrection,
         TitrationExpansionCoefficient = e.TitrationExpansionCoefficient,

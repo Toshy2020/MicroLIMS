@@ -353,7 +353,7 @@ public class TestDefinitionMasterDataService
             TitrationExcessVolumeMl = request.TitrationExcessVolumeMl,
             TitrationMaxRsdPercent = request.TitrationMaxRsdPercent,
             TitrationEndpoint = request.TitrationEndpoint,
-            TitrationIndicator = request.TitrationIndicator,
+            TitrationIndicatorEntryId = request.TitrationIndicatorEntryId,
             TitrationTempCorrection = request.TitrationTempCorrection,
             TitrationExpansionCoefficient = request.TitrationExpansionCoefficient,
             TitrationStandardEntryId = request.TitrationStandardEntryId
@@ -731,7 +731,7 @@ public class TestDefinitionMasterDataService
         if (request.TitrationExcessVolumeMl.HasValue) entity.TitrationExcessVolumeMl = request.TitrationExcessVolumeMl;
         if (request.TitrationMaxRsdPercent.HasValue) entity.TitrationMaxRsdPercent = request.TitrationMaxRsdPercent;
         if (request.TitrationEndpoint.HasValue) entity.TitrationEndpoint = request.TitrationEndpoint;
-        if (request.TitrationIndicator != null) entity.TitrationIndicator = request.TitrationIndicator;
+        if (request.TitrationIndicatorEntryId.HasValue) entity.TitrationIndicatorEntryId = request.TitrationIndicatorEntryId;
         if (request.TitrationTempCorrection.HasValue) entity.TitrationTempCorrection = request.TitrationTempCorrection;
         if (request.TitrationExpansionCoefficient.HasValue) entity.TitrationExpansionCoefficient = request.TitrationExpansionCoefficient;
         if (request.TitrationStandardEntryId.HasValue) entity.TitrationStandardEntryId = request.TitrationStandardEntryId;

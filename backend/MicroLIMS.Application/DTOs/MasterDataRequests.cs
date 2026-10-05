@@ -1,6 +1,7 @@
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using System.Text.Json.Serialization;
 
 namespace MicroLIMS.Application.DTOs;
 
@@ -221,11 +222,18 @@ public record CreateTestDefinitionRequest(
     decimal? TitrationExcessVolumeMl = null,
     decimal? TitrationMaxRsdPercent = null,
     TitrationEndpoint? TitrationEndpoint = null,
-    string? TitrationIndicator = null,
+    int? TitrationIndicatorEntryId = null,
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null);
+    int? IcpMethodId = null)
+{
+    // System.Text.Json cannot bind a constructor with more than 64 parameters
+    // and this one has more, so the body is bound through this constructor and
+    // the init setters instead. Without it every POST/PUT fails model binding.
+    [JsonConstructor]
+    public CreateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
+}
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -277,11 +285,18 @@ public record UpdateTestDefinitionRequest(
     decimal? TitrationExcessVolumeMl = null,
     decimal? TitrationMaxRsdPercent = null,
     TitrationEndpoint? TitrationEndpoint = null,
-    string? TitrationIndicator = null,
+    int? TitrationIndicatorEntryId = null,
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null);
+    int? IcpMethodId = null)
+{
+    // System.Text.Json cannot bind a constructor with more than 64 parameters
+    // and this one has more, so the body is bound through this constructor and
+    // the init setters instead. Without it every POST/PUT fails model binding.
+    [JsonConstructor]
+    public UpdateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
+}
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);

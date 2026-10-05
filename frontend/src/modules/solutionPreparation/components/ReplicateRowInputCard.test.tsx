@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { ReplicateRowInputCard } from "./ReplicateRowInputCard";
+import { ReplicateRowInputCard, isSelectableLot } from "./ReplicateRowInputCard";
 import type { LotOption } from "../types";
 
 afterEach(cleanup);
@@ -23,5 +23,9 @@ describe("ReplicateRowInputCard standard lot picker", () => {
     expect(options[0].getAttribute("aria-disabled")).not.toBe("true");
     expect(options[1].getAttribute("aria-disabled")).toBe("true");
     expect(options[1].textContent).toContain("No purity - enter it in Materials Stock");
+  });
+
+  it("defaults to the first lot that has purity, skipping lots without it", () => {
+    expect([lot(2, null), lot(1, 99.5)].find(isSelectableLot)?.materialId).toBe(1);
   });
 });

@@ -113,7 +113,7 @@ export function DiscussionCard({
               <Typography sx={{ fontWeight: 700, fontSize: 13.5, color: "text.primary", lineHeight: 1.2 }}>
                 {post.authorName}
               </Typography>
-              <Typography sx={{ fontSize: 11.5, color: "text.secondary", lineHeight: 1.2 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.2 }}>
                 {post.authorRole} • {new Date(post.createdAt).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
@@ -131,7 +131,7 @@ export function DiscussionCard({
                 size="small"
                 sx={{
                   fontWeight: 700,
-                  fontSize: 11,
+                  fontSize: 12,
                   bgcolor: (theme) => theme.custom.status.pale.bg,
                   color: "warning.dark",
                   border: "1px solid",
@@ -153,7 +153,7 @@ export function DiscussionCard({
                     e.stopPropagation();
                     onOpenHistory(post.id, post.title);
                   }}
-                  sx={{ fontSize: 11, cursor: "pointer" }}
+                  sx={{ fontSize: 12, cursor: "pointer" }}
                 />
               </Tooltip>
             )}

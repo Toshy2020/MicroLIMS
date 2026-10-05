@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { Breadcrumbs, Link as MuiLink, Typography } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { Link as RouterLink } from "react-router-dom";
-import { groupLabel, NavTrail } from "../routes/navigation";
+import { groupLabel, groupPath, NavTrail } from "../routes/navigation";
+import type { MenuGroup } from "../routes/menuConfig";
 
 const APP_NAME = "MicroLIMS";
 
@@ -12,7 +13,7 @@ const APP_NAME = "MicroLIMS";
 //
 // Also owns the browser tab title, so tabs, history entries and screen
 // readers name the page instead of every tab reading "MicroLIMS".
-export function AppBreadcrumbs({ trail }: { trail: NavTrail | null }) {
+export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; groups: MenuGroup[] }) {
   const title = trail
     ? [trail.item.label, trail.parent?.label, APP_NAME].filter(Boolean).join(" · ")
     : APP_NAME;
@@ -24,6 +25,26 @@ export function AppBreadcrumbs({ trail }: { trail: NavTrail | null }) {
   if (!trail) return null;
 
   const crumbSx = { fontSize: 13, lineHeight: 1.5 };
+  // A group crumb opens the group's page of cards when it holds more than
+  // one entry ("Overview > Dashboard" would lead to a single card).
+  const groupLinked = (groups.find((g) => g.groupName === trail.group)?.items.length ?? 0) > 1;
+  const parentShown = !!trail.parent && trail.parent.label.toLowerCase() !== trail.group.toLowerCase();
+  const groupCrumb = groupLinked ? (
+    <MuiLink component={RouterLink} to={groupPath(trail.group)} underline="hover" color="inherit" sx={crumbSx}>
+      {groupLabel(trail.group)}
+    </MuiLink>
+  ) : (
+    <Typography component="span" sx={crumbSx}>{groupLabel(trail.group)}</Typography>
+  );
+  // A section crumb opens the section's landing page of cards.
+  const sectionCrumb = (label: string) =>
+    trail.parent?.path ? (
+      <MuiLink component={RouterLink} to={trail.parent.path} underline="hover" color="inherit" sx={crumbSx}>
+        {label}
+      </MuiLink>
+    ) : (
+      <Typography component="span" sx={crumbSx}>{label}</Typography>
+    );
 
   return (
     <Breadcrumbs
@@ -32,11 +53,10 @@ export function AppBreadcrumbs({ trail }: { trail: NavTrail | null }) {
       separator={<NavigateNextIcon sx={{ fontSize: 16 }} />}
       sx={{ mb: 1.5, color: "text.secondary", "& .MuiBreadcrumbs-ol": { flexWrap: "wrap" } }}
     >
-      <Typography component="span" sx={crumbSx}>{groupLabel(trail.group)}</Typography>
-      {/* "Document Control > Document Control" says nothing twice. */}
-      {trail.parent && trail.parent.label.toLowerCase() !== trail.group.toLowerCase() && (
-        <Typography component="span" sx={crumbSx}>{trail.parent.label}</Typography>
-      )}
+      {/* "Document Control > Document Control" says nothing twice: the
+          group crumb then stands in for the section and links to it. */}
+      {!parentShown && trail.parent?.path ? sectionCrumb(groupLabel(trail.group)) : groupCrumb}
+      {parentShown && sectionCrumb(trail.parent!.label)}
       {trail.exact || !trail.item.path ? (
         <Typography component="span" aria-current="page" sx={{ ...crumbSx, color: "text.primary", fontWeight: 600 }}>
           {trail.item.label}

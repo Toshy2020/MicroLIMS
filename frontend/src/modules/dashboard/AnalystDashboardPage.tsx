@@ -4,7 +4,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { TableSkeleton } from "../../components/TableSkeleton";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { useDashboardSummary } from "./hooks/useDashboardSummary";
@@ -118,8 +118,8 @@ export function AnalystDashboardPage() {
       )}
 
       {/* Tier 1: KPI Work Summary Strip */}
-      {/* No onSelectCategory: SummaryCard always gets a `to`, so its Link
-          branch wins and the onClick branch was unreachable. The cards
+      {/* No onSelectCategory: each tile always gets a `to`, so its Link
+          branch wins and the onClick branch was unreachable. The tiles
           navigate to these same routes via CATEGORY_ROUTES, as real links. */}
       <AnalystWorkSummary tasks={tasks ?? []} readyToReadCount={summary.readyToReadCount} />
 
@@ -148,7 +148,7 @@ export function AnalystDashboardPage() {
 
       {/* Tier 4: My Active Work Table */}
       <Box sx={{ mb: 2 }}>
-        {todaysWork ? <TodaysWorkTable items={todaysWork} /> : <LoadingSpinner />}
+        {todaysWork ? <TodaysWorkTable items={todaysWork} /> : <TableSkeleton rows={4} cols={5} />}
       </Box>
 
       {/* Tier 5: Daily Throughput & Operational Metrics */}

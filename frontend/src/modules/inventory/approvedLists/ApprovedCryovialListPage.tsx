@@ -37,7 +37,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { TableSkeleton } from "../../../components/TableSkeleton";
 import { formatLabDate } from "../../../utils/formatDate";
 import { CryovialService } from "../../laboratoryConfiguration/cryovials/services/CryovialService";
 import { CryovialItem } from "../../laboratoryConfiguration/cryovials/types/cryovialTypes";
@@ -570,9 +570,7 @@ export function ApprovedCryovialListPage() {
           }}
         >
           {loading ? (
-            <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}>
-              <LoadingSpinner />
-            </Box>
+            <TableSkeleton rows={8} cols={8} hasContainer={false} />
           ) : (
             <>
               <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
@@ -749,7 +747,7 @@ export function ApprovedCryovialListPage() {
                                 {c.code}
                               </Typography>
                               {c.material?.batchNumber && (
-                                <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+                                <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
                                   Batch: {c.material.batchNumber}
                                 </Typography>
                               )}
@@ -761,7 +759,7 @@ export function ApprovedCryovialListPage() {
                                 {organismName}
                               </Typography>
                               {c.material?.materialName && (
-                                <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+                                <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
                                   {c.material.materialName}
                                 </Typography>
                               )}
@@ -822,7 +820,7 @@ export function ApprovedCryovialListPage() {
                                   {formatLabDate(c.expiryDate)}
                                 </Typography>
                                 {expiring && (
-                                  <Typography sx={{ fontSize: 11, color: action.text, fontWeight: 600 }}>
+                                  <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>
                                     Expiring soon
                                   </Typography>
                                 )}
@@ -860,7 +858,7 @@ export function ApprovedCryovialListPage() {
                                       sx={{
                                         px: 1,
                                         py: 0.25,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: 700,
                                         borderColor: theme.palette.primary.main,
                                         color: theme.palette.primary.main,
@@ -887,7 +885,7 @@ export function ApprovedCryovialListPage() {
                                     sx={{
                                       px: 1,
                                       py: 0.25,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       borderColor: "divider",
                                       color: "text.secondary",
                                       "&:hover": { bgcolor: "background.default" }

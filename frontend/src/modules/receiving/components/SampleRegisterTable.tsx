@@ -83,8 +83,9 @@ function OverallSampleStatusBadge({ status }: { status: string }) {
         px: 1.25,
         py: 0.35,
         borderRadius: 5,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
+        whiteSpace: "nowrap",
         bgcolor: tokens.bg,
         color: tokens.text,
         border: `1px solid ${tokens.border}`
@@ -314,7 +315,7 @@ export function SampleRegisterTable({
                   {sample.displayName}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap", mt: 0.25 }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     {sample.referenceNumber}
                   </Typography>
                   {isNested && (
@@ -323,7 +324,7 @@ export function SampleRegisterTable({
                       label="Retest"
                       color="warning"
                       variant="outlined"
-                      sx={{ height: 20, fontSize: 11, fontWeight: 700 }}
+                      sx={{ height: 20, fontSize: 12, fontWeight: 700 }}
                     />
                   )}
                   {sample.oosGroupCode && (
@@ -331,7 +332,7 @@ export function SampleRegisterTable({
                       <Chip
                         size="small"
                         label={sample.oosGroupCode}
-                        sx={{ height: 20, fontSize: 11, fontFamily: "monospace", fontWeight: 600 }}
+                        sx={{ height: 20, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}
                       />
                     </Tooltip>
                   )}
@@ -351,7 +352,7 @@ export function SampleRegisterTable({
                         onClick={(e) => toggleExpand(sample.sampleId, e)}
                         sx={{
                           height: 20,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
                           cursor: "pointer",
                           bgcolor: isExpanded ? "primary.main" : "action.selected",
@@ -396,7 +397,7 @@ export function SampleRegisterTable({
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   B: {sample.batchNumber}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   C: {sample.controlNumber || "—"}
                 </Typography>
               </Box>
@@ -423,7 +424,7 @@ export function SampleRegisterTable({
                     }}
                     variant="outlined"
                     sx={{
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
                       color: theme.palette.primary.main,
@@ -455,7 +456,7 @@ export function SampleRegisterTable({
                     onAssignAnalyst(sample);
                   }}
                   sx={{
-                    fontSize: 11,
+                    fontSize: 12,
                     py: 0.25,
                     px: 1,
                     textTransform: "none",
@@ -471,7 +472,7 @@ export function SampleRegisterTable({
                 size="small"
                 label="Unassigned"
                 variant="outlined"
-                sx={{ fontSize: 11, height: 20, color: "text.disabled", borderColor: "divider" }}
+                sx={{ fontSize: 12, height: 20, color: "text.disabled", borderColor: "divider" }}
               />
             )}
           </TableCell>
@@ -675,7 +676,7 @@ function SampleDocIndicator({
         px: 0.75,
         py: 0.2,
         borderRadius: 1,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 600,
         bgcolor: docCount > 0 ? "action.hover" : "transparent",
         color: docCount > 0 ? "primary.main" : "text.secondary",

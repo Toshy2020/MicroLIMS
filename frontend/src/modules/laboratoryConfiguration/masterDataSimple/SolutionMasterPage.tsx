@@ -158,13 +158,13 @@ export function SolutionMasterPage() {
   const renderTypeChip = (type: SolutionType) => {
     switch (type) {
       case "MobilePhase":
-        return <Chip icon={<WavesOutlinedIcon fontSize="small" />} label="Mobile Phase" size="small" color="primary" variant="outlined" sx={{ fontSize: 11, fontWeight: 600 }} />;
+        return <Chip icon={<WavesOutlinedIcon fontSize="small" />} label="Mobile Phase" size="small" color="primary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       case "Diluent":
-        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label="Diluent" size="small" color="secondary" variant="outlined" sx={{ fontSize: 11, fontWeight: 600 }} />;
+        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label="Diluent" size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       case "Titrant":
-        return <Chip icon={<ScaleOutlinedIcon fontSize="small" />} label="Titrant" size="small" color="info" variant="outlined" sx={{ fontSize: 11, fontWeight: 600 }} />;
+        return <Chip icon={<ScaleOutlinedIcon fontSize="small" />} label="Titrant" size="small" color="info" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       default:
-        return <Chip label={type} size="small" variant="outlined" sx={{ fontSize: 11 }} />;
+        return <Chip label={type} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
     }
   };
 
@@ -242,7 +242,7 @@ export function SolutionMasterPage() {
             label={`${sol.components.length} ${sol.components.length === 1 ? "component" : "components"}`}
             size="small"
             variant="outlined"
-            sx={{ fontSize: 11, cursor: "pointer" }}
+            sx={{ fontSize: 12, cursor: "pointer" }}
           />
         </Tooltip>
       )

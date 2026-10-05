@@ -275,7 +275,7 @@ function IncubationStages({ incubations }: { incubations: IncubationDetail[] }) 
         return (
           <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : undefined, marginTop: i > 0 ? 8 : 0 }}>
             {incubations.length > 1 && (
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-tertiary)", marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-tertiary)", marginBottom: 6 }}>
                 {stageTitle}
               </div>
             )}
@@ -373,7 +373,7 @@ function FullLocationTable({ locations }: { locations: SampleLocationDetail[] })
                   </span>
                 )}
               </td>
-              <td>{l.enteredByName ? <>{l.enteredByName}<br /><span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>{dt(l.enteredAt)}</span></> : "—"}</td>
+              <td>{l.enteredByName ? <>{l.enteredByName}<br /><span style={{ color: "var(--color-text-quaternary)", fontSize: 12 }}>{dt(l.enteredAt)}</span></> : "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -384,7 +384,7 @@ function FullLocationTable({ locations }: { locations: SampleLocationDetail[] })
 
 function CardFooter({ enteredBy, enteredAt }: { enteredBy: string | null | undefined; enteredAt: string | null | undefined }) {
   return (
-    <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--color-border)" }}>
+    <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--color-border)" }}>
       {enteredBy ? <>Entered by <strong style={{ color: "var(--color-text-primary)" }}>{enteredBy}</strong> · {dt(enteredAt)}</> : "No result recorded yet"}
     </div>
   );

@@ -119,7 +119,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
                       <Chip
                         size="small"
                         label={doc.kind === "SourceReport" ? "Source Report" : "Moisture Report"}
-                        sx={{ fontSize: 10, height: 18 }}
+                        sx={{ fontSize: 12, height: 18 }}
                       />
                     </Stack>
                   }

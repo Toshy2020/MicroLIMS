@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { Box, Paper, Typography, Grid, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
@@ -7,6 +6,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
 import { StatusTone } from "../../../theme/statusTokens";
+import { SummaryTiles, type SummaryTile } from "../../../components/configHierarchy/SummaryTiles";
 
 // These tiles used to count sample categories (Product/RM/PM/Water/AC/EM),
 // which duplicated the Item Type dropdown immediately below them. They now
@@ -53,42 +53,42 @@ const TILES: TileConfig[] = [
     key: "needsPreparation",
     label: "Needs Preparation",
     hint: "Preparation not yet signed off",
-    icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />,
+    icon: <ScienceOutlinedIcon />,
     tone: "inconclusive"
   },
   {
     key: "readyToRead",
     label: "Ready to Read",
     hint: "Incubation complete, awaiting result entry",
-    icon: <VisibilityOutlinedIcon sx={{ fontSize: 20 }} />,
+    icon: <VisibilityOutlinedIcon />,
     tone: "purple"
   },
   {
     key: "awaitingReview",
     label: "Awaiting Review",
     hint: "All tests complete, awaiting reviewer",
-    icon: <RateReviewOutlinedIcon sx={{ fontSize: 20 }} />,
+    icon: <RateReviewOutlinedIcon />,
     tone: "info"
   },
   {
     key: "overdue",
     label: "Overdue",
     hint: "Open more than 24 hours after receipt",
-    icon: <ScheduleOutlinedIcon sx={{ fontSize: 20 }} />,
+    icon: <ScheduleOutlinedIcon />,
     tone: "detected"
   },
   {
     key: "mine",
     label: "Assigned to Me",
     hint: "Samples with a test assigned to you",
-    icon: <PersonOutlineIcon sx={{ fontSize: 20 }} />,
+    icon: <PersonOutlineIcon />,
     tone: "action"
   },
   {
     key: "unassigned",
     label: "Unassigned",
     hint: "No analyst assigned yet",
-    icon: <PersonOffOutlinedIcon sx={{ fontSize: 20 }} />,
+    icon: <PersonOffOutlinedIcon />,
     tone: "pending",
     assignersOnly: true
   }
@@ -102,124 +102,23 @@ interface Props {
 }
 
 export function SampleStatusKpiCards({ counts, activeKey, onSelect, canAssignAnalyst }: Props) {
-  const theme = useTheme();
-
-  const visibleTiles = useMemo(
-    () => TILES.filter((t) => !t.assignersOnly || canAssignAnalyst),
-    [canAssignAnalyst]
-  );
-
-  return (
-    <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-      {visibleTiles.map((card) => {
-        const isActive = activeKey === card.key;
+  const tiles = useMemo<SummaryTile[]>(
+    () =>
+      TILES.filter((t) => !t.assignersOnly || canAssignAnalyst).map((card) => {
         const count = counts?.[card.key] ?? 0;
-        const iconTokens = theme.custom.status[card.tone];
-        const activeTokens = theme.custom.status.purple;
-
-        return (
-          <Grid
-            key={card.key}
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper
-              elevation={isActive ? 2 : 0}
-              role="button"
-              tabIndex={0}
-              aria-pressed={isActive}
-              aria-label={`${card.label}: ${count} ${count === 1 ? "sample" : "samples"}. ${card.hint}.`}
-              title={card.hint}
-              onClick={() => onSelect(card.key)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(card.key);
-                }
-              }}
-              sx={{
-                p: 1.75,
-                borderRadius: 2,
-                cursor: "pointer",
-                border: isActive ? `2px solid ${activeTokens.border}` : "1px solid",
-                borderColor: isActive ? activeTokens.border : "divider",
-                bgcolor: isActive ? activeTokens.bg : "background.paper",
-                transition: "all 0.15s ease-in-out",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                minHeight: 88,
-                position: "relative",
-                overflow: "hidden",
-                // A zero count is not worth pulling the eye toward, but the
-                // tile stays clickable so the filter is still reachable.
-                opacity: count === 0 && !isActive ? 0.65 : 1,
-                "&:hover": {
-                  borderColor: activeTokens.border,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  transform: "translateY(-1px)"
-                },
-                // These tiles are the page's primary filter, so the keyboard
-                // path needs the same visible affordance the pointer one has.
-                // .text, not .border: the border token is a pale tint that
-                // would leave the ring under the 3:1 an indicator needs.
-                "&:focus-visible": {
-                  outline: `2px solid ${activeTokens.text}`,
-                  outlineOffset: 2
-                }
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 0.5, mb: 0.75 }}>
-                <Typography
-                  sx={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: isActive ? activeTokens.text : "text.secondary",
-                    lineHeight: 1.2
-                  }}
-                >
-                  {card.label}
-                </Typography>
-                <Box
-                  sx={{
-                    color: iconTokens.text,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 28,
-                    height: 28,
-                    borderRadius: 1.5,
-                    bgcolor: iconTokens.bg,
-                    flexShrink: 0
-                  }}
-                >
-                  {card.icon}
-                </Box>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}>
-                <Typography
-                  sx={{
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: isActive ? activeTokens.text : "text.primary",
-                    lineHeight: 1
-                  }}
-                >
-                  {count}
-                </Typography>
-                {isActive && (
-                  <Typography sx={{ fontSize: 11, color: activeTokens.text, fontWeight: 600 }}>
-                    Filtering
-                  </Typography>
-                )}
-              </Box>
-            </Paper>
-          </Grid>
-        );
-      })}
-    </Grid>
+        return {
+          label: card.label,
+          value: count,
+          caption: count === 1 ? "sample" : "samples",
+          hint: card.hint,
+          icon: card.icon,
+          tone: card.tone,
+          active: activeKey === card.key,
+          onClick: () => onSelect(card.key)
+        };
+      }),
+    [counts, activeKey, onSelect, canAssignAnalyst]
   );
+
+  return <SummaryTiles tiles={tiles} />;
 }

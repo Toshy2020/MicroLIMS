@@ -45,7 +45,7 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                   {...clickable(() => onCardClick(s.sampleId))}
                 >
                   <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.displayName}</Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 0.5 }}>{s.referenceNumber}</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>{s.referenceNumber}</Typography>
                   <Stack
                     direction="row"
                     sx={{
@@ -53,7 +53,7 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                       alignItems: "center"
                     }}>
                     <CategoryBadge category={s.category} />
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{formatDate(s.receivedAt)}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{formatDate(s.receivedAt)}</Typography>
                   </Stack>
                 </Paper>
               ))}

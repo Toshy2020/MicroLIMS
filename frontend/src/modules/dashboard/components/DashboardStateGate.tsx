@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Alert, AlertTitle, Box, Button } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
 
 interface Props {
   loading: boolean;
@@ -22,7 +22,7 @@ interface Props {
 export function DashboardStateGate({ loading, error, hasData, onRetry, children }: Props) {
   if (hasData) return <>{children}</>;
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <WorkspaceSkeleton tiles={4} rows={5} />;
 
   if (error) {
     return (

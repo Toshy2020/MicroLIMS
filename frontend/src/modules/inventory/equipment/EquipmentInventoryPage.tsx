@@ -9,7 +9,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { TableSkeleton } from "../../../components/TableSkeleton";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
@@ -302,7 +302,7 @@ export function EquipmentInventoryPage() {
               }
             />
           ) : loading || !items ? (
-            <LoadingSpinner />
+            <TableSkeleton rows={8} cols={7} hasContainer={false} />
           ) : (
             /* Active Equipment View (Tab 1) */
             <ActiveEquipmentView

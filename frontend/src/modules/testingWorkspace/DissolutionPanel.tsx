@@ -427,10 +427,10 @@ export function DissolutionPanel({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{firstHeader}</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Peak Area</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>% Dissolved</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{firstHeader}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Peak Area</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>% Dissolved</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{lastHeader}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

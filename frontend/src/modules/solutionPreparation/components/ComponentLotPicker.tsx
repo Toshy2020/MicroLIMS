@@ -64,7 +64,7 @@ export function ComponentLotPicker({
             size="small"
             variant="outlined"
             label={`Recipe: ${component.recipeQuantity} ${component.recipeUnit}`}
-            sx={{ fontWeight: 600, fontSize: 11 }}
+            sx={{ fontWeight: 600, fontSize: 12 }}
           />
         </Box>
 
@@ -113,7 +113,7 @@ export function ComponentLotPicker({
                 })}
               </Select>
               {selectedLot && (
-                <FormHelperText sx={{ fontSize: 11 }}>
+                <FormHelperText sx={{ fontSize: 12 }}>
                   Available in lot: {selectedLot.quantityRemaining} {selectedLot.unit}
                   {selectedLot.expiryDate && ` · Expires ${formatLabDate(selectedLot.expiryDate)}`}
                 </FormHelperText>

@@ -1,49 +1,31 @@
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Grid,
-  Paper,
-  Typography,
-  Button,
-  useTheme
-} from "@mui/material";
-import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import { Link } from "react-router-dom";
+import { Box, Button, Typography } from "@mui/material";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
+import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
+import TaskAltOutlinedIcon from "@mui/icons-material/TaskAltOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import { SummaryTiles, type SummaryTile } from "../../components/configHierarchy/SummaryTiles";
+import { PageCard } from "../../components/PageCard";
+import { useMenuGroups } from "../../hooks/useMenuGroups";
+import type { MenuItem } from "../../routes/menuConfig";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { DashboardSummary, KpiDeltas } from "./types/dashboard";
-import { brandColors } from "../../theme";
 import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
-// Configuration shortcuts per laboratory, matching the sidebar's
-// laboratory configuration areas; Items and Specifications are shared.
-const MICRO_CONFIG_LINKS = [
-  { label: "Test Master", path: "/laboratory-configuration/test-master" },
-  { label: "Specifications", path: "/laboratory-configuration/specifications" },
-  { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
-  { label: "Organisms", path: "/laboratory-configuration/organisms" },
-  { label: "Items & Materials", path: "/laboratory-configuration/items" },
-  { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" }
-];
-
-const FP_CONFIG_LINKS = [
-  { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
-  { label: "Specifications", path: "/laboratory-configuration/specifications" },
-  { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" },
-  { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
-  { label: "Items & Materials", path: "/laboratory-configuration/items" },
-  { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" }
-];
-
 export function AdminDashboardPage() {
-  const theme = useTheme();
   const lab = useDashboardLab();
+
+  const menuItems = useMenuGroups().flatMap((g) => g.items);
+  const configPath = lab.isPhyschem ? "/sections/physicochemical-configuration" : "/sections/microbiology-configuration";
+  const tools = ["/users", "/roles", "/audit-search", "/reports", configPath]
+    .map((path) => menuItems.find((item) => item.path === path))
+    .filter((item): item is MenuItem => !!item);
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [kpis, setKpis] = useState<KpiDeltas | null>(null);
@@ -84,6 +66,18 @@ export function AdminDashboardPage() {
     );
   }
 
+  const tiles: SummaryTile[] = [
+    { label: "Total samples", value: kpis?.totalSamples ?? "—", icon: <Inventory2OutlinedIcon /> },
+    { label: "Total tests", value: kpis?.totalTests ?? "—", icon: <ScienceOutlinedIcon /> },
+    { label: "Pending tests", value: summary.pendingTests, icon: <PendingActionsOutlinedIcon />, tone: "info", to: lab.workspace("?status=Active") },
+    { label: "Review queue", value: summary.reviewerQueue, caption: "samples", icon: <RateReviewOutlinedIcon />, tone: "action", to: lab.workspace("?status=UnderReview") },
+    { label: "Approval queue", value: summary.approvalQueue, caption: "samples", icon: <TaskAltOutlinedIcon />, tone: "notDetected", to: lab.workspace("?status=UnderApproval") },
+    ...(summary.pendingPreparationConfigApproval > 0
+      ? [{ label: "Prep configs pending", value: summary.pendingPreparationConfigApproval, icon: <TuneOutlinedIcon />, tone: "inconclusive" as const, to: "/laboratory-configuration/items" }]
+      : []),
+    { label: "Overdue (>24h)", value: summary.delayedTests, icon: <ScheduleOutlinedIcon />, tone: "detected", to: lab.workspace("?urgency=overdue") }
+  ];
+
   return (
     <>
       <PageHeader
@@ -100,372 +94,30 @@ export function AdminDashboardPage() {
         >
           Refresh
         </Button>
-        <Button
-          component={Link}
-          to="/audit-search"
-          variant="outlined"
-          startIcon={<SearchOutlinedIcon />}
-        >
-          Audit Search
-        </Button>
-        <Button
-          component={Link}
-          to="/users"
-          variant="contained"
-          startIcon={<PeopleAltOutlinedIcon />}
-        >
-          Manage Users
-        </Button>
       </PageHeader>
 
-      {/* Tier 1: Administrative Control Pillars */}
-      <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3
-          }}>
-          <Paper
-            component={Link}
-            to="/users"
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
+      {/* The numbers lead: each queue opens the workspace filtered to it. */}
+      <SummaryTiles tiles={tiles} />
+
+      {/* Administration: the admin's own tools and this lab's configuration,
+          read from the permission-filtered menu so no card leads to a 403. */}
+      {tools.length > 0 && (
+        <>
+          <Typography component="h2" sx={{ fontSize: 16, fontWeight: 700, mb: 1.5 }}>
+            Administration
+          </Typography>
+          <Box
+            component="ul"
+            sx={{ listStyle: "none", m: 0, p: 0, display: "grid", gap: 2, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 250px), 1fr))" }}
           >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                User Accounts
-              </Typography>
-              <PeopleAltOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 22 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, my: 0.5 }}>
-              Manage Users
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Create, lock/unlock, password resets
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3
-          }}>
-          <Paper
-            component={Link}
-            to="/roles"
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${brandColors.info}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Roles & Permissions
-              </Typography>
-              <SecurityOutlinedIcon sx={{ color: brandColors.info, fontSize: 22 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.info, my: 0.5 }}>
-              Access Control
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              RBAC and segregation of duties
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3
-          }}>
-          <Paper
-            component={Link}
-            to="/audit-search"
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${brandColors.warn}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Audit Search
-              </Typography>
-              <SearchOutlinedIcon sx={{ color: brandColors.warn, fontSize: 22 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.warn, my: 0.5 }}>
-              21 CFR Part 11
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              ALCOA+ traceability logs
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3
-          }}>
-          <Paper
-            component={Link}
-            to="/reports"
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${brandColors.ok}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Reports & KPIs
-              </Typography>
-              <DescriptionOutlinedIcon sx={{ color: brandColors.ok, fontSize: 22 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.ok, my: 0.5 }}>
-              Laboratory KPIs
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Export workbench & analytics
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Tier 2: Laboratory Operational Oversight */}
-      <Paper sx={{ p: 2.5, mb: 2.5 }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-          Laboratory Operational Oversight
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center" }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Total Samples</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: theme.palette.primary.main }}>
-                {kpis?.totalSamples ?? "—"}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center" }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Total Tests</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: theme.palette.primary.main }}>
-                {kpis?.totalTests ?? "—"}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?status=Active")}
-              variant="outlined"
-              sx={{
-                p: 1.5,
-                textAlign: "center",
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                "&:hover": { bgcolor: "action.hover" }
-              }}
-            >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Pending Tests</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.info }}>
-                {summary.pendingTests}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?status=UnderReview")}
-              variant="outlined"
-              sx={{
-                p: 1.5,
-                textAlign: "center",
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                "&:hover": { bgcolor: "action.hover" }
-              }}
-            >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Review Queue</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
-                {summary.reviewerQueue}
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
-            </Paper>
-          </Grid>
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?status=UnderApproval")}
-              variant="outlined"
-              sx={{
-                p: 1.5,
-                textAlign: "center",
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                "&:hover": { bgcolor: "action.hover" }
-              }}
-            >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Approval Queue</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.ok }}>
-                {summary.approvalQueue}
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
-            </Paper>
-          </Grid>
-          {summary.pendingPreparationConfigApproval > 0 && (
-            <Grid
-              size={{
-                xs: 6,
-                sm: 4,
-                md: 2
-              }}>
-              <Paper
-                component={Link}
-                to="/laboratory-configuration/items"
-                variant="outlined"
-                sx={{
-                  p: 1.5,
-                  textAlign: "center",
-                  cursor: "pointer",
-                  display: "block",
-                  textDecoration: "none",
-                  color: "inherit",
-                  "&:hover": { bgcolor: "action.hover" }
-                }}
-              >
-                <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Prep Configs Pending</Typography>
-                <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
-                  {summary.pendingPreparationConfigApproval}
-                </Typography>
-              </Paper>
-            </Grid>
-          )}
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: 2
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?urgency=overdue")}
-              variant="outlined"
-              sx={{
-                p: 1.5,
-                textAlign: "center",
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                "&:hover": { bgcolor: "action.hover" }
-              }}
-            >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Overdue (&gt;24h)</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.err }}>
-                {summary.delayedTests}
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Tier 3: Master Data & Laboratory Configuration Quick Actions */}
-      <Paper sx={{ p: 2.5 }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-          Master Data & System Configuration
-        </Typography>
-        <Grid container spacing={1.5}>
-          {(lab.isPhyschem ? FP_CONFIG_LINKS : MICRO_CONFIG_LINKS).map((item, idx) => (
-            <Grid
-              key={idx}
-              size={{
-                xs: 12,
-                sm: 6,
-                md: 4
-              }}>
-              <Paper
-                component={Link}
-                to={item.path}
-                variant="outlined"
-                sx={{
-                  p: 1.5,
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  textDecoration: "none",
-                  color: "inherit",
-                  "&:hover": { bgcolor: "action.hover", borderColor: theme.palette.primary.main }
-                }}
-              >
-                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{item.label}</Typography>
-                <ArrowForwardOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Paper>
+            {tools.map((tool) => (
+              <Box component="li" key={tool.path} sx={{ display: "flex" }}>
+                <PageCard page={tool} />
+              </Box>
+            ))}
+          </Box>
+        </>
+      )}
     </>
   );
 }

@@ -14,6 +14,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 const LoginPage = lazy(() => import("../pages/Login").then((m) => ({ default: m.LoginPage })));
 const AdminPasswordRecovery = lazy(() => import("../pages/AdminPasswordRecovery").then((m) => ({ default: m.AdminPasswordRecovery })));
 const DashboardPage = lazy(() => import("../modules/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const SectionPage = lazy(() => import("../pages/Section").then((m) => ({ default: m.SectionPage })));
 const NotFoundPage = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 const ProfilePage = lazy(() => import("../pages/Profile").then((m) => ({ default: m.ProfilePage })));
 const ChangePasswordPage = lazy(() => import("../pages/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
@@ -113,6 +114,8 @@ export function AppRoutes() {
             <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/sections/:slug" element={<SectionPage />} />
+            <Route path="/groups/:slug" element={<SectionPage />} />
 
             {/* Lab Workspaces (Task 13a): each laboratory gets its own scoped
                 Receiving & Testing Workspace instance. /receiving-testing has

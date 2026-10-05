@@ -289,7 +289,7 @@ export function DiscussionDetailPage() {
                 size="small"
                 sx={{
                   fontWeight: 700,
-                  fontSize: 11,
+                  fontSize: 12,
                   bgcolor: (theme) => theme.custom.status.pale.bg,
                   color: "warning.dark"
                 }}
@@ -304,7 +304,7 @@ export function DiscussionDetailPage() {
                   size="small"
                   variant="outlined"
                   onClick={() => setHistoryOpen(true)}
-                  sx={{ cursor: "pointer", fontSize: 11.5 }}
+                  sx={{ cursor: "pointer", fontSize: 12 }}
                 />
               </Tooltip>
             )}
@@ -356,7 +356,7 @@ export function DiscussionDetailPage() {
                     <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.primary" }}>
                       {att.fileName}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       {(att.fileSizeBytes / 1024).toFixed(1)} KB
                     </Typography>
                   </Box>
@@ -442,7 +442,7 @@ export function DiscussionDetailPage() {
                         <Typography sx={{ fontWeight: 700, fontSize: 13, color: "text.primary", lineHeight: 1.1 }}>
                           {comment.authorName}
                         </Typography>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary", lineHeight: 1.1 }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.1 }}>
                           {comment.authorRole} • {new Date(comment.createdAt).toLocaleString()}
                         </Typography>
                       </Box>

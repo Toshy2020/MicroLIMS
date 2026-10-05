@@ -7,7 +7,7 @@ import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutl
 import { Link } from "react-router-dom";
 import { NotificationItem, MediaExpiryLot } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { useLoadFailures } from "../../../hooks/useLoadFailures";
 import { DashboardService } from "../services/DashboardService";
 import { LoadFailuresAlert } from "../../../components/LoadErrorAlert";
@@ -67,7 +67,7 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
       <SectionTitle>Attention Required</SectionTitle>
 
       {loading ? (
-        <LoadingSpinner />
+        <DialogBodySkeleton blocks={3} blockHeight={48} />
       ) : (
         <Stack spacing={1.5} sx={{ flex: 1 }}>
           <LoadFailuresAlert failed={failedLists} retryHint="Refresh the dashboard to try again." />
@@ -100,11 +100,11 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
                 <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
                   {lot.mediaTypeName} · Lot {lot.lotNumber}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   Expires in {lot.daysRemaining} day{lot.daysRemaining === 1 ? "" : "s"}
                 </Typography>
               </Box>
-              <Chip size="small" label="Expiring" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
+              <Chip size="small" label="Expiring" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
             </Box>
           ))}
 
@@ -134,7 +134,7 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
                 <Typography sx={{ fontSize: 12.5, fontWeight: n.isRead ? 500 : 700 }}>
                   {n.message}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {timeAgo(n.timestamp)}
                 </Typography>
               </Box>

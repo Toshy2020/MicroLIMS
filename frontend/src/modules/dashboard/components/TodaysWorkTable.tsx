@@ -126,7 +126,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
                         <Typography sx={{ fontSize: 12 }}>{t.testCode}</Typography>
                         <StatusBadge status={t.status} />
                         {t.isReturned && <StatusBadge status="Returned" label="Returned" />}
-                        {t.timeRemaining && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{t.timeRemaining}</Typography>}
+                        {t.timeRemaining && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t.timeRemaining}</Typography>}
                       </Box>
                     ))}
                   </Stack>

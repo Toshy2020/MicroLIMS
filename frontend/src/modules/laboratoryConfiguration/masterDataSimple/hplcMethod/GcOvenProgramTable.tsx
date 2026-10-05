@@ -171,6 +171,7 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
                           color="error"
                           disabled={isInitial || steps.length <= 1}
                           onClick={() => handleRemoveStep(idx)}
+                          aria-label={`Delete oven step ${idx + 1}`}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>

@@ -168,7 +168,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
         {file ? (
           <>
             <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{file.name}</Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               {(file.size / 1024 / 1024).toFixed(2)} MB
             </Typography>
           </>

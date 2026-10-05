@@ -36,7 +36,7 @@ export function WorkspaceRunHeader({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               {run.equipmentName}{" "}
-              <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.7em", color: "text.secondary" }}>
+              <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.75em", color: "text.secondary" }}>
                 {run.equipmentCode}
               </Box>
             </Typography>

@@ -73,12 +73,12 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
         border: "1px solid",
         borderColor: "divider",
         borderLeftWidth: 3,
-        fontSize: 11,
+        fontSize: 12,
         textAlign: "left",
         color: "text.secondary"
       }}
     >
-      <Typography sx={{ fontSize: 11, fontWeight: 800, color: theme.palette.primary.main, mb: 0.5 }}>
+      <Typography sx={{ fontSize: 12, fontWeight: 800, color: theme.palette.primary.main, mb: 0.5 }}>
         Evidence Chain & Derivation:
       </Typography>
 
@@ -86,10 +86,10 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
         <Stack spacing={0.75}>
           {/* Primary Observation */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
               1. Primary Plate Observation:
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1 }}>
               Observation: <strong>{cell.primaryObservation || "No Growth recorded"}</strong>
             </Typography>
           </Box>
@@ -97,21 +97,21 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
           {/* Confirmatory Plate Details */}
           {cell.confirmatoryPlates && cell.confirmatoryPlates.length > 0 ? (
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                 2. Confirmatory Plating ({cell.confirmatoryPlates.length} Media):
               </Typography>
               {cell.confirmatoryPlates.map((plate) => (
                 <Box key={plate.id} sx={{ pl: 1, mt: 0.25 }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     • Medium #{plate.mediumIndex + 1} ({plate.mediumName ?? "Selective Agar"}):{" "}
                     <strong>{plate.observation}</strong>
                   </Typography>
                   {plate.expectedAppearanceSnapshot && (
-                    <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1.25 }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1.25 }}>
                       Expected: <em>{plate.expectedAppearanceSnapshot}</em>
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1.25 }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1.25 }}>
                     Read at {formatDate(plate.recordedAtUtc)} by {plate.recordedByUserName ?? "Analyst"}
                   </Typography>
                 </Box>
@@ -119,7 +119,7 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
             </Box>
           ) : (
             <Box>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1 }}>
                 2. Confirmatory Plating: <em>Not required (resolved at primary plate)</em>
               </Typography>
             </Box>
@@ -127,10 +127,10 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
 
           {/* Agreement Evaluation */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
               3. Agreement Evaluation:
             </Typography>
-            <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, pl: 1, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, pl: 1, fontWeight: 600 }}>
               {cell.resultDisplay?.includes("Detected (+)")
                 ? "All confirmatory media conforming → Detected (+)"
                 : cell.resultDisplay?.includes("Not Detected (-)")
@@ -143,10 +143,10 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
         </Stack>
       ) : (
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
             Plate Colony Count:
           </Typography>
-          <Typography sx={{ fontSize: 11, color: theme.custom.status.info.text, pl: 1, fontWeight: 700 }}>
+          <Typography sx={{ fontSize: 12, color: theme.custom.status.info.text, pl: 1, fontWeight: 700 }}>
             {cell.numericValue !== null ? `${cell.numericValue} CFU` : cell.resultDisplay}
           </Typography>
         </Box>
@@ -155,7 +155,7 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
       <Divider sx={{ my: 0.75, borderColor: "divider" }} />
 
       {/* Audit Stamp */}
-      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
         Entered by: <strong>{cell.enteredByUserName ?? "Analyst"}</strong> at {formatDate(cell.enteredAt)}
       </Typography>
     </Box>
@@ -345,7 +345,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                     <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
                       {t.testCode}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       {t.displayName}
                     </Typography>
                   </TableCell>
@@ -373,7 +373,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                     <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                       {loc.locationName}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       {loc.locationType} {loc.gradeClassification ? `· Grade ${loc.gradeClassification}` : ""}
                     </Typography>
                   </TableCell>
@@ -415,7 +415,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                               fontWeight: 800,
                               bgcolor: theme.custom.status.detected.bg,
                               color: theme.custom.status.detected.text,
-                              fontSize: 11,
+                              fontSize: 12,
                               cursor: "pointer",
                               "&:hover": { bgcolor: theme.custom.status.detected.border }
                             }}
@@ -430,7 +430,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                               fontWeight: 700,
                               bgcolor: theme.custom.status.notDetected.bg,
                               color: theme.custom.status.notDetected.text,
-                              fontSize: 11,
+                              fontSize: 12,
                               cursor: "pointer",
                               "&:hover": { bgcolor: theme.custom.status.notDetected.border }
                             }}
@@ -446,7 +446,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                                 fontWeight: 800,
                                 bgcolor: theme.custom.status.action.bg,
                                 color: theme.custom.status.action.text,
-                                fontSize: 11,
+                                fontSize: 12,
                                 cursor: "pointer",
                                 "&:hover": { bgcolor: theme.custom.status.action.border }
                               }}
@@ -462,7 +462,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                               fontWeight: 700,
                               bgcolor: theme.custom.status.info.bg,
                               color: theme.custom.status.info.text,
-                              fontSize: 11,
+                              fontSize: 12,
                               cursor: "pointer",
                               "&:hover": { bgcolor: theme.custom.status.info.border }
                             }}
@@ -522,7 +522,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                                   bgcolor,
                                   color,
                                   border,
-                                  fontSize: 11
+                                  fontSize: 12
                                 }}
                               />
                             );
@@ -573,7 +573,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             }}
           >
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Total Sampling Locations
               </Typography>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
@@ -582,7 +582,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             </Box>
 
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Results Verified
               </Typography>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
@@ -591,7 +591,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             </Box>
 
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Outcome Breakdown
               </Typography>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
@@ -601,7 +601,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             </Box>
 
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Session Status
               </Typography>
               <Typography

@@ -181,7 +181,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               <Chip
                 label="Master Data Driven"
                 size="small"
-                sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700, fontSize: 11 }}
+                sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700, fontSize: 12 }}
               />
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
                 Workflow Configured from Test Master
@@ -222,7 +222,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               label="Source: Test Master"
               size="small"
               variant="outlined"
-              sx={{ fontSize: 11, fontWeight: 600 }}
+              sx={{ fontSize: 12, fontWeight: 600 }}
             />
           </Stack>
           <TableContainer>
@@ -246,7 +246,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
                       <Chip
                         label={t.workflowType}
                         size="small"
-                        sx={{ fontSize: 11, height: 20, bgcolor: "background.default" }}
+                        sx={{ fontSize: 12, height: 20, bgcolor: "background.default" }}
                       />
                     </TableCell>
                     <TableCell>
@@ -254,7 +254,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
                         <Chip
                           label="Required"
                           size="small"
-                          sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
+                          sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
                         />
                       ) : (
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
@@ -283,7 +283,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               label={`Program: ${session.programName}`}
               size="small"
               variant="outlined"
-              sx={{ fontSize: 11, fontWeight: 600 }}
+              sx={{ fontSize: 12, fontWeight: 600 }}
             />
           </Stack>
           <Box sx={{ maxHeight: 320, overflowY: "auto" }}>
@@ -308,7 +308,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
                           <Chip
                             label={`Grade ${loc.gradeClassification}`}
                             size="small"
-                            sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
+                            sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                           />
                         ) : (
                           "—"

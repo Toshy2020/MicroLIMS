@@ -147,7 +147,7 @@ export function IcpMethodHistoryDialog({
                               ? "error"
                               : "primary"
                           }
-                          sx={{ fontSize: 11, fontWeight: 600 }}
+                          sx={{ fontSize: 12, fontWeight: 600 }}
                         />
                       </TableCell>
                       <TableCell sx={{ fontSize: 13, color: "text.secondary" }}>
@@ -181,7 +181,7 @@ export function IcpMethodHistoryDialog({
                         border: "1px solid",
                         borderColor: "divider",
                         borderRadius: 1,
-                        fontSize: 11,
+                        fontSize: 12,
                         maxHeight: 280,
                         overflow: "auto"
                       }}
@@ -203,7 +203,7 @@ export function IcpMethodHistoryDialog({
                         border: "1px solid",
                         borderColor: "divider",
                         borderRadius: 1,
-                        fontSize: 11,
+                        fontSize: 12,
                         maxHeight: 280,
                         overflow: "auto"
                       }}

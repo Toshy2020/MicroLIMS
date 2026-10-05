@@ -90,7 +90,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
         <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
           Recorded via HPLC Workspace. Parameter result: <strong>{parameter.reportedDisplay}</strong> ({parameter.comparisonStatus}).
         </Typography>
-        <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1 }}>
+        <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1 }}>
           Detailed chromatographic calculation payload was not found or is in historical format.
         </Alert>
         <HplcReportsSection testOrderId={testOrderId} />
@@ -148,7 +148,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
           border: `1px solid ${theme.palette.divider}`
         }}
       >
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
           Method Snapshot & Standard Calibration
         </Typography>
         <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap" }}>
@@ -195,10 +195,10 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 11 }}>Replicate</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Actual Weight (mg)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Peak Response</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Calculated % Assay</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Actual Weight (mg)</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Peak Response</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Calculated % Assay</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -236,7 +236,7 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LinkIcon fontSize="small" sx={{ fontSize: 14, color: "text.secondary" }} />
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Chromatograms and raw evidence stored under HPLC Run <strong>{assayCalc.runCode}</strong>
           </Typography>
         </Box>

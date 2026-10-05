@@ -78,7 +78,7 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle }: Permis
                     sx={{
                       flexShrink: 0,
                       fontWeight: 700,
-                      fontSize: 11,
+                      fontSize: 12,
                       bgcolor: p.isEnforced ? "success.main" : "warning.main",
                       color: p.isEnforced ? "success.contrastText" : "warning.contrastText"
                     }}

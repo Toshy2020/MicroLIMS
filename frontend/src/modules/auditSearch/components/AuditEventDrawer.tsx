@@ -80,13 +80,13 @@ export function AuditEventDrawer({
               label={event.action.toUpperCase()}
               size="small"
               color={ACTION_COLORS[event.action] ?? "default"}
-              sx={{ fontWeight: 700, fontSize: 11 }}
+              sx={{ fontWeight: 700, fontSize: 12 }}
             />
           </Box>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
             {friendlyEntity} · ID: <span style={{ fontFamily: "monospace" }}>{event.entityId}</span>
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
             Timestamp: {formatLabDateTime(event.timestamp)} UTC
           </Typography>
         </Box>
@@ -121,7 +121,7 @@ export function AuditEventDrawer({
             <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
               {event.userRole ?? "User"}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5, fontFamily: "monospace" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5, fontFamily: "monospace" }}>
               User ID: #{event.userId} {event.userUsername ? `(${event.userUsername})` : ""}
             </Typography>
           </Box>

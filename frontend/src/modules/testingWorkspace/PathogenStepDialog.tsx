@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Box, Typography, Alert, Button, useTheme } from "@mui/material";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "./utils/workflowErrors";
@@ -46,7 +46,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   if (!current) {
     return (
       <Box sx={{ py: 4 }}>
-        {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
+        {error ? <Alert severity="error">{error}</Alert> : <DialogBodySkeleton blocks={3} blockHeight={56} />}
       </Box>
     );
   }

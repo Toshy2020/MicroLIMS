@@ -91,7 +91,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
     <Box sx={{ mt: 1.5, mb: 1.5 }}>
       <Typography
         sx={{
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           color: "text.secondary",
           mb: 0.75,
@@ -127,39 +127,39 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 11 }}>Report / Context</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>File Name</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Uploaded By</TableCell>
-                <TableCell sx={{ fontSize: 11 }}>Uploaded At</TableCell>
-                <TableCell sx={{ fontSize: 11 }} align="right">Action</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>Report / Context</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>File Name</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>Uploaded By</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>Uploaded At</TableCell>
+                <TableCell sx={{ fontSize: 12 }} align="right">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {evidenceList.map((e) => (
                 <TableRow key={e.id} hover>
-                  <TableCell sx={{ fontSize: 11 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     <Chip
                       label={`${formatEvidenceKind(e.kind)} (${e.context})`}
                       size="small"
                       variant="outlined"
-                      sx={{ fontSize: 11, height: 20 }}
+                      sx={{ fontSize: 12, height: 20 }}
                     />
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                       {getFileIcon(e.contentType)}
-                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
                         {e.fileName}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     {e.uploadedByUserName ?? (e.uploadedByUserId ? `User #${e.uploadedByUserId}` : "—")}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     {e.uploadedAt ? new Date(e.uploadedAt).toLocaleString() : "—"}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11 }} align="right">
+                  <TableCell sx={{ fontSize: 12 }} align="right">
                     <Button
                       size="small"
                       variant="outlined"
@@ -172,7 +172,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
                       }
                       onClick={() => handleOpenEvidence(e.id)}
                       disabled={openingEvidenceId === e.id}
-                      sx={{ textTransform: "none", fontSize: 11, py: 0.25, px: 1, minHeight: 24, cursor: "pointer" }}
+                      sx={{ textTransform: "none", fontSize: 12, py: 0.25, px: 1, minHeight: 24, cursor: "pointer" }}
                     >
                       View
                     </Button>

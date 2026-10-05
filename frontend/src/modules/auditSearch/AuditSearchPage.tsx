@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Alert } from "@mui/material";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { TableSkeleton } from "../../components/TableSkeleton";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 import { AuditSearchService } from "./services/AuditSearchService";
 import type { AuditLogItem, AuditSearchFilterState } from "./types/auditTypes";
@@ -117,7 +117,7 @@ export function AuditSearchPage() {
 
       {/* Results Table */}
       {loading && !results ? (
-        <LoadingSpinner />
+        <TableSkeleton rows={8} cols={6} />
       ) : results ? (
         <AuditResultsTable
           items={results}

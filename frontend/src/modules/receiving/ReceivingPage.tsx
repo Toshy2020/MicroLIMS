@@ -4,7 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 
 import { SampleRecord } from "./types/receivingTypes";
@@ -74,7 +74,7 @@ export function ReceivingPage() {
   };
 
   if (samples === null) {
-    return <LoadingSpinner />;
+    return <WorkspaceSkeleton tiles={0} rows={6} />;
   }
 
   return (

@@ -262,7 +262,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         completing. */}
                     {evaluation.evaluationType === "GrowthPromotion" && !c.outcome && (
                       <Box sx={{ mb: 1.5 }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           REFERENCE LOT (FOR RECOVERY% COMPARISON)
                         </Typography>
                         <Stack useFlexGap
@@ -323,7 +323,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       </Typography>
                     ) : (
                       <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           STEP 1: SELECT WORKING CRYOVIAL OR LYOPHILIZED DISK
                         </Typography>
                         {options.length === 0 && diskOpts.length === 0 ? (
@@ -383,7 +383,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       </Typography>
                     ) : (
                       <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           STEP 2: RECORD INCUBATION
                         </Typography>
                         <Stack direction="row" spacing={1} sx={{
@@ -422,7 +422,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     {/* Step 3: Result Entry */}
                     {c.outcome ? (
                       <Box sx={{ mt: 1, p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.notDetected.border }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
                           EVALUATION RESULT RECORDED
                         </Typography>
                         {evaluation.evaluationType === "GrowthPromotion" && (
@@ -459,7 +459,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       </Alert>
                     ) : (
                       <Box sx={{ mt: 1, p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.purple.border }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
                           STEP 3: RECORD OBSERVATION / RESULT
                         </Typography>
                         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1.5, alignItems: "center" }}>

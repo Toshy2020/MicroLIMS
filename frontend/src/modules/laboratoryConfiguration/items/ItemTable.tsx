@@ -270,7 +270,7 @@ function ItemRowCard({
               label={`${testCount} ${testCount === 1 ? "Test" : "Tests"}`}
               size="small"
               sx={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 color: theme.custom.status.purple.text,
                 bgcolor: theme.custom.status.purple.bg,
@@ -285,7 +285,7 @@ function ItemRowCard({
                 variant="outlined"
                 color="primary"
                 sx={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   height: 20,
                 }}
@@ -299,7 +299,7 @@ function ItemRowCard({
                 size="small"
                 variant="outlined"
                 sx={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   height: 20,
                 }}
@@ -313,7 +313,7 @@ function ItemRowCard({
                 sx={{
                   backgroundColor: theme.custom.status.inconclusive.bg,
                   color: theme.custom.status.inconclusive.text,
-                  fontSize: "11px",
+                  fontSize: "12px",
                   fontWeight: 600,
                   height: 20,
                 }}

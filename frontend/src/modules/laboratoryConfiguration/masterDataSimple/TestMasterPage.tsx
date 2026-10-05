@@ -1034,7 +1034,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                             color="primary"
                             variant="outlined"
                             label="2-Stage"
-                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                           />
                         )}
                       </Stack>
@@ -1069,7 +1069,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                             size="small"
                             color="secondary"
                             label="Transfer"
-                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                           />
                         )}
                       </Stack>
@@ -1927,7 +1927,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           color="primary"
                           variant="outlined"
                           label="HPLC Assay"
-                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "IcpMethodAssay" && (
@@ -1936,7 +1936,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           color="primary"
                           variant="outlined"
                           label="ICP Assay"
-                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "Dissolution" && (
@@ -1945,7 +1945,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           color="info"
                           variant="outlined"
                           label="Dissolution"
-                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "Disintegration" && (
@@ -1954,7 +1954,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           color="info"
                           variant="outlined"
                           label="Disintegration"
-                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
                       {t.workflowType === "WeightVariation" && (
@@ -1963,7 +1963,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           color="info"
                           variant="outlined"
                           label="Weight Variation"
-                          sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                          sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
                       {t.requiresSystemSuitability && (
@@ -1980,7 +1980,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                             color="info"
                             variant="outlined"
                             label={`SST: ${t.methodAbbreviation ?? "Required"}`}
-                            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700 }}
+                            sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                           />
                         </Tooltip>
                       )}

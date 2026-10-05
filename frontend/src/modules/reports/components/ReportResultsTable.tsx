@@ -251,7 +251,7 @@ export function ReportResultsTable({
       return (
         <>
           <Typography sx={{ fontSize: 13 }}>{dt.date}</Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{dt.time}</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{dt.time}</Typography>
         </>
       );
     } } },
@@ -269,7 +269,7 @@ export function ReportResultsTable({
     { colKey: "subject", column: { key: "subjectName", label: COLUMN_LABELS.subject, render: (row) => (
       <>
         <Typography sx={{ fontSize: 13 }}>{row.subjectName}</Typography>
-        {row.subjectDetail && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{row.subjectDetail}</Typography>}
+        {row.subjectDetail && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{row.subjectDetail}</Typography>}
       </>
     ) } },
     { colKey: "type", column: { key: "category", label: COLUMN_LABELS.type, render: (row) => <CategoryBadge category={row.category} /> } },

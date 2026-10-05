@@ -79,16 +79,16 @@ export function LotPreparationsList({ materialId, onNavigate }: Props) {
           <Table size="small" stickyHeader>
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 11, py: 0.5, fontWeight: 700 }}>Code</TableCell>
-                <TableCell sx={{ fontSize: 11, py: 0.5, fontWeight: 700 }}>Solution</TableCell>
-                <TableCell sx={{ fontSize: 11, py: 0.5, fontWeight: 700 }}>Prepared</TableCell>
-                <TableCell sx={{ fontSize: 11, py: 0.5, fontWeight: 700 }}>Status</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Code</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Solution</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Prepared</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {preparations.map((p) => (
                 <TableRow key={p.id} hover>
-                  <TableCell sx={{ fontSize: 11, py: 0.5 }}>
+                  <TableCell sx={{ fontSize: 12, py: 0.5 }}>
                     <Link
                       component="button"
                       variant="body2"
@@ -96,7 +96,7 @@ export function LotPreparationsList({ materialId, onNavigate }: Props) {
                       sx={{
                         fontFamily: "monospace",
                         fontWeight: 700,
-                        fontSize: 11,
+                        fontSize: 12,
                         textAlign: "left",
                         cursor: "pointer"
                       }}
@@ -104,13 +104,13 @@ export function LotPreparationsList({ materialId, onNavigate }: Props) {
                       {p.code || `#${p.id} (In Progress)`}
                     </Link>
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11, py: 0.5 }}>
+                  <TableCell sx={{ fontSize: 12, py: 0.5 }}>
                     {p.solutionMasterName}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11, py: 0.5 }}>
+                  <TableCell sx={{ fontSize: 12, py: 0.5 }}>
                     {p.preparedAt ? formatLabDate(p.preparedAt) : "—"}
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11, py: 0.5 }}>
+                  <TableCell sx={{ fontSize: 12, py: 0.5 }}>
                     <PreparationStatusBadge status={p.effectiveStatus} />
                   </TableCell>
                 </TableRow>

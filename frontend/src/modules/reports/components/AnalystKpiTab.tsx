@@ -58,11 +58,11 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
         {data.value}
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
-        <Box sx={{ display: "flex", alignItems: "center", color: deltaColor, fontSize: 11, fontWeight: 700 }}>
+        <Box sx={{ display: "flex", alignItems: "center", color: deltaColor, fontSize: 12, fontWeight: 700 }}>
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
           {Math.abs(data.deltaPercent)}%
         </Box>
-        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
           {data.comparisonLabel}
         </Typography>
       </Box>
@@ -390,7 +390,7 @@ export function AnalystKpiTab() {
           size="small"
           icon={<InfoOutlinedIcon />}
           label="Designed to support GMP & ALCOA++ requirements"
-          sx={{ fontSize: 11, height: 22 }}
+          sx={{ fontSize: 12, height: 22 }}
         />
       </Box>
 
@@ -459,7 +459,7 @@ export function AnalystKpiTab() {
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
               Total Assigned Samples
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1.5 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
               7-day analyst SLA: assignment → submitted for review
             </Typography>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, mb: 1.5 }}>
@@ -467,13 +467,13 @@ export function AnalystKpiTab() {
             </Typography>
             <Stack direction="row" spacing={3}>
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>On-Time %</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time %</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                   {data.sampleSla.onTimePercent}%
                 </Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Overdue %</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Overdue %</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.sampleSla.overduePercent > 0 ? theme.custom.status.detected.text : "text.primary" }}>
                   {data.sampleSla.overduePercent}%
                 </Typography>
@@ -490,7 +490,7 @@ export function AnalystKpiTab() {
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
               Total Assigned Tests
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1.5 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
               Step-level max-hours violation: reading past configured window + 4h grace
             </Typography>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, mb: 1.5 }}>
@@ -498,19 +498,19 @@ export function AnalystKpiTab() {
             </Typography>
             <Stack direction="row" spacing={3}>
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>On-Time %</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time %</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                   {data.stepViolations.onTimePercent}%
                 </Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Violations</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Violations</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.stepViolations.violationCount > 0 ? theme.custom.status.detected.text : "text.primary" }}>
                   {data.stepViolations.violationCount}
                 </Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Violation %</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Violation %</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.stepViolations.violationPercent > 0 ? theme.custom.status.detected.text : "text.primary" }}>
                   {data.stepViolations.violationPercent}%
                 </Typography>
@@ -536,10 +536,10 @@ export function AnalystKpiTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.completedByMonth} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                   <CartesianGrid vertical={false} stroke={theme.palette.divider} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                  <YAxis tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
+                  <YAxis tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip />
-                  <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 11 }} />
+                  <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="year2025" name="2025" fill={theme.custom.chartSequential[1]} radius={[3, 3, 0, 0]} barSize={12} />
                   <Bar dataKey="year2026" name="2026" fill={theme.custom.chartSequential[3]} radius={[3, 3, 0, 0]} barSize={12} />
                 </BarChart>
@@ -579,18 +579,18 @@ export function AnalystKpiTab() {
                 </ResponsiveContainer>
                 <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
                   <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.palette.primary.main }}>{categoryTotal.toLocaleString()}</Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
               <Box sx={{ width: "50%", pl: 1 }}>
                 <Stack spacing={0.5}>
                   {data.testsByCategory.map((item, idx) => (
-                    <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11 }}>
+                    <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                         <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: item.color }} />
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>{item.category}</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>{item.category}</Typography>
                       </Box>
-                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>{item.percentage}%</Typography>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{item.percentage}%</Typography>
                     </Box>
                   ))}
                 </Stack>
@@ -613,8 +613,8 @@ export function AnalystKpiTab() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.tatTrendByMonth} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
                   <CartesianGrid vertical={false} stroke={theme.palette.divider} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                  <YAxis domain={[0, 4]} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
+                  <YAxis domain={[0, 4]} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip formatter={(val: unknown) => [`${val} days`, "Testing TAT"]} />
                   <Line type="monotone" dataKey="tatDays" stroke={theme.custom.status.info.text} strokeWidth={2.5} dot={{ r: 4 }} />
                 </LineChart>
@@ -638,29 +638,29 @@ export function AnalystKpiTab() {
             <Grid container spacing={1}>
               <Grid size={4}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Testing Queue</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Testing Queue</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.workflowBottleneck.testingQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid size={4}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Review Queue</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Review Queue</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.purple.text }}>
                     {data.workflowBottleneck.reviewQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid size={4}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approval Queue</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approval Queue</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                     {data.workflowBottleneck.approvalQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
+                  <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -679,38 +679,38 @@ export function AnalystKpiTab() {
             <Grid container spacing={1}>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.info.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Testing (Analyst)</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Testing (Analyst)</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.info.text }}>
                     {data.tatSummary.testingTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Assignment → Submitted</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Assignment → Submitted</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Review Stage</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Review Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.reviewTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Submitted → Reviewed</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Submitted → Reviewed</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approval Stage</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approval Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.approvalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Reviewed → Decided</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Reviewed → Decided</Typography>
                 </Box>
               </Grid>
               <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Lifecycle</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Lifecycle</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.tatSummary.totalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Full turnaround</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Full turnaround</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -725,7 +725,7 @@ export function AnalystKpiTab() {
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
               Analyst Performance Comparison
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Normalized with Configured Workload Units (Operational Metric). Click any row to view full detail.
             </Typography>
           </Box>
@@ -733,7 +733,7 @@ export function AnalystKpiTab() {
         </Box>
 
         <TableContainer>
-          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 }, "& td": { fontSize: 12 } }}>
             <TableHead>
               <TableRow>
                 <TableCell>Analyst</TableCell>
@@ -795,31 +795,31 @@ export function AnalystKpiTab() {
                     onClick={() => setSelectedAnalystId(row.analystId)}
                   >
                     <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                      {row.analystName} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({row.username})</Typography>
+                      {row.analystName} <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>({row.username})</Typography>
                     </TableCell>
                     <TableCell align="right">{row.assigned}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>{row.completed}</TableCell>
                     <TableCell align="right">
-                      <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
+                      <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
                     </TableCell>
                     <TableCell align="right">{row.completionRatePercent}%</TableCell>
                     <TableCell align="right">
                       <Tooltip title={row.onTimePercent != null
                         ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
                         : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
-                        <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
                           {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
                         </Typography>
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
                     <TableCell align="right">
-                      <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
                         {row.reviewReturns != null ? row.reviewReturns : "—"}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
                         {row.docCorrections != null ? row.docCorrections : "—"}
                       </Typography>
                     </TableCell>

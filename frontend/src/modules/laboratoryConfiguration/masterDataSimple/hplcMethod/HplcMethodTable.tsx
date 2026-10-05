@@ -44,7 +44,7 @@ export function HplcMethodTable({
       label: "Abbreviation",
       sortable: true,
       render: (m) => (
-        <Chip label={m.abbreviation} size="small" color="primary" variant="outlined" sx={{ fontSize: 11, fontWeight: 700 }} />
+        <Chip label={m.abbreviation} size="small" color="primary" variant="outlined" sx={{ fontSize: 12, fontWeight: 700 }} />
       )
     },
     {
@@ -62,7 +62,7 @@ export function HplcMethodTable({
               size="small"
               color={isGc ? "secondary" : "default"}
               variant="outlined"
-              sx={{ fontSize: 11, fontWeight: 700 }}
+              sx={{ fontSize: 12, fontWeight: 700 }}
             />
             {isResidual && (
               <Chip
@@ -70,7 +70,7 @@ export function HplcMethodTable({
                 size="small"
                 color="warning"
                 variant="outlined"
-                sx={{ fontSize: 10, fontWeight: 600 }}
+                sx={{ fontSize: 12, fontWeight: 600 }}
               />
             )}
           </Stack>
@@ -86,7 +86,7 @@ export function HplcMethodTable({
           label={`${m.analyteCount} ${m.analyteCount === 1 ? "analyte" : "analytes"}`}
           size="small"
           variant="outlined"
-          sx={{ fontSize: 11 }}
+          sx={{ fontSize: 12 }}
         />
       )
     },

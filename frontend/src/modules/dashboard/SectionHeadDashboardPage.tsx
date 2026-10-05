@@ -32,14 +32,12 @@ import { SectionHeadDashboard, MonthlyTrendPoint, DistributionSlice } from "./ty
 import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
 import { tableHeadSx } from "../../theme";
-import { clickable } from "../../utils/clickable";
+import { SummaryTiles } from "../../components/configHierarchy/SummaryTiles";
 import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 export function SectionHeadDashboardPage() {
   const theme = useTheme();
   const lab = useDashboardLab();
-  // KPI tiles per row: Physicochemical has no incubation tiles (5 vs 7).
-  const kpiCols = lab.isPhyschem ? 2.4 : 1.71;
 
   const [data, setData] = useState<SectionHeadDashboard | null>(null);
   const [months, setMonths] = useState(6);
@@ -129,253 +127,29 @@ export function SectionHeadDashboardPage() {
       </PageHeader>
 
       {/* Tier 1: Laboratory Overview KPI Strip */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=Active")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Active Tests
-              </Typography>
-              <ScienceOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, my: 0.25 }}>
-              {data.activeTests}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Tests in progress</Typography>
-          </Paper>
-        </Grid>
-
-        {/* Incubating - Microbiology only. */}
-
-        {!lab.isPhyschem && (
-
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: kpiCols
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?view=kanban")}
-              sx={{
-                p: 1.75,
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                borderLeft: `4px solid ${theme.custom.status.info.text}`,
-                transition: "transform 0.15s, box-shadow 0.15s",
-                "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-              }}
-            >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Incubating
-                </Typography>
-                <ThermostatOutlinedIcon sx={{ color: theme.custom.status.info.text, fontSize: 18 }} />
-              </Box>
-              <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.info.text, my: 0.25 }}>
-                {data.incubating}
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Tests incubating</Typography>
-            </Paper>
-          </Grid>
-
-        )}
-
-        {/* Ready to Read - Microbiology only. */}
-
-        {!lab.isPhyschem && (
-
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: kpiCols
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?testStatus=ReadyToRead")}
-              sx={{
-                p: 1.75,
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                borderLeft: `4px solid ${theme.custom.status.notDetected.text}`,
-                transition: "transform 0.15s, box-shadow 0.15s",
-                "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-              }}
-            >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Ready to Read
-                </Typography>
-                <VisibilityOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
-              </Box>
-              <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
-                {data.readyToRead}
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Test readings pending</Typography>
-            </Paper>
-          </Grid>
-
-        )}
-
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderReview")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.custom.status.inconclusive.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Pending Review
-              </Typography>
-              <RateReviewOutlinedIcon sx={{ color: theme.custom.status.inconclusive.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.inconclusive.text, my: 0.25 }}>
-              {data.pendingReview}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples awaiting review</Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderApproval")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.custom.status.notDetected.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Pending Approval
-              </Typography>
-              <VerifiedUserOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
-              {data.pendingApproval}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples awaiting release</Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?urgency=overdue")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.custom.status.detected.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Overdue
-              </Typography>
-              <AccessTimeOutlinedIcon sx={{ color: theme.custom.status.detected.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.detected.text, my: 0.25 }}>
-              {data.overdue}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text }}>&gt;24h delay</Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            onClick={() => {
-              const el = document.getElementById("attention-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              borderLeft: `4px solid ${data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-            {...clickable(() => {
-              const el = document.getElementById("attention-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            })}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Attention Items
-              </Typography>
-              <WarningAmberOutlinedIcon sx={{ color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, my: 0.25 }}>
-              {data.attentionCount}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Action required</Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+      <SummaryTiles
+        tiles={[
+          { label: "Active tests", value: data.activeTests, icon: <ScienceOutlinedIcon />, hint: "Tests in progress", to: lab.workspace("?status=Active") },
+          // Incubating and Ready to read are Microbiology only.
+          ...(lab.isPhyschem
+            ? []
+            : [
+                { label: "Incubating", value: data.incubating, tone: "info" as const, icon: <ThermostatOutlinedIcon />, hint: "Tests incubating", to: lab.workspace("?view=kanban") },
+                { label: "Ready to read", value: data.readyToRead, tone: "action" as const, icon: <VisibilityOutlinedIcon />, hint: "Test readings pending", to: lab.workspace("?testStatus=ReadyToRead") }
+              ]),
+          { label: "Pending review", value: data.pendingReview, tone: "action", icon: <RateReviewOutlinedIcon />, hint: "Samples awaiting review", to: lab.workspace("?status=UnderReview") },
+          { label: "Pending approval", value: data.pendingApproval, tone: "action", icon: <VerifiedUserOutlinedIcon />, hint: "Samples awaiting release", to: lab.workspace("?status=UnderApproval") },
+          { label: "Overdue", value: data.overdue, tone: "detected", icon: <AccessTimeOutlinedIcon />, hint: "More than 24h delay", to: lab.workspace("?urgency=overdue") },
+          {
+            label: "Attention items",
+            value: data.attentionCount,
+            tone: data.attentionCount > 0 ? "detected" : "notDetected",
+            icon: <WarningAmberOutlinedIcon />,
+            hint: "Action required",
+            onClick: () => document.getElementById("attention-section")?.scrollIntoView({ behavior: "smooth" })
+          }
+        ]}
+      />
 
       {/* Tier 2: Workflow Bottlenecks Pipeline */}
       <Paper sx={{ p: 2, mb: 2.5 }}>
@@ -430,7 +204,7 @@ export function SectionHeadDashboardPage() {
                   "&:hover": { bgcolor: "action.hover", borderColor: stage.color }
                 }}
               >
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
                   {stage.label}
                 </Typography>
                 <Typography sx={{ fontSize: 22, fontWeight: 800, color: stage.color, my: 0.5 }}>
@@ -497,7 +271,7 @@ export function SectionHeadDashboardPage() {
                           </Typography>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {item.testCodes.map((tc, tcIdx) => (
-                              <Chip key={`${tcIdx}-${tc}`} label={tc} size="small" sx={{ fontSize: 11, height: 20 }} />
+                              <Chip key={`${tcIdx}-${tc}`} label={tc} size="small" sx={{ fontSize: 12, height: 20 }} />
                             ))}
                           </Box>
                         </Box>
@@ -551,13 +325,13 @@ export function SectionHeadDashboardPage() {
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
                   Review Queue ({data.reviewQueueCount})
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   Overdue:{" "}
                   <Typography
                     component={Link}
                     to={lab.workspace("?status=UnderReview&workload=reviewOverdue")}
                     sx={{
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: data.reviewQueueOverdueCount > 0 ? theme.custom.status.detected.text : "text.secondary",
                       textDecoration: "none",
@@ -589,12 +363,12 @@ export function SectionHeadDashboardPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Analyst(s)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Worst Result</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Age</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11, textAlign: "right" }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Tests</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst(s)</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Worst Result</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Age</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -603,12 +377,12 @@ export function SectionHeadDashboardPage() {
                         key={`${row.sampleId}-${row.sectionId ?? "all"}`}
                         hover
                       >
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
+                        <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
                             to={lab.workspace(`?sampleId=${row.sampleId}`)}
                             sx={{
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: "text.primary",
                               textDecoration: "none",
@@ -622,27 +396,27 @@ export function SectionHeadDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 11, height: 20, mt: 0.25, display: "inline-flex" }}
+                              sx={{ fontSize: 12, height: 20, mt: 0.25, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11 }}>
+                        <TableCell sx={{ fontSize: 12 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {row.testCodes.map((code, cIdx) => (
-                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
+                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 12, height: 20 }} />
                             ))}
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
                           {row.analystNames.length > 0 ? row.analystNames.join(", ") : "—"}
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11 }}>
+                        <TableCell sx={{ fontSize: 12 }}>
                           {row.worstResultLevel ? (
                             <Chip
                               label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
-                                fontSize: 11,
+                                fontSize: 12,
                                 height: 20,
                                 bgcolor:
                                   row.worstResultLevel === "OutOfSpecification"
@@ -660,10 +434,10 @@ export function SectionHeadDashboardPage() {
                               }}
                             />
                           ) : (
-                            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>—</Typography>
+                            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
                           )}
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>
+                        <TableCell sx={{ fontSize: 12, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>
                           {row.ageHours}h
                         </TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
@@ -672,7 +446,7 @@ export function SectionHeadDashboardPage() {
                             to={lab.workspace(`?sampleId=${row.sampleId}&openSummary=true`)}
                             variant="outlined"
                             size="small"
-                            sx={{ textTransform: "none", fontSize: 11, py: 0.2, fontWeight: 600 }}
+                            sx={{ textTransform: "none", fontSize: 12, py: 0.2, fontWeight: 600 }}
                           >
                             Review
                           </Button>
@@ -698,13 +472,13 @@ export function SectionHeadDashboardPage() {
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
                   Approval Queue ({data.approvalQueueCount})
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   Overdue:{" "}
                   <Typography
                     component={Link}
                     to={lab.workspace("?status=UnderApproval&workload=approvalOverdue")}
                     sx={{
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: data.approvalQueueOverdueCount > 0 ? theme.custom.status.detected.text : "text.secondary",
                       textDecoration: "none",
@@ -736,11 +510,11 @@ export function SectionHeadDashboardPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Reviewer</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Age</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11, textAlign: "right" }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Tests</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reviewer</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Age</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -749,12 +523,12 @@ export function SectionHeadDashboardPage() {
                         key={`${row.sampleId}-${row.sectionId ?? "all"}`}
                         hover
                       >
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
+                        <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
                             to={lab.workspace(`?sampleId=${row.sampleId}`)}
                             sx={{
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: "text.primary",
                               textDecoration: "none",
@@ -768,19 +542,19 @@ export function SectionHeadDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 11, height: 20, mt: 0.25, display: "inline-flex" }}
+                              sx={{ fontSize: 12, height: 20, mt: 0.25, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11 }}>
+                        <TableCell sx={{ fontSize: 12 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {row.testCodes.map((code, cIdx) => (
-                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
+                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 12, height: 20 }} />
                             ))}
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.reviewerName ?? "—"}</TableCell>
-                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>{row.ageHours}h</TableCell>
+                        <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>{row.reviewerName ?? "—"}</TableCell>
+                        <TableCell sx={{ fontSize: 12, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>{row.ageHours}h</TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
@@ -788,7 +562,7 @@ export function SectionHeadDashboardPage() {
                             variant="outlined"
                             size="small"
                             color="success"
-                            sx={{ textTransform: "none", fontSize: 11, py: 0.2, fontWeight: 600 }}
+                            sx={{ textTransform: "none", fontSize: 12, py: 0.2, fontWeight: 600 }}
                           >
                             Approve
                           </Button>
@@ -818,7 +592,7 @@ export function SectionHeadDashboardPage() {
                 Laboratory Analyst Workload Allocation
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 2 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
               Active test assignment and daily operational capacity across laboratory staff. Click an analyst to filter workspace.
             </Typography>
 
@@ -863,7 +637,7 @@ export function SectionHeadDashboardPage() {
                           <Chip
                             label={`${a.activeCount} tests`}
                             size="small"
-                            sx={{ fontSize: 11, fontWeight: 600, bgcolor: "action.selected" }}
+                            sx={{ fontSize: 12, fontWeight: 600, bgcolor: "action.selected" }}
                           />
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
@@ -874,7 +648,7 @@ export function SectionHeadDashboardPage() {
                               label={`${a.overdueCount} overdue`}
                               size="small"
                               clickable
-                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: theme.custom.status.detected.text + "22", color: theme.custom.status.detected.text }}
+                              sx={{ fontSize: 12, fontWeight: 700, bgcolor: theme.custom.status.detected.text + "22", color: theme.custom.status.detected.text }}
                             />
                           ) : (
                             <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>0</Typography>
@@ -889,7 +663,7 @@ export function SectionHeadDashboardPage() {
                             to={lab.workspace(`?analystId=${a.analystId}`)}
                             variant="text"
                             size="small"
-                            sx={{ textTransform: "none", fontSize: 11, fontWeight: 600 }}
+                            sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
                           >
                             Filter Tests →
                           </Button>
@@ -918,7 +692,7 @@ export function SectionHeadDashboardPage() {
                   Laboratory Incubation Status
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 2 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
                 Active microbiological test incubations grouped by test type.
               </Typography>
 
@@ -944,14 +718,14 @@ export function SectionHeadDashboardPage() {
                           hover
                         >
                           <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
-                            <Chip label={inc.testCode} size="small" sx={{ fontSize: 11, fontWeight: 600 }} />
+                            <Chip label={inc.testCode} size="small" sx={{ fontSize: 12, fontWeight: 600 }} />
                           </TableCell>
                           <TableCell sx={{ fontSize: 12 }}>
                             {inc.readyToRead > 0 ? (
                               <Chip
                                 label={`${inc.readyToRead} ready`}
                                 size="small"
-                                sx={{ fontSize: 11, fontWeight: 700, bgcolor: theme.custom.status.notDetected.text + "22", color: theme.custom.status.notDetected.text }}
+                                sx={{ fontSize: 12, fontWeight: 700, bgcolor: theme.custom.status.notDetected.text + "22", color: theme.custom.status.notDetected.text }}
                               />
                             ) : (
                               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>0</Typography>
@@ -966,7 +740,7 @@ export function SectionHeadDashboardPage() {
                               to={lab.workspace(`?testStatus=${inc.readyToRead > 0 ? "ReadyToRead" : ""}`)}
                               variant="text"
                               size="small"
-                              sx={{ textTransform: "none", fontSize: 11, fontWeight: 600 }}
+                              sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
                             >
                               Open →
                             </Button>

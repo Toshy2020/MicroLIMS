@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Table, TableHead, TableRow, TableCell, TableBody, Button, Stack, Alert, Typography, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { StatusBadge } from "../../components/StatusBadge";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { TableSkeleton } from "../../components/TableSkeleton";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 
 interface LocationRow {
@@ -70,7 +70,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
 
   return (
     <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
-      {!rows && !error && <LoadingSpinner />}
+      {!rows && !error && <TableSkeleton rows={5} cols={5} hasContainer={false} />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (
         <Stack spacing={2}>

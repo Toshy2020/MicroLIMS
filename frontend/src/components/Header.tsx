@@ -237,7 +237,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
                 size="small"
                 onClick={handleMarkAllRead}
                 disabled={unreadCount === 0}
-                sx={{ fontSize: 11, textTransform: "none", minWidth: 0 }}
+                sx={{ fontSize: 12, textTransform: "none", minWidth: 0 }}
               >
                 Mark all as read
               </Button>
@@ -272,7 +272,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
                   secondary={new Date(n.timestamp).toLocaleString()}
                   slotProps={{
                     primary: { sx: { fontWeight: n.isRead ? 400 : 700, fontSize: 13 } },
-                    secondary: { sx: { fontSize: 11 } }
+                    secondary: { sx: { fontSize: 12 } }
                   }} />
               </MenuItem>
             );
@@ -310,7 +310,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             {showIdentityText && (
               <Box sx={{ minWidth: 0, maxWidth: 220 }}>
                 <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{displayName}</Typography>
-                <Typography noWrap sx={{ fontSize: 11.5, lineHeight: 1.25, color: "rgba(255,255,255,0.82)" }}>
+                <Typography noWrap sx={{ fontSize: 12, lineHeight: 1.25, color: "rgba(255,255,255,0.82)" }}>
                   {username ? `${username} · ${displayTitle}` : displayTitle}
                 </Typography>
               </Box>

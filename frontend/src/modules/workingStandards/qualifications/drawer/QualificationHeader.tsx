@@ -27,7 +27,7 @@ export const QualificationHeader: React.FC<QualificationHeaderProps> = ({
               label={qualification.kind}
               color={qualification.kind === "Initial" ? "primary" : "secondary"}
               variant="outlined"
-              sx={{ fontSize: 11, height: 20 }}
+              sx={{ fontSize: 12, height: 20 }}
             />
             <StatusBadge status={qualification.status} />
           </Stack>

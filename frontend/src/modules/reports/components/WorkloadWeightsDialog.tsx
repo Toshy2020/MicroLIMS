@@ -161,7 +161,7 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
                         slotProps={{ htmlInput: { "aria-label": "Reason for change" } }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         {w.reasonForChange || "Baseline configuration"}
                         {w.changedBy ? ` (by ${w.changedBy})` : ""}
                       </Typography>

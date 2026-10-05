@@ -209,7 +209,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
                 <Typography
                   variant="caption"
                   sx={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: step.isFailed
                       ? theme.palette.error.main
                       : lockedLook

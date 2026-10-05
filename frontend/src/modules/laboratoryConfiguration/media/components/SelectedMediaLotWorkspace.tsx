@@ -302,21 +302,21 @@ export function SelectedMediaLotWorkspace({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared Date</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared Date</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {formatDateDDMMYY(lot.preparedAt)}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Dehydrated Stock</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Dehydrated Stock</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.material?.materialName || summary?.materialName || "—"}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Manufacturer / Batch</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Manufacturer / Batch</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.material
                     ? `${lot.material.manufacturerName || "—"} (Batch: ${lot.material.batchNumber})`
@@ -327,42 +327,42 @@ export function SelectedMediaLotWorkspace({
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Weight</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Weight</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.totalWeight} g
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Volume</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Volume</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.totalVolume}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>pH (at 25°C)</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>pH (at 25°C)</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.ph}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared By</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared By</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {summary?.preparedByName || "—"}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared On</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared On</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {formatDateTimeDDMMYY(lot.preparedAt)}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Expiry Date</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Expiry Date</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {formatDateDDMMYY(lot.expiryDate)}
                 </Typography>
@@ -388,42 +388,42 @@ export function SelectedMediaLotWorkspace({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Autoclave Equipment</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Autoclave Equipment</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {summary?.autoclaveName || `Autoclave #${lot.autoclaveEquipmentId}`}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Program / Load</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Program / Load</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.autoclaveProgram}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Load Type</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Load Type</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.loadType}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Temperature</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Temperature</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.temperature} °C
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Cycle Time</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Cycle Time</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.cycleTime} minutes
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Cycle Number</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Cycle Number</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   #{lot.cycleNumber}
                 </Typography>
@@ -477,17 +477,17 @@ export function SelectedMediaLotWorkspace({
                 {/* Challenges Summary */}
                 {ev.challenges && ev.challenges.length > 0 && (
                   <Box sx={{ mt: 1.5, mb: 1.5 }}>
-                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.75 }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.75 }}>
                       CHALLENGE ORGANISMS & STATUS:
                     </Typography>
                     <TableContainer>
                       <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                         <TableHead>
                           <TableRow sx={tableHeadSx}>
-                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
-                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
-                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
-                            <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Outcome</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Organism</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Cryovial</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Incubation</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Outcome</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -511,7 +511,7 @@ export function SelectedMediaLotWorkspace({
                                 {c.outcome ? (
                                   <StatusBadge status={c.outcome} />
                                 ) : (
-                                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pending</Typography>
+                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Pending</Typography>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -570,10 +570,10 @@ export function SelectedMediaLotWorkspace({
                     <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                       <TableHead>
                         <TableRow sx={tableHeadSx}>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Outcome</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Organism</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Cryovial</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Incubation</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Outcome</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -591,7 +591,7 @@ export function SelectedMediaLotWorkspace({
                               {c.outcome ? (
                                 <StatusBadge status={c.outcome} />
                               ) : (
-                                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pending</Typography>
+                                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Pending</Typography>
                               )}
                             </TableCell>
                           </TableRow>
@@ -676,11 +676,11 @@ export function SelectedMediaLotWorkspace({
                     <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                       {sig.printedName} ({sig.role})
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       {sig.meaning} · Signed by @{sig.username} on {formatDateTimeDDMMYY(sig.signedAt)}
                     </Typography>
                     {sig.comment && (
-                      <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
                         Comment: {sig.comment}
                       </Typography>
                     )}
@@ -699,7 +699,7 @@ export function SelectedMediaLotWorkspace({
               <Stack spacing={1}>
                 {summary.timeline.map((ev, idx) => (
                   <Box key={idx} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary", width: 140, flexShrink: 0 }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", width: 140, flexShrink: 0 }}>
                       {formatDateTimeDDMMYY(ev.timestamp)}
                     </Typography>
                     <Box>
@@ -707,7 +707,7 @@ export function SelectedMediaLotWorkspace({
                         {ev.eventType} by {ev.performedByName || "System"}
                       </Typography>
                       {ev.comment && (
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                           {ev.comment}
                         </Typography>
                       )}

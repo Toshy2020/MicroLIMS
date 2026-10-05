@@ -27,7 +27,7 @@ import { DownstreamWorkflowsPanel } from "./DownstreamWorkflowsPanel";
 import { PrimaryObservationMatrixPanel } from "./PrimaryObservationMatrixPanel";
 import { BatchConfirmatoryPlatingPanel } from "./BatchConfirmatoryPlatingPanel";
 import { SessionReviewPanel } from "./SessionReviewPanel";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -281,7 +281,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
         )
       }
     >
-      {loading && <LoadingSpinner />}
+      {loading && <DialogBodySkeleton blocks={4} blockHeight={56} />}
       {error && !session && <Alert severity="error">{error}</Alert>}
 
       {session && (

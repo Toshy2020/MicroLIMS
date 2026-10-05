@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box } from "@mui/material";
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { TableSkeleton } from "../../components/TableSkeleton";
 import { IncidentFilterBar } from "./components/IncidentFilterBar";
 import { IncidentTable } from "./components/IncidentTable";
 import { ErrorMonitoringService } from "./services/ErrorMonitoringService";
@@ -73,7 +73,7 @@ export function ErrorMonitoringPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading && !result ? (
-        <LoadingSpinner />
+        <TableSkeleton rows={8} cols={6} />
       ) : (
         <IncidentTable
           items={result?.items ?? []}

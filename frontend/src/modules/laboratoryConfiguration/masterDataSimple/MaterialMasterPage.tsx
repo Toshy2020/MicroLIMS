@@ -296,7 +296,7 @@ export function MaterialMasterPage() {
             size="small"
             color="primary"
             variant="outlined"
-            sx={{ fontSize: 11, fontWeight: 600 }}
+            sx={{ fontSize: 12, fontWeight: 600 }}
           />
         );
       case "Indicator":
@@ -307,7 +307,7 @@ export function MaterialMasterPage() {
             size="small"
             color="secondary"
             variant="outlined"
-            sx={{ fontSize: 11, fontWeight: 600 }}
+            sx={{ fontSize: 12, fontWeight: 600 }}
           />
         );
       case "ReferenceStandard":
@@ -318,7 +318,7 @@ export function MaterialMasterPage() {
             size="small"
             color="info"
             variant="outlined"
-            sx={{ fontSize: 11, fontWeight: 600 }}
+            sx={{ fontSize: 12, fontWeight: 600 }}
           />
         );
       case "PrimaryStandard":
@@ -329,11 +329,11 @@ export function MaterialMasterPage() {
             size="small"
             color="success"
             variant="outlined"
-            sx={{ fontSize: 11, fontWeight: 600 }}
+            sx={{ fontSize: 12, fontWeight: 600 }}
           />
         );
       default:
-        return <Chip label={category} size="small" variant="outlined" sx={{ fontSize: 11 }} />;
+        return <Chip label={category} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
     }
   };
 
@@ -390,7 +390,7 @@ export function MaterialMasterPage() {
       key: "baseUnit",
       label: "Base Unit",
       sortable: true,
-      render: (entry) => <Chip label={entry.baseUnit} size="small" variant="outlined" sx={{ fontSize: 11 }} />
+      render: (entry) => <Chip label={entry.baseUnit} size="small" variant="outlined" sx={{ fontSize: 12 }} />
     },
     {
       key: "section",

@@ -520,18 +520,18 @@ export function WeightVariationPanel({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Unit</TableCell>
             {capsule ? (
               <>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Gross (mg)</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Shell (mg)</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Net (mg)</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Gross (mg)</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Shell (mg)</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Net (mg)</TableCell>
               </>
             ) : (
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Weight (mg)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Weight (mg)</TableCell>
             )}
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Deviation %</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Deviation %</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{lastHeader}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

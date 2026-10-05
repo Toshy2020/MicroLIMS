@@ -118,7 +118,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
         }}
       >
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             TSB Media Lot
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
@@ -132,14 +132,14 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
               mt: 0.5
             }}>
             <VerifiedUserOutlinedIcon sx={{ fontSize: 13, color: theme.custom.status.notDetected.text }} />
-            <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
               {sharedTsb.gptStatus ?? "GPT Conform"}
             </Typography>
           </Stack>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Incubator Equipment
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
@@ -151,37 +151,37 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Incubation Start
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {formatDate(sharedTsb.actualStartUtc)}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             By {sharedTsb.startedByUserName ?? "Analyst"}
           </Typography>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Available From
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
             {formatDate(sharedTsb.minReadyAt)}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
             Unlock Point ({sharedTsb.requiredDurationRange ?? "not configured"})
           </Typography>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Expected Window
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {formatDate(sharedTsb.expectedCompletionUtc)}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Max Duration: {sharedTsb.incubationDurationHours != null ? `${sharedTsb.incubationDurationHours} h` : "—"}
           </Typography>
         </Box>

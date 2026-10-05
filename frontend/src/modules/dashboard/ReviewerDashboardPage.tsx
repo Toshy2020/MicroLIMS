@@ -23,6 +23,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
+import { SummaryTiles } from "../../components/configHierarchy/SummaryTiles";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
@@ -104,175 +105,54 @@ export function ReviewerDashboardPage() {
       </PageHeader>
 
       {/* Tier 1: Summary Cards */}
-      <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2.4
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderReview")}
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Pending Review
-              </Typography>
-              <RateReviewOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
-            </Box>
-            <Typography sx={{ fontSize: 28, fontWeight: 800, color: theme.palette.primary.main, my: 0.5 }}>
-              {data.pendingReviewCount}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Samples awaiting scientific review
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2.4
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderReview&workload=reviewOverdue")}
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${brandColors.err}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Overdue Review
-              </Typography>
-              <AccessTimeOutlinedIcon sx={{ color: brandColors.err, fontSize: 20 }} />
-            </Box>
-            <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.err, my: 0.5 }}>
-              {data.overdueReviewCount}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: brandColors.err }}>
-              In review &gt;24 hours
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2.4
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderReview")}
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${brandColors.warn}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Due Today
-              </Typography>
-              <AccessTimeOutlinedIcon sx={{ color: brandColors.warn, fontSize: 20 }} />
-            </Box>
-            <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.warn, my: 0.5 }}>
-              {data.dueTodayCount}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Submitted for review today
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2.4
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?workload=retestInProgress")}
-            sx={{
-              p: 2,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${brandColors.info}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Retests in Progress
-              </Typography>
-              <UndoOutlinedIcon sx={{ color: brandColors.info, fontSize: 20 }} />
-            </Box>
-            <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.info, my: 0.5 }}>
-              {data.retestsInProgressCount}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Retest samples not yet closed
-            </Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2.4
-          }}>
-          <Paper
-            sx={{
-              p: 2,
-              borderLeft: `4px solid ${brandColors.ok}`,
-              bgcolor: "background.paper"
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Completed Today
-              </Typography>
-              <CheckCircleOutlineIcon sx={{ color: brandColors.ok, fontSize: 20 }} />
-            </Box>
-            <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.ok, my: 0.5 }}>
-              {data.completedTodayCount}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Reviewed by you today
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+      <SummaryTiles
+        tiles={[
+          {
+            label: "Pending review",
+            value: data.pendingReviewCount,
+            tone: "action",
+            icon: <RateReviewOutlinedIcon />,
+            caption: "samples",
+            hint: "Samples awaiting scientific review",
+            to: lab.workspace("?status=UnderReview")
+          },
+          {
+            label: "Overdue review",
+            value: data.overdueReviewCount,
+            tone: "detected",
+            icon: <AccessTimeOutlinedIcon />,
+            caption: "in review >24 hours",
+            hint: "Samples in review for more than 24 hours",
+            to: lab.workspace("?status=UnderReview&workload=reviewOverdue")
+          },
+          {
+            label: "Due today",
+            value: data.dueTodayCount,
+            tone: "action",
+            icon: <AccessTimeOutlinedIcon />,
+            caption: "submitted today",
+            hint: "Submitted for review today",
+            to: lab.workspace("?status=UnderReview")
+          },
+          {
+            label: "Retests in progress",
+            value: data.retestsInProgressCount,
+            tone: "info",
+            icon: <UndoOutlinedIcon />,
+            caption: "samples",
+            hint: "Retest samples not yet closed",
+            to: lab.workspace("?workload=retestInProgress")
+          },
+          {
+            label: "Completed today",
+            value: data.completedTodayCount,
+            tone: "notDetected",
+            icon: <CheckCircleOutlineIcon />,
+            caption: "by you",
+            hint: "Reviewed by you today"
+          }
+        ]}
+      />
 
       {/* Tier 2: Attention Items (if any) */}
       {data.attentionItems.length > 0 && (
@@ -309,7 +189,7 @@ export function ReviewerDashboardPage() {
                         {item.referenceNumber}: {item.subjectName}
                       </Typography>
                       {item.testCodes.map((code) => (
-                        <Chip key={code} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
+                        <Chip key={code} label={code} size="small" sx={{ fontSize: 12, height: 20 }} />
                       ))}
                     </Box>
                     <Typography sx={{ fontSize: 12, color: brandColors.err, mt: 0.25 }}>
@@ -410,7 +290,7 @@ export function ReviewerDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 11, height: 20, mt: 0.5, display: "inline-flex" }}
+                              sx={{ fontSize: 12, height: 20, mt: 0.5, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
@@ -420,7 +300,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ fontSize: 12 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {row.tests.map((t) => (
-                              <Chip key={t.testOrderId} label={t.testCode} size="small" sx={{ fontSize: 11, height: 22, fontWeight: 600 }} />
+                              <Chip key={t.testOrderId} label={t.testCode} size="small" sx={{ fontSize: 12, height: 22, fontWeight: 600 }} />
                             ))}
                           </Box>
                         </TableCell>
@@ -433,7 +313,7 @@ export function ReviewerDashboardPage() {
                               label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
-                                fontSize: 11,
+                                fontSize: 12,
                                 height: 20,
                                 bgcolor:
                                   row.worstResultLevel === "OutOfSpecification"
@@ -470,7 +350,7 @@ export function ReviewerDashboardPage() {
                             label={row.priority}
                             size="small"
                             sx={{
-                              fontSize: 11,
+                              fontSize: 12,
                               height: 20,
                               fontWeight: 700,
                               bgcolor:
@@ -495,7 +375,7 @@ export function ReviewerDashboardPage() {
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
-                            sx={{ textTransform: "none", fontSize: 11, fontWeight: 700, py: 0.3 }}
+                            sx={{ textTransform: "none", fontSize: 12, fontWeight: 700, py: 0.3 }}
                           >
                             Review
                           </Button>
@@ -522,7 +402,7 @@ export function ReviewerDashboardPage() {
                 Recently Reviewed
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 2 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
               Historical scientific review audit trail.
             </Typography>
 
@@ -552,21 +432,21 @@ export function ReviewerDashboardPage() {
                         <Typography sx={{ fontSize: 12, fontWeight: 700 }}>
                           {rec.referenceNumber}
                         </Typography>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                           {rec.subjectName}
                         </Typography>
                       </Box>
                       <Chip
                         label={rec.status}
                         size="small"
-                        sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
+                        sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
                       />
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         Tests: {rec.testCode}
                       </Typography>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         {new Date(rec.reviewedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </Typography>
                     </Box>

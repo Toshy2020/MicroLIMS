@@ -65,7 +65,7 @@ const typography: ThemeOptions["typography"] = {
   subtitle2: { fontSize: "0.8125rem", fontWeight: 600, lineHeight: 1.45 },
   body2: { fontSize: "0.875rem", lineHeight: 1.5 },
   caption: { fontSize: "0.75rem", lineHeight: 1.45 },
-  overline: { fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.6 },
+  overline: { fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.6 },
   button: { textTransform: "none", fontWeight: 600 }
 };
 

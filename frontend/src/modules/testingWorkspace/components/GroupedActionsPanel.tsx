@@ -91,10 +91,10 @@ export function GroupedActionsPanel({
   const preparationSection = hasPreparation ? (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
+        <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
           Test Preparation Required ({prepGroups.length})
         </Typography>
-        <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+        <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
           Must complete before incubation
         </Typography>
       </Box>
@@ -107,12 +107,12 @@ export function GroupedActionsPanel({
 
       {prepExcluded.length > 0 && (
         <Alert severity="info" icon={<InfoOutlinedIcon fontSize="inherit" />} sx={{ py: 0.75, px: 1.5, borderRadius: 1.5 }}>
-          <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, mb: 0.25 }}>
+          <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, mb: 0.25 }}>
             {prepExcluded.length} {prepExcluded.length === 1 ? "sample" : "samples"} cannot be prepared as a group
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
             {prepExcluded.map((s) => (
-              <Typography key={s.sampleId} sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+              <Typography key={s.sampleId} sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                 <strong>{s.sampleReference}</strong> - {s.reason}
               </Typography>
             ))}
@@ -170,7 +170,7 @@ export function GroupedActionsPanel({
             <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.2 }}>
               Grouped Actions
             </Typography>
-            <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
               {selectedSampleIds.length} samples selected across workspace
             </Typography>
           </Box>
@@ -183,7 +183,7 @@ export function GroupedActionsPanel({
             onClick={onDeselectAll}
             sx={{
               height: 26,
-              fontSize: "0.72rem",
+              fontSize: "0.75rem",
               textTransform: "none",
               fontWeight: 600,
               px: 1.25,
@@ -266,7 +266,7 @@ export function GroupedActionsPanel({
             </Typography>
             {excludedResultEntryTestOrders && excludedResultEntryTestOrders.length > 0 && (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, maxWidth: 520, mx: "auto", textAlign: "left" }}>
-                <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
+                <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
                   Tests Awaiting Individual Result Entry ({excludedResultEntryTestOrders.length}):
                 </Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -279,7 +279,7 @@ export function GroupedActionsPanel({
                       deleteIcon={onOpenWorkflow ? <OpenInNewIcon sx={{ fontSize: "13px !important" }} /> : undefined}
                       onDelete={onOpenWorkflow ? () => onOpenWorkflow(t.sampleId, t.testOrderId) : undefined}
                       sx={{
-                        fontSize: "0.72rem",
+                        fontSize: "0.75rem",
                         fontWeight: 600,
                         cursor: onOpenWorkflow ? "pointer" : "default",
                         bgcolor: theme.palette.background.paper,
@@ -324,24 +324,24 @@ export function GroupedActionsPanel({
               sx={{
                 py: 0.75,
                 px: 1.5,
-                fontSize: "0.74rem",
+                fontSize: "0.75rem",
                 borderRadius: 1.5
               }}
             >
-              <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, mb: 0.25 }}>
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, mb: 0.25 }}>
                 {excludedResultEntryCount} {excludedResultEntryCount === 1 ? "test" : "tests"} excluded from grouped actions
               </Typography>
-              <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
                 The selected tests require individual result entry (e.g. colony counts or plate readings) and cannot be executed as a grouped action. Result entry must be completed separately for each test.
               </Typography>
             </Alert>
           ) : null}
 
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
               Compatible Actions ({groups.length})
             </Typography>
-            <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
               Shared operational workflow transition
             </Typography>
           </Box>

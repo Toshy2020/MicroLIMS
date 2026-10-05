@@ -62,7 +62,7 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
           size="small"
           label={config.approvalStatus === "Approved" ? "Approved" : "Pending Approval"}
           color={config.approvalStatus === "Approved" ? "success" : "warning"}
-          sx={{ height: 20, fontSize: 11 }}
+          sx={{ height: 20, fontSize: 12 }}
         />
       </Box>
 

@@ -20,7 +20,7 @@ export function KpiStrip({ tiles, loading }: KpiStripProps) {
       }}
     >
       {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} variant="rounded" height={72} />
+        <Skeleton key={i} variant="rounded" height={84} />
       ))}
     </Box>
   );

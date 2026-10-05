@@ -210,7 +210,7 @@ export function GroupedActionRow({
             label={`× ${group.sampleCount} ${group.sampleCount === 1 ? "Sample" : "Samples"}`}
             sx={{
               height: 20,
-              fontSize: "0.6875rem",
+              fontSize: "0.75rem",
               fontWeight: 700,
               bgcolor: theme.custom.status.purple.bg,
               color: theme.custom.status.purple.text,
@@ -241,7 +241,7 @@ export function GroupedActionRow({
           <Typography
             noWrap
             sx={{
-              fontSize: "0.74rem",
+              fontSize: "0.75rem",
               color: "text.secondary",
               fontWeight: 500
             }}
@@ -282,7 +282,7 @@ export function GroupedActionRow({
         >
           {/* Sample Chips List */}
           <Box sx={{ mb: 1.5 }}>
-            <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
               Selected Samples ({group.testOrders.length} Tests):
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -306,7 +306,7 @@ export function GroupedActionRow({
                   }
                   sx={{
                     height: 24,
-                    fontSize: "0.72rem",
+                    fontSize: "0.75rem",
                     fontWeight: 600,
                     borderRadius: "6px",
                     bgcolor: theme.palette.background.paper,
@@ -319,7 +319,7 @@ export function GroupedActionRow({
           </Box>
 
           {submitError && (
-            <Alert severity="error" sx={{ mb: 1.5, py: 0.25, fontSize: "0.74rem" }}>
+            <Alert severity="error" sx={{ mb: 1.5, py: 0.25, fontSize: "0.75rem" }}>
               {submitError}
             </Alert>
           )}
@@ -336,7 +336,7 @@ export function GroupedActionRow({
               {/* Media Lot Dropdown - only when not incubator-only transfer */}
               {!isIncubatorOnly && (
                 <Box sx={{ flex: "1 1 200px" }}>
-                  <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+                  <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
                     Media Lot ({group.permittedMaterialNames || "Approved Media"})
                   </Typography>
                   <Select
@@ -369,7 +369,7 @@ export function GroupedActionRow({
 
               {/* Incubator Dropdown */}
               <Box sx={{ flex: "1 1 200px" }}>
-                <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+                <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
                   {isIncubatorOnly ? "Transfer to Incubator" : "Incubator"} ({group.tempMin}–{group.tempMax}°C)
                 </Typography>
                 <Select

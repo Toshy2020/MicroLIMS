@@ -42,7 +42,7 @@ import { Link } from "react-router-dom";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { ReturnToAnalystDialog } from "../../components/ReturnToAnalystDialog";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
@@ -171,7 +171,7 @@ function SummaryField({
 }) {
   return (
     <Box sx={{ minWidth: 0 }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.3 }} noWrap>
+      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.3 }} noWrap>
         {label}
       </Typography>
       <Typography
@@ -186,7 +186,7 @@ function SummaryField({
         {value != null && value !== "" ? value : "—"}
       </Typography>
       {secondaryValue && (
-        <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+        <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
           {secondaryValue}
         </Typography>
       )}
@@ -496,7 +496,7 @@ const num = (v: number | null | undefined, digits?: number) =>
 
 function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
   const cellSx = { fontSize: 12, py: 0.75 };
-  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
+  const headSx = { fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
 
   let conditionsDisplay: string | null = null;
   const titration = analysis.analysisType === "Titration" ? parseTitrationSnapshot(analysis.conditionsJson) : null;
@@ -596,7 +596,7 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
 // Raw readings behind one parameter result; only columns with a value are shown.
 function AnalysisReadingsTable({ parameter, analysisType }: { parameter: ParameterResultDetail; analysisType?: string }) {
   const cellSx = { fontSize: 12, py: 0.5 };
-  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", py: 0.5 };
+  const headSx = { fontSize: 12, fontWeight: 700, color: "text.secondary", py: 0.5 };
   const r = parameter.readings;
   const isVessel = r.some((x) => x.kind === "Vessel");
   const isDisintegration = analysisType === "Disintegration";
@@ -734,7 +734,7 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
               <SummaryField label="Reported Result" value={r.reportedResult} highlight />
               <SummaryField label="Alert / Action / Spec" value={`${r.alertLimit ?? "—"} / ${r.actionLimit ?? "—"} / ${r.specLimit ?? "—"}`} />
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>Status</Typography>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>Status</Typography>
                 <Box sx={{ mt: 0.5 }}>
                   <StatusBadge status={r.status} />
                 </Box>
@@ -906,7 +906,7 @@ function TestResultsSection({
                       label={order.sectionName}
                       size="small"
                       variant="outlined"
-                      sx={{ fontSize: 11, height: 20 }}
+                      sx={{ fontSize: 12, height: 20 }}
                     />
                   )}
                   <StatusBadge status={order.workflowStateDisplay || order.status} />
@@ -915,7 +915,7 @@ function TestResultsSection({
                       (and incubation stage, if any) this test had reached
                       when another lab's rejection closed this one's work. */}
                   {order.status === "Cancelled" && order.cancelledAtStep && (
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       Cancelled at {humanize(order.cancelledAtStep)}
                       {order.cancelledAtStage != null ? `, stage ${order.cancelledAtStage}` : ""}
                     </Typography>
@@ -1009,14 +1009,14 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary", mt: 0.5 }}>
                   {e.eventType}{e.decision ? ` (${e.decision})` : ""}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {e.performedByName}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {formatDate(e.timestamp)}
                 </Typography>
                 {e.comment && (
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
                     "{e.comment}"
                   </Typography>
                 )}
@@ -1193,19 +1193,19 @@ function ApprovalSignaturesCard({
                     bgcolor: theme.custom.status.notDetected.bg,
                     color: theme.custom.status.notDetected.text,
                     fontWeight: 700,
-                    fontSize: 11,
+                    fontSize: 12,
                     height: 20
                   }}
                 />
               </Box>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 0.5 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>
                 {formatExactTime(sig.signedAt)}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
                 "{SIGNATURE_STATEMENTS[sig.meaning] ?? sig.meaning}"
               </Typography>
               {sig.comment && (
-                <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
                   Comment: {sig.comment}
                 </Typography>
               )}
@@ -1219,10 +1219,10 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                 Reviewer: {summary.reviewedByName}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 {formatExactTime(summary.reviewedAt)} · Verified
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{SIGNATURE_STATEMENTS.Reviewed}"
               </Typography>
             </Box>
@@ -1232,10 +1232,10 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                 Section Head: {summary.approvedByName}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 {formatExactTime(summary.approvedAt)} · Verified
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{isRejected ? SIGNATURE_STATEMENTS.Rejected : SIGNATURE_STATEMENTS.Approved}"
               </Typography>
             </Box>
@@ -1275,7 +1275,7 @@ function ApprovalSignaturesCard({
               ))}
             </TextField>
           )}
-          <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+          <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1.5 }}>
             {activeReviewSection
               ? `By submitting, I confirm I have reviewed all test results for ${activeReviewSection.sectionName}.`
               : "By submitting, I confirm I have reviewed all test results for this sample."}
@@ -1369,11 +1369,11 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
                 Tests to Retest
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
                 Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample{decision === "NewSampleRequest" ? "s" : ""}; everything else on this sample is left untouched.
               </Typography>
               {approvableSections.length > 1 && !approvalSectionId ? (
-                <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1 }}>
+                <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1 }}>
                   Please select a laboratory section above to view tests to retest.
                 </Alert>
               ) : (
@@ -1402,7 +1402,7 @@ function ApprovalSignaturesCard({
                               size="small"
                               label={t.sectionName}
                               variant="outlined"
-                              sx={{ ml: 0.5, height: 20, fontSize: 11 }}
+                              sx={{ ml: 0.5, height: 20, fontSize: 12 }}
                             />
                           )}
                           {isTestOrderNonPassing(t) && (
@@ -1410,7 +1410,7 @@ function ApprovalSignaturesCard({
                               size="small"
                               label="Non-conforming"
                               color="error"
-                              sx={{ ml: 0.5, height: 20, fontSize: 11 }}
+                              sx={{ ml: 0.5, height: 20, fontSize: 12 }}
                             />
                           )}
                         </Typography>
@@ -1420,7 +1420,7 @@ function ApprovalSignaturesCard({
                 </FormGroup>
               )}
               {selectedTestOrderIds.length === 0 && (approvableSections.length <= 1 || approvalSectionId !== "") && (
-                <Alert severity="warning" sx={{ fontSize: 11, py: 0, mt: 0.5 }}>
+                <Alert severity="warning" sx={{ fontSize: 12, py: 0, mt: 0.5 }}>
                   Select at least one test to retest.
                 </Alert>
               )}
@@ -1432,7 +1432,7 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
                 Analysts for the Two New Samples
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
                 Two different analysts are required, and neither may be whoever tested the original sample.
               </Typography>
               {analystsLoadFailed && (
@@ -1469,7 +1469,7 @@ function ApprovalSignaturesCard({
                 </FormControl>
               </Stack>
               {newSampleAnalystOneId !== "" && newSampleAnalystOneId === newSampleAnalystTwoId && (
-                <Alert severity="warning" sx={{ fontSize: 11, py: 0, mt: 0.5 }}>
+                <Alert severity="warning" sx={{ fontSize: 12, py: 0, mt: 0.5 }}>
                   The two new samples must be assigned to two different analysts.
                 </Alert>
               )}
@@ -1477,7 +1477,7 @@ function ApprovalSignaturesCard({
           )}
 
           {oosWarning && (
-            <Alert severity="warning" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+            <Alert severity="warning" sx={{ fontSize: 12, py: 0.5, mb: 1.5 }}>
               Out-of-specification results in {oosWarning.sectionName}: {oosWarning.failingList}. Approving will certify them as conforming - consider Not Conform or a retest.
             </Alert>
           )}
@@ -1503,7 +1503,7 @@ function ApprovalSignaturesCard({
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.error.main }}>
             Close Testing
           </Typography>
-          <Alert severity="warning" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+          <Alert severity="warning" sx={{ fontSize: 12, py: 0.5, mb: 1.5 }}>
             Another laboratory has rejected this sample. You may close your own laboratory's remaining
             tests instead of continuing them.
           </Alert>
@@ -1811,7 +1811,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
         onClose={onClose}
       >
         {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
-        {!summary && !loadError && <LoadingSpinner />}
+        {!summary && !loadError && <DialogBodySkeleton blocks={6} blockHeight={64} />}
         {summary && (
           <Stack spacing={3} sx={{ minWidth: { md: 840 } }}>
             {/* Header Description & Export Actions */}
@@ -1908,7 +1908,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                       label={`${sec.sectionName}: ${formatSectionStatus(sec.status)}`}
                       variant={sec.canView ? "filled" : "outlined"}
                       sx={{
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 600,
                         ...(!sec.canView ? { color: "text.secondary", borderColor: "divider" } : {})
                       }}
@@ -1921,7 +1921,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 {summary.sections
                   .filter((sec) => sec.status === "Closed" && sec.canView)
                   .map((sec) => (
-                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 11, color: "text.secondary", pl: 0.5 }}>
+                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 12, color: "text.secondary", pl: 0.5 }}>
                       {sec.sectionName} closed by {sec.closedByName ?? "—"} on {formatDate(sec.closedAt)}
                       {sec.closeReason ? `: ${sec.closeReason}` : ""}
                     </Typography>
@@ -2039,7 +2039,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 color: "text.secondary"
               }}
             >
-              <Typography sx={{ fontSize: 11 }}>
+              <Typography sx={{ fontSize: 12 }}>
                 Sample Reference: <strong>{summary.referenceNumber}</strong> · Record Status: <strong>{summary.status}</strong> · MicroLIMS Operational View
               </Typography>
             </Box>

@@ -133,7 +133,7 @@ export function ReferenceStrainResultsTable({
       <Box sx={{ fontSize: 12 }}>
         {r.manufacturerName || "—"}
         {r.sourceMaterialBatchNumber && (
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
             Batch: {r.sourceMaterialBatchNumber}
           </Typography>
         )}
@@ -147,31 +147,31 @@ export function ReferenceStrainResultsTable({
         size="small"
         label={`${r.vialsRemaining} / ${r.numberOfVialsPrepared}`}
         color={r.vialsRemaining > 0 ? "success" : "default"}
-        sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
+        sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
       />
     ) },
-    { key: "storageCondition", label: "Storage", render: (r) => <Box sx={{ fontSize: 11.5 }}>{r.storageCondition || "—"}</Box> },
+    { key: "storageCondition", label: "Storage", render: (r) => <Box sx={{ fontSize: 12 }}>{r.storageCondition || "—"}</Box> },
     { key: "approvalStatus", label: "Approval Status", render: (r) => (
       <>
         <Chip
           size="small"
           label={r.approvalStatus}
           color={r.approvalStatus === "Approved" ? "success" : r.approvalStatus === "Rejected" ? "error" : "warning"}
-          sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
+          sx={{ fontSize: 12, height: 20, fontWeight: 600 }}
         />
         {r.isDestroyed && (
-          <Typography variant="caption" sx={{ display: "block", color: "error.main", fontWeight: 700, fontSize: 11 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "error.main", fontWeight: 700, fontSize: 12 }}>
             Destroyed
           </Typography>
         )}
       </>
     ) },
-    { key: "preparedByName", label: "Prepared By", render: (r) => <Box sx={{ fontSize: 11.5 }}>{r.preparedByName}</Box> },
+    { key: "preparedByName", label: "Prepared By", render: (r) => <Box sx={{ fontSize: 12 }}>{r.preparedByName}</Box> },
     { key: "approvedByName", label: "Approved By", render: (r) => (
-      <Box sx={{ fontSize: 11.5 }}>
+      <Box sx={{ fontSize: 12 }}>
         {r.approvedByName || "—"}
         {r.approvedAt && (
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
             {formatDate(r.approvedAt)}
           </Typography>
         )}
@@ -181,7 +181,7 @@ export function ReferenceStrainResultsTable({
       <Chip
         size="small"
         label={`${r.directUsageCount} GPT`}
-        sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
+        sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
       />
     ) },
     { key: "id", label: "Actions", align: "center", render: (r) => (

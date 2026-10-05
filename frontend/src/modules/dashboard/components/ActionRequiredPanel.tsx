@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { MyTask } from "../types/dashboard";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { useActionableGroups } from "../../testingWorkspace/hooks/useActionableGroups";
 import { DashboardLab, useDashboardLab } from "../DashboardLabContext";
 
@@ -56,7 +56,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
       </SectionTitle>
 
       {loading || !tasks ? (
-        <LoadingSpinner />
+        <DialogBodySkeleton blocks={3} blockHeight={56} />
       ) : (
         <Stack spacing={1.5}>
           {/* Multi-sample Grouped Actions */}

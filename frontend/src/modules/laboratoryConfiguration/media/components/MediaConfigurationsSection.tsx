@@ -193,7 +193,7 @@ export function MediaConfigurationsSection({
                             size="small"
                             label={`${challengeCount} organism${challengeCount > 1 ? "s" : ""}`}
                             onClick={() => toggleRow(config.id)}
-                            sx={{ cursor: "pointer", fontWeight: 600, fontSize: 11 }}
+                            sx={{ cursor: "pointer", fontWeight: 600, fontSize: 12 }}
                           />
                         ) : (
                           <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>

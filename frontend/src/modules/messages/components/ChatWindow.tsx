@@ -132,7 +132,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
             {displayTitle}
           </Typography>
           <Tooltip title={participantsTooltip}>
-            <Typography sx={{ fontSize: 11.5, color: "text.secondary", cursor: "pointer" }} noWrap>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", cursor: "pointer" }} noWrap>
               {conversation.isGroup
                 ? `${conversation.participants.length} members: ${conversation.participants.map((p) => p.fullName).join(", ")}`
                 : otherParticipant?.jobTitle
@@ -181,7 +181,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
                 }}
               >
                 {!isMine && conversation.isGroup && (
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.25, px: 1 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.25, px: 1 }}>
                     {m.senderName}
                   </Typography>
                 )}
@@ -206,7 +206,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
                   </Typography>
                 </Box>
 
-                <Typography sx={{ fontSize: 11, color: "text.disabled", mt: 0.25, px: 0.75 }}>
+                <Typography sx={{ fontSize: 12, color: "text.disabled", mt: 0.25, px: 0.75 }}>
                   {time}
                 </Typography>
               </Box>

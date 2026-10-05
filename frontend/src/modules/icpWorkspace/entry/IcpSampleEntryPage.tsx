@@ -6,7 +6,6 @@ import {
   Button,
   Stack,
   Alert,
-  CircularProgress,
   Paper,
   Tooltip,
   TextField,
@@ -17,6 +16,7 @@ import {
   FormHelperText,
   useTheme
 } from "@mui/material";
+import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
@@ -126,11 +126,7 @@ export function IcpSampleEntryPage() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <WorkspaceSkeleton />;
   }
 
   if (!sampleEntry) {
@@ -263,7 +259,7 @@ export function IcpSampleEntryPage() {
               </ToggleButton>
             </ToggleButtonGroup>
             {sampleEntry.mode === "ElementalImpurities" && (
-              <FormHelperText sx={{ fontSize: 11 }}>
+              <FormHelperText sx={{ fontSize: 12 }}>
                 Elemental impurities are reported per gram (mL disabled).
               </FormHelperText>
             )}

@@ -6,9 +6,9 @@ import {
   Tab,
   Button,
   Alert,
-  CircularProgress,
   useTheme
 } from "@mui/material";
+import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -154,11 +154,7 @@ export function IcpRunWorkspace() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <WorkspaceSkeleton />;
   }
 
   if (!run && activeTab !== "history") {

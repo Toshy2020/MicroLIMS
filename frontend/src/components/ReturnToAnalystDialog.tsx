@@ -113,7 +113,7 @@ export function ReturnToAnalystDialog({
               borderColor: "divider"
             }}
           >
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
               Test Order
             </Typography>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary", mt: 0.25 }}>

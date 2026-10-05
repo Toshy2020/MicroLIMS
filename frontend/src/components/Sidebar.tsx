@@ -48,7 +48,8 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   // the area holding the current page folded shut, so the active highlight
   // was invisible. Unfold it whenever the location moves into a new area;
   // areas the user opened or closed by hand are left as they are.
-  const activeParentLabel = activeTrail?.parent?.label;
+  // A section's own landing page counts as inside that section.
+  const activeParentLabel = activeTrail?.parent?.label ?? (activeTrail?.item.children ? activeTrail.item.label : undefined);
   useEffect(() => {
     if (!activeParentLabel) return;
     setOpenSubmenus((prev) => (prev[activeParentLabel] ? prev : { ...prev, [activeParentLabel]: true }));
@@ -80,13 +81,18 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
     setOpenSubmenus((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  // A section also links to its landing page, so a click opens it and shows
+  // that page; it only folds shut when its page is already showing.
   const handleItemClick = (item: MenuItemType, anchorEl: HTMLElement) => {
     if (!item.children) return;
     if (effectiveCollapsed) {
       openFlyout(item.label, anchorEl);
-    } else {
+    } else if (activeTrail?.item === item) {
       toggleSubmenu(item.label);
+    } else {
+      setOpenSubmenus((prev) => ({ ...prev, [item.label]: true }));
     }
+    if (isMobile && item.path) onMobileClose();
   };
 
   // Active = the menu link that owns the current location (see
@@ -127,7 +133,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   px: 2.5,
                   pt: groupIdx === 0 ? 0.75 : 1.75,
                   pb: 0.5,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   letterSpacing: "0.08em",
                   color: "rgba(255, 255, 255, 0.72)",
@@ -150,6 +156,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   <ListItemButton
                     {...(hasChildren
                       ? {
+                          ...(item.path ? { component: Link, to: item.path } : {}),
                           onClick: (e: React.MouseEvent<HTMLElement>) => handleItemClick(item, e.currentTarget),
                           "aria-expanded": effectiveCollapsed ? flyoutOpen : isSubOpen,
                           "aria-haspopup": effectiveCollapsed ? true : undefined,
@@ -297,7 +304,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                             <Typography
                               sx={{
                                 px: 2, pt: 1, pb: 0.5,
-                                fontSize: 11, fontWeight: 700, letterSpacing: 0.6,
+                                fontSize: 12, fontWeight: 700, letterSpacing: 0.6,
                                 color: "text.secondary", textTransform: "uppercase"
                               }}
                             >

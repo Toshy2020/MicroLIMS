@@ -40,11 +40,11 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
             md: 3
           }}>
           <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-            <Typography sx={{ fontSize: 11.5, color: "text.secondary", fontWeight: 600 }}>Overall GPT Pass Rate</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>Overall GPT Pass Rate</Typography>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: summary.overallPassRatePercent >= 90 ? brandColors.ok : brandColors.badgePM }}>
               {summary.overallPassRatePercent}%
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               {summary.totalConformed} of {summary.totalConformed + summary.totalNonConformed} completed lots
             </Typography>
           </Box>
@@ -59,12 +59,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
           <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <CheckCircleOutlineIcon sx={{ color: brandColors.ok, fontSize: 18 }} />
-              <Typography sx={{ fontSize: 11.5, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Conformed Lots</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Conformed Lots</Typography>
             </Box>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.ok }}>
               {summary.totalConformed}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Qualified for release</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Qualified for release</Typography>
           </Box>
         </Grid>
 
@@ -77,12 +77,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
           <Box sx={{ p: 1.5, bgcolor: theme.custom.status.detected.bg, borderRadius: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <HighlightOffIcon sx={{ color: brandColors.err, fontSize: 18 }} />
-              <Typography sx={{ fontSize: 11.5, color: theme.custom.status.detected.text, fontWeight: 600 }}>Non-Conform Lots</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, fontWeight: 600 }}>Non-Conform Lots</Typography>
             </Box>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.err }}>
               {summary.totalNonConformed}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Quarantined / Rejected</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Quarantined / Rejected</Typography>
           </Box>
         </Grid>
 
@@ -95,12 +95,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
           <Box sx={{ p: 1.5, bgcolor: theme.custom.status.inconclusive.bg, borderRadius: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <HourglassEmptyIcon sx={{ color: brandColors.badgePM, fontSize: 18 }} />
-              <Typography sx={{ fontSize: 11.5, color: theme.custom.status.inconclusive.text, fontWeight: 600 }}>Pending Evaluation</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text, fontWeight: 600 }}>Pending Evaluation</Typography>
             </Box>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.badgePM }}>
               {summary.totalPending}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>In incubation or reading</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>In incubation or reading</Typography>
           </Box>
         </Grid>
       </Grid>
@@ -130,7 +130,7 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
                   {mt.mediaType}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     Total: <strong>{mt.totalLots}</strong> | Conform: <strong style={{ color: brandColors.ok }}>{mt.conformedLots}</strong> | NonConform: <strong style={{ color: brandColors.err }}>{mt.nonConformedLots}</strong>
                     {mt.pendingLots > 0 && ` | Pending: ${mt.pendingLots}`}
                   </Typography>
@@ -138,7 +138,7 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
                     size="small"
                     label={`${mt.passRatePercent}% Pass`}
                     color={mt.passRatePercent >= 90 ? "success" : mt.passRatePercent > 0 ? "warning" : "default"}
-                    sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
+                    sx={{ fontWeight: 700, fontSize: 12, height: 22 }}
                   />
                 </Box>
               </Box>

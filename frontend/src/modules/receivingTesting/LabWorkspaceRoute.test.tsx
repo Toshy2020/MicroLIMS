@@ -14,16 +14,21 @@ vi.mock("./ReceivingTestingWorkspacePage", () => ({
   ReceivingTestingWorkspacePage: ({ lab }: { lab: { area?: string } }) => <div>workspace-{lab.area}</div>
 }));
 
+import { ThemeProvider } from "@mui/material";
+import { lightTheme } from "../../theme";
 import { LabWorkspaceRoute } from "./LabWorkspaceRoute";
 
 function renderAt(url: string) {
+  // The app theme: the loading skeleton reads its table-head colours.
   return render(
-    <MemoryRouter initialEntries={[url]}>
-      <Routes>
-        <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute code="FP" area="fp" />} />
-        <Route path="/physicochemical/rm-pm-workspace" element={<LabWorkspaceRoute code="FP" area="rmpm" />} />
-      </Routes>
-    </MemoryRouter>
+    <ThemeProvider theme={lightTheme}>
+      <MemoryRouter initialEntries={[url]}>
+        <Routes>
+          <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute code="FP" area="fp" />} />
+          <Route path="/physicochemical/rm-pm-workspace" element={<LabWorkspaceRoute code="FP" area="rmpm" />} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeProvider>
   );
 }
 

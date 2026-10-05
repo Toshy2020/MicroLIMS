@@ -40,7 +40,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
             <Typography sx={{ fontSize: 22, fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.1 }}>
               {onTimeRate}%
             </Typography>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
               On-Time Reading Rate
             </Typography>
           </Box>
@@ -61,7 +61,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
           <Typography sx={{ fontSize: 22, fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.1 }}>
             {trailing7d}
           </Typography>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
             7-Day Completed Volume
           </Typography>
         </Box>
@@ -81,7 +81,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
           <Typography sx={{ fontSize: 22, fontWeight: 700, color: theme.palette.text.primary, lineHeight: 1.1 }}>
             {activeOrders}
           </Typography>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
             Active Assigned Orders
           </Typography>
         </Box>

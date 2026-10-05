@@ -118,25 +118,25 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
                     size="small"
                     color={STATUS_COLORS[doc.status]}
                     variant={doc.status === "Current" ? "filled" : "outlined"}
-                    sx={{ fontSize: 11, height: 20 }}
+                    sx={{ fontSize: 12, height: 20 }}
                   />
                 </Box>
 
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {EQUIPMENT_DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatBytes(doc.fileSizeBytes)}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   Uploaded by {doc.uploadedByName} · {formatLabDate(doc.uploadedAt)}
                 </Typography>
 
                 {doc.status === "Voided" && doc.voidReason && (
-                  <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.25 }}>
+                  <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.25 }}>
                     Voided: {doc.voidReason}
                   </Typography>
                 )}
 
                 {doc.status === "Superseded" && doc.supersessionReason && (
-                  <Typography sx={{ fontSize: 11, color: "warning.dark", mt: 0.25 }}>
+                  <Typography sx={{ fontSize: 12, color: "warning.dark", mt: 0.25 }}>
                     Superseded: {doc.supersessionReason}
                   </Typography>
                 )}

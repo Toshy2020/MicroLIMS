@@ -98,7 +98,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Strain Organism</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Strain Organism</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
               {detail.strainName} {detail.atccNumber ? `(ATCC ${detail.atccNumber})` : ""}
             </Typography>
@@ -108,7 +108,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Source Microorganism Disc</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Source Microorganism Disc</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.sourceMaterialName} (Batch: {detail.sourceMaterialBatchNumber || "—"})
             </Typography>
@@ -118,7 +118,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Disc Receipt Date & Qty</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Disc Receipt Date & Qty</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {formatDate(detail.sourceMaterialReceivingDate)} ({detail.sourceMaterialQuantityReceived} received)
             </Typography>
@@ -128,7 +128,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Manufacturer Name</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Manufacturer Name</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.manufacturerName || "—"}
             </Typography>
@@ -138,7 +138,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Preparation / Expiry Date</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Preparation / Expiry Date</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {formatDate(detail.preparedAt)} • Exp: {formatDate(detail.expiryDate)}
             </Typography>
@@ -148,7 +148,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Vials Prepared / Remaining</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Vials Prepared / Remaining</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: detail.vialsRemaining > 0 ? brandColors.ok : brandColors.err }}>
               {detail.vialsRemaining} remaining of {detail.numberOfVialsPrepared} prepared
             </Typography>
@@ -158,7 +158,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Storage Condition / Physical Check</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Storage Condition / Physical Check</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
               {detail.storageCondition || "—"} {detail.physicalCheckConfirmed ? "• Physical check confirmed" : (detail.physicalCheckText ? `(${detail.physicalCheckText})` : "")} {detail.physicalCheckConfirmed && detail.physicalCheckText ? `(Notes: ${detail.physicalCheckText})` : ""}
             </Typography>
@@ -168,7 +168,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared By</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
               {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
@@ -178,7 +178,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approved By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approved By</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
               {detail.approvedByName ? `${detail.approvedByName} on ${formatDate(detail.approvedAt)}` : "Pending Approval"}
             </Typography>
@@ -199,10 +199,10 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Lot (Verified Against)</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Incubator</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Incubation Window</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Purity & Morphology Observation</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Lot (Verified Against)</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Incubator</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Incubation Window</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Purity & Morphology Observation</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -212,7 +212,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
                     {i.mediaLotNumber || "—"} {i.mediaName ? `(${i.mediaName})` : ""}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>{i.incubatorName || "—"}</TableCell>
-                  <TableCell sx={{ fontSize: 11.5 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     {formatDate(i.incubationStart)} – {formatDate(i.incubationEnd)}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
@@ -245,9 +245,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Thawed Date & Time</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Thawed By Analyst</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Notes / Qualification Purpose</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Thawed Date & Time</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Thawed By Analyst</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Notes / Qualification Purpose</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -283,12 +283,12 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Lot Qualified</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Media Type</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Evaluation Type</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Challenge Role</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Outcome</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Read By / Date</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Lot Qualified</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Type</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Evaluation Type</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Challenge Role</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Outcome</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Read By / Date</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -305,10 +305,10 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
                       size="small"
                       label={u.outcome || "Pending"}
                       color={u.outcome === "Conform" ? "success" : u.outcome === "NonConform" ? "error" : "default"}
-                      sx={{ fontWeight: 700, fontSize: 11, height: 20 }}
+                      sx={{ fontWeight: 700, fontSize: 12, height: 20 }}
                     />
                   </TableCell>
-                  <TableCell sx={{ fontSize: 11.5 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     {u.readByName ? `${u.readByName} (${formatDate(u.readAt)})` : "Pending"}
                   </TableCell>
                 </TableRow>

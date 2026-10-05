@@ -30,7 +30,7 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
       <>
         <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: monospaceFontFamily, color: "primary.main" }}>{c.code}</Typography>
         {c.storageCondition && (
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>{c.storageCondition}</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>{c.storageCondition}</Typography>
         )}
       </>
     )
@@ -44,11 +44,11 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
             {organismOf(c)}
             {atcc && (
-              <Typography component="span" sx={{ fontSize: 11, color: "text.secondary", ml: 0.5 }}>{atcc}</Typography>
+              <Typography component="span" sx={{ fontSize: 12, color: "text.secondary", ml: 0.5 }}>{atcc}</Typography>
             )}
           </Typography>
           {c.material && (
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
               {c.material.materialName} · Batch {c.material.batchNumber}
             </Typography>
           )}
@@ -85,7 +85,7 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
       <>
         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>{formatLabDate(c.preparedAt)}</Typography>
         {c.preparedByName && (
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>{c.preparedByName}</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>{c.preparedByName}</Typography>
         )}
       </>
     )
@@ -100,8 +100,8 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
           <Typography sx={{ fontSize: 12, fontWeight: expired || expiringSoon ? 700 : 500, whiteSpace: "nowrap" }}>
             {formatLabDate(c.expiryDate)}
           </Typography>
-          {expired && <Typography sx={{ fontSize: 11, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
-          {expiringSoon && <Typography sx={{ fontSize: 11, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}
+          {expired && <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
+          {expiringSoon && <Typography sx={{ fontSize: 12, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}
         </>
       );
     }

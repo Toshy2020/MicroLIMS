@@ -59,7 +59,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
               >
                 Run {run.runCode} (Sample #{run.runSampleId})
               </Button>
-              <Chip size="small" label={run.status} sx={{ fontSize: 11 }} />
+              <Chip size="small" label={run.status} sx={{ fontSize: 12 }} />
             </Stack>
           ) : (
             <Alert severity="info" sx={{ py: 0.5 }}>
@@ -120,7 +120,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
                   size="small"
                   variant="outlined"
                   label={`R${idx + 1}: ${val.toFixed(2)} %`}
-                  sx={{ fontSize: 11 }}
+                  sx={{ fontSize: 12 }}
                 />
               ))}
             </Box>
@@ -142,7 +142,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
                   startIcon={<DescriptionIcon fontSize="small" />}
                   endIcon={<LaunchIcon sx={{ fontSize: 13 }} />}
                   onClick={() => handleOpenEvidence(evId)}
-                  sx={{ fontSize: 11, py: 0.25 }}
+                  sx={{ fontSize: 12, py: 0.25 }}
                 >
                   Evidence #{evId}
                 </Button>

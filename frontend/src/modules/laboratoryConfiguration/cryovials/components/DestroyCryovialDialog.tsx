@@ -115,7 +115,7 @@ export function DestroyCryovialDialog({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Cryovial Code
                 </Typography>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}>
@@ -124,7 +124,7 @@ export function DestroyCryovialDialog({
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Organism
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -133,7 +133,7 @@ export function DestroyCryovialDialog({
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Vials Remaining
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.detected.text }}>

@@ -229,14 +229,14 @@ export function EquipmentDetailsDialog({
                         </Typography>
                         <StatusBadge status={h.newStatus} />
                       </Box>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         {formatLabDateTime(h.changedAt)}
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: 12, fontWeight: 500, color: "text.primary", mt: 0.5 }}>
                       {h.comment}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
                       Changed by: <strong>{h.changedByName}</strong>
                     </Typography>
                   </Box>

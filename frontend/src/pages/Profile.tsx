@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Paper, Typography, Box, Alert } from "@mui/material";
 import { PageHeader } from "../components/PageHeader";
 import { SectionTitle } from "../components/SectionTitle";
-import { LoadingSpinner } from "../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../components/DialogBodySkeleton";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { CurrentUserInfo } from "../modules/authentication/types/authTypes";
 
@@ -26,7 +26,7 @@ export function ProfilePage() {
   }, []);
 
   if (error) return <Alert severity="error">{error}</Alert>;
-  if (!info) return <LoadingSpinner />;
+  if (!info) return <DialogBodySkeleton blocks={4} blockHeight={32} />;
 
   return (
     <>

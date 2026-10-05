@@ -72,7 +72,7 @@ export function WizardMethodStep({
                         size="small"
                         label={`USP ${opt.columnDesignation}`}
                         variant="outlined"
-                        sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
+                        sx={{ fontSize: 12, height: 20, fontWeight: 600 }}
                       />
                     )}
                   </Stack>

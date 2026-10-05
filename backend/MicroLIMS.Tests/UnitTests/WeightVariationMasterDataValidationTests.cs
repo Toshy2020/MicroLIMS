@@ -148,6 +148,7 @@ public class WeightVariationMasterDataValidationTests
             Code: "WV-DEF",
             DisplayName: "Weight Variation Default",
             SectionId: fpSec.Id,
+            PhyschemArea: PhyschemArea.Both,
             WorkflowType: WorkflowType.WeightVariation,
             EquationType: EquationType.WeightVariation,
             RequiresSystemSuitability: false);

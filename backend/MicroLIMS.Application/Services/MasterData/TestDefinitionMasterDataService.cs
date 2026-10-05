@@ -359,6 +359,7 @@ public class TestDefinitionMasterDataService
             TitrationStandardEntryId = request.TitrationStandardEntryId
         };
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
+        await ApplyPhyschemAreaAsync(entity, request.PhyschemArea);
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);
@@ -661,6 +662,7 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
 
+        await ApplyPhyschemAreaAsync(entity, request.PhyschemArea ?? entity.PhyschemArea); // before entity.Code changes: specs are keyed by the old code
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -740,6 +742,24 @@ public class TestDefinitionMasterDataService
         await _db.SaveChangesAsync();
 
         return TestDefinitionResponse.From(entity);
+    }
+
+    // Physicochemical-section tests must carry an area; other sections never do.
+    private async Task ApplyPhyschemAreaAsync(TestDefinition entity, PhyschemArea? requested)
+    {
+        var code = await _db.DocumentSections.Where(s => s.Id == entity.SectionId).Select(s => s.Code).FirstAsync();
+        if (code != PhyschemAreas.SectionCode) { entity.PhyschemArea = null; return; }
+        if (!requested.HasValue) throw new InvalidOperationException("Choose the area of this test (FP, RM & PM or Both).");
+        if (entity.Id != 0 && requested != PhyschemArea.Both)
+        {
+            var lost = requested == PhyschemArea.FinishedProduct ? WorkspaceArea.RmPm : WorkspaceArea.Fp;
+            var cats = PhyschemAreas.CategoriesOf(lost);
+            var items = await _db.Specifications.Where(s => s.TestCode == entity.Code && cats.Contains(s.Item!.Category))
+                .Select(s => s.Item!.Code).Distinct().Take(10).ToListAsync();
+            if (items.Count > 0)
+                throw new InvalidOperationException($"Items {string.Join(", ", items)} still have specifications on this test for {(lost == WorkspaceArea.RmPm ? "RM & PM" : "FP")} - remove them first.");
+        }
+        entity.PhyschemArea = requested;
     }
 
     public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int id)

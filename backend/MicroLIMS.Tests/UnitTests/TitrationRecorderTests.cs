@@ -493,7 +493,8 @@ public class TitrationRecorderTests
         var r = new CreateTestDefinitionRequest(code, "Titration test", s.Section.Id, WorkflowType.Titration, EquationType.Titration,
             ReplicateCount: 3, TitrationType: TitrationType.Redox, TitrationMode: TitrationMode.Direct,
             TitrationCalculation: TitrationCalculation.UspFactor, TitrantSolutionMasterId: s.TitrantMaster.Id,
-            TitrationEquivalencyFactor: 88.06m, TitrationEndpoint: TitrationEndpoint.Visual, TitrationIndicatorEntryId: s.IndicatorEntry.Id);
+            TitrationEquivalencyFactor: 88.06m, TitrationEndpoint: TitrationEndpoint.Visual, TitrationIndicatorEntryId: s.IndicatorEntry.Id,
+            PhyschemArea: PhyschemArea.Both);
         return tweak == null ? r : tweak(r);
     }
 

@@ -148,6 +148,7 @@ public class DissolutionMasterDataValidationTests
             Code: "DIS-DEF",
             DisplayName: "Dissolution Test Default",
             SectionId: fpSec.Id,
+            PhyschemArea: PhyschemArea.Both,
             WorkflowType: WorkflowType.Dissolution,
             EquationType: EquationType.Dissolution,
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m);
@@ -419,6 +420,7 @@ public class DissolutionMasterDataValidationTests
             EquationType = EquationType.None,
             RequiresSystemSuitability = true,
             MethodAbbreviation = "OBS",
+            PhyschemArea = PhyschemArea.Both,
             IsActive = true
         };
         db.TestDefinitions.Add(testDef);

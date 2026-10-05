@@ -118,8 +118,8 @@ export function AnalystDashboardPage() {
       )}
 
       {/* Tier 1: KPI Work Summary Strip */}
-      {/* No onSelectCategory: SummaryCard always gets a `to`, so its Link
-          branch wins and the onClick branch was unreachable. The cards
+      {/* No onSelectCategory: each tile always gets a `to`, so its Link
+          branch wins and the onClick branch was unreachable. The tiles
           navigate to these same routes via CATEGORY_ROUTES, as real links. */}
       <AnalystWorkSummary tasks={tasks ?? []} readyToReadCount={summary.readyToReadCount} />
 

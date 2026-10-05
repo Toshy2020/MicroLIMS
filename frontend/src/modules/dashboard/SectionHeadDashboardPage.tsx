@@ -32,14 +32,12 @@ import { SectionHeadDashboard, MonthlyTrendPoint, DistributionSlice } from "./ty
 import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
 import { tableHeadSx } from "../../theme";
-import { clickable } from "../../utils/clickable";
+import { SummaryTiles } from "../../components/configHierarchy/SummaryTiles";
 import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 export function SectionHeadDashboardPage() {
   const theme = useTheme();
   const lab = useDashboardLab();
-  // KPI tiles per row: Physicochemical has no incubation tiles (5 vs 7).
-  const kpiCols = lab.isPhyschem ? 2.4 : 1.71;
 
   const [data, setData] = useState<SectionHeadDashboard | null>(null);
   const [months, setMonths] = useState(6);
@@ -129,253 +127,29 @@ export function SectionHeadDashboardPage() {
       </PageHeader>
 
       {/* Tier 1: Laboratory Overview KPI Strip */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=Active")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.palette.primary.main}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Active Tests
-              </Typography>
-              <ScienceOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, my: 0.25 }}>
-              {data.activeTests}
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Tests in progress</Typography>
-          </Paper>
-        </Grid>
-
-        {/* Incubating - Microbiology only. */}
-
-        {!lab.isPhyschem && (
-
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: kpiCols
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?view=kanban")}
-              sx={{
-                p: 1.75,
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                borderLeft: `4px solid ${theme.custom.status.info.text}`,
-                transition: "transform 0.15s, box-shadow 0.15s",
-                "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-              }}
-            >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Incubating
-                </Typography>
-                <ThermostatOutlinedIcon sx={{ color: theme.custom.status.info.text, fontSize: 18 }} />
-              </Box>
-              <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.info.text, my: 0.25 }}>
-                {data.incubating}
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Tests incubating</Typography>
-            </Paper>
-          </Grid>
-
-        )}
-
-        {/* Ready to Read - Microbiology only. */}
-
-        {!lab.isPhyschem && (
-
-          <Grid
-            size={{
-              xs: 6,
-              sm: 4,
-              md: kpiCols
-            }}>
-            <Paper
-              component={Link}
-              to={lab.workspace("?testStatus=ReadyToRead")}
-              sx={{
-                p: 1.75,
-                cursor: "pointer",
-                display: "block",
-                textDecoration: "none",
-                color: "inherit",
-                borderLeft: `4px solid ${theme.custom.status.notDetected.text}`,
-                transition: "transform 0.15s, box-shadow 0.15s",
-                "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-              }}
-            >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Ready to Read
-                </Typography>
-                <VisibilityOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
-              </Box>
-              <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
-                {data.readyToRead}
-              </Typography>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Test readings pending</Typography>
-            </Paper>
-          </Grid>
-
-        )}
-
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderReview")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.custom.status.inconclusive.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Pending Review
-              </Typography>
-              <RateReviewOutlinedIcon sx={{ color: theme.custom.status.inconclusive.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.inconclusive.text, my: 0.25 }}>
-              {data.pendingReview}
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Samples awaiting review</Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?status=UnderApproval")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.custom.status.notDetected.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Pending Approval
-              </Typography>
-              <VerifiedUserOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
-              {data.pendingApproval}
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Samples awaiting release</Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 6,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            component={Link}
-            to={lab.workspace("?urgency=overdue")}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              display: "block",
-              textDecoration: "none",
-              color: "inherit",
-              borderLeft: `4px solid ${theme.custom.status.detected.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Overdue
-              </Typography>
-              <AccessTimeOutlinedIcon sx={{ color: theme.custom.status.detected.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.detected.text, my: 0.25 }}>
-              {data.overdue}
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text }}>&gt;24h delay</Typography>
-          </Paper>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 4,
-            md: kpiCols
-          }}>
-          <Paper
-            onClick={() => {
-              const el = document.getElementById("attention-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            sx={{
-              p: 1.75,
-              cursor: "pointer",
-              borderLeft: `4px solid ${data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text}`,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
-            }}
-            {...clickable(() => {
-              const el = document.getElementById("attention-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            })}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Attention Items
-              </Typography>
-              <WarningAmberOutlinedIcon sx={{ color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, fontSize: 18 }} />
-            </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, my: 0.25 }}>
-              {data.attentionCount}
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Action required</Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+      <SummaryTiles
+        tiles={[
+          { label: "Active tests", value: data.activeTests, icon: <ScienceOutlinedIcon />, hint: "Tests in progress", to: lab.workspace("?status=Active") },
+          // Incubating and Ready to read are Microbiology only.
+          ...(lab.isPhyschem
+            ? []
+            : [
+                { label: "Incubating", value: data.incubating, tone: "info" as const, icon: <ThermostatOutlinedIcon />, hint: "Tests incubating", to: lab.workspace("?view=kanban") },
+                { label: "Ready to read", value: data.readyToRead, tone: "action" as const, icon: <VisibilityOutlinedIcon />, hint: "Test readings pending", to: lab.workspace("?testStatus=ReadyToRead") }
+              ]),
+          { label: "Pending review", value: data.pendingReview, tone: "action", icon: <RateReviewOutlinedIcon />, hint: "Samples awaiting review", to: lab.workspace("?status=UnderReview") },
+          { label: "Pending approval", value: data.pendingApproval, tone: "action", icon: <VerifiedUserOutlinedIcon />, hint: "Samples awaiting release", to: lab.workspace("?status=UnderApproval") },
+          { label: "Overdue", value: data.overdue, tone: "detected", icon: <AccessTimeOutlinedIcon />, hint: "More than 24h delay", to: lab.workspace("?urgency=overdue") },
+          {
+            label: "Attention items",
+            value: data.attentionCount,
+            tone: data.attentionCount > 0 ? "detected" : "notDetected",
+            icon: <WarningAmberOutlinedIcon />,
+            hint: "Action required",
+            onClick: () => document.getElementById("attention-section")?.scrollIntoView({ behavior: "smooth" })
+          }
+        ]}
+      />
 
       {/* Tier 2: Workflow Bottlenecks Pipeline */}
       <Paper sx={{ p: 2, mb: 2.5 }}>

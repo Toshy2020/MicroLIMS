@@ -7,12 +7,12 @@ public record FactorEvaluation(decimal MeanFactor, decimal? RsdPercent, bool Pas
 // QC Analytical Engine - titration (USP Volumetric Solutions). Pure functions, no I/O.
 public static class TitrationEngine
 {
-    public static decimal PrimaryStandardFactor(decimal standardWeightMg, decimal? purityPercent,
+    public static decimal PrimaryStandardFactor(decimal standardWeightMg, decimal purityPercent,
         decimal titrantVolumeMl, decimal blankMl, decimal equivalenceMgPerMl)
     {
         if (standardWeightMg <= 0m)
             throw new InvalidOperationException("Standard weight must be greater than zero.");
-        if (purityPercent.HasValue && (purityPercent.Value <= 0m || purityPercent.Value > 100m))
+        if (purityPercent <= 0m || purityPercent > 100m)
             throw new InvalidOperationException("Purity must be greater than 0 and at most 100.");
         if (equivalenceMgPerMl <= 0m)
             throw new InvalidOperationException("Equivalence must be greater than zero.");
@@ -21,10 +21,9 @@ public static class TitrationEngine
         if (titrantVolumeMl - blankMl <= 0m)
             throw new InvalidOperationException("Titrant volume must be greater than the blank.");
 
-        decimal purity = purityPercent ?? 100m;
         decimal netVolumeMl = titrantVolumeMl - blankMl;
 
-        return (standardWeightMg * purity / 100m) / (netVolumeMl * equivalenceMgPerMl);
+        return (standardWeightMg * purityPercent / 100m) / (netVolumeMl * equivalenceMgPerMl);
     }
 
     public static decimal AgainstVolumetricSolutionFactor(decimal referenceVolumeMl, decimal referenceFactor,

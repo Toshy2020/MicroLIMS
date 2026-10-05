@@ -126,11 +126,15 @@ public class TitrantStandardizationService
                 var check = LotUsability.Check(lot, snapshot.StandardEntryId.Value, null, today);
                 if (!check.Usable)
                     throw new InvalidOperationException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}): {check.Reason}");
+                if (lot.MaterialType != MaterialType.PrimaryStandard)
+                    throw new InvalidOperationException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) is not a primary standard.");
+                if (!lot.Purity.HasValue)
+                    throw new InvalidOperationException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) has no purity - enter it in Materials Stock before standardizing.");
 
                 try
                 {
                     factor = TitrationEngine.PrimaryStandardFactor(
-                        input.StandardWeightMg.Value, lot.Purity, input.TitrantVolumeMl, blank, snapshot.EquivalenceMgPerMl.Value);
+                        input.StandardWeightMg.Value, lot.Purity.Value, input.TitrantVolumeMl, blank, snapshot.EquivalenceMgPerMl.Value);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -343,7 +347,8 @@ public class TitrantStandardizationService
 
         var today = _clock.LabToday;
         var lots = await _db.Materials.AsNoTracking()
-            .Where(m => m.SectionId == prep.SectionId && m.MaterialMasterEntryId == snapshot.StandardEntryId.Value)
+            .Where(m => m.SectionId == prep.SectionId && m.MaterialMasterEntryId == snapshot.StandardEntryId.Value
+                && m.MaterialType == MaterialType.PrimaryStandard)
             .OrderBy(m => m.ExpiryDate)
             .ToListAsync(ct);
 

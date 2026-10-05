@@ -261,6 +261,7 @@ export function IcpReportUploadPanel({
                           <IconButton
                             size="small"
                             onClick={() => handleView(e.id)}
+                            aria-label={`View ${e.fileName}`}
                             disabled={viewingId === e.id}
                           >
                             {viewingId === e.id ? (

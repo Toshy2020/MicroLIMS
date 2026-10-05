@@ -204,6 +204,7 @@ export function IcpEvidencePanel({
                             <IconButton
                               size="small"
                               onClick={() => handleView(e.id)}
+                              aria-label={`View ${e.fileName} in a new tab`}
                               disabled={viewingId === e.id}
                             >
                               {viewingId === e.id ? (
@@ -219,6 +220,7 @@ export function IcpEvidencePanel({
                             <IconButton
                               size="small"
                               onClick={() => handleDownload(e.id)}
+                              aria-label={`Download ${e.fileName}`}
                               disabled={downloadingId === e.id}
                             >
                               {downloadingId === e.id ? (

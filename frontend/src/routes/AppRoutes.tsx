@@ -115,6 +115,7 @@ export function AppRoutes() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/sections/:slug" element={<SectionPage />} />
+            <Route path="/groups/:slug" element={<SectionPage />} />
 
             {/* Lab Workspaces (Task 13a): each laboratory gets its own scoped
                 Receiving & Testing Workspace instance. /receiving-testing has

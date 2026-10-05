@@ -77,3 +77,9 @@ export function groupLabel(groupName: string): string {
     .map((w) => (w === "&" ? w : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(" ");
 }
+
+// A menu group's landing page (SectionPage), e.g. "AUDIT & COMPLIANCE" ->
+// "/groups/audit-compliance".
+export function groupPath(groupName: string): string {
+  return `/groups/${groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}

@@ -142,7 +142,7 @@ export function MainLayout() {
           }}
         >
           <Box sx={{ maxWidth: 1600, mx: "auto" }}>
-            <AppBreadcrumbs trail={activeTrail} />
+            <AppBreadcrumbs trail={activeTrail} groups={groups} />
             <AppErrorBoundary inline key={location.pathname}>
               <Outlet />
             </AppErrorBoundary>

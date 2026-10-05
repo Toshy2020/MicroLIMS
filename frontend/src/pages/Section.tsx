@@ -3,18 +3,25 @@ import { Link, useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useMenuGroups } from "../hooks/useMenuGroups";
 import type { MenuItem } from "../routes/menuConfig";
+import { groupLabel, groupPath } from "../routes/navigation";
 
-// Landing page of a sidebar section: one card per page the user may open in
+// Landing page of a sidebar section or menu group: one card per page the user may open in
 // it, read from the same permission-filtered menu as the sidebar. The lab's
 // sample workspaces (featured) lead, drawn wider and filled.
 export function SectionPage() {
   const { pathname } = useLocation();
-  const section = useMenuGroups().flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
+  const groups = useMenuGroups();
+  const section = groups.flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
+  const group = section ? undefined : groups.find((g) => groupPath(g.groupName) === pathname);
 
-  if (!section) return <PageHeader title="Section not available" subtitle="You have no pages in this section." />;
+  if (!section && !group) return <PageHeader title="Section not available" subtitle="You have no pages in this section." />;
 
-  const Icon = section.icon;
-  const pages = [...section.children!].sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
+  const Icon = section?.icon;
+  const title = section ? section.label : groupLabel(group!.groupName);
+  // On a group page a section card says how much it holds.
+  const pages = (section ? [...section.children!] : group!.items.map((i) =>
+    i.children && !i.description ? { ...i, description: `${i.children.length} pages` } : i
+  )).sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
 
   return (
     <>
@@ -22,7 +29,7 @@ export function SectionPage() {
         title={
           <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25 }}>
             {Icon && <Icon />}
-            {section.label}
+            {title}
           </Box>
         }
         subtitle={`${pages.length} ${pages.length === 1 ? "page" : "pages"} you can open here`}

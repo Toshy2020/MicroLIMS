@@ -125,8 +125,7 @@ public class WeightVariationWorkflowEngineTests
             Unit = "mg",
             SpecLimit = dosageForm == DosageForm.Tablet
                 ? "USP <2091>: tablets, limit by average weight"
-                : "USP <2091>: net content 90-110 % of average",
-            ConversionFactor = 1.0m
+                : "USP <2091>: net content 90-110 % of average"
         };
         db.Specifications.Add(spec);
 

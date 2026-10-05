@@ -168,7 +168,6 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
             EquipmentId = payload.EquipmentId,
             AnalysedAt = analysedAtUtc,
             UnitAmount = null,
-            SampleMatrix = null,
             ConditionsJson = conditionsJson,
             ValidityRecordType = null,
             ValidityRecordId = null,

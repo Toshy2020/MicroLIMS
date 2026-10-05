@@ -284,7 +284,6 @@ export type ResultBasis =
   | "PercentDriedBasis"
   | "PercentAnhydrousBasis";
 
-export type SampleMatrix = "Solid" | "Liquid";
 
 export interface ResultReadingDetail {
   id: number;
@@ -326,7 +325,6 @@ export interface AnalysisDetail {
   equipmentName: string | null;
   analysedAt: string;
   unitAmount: number | null;
-  sampleMatrix: SampleMatrix | null;
   conditionsJson: string | null;
   validityRecordType: string | null;
   validityRecordId: number | null;

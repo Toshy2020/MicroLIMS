@@ -681,7 +681,6 @@ public class TestWorkflowSupport
         int userId,
         string? ipAddress,
         decimal? unitAmount = null,
-        SampleMatrix? sampleMatrix = null,
         string? validityRecordType = null,
         int? validityRecordId = null,
         Action? afterSigned = null)
@@ -703,7 +702,6 @@ public class TestWorkflowSupport
             EquipmentId = equipmentId,
             AnalysedAt = analysedAtUtc,
             UnitAmount = unitAmount,
-            SampleMatrix = sampleMatrix,
             ConditionsJson = conditionsJson,
             ValidityRecordType = validityRecordType,
             ValidityRecordId = validityRecordId,

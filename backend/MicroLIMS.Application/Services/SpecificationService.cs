@@ -293,9 +293,6 @@ public class SpecificationService
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
                 throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
 
-            if (spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Sample matrix and conversion factor are not used for HPLC method assay specifications.");
-
             bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
             if (residualSolvents)
             {
@@ -336,10 +333,6 @@ public class SpecificationService
             if (spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
 
-            // The conversion factor lives on the method element, not the spec row.
-            if (spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Sample matrix and conversion factor are not used for ICP method assay specifications.");
-
             if (element.IcpMethod!.Mode == IcpMethodMode.MineralAssay)
             {
                 if (spec.ResultBasis is not (ResultBasis.MgPerUnit or ResultBasis.PercentLabelClaim))
@@ -371,10 +364,6 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-            if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is not used for titration specifications.");
-            if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for titration specifications.");
 
             if (spec.ResultBasis is not (ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis
                 or ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
@@ -413,10 +402,6 @@ public class SpecificationService
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is not used for this test type.");
-            if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is not used for this test type.");
-            if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for Dissolution specifications.");
         }
         else if (testDef?.WorkflowType == WorkflowType.Disintegration || spec.LimitType == LimitType.DisintegrationTime)
         {
@@ -426,14 +411,10 @@ public class SpecificationService
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is not used for this test type.");
-            if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not allowed for Disintegration specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
                 throw new InvalidOperationException("Label claim unit is not allowed for Disintegration specifications.");
-            if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for Disintegration specifications.");
         }
         else if (testDef?.WorkflowType == WorkflowType.WeightVariation || spec.LimitType == LimitType.WeightVariation)
         {
@@ -443,14 +424,10 @@ public class SpecificationService
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is not used for this test type.");
-            if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not allowed for WeightVariation specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
                 throw new InvalidOperationException("Label claim unit is not allowed for WeightVariation specifications.");
-            if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for WeightVariation specifications.");
         }
         else
         {
@@ -460,14 +437,10 @@ public class SpecificationService
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is not used for this test type.");
-            if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not used for this test type.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
                 throw new InvalidOperationException("Label claim unit is not used for this test type.");
-            if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for this test type.");
         }
     }
 

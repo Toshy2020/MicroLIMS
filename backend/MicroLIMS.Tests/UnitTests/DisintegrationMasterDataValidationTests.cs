@@ -488,7 +488,7 @@ public class DisintegrationMasterDataValidationTests
     }
 
     [Fact]
-    public async Task SpecificationService_ValidateAsync_ConversionFactorAndMetadataChecked()
+    public async Task SpecificationService_ValidateAsync_ResultBasisRejected()
     {
         using var db = NewDb();
         var specService = new SpecificationService(db);
@@ -509,20 +509,6 @@ public class DisintegrationMasterDataValidationTests
         db.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = "DISINT-CF" });
         await db.SaveChangesAsync();
 
-        // Conversion factor != 1.0
-        var specBadCf = new Specification
-        {
-            ItemId = item.Id,
-            TestCode = "DISINT-CF",
-            ParameterName = "Disintegration",
-            LimitType = LimitType.DisintegrationTime,
-            UpperLimit = 30m,
-            Unit = "min",
-            ConversionFactor = 2.0m
-        };
-        var exBadCf = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(specBadCf));
-        Assert.Contains("Conversion factor must be 1.0 for Disintegration specifications", exBadCf.Message);
-
         // Result basis set
         var specBadRb = new Specification
         {
@@ -532,7 +518,6 @@ public class DisintegrationMasterDataValidationTests
             LimitType = LimitType.DisintegrationTime,
             UpperLimit = 30m,
             Unit = "min",
-            ConversionFactor = 1.0m,
             ResultBasis = ResultBasis.PercentLabelClaim
         };
         var exBadRb = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(specBadRb));

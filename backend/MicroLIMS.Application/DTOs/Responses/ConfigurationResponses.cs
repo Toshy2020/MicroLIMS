@@ -316,10 +316,8 @@ public class SpecificationResponse
     public decimal? SampleQuantity { get; init; }
     public string? SampleQuantityUnit { get; init; }
     public ResultBasis? ResultBasis { get; init; }
-    public SampleMatrix? SampleMatrix { get; init; }
     public decimal? LabelClaim { get; init; }
     public string? LabelClaimUnit { get; init; }
-    public decimal ConversionFactor { get; init; }
     public DosageForm? DosageForm { get; init; }
     public int? HplcMethodAnalyteId { get; init; }
     public int? IcpMethodElementId { get; init; }
@@ -354,10 +352,8 @@ public class SpecificationResponse
         SampleQuantity = e.SampleQuantity,
         SampleQuantityUnit = e.SampleQuantityUnit,
         ResultBasis = e.ResultBasis,
-        SampleMatrix = e.SampleMatrix,
         LabelClaim = e.LabelClaim,
         LabelClaimUnit = e.LabelClaimUnit,
-        ConversionFactor = e.ConversionFactor,
         DosageForm = e.DosageForm,
         HplcMethodAnalyteId = e.HplcMethodAnalyteId,
         IcpMethodElementId = e.IcpMethodElementId,

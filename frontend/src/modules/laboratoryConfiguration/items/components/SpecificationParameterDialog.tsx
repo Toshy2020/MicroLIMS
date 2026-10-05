@@ -44,7 +44,7 @@ import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { HplcMethodService, HplcMethodAnalyteResponse, HplcResultMode } from "../../masterDataSimple/services/HplcMethodService";
 import { IcpMethodService, IcpMethodResponse } from "../../masterDataSimple/services/IcpMethodService";
-import { PhyschemArea, areaIncludes } from "../../masterDataSimple/testMasterArea";
+import { PhyschemArea, areaIncludes, areaOfItemCategory } from "../../masterDataSimple/testMasterArea";
 
 export interface TestDefinitionSummary {
   id: number;
@@ -163,7 +163,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             const sectionId = def?.sectionId;
             // Physicochemical tests are tagged with an area; FP items use "fp", RM/PM items "rmpm".
             return (
-              areaIncludes(def?.physchemArea, item.category === "FinishedProduct" ? "fp" : "rmpm") &&
+              areaIncludes(def?.physchemArea, areaOfItemCategory(item.category)) &&
               (sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId))
             );
           }),

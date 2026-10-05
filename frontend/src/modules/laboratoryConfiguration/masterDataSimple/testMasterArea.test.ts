@@ -3,7 +3,8 @@ import {
   defaultAreaFor,
   areaIncludes,
   toggleBoth,
-  isBoth
+  isBoth,
+  areaOfItemCategory
 } from "./testMasterArea";
 
 describe("testMasterArea", () => {
@@ -75,5 +76,15 @@ describe("testMasterArea", () => {
       expect(isBoth(null)).toBe(false);
       expect(isBoth(undefined)).toBe(false);
     });
+  });
+});
+
+describe("areaOfItemCategory", () => {
+  it("matches the server: only raw and packaging materials are rmpm", () => {
+    expect(areaOfItemCategory("RawMaterial")).toBe("rmpm");
+    expect(areaOfItemCategory("PackagingMaterial")).toBe("rmpm");
+    expect(areaOfItemCategory("FinishedProduct")).toBe("fp");
+    expect(areaOfItemCategory("Water")).toBe("fp");
+    expect(areaOfItemCategory(undefined)).toBe("fp");
   });
 });

@@ -53,3 +53,8 @@ export function toggleBoth(
 export function isBoth(area: PhyschemArea | null | undefined): boolean {
   return area === "Both";
 }
+
+/** Mirrors the server's PhyschemAreas.OfCategory: raw and packaging materials are rmpm, every other item category is fp. */
+export function areaOfItemCategory(category: string | null | undefined): PageArea {
+  return category === "RawMaterial" || category === "PackagingMaterial" ? "rmpm" : "fp";
+}

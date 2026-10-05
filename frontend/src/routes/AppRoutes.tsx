@@ -61,6 +61,8 @@ const HplcWorkspacePage = lazy(() => import("../modules/hplcWorkspace/overview/H
 const HplcInstrumentWorkspace = lazy(() => import("../modules/hplcWorkspace/run/HplcInstrumentWorkspace").then((m) => ({ default: m.HplcInstrumentWorkspace })));
 const StartHplcRunWizard = lazy(() => import("../modules/hplcWorkspace/run/StartHplcRunWizard").then((m) => ({ default: m.StartHplcRunWizard })));
 const HplcSampleEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/HplcSampleEntryPage").then((m) => ({ default: m.HplcSampleEntryPage })));
+const IcpWorkspacePage = lazy(() => import("../modules/icpWorkspace/overview/IcpWorkspacePage").then((m) => ({ default: m.IcpWorkspacePage })));
+const IcpRunWorkspace = lazy(() => import("../modules/icpWorkspace/run/IcpRunWorkspace").then((m) => ({ default: m.IcpRunWorkspace })));
 const WorkingStandardsPage = lazy(() => import("../modules/workingStandards/WorkingStandardsPage").then((m) => ({ default: m.WorkingStandardsPage })));
 const QualificationEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/QualificationEntryPage").then((m) => ({ default: m.QualificationEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
@@ -193,6 +195,18 @@ export function AppRoutes() {
             <Route path="/gc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
             <Route path="/gc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
             <Route path="/gc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
+
+            {/* ICP Workspace (slice I3) */}
+            <Route path="/icp-workspace" element={<IcpWorkspacePage />} />
+            <Route path="/icp-workspace/:instrumentId" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/calibration" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/ccv" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/samples" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/evidence" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/history" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/history" element={<IcpRunWorkspace />} />
+
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>

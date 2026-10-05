@@ -130,6 +130,7 @@ const physchemArea: MenuItem = {
     { label: "Working Standards", path: "/working-standards" },
     { label: "HPLC Workspace", path: "/hplc-workspace" },
     { label: "GC Workspace", path: "/gc-workspace" },
+    { label: "ICP Workspace", path: "/icp-workspace" },
     { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
   ]

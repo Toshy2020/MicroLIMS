@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Box, Alert } from "@mui/material";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
 import { useMyLabs } from "../../hooks/useMyLabs";
 import { laboratorySectionService, LaboratorySection } from "../../services/laboratorySectionService";
 import { ReceivingTestingWorkspacePage, WorkspaceLab } from "./ReceivingTestingWorkspacePage";
@@ -59,7 +59,7 @@ export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
   }, []);
 
   if (labsLoading || (sections === null && !sectionsFailed)) {
-    return <LoadingSpinner />;
+    return <WorkspaceSkeleton />;
   }
 
   if (!codes.includes(code)) {
@@ -116,7 +116,7 @@ function OtherAreaSampleGuard({ lab, otherPath }: { lab: WorkspaceLab; otherPath
     };
   }, [check, sampleId, lab.sectionId, lab.area]);
 
-  if (state === "checking") return <LoadingSpinner />;
+  if (state === "checking") return <WorkspaceSkeleton />;
   if (state === "redirect") return <Navigate to={`${otherPath}${location.search}`} replace state={{ areaRedirected: true }} />;
   return <ReceivingTestingWorkspacePage lab={lab} />;
 }
@@ -129,7 +129,7 @@ export function FirstLabWorkspaceRedirect() {
   const { codes, physchemAreas, loading } = useMyLabs();
   const location = useLocation();
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <WorkspaceSkeleton />;
 
   const target = LAB_CODES.find((c) => codes.includes(c));
   if (!target) {

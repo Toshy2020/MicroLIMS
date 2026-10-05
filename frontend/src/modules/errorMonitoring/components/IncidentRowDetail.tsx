@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography
 } from "@mui/material";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { formatLabDateTime } from "../../../utils/formatDate";
 import { ErrorMonitoringService } from "../services/ErrorMonitoringService";
 import type { ErrorSeverity, IncidentDetail, IncidentListItem } from "../types/errorMonitoringTypes";
@@ -54,7 +54,7 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
     }
   };
 
-  if (loading) return <Box sx={{ p: 2 }}><LoadingSpinner /></Box>;
+  if (loading) return <Box sx={{ p: 2 }}><DialogBodySkeleton blocks={3} blockHeight={28} /></Box>;
   if (error && !detail) return <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>;
   if (!detail) return null;
 
@@ -176,7 +176,7 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
               <Box
                 component="pre"
                 sx={{
-                  m: 0, mt: 1, p: 1, fontSize: 11, maxHeight: 220,
+                  m: 0, mt: 1, p: 1, fontSize: 12, maxHeight: 220,
                   overflow: "auto", bgcolor: "background.default", borderRadius: 1
                 }}
               >
@@ -188,7 +188,7 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
               <Box
                 component="pre"
                 sx={{
-                  m: 0, mt: 1, p: 1, fontSize: 11, maxHeight: 160,
+                  m: 0, mt: 1, p: 1, fontSize: 12, maxHeight: 160,
                   overflow: "auto", bgcolor: "background.default", borderRadius: 1
                 }}
               >

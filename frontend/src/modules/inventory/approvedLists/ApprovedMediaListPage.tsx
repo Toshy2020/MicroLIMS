@@ -41,7 +41,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
-import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { TableSkeleton } from "../../../components/TableSkeleton";
 import { formatLabDate } from "../../../utils/formatDate";
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 import { UserService } from "../../users/services/UserService";
@@ -420,7 +420,7 @@ export function ApprovedMediaListPage() {
                   >
                     {card.label}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }} noWrap>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }} noWrap>
                     {card.description}
                   </Typography>
                 </Paper>
@@ -660,9 +660,7 @@ export function ApprovedMediaListPage() {
           }}
         >
           {loading ? (
-            <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}>
-              <LoadingSpinner />
-            </Box>
+            <TableSkeleton rows={8} cols={8} hasContainer={false} />
           ) : (
             <>
               <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
@@ -875,7 +873,7 @@ export function ApprovedMediaListPage() {
                                 {m.lotNumber}
                               </Typography>
                               {m.material?.batchNumber && (
-                                <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+                                <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
                                   Batch: {m.material.batchNumber}
                                 </Typography>
                               )}
@@ -888,7 +886,7 @@ export function ApprovedMediaListPage() {
                                   {m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"}
                                 </Typography>
                                 {m.material?.materialName && m.mediaType?.class && (
-                                  <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
                                     {mediaClassLabel(m.mediaType?.class)}
                                   </Typography>
                                 )}
@@ -978,7 +976,7 @@ export function ApprovedMediaListPage() {
                                   {formatLabDate(m.expiryDate)}
                                 </Typography>
                                 {expiring && (
-                                  <Typography sx={{ fontSize: 11, color: action.text, fontWeight: 600 }}>
+                                  <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>
                                     Expiring soon
                                   </Typography>
                                 )}
@@ -1009,7 +1007,7 @@ export function ApprovedMediaListPage() {
                                   sx={{
                                     px: 1,
                                     py: 0.25,
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     borderColor: "divider",
                                     color: "text.secondary",
                                     "&:hover": { bgcolor: "background.default" }

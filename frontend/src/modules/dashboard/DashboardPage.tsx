@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tab, Tabs } from "@mui/material";
 import { useAuth } from "../../contexts/AuthContext";
 import { useMyLabs } from "../../hooks/useMyLabs";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
 import { AnalystDashboardPage } from "./AnalystDashboardPage";
 import { ReviewerDashboardPage } from "./ReviewerDashboardPage";
 import { SectionHeadDashboardPage } from "./SectionHeadDashboardPage";
@@ -26,7 +26,7 @@ export function DashboardPage() {
   const code: DashboardLabCode | null = requested && labs.includes(requested) ? requested : labs[0] ?? null;
   const lab = useMemo(() => makeDashboardLab(code, physchemAreas), [code, physchemAreas]);
 
-  if (loading) return <LoadingSpinner label="Loading dashboard…" />;
+  if (loading) return <WorkspaceSkeleton tiles={4} rows={5} />;
 
   const selectLab = (next: DashboardLabCode) =>
     setParams((p) => {

@@ -6,7 +6,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import { StatusBadge } from "../../components/StatusBadge";
 import { lookupCache } from "../../services/lookupCache";
 import { TestWorkflowService } from "./services/TestWorkflowService";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { LocationResultGridDialog } from "./LocationResultGridDialog";
 import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDialog";
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
@@ -295,7 +295,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (phase === "loading" || !current) {
     return (
       <Box sx={{ py: 4 }}>
-        {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
+        {error ? <Alert severity="error">{error}</Alert> : <DialogBodySkeleton blocks={3} blockHeight={56} />}
       </Box>
     );
   }

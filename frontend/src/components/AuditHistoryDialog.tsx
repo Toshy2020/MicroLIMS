@@ -11,7 +11,7 @@ import {
 import HistoryIcon from "@mui/icons-material/History";
 import { formatLabDateTime } from "../utils/formatDate";
 import { FloatingDialog } from "./FloatingDialog";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { DialogBodySkeleton } from "./DialogBodySkeleton";
 import { EmptyState } from "./lab/EmptyState";
 import { getErrorMessage } from "../utils/errorMessage";
 import { AuditSearchService } from "../modules/auditSearch/services/AuditSearchService";
@@ -83,7 +83,7 @@ export function AuditHistoryDialog({
       }
     >
       {loading ? (
-        <LoadingSpinner label="Loading audit history…" showLabel />
+        <DialogBodySkeleton blocks={5} blockHeight={32} />
       ) : error ? (
         <Alert
           severity="error"

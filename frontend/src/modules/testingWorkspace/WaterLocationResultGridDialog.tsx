@@ -4,7 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { StatusBadge } from "../../components/StatusBadge";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { TableSkeleton } from "../../components/TableSkeleton";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 
 interface LocationRow {
@@ -125,7 +125,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
 
   return (
     <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
-      {!rows && !error && <LoadingSpinner />}
+      {!rows && !error && <TableSkeleton rows={5} cols={5} hasContainer={false} />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (
         <Stack spacing={2}>

@@ -22,7 +22,7 @@ import {
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { TableSkeleton } from "../../components/TableSkeleton";
 import { tableHeadSx } from "../../theme";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { TrackingService, TrackingRow } from "./services/TrackingService";
@@ -71,7 +71,7 @@ function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: str
         size="small"
         label="Not requested"
         variant="outlined"
-        sx={{ fontSize: 11, color: neutral.text, borderColor: neutral.border }}
+        sx={{ fontSize: 12, color: neutral.text, borderColor: neutral.border }}
       />
     );
   }
@@ -88,7 +88,7 @@ function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: str
         px: 1,
         py: 0.25,
         borderRadius: 5,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         color: tone.text,
         bgcolor: tone.bg,
@@ -268,7 +268,7 @@ export function TrackingBoardPage() {
       </Paper>
 
       {rows === null ? (
-        <LoadingSpinner />
+        <TableSkeleton rows={8} cols={7} />
       ) : (
         <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden", bgcolor: "background.paper", opacity: loading ? 0.6 : 1, transition: "opacity 0.15s" }}>
           <Box sx={{ overflowX: "auto", maxHeight: { md: "calc(100vh - 240px)" } }}>
@@ -305,7 +305,7 @@ export function TrackingBoardPage() {
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
                           {row.referenceNumber}
                         </Typography>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>#{row.sampleId}</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>#{row.sampleId}</Typography>
                       </TableCell>
                       <TableCell sx={{ fontSize: 12 }}>{row.product || "—"}</TableCell>
                       <TableCell sx={{ fontSize: 12 }}>{row.batchNumber || "—"}</TableCell>
@@ -313,7 +313,7 @@ export function TrackingBoardPage() {
                         {formatReceivedDate(row.receivedAt)}
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={OVERALL_STATUS_LABELS[row.overallStatus] || row.overallStatus} color={overallChipColor(row.overallStatus)} sx={{ fontSize: 11, fontWeight: 700 }} />
+                        <Chip size="small" label={OVERALL_STATUS_LABELS[row.overallStatus] || row.overallStatus} color={overallChipColor(row.overallStatus)} sx={{ fontSize: 12, fontWeight: 700 }} />
                       </TableCell>
                       <TableCell>
                         <LabStageCell row={row} sectionCode={MICRO_SECTION_CODE} />

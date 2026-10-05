@@ -32,7 +32,7 @@ import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { StatusBadge, CategoryBadge } from "../../components/StatusBadge";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import {
   OosTrackingService,
@@ -117,9 +117,7 @@ export function OosTrackingPage() {
       </Box>
 
       {!groups && !error ? (
-        <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}>
-          <LoadingSpinner />
-        </Box>
+        <DialogBodySkeleton blocks={3} blockHeight={120} />
       ) : groups && groups.length === 0 ? (
         <Paper
           elevation={0}
@@ -196,7 +194,7 @@ export function OosTrackingPage() {
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 28, my: "auto" }} />
 
                     <Box>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary", textTransform: "uppercase", fontWeight: 600 }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase", fontWeight: 600 }}>
                         Root / Origin Sample
                       </Typography>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -212,7 +210,7 @@ export function OosTrackingPage() {
                         {group.displayName}
                       </Typography>
                       {group.batchNumber && (
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                           Batch: {group.batchNumber}
                         </Typography>
                       )}
@@ -228,14 +226,14 @@ export function OosTrackingPage() {
                         color="success"
                         variant="outlined"
                         size="small"
-                        sx={{ fontWeight: 600, fontSize: 11 }}
+                        sx={{ fontWeight: 600, fontSize: 12 }}
                       />
                     ) : (
                       <Chip
                         label="No Report Attached"
                         variant="outlined"
                         size="small"
-                        sx={{ color: "text.secondary", borderColor: "divider", fontSize: 11 }}
+                        sx={{ color: "text.secondary", borderColor: "divider", fontSize: 12 }}
                       />
                     )}
 
@@ -258,7 +256,7 @@ export function OosTrackingPage() {
                       <TableHead sx={{ bgcolor: "background.paper" }}>
                         <TableRow>
                           {["Retest Sample", "Parent / Origin", "Item / Point", "Retest Type", "Test(s)", "Analyst(s)", "Retest Status", "Opened", "Actions"].map((h) => (
-                            <TableCell key={h} sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary" }}>
+                            <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
                               {h}
                             </TableCell>
                           ))}
@@ -297,7 +295,7 @@ export function OosTrackingPage() {
                                   {retest.displayName || "—"}
                                 </Typography>
                                 {retest.batchNumber && (
-                                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                                     Batch: {retest.batchNumber}
                                   </Typography>
                                 )}
@@ -313,7 +311,7 @@ export function OosTrackingPage() {
                               {/* Test(s) */}
                               <TableCell sx={{ py: 1.25 }}>
                                 {retest.testCodes.map((code) => (
-                                  <Chip key={code} size="small" label={code} sx={{ mr: 0.5, mb: 0.5, height: 20, fontSize: 11 }} />
+                                  <Chip key={code} size="small" label={code} sx={{ mr: 0.5, mb: 0.5, height: 20, fontSize: 12 }} />
                                 ))}
                               </TableCell>
 
@@ -347,7 +345,7 @@ export function OosTrackingPage() {
                                     size="small"
                                     variant="outlined"
                                     startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                                    sx={{ px: 1, py: 0.25, fontSize: 11, borderColor: "divider", color: "text.secondary" }}
+                                    sx={{ px: 1, py: 0.25, fontSize: 12, borderColor: "divider", color: "text.secondary" }}
                                   >
                                     Record
                                   </Button>
@@ -609,7 +607,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
           <TableHead sx={tableHeadSx}>
             <TableRow>
               {["Status", "Filename", "Size", "Uploaded By", "Date", "Actions"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary" }}>
+                <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
                   {h}
                 </TableCell>
               ))}
@@ -618,8 +616,8 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <LoadingSpinner />
+                <TableCell colSpan={6} sx={{ py: 2 }}>
+                  <DialogBodySkeleton blocks={2} blockHeight={24} />
                 </TableCell>
               </TableRow>
             ) : docs && docs.length === 0 ? (
@@ -639,24 +637,24 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                   <TableRow key={doc.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                     <TableCell>
                       {isCurrent && (
-                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 11, fontWeight: 700 }} />
+                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
                       )}
                       {isSuperseded && (
-                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 11, bgcolor: "action.selected" }} />
+                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 12, bgcolor: "action.selected" }} />
                       )}
                       {(!isCurrent && !isSuperseded) && (
-                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 12 }} />
                       )}
                     </TableCell>
                     <TableCell>
                       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{doc.originalFileName}</Typography>
                       {doc.supersessionReason && (
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                           Superseded: {doc.supersessionReason}
                         </Typography>
                       )}
                       {doc.voidReason && (
-                        <Typography sx={{ fontSize: 11, color: "error.main" }}>
+                        <Typography sx={{ fontSize: 12, color: "error.main" }}>
                           Voided: {doc.voidReason}
                         </Typography>
                       )}

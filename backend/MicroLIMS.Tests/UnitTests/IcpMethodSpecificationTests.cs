@@ -57,7 +57,7 @@ public class IcpMethodSpecificationTests
     {
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, userId, mode, "icp-a");
-        var def = await new TestDefinitionMasterDataService(db, new UserSectionScopeService(db))
+        var def = await TestServiceFactory.TestDefinitionMaster(db)
             .CreateTestDefinitionAsync(userId, new CreateTestDefinitionRequest(
                 Code: "ICP-T1", DisplayName: "ICP-T1", SectionId: section.Id,
                 WorkflowType: WorkflowType.IcpMethodAssay, EquationType: EquationType.IcpMethodAssay,

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -18,10 +19,13 @@ public class TestDefinitionMasterDataService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public TestDefinitionMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    private readonly IAuditEventService _audit;
+
+    public TestDefinitionMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, IAuditEventService audit)
     {
         _db = db;
         _scope = scope;
+        _audit = audit;
     }
 
     // The canonical Code/DisplayName list backing every TestCode picker
@@ -359,16 +363,23 @@ public class TestDefinitionMasterDataService
             TitrationStandardEntryId = request.TitrationStandardEntryId
         };
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
+        await ApplyPhyschemAreaAsync(entity, request.PhyschemArea);
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<TestDefinitionResponse> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
+    // One transaction: the titration change and its audit event commit or roll back together.
+    public Task<TestDefinitionResponse> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request) =>
+        UnitOfWork.RunAsync(_db, () => UpdateTestDefinitionCoreAsync(currentUserId, id, request));
+
+    private async Task<TestDefinitionResponse> UpdateTestDefinitionCoreAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        var titrationBefore = entity.WorkflowType == WorkflowType.Titration
+            ? JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options) : null;
 
         if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
             throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
@@ -661,6 +672,7 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
 
+        await ApplyPhyschemAreaAsync(entity, request.PhyschemArea ?? entity.PhyschemArea); // before entity.Code changes: specs are keyed by the old code
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -737,9 +749,48 @@ public class TestDefinitionMasterDataService
         if (request.TitrationStandardEntryId.HasValue) entity.TitrationStandardEntryId = request.TitrationStandardEntryId;
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
 
+        (string? Before, string After, string Reason)? titrationAudit = null;
+        if (entity.WorkflowType == WorkflowType.Titration || titrationBefore != null)
+        {
+            var titrationAfter = JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options);
+            if (titrationAfter != titrationBefore)
+            {
+                var reason = request.ChangeReason?.Trim();
+                if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
+                    throw new InvalidOperationException("A reason for change is required when titration settings change.");
+                titrationAudit = (titrationBefore, titrationAfter, reason);
+            }
+        }
+
         await _db.SaveChangesAsync();
 
+        if (titrationAudit is { } a)
+        {
+            _db.CurrentUserId = currentUserId;
+            await _audit.RecordUserEventAsync("TestDefinition.TitrationChanged", AuditActionCategory.Configuration,
+                "TestDefinition", entityId: entity.Id.ToString(),
+                changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: a.Reason);
+        }
+
         return TestDefinitionResponse.From(entity);
+    }
+
+    // Physicochemical-section tests must carry an area; other sections never do.
+    private async Task ApplyPhyschemAreaAsync(TestDefinition entity, PhyschemArea? requested)
+    {
+        var code = await _db.DocumentSections.Where(s => s.Id == entity.SectionId).Select(s => s.Code).FirstAsync();
+        if (code != PhyschemAreas.SectionCode) { entity.PhyschemArea = null; return; }
+        if (!requested.HasValue) throw new InvalidOperationException("Choose the area of this test (FP, RM & PM or Both).");
+        if (entity.Id != 0 && requested != PhyschemArea.Both)
+        {
+            var lost = requested == PhyschemArea.FinishedProduct ? WorkspaceArea.RmPm : WorkspaceArea.Fp;
+            var cats = PhyschemAreas.CategoriesOf(lost);
+            var items = await _db.Specifications.Where(s => s.TestCode == entity.Code && cats.Contains(s.Item!.Category))
+                .Select(s => s.Item!.Code).Distinct().Take(10).ToListAsync();
+            if (items.Count > 0)
+                throw new InvalidOperationException($"Items {string.Join(", ", items)} still have specifications on this test for {(lost == WorkspaceArea.RmPm ? "RM & PM" : "FP")} - remove them first.");
+        }
+        entity.PhyschemArea = requested;
     }
 
     public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int id)

@@ -71,7 +71,7 @@ public class IcpMethodTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var methodId = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var created = await service.CreateTestDefinitionAsync(userId, Req(section.Id, methodId));
 
@@ -84,7 +84,7 @@ public class IcpMethodTestMasterTests
     {
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, Req(section.Id, null)));
         Assert.Equal("ICP method is required for ICP method assay tests.", ex.Message);
@@ -96,7 +96,7 @@ public class IcpMethodTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var methodId = await AddMethodAsync(db, section.Id, userId, active: false);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, Req(section.Id, methodId)));
         Assert.Equal("The ICP method is inactive.", ex.Message);
@@ -108,7 +108,7 @@ public class IcpMethodTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var methodId = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var req = new CreateTestDefinitionRequest(
             Code: "OTH-1", DisplayName: "Other test", SectionId: section.Id,
@@ -126,7 +126,7 @@ public class IcpMethodTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var methodId = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CreateTestDefinitionAsync(userId, Req(section.Id, methodId, requiresSst: true)));
@@ -138,7 +138,7 @@ public class IcpMethodTestMasterTests
         var (section, userId) = await SeedAsync(db);
         var m1 = await AddMethodAsync(db, section.Id, userId);
         var m2 = await AddMethodAsync(db, section.Id, userId, abbr: "min-two");
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
         var created = await service.CreateTestDefinitionAsync(userId, Req(section.Id, m1));
         return (service, created.Id, userId, section.Id, m1, m2);
     }

@@ -68,6 +68,7 @@ import { UserService, UserRecord } from "../users/services/UserService";
 import { CloseTestingDialog } from "../approval/CloseTestingDialog";
 import { humanize } from "./SampleReportPage";
 import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
+import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
 
 interface Props {
   open: boolean;
@@ -503,8 +504,11 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
     conditionsDisplay =
       [
         titration.titrantCode ? `Titrant: ${titration.titrantCode}` : null,
-        titration.factor != null ? `Factor used: ${titration.factor}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
-        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null
+        titration.factor != null ? `Factor used: ${titration.factor.toFixed(4)}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
+        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null,
+        titration.dueTitrantAcknowledgement?.justification
+          ? `Due titrant acknowledged: ${titration.dueTitrantAcknowledgement.justification}`
+          : null
       ].filter(Boolean).join(" · ") || null;
   } else if (analysis.conditionsJson) {
     try {
@@ -547,7 +551,7 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
                 <TableRow key={idx}>
                   <TableCell sx={cellSx}>{p.parameterName}</TableCell>
                   <TableCell sx={{ ...cellSx, fontWeight: 600 }}>
-                    {p.reportedDisplay}
+                    {withoutUnit(p.reportedDisplay, p.unit)}
                     {flags ? ` [${flags}]` : ""}
                   </TableCell>
                   <TableCell sx={cellSx}>{p.unit ?? "—"}</TableCell>
@@ -646,7 +650,7 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
           : x.computedValue != null
           ? x.kind === "Vessel"
             ? `${num(x.computedValue)} %`
-            : num(x.computedValue)
+            : num(x.computedValue, isTitration ? decimalsOf(parameter.reportedDisplay) : undefined)
           : null
     },
     {

@@ -44,7 +44,7 @@ interface MaterialTypeOption {
 const filterOptions = createFilterOptions<MaterialTypeOption>();
 
 const isMasterLinkedType = (type: MaterialType): boolean =>
-  type === "Chemical" || type === "Indicator" || type === "ReferenceStandard";
+  type === "Chemical" || type === "Indicator" || type === "ReferenceStandard" || type === "PrimaryStandard";
 
 const getMasterCategoryForType = (type: MaterialType): MaterialMasterCategory | null => {
   switch (type) {
@@ -54,6 +54,8 @@ const getMasterCategoryForType = (type: MaterialType): MaterialMasterCategory | 
       return "Indicator";
     case "ReferenceStandard":
       return "ReferenceStandard";
+    case "PrimaryStandard":
+      return "PrimaryStandard";
     default:
       return null;
   }
@@ -127,6 +129,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   const [equipmentLoading, setEquipmentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [hasSetInitialType, setHasSetInitialType] = useState(false);
 
   useEffect(() => {
     if (editingItem) {
@@ -159,6 +162,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       setSelectedSectionId("");
     }
     setError(null);
+    setHasSetInitialType(false);
 
     if (open) {
       resetFailures();
@@ -336,7 +340,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             customType: "",
             unit: defaultUnit as MaterialUnit,
             mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
-            purity: type === "ReferenceStandard" ? f.purity : "",
+            purity: (type === "ReferenceStandard" || type === "PrimaryStandard") ? f.purity : "",
             moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
             materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
             ...(keepMaster
@@ -355,7 +359,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             materialType: type,
             customType: "",
             mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
-            purity: type === "ReferenceStandard" ? f.purity : "",
+            purity: (type === "ReferenceStandard" || type === "PrimaryStandard") ? f.purity : "",
             moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
             materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
             ...(keepMaster
@@ -397,15 +401,18 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     }
   }, [open, activeSectionId, editingItem]);
 
-  // When creating, a type the chosen lab doesn't offer (the default is
-  // DehydratedMedia, which the Physicochemical lab doesn't have) switches to
-  // the lab's first type.
+  // When creating, the initial type is the first builtIn type of the lab,
+  // not "DehydratedMedia".
   useEffect(() => {
     if (editingItem || !typeOptionsData || typeOptionsData.builtIn.length === 0) return;
-    if (!typeOptionsData.builtIn.includes(form.materialType)) {
+    if (!hasSetInitialType) {
+      setHasSetInitialType(true);
+      void onMaterialTypeChange(typeOptionsData.builtIn[0]);
+    } else if (form.materialType !== "Other" && !typeOptionsData.builtIn.includes(form.materialType)) {
+      // "Other" is the user's custom type, never a lab-list mismatch.
       void onMaterialTypeChange(typeOptionsData.builtIn[0]);
     }
-  }, [typeOptionsData, editingItem, form.materialType, onMaterialTypeChange]);
+  }, [typeOptionsData, editingItem, hasSetInitialType, form.materialType, onMaterialTypeChange]);
 
   const typeOptionsList: MaterialTypeOption[] = useMemo(() => {
     const list: MaterialTypeOption[] = [];
@@ -580,9 +587,13 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       return;
     }
 
-    if (form.materialType === "ReferenceStandard") {
+    if (form.materialType === "ReferenceStandard" || form.materialType === "PrimaryStandard") {
       if (form.purity === "" || form.purity == null) {
-        setError("Purity percentage is required for reference standards.");
+        setError(
+          form.materialType === "PrimaryStandard"
+            ? "Purity percentage is required for primary standards."
+            : "Purity percentage is required for reference standards."
+        );
         return;
       }
       const p = Number(form.purity);
@@ -590,7 +601,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         setError("Purity must be greater than 0 and less than or equal to 100.");
         return;
       }
-      if (form.moisturePercent !== "" && form.moisturePercent != null) {
+      if (form.materialType === "ReferenceStandard" && form.moisturePercent !== "" && form.moisturePercent != null) {
         const m = Number(form.moisturePercent);
         if (isNaN(m) || m < 0 || m >= 100) {
           setError("Moisture content must be at least 0 and below 100.");
@@ -640,7 +651,10 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       atccNumber: form.materialType === "LyophilizedMicroorganism" ? form.atccNumber.trim() || null : null,
       organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
       mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null,
-      purity: form.materialType === "ReferenceStandard" && form.purity !== "" ? Number(form.purity) : null,
+      purity:
+        (form.materialType === "ReferenceStandard" || form.materialType === "PrimaryStandard") && form.purity !== ""
+          ? Number(form.purity)
+          : null,
       moisturePercent:
         form.materialType === "ReferenceStandard" && form.moisturePercent !== "" && form.moisturePercent != null
           ? Number(form.moisturePercent)
@@ -838,6 +852,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                       ? "Reagent"
                       : form.materialType === "Indicator"
                       ? "Indicator"
+                      : form.materialType === "PrimaryStandard"
+                      ? "Primary Standard"
                       : "Reference Standard"
                   } Master Entry`}
                   placeholder="Select master entry..."
@@ -937,34 +953,34 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           </>
         )}
 
+        {(form.materialType === "ReferenceStandard" || form.materialType === "PrimaryStandard") && (
+          <TextField
+            size="small"
+            required
+            label="Purity (%)"
+            placeholder="e.g. 99.8"
+            type="number"
+            value={form.purity}
+            onChange={(e) => setForm({ ...form, purity: e.target.value })}
+            slotProps={{
+              htmlInput: { step: "0.001", min: "0.001", max: "100" }
+            }}
+            helperText="Purity percentage (0 < p ≤ 100)"
+          />
+        )}
         {form.materialType === "ReferenceStandard" && (
-          <>
-            <TextField
-              size="small"
-              required
-              label="Purity (%)"
-              placeholder="e.g. 99.8"
-              type="number"
-              value={form.purity}
-              onChange={(e) => setForm({ ...form, purity: e.target.value })}
-              slotProps={{
-                htmlInput: { step: "0.001", min: "0.001", max: "100" }
-              }}
-              helperText="Purity percentage (0 < p ≤ 100)"
-            />
-            <TextField
-              size="small"
-              label="Moisture Content (%)"
-              placeholder="e.g. 0.5"
-              type="number"
-              value={form.moisturePercent}
-              onChange={(e) => setForm({ ...form, moisturePercent: e.target.value })}
-              slotProps={{
-                htmlInput: { step: "0.001", min: "0", max: "99.999" }
-              }}
-              helperText="Moisture percentage (0 ≤ m < 100, optional)"
-            />
-          </>
+          <TextField
+            size="small"
+            label="Moisture Content (%)"
+            placeholder="e.g. 0.5"
+            type="number"
+            value={form.moisturePercent}
+            onChange={(e) => setForm({ ...form, moisturePercent: e.target.value })}
+            slotProps={{
+              htmlInput: { step: "0.001", min: "0", max: "99.999" }
+            }}
+            helperText="Moisture percentage (0 ≤ m < 100, optional)"
+          />
         )}
       </Box>
 

@@ -105,7 +105,7 @@ export function SolutionMasterDialog({
 
   const availableTitrantStandardEntries = useMemo(() => {
     return availableMaterialEntries.filter(
-      (m) => m.category === "ReferenceStandard" || m.category === "Reagent"
+      (m) => m.category === "PrimaryStandard"
     );
   }, [availableMaterialEntries]);
 

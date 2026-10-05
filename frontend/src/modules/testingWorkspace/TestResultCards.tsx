@@ -6,6 +6,7 @@ import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
 import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
 import { IcpReviewPanel } from "./icp/IcpReviewPanel";
 import { isIcpCalculation } from "./icp/icpReviewTypes";
+import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 const isConforming = (status: string | null) => !status || CONFORMING_STATUSES.has(status);
@@ -66,8 +67,11 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
   const conditionsDisplay = titration
     ? [
         titration.titrantCode ? `Titrant: ${titration.titrantCode}` : null,
-        titration.factor != null ? `Factor used: ${titration.factor}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
-        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null
+        titration.factor != null ? `Factor used: ${titration.factor.toFixed(4)}${titration.factorState ? ` (${humanize(titration.factorState)})` : ""}` : null,
+        titration.warnings.length > 0 ? `Warnings: ${titration.warnings.join("; ")}` : null,
+        titration.dueTitrantAcknowledgement?.justification
+          ? `Due titrant acknowledged: ${titration.dueTitrantAcknowledgement.justification}`
+          : null
       ].filter(Boolean).join(" · ") || null
     : formatConditions(a.conditionsJson);
 
@@ -106,7 +110,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                 <tr key={p.id || idx}>
                   <td className="loc-name">{p.parameterName}</td>
                   <td className="loc-reported" style={{ fontWeight: 600 }}>
-                    {p.reportedDisplay}
+                    {withoutUnit(p.reportedDisplay, p.unit)}
                     {flags ? ` [${flags}]` : ""}
                   </td>
                   <td>{p.unit ?? "—"}</td>
@@ -223,7 +227,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                           {hasValue2 && <td>{r.value2 !== null ? String(r.value2) : "—"}</td>}
                           {hasValue3 && <td>{r.value3 !== null ? (isWeightVariation ? `${Number(r.value3).toFixed(2)} %` : String(r.value3)) : "—"}</td>}
                           {hasText && <td>{r.text ?? "—"}</td>}
-                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : String(r.computedValue)) : "—"}</td>}
+                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : isTitrationRun ? r.computedValue.toFixed(decimalsOf(p.reportedDisplay)) : String(r.computedValue)) : "—"}</td>}
                           {hasPassed && (
                             <td>
                               {r.passed === null || r.passed === undefined ? "—" : r.passed ? "Pass" : "Fail"}

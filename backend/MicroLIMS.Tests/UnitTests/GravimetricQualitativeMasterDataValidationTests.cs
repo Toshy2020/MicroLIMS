@@ -131,7 +131,8 @@ public class GravimetricQualitativeMasterDataValidationTests
             WorkflowType: WorkflowType.Gravimetric,
             EquationType: EquationType.GravimetricResidue,
             ReplicateCount: 1,
-            UsesTare: null);
+            UsesTare: null,
+            PhyschemArea: PhyschemArea.Both);
 
         var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
@@ -155,7 +156,8 @@ public class GravimetricQualitativeMasterDataValidationTests
             EquationType: EquationType.GravimetricLoss,
             ReplicateCount: 2,
             ConditionFields: "Temperature (°C), Time (h)",
-            UsesTare: true);
+            UsesTare: true,
+            PhyschemArea: PhyschemArea.Both);
 
         var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);

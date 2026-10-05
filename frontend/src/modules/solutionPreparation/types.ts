@@ -149,6 +149,7 @@ export interface LotOption {
   unit: string;
   usable: boolean;
   reason: string | null;
+  purity?: number | null;
 }
 
 export interface StartPreparationRequest {

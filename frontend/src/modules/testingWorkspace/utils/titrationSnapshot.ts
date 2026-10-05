@@ -11,11 +11,19 @@ const pick = (o: Record<string, unknown>, ...names: string[]): unknown => {
   return null;
 };
 
+export interface DueTitrantAcknowledgementSnapshot {
+  justification: string;
+  titrantCodes: string[];
+  acknowledgedAt: string;
+}
+
 export interface TitrationSnapshotSummary {
   titrantCode: string | null;
   factor: number | null;
   factorState: string | null;
   warnings: string[];
+  dueTitrantAcknowledgement?: DueTitrantAcknowledgementSnapshot | null;
+  engineVersion?: string | null;
 }
 
 export function parseTitrationSnapshot(conditionsJson: string | null | undefined): TitrationSnapshotSummary | null {
@@ -31,11 +39,31 @@ export function parseTitrationSnapshot(conditionsJson: string | null | undefined
       : rec;
     const factor = pick(titrant, "factorUsed", "factor");
     const warnings = pick(rec, "warnings");
+
+    const rawAck = pick(rec, "dueTitrantAcknowledgement");
+    let dueTitrantAcknowledgement: DueTitrantAcknowledgementSnapshot | null = null;
+    if (typeof rawAck === "object" && rawAck !== null && !Array.isArray(rawAck)) {
+      const ackRec = rawAck as Record<string, unknown>;
+      const justification = pick(ackRec, "justification");
+      const titrantCodes = pick(ackRec, "titrantCodes");
+      const acknowledgedAt = pick(ackRec, "acknowledgedAt");
+      if (justification) {
+        dueTitrantAcknowledgement = {
+          justification: String(justification),
+          titrantCodes: Array.isArray(titrantCodes) ? titrantCodes.map(String) : [],
+          acknowledgedAt: acknowledgedAt ? String(acknowledgedAt) : ""
+        };
+      }
+    }
+    const engineVersion = pick(rec, "engineVersion");
+
     return {
       titrantCode: (pick(titrant, "code", "titrantPreparationCode", "titrantCode") as string | null),
       factor: factor != null && !isNaN(Number(factor)) ? Number(factor) : null,
       factorState: (pick(titrant, "factorState") as string | null),
-      warnings: Array.isArray(warnings) ? warnings.map(String) : []
+      warnings: Array.isArray(warnings) ? warnings.map(String) : [],
+      dueTitrantAcknowledgement,
+      engineVersion: engineVersion != null ? String(engineVersion) : null
     };
   } catch {
     return null;

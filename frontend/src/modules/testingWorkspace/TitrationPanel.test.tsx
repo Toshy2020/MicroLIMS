@@ -19,10 +19,15 @@ vi.mock("../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigura
   EquipmentConfigurationService: { getConfiguredSummary: vi.fn().mockResolvedValue([]) }
 }));
 vi.mock("../../services/laboratorySectionService", () => ({ getSections: vi.fn().mockResolvedValue([]) }));
-// The real dialog needs auth context; this stand-in signs with a fixed password.
+// The real dialog needs auth context; this stand-in signs with a fixed password and exposes meaningStatement.
 vi.mock("../../components/SignatureDialog", () => ({
-  SignatureDialog: ({ open, onConfirm }: { open: boolean; onConfirm: (p: string) => Promise<void> }) =>
-    open ? <button onClick={() => void onConfirm("pw")}>confirm-signature</button> : null
+  SignatureDialog: ({ open, meaningStatement, onConfirm }: { open: boolean; meaningStatement?: string; onConfirm: (p: string) => Promise<void> }) =>
+    open ? (
+      <div>
+        <span>{meaningStatement}</span>
+        <button onClick={() => void onConfirm("pw")}>confirm-signature</button>
+      </div>
+    ) : null
 }));
 
 const prep = (over: Record<string, unknown>) => ({
@@ -198,12 +203,14 @@ describe("TitrationPanel", () => {
         { sampleWeightMg: 121, titrantVolumeMl: 10.1 }
       ],
       password: "pw",
-      comment: null
+      comment: null,
+      dueTitrantAcknowledged: null,
+      dueTitrantJustification: null
     });
     expect(payload).not.toHaveProperty("standardizationTemperatureC");
     expect(payload).not.toHaveProperty("standard");
     await waitFor(() => expect(onRecorded).toHaveBeenCalled());
-  });
+  }, 15000);
 
   it("shows the server error message verbatim", async () => {
     recordTitrationResult.mockRejectedValue({ response: { data: { message: "Titrant factor is Due." } } });
@@ -218,4 +225,113 @@ describe("TitrationPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "confirm-signature" }));
     expect(await screen.findByText("Titrant factor is Due.")).toBeTruthy();
   });
+
+  it("disables submit until checkbox and 10-char justification are filled when titrant has a warning", async () => {
+    recordTitrationResult.mockResolvedValue({ outcomeSummary: "ok", status: "WithinLimits" });
+    const ctx = baseCtx({
+      titrantPreparations: [prep({ factorState: "Due", warning: "Titrant standardization is due" })] as never
+    });
+    await renderPanel(ctx);
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    // Warning alert is visible
+    expect(screen.getByText("Titrant standardization is due")).toBeTruthy();
+
+    // Checkbox and justification field are rendered
+    const ackCheckbox = screen.getByRole("checkbox", { name: /I acknowledge this titrant is due for standardization/i });
+    const justificationInput = screen.getByLabelText(/Justification for using due titrant/i);
+    expect(ackCheckbox).toBeTruthy();
+    expect(justificationInput).toBeTruthy();
+
+    // Fill the required replicate measurements
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+
+    // Submit disabled when neither checkbox nor justification is provided
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    // Check the box - still disabled because justification is missing
+    await userEvent.click(ackCheckbox);
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    // Type 9 characters - still disabled (minimum 10 chars required)
+    fireEvent.change(justificationInput, { target: { value: "123456789" } });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    // Type 10+ characters - now enabled
+    const validJustification = "Approved by QC Manager for emergency analysis";
+    fireEvent.change(justificationInput, { target: { value: validJustification } });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+
+    // Click submit and verify signature statement
+    await userEvent.click(submitBtn);
+    expect(
+      screen.getByText("Your signature records the result and your acknowledgement of the due titrant.")
+    ).toBeTruthy();
+
+    // Confirm signature
+    await userEvent.click(screen.getByRole("button", { name: "confirm-signature" }));
+
+    await waitFor(() => expect(recordTitrationResult).toHaveBeenCalledTimes(1));
+    const [orderId, payload] = recordTitrationResult.mock.calls[0];
+    expect(orderId).toBe(7);
+    expect(payload.dueTitrantAcknowledged).toBe(true);
+    expect(payload.dueTitrantJustification).toBe(validJustification);
+  }, 15000);
+
+  it("requires acknowledgement when excess titrant has a warning in residual mode", async () => {
+    recordTitrationResult.mockResolvedValue({ outcomeSummary: "ok", status: "WithinLimits" });
+    const ctx = baseCtx({
+      mode: "Residual",
+      excessVolumeMl: 25,
+      excessTitrant: { solutionMasterId: 3, name: "Iodine VS excess", nominalStrength: 0.1, strengthUnit: "Normal" },
+      titrantPreparations: [prep({ preparationId: 1, code: "TP-1", warning: null })] as never,
+      excessPreparations: [prep({ preparationId: 9, code: "EX-1", factorState: "Due", warning: "Excess titrant standardization is due" })] as never
+    });
+    await renderPanel(ctx);
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Excess titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /EX-1/ }));
+
+    // Warning from excess titrant is shown
+    expect(screen.getByText("Excess titrant standardization is due")).toBeTruthy();
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    const ackCheckbox = screen.getByRole("checkbox", { name: /I acknowledge this titrant is due for standardization/i });
+    const justificationInput = screen.getByLabelText(/Justification for using due titrant/i);
+
+    await userEvent.click(ackCheckbox);
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(justificationInput, { target: { value: "Excess standardized earlier today" } });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+
+    await userEvent.click(submitBtn);
+    expect(
+      screen.getByText("Your signature records the result and your acknowledgement of the due titrant.")
+    ).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "confirm-signature" }));
+
+    await waitFor(() => expect(recordTitrationResult).toHaveBeenCalledTimes(1));
+    const [, payload] = recordTitrationResult.mock.calls[0];
+    expect(payload.dueTitrantAcknowledged).toBe(true);
+    expect(payload.dueTitrantJustification).toBe("Excess standardized earlier today");
+  }, 15000);
 });

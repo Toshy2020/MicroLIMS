@@ -44,6 +44,7 @@ import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { HplcMethodService, HplcMethodAnalyteResponse, HplcResultMode } from "../../masterDataSimple/services/HplcMethodService";
 import { IcpMethodService, IcpMethodResponse } from "../../masterDataSimple/services/IcpMethodService";
+import { PhyschemArea, areaIncludes, areaOfItemCategory } from "../../masterDataSimple/testMasterArea";
 
 export interface TestDefinitionSummary {
   id: number;
@@ -54,6 +55,7 @@ export interface TestDefinitionSummary {
   sectionId?: number | null;
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
+  physchemArea?: PhyschemArea | null;
 }
 
 interface SpecificationParameterDialogProps {
@@ -157,10 +159,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       isTestDisabled
         ? assignedTests
         : assignedTests.filter((t) => {
-            const sectionId = testDefs[t.testCode]?.sectionId;
-            return sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId);
+            const def = testDefs[t.testCode];
+            const sectionId = def?.sectionId;
+            // Physicochemical tests are tagged with an area; FP items use "fp", RM/PM items "rmpm".
+            return (
+              areaIncludes(def?.physchemArea, areaOfItemCategory(item.category)) &&
+              (sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId))
+            );
           }),
-    [isTestDisabled, assignedTests, testDefs, myLabSectionIds]
+    [isTestDisabled, assignedTests, testDefs, myLabSectionIds, item.category]
   );
   const [resultBasis, setResultBasis] = useState<ResultBasis | "">("MgPerKg");
   const [labelClaim, setLabelClaim] = useState("");

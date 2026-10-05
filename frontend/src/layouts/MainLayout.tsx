@@ -8,7 +8,7 @@ import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
 import { useIdleTimeout } from "../hooks/useIdleTimeout";
 import { useMyLabs } from "../hooks/useMyLabs";
-import { getGroupedMenu } from "../routes/menuConfig";
+import { useMenuGroups } from "../hooks/useMenuGroups";
 import { accountPageTrail, findNavTrail } from "../routes/navigation";
 
 const MAIN_CONTENT_ID = "main-content";
@@ -16,7 +16,7 @@ const MAIN_CONTENT_ID = "main-content";
 const CHANGE_PASSWORD_PATH = "/change-password";
 
 export function MainLayout() {
-  const { logout, mustChangePassword, role, permissions } = useAuth();
+  const { logout, mustChangePassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -25,7 +25,7 @@ export function MainLayout() {
   // One menu, one lab lookup and one "where am I" answer for the sidebar,
   // the breadcrumb and the tab title.
   const { codes: labCodes } = useMyLabs();
-  const groups = useMemo(() => getGroupedMenu({ role, permissions, labCodes }), [role, permissions, labCodes]);
+  const groups = useMenuGroups();
   const activeTrail = useMemo(
     () => findNavTrail(groups, location.pathname, location.search) ?? accountPageTrail(location.pathname),
     [groups, location.pathname, location.search]

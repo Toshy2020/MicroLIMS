@@ -347,8 +347,8 @@ public class SolutionMasterService
             if (standard.SectionId != sectionId)
                 throw new InvalidOperationException("The standard entry belongs to another laboratory.");
 
-            if (standard.Category != MaterialMasterCategory.ReferenceStandard && standard.Category != MaterialMasterCategory.Reagent)
-                throw new InvalidOperationException("The standard entry must be a reference standard or reagent.");
+            if (standard.Category != MaterialMasterCategory.PrimaryStandard)
+                throw new InvalidOperationException("The primary standard must be a Primary Standard entry in Reagents & Standards.");
         }
         else
         {

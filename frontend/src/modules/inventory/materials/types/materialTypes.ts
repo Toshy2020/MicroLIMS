@@ -11,7 +11,25 @@ export type MaterialType =
   | "DisposableTool"
   | "Other"
   | "ReferenceStandard"
-  | "WorkingStandard";
+  | "WorkingStandard"
+  | "PrimaryStandard";
+
+export const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
+  DehydratedMedia: "Dehydrated Media",
+  LyophilizedMicroorganism: "Lyophilized Microorganism",
+  Supplement: "Supplement",
+  AntibioticDisc: "Antibiotic Disc",
+  IdentificationKit: "Identification Kit",
+  IdentificationReagent: "Identification Reagent",
+  Chemical: "Chemical",
+  Indicator: "Indicator",
+  ReferenceBuffer: "Reference Buffer",
+  DisposableTool: "Disposable Tool",
+  Other: "Other",
+  ReferenceStandard: "Reference Standard",
+  WorkingStandard: "Working Standard",
+  PrimaryStandard: "Primary Standard"
+};
 
 export type MaterialUnit =
   | "Gram"

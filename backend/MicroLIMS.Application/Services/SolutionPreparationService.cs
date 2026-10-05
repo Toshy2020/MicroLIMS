@@ -14,7 +14,7 @@ public record StartPreparationRequest(int SolutionMasterId, int? HplcMethodId);
 public record PreparationComponentInput(int ComponentId, int? MaterialId, decimal? QuantityUsed);
 public record SavePreparationRequest(List<PreparationComponentInput> Components, decimal? FinalVolumeMl, decimal? MeasuredPh);
 public record CompletePreparationRequest(string Password, string? Comment);
-public record LotOption(int MaterialId, string BatchNumber, DateTime? ExpiryDate, decimal QuantityRemaining, MaterialUnit Unit, bool Usable, string? Reason);
+public record LotOption(int MaterialId, string BatchNumber, DateTime? ExpiryDate, decimal QuantityRemaining, MaterialUnit Unit, bool Usable, string? Reason, decimal? Purity);
 
 // Solution Preparation area (HPLC chain S4, spec 4): prepares Mobile
 // Phases, Diluents and Titrants from the Solution master against real
@@ -220,7 +220,7 @@ public class SolutionPreparationService
         return lots.Select(lot =>
         {
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId, component.QuantityUsed, today);
-            return new LotOption(lot.Id, lot.LotLabel, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason);
+            return new LotOption(lot.Id, lot.LotLabel, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason, lot.Purity);
         }).ToList();
     }
 

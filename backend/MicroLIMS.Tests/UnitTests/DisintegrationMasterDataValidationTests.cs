@@ -148,6 +148,7 @@ public class DisintegrationMasterDataValidationTests
             Code: "DT-DEF",
             DisplayName: "Disintegration Test Default",
             SectionId: fpSec.Id,
+            PhyschemArea: PhyschemArea.Both,
             WorkflowType: WorkflowType.Disintegration,
             EquationType: EquationType.Disintegration,
             RequiresSystemSuitability: false);

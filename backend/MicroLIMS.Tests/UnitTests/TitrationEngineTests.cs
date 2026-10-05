@@ -14,10 +14,10 @@ public class TitrationEngineTests
     }
 
     [Fact]
-    public void PrimaryStandard_NoPurity_Uses100()
+    public void PrimaryStandard_FullPurity_NoBlank()
     {
-        // 204.2 / (10.00 x 20.42) = 1.0
-        Assert.Equal(1.0m, decimal.Round(TitrationEngine.PrimaryStandardFactor(204.2m, null, 10.00m, 0m, 20.42m), 6));
+        // 204.2 x 100% / (10.00 x 20.42) = 1.0
+        Assert.Equal(1.0m, decimal.Round(TitrationEngine.PrimaryStandardFactor(204.2m, 100m, 10.00m, 0m, 20.42m), 6));
     }
 
     [Fact]

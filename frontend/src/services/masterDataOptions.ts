@@ -1,5 +1,6 @@
 import { apiClient, ifMatch } from "./apiClient";
 import type { TitrationDefinitionFields } from "../modules/laboratoryConfiguration/masterDataSimple/titrationConfig";
+import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterDataSimple/testMasterArea";
 
 export type MediaProductOption = {
   id: number;
@@ -131,6 +132,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
+  physchemArea?: PhyschemArea | null;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -172,6 +174,8 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
+  physchemArea?: PhyschemArea | null;
+  changeReason?: string | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

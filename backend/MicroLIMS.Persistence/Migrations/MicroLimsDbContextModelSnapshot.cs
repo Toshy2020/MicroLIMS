@@ -8326,6 +8326,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int?>("PhyschemArea")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("ReplicateCount")
                         .HasColumnType("integer");
 
@@ -9042,6 +9045,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DepartmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PhyschemArea")
                         .HasColumnType("integer");
 
                     b.Property<int?>("SectionId")

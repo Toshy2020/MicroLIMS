@@ -11,7 +11,7 @@ import {
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { StandardizationResultView } from "./StandardizationResultView";
-import { ReplicateRowInputCard, ReplicateRowState } from "./ReplicateRowInputCard";
+import { ReplicateRowInputCard, ReplicateRowState, isSelectableLot } from "./ReplicateRowInputCard";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
 import type {
   SolutionPreparationResponse,
@@ -91,7 +91,7 @@ export function TitrantStandardizationDialog({
       SolutionPreparationService.getStandardLotOptions(preparation.id)
         .then((lots) => {
           setStandardLots(lots);
-          const firstUsable = lots.find((l) => l.usable);
+          const firstUsable = lots.find(isSelectableLot);
           if (firstUsable) {
             setRows((prev) =>
               prev.map((r) => ({ ...r, standardMaterialId: firstUsable.materialId }))
@@ -206,6 +206,11 @@ export function TitrantStandardizationDialog({
       // The result replaces the form - only Close is offered, so it cannot be submitted twice.
       setResult(data);
       onSuccess(data);
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = errorObj.response?.data?.message ?? errorObj.message ?? "Standardization failed.";
+      setValidationError(msg);
+      throw err;
     } finally {
       setSubmitting(false);
     }

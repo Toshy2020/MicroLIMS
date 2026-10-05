@@ -220,7 +220,8 @@ public record CreateTestDefinitionRequest(
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null)
+    int? IcpMethodId = null,
+    PhyschemArea? PhyschemArea = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
@@ -283,13 +284,17 @@ public record UpdateTestDefinitionRequest(
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null)
+    int? IcpMethodId = null,
+    PhyschemArea? PhyschemArea = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
     // the init setters instead. Without it every POST/PUT fails model binding.
     [JsonConstructor]
     public UpdateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
+
+    // Required (5-500 chars) when a titration setting changes; see TitrationDefinitionRules.Snapshot.
+    public string? ChangeReason { get; init; }
 }
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 

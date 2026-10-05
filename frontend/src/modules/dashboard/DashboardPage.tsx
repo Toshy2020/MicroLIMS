@@ -15,7 +15,7 @@ const LAB_ORDER: DashboardLabCode[] = ["MICRO", "FP"];
 
 export function DashboardPage() {
   const { role } = useAuth();
-  const { codes, loading } = useMyLabs();
+  const { codes, physchemAreas, loading } = useMyLabs();
   const [params, setParams] = useSearchParams();
 
   // Each dashboard is for one laboratory: a Microbiology dashboard never
@@ -24,7 +24,7 @@ export function DashboardPage() {
   const labs = LAB_ORDER.filter((c) => codes.includes(c));
   const requested = params.get("lab")?.toUpperCase() as DashboardLabCode | undefined;
   const code: DashboardLabCode | null = requested && labs.includes(requested) ? requested : labs[0] ?? null;
-  const lab = useMemo(() => makeDashboardLab(code), [code]);
+  const lab = useMemo(() => makeDashboardLab(code, physchemAreas), [code, physchemAreas]);
 
   if (loading) return <LoadingSpinner label="Loading dashboard…" />;
 

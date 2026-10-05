@@ -11,6 +11,9 @@ import {
 import { formatLabDate } from "../../../utils/formatDate";
 import type { LotOption, SolutionPreparationListItem } from "../types";
 
+// A primary-standard lot can be picked only when usable and its purity is recorded.
+export const isSelectableLot = (lot: LotOption): boolean => lot.usable && lot.purity != null;
+
 export interface ReplicateRowState {
   standardMaterialId: number | null;
   standardWeightMg: string;
@@ -55,8 +58,8 @@ export function ReplicateRowInputCard({
               inputProps={{ "aria-label": "Standard Lot" }}
             >
               {standardLots.map((lot) => (
-                <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
-                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){!lot.usable ? `, ${lot.reason}` : ""}
+                <MenuItem key={lot.materialId} value={lot.materialId} disabled={!isSelectableLot(lot)}>
+                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){lot.purity != null ? ` · Purity: ${lot.purity}%` : ""}{!lot.usable ? `, ${lot.reason}` : lot.purity == null ? ", No purity - enter it in Materials Stock" : ""}
                 </MenuItem>
               ))}
             </Select>

@@ -50,7 +50,8 @@ const MATERIAL_UNITS: MaterialUnit[] = [
 const CATEGORY_OPTIONS: Array<{ value: MaterialMasterCategory; label: string }> = [
   { value: "Reagent", label: "Reagent" },
   { value: "Indicator", label: "Indicator" },
-  { value: "ReferenceStandard", label: "Reference Standard" }
+  { value: "ReferenceStandard", label: "Reference Standard" },
+  { value: "PrimaryStandard", label: "Primary Standard" }
 ];
 
 export function MaterialMasterPage() {
@@ -316,6 +317,17 @@ export function MaterialMasterPage() {
             label="Reference Standard"
             size="small"
             color="info"
+            variant="outlined"
+            sx={{ fontSize: 11, fontWeight: 600 }}
+          />
+        );
+      case "PrimaryStandard":
+        return (
+          <Chip
+            icon={<VerifiedOutlinedIcon fontSize="small" />}
+            label="Primary Standard"
+            size="small"
+            color="success"
             variant="outlined"
             sx={{ fontSize: 11, fontWeight: 600 }}
           />

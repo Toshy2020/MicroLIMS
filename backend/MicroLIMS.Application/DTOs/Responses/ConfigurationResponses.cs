@@ -173,6 +173,7 @@ public class TestDefinitionResponse
     public string DisplayName { get; init; } = null!;
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
+    public PhyschemArea? PhyschemArea { get; init; }
     public WorkflowType WorkflowType { get; init; }
     public bool IsActive { get; init; }
     public EquationType EquationType { get; init; }
@@ -234,6 +235,7 @@ public class TestDefinitionResponse
         DisplayName = e.DisplayName,
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
+        PhyschemArea = e.PhyschemArea,
         WorkflowType = e.WorkflowType,
         IsActive = e.IsActive,
         EquationType = e.EquationType,

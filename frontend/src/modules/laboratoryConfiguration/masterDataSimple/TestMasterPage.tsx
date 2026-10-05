@@ -59,6 +59,13 @@ import {
   titrationPayloadFields,
   validateTitrationForm
 } from "./titrationConfig";
+import { PageArea, PhyschemArea, areaIncludes, defaultAreaFor } from "./testMasterArea";
+import { TestAreaField } from "./TestAreaField";
+import {
+  TitrationChangeReasonField,
+  hasTitrationSettingsChanged,
+  titrationChangeReasonCheck
+} from "./TitrationChangeReasonField";
 
 // Microbiology and the Finished Product (chemistry) lab each have their own
 // Test Master page: same component, filtered to the lab's section and
@@ -1379,7 +1386,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
 // Freezing a test hides it from those pickers' dropdown for *new*
 // selections without touching anything that already references its
 // Code - see useTestDefinitions.activeOptions.
-export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
+export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; area?: PageArea }) {
   const { options: allOptions, addNew, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
@@ -1401,7 +1408,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   }, [sectionsReloadKey]);
   const inLab = (sid?: number | null) =>
     isFp ? fpSectionId !== null && sid === fpSectionId : sid !== fpSectionId;
-  const options = allOptions.filter((t) => sectionsState === "loaded" && inLab(t.sectionId));
+  const options = allOptions.filter(
+    (t) =>
+      sectionsState === "loaded" &&
+      inLab(t.sectionId) &&
+      (!isFp || !area || areaIncludes(t.physchemArea, area))
+  );
+  const [physchemArea, setPhyschemArea] = useState<PhyschemArea | null>(null);
+  const [changeReason, setChangeReason] = useState("");
+  const [changeReasonError, setChangeReasonError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
@@ -1517,6 +1532,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS1MaxForRetest("6");
     setWvCapsuleS2ExtraUnits("40");
     setWvCapsuleS2MaxOutside("6");
+    setPhyschemArea(area ? defaultAreaFor(area) : null);
+    setChangeReason("");
+    setChangeReasonError(null);
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1560,6 +1578,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : "6");
     setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : "40");
     setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : "6");
+    setPhyschemArea(t.physchemArea ?? (area ? defaultAreaFor(area) : null));
+    setChangeReason("");
+    setChangeReasonError(null);
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1568,6 +1589,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setDialogOpen(false);
     setEditingId(null);
     setEditingTest(null);
+    setPhyschemArea(null);
+    setChangeReason("");
+    setChangeReasonError(null);
     setDialogError(null);
   };
 
@@ -1714,6 +1738,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
       }
     }
 
+    const reasonCheck = editingId
+      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null)
+      : { required: false, error: null, payload: null };
+    setChangeReasonError(reasonCheck.error);
+    if (reasonCheck.error) return;
+
     if (isHplcMethodAssay) {
       if (!hplcMethodId) {
         setDialogError("HPLC method is required for HPLC method assay tests.");
@@ -1813,6 +1843,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           ...titrationPayloadFields(titration, isTitration),
+          physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
+          changeReason: reasonCheck.payload,
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
           icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
         };
@@ -1853,6 +1885,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           ...titrationPayloadFields(titration, isTitration),
+          physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
           icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
         };
@@ -1975,7 +2008,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   return (
     <>
       <LabPage
-        title={isFp ? "Physicochemical Test Master" : "Microbiology Test Master"}
+        title={isFp ? (area === "rmpm" ? "RM & PM Test Master" : "FP Test Master") : "Microbiology Test Master"}
         subtitle={isFp
           ? "Physicochemical tests: HPLC methods, equation type and system suitability criteria."
           : "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."}
@@ -2394,6 +2427,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
           {workflowType === "Titration" && (
             <TitrationConfigSection form={titration} onChange={setTitration} sectionId={sectionId} />
+          )}
+
+          {isFp && area && <TestAreaField pageArea={area} value={physchemArea} onChange={setPhyschemArea} />}
+
+          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null) && (
+            <TitrationChangeReasonField value={changeReason} onChange={setChangeReason} error={changeReasonError} />
           )}
 
           {workflowType === "Qualitative" && (

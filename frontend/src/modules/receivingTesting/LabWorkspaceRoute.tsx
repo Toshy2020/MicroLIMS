@@ -5,6 +5,8 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useMyLabs } from "../../hooks/useMyLabs";
 import { laboratorySectionService, LaboratorySection } from "../../services/laboratorySectionService";
 import { ReceivingTestingWorkspacePage, WorkspaceLab } from "./ReceivingTestingWorkspacePage";
+import { FP_WORKSPACE_PATH, RMPM_WORKSPACE_PATH, firstWorkspacePath } from "../../routes/physchemWorkspacePath";
+import { ReceiveService } from "../receiving/services/ReceiveService";
 
 const LAB_NAMES: Record<WorkspaceLab["code"], string> = {
   MICRO: "Microbiology Laboratory",
@@ -25,14 +27,19 @@ function NotAMember({ message }: { message: string }) {
   );
 }
 
+interface LabWorkspaceRouteProps {
+  code: WorkspaceLab["code"];
+  area?: "fp" | "rmpm";
+}
+
 // Resolves one lab workspace route (/microbiology/workspace,
-// /physicochemical/workspace) to the caller's own section id + display
-// name. Membership comes from useMyLabs (Task 11 - a System Administrator
+// /physicochemical/workspace, /physicochemical/rm-pm-workspace) to the caller's own
+// section id + display name. Membership comes from useMyLabs (Task 11 - a System Administrator
 // counts as a member of both labs); the id/name come from the full section
 // list rather than useMyLabs's own `labs` array, because an administrator
 // doesn't always carry a real membership row for a lab they administer.
-export function LabWorkspaceRoute({ code }: { code: WorkspaceLab["code"] }) {
-  const { codes, loading: labsLoading } = useMyLabs();
+export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
+  const { codes, physchemAreas, loading: labsLoading } = useMyLabs();
   const [sections, setSections] = useState<LaboratorySection[] | null>(null);
   const [sectionsFailed, setSectionsFailed] = useState(false);
 
@@ -59,6 +66,18 @@ export function LabWorkspaceRoute({ code }: { code: WorkspaceLab["code"] }) {
     return <NotAMember message={`You are not a member of the ${LAB_NAMES[code]}.`} />;
   }
 
+  if (code === "FP" && area && !physchemAreas.includes(area)) {
+    return (
+      <NotAMember
+        message={
+          area === "rmpm"
+            ? "You do not have access to the RM & PM workspace."
+            : "You do not have access to the FP workspace."
+        }
+      />
+    );
+  }
+
   const section = sections?.find((s) => s.sectionCode === code);
   if (!section) {
     return (
@@ -68,7 +87,38 @@ export function LabWorkspaceRoute({ code }: { code: WorkspaceLab["code"] }) {
     );
   }
 
-  return <ReceivingTestingWorkspacePage lab={{ sectionId: section.sectionId, code, name: section.sectionName }} />;
+  const lab = { sectionId: section.sectionId, code, name: section.sectionName, area };
+  const other = area === "fp" ? "rmpm" : "fp";
+  if (code === "FP" && area && physchemAreas.includes(other)) {
+    return <OtherAreaSampleGuard key={area} lab={lab} otherPath={other === "rmpm" ? RMPM_WORKSPACE_PATH : FP_WORKSPACE_PATH} />;
+  }
+  return <ReceivingTestingWorkspacePage lab={lab} />;
+}
+
+// A per-sample deep link (notification, dashboard row) cannot tell which area its sample is in.
+// When this area's workspace answers 404 for the requested sample and the user has the other
+// area, send them there with the same query. The state flag stops a bounce between the two.
+function OtherAreaSampleGuard({ lab, otherPath }: { lab: WorkspaceLab; otherPath: string }) {
+  const location = useLocation();
+  const sampleId = Number(new URLSearchParams(location.search).get("sampleId"));
+  const alreadyRedirected = (location.state as { areaRedirected?: boolean } | null)?.areaRedirected === true;
+  const check = sampleId > 0 && !alreadyRedirected;
+  const [state, setState] = useState<"checking" | "stay" | "redirect">(check ? "checking" : "stay");
+
+  useEffect(() => {
+    if (!check) return;
+    let cancelled = false;
+    ReceiveService.getSample(sampleId, lab.sectionId, lab.area)
+      .then(() => !cancelled && setState("stay"))
+      .catch((err) => !cancelled && setState(err?.response?.status === 404 ? "redirect" : "stay"));
+    return () => {
+      cancelled = true;
+    };
+  }, [check, sampleId, lab.sectionId, lab.area]);
+
+  if (state === "checking") return <LoadingSpinner />;
+  if (state === "redirect") return <Navigate to={`${otherPath}${location.search}`} replace state={{ areaRedirected: true }} />;
+  return <ReceivingTestingWorkspacePage lab={lab} />;
 }
 
 // /receiving-testing has no lab of its own any more - it lands on the
@@ -76,7 +126,7 @@ export function LabWorkspaceRoute({ code }: { code: WorkspaceLab["code"] }) {
 // preserving the query string so deep links from notifications and
 // dashboards still land on the right sample/filter.
 export function FirstLabWorkspaceRedirect() {
-  const { codes, loading } = useMyLabs();
+  const { codes, physchemAreas, loading } = useMyLabs();
   const location = useLocation();
 
   if (loading) return <LoadingSpinner />;
@@ -86,6 +136,6 @@ export function FirstLabWorkspaceRedirect() {
     return <NotAMember message="You are not a member of any laboratory workspace." />;
   }
 
-  const path = target === "MICRO" ? "/microbiology/workspace" : "/physicochemical/workspace";
+  const path = target === "MICRO" ? "/microbiology/workspace" : firstWorkspacePath(physchemAreas);
   return <Navigate to={`${path}${location.search}`} replace />;
 }

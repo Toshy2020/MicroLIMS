@@ -4,5 +4,6 @@ public enum MaterialMasterCategory
 {
     Reagent,
     Indicator,
-    ReferenceStandard
+    ReferenceStandard,
+    PrimaryStandard
 }

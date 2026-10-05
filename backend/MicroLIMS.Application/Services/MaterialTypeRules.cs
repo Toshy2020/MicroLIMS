@@ -30,6 +30,7 @@ public static class MaterialTypeRules
     {
         MaterialType.Chemical,
         MaterialType.ReferenceStandard,
+        MaterialType.PrimaryStandard,
         MaterialType.Indicator,
         MaterialType.ReferenceBuffer,
         MaterialType.DisposableTool,

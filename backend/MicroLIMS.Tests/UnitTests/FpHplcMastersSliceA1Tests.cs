@@ -527,7 +527,7 @@ public class FpHplcMastersSliceA1Tests
                 Purity: 99.9m
             ), fpUser.Id));
 
-        Assert.Equal("Purity is only allowed for reference standards.", ex.Message);
+        Assert.Equal("Purity is only allowed for reference and primary standards.", ex.Message);
     }
 
     [Fact]

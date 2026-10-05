@@ -30,8 +30,16 @@ public class RetireCalibrationRunsMigrationTests
 
             await using var c = new NpgsqlConnection(cs);
             await c.OpenAsync();
-            // Parents are not needed for this test; skip FK checks on this connection only.
-            await Exec(c, "SET session_replication_role = replica");
+            // Parents are not needed for this test. CI's role is not a superuser (no
+            // session_replication_role), so drop the FKs while seeding and re-add them
+            // NOT VALID below: same names and rules for the migration, orphans tolerated.
+            var fks = new List<(string Table, string Name, string Def)>();
+            await using (var q = new NpgsqlCommand(
+                "SELECT conrelid::regclass::text, conname, pg_get_constraintdef(oid) FROM pg_constraint " +
+                "WHERE contype = 'f' AND connamespace = 'public'::regnamespace", c))
+            await using (var r = await q.ExecuteReaderAsync())
+                while (await r.ReadAsync()) fks.Add((r.GetString(0), r.GetString(1), r.GetString(2)));
+            foreach (var fk in fks) await Exec(c, $"ALTER TABLE {fk.Table} DROP CONSTRAINT \"{fk.Name}\"");
 
             // (a) HPLC-FOLIC shape: Workflow 3, Equation 13, HplcMethodId set
             await Insert(c, "TestDefinitions", ("Code", "HPLC-X"), ("WorkflowType", 3), ("EquationType", 13), ("HplcMethodId", 5));
@@ -49,6 +57,8 @@ public class RetireCalibrationRunsMigrationTests
             // (c) unrelated count test
             await Insert(c, "TestDefinitions", ("Code", "COUNT-1"), ("WorkflowType", 1));
             var (countOrder, countAnalysis, countResult) = await OrderChain(c, "COUNT-1");
+
+            foreach (var fk in fks) await Exec(c, $"ALTER TABLE {fk.Table} ADD CONSTRAINT \"{fk.Name}\" {fk.Def} NOT VALID");
 
             await migrator.MigrateAsync(Target);
 

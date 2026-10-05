@@ -153,7 +153,7 @@ export function UploadEquipmentDocumentDialog({ open, equipmentId, onClose, onSu
         {file ? (
           <>
             <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{file.name}</Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               {(file.size / 1024 / 1024).toFixed(2)} MB
             </Typography>
           </>
@@ -162,7 +162,7 @@ export function UploadEquipmentDocumentDialog({ open, equipmentId, onClose, onSu
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
               Click to select a file
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
               PDF, JPG, JPEG, PNG, WEBP, TIFF · max 25 MB
             </Typography>
           </>

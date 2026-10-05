@@ -90,7 +90,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
             label={`× ${group.sampleCount} ${sampleWord}`}
             sx={{
               height: 20,
-              fontSize: "0.6875rem",
+              fontSize: "0.75rem",
               fontWeight: 700,
               bgcolor: theme.custom.status.purple.bg,
               color: theme.custom.status.purple.text,
@@ -102,12 +102,12 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
             size="small"
             label={group.approvalStatus === "Approved" ? "Approved" : "Pending Approval"}
             color={group.approvalStatus === "Approved" ? "success" : "warning"}
-            sx={{ height: 20, fontSize: "0.6875rem", fontWeight: 700, borderRadius: "4px" }}
+            sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700, borderRadius: "4px" }}
           />
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0, textAlign: "center", px: 1 }}>
-          <Typography noWrap sx={{ fontSize: "0.74rem", color: "text.secondary", fontWeight: 500 }}>
+          <Typography noWrap sx={{ fontSize: "0.75rem", color: "text.secondary", fontWeight: 500 }}>
             {group.technique === "PourPlate" ? "Pour Plate" : group.technique} · Amount {group.amount}
             {group.diluent ? ` · ${group.diluent}` : ""}
           </Typography>
@@ -137,7 +137,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
           }}
         >
           <Box sx={{ mb: 1.5 }}>
-            <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
               Samples to prepare ({group.sampleCount}):
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -148,7 +148,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
                   label={s.batchNumber ? `${s.sampleReference} · ${s.batchNumber}` : s.sampleReference}
                   sx={{
                     height: 24,
-                    fontSize: "0.72rem",
+                    fontSize: "0.75rem",
                     fontWeight: 600,
                     borderRadius: "6px",
                     bgcolor: theme.palette.background.paper,
@@ -161,19 +161,19 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
           </Box>
 
           {group.approvalStatus === "PendingReview" && (
-            <Alert severity="info" sx={{ mb: 1.5, py: 0.25, fontSize: "0.74rem" }}>
+            <Alert severity="info" sx={{ mb: 1.5, py: 0.25, fontSize: "0.75rem" }}>
               This item's preparation configuration is still awaiting Section Head approval. It is in effect and
               can be confirmed now - approval is a separate review and does not hold up testing.
             </Alert>
           )}
 
           {error && (
-            <Alert severity="error" sx={{ mb: 1.5, py: 0.25, fontSize: "0.74rem" }}>
+            <Alert severity="error" sx={{ mb: 1.5, py: 0.25, fontSize: "0.75rem" }}>
               {error}
             </Alert>
           )}
 
-          <Typography sx={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.75 }}>
+          <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.75 }}>
             Configured Preparation Steps
           </Typography>
 

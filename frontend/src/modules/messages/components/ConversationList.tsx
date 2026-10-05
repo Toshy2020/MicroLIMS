@@ -140,7 +140,7 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
                       >
                         {displayTitle}
                       </Typography>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary", flexShrink: 0 }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary", flexShrink: 0 }}>
                         {formatTimestamp(c.lastMessageAt)}
                       </Typography>
                     </Box>

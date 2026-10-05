@@ -64,7 +64,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
             variant="outlined"
             startIcon={<ContentCopyIcon sx={{ fontSize: 12 }} />}
             onClick={copyBoth}
-            sx={{ fontSize: 11, textTransform: "none" }}
+            sx={{ fontSize: 12, textTransform: "none" }}
           >
             Copy Raw JSON
           </Button>
@@ -73,7 +73,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
           {/* Previous Value */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.detected.text, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.detected.text, mb: 0.5 }}>
               Previous Value
             </Typography>
             <Box
@@ -84,7 +84,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
                 border: "1px solid",
                 borderColor: theme.custom.status.detected.border,
                 borderRadius: 1,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "monospace",
                 overflowX: "auto",
                 maxHeight: 250,
@@ -97,7 +97,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
 
           {/* New Value */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
               Current Value
             </Typography>
             <Box
@@ -108,7 +108,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
                 border: "1px solid",
                 borderColor: theme.custom.status.notDetected.border,
                 borderRadius: 1,
-                fontSize: 11,
+                fontSize: 12,
                 fontFamily: "monospace",
                 overflowX: "auto",
                 maxHeight: 250,

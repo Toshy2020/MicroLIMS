@@ -123,7 +123,7 @@ export function ThawVialReasonDialog({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Cryovial Code
                 </Typography>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}>
@@ -132,7 +132,7 @@ export function ThawVialReasonDialog({
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Organism
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -141,7 +141,7 @@ export function ThawVialReasonDialog({
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Available Vials
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
@@ -174,12 +174,12 @@ export function ThawVialReasonDialog({
               slotProps={{ htmlInput: { "aria-label": "Enter reason for thawing this cryovial" } }}
             />
             <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 GMP justification for vial retrieval
               </Typography>
               <Typography
                 sx={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: reason.length >= 450 ? theme.custom.status.action.text : "text.secondary"
                 }}

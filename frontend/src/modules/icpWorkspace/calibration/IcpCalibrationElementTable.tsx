@@ -54,7 +54,7 @@ export function IcpCalibrationElementTable({
             <TableCell sx={{ minWidth: 120 }}>Wavelength (nm)</TableCell>
             <TableCell sx={{ minWidth: 160 }}>
               Correlation (r)
-              <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+              <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
                 min {method.minCorrelation.toFixed(4)}
               </Typography>
             </TableCell>
@@ -62,7 +62,7 @@ export function IcpCalibrationElementTable({
               <TableCell sx={{ minWidth: 140 }}>
                 Blank (mg/L)
                 {method.blankMaxMgPerL != null && (
-                  <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                  <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
                     max {method.blankMaxMgPerL}
                   </Typography>
                 )}
@@ -72,7 +72,7 @@ export function IcpCalibrationElementTable({
               <TableCell sx={{ minWidth: 140 }}>
                 ICV Measured (mg/L)
                 {method.icvNominalMgPerL != null && (
-                  <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                  <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
                     nominal {method.icvNominalMgPerL}
                   </Typography>
                 )}
@@ -81,7 +81,7 @@ export function IcpCalibrationElementTable({
             {method.requireIcv && (
               <TableCell sx={{ minWidth: 130 }}>
                 ICV Recovery
-                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
                   {method.icvRecoveryLowPercent}%–{method.icvRecoveryHighPercent}%
                 </Typography>
               </TableCell>

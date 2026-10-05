@@ -90,7 +90,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Media Type / Name</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Media Type / Name</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{detail.mediaType}</Typography>
           </Grid>
           <Grid
@@ -98,7 +98,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Source Dehydrated Material</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Source Dehydrated Material</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.manufacturerName} (Lot: {detail.manufacturerLot || "—"})
             </Typography>
@@ -108,7 +108,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Preparation / Expiry Date</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Preparation / Expiry Date</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {formatDate(detail.preparedAt)} • Exp: {formatDate(detail.expiryDate)}
             </Typography>
@@ -118,7 +118,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Weight / Volume</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Weight / Volume</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.totalWeight} g / {detail.totalVolume}
             </Typography>
@@ -128,7 +128,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Autoclave / Program / Load</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Autoclave / Program / Load</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.autoclaveName || "—"} ({detail.autoclaveProgram}) • {detail.loadType || "—"}
             </Typography>
@@ -138,7 +138,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Temp / Cycle / pH</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Temp / Cycle / pH</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.temperature}°C ({detail.cycleTime} min, #{detail.cycleNumber}) • pH {detail.ph}
             </Typography>
@@ -148,7 +148,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 6
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared By</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
@@ -158,7 +158,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 6
             }}>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Release Status / Decided By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Release Status / Decided By</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               <span style={{ color: detail.isReleasedForUse ? brandColors.ok : "inherit" }}>
                 {detail.approvalStatus} {detail.isReleasedForUse && "(Released for Routine Testing)"}
@@ -185,13 +185,13 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Organism / ATCC</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Strain Source</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Inoculum</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Actual Results</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Acceptance Criteria</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Outcome</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 11.5 }}>Analyst / Read Date</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Organism / ATCC</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Strain Source</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Inoculum</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Actual Results</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Acceptance Criteria</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Outcome</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst / Read Date</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -220,7 +220,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                       {c.recoveryPercent !== null && (
                         <Box>
                           <strong>{c.recoveryPercent}%</strong> Recovery
-                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
                             New: {c.newMediaCount} / Old: {c.oldMediaCount} (Ref: {c.referenceMediaLot || "—"})
                           </Typography>
                         </Box>
@@ -244,7 +244,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                         </Box>
                       )}
                     </TableCell>
-                    <TableCell sx={{ fontSize: 11.5, color: "text.secondary" }}>
+                    <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
                       {c.expectedMinRecoveryPercent !== null && c.expectedMaxRecoveryPercent !== null && (
                         <span>{c.expectedMinRecoveryPercent}% – {c.expectedMaxRecoveryPercent}%</span>
                       )}
@@ -258,14 +258,14 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                         icon={isConform ? <CheckCircleIcon sx={{ "&&": { fontSize: 14 } }} /> : isNonConform ? <CancelIcon sx={{ "&&": { fontSize: 14 } }} /> : undefined}
                         label={c.outcome || "Pending"}
                         color={isConform ? "success" : isNonConform ? "error" : "default"}
-                        sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
+                        sx={{ fontWeight: 700, fontSize: 12, height: 22 }}
                       />
                     </TableCell>
-                    <TableCell sx={{ fontSize: 11.5 }}>
+                    <TableCell sx={{ fontSize: 12 }}>
                       {c.readByName ? (
                         <>
                           <div>{c.readByName}</div>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11 }}>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 12 }}>
                             {formatDateTime(c.readAt)}
                           </Typography>
                         </>

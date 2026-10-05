@@ -552,7 +552,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         {isLocked && <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.status.detected.text }} />}
                       </Stack>
 
-                      <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 500 }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 500 }}>
                         {t.displayName}
                       </Typography>
 
@@ -568,7 +568,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           label={t.testSessionStateDisplay}
                           size="small"
                           sx={{
-                            fontSize: 11,
+                            fontSize: 12,
                             height: 20,
                             bgcolor: isLocked ? theme.custom.status.detected.bg : theme.custom.status.info.bg,
                             color: isLocked ? theme.custom.status.detected.text : theme.custom.status.info.text,
@@ -580,7 +580,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             label={`${confMediaCount}x Media`}
                             size="small"
                             sx={{
-                              fontSize: 11,
+                              fontSize: 12,
                               height: 20,
                               bgcolor: theme.custom.status.purple.bg,
                               color: theme.custom.status.purple.text,
@@ -622,14 +622,14 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         alignItems: "center",
                         mt: 0.25
                       }}>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         {loc.locationType}
                       </Typography>
                       {loc.gradeClassification && (
                         <Chip
                           label={`Grade ${loc.gradeClassification}`}
                           size="small"
-                          sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
+                          sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                         />
                       )}
                     </Stack>
@@ -672,7 +672,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                                 alignItems: "center",
                                 gap: 0.75,
                                 color: theme.custom.countdown.locked.text,
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 cursor: "not-allowed"
                               }}

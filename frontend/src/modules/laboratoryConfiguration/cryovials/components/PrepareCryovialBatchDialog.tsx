@@ -265,7 +265,7 @@ export function PrepareCryovialBatchDialog({
                 </Typography>
 
                 <Box sx={{ mt: 1.25, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.3px", mb: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.3px", mb: 0.5 }}>
                     Reference Description (Organism Master Data)
                   </Typography>
                   {selectedMaterial.organism?.description ? (
@@ -406,7 +406,7 @@ export function PrepareCryovialBatchDialog({
                 }}
               >
                 <Box>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Storage Equipment
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
@@ -414,7 +414,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Code
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -422,7 +422,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Location
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -430,7 +430,7 @@ export function PrepareCryovialBatchDialog({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                     Status
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
@@ -450,7 +450,7 @@ export function PrepareCryovialBatchDialog({
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Section 2: Identity Confirmation Panel
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Mandatory qualification before GPT reference
             </Typography>
           </Box>
@@ -459,11 +459,11 @@ export function PrepareCryovialBatchDialog({
             <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
                   <TableCell sx={{ width: 40 }}></TableCell>
                 </TableRow>
               </TableHead>

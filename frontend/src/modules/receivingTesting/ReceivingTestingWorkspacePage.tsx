@@ -659,7 +659,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           Laboratory Register ({displayRecords.length}
           {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
         </Typography>
-        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           {headerNote}
         </Typography>
       </Box>
@@ -678,7 +678,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         <TableContainer>
           <Table size="small" stickyHeader>
             <TableHead>
-              <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
+              <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1 } }]}>
                 <TableCell>Item / Reference</TableCell>
                 <TableCell sx={{ width: 65 }}>Type</TableCell>
                 <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
@@ -723,7 +723,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               borderTop: "1px solid",
               borderColor: "divider",
               "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                fontSize: 11
+                fontSize: 12
               },
               "& .MuiTablePagination-toolbar": {
                 minHeight: 36,

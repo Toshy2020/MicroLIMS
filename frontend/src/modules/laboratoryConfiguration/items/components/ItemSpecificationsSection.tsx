@@ -72,7 +72,7 @@ export const LimitTypeBadge: React.FC<{ type: string; labelOverride?: string }> 
       label={labelOverride ?? LIMIT_TYPE_LABELS[type] ?? type}
       sx={{
         height: 22,
-        fontSize: 11.5,
+        fontSize: 12,
         fontWeight: 600,
         color: "text.secondary",
         borderColor: "divider",
@@ -510,7 +510,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                     <Chip
                                       size="small"
                                       label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
-                                      sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
+                                      sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
                                     />
                                   )}
                                   {spec.canEdit === false && (
@@ -519,7 +519,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       label={spec.sectionName || "Other lab"}
                                       sx={{
                                         height: 20,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: 600,
                                         color: "text.secondary",
                                         bgcolor: "action.selected"
@@ -532,7 +532,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
                                       sx={{
                                         height: 20,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         color: "primary.main",
                                         bgcolor: "primary.50",
                                         border: "1px solid",
@@ -546,7 +546,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
                                       sx={{
                                         height: 20,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         color: "primary.main",
                                         bgcolor: "primary.50",
                                         border: "1px solid",
@@ -564,7 +564,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       )}`}
                                       sx={{
                                         height: 20,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         color: "text.secondary",
                                         bgcolor: "action.hover",
                                         border: "1px solid",
@@ -587,7 +587,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                     label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
                                     sx={{
                                       height: 20,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: "text.secondary",
                                       bgcolor: "action.hover",
                                       border: "1px solid",
@@ -603,7 +603,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                     label={`Label Claim ${spec.labelClaim} ${spec.labelClaimUnit || "mg"}`}
                                     sx={{
                                       height: 20,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: "text.secondary",
                                       bgcolor: "action.hover",
                                       border: "1px solid",
@@ -619,7 +619,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                             </TableCell>
                             <TableCell align="right">
                               {spec.canEdit === false ? (
-                                <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                                <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                                   Read-only
                                 </Typography>
                               ) : (
@@ -712,7 +712,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 label={`${group.specs.length} parameters`}
                                 sx={{
                                   height: 20,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   bgcolor: "background.paper"
                                 }}
                               />
@@ -722,7 +722,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   label={groupSectionName || "Other lab"}
                                   sx={{
                                     height: 20,
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: 600,
                                     color: "text.secondary",
                                     bgcolor: "background.paper"
@@ -760,7 +760,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                             <Chip
                                               size="small"
                                               label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
-                                              sx={{ height: 20, fontSize: 11, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
+                                              sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
                                             />
                                           )}
                                         
@@ -770,7 +770,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                               label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
                                               sx={{
                                                 height: 20,
-                                                fontSize: 11,
+                                                fontSize: 12,
                                                 color: "primary.main",
                                                 bgcolor: "primary.50",
                                                 border: "1px solid",
@@ -784,7 +784,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                               label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
                                               sx={{
                                                 height: 20,
-                                                fontSize: 11,
+                                                fontSize: 12,
                                                 color: "primary.main",
                                                 bgcolor: "primary.50",
                                                 border: "1px solid",
@@ -802,7 +802,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                        )}`}
                                               sx={{
                                                 height: 20,
-                                                fontSize: 11,
+                                                fontSize: 12,
                                                 color: "text.secondary",
                                                 bgcolor: "action.hover",
                                                 border: "1px solid",
@@ -828,7 +828,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                           label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
                                           sx={{
                                             height: 20,
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             color: "text.secondary",
                                             bgcolor: "action.hover",
                                             border: "1px solid",
@@ -846,7 +846,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 </TableCell>
                                 <TableCell align="right">
                                   {spec.canEdit === false ? (
-                                    <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                                    <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                                       Read-only
                                     </Typography>
                                   ) : (

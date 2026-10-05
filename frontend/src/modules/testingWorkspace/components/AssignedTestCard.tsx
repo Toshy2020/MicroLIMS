@@ -462,7 +462,7 @@ export function AssignedTestCard({
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>
             {test.testCode}{locationLabel}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary", whiteSpace: "nowrap" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
             #{test.testOrderId}
           </Typography>
           <StatusBadge status={dynamicBadge.status} label={dynamicBadge.label} />
@@ -473,7 +473,7 @@ export function AssignedTestCard({
           <Typography
             noWrap
             sx={{
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: effectiveIsIncubating ? 600 : 500,
               color: effectiveIsIncubating ? theme.custom.status.info.text : "text.secondary"
             }}
@@ -506,7 +506,7 @@ export function AssignedTestCard({
                 }}
                 sx={{
                   color: theme.palette.primary.main,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: 700,
                   p: 0,
                   minWidth: "auto",
@@ -565,13 +565,13 @@ export function AssignedTestCard({
           {loading ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
               <CircularProgress size={14} />
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 Loading step requirements...
               </Typography>
             </Box>
           ) : error ? (
             <Box sx={{ py: 0.5 }}>
-              <Typography sx={{ fontSize: 11, color: "error.main" }}>
+              <Typography sx={{ fontSize: 12, color: "error.main" }}>
                 {error}
               </Typography>
             </Box>
@@ -593,7 +593,7 @@ export function AssignedTestCard({
                 onChange={(e) => setSelectedMediaId(e.target.value === "" ? "" : Number(e.target.value))}
                 sx={{
                   height: 28,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   flex: 1,
                   minWidth: 160,
                   bgcolor: "background.paper",
@@ -601,16 +601,16 @@ export function AssignedTestCard({
                 }}
                 inputProps={{ "aria-label": "Media lot" }}
               >
-                <MenuItem value="" sx={{ fontSize: 11.5 }}>
+                <MenuItem value="" sx={{ fontSize: 12 }}>
                   <em>Select Media Lot ({permittedMaterialNames || "Approved"})</em>
                 </MenuItem>
                 {matchingMedia.map((m) => (
-                  <MenuItem key={m.id} value={m.id} sx={{ fontSize: 11.5, py: 0.5 }}>
+                  <MenuItem key={m.id} value={m.id} sx={{ fontSize: 12, py: 0.5 }}>
                     {m.lotNumber} {m.materialName ? `(${m.materialName})` : ""}
                   </MenuItem>
                 ))}
                 {matchingMedia.length === 0 && (
-                  <MenuItem disabled value="" sx={{ fontSize: 11.5 }}>
+                  <MenuItem disabled value="" sx={{ fontSize: 12 }}>
                     No released lots available
                   </MenuItem>
                 )}
@@ -625,7 +625,7 @@ export function AssignedTestCard({
                 onChange={(e) => setSelectedIncubatorId(e.target.value === "" ? "" : Number(e.target.value))}
                 sx={{
                   height: 28,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   flex: 1,
                   minWidth: 150,
                   bgcolor: "background.paper",
@@ -633,16 +633,16 @@ export function AssignedTestCard({
                 }}
                 inputProps={{ "aria-label": "Incubator" }}
               >
-                <MenuItem value="" sx={{ fontSize: 11.5 }}>
+                <MenuItem value="" sx={{ fontSize: 12 }}>
                   <em>Incubator ({stage1TempMin}–{stage1TempMax}°C)</em>
                 </MenuItem>
                 {matchingIncubators.map((inc) => (
-                  <MenuItem key={inc.id} value={inc.id} sx={{ fontSize: 11.5, py: 0.5 }}>
+                  <MenuItem key={inc.id} value={inc.id} sx={{ fontSize: 12, py: 0.5 }}>
                     {inc.code} ({inc.setPointTemperature}°C)
                   </MenuItem>
                 ))}
                 {matchingIncubators.length === 0 && (
-                  <MenuItem disabled value="" sx={{ fontSize: 11.5 }}>
+                  <MenuItem disabled value="" sx={{ fontSize: 12 }}>
                     No matching incubator
                   </MenuItem>
                 )}
@@ -657,7 +657,7 @@ export function AssignedTestCard({
                 onClick={onExecuteQuickAction}
                 sx={{
                   height: 28,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: 700,
                   textTransform: "none",
                   px: 1.5,
@@ -669,7 +669,7 @@ export function AssignedTestCard({
             </Box>
           ) : (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 0.25 }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 Step requires full workflow interaction.
               </Typography>
               <Button
@@ -677,7 +677,7 @@ export function AssignedTestCard({
                 variant="text"
                 data-no-row-click="true"
                 onClick={() => onTestClick(test, sample)}
-                sx={{ fontSize: 11, fontWeight: 700, p: 0, textTransform: "none" }}
+                sx={{ fontSize: 12, fontWeight: 700, p: 0, textTransform: "none" }}
               >
                 Open Workflow →
               </Button>

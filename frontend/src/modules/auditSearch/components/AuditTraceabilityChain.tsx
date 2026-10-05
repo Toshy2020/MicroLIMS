@@ -77,7 +77,7 @@ export function AuditTraceabilityChain({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, py: 1 }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+      <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
         Traceability Chain · {result.primaryCategory} ({result.rootIdentifier})
       </Typography>
 
@@ -103,7 +103,7 @@ export function AuditTraceabilityChain({
                     label={node.nodeType.toUpperCase()}
                     size="small"
                     sx={{
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       height: 20,
                       bgcolor: theme.custom.status.purple.bg,
@@ -119,7 +119,7 @@ export function AuditTraceabilityChain({
                     label={node.status}
                     size="small"
                     variant="outlined"
-                    sx={{ fontSize: 11, height: 20 }}
+                    sx={{ fontSize: 12, height: 20 }}
                   />
                 )}
               </Box>
@@ -129,7 +129,7 @@ export function AuditTraceabilityChain({
               </Typography>
 
               {node.description && (
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {node.description}
                 </Typography>
               )}
@@ -141,7 +141,7 @@ export function AuditTraceabilityChain({
                     size="small"
                     variant="text"
                     onClick={() => onOpenEntityHistory(node.nodeType, node.entityId!)}
-                    sx={{ fontSize: 11, textTransform: "none", py: 0.2 }}
+                    sx={{ fontSize: 12, textTransform: "none", py: 0.2 }}
                   >
                     View Audit History
                   </Button>
@@ -158,7 +158,7 @@ export function AuditTraceabilityChain({
                       size="small"
                       variant="outlined"
                       endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
-                      sx={{ fontSize: 11, textTransform: "none", py: 0.2 }}
+                      sx={{ fontSize: 12, textTransform: "none", py: 0.2 }}
                     >
                       Open {node.nodeType}
                     </Button>

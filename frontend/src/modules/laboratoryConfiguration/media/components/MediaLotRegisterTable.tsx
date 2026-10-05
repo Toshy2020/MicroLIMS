@@ -66,7 +66,7 @@ export function MediaLotRegisterTable({
               <Typography sx={{ fontWeight: selectedLotId === lot.id ? 700 : 600, fontSize: 12.5, color: selectedLotId === lot.id ? "primary.main" : "text.primary" }}>
                 {lot.material?.materialName || "Dehydrated Material"}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Lot: {lot.lotNumber}</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Lot: {lot.lotNumber}</Typography>
             </>
           )
         },
@@ -81,7 +81,7 @@ export function MediaLotRegisterTable({
               <>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>{lot.material.materialName}</Typography>
                 {lot.material.batchNumber && (
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Batch: {lot.material.batchNumber}</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Batch: {lot.material.batchNumber}</Typography>
                 )}
               </>
             ) : (
@@ -95,7 +95,7 @@ export function MediaLotRegisterTable({
               <Typography sx={{ fontWeight: 700, fontSize: 13, fontFamily: monospaceFontFamily, color: selectedLotId === lot.id ? "primary.main" : "text.primary" }}>
                 {lot.lotNumber}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>ID #{lot.id}</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>ID #{lot.id}</Typography>
             </>
           )
         },

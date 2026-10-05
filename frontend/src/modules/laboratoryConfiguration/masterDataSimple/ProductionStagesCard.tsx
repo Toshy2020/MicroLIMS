@@ -175,7 +175,7 @@ export function ProductionStagesCard() {
         <Chip
           size="small"
           label={loading ? "—" : list.length}
-          sx={{ height: 20, fontSize: 11, fontWeight: 600 }}
+          sx={{ height: 20, fontSize: 12, fontWeight: 600 }}
         />
       </Box>
 
@@ -352,7 +352,7 @@ export function ProductionStagesCard() {
                     size="small"
                     label={o.role}
                     variant="outlined"
-                    sx={{ height: 20, fontSize: 11 }}
+                    sx={{ height: 20, fontSize: 12 }}
                   />
                   <Tooltip title="Rename">
                     <IconButton

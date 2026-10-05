@@ -139,7 +139,7 @@ function MediaProductRowCard({
               label={`${product.configurationCount} ${product.configurationCount === 1 ? "Configuration" : "Configurations"}`}
               size="small"
               sx={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 color: theme.custom.status.purple.text,
                 bgcolor: theme.custom.status.purple.bg,
@@ -152,7 +152,7 @@ function MediaProductRowCard({
               size="small"
               variant="outlined"
               sx={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 height: 20,
               }}

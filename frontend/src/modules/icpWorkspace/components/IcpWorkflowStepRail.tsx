@@ -181,7 +181,7 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
                   sx={{
                     display: "block",
                     fontWeight: 700,
-                    fontSize: 10,
+                    fontSize: 12,
                     textTransform: "uppercase",
                     color: statusColor,
                     letterSpacing: 0.5

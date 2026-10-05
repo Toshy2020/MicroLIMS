@@ -259,7 +259,7 @@ export function IcpSampleEntryPage() {
               </ToggleButton>
             </ToggleButtonGroup>
             {sampleEntry.mode === "ElementalImpurities" && (
-              <FormHelperText sx={{ fontSize: 11 }}>
+              <FormHelperText sx={{ fontSize: 12 }}>
                 Elemental impurities are reported per gram (mL disabled).
               </FormHelperText>
             )}

@@ -105,7 +105,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
                   key={seg.label} size="small"
                   onClick={() => onChange({ resultLevel: (seg.value || undefined) as ResultRecordSearchParams["resultLevel"] })}
                   sx={{
-                    fontSize: 11.5, minWidth: 0, px: 1.25, py: 0.5, textTransform: "none",
+                    fontSize: 12, minWidth: 0, px: 1.25, py: 0.5, textTransform: "none",
                     color: selected ? "common.white" : color,
                     bgcolor: selected ? color : "transparent",
                     border: `1px solid ${color}`,

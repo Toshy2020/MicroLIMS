@@ -82,7 +82,7 @@ export function SampleLifecycleBadge({ status, onClick, interactive = true }: Pr
       }
       sx={{
         display: "inline-flex", alignItems: "center", gap: 0.5,
-        px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700,
+        px: 1, py: 0.25, borderRadius: 5, fontSize: 12, fontWeight: 700,
         color: tokens.text, bgcolor: tokens.bg, border: `1px solid ${tokens.border}`,
         cursor: clickable ? "pointer" : "default",
         "&:hover": clickable ? { opacity: 0.85 } : undefined

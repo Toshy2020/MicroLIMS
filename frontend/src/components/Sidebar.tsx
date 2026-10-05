@@ -133,7 +133,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   px: 2.5,
                   pt: groupIdx === 0 ? 0.75 : 1.75,
                   pb: 0.5,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   letterSpacing: "0.08em",
                   color: "rgba(255, 255, 255, 0.72)",
@@ -304,7 +304,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                             <Typography
                               sx={{
                                 px: 2, pt: 1, pb: 0.5,
-                                fontSize: 11, fontWeight: 700, letterSpacing: 0.6,
+                                fontSize: 12, fontWeight: 700, letterSpacing: 0.6,
                                 color: "text.secondary", textTransform: "uppercase"
                               }}
                             >

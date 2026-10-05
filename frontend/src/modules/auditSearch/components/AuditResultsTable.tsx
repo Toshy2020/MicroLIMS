@@ -92,11 +92,11 @@ export function AuditResultsTable({
                   }}
                 >
                   {/* Timestamp */}
-                  <TableCell sx={{ fontSize: 11, whiteSpace: "nowrap" }}>
+                  <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                       {formatLabDateTime(item.timestamp)}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       UTC
                     </Typography>
                   </TableCell>
@@ -106,10 +106,10 @@ export function AuditResultsTable({
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                       {item.userName}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "primary.main", fontWeight: 600 }}>
+                    <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
                       {item.userRole ?? "User"}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary", fontFamily: "monospace" }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", fontFamily: "monospace" }}>
                       ID: #{item.userId}
                     </Typography>
                   </TableCell>
@@ -119,7 +119,7 @@ export function AuditResultsTable({
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                       {friendlyEntity}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, fontFamily: "monospace", color: "text.secondary" }}>
+                    <Typography sx={{ fontSize: 12, fontFamily: "monospace", color: "text.secondary" }}>
                       ID: {item.entityId}
                     </Typography>
                   </TableCell>
@@ -130,7 +130,7 @@ export function AuditResultsTable({
                       label={item.action.toUpperCase()}
                       size="small"
                       color={ACTION_COLORS[item.action] ?? "default"}
-                      sx={{ fontSize: 11, fontWeight: 700, height: 20 }}
+                      sx={{ fontSize: 12, fontWeight: 700, height: 20 }}
                     />
                   </TableCell>
 
@@ -147,41 +147,41 @@ export function AuditResultsTable({
                   </TableCell>
 
                   {/* Record Ref */}
-                  <TableCell sx={{ fontSize: 11 }}>
+                  <TableCell sx={{ fontSize: 12 }}>
                     {item.sampleReferenceNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Sample:</Typography>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Sample:</Typography>
+                        <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.sampleReferenceNumber}
                         </Typography>
                       </Box>
                     )}
                     {item.batchNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Batch:</Typography>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Batch:</Typography>
+                        <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.batchNumber}
                         </Typography>
                       </Box>
                     )}
                     {item.mediaLotNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Media Lot:</Typography>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Media Lot:</Typography>
+                        <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.mediaLotNumber}
                         </Typography>
                       </Box>
                     )}
                     {item.cryovialCode && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Cryovial:</Typography>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, fontFamily: "monospace" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Cryovial:</Typography>
+                        <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.cryovialCode}
                         </Typography>
                       </Box>
                     )}
                     {!hasRecordRef && (
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>—</Typography>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
                     )}
                   </TableCell>
 
@@ -195,7 +195,7 @@ export function AuditResultsTable({
                         onClick={() => onSelectEvent(item)}
                         sx={{
                           textTransform: "none",
-                          fontSize: 11,
+                          fontSize: 12,
                           py: 0.3,
                           px: 1,
                           fontWeight: 600

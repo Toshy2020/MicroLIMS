@@ -130,12 +130,12 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
                 size="small"
                 color={isExpired ? "error" : material.status === "Depleted" ? "default" : "success"}
                 variant="outlined"
-                sx={{ fontSize: 11 }}
+                sx={{ fontSize: 12 }}
               />
             }
           />
           {isExpired && (
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5, fontStyle: "italic" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5, fontStyle: "italic" }}>
               Historical, lot expired
             </Typography>
           )}

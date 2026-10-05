@@ -61,7 +61,7 @@ export function SelectionSummaryBar({
           label={`${hiddenCount} hidden by current filters`}
           sx={{
             height: 20,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 600,
             bgcolor: "background.paper",
             border: "1px solid",

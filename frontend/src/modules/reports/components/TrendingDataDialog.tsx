@@ -76,7 +76,7 @@ export function TrendingDataDialog({
     >
         {isNumeric ? (
           <TableContainer>
-            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
+            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Period / Date</TableCell>
@@ -112,7 +112,7 @@ export function TrendingDataDialog({
           </TableContainer>
         ) : (
           <TableContainer>
-            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
+            <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Period / Date</TableCell>

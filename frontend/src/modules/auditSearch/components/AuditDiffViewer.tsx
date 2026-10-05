@@ -35,7 +35,7 @@ export function AuditDiffViewer({
               label="CREATED"
               size="small"
               sx={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 height: 20,
                 bgcolor: theme.custom.status.notDetected.bg,
@@ -44,12 +44,12 @@ export function AuditDiffViewer({
                 borderColor: theme.custom.status.notDetected.border
               }}
             />
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Initial record created
             </Typography>
           </Box>
           {displayProps && (
-            <Typography sx={{ fontSize: 11, color: "text.primary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300 }}>
+            <Typography sx={{ fontSize: 12, color: "text.primary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300 }}>
               {displayProps}
             </Typography>
           )}
@@ -64,7 +64,7 @@ export function AuditDiffViewer({
             label="NEW RECORD CREATED"
             size="small"
             sx={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               bgcolor: theme.custom.status.notDetected.bg,
               color: theme.custom.status.notDetected.text,
@@ -76,7 +76,7 @@ export function AuditDiffViewer({
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1 }}>
           {changes.map((c) => (
             <Box key={c.key} sx={{ p: 1, bgcolor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
                 {c.label}
               </Typography>
               <Typography sx={{ fontSize: 12, fontWeight: 500, color: "text.primary" }}>
@@ -96,7 +96,7 @@ export function AuditDiffViewer({
           label="DELETED"
           size="small"
           sx={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
             height: 20,
             bgcolor: theme.custom.status.detected.bg,
@@ -105,7 +105,7 @@ export function AuditDiffViewer({
             borderColor: theme.custom.status.detected.border
           }}
         />
-        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           Record permanently marked deleted
         </Typography>
       </Box>
@@ -115,7 +115,7 @@ export function AuditDiffViewer({
   // UPDATE action
   if (changes.length === 0) {
     return (
-      <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic" }}>
+      <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
         No field value changes detected
       </Typography>
     );
@@ -128,15 +128,15 @@ export function AuditDiffViewer({
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
         {visibleChanges.map((c) => (
-          <Box key={c.key} sx={{ display: "flex", alignItems: "center", gap: 0.75, fontSize: 11 }}>
-            <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", minWidth: 80, flexShrink: 0 }}>
+          <Box key={c.key} sx={{ display: "flex", alignItems: "center", gap: 0.75, fontSize: 12 }}>
+            <Typography component="span" sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", minWidth: 80, flexShrink: 0 }}>
               {c.label}
             </Typography>
             <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               <Typography
                 component="span"
                 sx={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: theme.custom.status.detected.text,
                   bgcolor: theme.custom.status.detected.bg,
                   px: 0.5,
@@ -155,7 +155,7 @@ export function AuditDiffViewer({
               <Typography
                 component="span"
                 sx={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: theme.custom.status.notDetected.text,
                   bgcolor: theme.custom.status.notDetected.bg,
                   px: 0.5,
@@ -185,7 +185,7 @@ export function AuditDiffViewer({
                   onViewAll?.();
                 }}
                 sx={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: "primary.main",
                   cursor: "pointer",
@@ -216,19 +216,19 @@ export function AuditDiffViewer({
             bgcolor: "background.paper"
           }}
         >
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", mb: 0.5 }}>
-            {c.label} <Typography component="span" sx={{ fontSize: 11, color: "text.disabled", fontFamily: "monospace" }}>({c.key})</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", mb: 0.5 }}>
+            {c.label} <Typography component="span" sx={{ fontSize: 12, color: "text.disabled", fontFamily: "monospace" }}>({c.key})</Typography>
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
             <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.detected.bg, border: "1px solid", borderColor: theme.custom.status.detected.border, borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text, fontWeight: 700 }}>PREVIOUS VALUE</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, fontWeight: 700 }}>PREVIOUS VALUE</Typography>
               <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, wordBreak: "break-word" }}>
                 {c.oldDisplay}
               </Typography>
             </Box>
             <ArrowForwardIcon sx={{ color: "text.secondary", fontSize: 16 }} />
             <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>NEW VALUE</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>NEW VALUE</Typography>
               <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600, wordBreak: "break-word" }}>
                 {c.newDisplay}
               </Typography>

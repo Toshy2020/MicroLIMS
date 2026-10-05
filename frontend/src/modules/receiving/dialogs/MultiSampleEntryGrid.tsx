@@ -288,7 +288,7 @@ export function MultiSampleEntryGrid({
                     {showLabColumn && (
                       <TableCell>
                         {!row.itemId ? (
-                          <Typography sx={{ fontSize: 11.5, color: "text.disabled" }}>
+                          <Typography sx={{ fontSize: 12, color: "text.disabled" }}>
                             Select an item first
                           </Typography>
                         ) : loadingItemIds.has(String(row.itemId)) ? (
@@ -319,7 +319,7 @@ export function MultiSampleEntryGrid({
                                     />
                                   }
                                   label={
-                                    <Typography sx={{ fontSize: 11.5, color: option ? "text.primary" : "text.disabled" }}>
+                                    <Typography sx={{ fontSize: 12, color: option ? "text.primary" : "text.disabled" }}>
                                       {(option?.sectionName || lab.label).replace(" Laboratory", "")} ({option?.testCount ?? 0})
                                     </Typography>
                                   }
@@ -329,7 +329,7 @@ export function MultiSampleEntryGrid({
                           </FormGroup>
                         )}
                         {errors.targetSectionIds && (
-                          <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text, mt: 0.25 }}>
+                          <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, mt: 0.25 }}>
                             {errors.targetSectionIds}
                           </Typography>
                         )}

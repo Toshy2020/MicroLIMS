@@ -162,7 +162,7 @@ function NameListCard({
         <Chip
           size="small"
           label={loading ? "—" : list.length}
-          sx={{ height: 20, fontSize: 11, fontWeight: 600 }}
+          sx={{ height: 20, fontSize: 12, fontWeight: 600 }}
         />
       </Box>
 

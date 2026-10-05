@@ -364,7 +364,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       </Stack>
                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{eq.instrumentType}</Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>{eq.location}</Typography>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 1 }}>{eq.primaryActivityCategory}</Typography>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 1 }}>{eq.primaryActivityCategory}</Typography>
                     </Paper>
                   );
                 })}

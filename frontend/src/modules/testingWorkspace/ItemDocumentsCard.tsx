@@ -132,9 +132,9 @@ function ItemDocRow({
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12, color: "text.primary" }}>
             {title}
           </Typography>
-          <Chip label={doc.version} size="small" color="primary" sx={{ fontWeight: 700, fontSize: 11, height: 20 }} />
+          <Chip label={doc.version} size="small" color="primary" sx={{ fontWeight: 700, fontSize: 12, height: 20 }} />
         </Stack>
-        <Typography variant="caption" noWrap component="div" sx={{ color: "text.secondary", fontSize: 11, mt: 0.25 }}>
+        <Typography variant="caption" noWrap component="div" sx={{ color: "text.secondary", fontSize: 12, mt: 0.25 }}>
           {doc.originalFileName}
         </Typography>
       </Box>
@@ -143,7 +143,7 @@ function ItemDocRow({
         doc={doc}
         iconSize={14}
         spacing={0.75}
-        buttonSx={{ textTransform: "none", fontSize: 11, px: 1, py: 0.25 }}
+        buttonSx={{ textTransform: "none", fontSize: 12, px: 1, py: 0.25 }}
       />
     </Paper>
   );

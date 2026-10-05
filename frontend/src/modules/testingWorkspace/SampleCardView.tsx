@@ -84,7 +84,7 @@ export function SampleCardView({
                   <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 14, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
                     {sample.displayName}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     {sample.referenceNumber}
                   </Typography>
                 </Box>
@@ -105,7 +105,7 @@ export function SampleCardView({
                   justifyContent: "space-between",
                   alignItems: "center"
                 }}>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName ?? "Unassigned"}
                 </Typography>
                 <SampleLifecycleBadge

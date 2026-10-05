@@ -660,7 +660,7 @@ export function EquipmentPage() {
                             label={typeLabel}
                             color={isIncubator ? "primary" : isAutoclave ? "secondary" : isHplc ? "info" : "default"}
                             variant="outlined"
-                            sx={{ height: 20, fontSize: 11 }}
+                            sx={{ height: 20, fontSize: 12 }}
                           />
                         </Box>
                         <Typography
@@ -676,7 +676,7 @@ export function EquipmentPage() {
                           sx={{
                             color: "text.secondary",
                             display: "block",
-                            fontSize: 11,
+                            fontSize: 12,
                             mt: 0.5
                           }}>
                           Section: {sectionLabel}
@@ -687,7 +687,7 @@ export function EquipmentPage() {
                             sx={{
                               color: "text.secondary",
                               display: "block",
-                              fontSize: 11
+                              fontSize: 12
                             }}>
                             Vendor: {eq.vendor}
                           </Typography>
@@ -708,7 +708,7 @@ export function EquipmentPage() {
                             size="small"
                             label={eq.inventoryStatus ?? "In Service"}
                             color={eq.inventoryStatus === "OutOfService" ? "error" : "success"}
-                            sx={{ height: 20, fontSize: 11 }}
+                            sx={{ height: 20, fontSize: 12 }}
                           />
                         </Box>
                       </Box>
@@ -969,7 +969,7 @@ export function EquipmentPage() {
                                     size="small"
                                     label={p.isActive ? "Active" : "Inactive"}
                                     color={p.isActive ? "success" : "default"}
-                                    sx={{ height: 20, fontSize: 11 }}
+                                    sx={{ height: 20, fontSize: 12 }}
                                   />
                                 </TableCell>
                                 <TableCell align="center">
@@ -980,7 +980,7 @@ export function EquipmentPage() {
                                   </Tooltip>
                                   <Button
                                     size="small"
-                                    sx={{ fontSize: 11, minWidth: 60 }}
+                                    sx={{ fontSize: 12, minWidth: 60 }}
                                     color={p.isActive ? "warning" : "success"}
                                     onClick={() => handleToggleProgramStatus(p)}
                                   >

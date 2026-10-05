@@ -205,7 +205,7 @@ export function IcpMethodReadOnlyPanel({ method }: IcpMethodReadOnlyPanelProps) 
                         size="small"
                         variant="outlined"
                         color={el.view === "Axial" ? "primary" : "default"}
-                        sx={{ fontSize: 11, height: 20 }}
+                        sx={{ fontSize: 12, height: 20 }}
                       />
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: monospaceFontFamily }}>

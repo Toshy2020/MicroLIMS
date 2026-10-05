@@ -356,7 +356,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 bgcolor: analysis?.isNumeric ? theme.custom.status.notDetected.bg : theme.custom.status.detected.bg,
                 color: analysis?.isNumeric ? theme.custom.status.notDetected.text : theme.custom.status.detected.text,
                 fontWeight: 700,
-                fontSize: 11
+                fontSize: 12
               }}
             />
           </Box>
@@ -383,11 +383,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                         uses - so on a control chart a gridline and an action
                         limit were told apart by colour alone. */}
                     <CartesianGrid vertical={false} stroke={theme.palette.divider} />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
                     <YAxis
-                      tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
+                      tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
                       domain={[0, "auto"]}
-                      label={{ value: analysis.unit ?? "CFU/mL", angle: -90, position: "insideLeft", fontSize: 11, fill: theme.palette.text.secondary }}
+                      label={{ value: analysis.unit ?? "CFU/mL", angle: -90, position: "insideLeft", fontSize: 12, fill: theme.palette.text.secondary }}
                     />
                     <RechartsTooltip
                       content={({ payload, label }) => {
@@ -399,7 +399,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                             <Typography>Ref: <strong>{pt.referenceNumber}</strong></Typography>
                             <Typography>Result: <strong>{pt.reportedValue} {analysis.unit}</strong></Typography>
                             <Typography>Level: <strong>{pt.resultLevel}</strong></Typography>
-                            <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
+                            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
                           </Paper>
                         );
                       }}
@@ -465,7 +465,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                       <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.detected.text }}>
                         ⚠️ Pathogen Detection Events ({analysis.qualitativeEvents.length})
                       </Typography>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         Click row to view complete result record
                       </Typography>
                     </Box>
@@ -505,7 +505,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                               </td>
                               <td style={{ padding: "8px 12px" }}>{ev.resultEnteredByName}</td>
                               <td style={{ padding: "8px 12px" }}>
-                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 11, height: 20 }} />
+                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 12, height: 20 }} />
                               </td>
                             </tr>
                           ))}
@@ -534,7 +534,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>No. of Results</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No. of Results</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {analysis.numericStats.numberOfResults}
                   </Typography>
@@ -548,7 +548,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Minimum</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Minimum</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {analysis.numericStats.minimum}
                   </Typography>
@@ -562,7 +562,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Maximum</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Maximum</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {analysis.numericStats.maximum}
                   </Typography>
@@ -576,7 +576,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Mean</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Mean</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {analysis.numericStats.mean}
                   </Typography>
@@ -590,7 +590,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Median</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Median</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {analysis.numericStats.median}
                   </Typography>
@@ -604,7 +604,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Std. Deviation</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Std. Deviation</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {analysis.numericStats.standardDeviation}
                   </Typography>
@@ -618,7 +618,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Within Spec</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>% Within Spec</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                     {analysis.numericStats.percentWithinSpec}%
                   </Typography>
@@ -632,7 +632,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.inconclusive.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Alert Level</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>% Alert Level</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.inconclusive.text }}>
                     {analysis.numericStats.percentAlertLevel}%
                   </Typography>
@@ -646,7 +646,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.action.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Action Level</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>% Action Level</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.action.text }}>
                     {analysis.numericStats.percentActionLevel}%
                   </Typography>
@@ -660,7 +660,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   md: 2.4
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: analysis.numericStats.outOfSpecCount > 0 ? theme.custom.status.detected.bg : "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Out of Spec</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Out of Spec</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: analysis.numericStats.outOfSpecCount > 0 ? theme.custom.status.detected.text : "text.primary" }}>
                     {analysis.numericStats.outOfSpecCount}
                   </Typography>
@@ -675,7 +675,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   sm: 3
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: (analysis?.qualitativeEvents?.length ?? 0) > 0 ? theme.custom.status.detected.bg : theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Detection Events</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Detection Events</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: (analysis?.qualitativeEvents?.length ?? 0) > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text }}>
                     {analysis?.qualitativeEvents?.length ?? 0}
                   </Typography>
@@ -687,7 +687,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   sm: 3
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pathogen Parameter</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Pathogen Parameter</Typography>
                   <Typography sx={{ fontSize: 15, fontWeight: 700 }} noWrap>
                     {analysis?.testDisplayName || criteria.testCode}
                   </Typography>
@@ -699,7 +699,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   sm: 3
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Surveillance Result</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Surveillance Result</Typography>
                   <Typography sx={{ fontSize: 14, fontWeight: 800, color: (analysis?.qualitativeEvents?.length ?? 0) === 0 ? theme.custom.status.notDetected.text : theme.custom.status.detected.text }}>
                     {(analysis?.qualitativeEvents?.length ?? 0) === 0 ? "Conformant / Negative" : "Action Required"}
                   </Typography>
@@ -711,7 +711,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   sm: 3
                 }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Period Range</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Period Range</Typography>
                   <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
                     {criteria.dateRange.toUpperCase()}
                   </Typography>
@@ -785,7 +785,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
         </Paper>
 
         <Paper sx={{ p: 2, bgcolor: "background.default" }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5, textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5, textTransform: "uppercase" }}>
             Drill Down
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>

@@ -122,7 +122,7 @@ export function WizardColumnStep({
                           size="small"
                           label={`USP ${col.uspDesignation}`}
                           variant="outlined"
-                          sx={{ fontWeight: 600, fontSize: 11 }}
+                          sx={{ fontWeight: 600, fontSize: 12 }}
                         />
                       )}
                       <StatusBadge status="Suitable" label="Compatible" />

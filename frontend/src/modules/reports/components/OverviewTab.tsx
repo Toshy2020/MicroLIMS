@@ -25,7 +25,7 @@ import { brandColors } from "../../../theme";
 // full name still available on hover (SVG <title> here, and the chart tooltip
 // on the bar itself).
 const TEST_AXIS_WIDTH = 156;
-const TEST_TICK_FONT_SIZE = 11;
+const TEST_TICK_FONT_SIZE = 12;
 // Roughly half the font size per character for this weight - close enough to
 // pick a cut point, and the <title> covers whatever gets cut.
 const TEST_TICK_MAX_CHARS = Math.floor((TEST_AXIS_WIDTH - 10) / (TEST_TICK_FONT_SIZE * 0.52));
@@ -71,11 +71,11 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
         {data.value}
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
-        <Box sx={{ display: "flex", alignItems: "center", color: deltaColor, fontSize: 11, fontWeight: 700 }}>
+        <Box sx={{ display: "flex", alignItems: "center", color: deltaColor, fontSize: 12, fontWeight: 700 }}>
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
           {Math.abs(data.deltaPercent)}%
         </Box>
-        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           {data.comparisonLabel}
         </Typography>
       </Box>
@@ -119,7 +119,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
         <Chip
           size="small"
           label="Live Database Data"
-          sx={{ bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text, fontSize: 11, fontWeight: 700 }}
+          sx={{ bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text, fontSize: 12, fontWeight: 700 }}
         />
       </Box>
 
@@ -223,7 +223,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                     <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", lineHeight: 1 }}>
                       {data.totalTests.value}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
                       TOTAL
                     </Typography>
                   </Box>
@@ -234,11 +234,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                       <Box key={cat.category} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                           <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: cat.color }} />
-                          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+                          <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
                             {cat.label}
                           </Typography>
                         </Box>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700 }}>
                           {cat.percentage}%
                         </Typography>
                       </Box>
@@ -289,7 +289,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                       dataKey="count"
                       position="right"
                       offset={8}
-                      style={{ fontSize: 11, fontWeight: 700, fill: theme.palette.text.secondary }}
+                      style={{ fontSize: 12, fontWeight: 700, fill: theme.palette.text.secondary }}
                     />
                   </Bar>
                 </BarChart>
@@ -334,19 +334,19 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
                     {data.locationDistribution.reduce((acc, x) => acc + x.count, 0).toLocaleString()}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
 
               <Box sx={{ width: "50%", pl: 1 }}>
                 <Stack spacing={1}>
                   {data.locationDistribution.map((item, idx) => (
-                    <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11.5 }}>
+                    <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0 }}>
                         <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: item.color, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: 11.5, color: "text.secondary" }} noWrap>{item.location}</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>{item.location}</Typography>
                       </Box>
-                      <Typography sx={{ fontSize: 11.5, fontWeight: 600 }}>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
                         {item.percentage}% ({item.count})
                       </Typography>
                     </Box>
@@ -374,7 +374,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
               <Button size="small" onClick={() => onNavigateTab(1)}>View in Search</Button>
             </Box>
             <TableContainer>
-              <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+              <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 }, "& td": { fontSize: 12 } }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Subject / Ref</TableCell>
@@ -389,7 +389,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                     <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => onNavigateTab(1)}>
                       <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
                         {r.subjectName}
-                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
                           {r.referenceNumber}
                         </Typography>
                       </TableCell>
@@ -407,7 +407,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                               ? "error"
                               : "warning"
                           }
-                          sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
+                          sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
                         />
                       </TableCell>
                     </TableRow>

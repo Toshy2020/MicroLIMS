@@ -34,7 +34,7 @@ export function DiscussionCategoryBadge({ category, categoryName }: Props) {
         px: 1.25,
         py: 0.35,
         borderRadius: 5,
-        fontSize: 11.5,
+        fontSize: 12,
         fontWeight: 700,
         bgcolor: tokens.bg,
         color: tokens.text,

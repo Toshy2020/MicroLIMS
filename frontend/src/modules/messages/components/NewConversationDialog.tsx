@@ -209,7 +209,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
               </Avatar>
               <Box>
                 <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{option.fullName}</Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {option.roleName} {option.jobTitle ? `• ${option.jobTitle}` : ""}
                 </Typography>
               </Box>
@@ -228,7 +228,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
                       label={option.fullName}
                       size="small"
                       avatar={
-                        <Avatar sx={{ width: 20, height: 20, fontSize: 11, bgcolor: brandColors.sectionTitle }}>
+                        <Avatar sx={{ width: 20, height: 20, fontSize: 12, bgcolor: brandColors.sectionTitle }}>
                           {option.fullName.charAt(0).toUpperCase()}
                         </Avatar>
                       }

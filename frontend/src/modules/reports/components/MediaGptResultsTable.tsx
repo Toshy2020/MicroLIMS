@@ -126,7 +126,7 @@ export function MediaGptResultsTable({
       <Chip
         size="small"
         label={r.evaluationType === "GrowthPromotion" ? "GPT" : r.evaluationType}
-        sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
+        sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
       />
     ) },
     { key: "evaluationOutcome", label: "Outcome", render: (r) => {
@@ -138,10 +138,10 @@ export function MediaGptResultsTable({
             size="small"
             label={r.evaluationOutcome || r.evaluationStatus}
             color={isConform ? "success" : isNonConform ? "error" : "warning"}
-            sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
+            sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
           />
           {r.challengeCount > 0 && (
-            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
               {r.conformedChallengeCount}/{r.challengeCount} Challenges
             </Typography>
           )}
@@ -154,21 +154,21 @@ export function MediaGptResultsTable({
           size="small"
           label={r.approvalStatus}
           color={r.approvalStatus === "Approved" ? "success" : r.approvalStatus === "Rejected" ? "error" : "default"}
-          sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
+          sx={{ fontSize: 12, height: 20, fontWeight: 600 }}
         />
         {r.isReleasedForUse && (
-          <Typography variant="caption" sx={{ display: "block", color: "success.main", fontWeight: 700, fontSize: 11 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "success.main", fontWeight: 700, fontSize: 12 }}>
             Released
           </Typography>
         )}
       </>
     ) },
-    { key: "preparedByName", label: "Prepared By", render: (r) => <Box sx={{ fontSize: 11.5 }}>{r.preparedByName}</Box> },
+    { key: "preparedByName", label: "Prepared By", render: (r) => <Box sx={{ fontSize: 12 }}>{r.preparedByName}</Box> },
     { key: "approvedByName", label: "Approved By", render: (r) => (
-      <Box sx={{ fontSize: 11.5 }}>
+      <Box sx={{ fontSize: 12 }}>
         {r.approvedByName || "—"}
         {r.approvedAt && (
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 11 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
             {formatDate(r.approvedAt)}
           </Typography>
         )}

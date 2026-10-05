@@ -174,7 +174,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                 label={`SOP: ${item.sopNumber}`}
                 size="small"
                 variant="outlined"
-                sx={{ fontSize: 11, height: 22, fontWeight: 500 }}
+                sx={{ fontSize: 12, height: 22, fontWeight: 500 }}
               />
             )}
           </Stack>
@@ -376,7 +376,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
                       {t.displayName || t.testCode}
                     </Typography>
-                    <Chip label={t.testCode} size="small" sx={{ fontSize: 11, height: 20, fontWeight: 600 }} />
+                    <Chip label={t.testCode} size="small" sx={{ fontSize: 12, height: 20, fontWeight: 600 }} />
                   </Paper>
                 ))}
               </Box>
@@ -621,10 +621,10 @@ function DocumentCard({
               label={doc.version}
               size="small"
               color={isHistorical ? "default" : "primary"}
-              sx={{ fontWeight: 700, fontSize: 11, height: 20 }}
+              sx={{ fontWeight: 700, fontSize: 12, height: 20 }}
             />
             {isHistorical && (
-              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 11, height: 20 }} />
+              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12, height: 20 }} />
             )}
           </Stack>
 

@@ -198,7 +198,7 @@ export function LoginPage() {
             borderTop: 1,
             borderColor: "divider",
             color: "text.secondary",
-            fontSize: 11
+            fontSize: 12
           }}
         >
           MicroLIMS v0.1 · FDA 21 CFR Part 11 & EU Annex 11 Compliant

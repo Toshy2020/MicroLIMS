@@ -75,7 +75,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
           Recorded via ICP Workspace. Parameter result: <strong>{parameter.reportedDisplay}</strong>
           {parameter.comparisonStatus ? ` (${parameter.comparisonStatus})` : ""}.
         </Typography>
-        <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1 }}>
+        <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1 }}>
           Detailed calculation payload was not found or is in an invalid format.
         </Alert>
         <IcpReportsSection testOrderId={testOrderId} />
@@ -135,7 +135,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
           border: `1px solid ${theme.palette.divider}`
         }}
       >
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
           Method Snapshot & Standard Calibration
         </Typography>
         <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap", mb: 1 }}>
@@ -198,7 +198,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
         {/* CCV Readings */}
         {calc.ccv && calc.ccv.length > 0 && (
           <Box sx={{ mt: 1, pt: 1, borderTop: `1px dashed ${theme.palette.divider}` }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
               Continuing Calibration Verification (CCV)
             </Typography>
             <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", gap: 1 }}>
@@ -214,7 +214,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
                     borderRadius: 1,
                     border: `1px solid ${theme.palette.divider}`,
                     backgroundColor: theme.palette.background.paper,
-                    fontSize: 11
+                    fontSize: 12
                   }}
                 >
                   <span>Measured: <strong>{c.measuredMgPerL} mg/L</strong></span>
@@ -225,7 +225,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
                     label={c.passed ? "Pass" : "Fail"}
                     size="small"
                     color={c.passed ? "success" : "error"}
-                    sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                    sx={{ height: 20, fontSize: 12, fontWeight: 700 }}
                   />
                   {c.enteredAt && (
                     <span style={{ color: theme.palette.text.secondary }}>
@@ -252,13 +252,13 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 11 }}>Replicate</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Sample Amount ({amountUnitSymbol})</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Volume (mL)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>DF</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Solution (mg/L)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 11 }}>Content ({contentUnitSymbol})</TableCell>
-                <TableCell align="center" sx={{ fontSize: 11 }}>Flag</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Sample Amount ({amountUnitSymbol})</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Volume (mL)</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>DF</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Solution (mg/L)</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>Content ({contentUnitSymbol})</TableCell>
+                <TableCell align="center" sx={{ fontSize: 12 }}>Flag</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -280,14 +280,14 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                     {formatNumber(r.contentPerAmount, 4)}
                   </TableCell>
-                  <TableCell align="center" sx={{ fontSize: 11 }}>
+                  <TableCell align="center" sx={{ fontSize: 12 }}>
                     {r.belowLoq ? (
                       <Chip
                         label="<LOQ"
                         size="small"
                         color="warning"
                         variant="outlined"
-                        sx={{ fontSize: 10, height: 18, fontWeight: 700 }}
+                        sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
                       />
                     ) : (
                       "—"
@@ -329,7 +329,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LinkIcon fontSize="small" sx={{ fontSize: 14, color: "text.secondary" }} />
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Raw evidence stored under ICP Run <strong>{calc.runCode}</strong>
           </Typography>
         </Box>

@@ -97,7 +97,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                     <Chip
                       label="TSB"
                       size="small"
-                      sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text }}
+                      sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text }}
                     />
                   )}
                 </Stack>
@@ -195,14 +195,14 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                           <Chip
                             label={s.stepType}
                             size="small"
-                            sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text }}
+                            sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text }}
                           />
                           {isTsbStep && (
                             <Chip
                               label={isTsbIncubating ? "TSB Incubating" : "Shared Session Step"}
                               size="small"
                               sx={{
-                                fontSize: 11,
+                                fontSize: 12,
                                 height: 20,
                                 bgcolor: isTsbIncubating ? theme.custom.status.info.bg : theme.custom.status.purple.bg,
                                 color: isTsbIncubating ? theme.custom.status.info.text : theme.custom.status.purple.text,
@@ -215,7 +215,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               icon={<LockOutlinedIcon sx={{ fontSize: 12 }} />}
                               label="Locked until TSB Complete"
                               size="small"
-                              sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 600 }}
+                              sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 600 }}
                             />
                           )}
                         </Stack>
@@ -230,7 +230,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                             }}
                           >
                             <Box>
-                              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
+                              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
                                 Incubation Parameters
                               </Typography>
                               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -238,7 +238,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               </Typography>
                             </Box>
                             <Box>
-                              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
+                              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
                                 Target Medium
                               </Typography>
                               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -246,7 +246,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               </Typography>
                             </Box>
                             <Box>
-                              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
+                              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
                                 Execution State
                               </Typography>
                               <Typography

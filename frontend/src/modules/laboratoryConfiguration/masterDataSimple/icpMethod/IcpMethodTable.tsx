@@ -52,7 +52,7 @@ export function IcpMethodTable({
           size="small"
           color="primary"
           variant="outlined"
-          sx={{ fontSize: 11, fontWeight: 700 }}
+          sx={{ fontSize: 12, fontWeight: 700 }}
         />
       )
     },
@@ -68,7 +68,7 @@ export function IcpMethodTable({
             size="small"
             color={isMineral ? "primary" : "secondary"}
             variant="outlined"
-            sx={{ fontSize: 11, fontWeight: 600 }}
+            sx={{ fontSize: 12, fontWeight: 600 }}
           />
         );
       }
@@ -82,7 +82,7 @@ export function IcpMethodTable({
           label={`${m.elementCount} ${m.elementCount === 1 ? "element" : "elements"}`}
           size="small"
           variant="outlined"
-          sx={{ fontSize: 11 }}
+          sx={{ fontSize: 12 }}
         />
       )
     },

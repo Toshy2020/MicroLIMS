@@ -211,7 +211,7 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, canAssignAna
                   {count}
                 </Typography>
                 {isActive && (
-                  <Typography sx={{ fontSize: 11, color: activeTokens.text, fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 12, color: activeTokens.text, fontWeight: 600 }}>
                     Filtering
                   </Typography>
                 )}

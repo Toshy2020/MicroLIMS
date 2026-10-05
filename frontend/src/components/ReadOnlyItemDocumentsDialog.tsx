@@ -289,22 +289,22 @@ function ReadOnlyDocumentCard({
               label={doc.version}
               size="small"
               color={isHistorical ? "default" : "primary"}
-              sx={{ fontWeight: 700, fontSize: 11, height: 20 }}
+              sx={{ fontWeight: 700, fontSize: 12, height: 20 }}
             />
             {isHistorical && (
-              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 11, height: 20 }} />
+              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12, height: 20 }} />
             )}
           </Stack>
 
-          <Typography variant="caption" component="div" sx={{ color: "text.secondary", fontSize: 11 }}>
+          <Typography variant="caption" component="div" sx={{ color: "text.secondary", fontSize: 12 }}>
             Effective: <strong>{formatDate(doc.effectiveDate)}</strong> • Size: {formatFileSize(doc.fileSizeBytes)}
           </Typography>
-          <Typography variant="caption" component="div" sx={{ color: "text.secondary", fontSize: 11 }}>
+          <Typography variant="caption" component="div" sx={{ color: "text.secondary", fontSize: 12 }}>
             Uploaded by: <strong>{doc.uploadedByUserName}</strong> on {formatDateTime(doc.uploadedAt)}
           </Typography>
         </Box>
 
-        <ItemDocumentActionButtons doc={doc} buttonSx={{ textTransform: "none", fontSize: 11 }} />
+        <ItemDocumentActionButtons doc={doc} buttonSx={{ textTransform: "none", fontSize: 12 }} />
       </Stack>
     </Paper>
   );

@@ -134,7 +134,7 @@ export function ReviewerDashboardPage() {
             <Typography sx={{ fontSize: 28, fontWeight: 800, color: theme.palette.primary.main, my: 0.5 }}>
               {data.pendingReviewCount}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Samples awaiting scientific review
             </Typography>
           </Paper>
@@ -169,7 +169,7 @@ export function ReviewerDashboardPage() {
             <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.err, my: 0.5 }}>
               {data.overdueReviewCount}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: brandColors.err }}>
+            <Typography sx={{ fontSize: 12, color: brandColors.err }}>
               In review &gt;24 hours
             </Typography>
           </Paper>
@@ -204,7 +204,7 @@ export function ReviewerDashboardPage() {
             <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.warn, my: 0.5 }}>
               {data.dueTodayCount}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Submitted for review today
             </Typography>
           </Paper>
@@ -239,7 +239,7 @@ export function ReviewerDashboardPage() {
             <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.info, my: 0.5 }}>
               {data.retestsInProgressCount}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Retest samples not yet closed
             </Typography>
           </Paper>
@@ -267,7 +267,7 @@ export function ReviewerDashboardPage() {
             <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.ok, my: 0.5 }}>
               {data.completedTodayCount}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Reviewed by you today
             </Typography>
           </Paper>
@@ -309,7 +309,7 @@ export function ReviewerDashboardPage() {
                         {item.referenceNumber}: {item.subjectName}
                       </Typography>
                       {item.testCodes.map((code) => (
-                        <Chip key={code} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
+                        <Chip key={code} label={code} size="small" sx={{ fontSize: 12, height: 20 }} />
                       ))}
                     </Box>
                     <Typography sx={{ fontSize: 12, color: brandColors.err, mt: 0.25 }}>
@@ -410,7 +410,7 @@ export function ReviewerDashboardPage() {
                               label={row.sectionName}
                               size="small"
                               variant="outlined"
-                              sx={{ fontSize: 11, height: 20, mt: 0.5, display: "inline-flex" }}
+                              sx={{ fontSize: 12, height: 20, mt: 0.5, display: "inline-flex" }}
                             />
                           )}
                         </TableCell>
@@ -420,7 +420,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ fontSize: 12 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                             {row.tests.map((t) => (
-                              <Chip key={t.testOrderId} label={t.testCode} size="small" sx={{ fontSize: 11, height: 22, fontWeight: 600 }} />
+                              <Chip key={t.testOrderId} label={t.testCode} size="small" sx={{ fontSize: 12, height: 22, fontWeight: 600 }} />
                             ))}
                           </Box>
                         </TableCell>
@@ -433,7 +433,7 @@ export function ReviewerDashboardPage() {
                               label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
-                                fontSize: 11,
+                                fontSize: 12,
                                 height: 20,
                                 bgcolor:
                                   row.worstResultLevel === "OutOfSpecification"
@@ -470,7 +470,7 @@ export function ReviewerDashboardPage() {
                             label={row.priority}
                             size="small"
                             sx={{
-                              fontSize: 11,
+                              fontSize: 12,
                               height: 20,
                               fontWeight: 700,
                               bgcolor:
@@ -495,7 +495,7 @@ export function ReviewerDashboardPage() {
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
-                            sx={{ textTransform: "none", fontSize: 11, fontWeight: 700, py: 0.3 }}
+                            sx={{ textTransform: "none", fontSize: 12, fontWeight: 700, py: 0.3 }}
                           >
                             Review
                           </Button>
@@ -522,7 +522,7 @@ export function ReviewerDashboardPage() {
                 Recently Reviewed
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 2 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
               Historical scientific review audit trail.
             </Typography>
 
@@ -552,21 +552,21 @@ export function ReviewerDashboardPage() {
                         <Typography sx={{ fontSize: 12, fontWeight: 700 }}>
                           {rec.referenceNumber}
                         </Typography>
-                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                           {rec.subjectName}
                         </Typography>
                       </Box>
                       <Chip
                         label={rec.status}
                         size="small"
-                        sx={{ fontSize: 11, height: 20, fontWeight: 700 }}
+                        sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
                       />
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         Tests: {rec.testCode}
                       </Typography>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                         {new Date(rec.reviewedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </Typography>
                     </Box>

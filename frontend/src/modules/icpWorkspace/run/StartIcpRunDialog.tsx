@@ -173,7 +173,7 @@ export function StartIcpRunDialog({
                           label={`${m.eligibleTestOrderCount} Eligible Tests`}
                           color={m.eligibleTestOrderCount > 0 ? "primary" : "default"}
                           variant="outlined"
-                          sx={{ fontWeight: 600, fontSize: 11 }}
+                          sx={{ fontWeight: 600, fontSize: 12 }}
                         />
                       </Box>
                     </Paper>

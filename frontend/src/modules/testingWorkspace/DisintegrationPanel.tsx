@@ -424,9 +424,9 @@ export function DisintegrationPanel({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Unit</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Time (min)</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>{lastHeader}</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Unit</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Time (min)</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{lastHeader}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -607,10 +607,10 @@ export function DisintegrationPanel({
               <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Unit</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Time (min)</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Live Hint</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Unit</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Time (min)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Live Hint</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -753,10 +753,10 @@ export function DisintegrationPanel({
             <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Unit</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Time (min)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 180 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 11, width: 100 }}>Live Hint</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Unit</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Time (min)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Live Hint</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

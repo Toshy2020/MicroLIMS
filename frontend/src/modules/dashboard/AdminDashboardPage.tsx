@@ -149,7 +149,7 @@ export function AdminDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, my: 0.5 }}>
               Manage Users
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Create, lock/unlock, password resets
             </Typography>
           </Paper>
@@ -184,7 +184,7 @@ export function AdminDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.info, my: 0.5 }}>
               Access Control
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               RBAC and segregation of duties
             </Typography>
           </Paper>
@@ -219,7 +219,7 @@ export function AdminDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.warn, my: 0.5 }}>
               21 CFR Part 11
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               ALCOA+ traceability logs
             </Typography>
           </Paper>
@@ -254,7 +254,7 @@ export function AdminDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.ok, my: 0.5 }}>
               Laboratory KPIs
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Export workbench & analytics
             </Typography>
           </Paper>
@@ -274,7 +274,7 @@ export function AdminDashboardPage() {
               md: 2
             }}>
             <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center" }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Total Samples</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Total Samples</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: theme.palette.primary.main }}>
                 {kpis?.totalSamples ?? "—"}
               </Typography>
@@ -287,7 +287,7 @@ export function AdminDashboardPage() {
               md: 2
             }}>
             <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center" }}>
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Total Tests</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Total Tests</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: theme.palette.primary.main }}>
                 {kpis?.totalTests ?? "—"}
               </Typography>
@@ -313,7 +313,7 @@ export function AdminDashboardPage() {
                 "&:hover": { bgcolor: "action.hover" }
               }}
             >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Pending Tests</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Pending Tests</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.info }}>
                 {summary.pendingTests}
               </Typography>
@@ -339,11 +339,11 @@ export function AdminDashboardPage() {
                 "&:hover": { bgcolor: "action.hover" }
               }}
             >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Review Queue</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Review Queue</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
                 {summary.reviewerQueue}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           <Grid
@@ -366,11 +366,11 @@ export function AdminDashboardPage() {
                 "&:hover": { bgcolor: "action.hover" }
               }}
             >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Approval Queue</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Approval Queue</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.ok }}>
                 {summary.approvalQueue}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Samples</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           {summary.pendingPreparationConfigApproval > 0 && (
@@ -394,7 +394,7 @@ export function AdminDashboardPage() {
                   "&:hover": { bgcolor: "action.hover" }
                 }}
               >
-                <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Prep Configs Pending</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Prep Configs Pending</Typography>
                 <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
                   {summary.pendingPreparationConfigApproval}
                 </Typography>
@@ -421,7 +421,7 @@ export function AdminDashboardPage() {
                 "&:hover": { bgcolor: "action.hover" }
               }}
             >
-              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Overdue (&gt;24h)</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 700 }}>Overdue (&gt;24h)</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.err }}>
                 {summary.delayedTests}
               </Typography>

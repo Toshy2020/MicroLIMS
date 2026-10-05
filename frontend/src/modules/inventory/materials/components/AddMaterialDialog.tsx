@@ -787,7 +787,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                 sx={{
                   bgcolor: "background.paper",
                   fontWeight: 700,
-                  fontSize: 11,
+                  fontSize: 12,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                   color: "text.secondary",
@@ -1013,7 +1013,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               <em>{equipmentLoading ? "Loading storage locations..." : "Select storage location..."}</em>
             </MenuItem>
 
-            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
               Equipment: Refrigerator
             </ListSubheader>
             {refrigerators.length > 0 ? (
@@ -1031,7 +1031,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </MenuItem>
             )}
 
-            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
               Equipment: Deep Freezer
             </ListSubheader>
             {deepFreezers.length > 0 ? (
@@ -1049,7 +1049,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </MenuItem>
             )}
 
-            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
               Equipment: Freezer
             </ListSubheader>
             {freezers.length > 0 ? (
@@ -1068,7 +1068,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             )}
 
             {hasOtherOptions && (
-              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+              <ListSubheader sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
                 Other
               </ListSubheader>
             )}
@@ -1152,7 +1152,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             }}
           >
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Selected Storage
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
@@ -1160,7 +1160,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Code
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -1168,7 +1168,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Location
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -1176,7 +1176,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Status
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
@@ -1211,7 +1211,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             }}
           >
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Selected Storage
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
@@ -1219,7 +1219,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Storage Type
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -1227,7 +1227,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Location
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>

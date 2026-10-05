@@ -114,19 +114,19 @@ export function MediaProductWorkspace({
               label={product.code}
               size="small"
               variant="outlined"
-              sx={{ fontFamily: monospaceFontFamily, fontSize: 11, height: 22, fontWeight: 600 }}
+              sx={{ fontFamily: monospaceFontFamily, fontSize: 12, height: 22, fontWeight: 600 }}
             />
             <Chip
               label={`${conditions.length} ${conditions.length === 1 ? "Condition" : "Conditions"}`}
               size="small"
               variant="outlined"
-              sx={{ fontSize: 11, height: 22, fontWeight: 500 }}
+              sx={{ fontSize: 12, height: 22, fontWeight: 500 }}
             />
             <Chip
               label={`${configurations.length} ${configurations.length === 1 ? "Configuration" : "Configurations"}`}
               size="small"
               sx={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 color: theme.custom.status.purple.text,
                 bgcolor: theme.custom.status.purple.bg,
@@ -137,7 +137,7 @@ export function MediaProductWorkspace({
               label={`${product.batchCount} ${product.batchCount === 1 ? "Batch" : "Batches"}`}
               size="small"
               variant="outlined"
-              sx={{ fontSize: 11, height: 22, fontWeight: 500 }}
+              sx={{ fontSize: 12, height: 22, fontWeight: 500 }}
             />
           </Stack>
         </Box>

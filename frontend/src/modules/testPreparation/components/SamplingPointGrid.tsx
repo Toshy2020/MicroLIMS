@@ -189,7 +189,7 @@ export function SamplingPointGrid({
                       {item.subtitle && (
                         <Typography
                           sx={{
-                            fontSize: 11,
+                            fontSize: 12,
                             color: "text.secondary",
                             lineHeight: 1.2,
                             mt: 0.25
@@ -212,7 +212,7 @@ export function SamplingPointGrid({
                   >
                     <Typography
                       sx={{
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 700,
                         textTransform: "uppercase",
                         color: "text.secondary",
@@ -230,7 +230,7 @@ export function SamplingPointGrid({
                             size="small"
                             label={testCode}
                             sx={{
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: 600,
                               height: 20,
                               bgcolor: isSelected ? "background.paper" : "background.default",
@@ -241,7 +241,7 @@ export function SamplingPointGrid({
                         ))}
                       </Box>
                     ) : (
-                      <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                      <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                         No tests configured
                       </Typography>
                     )}

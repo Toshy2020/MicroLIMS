@@ -74,7 +74,7 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
                   label={q.kind}
                   color={q.kind === "Initial" ? "primary" : "secondary"}
                   variant="outlined"
-                  sx={{ fontSize: 11, height: 22 }}
+                  sx={{ fontSize: 12, height: 22 }}
                 />
               </TableCell>
               <TableCell>

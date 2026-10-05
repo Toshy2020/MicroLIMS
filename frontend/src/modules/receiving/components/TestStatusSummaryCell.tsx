@@ -201,7 +201,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
               Assigned Tests ({tests.length})
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               {sample.referenceNumber}
             </Typography>
           </Box>
@@ -249,7 +249,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
                     ) : (
                       <FiberManualRecordIcon sx={{ fontSize: 11, color }} />
                     )}
-                    <Typography sx={{ fontSize: 11, fontWeight: 600, color }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color }}>
                       <StatusBadge status={effectiveStatus} />
                     </Typography>
                   </Box>

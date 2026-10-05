@@ -257,7 +257,7 @@ export function MaterialsPage() {
             {(organism || canonicalAtcc) && (
               <Typography
                 component="div"
-                sx={{ fontSize: 11, color: "text.secondary", fontWeight: 400, fontStyle: organism ? "italic" : "normal", mt: 0.25 }}
+                sx={{ fontSize: 12, color: "text.secondary", fontWeight: 400, fontStyle: organism ? "italic" : "normal", mt: 0.25 }}
               >
                 {organism && canonicalAtcc ? `${organism} · ATCC ${canonicalAtcc}` : organism ? organism : `ATCC ${canonicalAtcc}`}
               </Typography>

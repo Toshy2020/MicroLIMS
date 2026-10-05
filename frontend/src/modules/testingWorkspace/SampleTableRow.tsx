@@ -111,7 +111,7 @@ export function SampleTableRow({
               <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
                 {sample.displayName}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 {sample.referenceNumber}
               </Typography>
             </Box>
@@ -123,7 +123,7 @@ export function SampleTableRow({
         </TableCell>
 
         <TableCell sx={{ py: 1.25 }}>
-          <Typography sx={{ fontSize: 11, color: "text.primary", fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 12, color: "text.primary", fontWeight: 600 }}>
             {sample.batchNumber ? `B: ${sample.batchNumber}` : `C: ${sample.controlNumber || "—"}`}
           </Typography>
         </TableCell>
@@ -193,7 +193,7 @@ export function SampleTableRow({
               <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
                 {sample.displayName}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
             </Box>
           </Box>
         </TableCell>
@@ -275,7 +275,7 @@ export function SampleTableRow({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{label}</Typography>
+      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{label}</Typography>
       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{value || "—"}</Typography>
     </Box>
   );

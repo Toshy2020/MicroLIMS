@@ -163,6 +163,29 @@ public partial class IcpRunService
 
     private static string NormalizeContentType(string contentType) => contentType.Split(';')[0].Trim().ToLowerInvariant();
 
+    // Reviewer view (HplcRunService.GetTestOrderEvidenceAsync): current sample
+    // reports of this order plus the calibration report of every run it was on.
+    public async Task<List<IcpEvidenceDto>> GetTestOrderEvidenceAsync(int testOrderId, int userId, CancellationToken ct = default)
+    {
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+
+        var runSamples = await _db.IcpRunSamples.AsNoTracking()
+            .Where(s => s.TestOrderId == testOrderId).Select(s => new { s.Id, s.IcpRunId }).ToListAsync(ct);
+        var sampleIds = runSamples.Select(s => s.Id).ToList();
+        var runIds = runSamples.Select(s => s.IcpRunId).Distinct().ToList();
+
+        var rows = await _db.IcpEvidences.AsNoTracking()
+            .Where(e => e.SupersededByEvidenceId == null
+                && ((e.IcpRunSampleId != null && sampleIds.Contains(e.IcpRunSampleId.Value))
+                    || (runIds.Contains(e.IcpRunId) && e.Context == IcpEvidenceContext.Calibration && e.Kind == IcpEvidenceKind.CalibrationReport)))
+            .OrderByDescending(e => e.UploadedAt).ThenByDescending(e => e.Id)
+            .ToListAsync(ct);
+
+        var uploaderIds = rows.Select(e => e.UploadedByUserId).Distinct().ToList();
+        var names = await _db.Users.Where(u => uploaderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+        return rows.Select(e => ToEvidenceDto(e, names.GetValueOrDefault(e.UploadedByUserId))).ToList();
+    }
+
     private static IcpEvidenceDto ToEvidenceDto(IcpEvidence e, string? uploaderName) => new(
         e.Id, e.IcpRunId, e.IcpRunSampleId, e.Context, e.Kind, e.FileName, e.ContentType,
         e.UploadedByUserId, uploaderName, e.UploadedAt, e.SupersededByEvidenceId == null, e.SupersedeReason);

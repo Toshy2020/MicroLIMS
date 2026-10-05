@@ -246,6 +246,7 @@ IcpWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Revie
 IcpWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 IcpWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 IcpWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+IcpWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 IcpWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
 IcpWorkspaceController.SaveCalibration(Int32, SaveIcpCalibrationRequest): SystemAdministrator,SectionHead,Analyst
 IcpWorkspaceController.SaveReplicates(Int32, SaveIcpReplicatesRequest): SystemAdministrator,SectionHead,Analyst

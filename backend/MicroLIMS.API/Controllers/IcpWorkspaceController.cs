@@ -50,6 +50,10 @@ public class IcpWorkspaceController : ControllerBase
     public async Task<IActionResult> GetEligibleTests(int id, [FromQuery] string? search) =>
         Ok(ApiResponse<object>.Ok(await _service.GetEligibleTestsAsync(id, search, CurrentUserId)));
 
+    [HttpGet("test-orders/{testOrderId:int}/evidence")]
+    public async Task<IActionResult> GetTestOrderEvidence(int testOrderId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetTestOrderEvidenceAsync(testOrderId, CurrentUserId)));
+
     [HttpGet("samples/{runSampleId:int}")]
     public async Task<IActionResult> GetSampleEntry(int runSampleId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetSampleEntryAsync(runSampleId, CurrentUserId)));

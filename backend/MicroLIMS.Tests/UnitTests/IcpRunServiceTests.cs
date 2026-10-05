@@ -444,6 +444,20 @@ public class IcpRunServiceTests
     }
 
     [Fact]
+    public async Task TestOrderEvidence_ReturnsSampleReportAndRunCalibrationReport()
+    {
+        var (f, run, rsId) = await IcpRunSampleTests.AssignedAsync();
+        await f.S.Service.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport, "s.pdf", "application/pdf", new MemoryStream(PdfBytes()), f.S.UserId);
+        var orderId = f.S.Db.IcpRunSamples.Single(x => x.Id == rsId).TestOrderId;
+
+        var evidence = await f.S.Service.GetTestOrderEvidenceAsync(orderId, f.S.UserId);
+
+        Assert.Contains(evidence, e => e.Kind == IcpEvidenceKind.SampleReport && e.FileName == "s.pdf");
+        Assert.Contains(evidence, e => e.Kind == IcpEvidenceKind.CalibrationReport);
+        Assert.All(evidence, e => Assert.True(e.Kind is IcpEvidenceKind.SampleReport or IcpEvidenceKind.CalibrationReport));
+    }
+
+    [Fact]
     public async Task Evidence_SampleContextNeedsRunSample()
     {
         var s = await SeedAsync();

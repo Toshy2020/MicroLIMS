@@ -17,10 +17,13 @@ import { PERMISSIONS } from "./routes";
 
 export interface MenuItem {
   label: string;
+  // On a parent: its landing page listing the children as cards.
   path?: string;
   icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: SxProps<Theme> }>;
   group?: string;
   children?: MenuItem[];
+  // One line on the section's landing page card (SectionPage).
+  description?: string;
   // Shown only to users holding this permission code (or any of the codes if an array) - the same code the
   // page's route guard and its main endpoint check, so a link never leads
   // to a page that bounces the user or answers 403.
@@ -71,16 +74,17 @@ function canQueryDocumentAudit(role: Role | null): boolean {
 function documentControlItem(role: Role | null): MenuItem {
   return {
     label: "Document Control",
+    path: "/sections/document-control",
     icon: DescriptionOutlinedIcon,
     group: "DOCUMENT CONTROL",
     children: [
-      { label: "Dashboard", path: "/document-control" },
-      { label: "My Reading List", path: "/document-control/my-reading-list" },
-      { label: "Training Matrix", path: "/document-control/training-matrix" },
-      { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
-      { label: "Document Library", path: "/document-control/library" },
-      ...(canQueryDocumentAudit(role) ? [{ label: "Audit Trail", path: "/document-control/audit" }] : []),
-      { label: "Configuration", path: "/document-control/configuration", permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE }
+      { label: "Dashboard", path: "/document-control", description: "Overview of documents due for review, approval and training." },
+      { label: "My Reading List", path: "/document-control/my-reading-list", description: "SOPs and documents you must read and acknowledge." },
+      { label: "Training Matrix", path: "/document-control/training-matrix", description: "Who is trained on which document, and what is outstanding." },
+      { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", description: "Training and document compliance across sections." },
+      { label: "Document Library", path: "/document-control/library", description: "Search and open every controlled document and its versions." },
+      ...(canQueryDocumentAudit(role) ? [{ label: "Audit Trail", path: "/document-control/audit", description: "Audit trail of all document actions and signatures." }] : []),
+      { label: "Configuration", path: "/document-control/configuration", permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, description: "Document types, sections and workflow settings." }
     ]
   };
 }
@@ -91,55 +95,58 @@ function documentControlItem(role: Role | null): MenuItem {
 // page link also needs the permission its endpoints check.
 const microArea: MenuItem = {
   label: "Microbiology Laboratory",
+  path: "/sections/microbiology-laboratory",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
   children: [
-    { label: "Workspace", path: "/microbiology/workspace" },
-    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", permission: PERMISSIONS.MEDIA_PREPARE },
-    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", permission: PERMISSIONS.CRYOVIALS_MANAGE },
-    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", permission: PERMISSIONS.MATERIALS_MANAGE },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", permission: PERMISSIONS.EQUIPMENT_MANAGE },
-    { label: "Approved Media List", path: "/inventory/approved-media", permission: PERMISSIONS.MEDIA_PREPARE },
-    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials", permission: PERMISSIONS.CRYOVIALS_MANAGE }
+    { label: "Workspace", path: "/microbiology/workspace", description: "Receive, test, review and approve microbiology samples." },
+    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", permission: PERMISSIONS.MEDIA_PREPARE, description: "Prepare media lots and record growth promotion and sterility checks." },
+    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Reference strain cryovials: preparation, use and stock." },
+    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", permission: PERMISSIONS.MATERIALS_MANAGE, description: "Receive and track microbiology reagents and consumables." },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Microbiology instruments, calibration and maintenance status." },
+    { label: "Approved Media List", path: "/inventory/approved-media", permission: PERMISSIONS.MEDIA_PREPARE, description: "Media lots released for use in testing." },
+    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials", permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Cryovials released for use in testing." }
   ]
 };
 
 const microConfigArea: MenuItem = {
   label: "Microbiology Configuration",
+  path: "/sections/microbiology-configuration",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
   permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "Test Master", path: "/laboratory-configuration/test-master" },
-    { label: "Organisms", path: "/laboratory-configuration/organisms" },
-    { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
-    { label: "Water", path: "/laboratory-configuration/water" },
-    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
-    { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
-    { label: "Equipment", path: "/laboratory-configuration/equipment" }
+    { label: "Test Master", path: "/laboratory-configuration/test-master", description: "Microbiology test definitions, steps, media and limits." },
+    { label: "Organisms", path: "/laboratory-configuration/organisms", description: "Organism master list used in tests and identification." },
+    { label: "Media Configurations", path: "/laboratory-configuration/media-configurations", description: "Media products, incubation times and temperatures." },
+    { label: "Water", path: "/laboratory-configuration/water", description: "Water sampling points and their test plans." },
+    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", description: "EM locations, sampling methods and alert/action limits." },
+    { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", description: "After-cleaning swab points and acceptance limits." },
+    { label: "Equipment", path: "/laboratory-configuration/equipment", description: "Equipment types and settings used by microbiology tests." }
   ]
 };
 
 function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
   const children: MenuItem[] = [];
   if (physchemAreas.includes("fp")) {
-    children.push({ label: "FP Workspace", path: "/physicochemical/workspace" });
+    children.push({ label: "FP Workspace", path: "/physicochemical/workspace", description: "Receive and test finished product samples." });
   }
   if (physchemAreas.includes("rmpm")) {
-    children.push({ label: "RM & PM Workspace", path: "/physicochemical/rm-pm-workspace" });
+    children.push({ label: "RM & PM Workspace", path: "/physicochemical/rm-pm-workspace", description: "Receive and test raw material and packaging samples." });
   }
   children.push(
-    { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
-    { label: "Working Standards", path: "/working-standards" },
-    { label: "HPLC Workspace", path: "/hplc-workspace" },
-    { label: "GC Workspace", path: "/gc-workspace" },
-    { label: "ICP Workspace", path: "/icp-workspace" },
-    { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
+    { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE, description: "Prepare and standardize reagent and volumetric solutions." },
+    { label: "Working Standards", path: "/working-standards", description: "Qualify and track in-house working standards." },
+    { label: "HPLC Workspace", path: "/hplc-workspace", description: "HPLC runs: sequences, system suitability and results." },
+    { label: "GC Workspace", path: "/gc-workspace", description: "GC runs: sequences, system suitability and results." },
+    { label: "ICP Workspace", path: "/icp-workspace", description: "ICP runs: calibration, samples and results." },
+    { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE, description: "Receive and track physicochemical reagents and standards." },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Physicochemical instruments, calibration and maintenance status." }
   );
 
   return {
     label: "Physicochemical Laboratory",
+    path: "/sections/physicochemical-laboratory",
     icon: MedicationOutlinedIcon,
     group: "LABORATORIES",
     children
@@ -148,19 +155,20 @@ function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
 
 const physchemConfigArea: MenuItem = {
   label: "Physicochemical Configuration",
+  path: "/sections/physicochemical-configuration",
   icon: MedicationOutlinedIcon,
   group: "LABORATORIES",
   permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master" },
-    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master" },
-    { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
-    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments" },
-    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
-    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
-    { label: "Solutions", path: "/laboratory-configuration/solution-master" },
-    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" },
-    { label: "ICP Methods", path: "/laboratory-configuration/icp-methods" }
+    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master", description: "Finished product test definitions and specifications." },
+    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master", description: "Raw material and packaging test definitions." },
+    { label: "Equation Types", path: "/laboratory-configuration/equation-types", description: "Calculation equations used by physicochemical tests." },
+    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", description: "Instrument types available to physicochemical tests." },
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns", description: "Chromatography columns and their usage history." },
+    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master", description: "Reagent and reference standard master data." },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master", description: "Solution recipes and standardization rules." },
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", description: "HPLC methods: conditions, analytes and suitability criteria." },
+    { label: "ICP Methods", path: "/laboratory-configuration/icp-methods", description: "ICP methods: elements, wavelengths and limits." }
   ]
 };
 

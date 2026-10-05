@@ -149,25 +149,6 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
-  calibrationEntryMode?: string | null;
-  calMinCorrelation?: number | null;
-  calCorrelationType?: string | null;
-  calMinStandards?: number | null;
-  calCheckRecoveryLowPercent?: number | null;
-  calCheckRecoveryHighPercent?: number | null;
-  calBlankMax?: number | null;
-  calIsRecoveryLowPercent?: number | null;
-  calIsRecoveryHighPercent?: number | null;
-  calRequireBlank?: boolean | null;
-  calRequireIcv?: boolean | null;
-  calRequireCcv?: boolean | null;
-  calRequireInternalStandard?: boolean | null;
-  reportedConcentrationBasis?: string | null;
-  calMaxRunAgeHours?: number | null;
-  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
-  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
-  calInstrumentType?: "IcpOes" | "Aas" | null;
-  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
@@ -209,25 +190,6 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
-  calibrationEntryMode?: string | null;
-  calMinCorrelation?: number | null;
-  calCorrelationType?: string | null;
-  calMinStandards?: number | null;
-  calCheckRecoveryLowPercent?: number | null;
-  calCheckRecoveryHighPercent?: number | null;
-  calBlankMax?: number | null;
-  calIsRecoveryLowPercent?: number | null;
-  calIsRecoveryHighPercent?: number | null;
-  calRequireBlank?: boolean | null;
-  calRequireIcv?: boolean | null;
-  calRequireCcv?: boolean | null;
-  calRequireInternalStandard?: boolean | null;
-  reportedConcentrationBasis?: string | null;
-  calMaxRunAgeHours?: number | null;
-  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
-  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
-  calInstrumentType?: "IcpOes" | "Aas" | null;
-  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
@@ -327,18 +289,7 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }, ifMatch(version)).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
-    apiClient.get("/masterdata/equation-types").then((r) => {
-      const list: EquationTypeDto[] = r.data.data || [];
-      if (!list.some((e) => e.code === "CalibrationCurve")) {
-        list.push({
-          code: "CalibrationCurve",
-          name: "Calibration Curve",
-          formulaText: "r / r² >= MinCorrelation, Standards >= MinStandards, ICV/CCV recovery within [Low, High]%, Blank <= MaxBlank (or LOQ), IS recovery within [Low, High]%",
-          requiredInputs: ["CorrelationValue", "CorrelationType", "NumberOfStandards", "LowestStandardMgPerL", "HighestStandardMgPerL", "Checks"]
-        });
-      }
-      return list;
-    }),
+    apiClient.get("/masterdata/equation-types").then((r) => r.data.data || []),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
   createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
     const payload = typeof codeOrPayload === "string"

@@ -15,7 +15,6 @@ export type GrowthObservation = "NoGrowth" | "GrowthNonConforming" | "GrowthConf
 export type WorkflowType =
   | "CountTest"
   | "Observation"
-  | "ElementalAssay"
   | "Measurement"
   | "Gravimetric"
   | "Qualitative"

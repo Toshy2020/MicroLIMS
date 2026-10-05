@@ -31,7 +31,6 @@ const TrackingBoardPage = lazy(() => import("../modules/receiving/TrackingBoardP
 const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleReportPage").then((m) => ({ default: m.SampleReportPage })));
 const SampleCoaPage = lazy(() => import("../modules/testingWorkspace/SampleCoaPage").then((m) => ({ default: m.SampleCoaPage })));
 const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaReportPage").then((m) => ({ default: m.MediaReportPage })));
-const CalibrationRunReportPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunReportPage").then((m) => ({ default: m.CalibrationRunReportPage })));
 const CryovialReportPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialReportPage").then((m) => ({ default: m.CryovialReportPage })));
 const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/ItemsPage").then((m) => ({ default: m.ItemsPage })));
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
@@ -44,7 +43,6 @@ const MediaEvaluationPage = lazy(() => import("../modules/laboratoryConfiguratio
 const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/water/WaterConfigPage").then((m) => ({ default: m.WaterConfigPage })));
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
 const AfterCleaningConfigPage = lazy(() => import("../modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage").then((m) => ({ default: m.AfterCleaningConfigPage })));
-const CalibrationRunsPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunsPage").then((m) => ({ default: m.CalibrationRunsPage })));
 const CryovialsPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialsPage").then((m) => ({ default: m.CryovialsPage })));
 const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ReceivingConfigurationPage").then((m) => ({ default: m.ReceivingConfigurationPage })));
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
@@ -105,7 +103,6 @@ export function AppRoutes() {
           <Route path="/samples/:id/coa" element={<SampleCoaPage />} />
           <Route path="/media/:id/report" element={<MediaReportPage />} />
           <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
-          <Route path="/laboratory/calibration-runs/:id/report" element={<CalibrationRunReportPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -159,7 +156,6 @@ export function AppRoutes() {
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.TEST_WORKFLOW_EXECUTE} />}>
               <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
-              <Route path="/laboratory/calibration-runs" element={<CalibrationRunsPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
               <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />

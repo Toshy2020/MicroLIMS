@@ -67,6 +67,13 @@ describe("TitrationChangeReasonField", () => {
       expect(hasTitrationSettingsChanged(baseTest, baseForm, "Titration")).toBe(false);
     });
 
+    it("returns true when only the physchem area changes", () => {
+      const t = { ...baseTest, physchemArea: "FinishedProduct" as const };
+      expect(hasTitrationSettingsChanged(t, baseForm, "Titration", "FinishedProduct")).toBe(false);
+      expect(hasTitrationSettingsChanged(t, baseForm, "Titration", "Both")).toBe(true);
+      expect(titrationChangeReasonCheck(t, baseForm, "Titration", "", "Both").required).toBe(true);
+    });
+
     it("returns true when equivalency factor changes", () => {
       const changedForm: TitrationFormState = {
         ...baseForm,

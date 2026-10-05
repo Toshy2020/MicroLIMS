@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.MasterData;
@@ -50,6 +50,28 @@ public class TitrationTestMasterReasonTests
         var change = Assert.Single(log.Changes);
         Assert.Contains("88.06", change.PreviousValue);
         Assert.Contains("88.07", change.NewValue);
+    }
+
+    [Fact]
+    public async Task ChangingPhyschemArea_WithoutReason_Refused()
+    {
+        var (db, s, svc) = Setup();
+        using var _ = db;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, Update(s) with { PhyschemArea = PhyschemArea.FinishedProduct }));
+        Assert.Equal("A reason for change is required when titration settings change.", ex.Message);
+    }
+
+    [Fact]
+    public async Task ChangingPhyschemArea_WithReason_SavesAndAudits()
+    {
+        var (db, s, svc) = Setup();
+        using var _ = db;
+        var res = await svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id,
+            (Update(s, reason: "Also used for raw materials") with { PhyschemArea = PhyschemArea.FinishedProduct }));
+        Assert.Equal(PhyschemArea.FinishedProduct, res.PhyschemArea);
+        var log = await db.AuditLogs.SingleAsync(a => a.ActionCode == "TestDefinition.TitrationChanged");
+        Assert.Equal("Also used for raw materials", log.Reason);
     }
 
     [Fact]

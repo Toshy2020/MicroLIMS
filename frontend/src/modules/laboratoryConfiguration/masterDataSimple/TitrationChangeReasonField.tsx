@@ -6,6 +6,7 @@ import {
   titrationFormFromDefinition,
   titrationPayloadFields
 } from "./titrationConfig";
+import type { PhyschemArea } from "./testMasterArea";
 
 export interface TitrationChangeReasonFieldProps {
   value: string;
@@ -21,7 +22,8 @@ export interface TitrationChangeReasonFieldProps {
 export function hasTitrationSettingsChanged(
   initialTest: TestDefinitionOption | null,
   currentForm: TitrationFormState,
-  currentWorkflowType: string
+  currentWorkflowType: string,
+  currentArea?: PhyschemArea | null
 ): boolean {
   if (!initialTest) return false;
   const wasTitration = initialTest.workflowType === "Titration";
@@ -39,6 +41,9 @@ export function hasTitrationSettingsChanged(
     ...titrationPayloadFields(currentForm, true),
     replicateCount: Number(currentForm.replicateCount) || 3
   };
+
+  // The area is part of the titration snapshot on the server (spec 2026-10-05 section 2).
+  if (currentArea && currentArea !== (initialTest.physchemArea ?? null)) return true;
 
   type Key = keyof typeof before;
   for (const k of Object.keys(before) as Key[]) {
@@ -70,9 +75,10 @@ export function titrationChangeReasonCheck(
   initialTest: TestDefinitionOption | null,
   currentForm: TitrationFormState,
   currentWorkflowType: string,
-  reason: string
+  reason: string,
+  currentArea?: PhyschemArea | null
 ): { required: boolean; error: string | null; payload: string | null } {
-  const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType);
+  const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType, currentArea);
   return {
     required,
     error: required ? validateTitrationChangeReason(reason) : null,

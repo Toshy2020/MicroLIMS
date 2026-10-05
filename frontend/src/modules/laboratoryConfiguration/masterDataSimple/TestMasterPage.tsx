@@ -1739,7 +1739,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     }
 
     const reasonCheck = editingId
-      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason)
+      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null)
       : { required: false, error: null, payload: null };
     setChangeReasonError(reasonCheck.error);
     if (reasonCheck.error) return;
@@ -2431,7 +2431,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
 
           {isFp && area && <TestAreaField pageArea={area} value={physchemArea} onChange={setPhyschemArea} />}
 
-          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType) && (
+          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null) && (
             <TitrationChangeReasonField value={changeReason} onChange={setChangeReason} error={changeReasonError} />
           )}
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -157,7 +157,7 @@ public static class TitrationDefinitionRules
             TitrationEquivalencyFactor = N(t.TitrationEquivalencyFactor), t.TitrationBlankRequired, t.TitrationExcessSolutionMasterId,
             TitrationExcessVolumeMl = N(t.TitrationExcessVolumeMl), TitrationMaxRsdPercent = N(t.TitrationMaxRsdPercent),
             t.TitrationEndpoint, t.TitrationIndicatorEntryId, t.TitrationIndicator, t.TitrationTempCorrection,
-            TitrationExpansionCoefficient = N(t.TitrationExpansionCoefficient), t.TitrationStandardEntryId,
+            TitrationExpansionCoefficient = N(t.TitrationExpansionCoefficient), t.TitrationStandardEntryId, t.PhyschemArea,
         };
     }
 

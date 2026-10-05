@@ -27,12 +27,19 @@ public record TitrationPayload(
     List<int> SpecificationIds,
     List<TitrationReplicateInput> Replicates,
     string Password,
-    string? Comment);
+    string? Comment,
+    bool? DueTitrantAcknowledged = null,
+    string? DueTitrantJustification = null);
 
 // Titration assay (spec 2026-10-03, sections 4-5 and amendments). Server-side rules
 // and calculation; the frontend preview is display only.
 public sealed class TitrationRecorder : TestWorkflowSupport
 {
+    public const string EngineVersion = "titration-1";
+
+    public static List<string> WarningsOf(TitrantPreparationOption main, TitrantPreparationOption? excess) =>
+        new[] { main.Warning, excess?.Warning }.Where(w => w != null).Select(w => w!).ToList();
+
     private static readonly ResultBasis[] NeedLoss = { ResultBasis.PercentDriedBasis, ResultBasis.PercentAnhydrousBasis };
     private static readonly ResultBasis[] NeedUnitWeight = { ResultBasis.PercentLabelClaim, ResultBasis.MgPerUnit };
 
@@ -128,6 +135,24 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         }
         else if (p.ExcessPreparationId.HasValue)
             throw new InvalidOperationException("An excess titrant is only used in residual titration.");
+
+        // ---- due-titrant acknowledgement ----
+        var titrantWarnings = WarningsOf(titrantOpt, excess?.Opt);
+        string? ackJustification = null;
+        object? ack = null;
+        if (titrantWarnings.Count > 0)
+        {
+            if (p.DueTitrantAcknowledged != true)
+                throw new InvalidOperationException("The titrant is due for standardization - acknowledge it and give a justification to continue.");
+            ackJustification = p.DueTitrantJustification?.Trim();
+            if (string.IsNullOrEmpty(ackJustification) || ackJustification.Length < 10 || ackJustification.Length > 500)
+                throw new InvalidOperationException("The justification must be 10 to 500 characters.");
+            var codes = new List<string> { titrantPrep.Code };
+            if (excess != null && excess.Value.Opt.Warning != null) codes.Add(excess.Value.Prep.Code);
+            ack = new { justification = ackJustification, titrantCodes = codes, acknowledgedAt = nowUtc };
+        }
+        else if (p.DueTitrantAcknowledged == true || !string.IsNullOrWhiteSpace(p.DueTitrantJustification))
+            throw new InvalidOperationException("No titrant warning to acknowledge.");
 
         // ---- standards (relative) ----
         List<(decimal W, decimal Purity, decimal Moisture, decimal Titre)> stdRows = new();
@@ -281,6 +306,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         // ---- snapshot (spec 3.4 + A6) ----
         var snapshot = new
         {
+            engineVersion = EngineVersion, dueTitrantAcknowledgement = ack,
             type = cfg.Type, mode = cfg.Mode, calculation = cfg.Calculation, endpoint = cfg.Endpoint, indicator = t.TitrationIndicator,
             nonAqueous = cfg.NonAqueous,
             titrant = new
@@ -322,6 +348,9 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         return await PersistTestAnalysisAndFinalizeAsync(
             order, WorkflowType.Titration, p.EquipmentId, analysedAtUtc, conditionsJson, parameterResults,
             ResultType.Numeric, p.Password, p.Comment, "Titration", userId, ipAddress,
+            beforeSigned: ackJustification == null ? null : () => _signatureService.SignAsync(
+                userId, p.Password, SignatureMeaning.TitrantDueAcknowledged, "TestOrder", order.Id,
+                $"Due titrant acknowledged: {ackJustification}", ipAddress),
             afterSigned: lotToDeduct == null ? null : () =>
             {
                 lotToDeduct.QuantityRemaining -= quantityToDeduct!.Value;

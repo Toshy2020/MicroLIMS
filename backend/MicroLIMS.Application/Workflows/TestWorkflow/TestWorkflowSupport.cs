@@ -683,9 +683,11 @@ public class TestWorkflowSupport
         decimal? unitAmount = null,
         string? validityRecordType = null,
         int? validityRecordId = null,
-        Action? afterSigned = null)
+        Action? afterSigned = null,
+        Func<Task>? beforeSigned = null)
     {
         _db.CurrentUserId = userId;
+        if (beforeSigned != null) await beforeSigned();
         var signature = await _signatureService.SignAsync(
             userId,
             password,

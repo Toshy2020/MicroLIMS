@@ -364,9 +364,101 @@ public class TitrationRecorderTests
         Assert.Equal("Due", opt.FactorState);
         Assert.NotNull(opt.Warning);
 
-        await Record(db, s, Payload(s, standards: new() { new(s.StandardLot!.Id, 100m, 10.00m) }));
+        await Record(db, s, Payload(s, standards: new() { new(s.StandardLot!.Id, 100m, 10.00m) }) with
+        { DueTitrantAcknowledged = true, DueTitrantJustification = Justification });
         var a = await db.TestAnalyses.SingleAsync(x => x.TestOrderId == s.Order.Id);
         Assert.Contains("standardization is due", a.ConditionsJson!);
+    }
+
+    private const string Justification = "Restandardization booked for tomorrow; factor not used in relative method.";
+
+    private static async Task<(MicroLimsDbContext Db, TitrationScenario S)> DueRelativeAsync()
+    {
+        var db = NewDb();
+        var o = RelativeOptions();
+        o.ValidityDays = 1; o.StandardizedDaysAgo = 5;
+        var s = TitrationScenario.Seed(db, o);
+        s.Spec.LowerLimit = 0m; s.Spec.UpperLimit = 1000m; db.SaveChanges();
+        await Task.CompletedTask;
+        return (db, s);
+    }
+
+    private static TitrationPayload DuePayload(TitrationScenario s) =>
+        Payload(s, standards: new() { new(s.StandardLot!.Id, 100m, 10.00m) });
+
+    [Fact]
+    public async Task Relative_Due_WithoutAcknowledgement_Refused()
+    {
+        var (db, s) = await DueRelativeAsync();
+        using var _ = db;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, DuePayload(s)));
+        Assert.Contains("acknowledge it and give a justification", ex.Message);
+    }
+
+    [Fact]
+    public async Task Relative_Due_Acknowledged_RecordsTwoSignaturesAndSnapshot()
+    {
+        var (db, s) = await DueRelativeAsync();
+        using var _ = db;
+        await Record(db, s, DuePayload(s) with { DueTitrantAcknowledged = true, DueTitrantJustification = Justification });
+
+        var sigs = await db.ElectronicSignatures.Where(x => x.EntityType == "TestOrder" && x.EntityId == s.Order.Id).ToListAsync();
+        Assert.Equal(2, sigs.Count);
+        Assert.Contains(sigs, x => x.MeaningOfSignature == SignatureMeaning.ResultRecorded);
+        Assert.Contains(sigs, x => x.MeaningOfSignature == SignatureMeaning.TitrantDueAcknowledged);
+        Assert.All(sigs, x => Assert.Equal(s.UserId, x.UserId));
+
+        var a = await db.TestAnalyses.SingleAsync(x => x.TestOrderId == s.Order.Id);
+        using var doc = JsonDocument.Parse(a.ConditionsJson!);
+        Assert.Equal("titration-1", doc.RootElement.GetProperty("engineVersion").GetString());
+        var ack = doc.RootElement.GetProperty("dueTitrantAcknowledgement");
+        Assert.Equal(Justification, ack.GetProperty("justification").GetString());
+        Assert.Equal(s.TitrantPrep.Code, ack.GetProperty("titrantCodes")[0].GetString());
+    }
+
+    [Fact]
+    public async Task Relative_Due_ShortJustification_Refused()
+    {
+        var (db, s) = await DueRelativeAsync();
+        using var _ = db;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Record(db, s, DuePayload(s) with { DueTitrantAcknowledged = true, DueTitrantJustification = "too short" }));
+        Assert.Contains("10 to 500", ex.Message);
+    }
+
+    [Fact]
+    public async Task ValidTitrant_WithAcknowledgement_Refused()
+    {
+        using var db = NewDb();
+        var s = TitrationScenario.Seed(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Record(db, s, Payload(s) with { DueTitrantAcknowledged = true, DueTitrantJustification = Justification }));
+        Assert.Contains("No titrant warning to acknowledge", ex.Message);
+    }
+
+    [Fact]
+    public async Task Relative_Due_WrongPassword_PersistsOnlyTheFailedAttempt()
+    {
+        var (db, s) = await DueRelativeAsync();
+        using var _ = db;
+        var p = DuePayload(s) with { Password = "wrong", DueTitrantAcknowledged = true, DueTitrantJustification = Justification };
+        await Assert.ThrowsAnyAsync<Exception>(() => Record(db, s, p));
+        Assert.Empty(db.TestAnalyses);
+        Assert.Empty(db.Results);
+        Assert.DoesNotContain(db.ElectronicSignatures, x => x.EntityType == "TestOrder");
+        Assert.Equal(5m, (await db.Materials.FindAsync(s.StandardLot!.Id))!.QuantityRemaining);
+        var log = Assert.Single(db.AuditLogs.Where(a => a.EntityName == "ElectronicSignature" && a.Action == "SignatureFailed"));
+        Assert.Contains("TitrantDueAcknowledged", log.NewValue);
+    }
+
+    [Fact]
+    public void WarningsOf_CoversMainAndExcessOptions()
+    {
+        static TitrantPreparationOption Opt(string? w) =>
+            new(1, "VS-1", null, 1m, "Due", null, null, null, null, true, w, null);
+        Assert.Equal(new[] { "a" }, TitrationRecorder.WarningsOf(Opt("a"), null));
+        Assert.Equal(new[] { "b" }, TitrationRecorder.WarningsOf(Opt(null), Opt("b")));
+        Assert.Empty(TitrationRecorder.WarningsOf(Opt(null), null));
     }
 
     [Fact]

@@ -78,8 +78,7 @@ public class DisintegrationResultPostgresIntegrationTests
             LimitType = LimitType.DisintegrationTime,
             UpperLimit = 30m,
             Unit = "min",
-            SpecLimit = "NMT 30 min",
-            ConversionFactor = 1.0m
+            SpecLimit = "NMT 30 min"
         };
         db.Specifications.Add(spec);
 

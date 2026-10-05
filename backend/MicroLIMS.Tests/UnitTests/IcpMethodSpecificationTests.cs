@@ -79,10 +79,10 @@ public class IcpMethodSpecificationTests
     }
 
     private static CreateSpecificationRequest Spec(Arr a, ResultBasis basis, string name = "Zn", decimal? claim = 10m, string? unit = "mg",
-        int? elementId = -1, decimal? cf = null, LimitType limit = LimitType.Range) =>
+        int? elementId = -1, LimitType limit = LimitType.Range) =>
         new(ItemId: a.Item.Id, TestCode: a.Code, ParameterName: name, LimitType: limit,
             LowerLimit: limit == LimitType.Range ? 90m : null, UpperLimit: 110m, ResultBasis: basis,
-            LabelClaim: claim, LabelClaimUnit: unit, ConversionFactor: cf,
+            LabelClaim: claim, LabelClaimUnit: unit,
             IcpMethodElementId: elementId == -1 ? a.ElementId : elementId);
 
     private static async Task AssertThrowsAsync(string message, Func<Task> act) =>
@@ -179,15 +179,6 @@ public class IcpMethodSpecificationTests
         await a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, ResultBasis.MgPerUnit, "Zn a"));
         await AssertThrowsAsync("A specification for this element and basis already exists.",
             () => a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, ResultBasis.MgPerUnit, "Zn b")));
-    }
-
-    [Fact]
-    public async Task Spec_ConversionFactorNotOne_Throws()
-    {
-        await using var db = NewDb();
-        var a = await ArrangeAsync(db, IcpMethodMode.MineralAssay);
-        await AssertThrowsAsync("Sample matrix and conversion factor are not used for ICP method assay specifications.",
-            () => a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, ResultBasis.MgPerUnit, cf: 2m)));
     }
 
     [Fact]

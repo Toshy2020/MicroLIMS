@@ -80,7 +80,6 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
         <>
           {test.isSuperseded && <strong>Superseded by retest · </strong>}
           {a.equipmentCode ? `Instrument: ${a.equipmentCode} · ` : ""}
-          {a.sampleMatrix ? `Matrix: ${a.sampleMatrix} · ` : ""}
           Analysed: {dt(a.analysedAt)}
         </>
       }
@@ -135,9 +134,6 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
             <span>Analysed: <strong className="mono">{dt(a.analysedAt)}</strong></span>
             {a.unitAmount !== null && (
               <span>Unit Amount: <strong>{a.unitAmount}</strong></span>
-            )}
-            {a.sampleMatrix && (
-              <span>Matrix: <strong>{a.sampleMatrix}</strong></span>
             )}
             {conditionsDisplay && (
               <span style={{ gridColumn: "span 2" }}>Conditions: <strong>{conditionsDisplay}</strong></span>

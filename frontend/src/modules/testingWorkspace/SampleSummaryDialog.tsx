@@ -526,7 +526,6 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
         <SummaryField label="Instrument" value={analysis.equipmentCode ? `${analysis.equipmentCode}${analysis.equipmentName ? ` (${analysis.equipmentName})` : ""}` : (analysis.equipmentName ?? "—")} />
         <SummaryField label="Analysis Time" value={formatDate(analysis.analysedAt)} />
         {analysis.unitAmount !== null && <SummaryField label="Unit Amount" value={num(analysis.unitAmount)} />}
-        {analysis.sampleMatrix && <SummaryField label="Matrix" value={analysis.sampleMatrix} />}
         {conditionsDisplay && <SummaryField label="Conditions" value={conditionsDisplay} />}
         <SummaryField label="Entered By / At" value={`${analysis.enteredByName ?? "—"} · ${formatDate(analysis.enteredAt)}`} />
       </Box>

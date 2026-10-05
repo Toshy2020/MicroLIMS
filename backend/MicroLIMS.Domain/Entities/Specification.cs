@@ -47,12 +47,10 @@ public class Specification : IVersionedEntity
     public decimal? SampleQuantity { get; set; }
     public string? SampleQuantityUnit { get; set; }
 
-    // Result basis / sample matrix / label claim / conversion factor
+    // Result basis / label claim
     public ResultBasis? ResultBasis { get; set; }
-    public SampleMatrix? SampleMatrix { get; set; }
     public decimal? LabelClaim { get; set; }
     public string? LabelClaimUnit { get; set; }
-    public decimal ConversionFactor { get; set; } = 1.0m;
 
     // Finished Product / Weight Variation
     public DosageForm? DosageForm { get; set; }

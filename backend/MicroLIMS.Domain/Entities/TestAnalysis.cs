@@ -18,7 +18,6 @@ public class TestAnalysis
     public DateTime AnalysedAt { get; set; }
 
     public decimal? UnitAmount { get; set; }
-    public SampleMatrix? SampleMatrix { get; set; }
     public string? ConditionsJson { get; set; }
     public string? ValidityRecordType { get; set; }
     public int? ValidityRecordId { get; set; }

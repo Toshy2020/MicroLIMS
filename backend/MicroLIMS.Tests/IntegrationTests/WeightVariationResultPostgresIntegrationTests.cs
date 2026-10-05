@@ -87,8 +87,7 @@ public class WeightVariationResultPostgresIntegrationTests
             LimitType = LimitType.WeightVariation,
             DosageForm = DosageForm.HardCapsule,
             Unit = "mg",
-            SpecLimit = "USP <2091>: net content 90-110 % of average",
-            ConversionFactor = 1.0m
+            SpecLimit = "USP <2091>: net content 90-110 % of average"
         };
         db.Specifications.Add(spec);
 

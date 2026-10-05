@@ -28,7 +28,6 @@ export type ResultBasis =
   | "PercentAnhydrousBasis"
   | "Ppm";
 
-export type SampleMatrix = "Solid" | "Liquid";
 
 // The production stage a specification row applies to; null/absent =
 // every stage. A sample at a stage with rows of its own uses those rows,
@@ -81,10 +80,8 @@ export interface SpecificationDto {
   dilutionFactor?: number | null;
   stages?: SpecificationStageDto[];
   resultBasis?: ResultBasis | string | null;
-  sampleMatrix?: SampleMatrix | string | null;
   labelClaim?: number | string | null;
   labelClaimUnit?: string | null;
-  conversionFactor?: number | string | null;
   dosageForm?: DosageForm | string | null;
   // Ownership (design.md §6) - the row's owner is its TestCode's Test
   // Master section, not a column of its own. canEdit is false for a row
@@ -122,10 +119,8 @@ export interface CreateSpecificationPayload {
   dilutionFactor?: number | null;
   stages?: Array<{ stageNumber: number; stageLabel: string; acceptanceCriteriaText: string }>;
   resultBasis?: ResultBasis | null;
-  sampleMatrix?: SampleMatrix | null;
   labelClaim?: number | null;
   labelClaimUnit?: string | null;
-  conversionFactor?: number | null;
   dosageForm?: DosageForm | null;
   hplcMethodAnalyteId?: number | null;
   icpMethodElementId?: number | null;

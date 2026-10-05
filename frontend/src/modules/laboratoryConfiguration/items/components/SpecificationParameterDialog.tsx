@@ -733,7 +733,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         : (isHplcMethodAssay || isTitration) && resultBasis
         ? (resultBasis as ResultBasis)
         : null,
-      sampleMatrix: null,
       labelClaim:
         limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
@@ -756,7 +755,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               : isHplcMethodAssay && resultBasis === "MgPerUnit"
               ? labelClaimUnit.trim() || null
               : null)),
-      conversionFactor: 1,
       productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null
     };
 

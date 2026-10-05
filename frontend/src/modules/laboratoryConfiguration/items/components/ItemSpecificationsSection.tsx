@@ -152,14 +152,14 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
   }
 };
 
-const formatResultBasis = (basis?: string | null, matrix?: string | null, isIcp?: boolean) => {
+const formatResultBasis = (basis?: string | null, isIcp?: boolean) => {
   if (!basis) return null;
   if (isIcp && basis === "MgPerKg") return "µg/g";
   switch (basis) {
     case "MgPerKg":
-      return matrix === "Liquid" ? "mg/L per sample" : "mg/kg per sample";
+      return "mg/kg per sample";
     case "MgPerUnit":
-      return matrix === "Liquid" ? "mg per dose" : "mg per unit";
+      return "mg per unit";
     case "PercentLabelClaim":
       return "% label claim";
     case "PercentAsIs":
@@ -559,7 +559,6 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       size="small"
                                       label={`Basis: ${formatResultBasis(
                                         spec.resultBasis as string,
-                                        spec.sampleMatrix as string,
                                         workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
                                           testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay"
                                       )}`}
@@ -798,7 +797,6 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                               size="small"
                                               label={`Basis: ${formatResultBasis(
                                          spec.resultBasis as string,
-                                         spec.sampleMatrix as string,
                                          workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
                                            testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay"
                                        )}`}

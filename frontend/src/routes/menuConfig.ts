@@ -73,26 +73,27 @@ export interface MenuContext {
 }
 
 // Menu Items
-const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
-const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
-const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.AUDIT_VIEW };
-const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
-const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", icon: BugReportOutlinedIcon, group: "SYSTEM", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG };
+const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
+const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: "REPORTS" };
+const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", description: "Search the audit trail of every record and signature.", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.AUDIT_VIEW };
+const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
+const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: "SYSTEM", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
 // gated on privileges rather than role or lab membership - any lab may
 // receive here (ReceiptLabGuard).
 const receiveSampleItem: MenuItem = {
   label: "Receive Sample",
+  description: "Register incoming samples and send them to the labs.",
   path: "/receiving",
   icon: ScienceOutlinedIcon,
   group: "RECEIVING",
   permission: [PERMISSIONS.SAMPLES_RECEIVE, PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB]
 };
-const trackingBoardItem: MenuItem = { label: "Tracking Board", path: "/receiving/tracking", icon: FactCheckOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_TRACK_ALL };
+const trackingBoardItem: MenuItem = { label: "Tracking Board", path: "/receiving/tracking", description: "Every received sample with each lab's stage.", icon: FactCheckOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_TRACK_ALL };
 
-const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.USERS_MANAGE };
-const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.ROLES_MANAGE };
+const usersItem: MenuItem = { label: "Users", path: "/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.USERS_MANAGE };
+const rolesItem: MenuItem = { label: "Roles", path: "/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.ROLES_MANAGE };
 
 // The global document audit trail stays a fixed role rule on the server
 // (DocumentAuthorizationService.CanQueryGlobalAuditAsync), so its link
@@ -104,6 +105,7 @@ function canQueryDocumentAudit(role: Role | null): boolean {
 function documentControlItem(role: Role | null): MenuItem {
   return {
     label: "Document Control",
+    description: "Controlled documents, reading lists and training.",
     path: "/sections/document-control",
     icon: DescriptionOutlinedIcon,
     group: "DOCUMENT CONTROL",
@@ -125,6 +127,7 @@ function documentControlItem(role: Role | null): MenuItem {
 // page link also needs the permission its endpoints check.
 const microArea: MenuItem = {
   label: "Microbiology Laboratory",
+  description: "Sample testing, media, cryovials and lab stock.",
   path: "/sections/microbiology-laboratory",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
@@ -141,6 +144,7 @@ const microArea: MenuItem = {
 
 const microConfigArea: MenuItem = {
   label: "Microbiology Configuration",
+  description: "Tests, organisms, media and sampling-point master data.",
   path: "/sections/microbiology-configuration",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
@@ -176,6 +180,7 @@ function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
 
   return {
     label: "Physicochemical Laboratory",
+    description: "Sample testing, instruments, solutions and lab stock.",
     path: "/sections/physicochemical-laboratory",
     icon: MedicationOutlinedIcon,
     group: "LABORATORIES",
@@ -185,6 +190,7 @@ function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
 
 const physchemConfigArea: MenuItem = {
   label: "Physicochemical Configuration",
+  description: "Test masters, methods, instruments and reagents.",
   path: "/sections/physicochemical-configuration",
   icon: MedicationOutlinedIcon,
   group: "LABORATORIES",
@@ -203,8 +209,8 @@ const physchemConfigArea: MenuItem = {
 };
 
 // Shared across both labs, not tied to either one's membership.
-const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.ITEMS_MANAGE };
-const receivingConfigItem: MenuItem = { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
+const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", description: "Items the labs test and the tests auto-assigned on receipt.", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.ITEMS_MANAGE };
+const receivingConfigItem: MenuItem = { label: "Receiving Configuration", description: "Reference lists offered on the sample receiving form.", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 
 // Drops every item whose permission the user lacks, then any parent left
 // with no children.

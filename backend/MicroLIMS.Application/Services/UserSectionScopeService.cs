@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -75,6 +76,29 @@ public class UserSectionScopeService : IUserSectionScopeService
             .ToListAsync(ct);
 
         return sectionIds;
+    }
+
+    public async Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default)
+    {
+        var fp = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.Code == PhyschemAreas.SectionCode)
+            .Select(s => new { s.Id, s.DepartmentId })
+            .FirstOrDefaultAsync(ct);
+        if (fp is null) return Array.Empty<WorkspaceArea>();
+
+        var both = new[] { WorkspaceArea.Fp, WorkspaceArea.RmPm };
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return both; // system administrator
+        if (!scope.Contains(fp.Id)) return Array.Empty<WorkspaceArea>();
+
+        var memberships = await _db.UserOrgMemberships.AsNoTracking()
+            .Where(m => m.UserId == userId && (m.SectionId == fp.Id || (m.SectionId == null && m.DepartmentId == fp.DepartmentId)))
+            .Select(m => new { m.SectionId, m.PhyschemArea })
+            .ToListAsync(ct);
+
+        // A department-wide membership has no area, so it grants both.
+        var areas = memberships.SelectMany(m => PhyschemAreas.Grants(m.SectionId == null ? null : m.PhyschemArea)).Distinct().ToList();
+        return both.Where(areas.Contains).ToList();
     }
 
     public async Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default)

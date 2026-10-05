@@ -10,5 +10,7 @@ public class UserOrgMembership
     public DocumentDepartment Department { get; set; } = null!;
     public int? SectionId { get; set; }
     public DocumentSection? Section { get; set; }
+    // Physicochemical section memberships only; null = both areas
+    public Enums.PhyschemArea? PhyschemArea { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

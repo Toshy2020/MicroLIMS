@@ -220,7 +220,8 @@ public record CreateTestDefinitionRequest(
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null)
+    int? IcpMethodId = null,
+    PhyschemArea? PhyschemArea = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
@@ -283,7 +284,8 @@ public record UpdateTestDefinitionRequest(
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null)
+    int? IcpMethodId = null,
+    PhyschemArea? PhyschemArea = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and

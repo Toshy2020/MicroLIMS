@@ -33,8 +33,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
             : null;
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, filter.LabSectionId);
+        var categories = await ResolveAreaAsync(filter.LabSectionId, filter.Area, currentUserId);
 
         var query = _db.Samples.AsNoTracking();
+        if (categories != null)
+        {
+            query = query.Where(s => categories.Contains(s.Category));
+        }
         if (scope != null)
         {
             query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
@@ -256,17 +261,37 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
-    public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null)
+    // The Physicochemical workspace is split into FP and RM & PM areas by sample category.
+    // Returns the categories to keep, or null for any other laboratory (unchanged behaviour).
+    private async Task<IReadOnlyList<SampleCategory>?> ResolveAreaAsync(int? labSectionId, string? area, int? userId)
+    {
+        if (!labSectionId.HasValue) return null;
+        var code = await _db.DocumentSections.AsNoTracking().Where(s => s.Id == labSectionId.Value).Select(s => s.Code).FirstOrDefaultAsync();
+        if (code != PhyschemAreas.SectionCode) return null;
+
+        var parsed = PhyschemAreas.Parse(area)
+            ?? throw new InvalidOperationException("area is required for the Physicochemical Laboratory workspace.");
+        if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value)).Contains(parsed))
+            throw new UnauthorizedAccessException("You do not have access to this Physicochemical Laboratory area.");
+        return PhyschemAreas.CategoriesOf(parsed);
+    }
+
+    public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null, string? area = null)
     {
         var scope = currentUserId.HasValue
             ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, labSectionId);
+        var categories = await ResolveAreaAsync(labSectionId, area, currentUserId);
 
         var now = _time.GetUtcNow().UtcDateTime;
 
         var baseQuery = _db.Samples.AsNoTracking();
+        if (categories != null)
+        {
+            baseQuery = baseQuery.Where(s => categories.Contains(s.Category));
+        }
         if (scope != null)
         {
             baseQuery = baseQuery.Where(SampleWorkflowQueues.HasTestInSections(scope));
@@ -403,7 +428,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .ToList();
     }
 
-    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null)
+    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null)
     {
         var scope = currentUserId.HasValue
             ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
@@ -413,6 +438,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // refreshed via this single-sample fetch inside a lab workspace
         // can't carry the caller's other lab's tests onto it (Task 13c).
         scope = LabScope.Narrow(scope, labSectionId);
+        var categories = await ResolveAreaAsync(labSectionId, area, currentUserId);
 
         var sample = await _db.Samples
             .AsNoTracking()
@@ -427,6 +453,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId);
         if (sample is null) return null;
+        // Another area's sample is not found here (the user's own access was checked above).
+        if (categories != null && !categories.Contains(sample.Category)) return null;
 
         if (scope != null)
         {

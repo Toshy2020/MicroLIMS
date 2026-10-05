@@ -1,8 +1,12 @@
+using MicroLIMS.Application.Helpers;
+
 namespace MicroLIMS.Application.Interfaces;
 
 public interface IUserSectionScopeService
 {
     Task<IReadOnlyList<int>?> GetAccessibleSectionIdsAsync(int userId, CancellationToken ct = default);
+    // Physicochemical areas the user may work in: admin or a department membership covering FP = both; none when not in FP.
+    Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default);
     Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default);
     Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default);
     Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default);

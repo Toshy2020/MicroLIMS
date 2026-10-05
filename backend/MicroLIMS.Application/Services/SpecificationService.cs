@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -186,6 +187,17 @@ public class SpecificationService
             cancellationToken);
         if (!testAssigned)
             throw new InvalidOperationException($"Test '{spec.TestCode}' is not assigned to item {spec.ItemId}.");
+
+        // A physicochemical test only takes specs for the item categories of its area.
+        var testArea = await _db.TestDefinitions.Where(t => t.Code == spec.TestCode).Select(t => t.PhyschemArea).FirstOrDefaultAsync(cancellationToken);
+        if (testArea is not null)
+        {
+            var itemCategory = await _db.Items.Where(i => i.Id == spec.ItemId).Select(i => (SampleCategory?)i.Category).FirstOrDefaultAsync(cancellationToken);
+            if (itemCategory is SampleCategory cat && !PhyschemAreas.Includes(testArea, PhyschemAreas.OfCategory(cat)))
+                throw new InvalidOperationException(PhyschemAreas.OfCategory(cat) == WorkspaceArea.Fp
+                    ? $"Test {spec.TestCode} is not used for finished products - it belongs to RM & PM."
+                    : $"Test {spec.TestCode} is not used for raw and packaging materials - it belongs to FP.");
+        }
 
         // Production stages exist only on Finished Product samples, so a
         // stage-specific row on any other item could never be used.

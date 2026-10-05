@@ -26,6 +26,9 @@ public class TestDefinition : IVersionedEntity
     public int SectionId { get; set; }
     public DocumentSection? Section { get; set; }
 
+    // Physicochemical section tests only (null elsewhere): which area(s) use the test.
+    public PhyschemArea? PhyschemArea { get; set; }
+
     public WorkflowType WorkflowType { get; set; } = WorkflowType.Observation;
     public List<TestWorkflowStep> Steps { get; set; } = new();
 

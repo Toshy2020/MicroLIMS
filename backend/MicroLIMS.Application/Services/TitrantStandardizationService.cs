@@ -355,7 +355,7 @@ public class TitrantStandardizationService
         return lots.Select(lot =>
         {
             var check = LotUsability.Check(lot, snapshot.StandardEntryId.Value, null, today);
-            return new LotOption(lot.Id, lot.BatchNumber, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason);
+            return new LotOption(lot.Id, lot.BatchNumber, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason, lot.Purity);
         }).ToList();
     }
 

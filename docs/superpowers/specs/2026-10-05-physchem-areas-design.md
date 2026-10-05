@@ -159,3 +159,23 @@ Two-endpoint titration (D2); a separate RM & PM section/lab; area segregation of
 
 ## 6. Order and gates
 S1 -> S2 -> S3 -> S4, stopping after each slice. Backend per slice: Postgres suite green, migration applied to LIMSV2 after a backup, Down verified. Frontend: tsc / eslint / vitest clean. Before merge: Neon pre-merge checks (S1 primary-standard component usage, S3 backfill counts); prod migrates at startup.
+
+## 7. Amendments after code reading (2026-10-05, before planning)
+
+A1. The backend already limits physicochemical lot types (`MaterialTypeRules.Physicochemical` =
+    Chemical, ReferenceStandard, Indicator, ReferenceBuffer, DisposableTool, Other). Those general
+    types stay; only `PrimaryStandard` is added. The micro names the user saw come from the
+    frontend: `MaterialFilterBar.MATERIAL_TYPE_OPTIONS` is a fixed micro list, and
+    `AddMaterialDialog` defaults to `DehydratedMedia`. S1 makes both follow `GET /materials/type-options`.
+    This replaces the "4 types only" wording in section 1.
+A2. Physicochemical in-workspace receiving already offers only product / rm / pm
+    (`ALLOWED_CATEGORIES_BY_LAB.FP`). The FP area therefore receives `product`, and RM & PM receives
+    `rm` and `pm`. This is a frontend-only list, as today; main Receiving is unchanged.
+A3. Area access is enforced on the workspace list, count and single-sample endpoints
+    (`/testorders/page`, `/testorders/counts`, `/testorders/{id}`). Result-entry endpoints stay
+    lab-scoped (section membership), as today.
+A4. The due-titrant acknowledgement signature is linked to the TestOrder (EntityType "TestOrder",
+    meaning `TitrantDueAcknowledged`); the snapshot stores the justification and time, not the
+    signature id (unknown before SaveChanges).
+A5. Migration `PrimaryStandardType` is data-only (both enums are stored as int, so there is no
+    schema change).

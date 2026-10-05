@@ -62,7 +62,7 @@ public record RecordTitrationResultRequest(
     DateTime AnalysedAt, int? EquipmentId, int TitrantPreparationId, int? ExcessPreparationId, decimal? BlankVolumeMl,
     decimal? TitrationTemperatureC, decimal? LossOnDryingPercent, decimal? AverageUnitWeightMg,
     List<TitrationStandardRequest>? Standards, List<int> SpecificationIds, List<TitrationReplicateRequest> Replicates,
-    string Password, string? Comment = null);
+    string Password, string? Comment = null, bool? DueTitrantAcknowledged = null, string? DueTitrantJustification = null);
 
 public record ConfirmatoryObservationRequest(int MaterialId, GrowthObservation Observation);
 public record SubmitConfirmatoryObservationsRequest(string StepName, List<ConfirmatoryObservationRequest> Observations);
@@ -311,7 +311,7 @@ public class TestWorkflowController : ControllerBase
                 request.Standards?.Select(s => new TitrationStandardInput(s.MaterialId, s.WeightMg, s.TitreMl)).ToList(),
                 request.SpecificationIds ?? new List<int>(),
                 request.Replicates?.Select(r => new TitrationReplicateInput(r.SampleWeightMg, r.TitrantVolumeMl)).ToList() ?? new List<TitrationReplicateInput>(),
-                request.Password, request.Comment);
+                request.Password, request.Comment, request.DueTitrantAcknowledged, request.DueTitrantJustification);
             return _engine.RecordTitrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }

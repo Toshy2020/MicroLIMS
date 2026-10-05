@@ -19,6 +19,7 @@ public enum SignatureMeaning
     CalibrationRunWithdrawn, // retired (slice R)
     TestingClosed,
     LaboratoryAdded,
-    TitrantStandardized
+    TitrantStandardized,
+    TitrantDueAcknowledged
 }
 

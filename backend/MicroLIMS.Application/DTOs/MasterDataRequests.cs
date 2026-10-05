@@ -290,6 +290,9 @@ public record UpdateTestDefinitionRequest(
     // the init setters instead. Without it every POST/PUT fails model binding.
     [JsonConstructor]
     public UpdateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
+
+    // Required (5-500 chars) when a titration setting changes; see TitrationDefinitionRules.Snapshot.
+    public string? ChangeReason { get; init; }
 }
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 

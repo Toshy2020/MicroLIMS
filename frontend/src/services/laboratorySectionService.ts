@@ -7,11 +7,15 @@ export interface LaboratorySection {
   departmentId: number;
   departmentCode: string;
   departmentName: string;
+  physchemAreas?: ("fp" | "rmpm")[];
 }
+
+export type PhyschemArea = "FinishedProduct" | "RawPackaging" | "Both";
 
 export interface UserMembership {
   departmentId: number;
   sectionId: number | null;
+  physchemArea?: PhyschemArea | null;
 }
 
 export async function getSections(): Promise<LaboratorySection[]> {

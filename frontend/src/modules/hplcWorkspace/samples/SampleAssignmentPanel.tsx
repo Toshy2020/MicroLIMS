@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { EligibleSampleTable } from "./EligibleSampleTable";
 import { EligibleQualificationTable } from "./EligibleQualificationTable";
+import { workspacePathForCategory } from "../../../routes/physchemWorkspacePath";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { RegisterTable } from "../../../components/lab";
@@ -126,7 +127,7 @@ export function SampleAssignmentPanel({
               startIcon={s.submitted ? <VisibilityIcon fontSize="small" /> : <EditNoteIcon fontSize="small" />}
               onClick={() =>
                 s.isDissolution
-                  ? navigate(`/physicochemical/workspace?search=${encodeURIComponent(s.sampleNumber)}`)
+                  ? navigate(`${workspacePathForCategory("FinishedProduct")}?search=${encodeURIComponent(s.sampleNumber)}`)
                   : navigate(entryPath)
               }
               sx={{ textTransform: "none", py: 0.25 }}

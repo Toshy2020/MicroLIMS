@@ -26,6 +26,7 @@ export interface TestingWorkspaceFilter {
   // workspace (ReceivingTestingWorkspacePage's `lab` prop); the backend
   // 403s a caller who isn't a member of that section.
   labSectionId?: number | null;
+  area?: "fp" | "rmpm" | null;
 }
 
 export interface PagedResult<T> {
@@ -86,14 +87,18 @@ export const ReceiveService = {
     if (filter.page != null) params.page = filter.page;
     if (filter.pageSize != null) params.pageSize = filter.pageSize;
     if (filter.labSectionId != null) params.labSectionId = filter.labSectionId;
+    if (filter.area) params.area = filter.area;
 
     const res = await apiClient.get("/testorders/page", { params });
     return res.data.data;
   },
 
-  async getWorkloadCounts(labSectionId?: number | null): Promise<WorkspaceTileCounts> {
+  async getWorkloadCounts(labSectionId?: number | null, area?: "fp" | "rmpm" | null): Promise<WorkspaceTileCounts> {
+    const params: Record<string, string | number> = {};
+    if (labSectionId != null) params.labSectionId = labSectionId;
+    if (area) params.area = area;
     const res = await apiClient.get("/testorders/counts", {
-      params: labSectionId != null ? { labSectionId } : undefined
+      params: Object.keys(params).length > 0 ? params : undefined
     });
     return res.data.data;
   },
@@ -103,9 +108,12 @@ export const ReceiveService = {
   // lab.sectionId here too, or a caller in both labs would see the other
   // lab's tests on a card refreshed through this single-sample fetch
   // (Task 13c).
-  async getSample(sampleId: number, labSectionId?: number | null): Promise<SampleRecord | null> {
+  async getSample(sampleId: number, labSectionId?: number | null, area?: "fp" | "rmpm" | null): Promise<SampleRecord | null> {
+    const params: Record<string, string | number> = {};
+    if (labSectionId != null) params.labSectionId = labSectionId;
+    if (area) params.area = area;
     const res = await apiClient.get(`/testorders/${sampleId}`, {
-      params: labSectionId != null ? { labSectionId } : undefined
+      params: Object.keys(params).length > 0 ? params : undefined
     });
     return res.data.data;
   },

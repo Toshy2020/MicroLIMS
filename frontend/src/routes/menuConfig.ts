@@ -36,6 +36,7 @@ export interface MenuContext {
   role: Role | null;
   permissions: string[];
   labCodes: string[];
+  physchemAreas?: ("fp" | "rmpm")[];
 }
 
 // Menu Items
@@ -119,12 +120,15 @@ const microConfigArea: MenuItem = {
   ]
 };
 
-const physchemArea: MenuItem = {
-  label: "Physicochemical Laboratory",
-  icon: MedicationOutlinedIcon,
-  group: "LABORATORIES",
-  children: [
-    { label: "Workspace", path: "/physicochemical/workspace" },
+function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
+  const children: MenuItem[] = [];
+  if (physchemAreas.includes("fp")) {
+    children.push({ label: "FP Workspace", path: "/physicochemical/workspace" });
+  }
+  if (physchemAreas.includes("rmpm")) {
+    children.push({ label: "RM & PM Workspace", path: "/physicochemical/rm-pm-workspace" });
+  }
+  children.push(
     { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
     { label: "Working Standards", path: "/working-standards" },
     { label: "HPLC Workspace", path: "/hplc-workspace" },
@@ -132,8 +136,15 @@ const physchemArea: MenuItem = {
     { label: "ICP Workspace", path: "/icp-workspace" },
     { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
-  ]
-};
+  );
+
+  return {
+    label: "Physicochemical Laboratory",
+    icon: MedicationOutlinedIcon,
+    group: "LABORATORIES",
+    children
+  };
+}
 
 const physchemConfigArea: MenuItem = {
   label: "Physicochemical Configuration",
@@ -141,7 +152,8 @@ const physchemConfigArea: MenuItem = {
   group: "LABORATORIES",
   permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
+    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master" },
+    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master" },
     { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments" },
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
@@ -196,10 +208,13 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
 // laboratory area also needs membership in that lab (useMyLabs). The role
 // only decides the document audit link, which the server still restricts
 // by role.
-export function getGroupedMenu({ role, permissions, labCodes }: MenuContext): MenuGroup[] {
+export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
   const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
   if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
-  if (labCodes.includes("FP")) items.push(physchemArea, physchemConfigArea);
+  if (labCodes.includes("FP")) {
+    const areas = physchemAreas ?? ["fp", "rmpm"];
+    items.push(buildPhyschemArea(areas), physchemConfigArea);
+  }
   items.push(
     itemsItem, receivingConfigItem,
     documentControlItem(role), usersItem, rolesItem, reportsItem, auditSearchItem, oosTrackingItem, errorMonitoringItem

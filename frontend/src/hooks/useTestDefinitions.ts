@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TitrationDefinitionFields } from "../modules/laboratoryConfiguration/masterDataSimple/titrationConfig";
+import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterDataSimple/testMasterArea";
 import {
   masterDataOptions,
   CreateTestDefinitionPayload,
@@ -54,6 +55,7 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
     name: string;
     code: string;
   };
+  physchemArea?: PhyschemArea | null;
 }
 
 // Backs every TestCode picker in the app (Items, Water Sampling Points,

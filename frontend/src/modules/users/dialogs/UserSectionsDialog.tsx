@@ -4,8 +4,12 @@ import {
   Button,
   Checkbox,
   CircularProgress,
+  FormControl,
   FormControlLabel,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Typography,
   Alert,
@@ -18,7 +22,8 @@ import {
   getUserMemberships,
   replaceUserMemberships,
   LaboratorySection,
-  UserMembership
+  UserMembership,
+  PhyschemArea
 } from "../../../services/laboratorySectionService";
 import { brandColors } from "../../../theme";
 
@@ -38,6 +43,14 @@ interface DepartmentGroup {
     sectionName: string;
     sectionCode: string;
   }[];
+}
+
+function getErrorMessageVerbatim(err: unknown, fallback: string): string {
+  const data = (err as { response?: { data?: unknown } })?.response?.data;
+  if (typeof data === "string" && data.trim()) return data;
+  const msg = (data as { message?: unknown } | undefined)?.message;
+  if (typeof msg === "string" && msg.trim()) return msg;
+  return (err as Error)?.message?.trim() ? (err as Error).message : fallback;
 }
 
 export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSectionsDialogProps) {
@@ -63,8 +76,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         setMemberships(userMemberships || []);
       })
       .catch((err: unknown) => {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        setError(msg ?? "Could not load laboratory sections or user memberships.");
+        setError(getErrorMessageVerbatim(err, "Could not load laboratory sections or user memberships."));
       })
       .finally(() => {
         setLoading(false);
@@ -123,8 +135,24 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
       if (exists) {
         return prev.filter((m) => !(m.departmentId === deptId && m.sectionId === secId));
       } else {
-        return [...prev, { departmentId: deptId, sectionId: secId }];
+        return [...prev, { departmentId: deptId, sectionId: secId, physchemArea: null }];
       }
+    });
+  };
+
+  const handleAreaChange = (deptId: number, secId: number, value: string) => {
+    const area: PhyschemArea | null =
+      value === "FinishedProduct" || value === "RawPackaging" ? value : null;
+    setMemberships((prev) => {
+      const exists = prev.some((m) => m.departmentId === deptId && m.sectionId === secId);
+      if (exists) {
+        return prev.map((m) =>
+          m.departmentId === deptId && m.sectionId === secId
+            ? { ...m, physchemArea: area }
+            : m
+        );
+      }
+      return [...prev, { departmentId: deptId, sectionId: secId, physchemArea: area }];
     });
   };
 
@@ -133,12 +161,20 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
     setSaving(true);
     setError(null);
     try {
-      await replaceUserMemberships(user.id, memberships);
+      const payload: UserMembership[] = memberships.map((m) => {
+        const sec = sections.find((s) => s.sectionId === m.sectionId);
+        const isFp = sec?.sectionCode?.toUpperCase() === "FP";
+        return {
+          departmentId: m.departmentId,
+          sectionId: m.sectionId,
+          physchemArea: isFp ? (m.physchemArea === "Both" ? null : m.physchemArea ?? null) : null
+        };
+      });
+      await replaceUserMemberships(user.id, payload);
       onSuccess(`Laboratory sections updated for "${user.username}".`);
       onClose();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? "Could not update user memberships.");
+      setError(getErrorMessageVerbatim(err, "Could not update user memberships."));
     } finally {
       setSaving(false);
     }
@@ -226,33 +262,85 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
                     pl: 3.5,
                     display: "grid",
                     gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                    gap: 0.5
+                    gap: 1
                   }}
                 >
                   {dept.sections.map((sec) => {
                     const secChecked = isSectionChecked(dept.departmentId, sec.sectionId);
+                    const isFp = sec.sectionCode?.toUpperCase() === "FP";
+                    const currentMembership = memberships.find(
+                      (m) => m.departmentId === dept.departmentId && m.sectionId === sec.sectionId
+                    );
+                    const showAreaSelect = isFp && secChecked && !wholeDeptChecked;
+                    const selectValue =
+                      currentMembership?.physchemArea === "FinishedProduct"
+                        ? "FinishedProduct"
+                        : currentMembership?.physchemArea === "RawPackaging"
+                          ? "RawPackaging"
+                          : "Both";
+
                     return (
-                      <FormControlLabel
+                      <Box
                         key={sec.sectionId}
-                        control={
-                          <Checkbox
-                            checked={secChecked}
-                            disabled={wholeDeptChecked}
-                            onChange={() => toggleSection(dept.departmentId, sec.sectionId)}
-                            size="small"
-                          />
-                        }
-                        label={
-                          <Typography
-                            sx={{
-                              fontSize: 13,
-                              color: wholeDeptChecked ? "text.secondary" : "text.primary"
-                            }}
-                          >
-                            {sec.sectionName} ({sec.sectionCode})
-                          </Typography>
-                        }
-                      />
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                          gap: 1,
+                          py: 0.25
+                        }}
+                      >
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={secChecked}
+                              disabled={wholeDeptChecked}
+                              onChange={() => toggleSection(dept.departmentId, sec.sectionId)}
+                              size="small"
+                            />
+                          }
+                          label={
+                            <Typography
+                              sx={{
+                                fontSize: 13,
+                                color: wholeDeptChecked ? "text.secondary" : "text.primary"
+                              }}
+                            >
+                              {sec.sectionName} ({sec.sectionCode})
+                            </Typography>
+                          }
+                          sx={{ m: 0 }}
+                        />
+
+                        {showAreaSelect && (
+                          <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <InputLabel id={`area-select-label-${sec.sectionId}`}>Area</InputLabel>
+                            <Select
+                              labelId={`area-select-label-${sec.sectionId}`}
+                              id={`area-select-${sec.sectionId}`}
+                              aria-label="Area"
+                              label="Area"
+                              value={selectValue}
+                              onChange={(e) =>
+                                handleAreaChange(dept.departmentId, sec.sectionId, e.target.value)
+                              }
+                              sx={{ fontSize: 13, height: 32 }}
+                              data-testid="physchem-area-select"
+                            >
+                              <MenuItem value="FinishedProduct" sx={{ fontSize: 13 }}>
+                                FP
+                              </MenuItem>
+                              <MenuItem value="RawPackaging" sx={{ fontSize: 13 }}>
+                                RM & PM
+                              </MenuItem>
+                              <MenuItem value="Both" sx={{ fontSize: 13 }}>
+                                Both
+                              </MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      </Box>
                     );
                   })}
                 </Box>

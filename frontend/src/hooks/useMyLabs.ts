@@ -9,8 +9,14 @@ import { laboratorySectionService, LaboratorySection } from "../services/laborat
 // always see both laboratory areas even if a section is momentarily
 // inactive or the endpoint returns nothing.
 const ADMIN_LAB_CODES = ["MICRO", "FP"];
+const ADMIN_PHYSCHEM_AREAS: ("fp" | "rmpm")[] = ["fp", "rmpm"];
 
-export function useMyLabs(): { labs: LaboratorySection[]; codes: string[]; loading: boolean } {
+export function useMyLabs(): {
+  labs: LaboratorySection[];
+  codes: string[];
+  physchemAreas: ("fp" | "rmpm")[];
+  loading: boolean;
+} {
   const { role } = useAuth();
   const [labs, setLabs] = useState<LaboratorySection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,5 +51,16 @@ export function useMyLabs(): { labs: LaboratorySection[]; codes: string[]; loadi
     [role, labs]
   );
 
-  return { labs, codes, loading };
+  const physchemAreas = useMemo<("fp" | "rmpm")[]>(
+    () => {
+      if (role === "SystemAdministrator") {
+        return ADMIN_PHYSCHEM_AREAS;
+      }
+      const fpSection = labs.find((s) => s.sectionCode === "FP");
+      return fpSection?.physchemAreas ?? [];
+    },
+    [role, labs]
+  );
+
+  return { labs, codes, physchemAreas, loading };
 }

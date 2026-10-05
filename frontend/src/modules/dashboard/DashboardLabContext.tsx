@@ -1,15 +1,11 @@
 import { createContext, useContext } from "react";
+import { firstWorkspacePath, PhyschemArea } from "../../routes/physchemWorkspacePath";
 
 export type DashboardLabCode = "MICRO" | "FP";
 
 export const LAB_LABELS: Record<DashboardLabCode, string> = {
   MICRO: "Microbiology Laboratory",
   FP: "Physicochemical Laboratory"
-};
-
-const WORKSPACE_PATHS: Record<DashboardLabCode, string> = {
-  MICRO: "/microbiology/workspace",
-  FP: "/physicochemical/workspace"
 };
 
 // Which laboratory a dashboard view is for. Every dashboard figure, panel
@@ -28,8 +24,8 @@ export interface DashboardLab {
   isPhyschem: boolean;
 }
 
-export function makeDashboardLab(code: DashboardLabCode | null): DashboardLab {
-  const base = code ? WORKSPACE_PATHS[code] : "/receiving-testing";
+export function makeDashboardLab(code: DashboardLabCode | null, physchemAreas: readonly PhyschemArea[] = ["fp", "rmpm"]): DashboardLab {
+  const base = code === "MICRO" ? "/microbiology/workspace" : code === "FP" ? firstWorkspacePath(physchemAreas) : "/receiving-testing";
   return {
     code,
     workspace: (query = "") => `${base}${query}`,

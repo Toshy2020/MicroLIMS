@@ -126,7 +126,8 @@ export function AppRoutes() {
                 title until some unrelated state change happens to refetch
                 them (review finding, design.md §3.2 lab isolation). */}
             <Route path="/microbiology/workspace" element={<LabWorkspaceRoute key="MICRO" code="MICRO" />} />
-            <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute key="FP" code="FP" />} />
+            <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute key="FP-fp" code="FP" area="fp" />} />
+            <Route path="/physicochemical/rm-pm-workspace" element={<LabWorkspaceRoute key="FP-rmpm" code="FP" area="rmpm" />} />
             <Route path="/receiving-testing" element={<FirstLabWorkspaceRedirect />} />
 
             {/* Receiving area: the main receiving desk and the cross-lab
@@ -218,7 +219,8 @@ export function AppRoutes() {
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.MASTER_DATA_MANAGE} />}>
               <Route path="/laboratory-configuration/test-master" element={<TestMasterPage lab="micro" />} />
-              <Route path="/laboratory-configuration/fp-test-master" element={<TestMasterPage key="fp" lab="fp" />} />
+              <Route path="/laboratory-configuration/fp-test-master" element={<TestMasterPage key="fp" lab="fp" area="fp" />} />
+              <Route path="/laboratory-configuration/rm-pm-test-master" element={<TestMasterPage key="rmpm" lab="fp" area="rmpm" />} />
               <Route path="/laboratory-configuration/equation-types" element={<EquationTypesPage />} />
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />

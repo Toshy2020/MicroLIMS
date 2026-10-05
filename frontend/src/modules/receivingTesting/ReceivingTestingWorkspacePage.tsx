@@ -105,15 +105,20 @@ export interface WorkspaceLab {
   sectionId: number;
   code: "MICRO" | "FP";
   name: string;
+  area?: "fp" | "rmpm";
 }
 
-// FP receiving inside its own workspace is scoped to Product/RM/PM only -
-// Water and After-cleaning for Physicochemical are deferred (design.md
-// §3.2, §11 Q1). Microbiology keeps all six categories it has today.
-const ALLOWED_CATEGORIES_BY_LAB: Record<WorkspaceLab["code"], SampleCategoryKey[]> = {
-  MICRO: ["product", "rm", "pm", "water", "em", "ac"],
-  FP: ["product", "rm", "pm"]
-};
+// Microbiology keeps all six categories it has today.
+// For Physicochemical: area fp gives ["product"], area rmpm gives ["rm", "pm"].
+function getAllowedCategories(lab: WorkspaceLab): SampleCategoryKey[] {
+  if (lab.code === "MICRO") {
+    return ["product", "rm", "pm", "water", "em", "ac"];
+  }
+  if (lab.area === "rmpm") {
+    return ["rm", "pm"];
+  }
+  return ["product"];
+}
 
 interface Props {
   // Which laboratory this workspace instance is scoped to - resolved by
@@ -191,7 +196,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         if (s) {
           checkedSamplesCache.current.set(sampleId, s);
         } else {
-          ReceiveService.getSample(sampleId, lab.sectionId).then((fetched) => {
+          ReceiveService.getSample(sampleId, lab.sectionId, lab.area).then((fetched) => {
             if (fetched) checkedSamplesCache.current.set(sampleId, fetched);
           // Cache warm-up only; the selection itself is already recorded.
           }).catch(() => {});
@@ -293,7 +298,8 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     fromDate,
     toDate,
     workloadFilter,
-    labSectionId: lab.sectionId
+    labSectionId: lab.sectionId,
+    area: lab.area
   };
 
   // The workload tile counts don't depend on the filters or page, so filter
@@ -305,7 +311,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       const currentFilter = filterRef.current;
       const [pagedData, countsData] = await Promise.all([
         ReceiveService.getRecordsPaged(currentFilter),
-        includeCounts ? ReceiveService.getWorkloadCounts(lab.sectionId) : Promise.resolve(null)
+        includeCounts ? ReceiveService.getWorkloadCounts(lab.sectionId, lab.area) : Promise.resolve(null)
       ]);
       setRecords(pagedData.items);
       setTotalCount(pagedData.totalCount);
@@ -407,7 +413,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           }
         }
       } else {
-        ReceiveService.getSample(sId, lab.sectionId).then((fetched) => {
+        ReceiveService.getSample(sId, lab.sectionId, lab.area).then((fetched) => {
           if (fetched) {
             setExtraSelectedSample(fetched);
             if (tId) {
@@ -440,7 +446,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         ids.forEach(async (id) => {
           if (!checkedSamplesCache.current.has(id)) {
             try {
-              const s = await ReceiveService.getSample(id, lab.sectionId);
+              const s = await ReceiveService.getSample(id, lab.sectionId, lab.area);
               if (s) checkedSamplesCache.current.set(id, s);
             } catch {
               // ignore
@@ -449,7 +455,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         });
       }
     }
-  }, [records, searchParams, search, lab.sectionId]);
+  }, [records, searchParams, search, lab.sectionId, lab.area]);
 
   // Ensure selectedSampleId always resolves to a full sample even if not on page 1
   useEffect(() => {
@@ -460,10 +466,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       return;
     }
     if (extraSelectedSample?.sampleId === selectedSampleId) return;
-    ReceiveService.getSample(selectedSampleId, lab.sectionId).then((sample) => {
+    ReceiveService.getSample(selectedSampleId, lab.sectionId, lab.area).then((sample) => {
       if (sample) setExtraSelectedSample(sample);
     }).catch(() => notifySampleLoadFailed(selectedSampleId));
-  }, [selectedSampleId, records, extraSelectedSample, lab.sectionId]);
+  }, [selectedSampleId, records, extraSelectedSample, lab.sectionId, lab.area]);
 
   // Workload tiles are a toggle: clicking the active one clears it.
   const handleSelectWorkload = (key: WorkloadFilterKey) => {
@@ -734,7 +740,13 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       {/* Header Section */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
         <PageHeader
-          title={`${lab.name} Workspace`}
+          title={
+            lab.code === "FP"
+              ? lab.area === "rmpm"
+                ? "RM & PM Workspace"
+                : "FP Workspace"
+              : `${lab.name} Workspace`
+          }
           subtitle="Manage incoming samples, assignments, testing progress, review, and laboratory workflow execution from one workspace."
         />
 
@@ -1043,7 +1055,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         open={newSampleDialogOpen}
         onClose={() => setNewSampleDialogOpen(false)}
         onSuccess={handleReceiveSuccess}
-        allowedCategories={ALLOWED_CATEGORIES_BY_LAB[lab.code]}
+        allowedCategories={getAllowedCategories(lab)}
         labMode={{ kind: "fixed", sectionId: lab.sectionId }}
       />
 

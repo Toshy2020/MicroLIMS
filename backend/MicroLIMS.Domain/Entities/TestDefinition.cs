@@ -110,8 +110,6 @@ public class TestDefinition : IVersionedEntity
     public int? TitrationStandardEntryId { get; set; }         // Relative: reference standard master entry
     public MaterialMasterEntry? TitrationStandardEntry { get; set; }
 
-    public List<TestAnalyte> Analytes { get; set; } = new();
-
     // Finished Product / Standard-Comparison Assay - per-stage-role
     // standard/sample replicate counts. See TestDefinitionStageReplicate.
     public List<TestDefinitionStageReplicate> StageReplicates { get; set; } = new();

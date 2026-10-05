@@ -313,7 +313,6 @@ public class SpecificationResponse
     public ExpectedPresence? ExpectedState { get; init; }
     public decimal? SampleQuantity { get; init; }
     public string? SampleQuantityUnit { get; init; }
-    public int? TestAnalyteId { get; init; }
     public ResultBasis? ResultBasis { get; init; }
     public SampleMatrix? SampleMatrix { get; init; }
     public decimal? LabelClaim { get; init; }
@@ -352,7 +351,6 @@ public class SpecificationResponse
         ExpectedState = e.ExpectedState,
         SampleQuantity = e.SampleQuantity,
         SampleQuantityUnit = e.SampleQuantityUnit,
-        TestAnalyteId = e.TestAnalyteId,
         ResultBasis = e.ResultBasis,
         SampleMatrix = e.SampleMatrix,
         LabelClaim = e.LabelClaim,

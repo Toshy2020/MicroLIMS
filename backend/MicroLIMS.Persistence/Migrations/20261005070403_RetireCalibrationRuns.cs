@@ -53,6 +53,10 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
                 name: "FK_ParameterResults_CalibrationRunAnalytes_ValidityRecordItemId",
                 table: "ParameterResults");
 
+            migrationBuilder.DropForeignKey(
+                name: "FK_Specifications_TestAnalytes_TestAnalyteId",
+                table: "Specifications");
+
             migrationBuilder.DropTable(
                 name: "CalibrationRunChecks");
 
@@ -64,6 +68,13 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
 
             migrationBuilder.DropTable(
                 name: "CalibrationRuns");
+
+            migrationBuilder.DropTable(
+                name: "TestAnalytes");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Specifications_TestAnalyteId",
+                table: "Specifications");
 
             migrationBuilder.DropIndex(
                 name: "IX_ParameterResults_ValidityRecordItemId",
@@ -136,6 +147,10 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
             migrationBuilder.DropColumn(
                 name: "ReportedConcentrationBasis",
                 table: "TestDefinitions");
+
+            migrationBuilder.DropColumn(
+                name: "TestAnalyteId",
+                table: "Specifications");
 
             migrationBuilder.DropColumn(
                 name: "ValidityRecordItemId",
@@ -262,6 +277,12 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
                 nullable: true);
 
             migrationBuilder.AddColumn<int>(
+                name: "TestAnalyteId",
+                table: "Specifications",
+                type: "integer",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
                 name: "ValidityRecordItemId",
                 table: "ParameterResults",
                 type: "integer",
@@ -354,38 +375,31 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
                 });
 
             migrationBuilder.CreateTable(
-                name: "CalibrationRunAnalytes",
+                name: "TestAnalytes",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CalibrationRunId = table.Column<int>(type: "integer", nullable: false),
-                    TestAnalyteId = table.Column<int>(type: "integer", nullable: false),
-                    CorrelationType = table.Column<int>(type: "integer", nullable: false),
-                    CorrelationValue = table.Column<decimal>(type: "numeric(10,6)", precision: 10, scale: 6, nullable: false),
-                    Element = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    FailureReasons = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    HighestStandardMgPerL = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
-                    LowestStandardMgPerL = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
-                    NumberOfStandards = table.Column<int>(type: "integer", nullable: false),
-                    Passed = table.Column<bool>(type: "boolean", nullable: false),
-                    View = table.Column<int>(type: "integer", nullable: false),
-                    WavelengthNm = table.Column<decimal>(type: "numeric(10,4)", precision: 10, scale: 4, nullable: false),
-                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
+                    TestDefinitionId = table.Column<int>(type: "integer", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    Element = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    LoqMgPerL = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: true),
+                    SstMaxRsdPercent = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: true),
+                    SstMaxTailingFactor = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: true),
+                    SstMinResolution = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: true),
+                    SstMinTheoreticalPlates = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
+                    View = table.Column<int>(type: "integer", nullable: true),
+                    WavelengthNm = table.Column<decimal>(type: "numeric(10,4)", precision: 10, scale: 4, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CalibrationRunAnalytes", x => x.Id);
+                    table.PrimaryKey("PK_TestAnalytes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CalibrationRunAnalytes_CalibrationRuns_CalibrationRunId",
-                        column: x => x.CalibrationRunId,
-                        principalTable: "CalibrationRuns",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CalibrationRunAnalytes_TestAnalytes_TestAnalyteId",
-                        column: x => x.TestAnalyteId,
-                        principalTable: "TestAnalytes",
+                        name: "FK_TestAnalytes_TestDefinitions_TestDefinitionId",
+                        column: x => x.TestDefinitionId,
+                        principalTable: "TestDefinitions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -424,6 +438,43 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
                 });
 
             migrationBuilder.CreateTable(
+                name: "CalibrationRunAnalytes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CalibrationRunId = table.Column<int>(type: "integer", nullable: false),
+                    TestAnalyteId = table.Column<int>(type: "integer", nullable: false),
+                    CorrelationType = table.Column<int>(type: "integer", nullable: false),
+                    CorrelationValue = table.Column<decimal>(type: "numeric(10,6)", precision: 10, scale: 6, nullable: false),
+                    Element = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FailureReasons = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    HighestStandardMgPerL = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
+                    LowestStandardMgPerL = table.Column<decimal>(type: "numeric(18,6)", precision: 18, scale: 6, nullable: false),
+                    NumberOfStandards = table.Column<int>(type: "integer", nullable: false),
+                    Passed = table.Column<bool>(type: "boolean", nullable: false),
+                    View = table.Column<int>(type: "integer", nullable: false),
+                    WavelengthNm = table.Column<decimal>(type: "numeric(10,4)", precision: 10, scale: 4, nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CalibrationRunAnalytes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CalibrationRunAnalytes_CalibrationRuns_CalibrationRunId",
+                        column: x => x.CalibrationRunId,
+                        principalTable: "CalibrationRuns",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CalibrationRunAnalytes_TestAnalytes_TestAnalyteId",
+                        column: x => x.TestAnalyteId,
+                        principalTable: "TestAnalytes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CalibrationRunChecks",
                 columns: table => new
                 {
@@ -448,6 +499,11 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Specifications_TestAnalyteId",
+                table: "Specifications",
+                column: "TestAnalyteId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ParameterResults_ValidityRecordItemId",
@@ -546,11 +602,25 @@ DELETE FROM ""TestDefinitions"" WHERE ""WorkflowType"" = 3;");
                 table: "CalibrationRuns",
                 column: "WithdrawnByUserId");
 
+            migrationBuilder.CreateIndex(
+                name: "IX_TestAnalytes_TestDefinitionId_Element_WavelengthNm",
+                table: "TestAnalytes",
+                columns: new[] { "TestDefinitionId", "Element", "WavelengthNm" },
+                unique: true);
+
             migrationBuilder.AddForeignKey(
                 name: "FK_ParameterResults_CalibrationRunAnalytes_ValidityRecordItemId",
                 table: "ParameterResults",
                 column: "ValidityRecordItemId",
                 principalTable: "CalibrationRunAnalytes",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Specifications_TestAnalytes_TestAnalyteId",
+                table: "Specifications",
+                column: "TestAnalyteId",
+                principalTable: "TestAnalytes",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
         }

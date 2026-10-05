@@ -28,7 +28,7 @@ import {
 } from "../../specifications/services/SpecificationService";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
-import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
+import { masterDataOptions } from "../../../../services/masterDataOptions";
 import {
   SpecificationParameterDialog,
   TestDefinitionSummary,
@@ -185,7 +185,6 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [loading, setLoading] = useState(false);
   const [workflowTypeByCode, setWorkflowTypeByCode] = useState<Record<string, string>>({});
   const [testDefinitionByCode, setTestDefinitionByCode] = useState<Record<string, TestDefinitionSummary>>({});
-  const [analyteById, setAnalyteById] = useState<Record<number, TestAnalyteDto>>({});
   const [hplcAnalyteById, setHplcAnalyteById] = useState<Record<number, { name: string }>>({});
   const [icpElementById, setIcpElementById] = useState<Record<number, { symbol: string }>>({});
   const [error, setError] = useState<string | null>(null);
@@ -208,17 +207,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       .getTestDefinitions()
       .then(async (defs: TestDefinitionSummary[]) => {
         const byCode: Record<string, TestDefinitionSummary> = {};
-        const calDefs: TestDefinitionSummary[] = [];
         const hplcMethodIds: number[] = [];
         const icpMethodIds: number[] = [];
         for (const d of defs) {
           byCode[d.code] = d;
-          // The Calibration Curve (ICP-OES) spec dialog attaches a specification
-          // to a TestAnalyte row, so its analytes are prefetched here for the
-          // badge below to resolve testAnalyteId -> name.
-          if (d.equationType === "CalibrationCurve") {
-            calDefs.push(d);
-          }
           if ((d.workflowType === "HplcMethodAssay" || d.equationType === "HplcMethodAssay") && d.hplcMethodId) {
             hplcMethodIds.push(d.hplcMethodId);
           }
@@ -228,23 +220,6 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         }
         setTestDefinitionByCode(byCode);
         setWorkflowTypeByCode(Object.fromEntries(defs.map((d) => [d.code, d.workflowType])));
-
-        if (calDefs.length > 0) {
-          const map: Record<number, TestAnalyteDto> = {};
-          await Promise.all(
-            calDefs.map((cd) =>
-              masterDataOptions
-                .getTestAnalytes(cd.id)
-                .then((analytes) => {
-                  for (const a of analytes) {
-                    map[a.id] = a;
-                  }
-                })
-                .catch(() => setLookupsIncomplete(true))
-            )
-          );
-          setAnalyteById(map);
-        }
 
         const uniqueHplcMethodIds = Array.from(new Set(hplcMethodIds));
         if (uniqueHplcMethodIds.length > 0) {
@@ -529,7 +504,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                           >
                             <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
                               {displayName}
-                              {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole) && (
+                              {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole) && (
                                 <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                   {spec.productionStageRole && (
                                     <Chip
@@ -548,20 +523,6 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                         fontWeight: 600,
                                         color: "text.secondary",
                                         bgcolor: "action.selected"
-                                      }}
-                                    />
-                                  )}
-                                  {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
-                                    <Chip
-                                      size="small"
-                                      label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
-                                      sx={{
-                                        height: 20,
-                                        fontSize: 11,
-                                        color: "primary.main",
-                                        bgcolor: "primary.50",
-                                        border: "1px solid",
-                                        borderColor: "primary.200"
                                       }}
                                     />
                                   )}
@@ -794,7 +755,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
                                         {spec.parameterName}
                                       </Typography>
-                                      {(spec.resultBasis || spec.testAnalyteId || spec.hplcMethodAnalyteId || spec.productionStageRole) && (
+                                      {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole) && (
                                         <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                           {spec.productionStageRole && (
                                             <Chip
@@ -804,20 +765,6 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                             />
                                           )}
                                         
-                                          {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
-                                            <Chip
-                                              size="small"
-                                              label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
-                                              sx={{
-                                                height: 20,
-                                                fontSize: 11,
-                                                color: "primary.main",
-                                                bgcolor: "primary.50",
-                                                border: "1px solid",
-                                                borderColor: "primary.200"
-                                              }}
-                                            />
-                                          )}
                                           {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
                                             <Chip
                                               size="small"

@@ -186,7 +186,7 @@ public class IcpMethodSpecificationTests
     {
         await using var db = NewDb();
         var a = await ArrangeAsync(db, IcpMethodMode.MineralAssay);
-        await AssertThrowsAsync("Test analyte, sample matrix and conversion factor are not used for ICP method assay specifications.",
+        await AssertThrowsAsync("Sample matrix and conversion factor are not used for ICP method assay specifications.",
             () => a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, ResultBasis.MgPerUnit, cf: 2m)));
     }
 

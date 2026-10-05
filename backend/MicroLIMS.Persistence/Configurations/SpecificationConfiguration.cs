@@ -32,11 +32,6 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
         builder.Property(s => s.ConversionFactor).HasPrecision(18, 6).HasDefaultValue(1.0m);
         builder.Property(s => s.DosageForm);
 
-        builder.HasOne(s => s.TestAnalyte)
-            .WithMany()
-            .HasForeignKey(s => s.TestAnalyteId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(s => s.HplcMethodAnalyte)
             .WithMany()
             .HasForeignKey(s => s.HplcMethodAnalyteId)

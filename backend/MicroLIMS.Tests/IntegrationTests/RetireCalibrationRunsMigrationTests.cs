@@ -13,7 +13,7 @@ namespace MicroLIMS.Tests.IntegrationTests;
 public class RetireCalibrationRunsMigrationTests
 {
     private const string Before = "20261004204013_AddIcpRuns";
-    private const string Target = "20261005064411_RetireCalibrationRuns";
+    private const string Target = "20261005070403_RetireCalibrationRuns";
 
     [PostgresFact]
     public async Task Migration_RepairsMisSavedHplcTest_AndKeepsItsData()
@@ -42,12 +42,13 @@ public class RetireCalibrationRunsMigrationTests
             await Insert(c, "SampleTests", ("TestCode", "ICP-OLD"));
             await Insert(c, "Specifications", ("TestCode", "ICP-OLD"), ("TestAnalyteId", analyte));
             var (elOrder, _, elResult) = await OrderChain(c, "ICP-OLD");
+            var elStep = await Insert(c, "TestWorkflowSteps", ("TestDefinitionId", elDef));
             var run = await Insert(c, "CalibrationRuns", ("TestDefinitionId", elDef));
             var runAnalyte = await Insert(c, "CalibrationRunAnalytes", ("CalibrationRunId", run), ("TestAnalyteId", analyte));
             await Exec(c, $"UPDATE \"ParameterResults\" SET \"ValidityRecordItemId\" = {runAnalyte} WHERE \"Id\" = {elResult}");
             // (c) unrelated count test
             await Insert(c, "TestDefinitions", ("Code", "COUNT-1"), ("WorkflowType", 1));
-            var (countOrder, _, _) = await OrderChain(c, "COUNT-1");
+            var (countOrder, countAnalysis, countResult) = await OrderChain(c, "COUNT-1");
 
             await migrator.MigrateAsync(Target);
 
@@ -58,7 +59,6 @@ public class RetireCalibrationRunsMigrationTests
             Assert.Equal(1, await Scalar(c, "SELECT count(*) FROM \"ResultRecords\" WHERE \"TestCode\" = 'HPLC-X'"));
 
             Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM \"TestDefinitions\" WHERE \"Code\" = 'ICP-OLD'"));
-            Assert.Equal(0, await Scalar(c, $"SELECT count(*) FROM \"TestAnalytes\" WHERE \"Id\" = {analyte}"));
             Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM \"SampleTests\" WHERE \"TestCode\" = 'ICP-OLD'"));
             Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM \"Specifications\" WHERE \"TestCode\" = 'ICP-OLD'"));
             Assert.Equal(0, await Scalar(c, $"SELECT count(*) FROM \"TestOrders\" WHERE \"Id\" = {elOrder}"));
@@ -67,8 +67,15 @@ public class RetireCalibrationRunsMigrationTests
 
             Assert.Equal(1, await Scalar(c, "SELECT count(*) FROM \"TestDefinitions\" WHERE \"Code\" = 'COUNT-1' AND \"WorkflowType\" = 1"));
             Assert.Equal(1, await Scalar(c, $"SELECT count(*) FROM \"TestOrders\" WHERE \"Id\" = {countOrder}"));
+            Assert.Equal(1, await Scalar(c, $"SELECT count(*) FROM \"TestAnalyses\" WHERE \"Id\" = {countAnalysis}"));
+            Assert.Equal(1, await Scalar(c, $"SELECT count(*) FROM \"ParameterResults\" WHERE \"Id\" = {countResult}"));
+            Assert.Equal(1, await Scalar(c, "SELECT count(*) FROM \"ResultRecords\" WHERE \"TestCode\" = 'COUNT-1'"));
+
+            Assert.Equal(0, await Scalar(c, $"SELECT count(*) FROM \"TestWorkflowSteps\" WHERE \"Id\" = {elStep}"));
 
             Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM information_schema.tables WHERE table_name LIKE 'CalibrationRun%'"));
+            Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM information_schema.tables WHERE table_name = 'TestAnalytes'"));
+            Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM information_schema.columns WHERE table_name = 'Specifications' AND column_name = 'TestAnalyteId'"));
             Assert.Equal(0, await Scalar(c, "SELECT count(*) FROM information_schema.columns WHERE table_name = 'ParameterResults' AND column_name = 'ValidityRecordItemId'"));
         }
         finally

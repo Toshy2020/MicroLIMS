@@ -54,11 +54,6 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.HasOne(t => t.TitrationStandardEntry).WithMany()
             .HasForeignKey(t => t.TitrationStandardEntryId).OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(t => t.Analytes)
-            .WithOne(a => a.TestDefinition)
-            .HasForeignKey(a => a.TestDefinitionId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(t => t.HplcMethod)
             .WithMany()
             .HasForeignKey(t => t.HplcMethodId)

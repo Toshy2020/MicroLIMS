@@ -77,7 +77,6 @@ public interface IMicroLimsDbContext
     DbSet<ProductionStage> ProductionStages { get; }
     DbSet<Equipment> Equipment { get; }
     DbSet<ChromatographyColumn> ChromatographyColumns { get; }
-    DbSet<TestAnalyte> TestAnalytes { get; }
     DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates { get; }
     DbSet<TestAnalysis> TestAnalyses { get; }
     DbSet<ParameterResult> ParameterResults { get; }

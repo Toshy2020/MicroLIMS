@@ -92,51 +92,6 @@ export interface UpdateTestDefinitionStageReplicateRequest {
   sampleReplicates?: number | null;
 }
 
-export interface TestAnalyteDto {
-  id: number;
-  // Row version, sent back as If-Match when this record is edited.
-  version?: number;
-  testDefinitionId: number;
-  element: string;
-  wavelengthNm: number;
-  // Set for CalibrationCurve (ICP-OES) analytes.
-  view: "Axial" | "Radial" | null;
-  loqMgPerL: number | null;
-  displayOrder: number;
-  isActive: boolean;
-  // Legacy per-analyte system suitability criteria
-  // (null = not checked). CalibrationCurve (ICP-OES) analytes never set these.
-  sstMaxRsdPercent?: number | null;
-  sstMinResolution?: number | null;
-  sstMaxTailingFactor?: number | null;
-  sstMinTheoreticalPlates?: number | null;
-}
-
-export interface CreateTestAnalyteRequest {
-  element: string;
-  wavelengthNm: number;
-  view?: "Axial" | "Radial" | null;
-  loqMgPerL?: number | null;
-  displayOrder?: number;
-  sstMaxRsdPercent?: number | null;
-  sstMinResolution?: number | null;
-  sstMaxTailingFactor?: number | null;
-  sstMinTheoreticalPlates?: number | null;
-}
-
-export interface UpdateTestAnalyteRequest {
-  element?: string;
-  wavelengthNm?: number;
-  view?: "Axial" | "Radial" | null;
-  loqMgPerL?: number | null;
-  displayOrder?: number;
-  isActive?: boolean;
-  sstMaxRsdPercent?: number | null;
-  sstMinResolution?: number | null;
-  sstMaxTailingFactor?: number | null;
-  sstMinTheoreticalPlates?: number | null;
-}
-
 export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   code: string;
   displayName: string;
@@ -311,14 +266,6 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
-  getTestAnalytes: (testDefinitionId: number): Promise<TestAnalyteDto[]> =>
-    apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/analytes`).then((r) => r.data.data),
-  createTestAnalyte: (testDefinitionId: number, payload: CreateTestAnalyteRequest): Promise<TestAnalyteDto> =>
-    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/analytes`, payload).then((r) => r.data.data),
-  updateTestAnalyte: (testDefinitionId: number, analyteId: number, payload: UpdateTestAnalyteRequest, version?: number): Promise<TestAnalyteDto> =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload, ifMatch(version)).then((r) => r.data.data),
-  deleteTestAnalyte: (testDefinitionId: number, analyteId: number): Promise<{ message?: string; deactivated?: boolean; deleted?: boolean }> =>
-    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`).then((r) => r.data.data),
   getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`).then((r) => r.data.data),
   createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>

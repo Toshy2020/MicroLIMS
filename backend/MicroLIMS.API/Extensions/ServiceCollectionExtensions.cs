@@ -191,7 +191,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OrganismMasterDataService>();
         services.AddScoped<TestDefinitionMasterDataService>();
         services.AddScoped<TestWorkflowStepMasterDataService>();
-        services.AddScoped<TestAnalyteMasterDataService>();
         services.AddScoped<TestStageReplicateMasterDataService>();
 
         // Validators

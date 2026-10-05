@@ -565,7 +565,7 @@ public class HplcMethodAssayTestMasterTests
             ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
             LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
             ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId, ConversionFactor: 2m)));
-        Assert.Equal("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.", ex.Message);
+        Assert.Equal("Sample matrix and conversion factor are not used for HPLC method assay specifications.", ex.Message);
     }
 
     [Fact]

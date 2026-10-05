@@ -75,7 +75,6 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<ProductionStage> ProductionStages => Set<ProductionStage>();
     public DbSet<Equipment> Equipment => Set<Equipment>();
     public DbSet<ChromatographyColumn> ChromatographyColumns => Set<ChromatographyColumn>();
-    public DbSet<TestAnalyte> TestAnalytes => Set<TestAnalyte>();
     public DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates => Set<TestDefinitionStageReplicate>();
     public DbSet<TestAnalysis> TestAnalyses => Set<TestAnalysis>();
     public DbSet<ParameterResult> ParameterResults => Set<ParameterResult>();

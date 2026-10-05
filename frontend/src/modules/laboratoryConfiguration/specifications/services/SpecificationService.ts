@@ -80,7 +80,6 @@ export interface SpecificationDto {
   unit?: string | null;
   dilutionFactor?: number | null;
   stages?: SpecificationStageDto[];
-  testAnalyteId?: number | null;
   resultBasis?: ResultBasis | string | null;
   sampleMatrix?: SampleMatrix | string | null;
   labelClaim?: number | string | null;
@@ -122,7 +121,6 @@ export interface CreateSpecificationPayload {
   unit?: string | null;
   dilutionFactor?: number | null;
   stages?: Array<{ stageNumber: number; stageLabel: string; acceptanceCriteriaText: string }>;
-  testAnalyteId?: number | null;
   resultBasis?: ResultBasis | null;
   sampleMatrix?: SampleMatrix | null;
   labelClaim?: number | null;

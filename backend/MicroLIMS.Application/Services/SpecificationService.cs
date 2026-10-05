@@ -293,8 +293,8 @@ public class SpecificationService
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
                 throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
 
-            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
+            if (spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Sample matrix and conversion factor are not used for HPLC method assay specifications.");
 
             bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
             if (residualSolvents)
@@ -337,8 +337,8 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
 
             // The conversion factor lives on the method element, not the spec row.
-            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for ICP method assay specifications.");
+            if (spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Sample matrix and conversion factor are not used for ICP method assay specifications.");
 
             if (element.IcpMethod!.Mode == IcpMethodMode.MineralAssay)
             {
@@ -371,8 +371,8 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Test analyte and sample matrix are not used for titration specifications.");
+            if (spec.SampleMatrix.HasValue)
+                throw new InvalidOperationException("Sample matrix is not used for titration specifications.");
             if (spec.ConversionFactor != 1.0m)
                 throw new InvalidOperationException("Conversion factor must be 1.0 for titration specifications.");
 
@@ -411,8 +411,6 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
             if (spec.SampleMatrix.HasValue)
@@ -426,8 +424,6 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
             if (spec.SampleMatrix.HasValue)
@@ -445,8 +441,6 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
             if (spec.SampleMatrix.HasValue)
@@ -464,8 +458,6 @@ public class SpecificationService
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
                 throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
             if (spec.SampleMatrix.HasValue)

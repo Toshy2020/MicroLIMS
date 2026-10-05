@@ -17,7 +17,7 @@ namespace MicroLIMS.Persistence.Migrations
             //    WorkflowType 12 so step 2 does not delete it (production has one: HPLC-FOLIC).
             migrationBuilder.Sql(@"
 UPDATE ""TestDefinitions"" SET ""WorkflowType"" = 12
-WHERE ""EquationType"" = 13 AND ""HplcMethodId"" IS NOT NULL AND ""WorkflowType"" <> 12;");
+WHERE ""EquationType"" = 13 AND ""HplcMethodId"" IS NOT NULL AND ""WorkflowType"" = 3;");
 
             // 2. Calibration runs go first (a CalibrationRuns row restricts its TestDefinition).
             //    FK chain: ParameterResults.ValidityRecordItemId -> CalibrationRunAnalytes;

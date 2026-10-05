@@ -412,9 +412,9 @@ public class SpecificationService
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.ConversionFactor != 1.0m)
                 throw new InvalidOperationException("Conversion factor must be 1.0 for Dissolution specifications.");
         }
@@ -425,9 +425,9 @@ public class SpecificationService
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not allowed for Disintegration specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
@@ -442,9 +442,9 @@ public class SpecificationService
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not allowed for WeightVariation specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
@@ -459,15 +459,15 @@ public class SpecificationService
             if (spec.IcpMethodElementId.HasValue)
                 throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
-                throw new InvalidOperationException("Label claim is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Label claim is not used for this test type.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new InvalidOperationException("Label claim unit is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Label claim unit is not used for this test type.");
             if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for non-Calibration Curve specifications.");
+                throw new InvalidOperationException("Conversion factor must be 1.0 for this test type.");
         }
     }
 

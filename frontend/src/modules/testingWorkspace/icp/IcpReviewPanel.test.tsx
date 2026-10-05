@@ -22,7 +22,6 @@ const baseParameter: ParameterResultDetail = {
   comparisonStatus: "WithinLimits",
   overRange: false,
   belowLoq: false,
-  validityRecordItemId: null,
   calculationJson: null,
   stageReached: 1,
   readings: []

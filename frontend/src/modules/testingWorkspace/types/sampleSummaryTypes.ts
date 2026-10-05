@@ -312,7 +312,6 @@ export interface ParameterResultDetail {
   comparisonStatus: string;
   overRange: boolean;
   belowLoq: boolean;
-  validityRecordItemId: number | null;
   calculationJson: string | null;
   stageReached: number | null;
   readings: ResultReadingDetail[];

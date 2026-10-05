@@ -536,7 +536,7 @@ public class DisintegrationMasterDataValidationTests
             ResultBasis = ResultBasis.PercentLabelClaim
         };
         var exBadRb = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(specBadRb));
-        Assert.Contains("Result basis is only allowed for Calibration Curve specifications", exBadRb.Message);
+        Assert.Contains("Result basis is not used for this test type", exBadRb.Message);
     }
 
     [Fact]

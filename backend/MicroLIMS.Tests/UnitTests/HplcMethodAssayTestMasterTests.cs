@@ -466,4 +466,132 @@ public class HplcMethodAssayTestMasterTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req));
         Assert.Contains("only allowed for HPLC method assay specifications", ex.Message);
     }
+
+    private static async Task<HplcMethodResponse> AddRsMethodAsync(MicroLimsDbContext db, int sectionId)
+    {
+        var adminId = await EnsureAdminUserAsync(db);
+        var diluent = await AddSolutionAsync(db, sectionId, "Diluent DMSO", SolutionType.Diluent);
+        var standard = await AddEntryAsync(db, sectionId, "STD-MEOH");
+        return await TestServiceFactory.HplcMethod(db).CreateAsync(new SaveHplcMethodRequest(
+            "Residual Solvents", "RS-01", DateTime.UtcNow,
+            "G43", 30000m, 0.53m, null, null, ElutionMode.Isocratic, 3.5m,
+            HplcDetectorType.Fid, 1000m, 40m, diluent.Id,
+            new(), new(), new() { new(null, "Methanol", null, standard.Id, 0m, 0m, 6, StandardConcentrationUgPerMl: 60m) },
+            SectionId: sectionId, Technique: HplcTechnique.Gc, ResultMode: HplcResultMode.ResidualSolvents,
+            FilmThicknessUm: 3m, CarrierGas: CarrierGas.Helium, InletTemperatureC: 140m, DetectorTemperatureC: 250m,
+            OvenSteps: new() { new(null, 40m, 20m) }, SampleSolutionVolumeMl: 20m), adminId);
+    }
+
+    private static async Task<(SpecificationMasterDataService Svc, Item Item, TestDefinitionResponse Def, int AnalyteId, int UserId)> ArrangeRsSpecAsync(MicroLimsDbContext db)
+    {
+        var (section, userId) = await SeedAsync(db);
+        var method = await AddRsMethodAsync(db, section.Id);
+        var testDef = await new TestDefinitionMasterDataService(db, new UserSectionScopeService(db))
+            .CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id, code: "RS-T1"));
+        var item = new Item
+        {
+            Code = "ITEM-" + Guid.NewGuid().ToString("N")[..6], Name = "Item 1",
+            AssignedTests = { new SampleTest { TestCode = testDef.Code, DisplayName = testDef.DisplayName } }
+        };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+        return (new SpecificationMasterDataService(db, new UserSectionScopeService(db)), item, testDef, method.Analytes[0].Id, userId);
+    }
+
+    [Fact]
+    public async Task Spec_RsMethod_AcceptsPpmNotMoreThan()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        await a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId));
+        Assert.True(await db.Specifications.AnyAsync(s => s.ResultBasis == ResultBasis.Ppm && s.UpperLimit == 3000m));
+    }
+
+    [Theory]
+    [InlineData(ResultBasis.PercentLabelClaim, LimitType.NotMoreThan)]
+    [InlineData(ResultBasis.Ppm, LimitType.Range)]
+    public async Task Spec_RsMethod_RequiresPpmNotMoreThan(ResultBasis basis, LimitType limitType)
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: limitType, LowerLimit: limitType == LimitType.Range ? 0m : null, UpperLimit: 3000m,
+            ResultBasis: basis, HplcMethodAnalyteId: a.AnalyteId)));
+        Assert.Equal("Residual-solvent specifications use ppm with a not-more-than limit.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Spec_AssayMethod_RejectsPpm()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var method = await AddMethodAsync(db, section.Id, userId);
+        var testDef = await new TestDefinitionMasterDataService(db, new UserSectionScopeService(db)).CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
+        var item = new Item { Code = "ITEM-" + Guid.NewGuid().ToString("N")[..6], Name = "Item 1",
+            AssignedTests = { new SampleTest { TestCode = testDef.Code, DisplayName = testDef.DisplayName } } };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationMasterDataService(db, new UserSectionScopeService(db))
+            .CreateSpecificationAsync(userId, new CreateSpecificationRequest(
+                ItemId: item.Id, TestCode: testDef.Code, ParameterName: "Assay",
+                LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+                ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: method.Analytes[0].Id)));
+        Assert.Contains("Result basis must be assay %", ex.Message);
+    }
+
+    [Fact]
+    public async Task Spec_RsMethod_RejectsLabelClaim()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId, LabelClaim: 100m)));
+        Assert.Equal("Residual-solvent specifications use ppm with a not-more-than limit.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Spec_RsMethod_RejectsConversionFactor()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId, ConversionFactor: 2m)));
+        Assert.Equal("Sample matrix and conversion factor are not used for HPLC method assay specifications.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Spec_RsMethod_DuplicateAnalyte_Throws()
+    {
+        await using var db = NewDb();
+        var a = await ArrangeRsSpecAsync(db);
+        var req = new CreateSpecificationRequest(
+            ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
+            LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
+            ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId);
+        await a.Svc.CreateSpecificationAsync(a.UserId, req);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, req));
+        Assert.Equal("A specification for this analyte and basis already exists.", ex.Message);
+    }
+
+    [Fact]
+    public async Task TestDef_Dissolution_WithGcMethod_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var method = await AddRsMethodAsync(db, section.Id);
+        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));
+        Assert.Equal("Dissolution needs an HPLC method.", ex.Message);
+    }
 }

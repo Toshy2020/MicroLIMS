@@ -370,7 +370,7 @@ public partial class HplcRunServiceTests
             new StartHplcRunRequest(incubator.Id, s.Method.Id, s.Column.Id, new List<HplcMobilePhaseAssignmentInput> { new("A", s.MobilePhasePrep.Id) }),
             s.UserId));
 
-        Assert.Contains("not an HPLC instrument", ex.Message);
+        Assert.Contains("is not a HPLC instrument; method", ex.Message);
     }
 
     [Fact]

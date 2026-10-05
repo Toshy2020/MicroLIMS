@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
+import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { NumericCell, ResultSection } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -33,15 +34,18 @@ import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummar
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { tableHeadSx } from "../../../theme";
+import { useTechnique } from "../useTechnique";
 import type {
   HplcSampleEntryDto,
   HplcReplicateDto,
-  HplcReplicateInput
+  HplcReplicateInput,
+  HplcMethodSnapshot
 } from "../types";
 
 export function HplcSampleEntryPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { basePath } = useTechnique();
   const { permissions, role } = useAuth();
   const canOperate =
     permissions.includes(PERMISSIONS.HPLC_OPERATE) ||
@@ -57,6 +61,7 @@ export function HplcSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<HplcSampleEntryDto | null>(null);
+  const [method, setMethod] = useState<HplcMethodSnapshot | null>(null);
   const [replicates, setReplicates] = useState<HplcReplicateDto[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
@@ -69,13 +74,26 @@ export function HplcSampleEntryPage() {
       const data = await HplcWorkspaceService.getSampleEntry(sampleIdNum);
       setSampleEntry(data);
       setReplicates(data.replicates || []);
+
+      const runIdToFetch = parsedRunId || data.hplcRunId;
+      if (runIdToFetch) {
+        try {
+          const runData = await HplcWorkspaceService.getRun(runIdToFetch);
+          if (runData?.hplcMethodId) {
+            const m = await HplcMethodService.getById(runData.hplcMethodId);
+            setMethod(m);
+          }
+        } catch {
+          // Method snapshot is optional
+        }
+      }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Failed to load sample entry data.");
     } finally {
       setLoading(false);
     }
-  }, [sampleIdNum]);
+  }, [sampleIdNum, parsedRunId]);
 
   useEffect(() => {
     loadData();
@@ -111,7 +129,7 @@ export function HplcSampleEntryPage() {
   };
 
   const handleBack = () => {
-    navigate(`/hplc-workspace/${instrumentId}/run/${runId}/samples`);
+    navigate(`${basePath}/${instrumentId}/run/${runId}/samples`);
   };
 
   if (loading) {
@@ -135,8 +153,14 @@ export function HplcSampleEntryPage() {
 
   const isEditable = sampleEntry.editable && canOperate;
   const methodWeights = sampleEntry.methodWeights || [];
-  // Every weight and response must be a positive number before saving.
-  const canSave = replicatesComplete(methodWeights, replicates);
+  const isResidualSolvents =
+    method?.resultMode === "ResidualSolvents" ||
+    sampleEntry.preview?.some((p) => p.quantity === "Residual solvent (ppm)") ||
+    sampleEntry.official?.some((o) => o.quantity === "ResidualSolventPpm") ||
+    (methodWeights.length > 0 &&
+      methodWeights.every((mw) => mw.theoreticalWeightStdMg === 0 && mw.theoreticalWeightTestMg === 0));
+
+  const canSave = replicatesComplete(methodWeights, replicates, isResidualSolvents);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -230,48 +254,51 @@ export function HplcSampleEntryPage() {
       </Paper>
 
       <Stack spacing={2.5}>
-        {/* 1. Method theoretical weights snapshot */}
-        <ResultSection step={1} title="Method & theoretical weights">
-          {methodWeights.length > 0 ? (
-            <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-              <Table size="small">
-                <TableHead sx={tableHeadSx(theme)}>
-                  <TableRow>
-                    <TableCell>Analyte</TableCell>
-                    <TableCell align="right">Theoretical Weight Std</TableCell>
-                    <TableCell align="right">Theoretical Weight Test</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {methodWeights.map((mw) => (
-                    <TableRow key={mw.hplcMethodAnalyteId}>
-                      <TableCell sx={{ fontWeight: 600 }}>{mw.analyteName}</TableCell>
-                      <TableCell align="right">
-                        <NumericCell value={mw.theoreticalWeightStdMg} unit="mg" />
-                      </TableCell>
-                      <TableCell align="right">
-                        <NumericCell value={mw.theoreticalWeightTestMg} unit="mg" />
-                      </TableCell>
+        {/* 1. Method theoretical weights snapshot (Assay mode only) */}
+        {!isResidualSolvents && (
+          <ResultSection step={1} title="Method & theoretical weights">
+            {methodWeights.length > 0 ? (
+              <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                <Table size="small">
+                  <TableHead sx={tableHeadSx(theme)}>
+                    <TableRow>
+                      <TableCell>Analyte</TableCell>
+                      <TableCell align="right">Theoretical Weight Std</TableCell>
+                      <TableCell align="right">Theoretical Weight Test</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              No method theoretical weights are configured for this test.
-            </Typography>
-          )}
-        </ResultSection>
+                  </TableHead>
+                  <TableBody>
+                    {methodWeights.map((mw) => (
+                      <TableRow key={mw.hplcMethodAnalyteId}>
+                        <TableCell sx={{ fontWeight: 600 }}>{mw.analyteName}</TableCell>
+                        <TableCell align="right">
+                          <NumericCell value={mw.theoreticalWeightStdMg} unit="mg" />
+                        </TableCell>
+                        <TableCell align="right">
+                          <NumericCell value={mw.theoreticalWeightTestMg} unit="mg" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                No method theoretical weights are configured for this test.
+              </Typography>
+            )}
+          </ResultSection>
+        )}
 
         {/* 2. Replicate entry */}
-        <ResultSection step={2} title="Replicates">
+        <ResultSection step={isResidualSolvents ? 1 : 2} title="Replicates">
           <ReplicateEntryTable
             methodWeights={methodWeights}
             replicates={replicates}
             onChange={setReplicates}
             requiredReplicates={sampleEntry.requiredReplicates}
             disabled={!isEditable || saving}
+            isResidualSolvents={isResidualSolvents}
             footer={
               <Box
                 sx={{
@@ -290,7 +317,9 @@ export function HplcSampleEntryPage() {
               >
                 {isEditable && !canSave && (
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Enter a positive weight and response in every cell to save.
+                    {isResidualSolvents
+                      ? "Enter a positive weight and area (≥ 0) in every cell to save."
+                      : "Enter a positive weight and response in every cell to save."}
                   </Typography>
                 )}
                 <Button
@@ -309,7 +338,7 @@ export function HplcSampleEntryPage() {
         </ResultSection>
 
         {/* 3. Results: Official when submitted, otherwise the server-calculated preview */}
-        <ResultSection step={3} title={sampleEntry.submitted ? "Results (official)" : "Results (preview)"}>
+        <ResultSection step={isResidualSolvents ? 2 : 3} title={sampleEntry.submitted ? "Results (official)" : "Results (preview)"}>
           {sampleEntry.submitted ? (
             <OfficialResultsCard official={sampleEntry.official || []} basis={sampleEntry.basis} />
           ) : (
@@ -318,7 +347,7 @@ export function HplcSampleEntryPage() {
         </ResultSection>
 
         {/* 4. Chromatogram / evidence upload */}
-        <ResultSection step={4} title="Evidence: chromatograms & reports">
+        <ResultSection step={isResidualSolvents ? 3 : 4} title="Evidence: chromatograms & reports">
           <ReportUploadPanel
             runId={parsedRunId || sampleEntry.hplcRunId}
             runSampleId={sampleEntry.runSampleId}

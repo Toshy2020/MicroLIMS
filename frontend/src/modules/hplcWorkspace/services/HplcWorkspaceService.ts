@@ -1,5 +1,6 @@
 import { apiClient } from "../../../services/apiClient";
 import type {
+  HplcTechnique,
   HplcInstrumentDto,
   HplcMethodOptionDto,
   HplcRunListItem,
@@ -29,13 +30,15 @@ interface ApiResponse<T> {
 export const HplcWorkspaceService = {
   // ---- Instruments / Methods ----
 
-  getInstruments: async (): Promise<HplcInstrumentDto[]> => {
-    const res = await apiClient.get<ApiResponse<HplcInstrumentDto[]>>("/hplc-workspace/instruments");
+  getInstruments: async (technique?: HplcTechnique): Promise<HplcInstrumentDto[]> => {
+    const params = technique ? { technique } : undefined;
+    const res = await apiClient.get<ApiResponse<HplcInstrumentDto[]>>("/hplc-workspace/instruments", { params });
     return Array.isArray(res.data?.data) ? res.data.data : [];
   },
 
-  getMethodOptions: async (): Promise<HplcMethodOptionDto[]> => {
-    const res = await apiClient.get<ApiResponse<HplcMethodOptionDto[]>>("/hplc-workspace/method-options");
+  getMethodOptions: async (technique?: HplcTechnique): Promise<HplcMethodOptionDto[]> => {
+    const params = technique ? { technique } : undefined;
+    const res = await apiClient.get<ApiResponse<HplcMethodOptionDto[]>>("/hplc-workspace/method-options", { params });
     return Array.isArray(res.data?.data) ? res.data.data : [];
   },
 

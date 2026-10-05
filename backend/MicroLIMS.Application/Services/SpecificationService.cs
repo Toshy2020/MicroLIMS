@@ -77,6 +77,9 @@ public class SpecificationService
         if (string.IsNullOrWhiteSpace(spec.ParameterName))
             throw new InvalidOperationException("Parameter name is required.");
 
+        if (spec.ResultBasis == ResultBasis.Ppm && !spec.HplcMethodAnalyteId.HasValue)
+            throw new InvalidOperationException("ppm is only used for residual-solvent specifications.");
+
         if (spec.LimitType != LimitType.CountTiered && spec.DilutionFactor.HasValue)
             throw new InvalidOperationException("Dilution factor is only allowed for Count-Tiered specifications.");
 
@@ -195,6 +198,28 @@ public class SpecificationService
                 throw new InvalidOperationException("Stage-specific specifications are only available for Finished Product items.");
         }
 
+        // Method-analyte rows are keyed by analyte + basis; checked first so the
+        // clearer message wins over the parameter-name duplicate below.
+        if (spec.HplcMethodAnalyteId is int methodAnalyteId)
+        {
+            var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == methodAnalyteId
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateAnalyteBasis)
+                throw new InvalidOperationException("A specification for this analyte and basis already exists.");
+        }
+
+        if (spec.IcpMethodElementId is int icpElementId)
+        {
+            var duplicateElementBasis = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.IcpMethodElementId == icpElementId
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateElementBasis)
+                throw new InvalidOperationException("A specification for this element and basis already exists.");
+        }
+
         var duplicate = await _db.Specifications.AnyAsync(
             s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName
                  && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
@@ -259,31 +284,37 @@ public class SpecificationService
         // spec 3.4). No new enum.
         if (testDef?.WorkflowType == WorkflowType.HplcMethodAssay)
         {
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (!spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is required for HPLC method assay specifications.");
 
-            var analyte = await _db.HplcMethodAnalytes.FirstOrDefaultAsync(a => a.Id == spec.HplcMethodAnalyteId.Value, cancellationToken);
+            var analyte = await _db.HplcMethodAnalytes.Include(a => a.HplcMethod).FirstOrDefaultAsync(a => a.Id == spec.HplcMethodAnalyteId.Value, cancellationToken);
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
                 throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
 
-            if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
-                throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
+            if (spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Sample matrix and conversion factor are not used for HPLC method assay specifications.");
 
-            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
+            bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
+            if (residualSolvents)
+            {
+                if (spec.ResultBasis != ResultBasis.Ppm || spec.LimitType != LimitType.NotMoreThan
+                    || spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                    throw new InvalidOperationException("Residual-solvent specifications use ppm with a not-more-than limit.");
+            }
+            else
+            {
+                if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
+                    throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
 
-            if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
+                if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                    throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
 
-            if (spec.ResultBasis == ResultBasis.PercentLabelClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
+                if (spec.ResultBasis == ResultBasis.PercentLabelClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                    throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
 
-            var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId.Value
-                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
-                cancellationToken);
-            if (duplicateAnalyteBasis)
-                throw new InvalidOperationException("A specification for this analyte and basis already exists.");
+            }
 
             if (spec.LimitType != LimitType.Range &&
                 spec.LimitType != LimitType.NotMoreThan &&
@@ -293,12 +324,55 @@ public class SpecificationService
                 throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for HPLC method assay specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
             }
         }
+        else if (testDef?.WorkflowType == WorkflowType.IcpMethodAssay)
+        {
+            if (!spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is required for ICP method assay specifications.");
+
+            var element = await _db.IcpMethodElements.Include(e => e.IcpMethod).FirstOrDefaultAsync(e => e.Id == spec.IcpMethodElementId.Value, cancellationToken);
+            if (element == null || element.IcpMethodId != testDef.IcpMethodId)
+                throw new InvalidOperationException($"That element does not belong to the method of test '{spec.TestCode}'.");
+
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
+
+            // The conversion factor lives on the method element, not the spec row.
+            if (spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Sample matrix and conversion factor are not used for ICP method assay specifications.");
+
+            if (element.IcpMethod!.Mode == IcpMethodMode.MineralAssay)
+            {
+                if (spec.ResultBasis is not (ResultBasis.MgPerUnit or ResultBasis.PercentLabelClaim))
+                    throw new InvalidOperationException("Result basis must be mg per unit or % of label claim for mineral assay.");
+                if (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                    throw new InvalidOperationException("Mineral assay specifications need a label claim and its unit.");
+            }
+            else
+            {
+                if (spec.ResultBasis != ResultBasis.MgPerKg)
+                    throw new InvalidOperationException("Result basis must be µg/g (MgPerKg) for elemental impurities.");
+                if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                    throw new InvalidOperationException("Label claim is not used for elemental impurities.");
+                if (spec.LimitType != LimitType.NotMoreThan)
+                    throw new InvalidOperationException("Elemental impurity specifications use a not-more-than limit.");
+            }
+
+            if (spec.LimitType != LimitType.Range &&
+                spec.LimitType != LimitType.NotMoreThan &&
+                spec.LimitType != LimitType.NotLessThan &&
+                spec.LimitType != LimitType.TargetWithTolerance)
+            {
+                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for ICP method assay specifications.");
+            }
+        }
         else if (testDef?.WorkflowType == WorkflowType.Titration)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Test analyte and sample matrix are not used for titration specifications.");
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
+            if (spec.SampleMatrix.HasValue)
+                throw new InvalidOperationException("Sample matrix is not used for titration specifications.");
             if (spec.ConversionFactor != 1.0m)
                 throw new InvalidOperationException("Conversion factor must be 1.0 for titration specifications.");
 
@@ -327,58 +401,20 @@ public class SpecificationService
                 throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for titration specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
             }
         }
-        else if (testDef?.EquationType == EquationType.CalibrationCurve)
+        else if (testDef?.EquationType == EquationType.CalibrationCurve || testDef?.WorkflowType == WorkflowType.ElementalAssay)
         {
-            if (spec.HplcMethodAnalyteId.HasValue)
-                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-
-            if (!spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is required for Calibration Curve specifications.");
-
-            var analyte = await _db.TestAnalytes
-                .FirstOrDefaultAsync(a => a.Id == spec.TestAnalyteId.Value, cancellationToken);
-            if (analyte == null || analyte.TestDefinitionId != testDef.Id)
-                throw new InvalidOperationException($"Test analyte does not belong to test '{spec.TestCode}'.");
-
-            var duplicateAnalyte = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
-                cancellationToken);
-            if (duplicateAnalyte)
-                throw new InvalidOperationException($"A specification for this analyte already exists for test '{spec.TestCode}' on item {spec.ItemId}.");
-
-            if (!spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is required for Calibration Curve specifications.");
-
-            if (!spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is required for Calibration Curve specifications.");
-
-            if (spec.LimitType != LimitType.Range &&
-                spec.LimitType != LimitType.NotMoreThan &&
-                spec.LimitType != LimitType.NotLessThan &&
-                spec.LimitType != LimitType.TargetWithTolerance)
-            {
-                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for Calibration Curve specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
-            }
-
-            if (spec.ConversionFactor <= 0)
-                throw new InvalidOperationException("Conversion factor must be greater than zero.");
-
-            if (spec.ResultBasis == ResultBasis.PercentLabelClaim)
-            {
-                if (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0)
-                    throw new InvalidOperationException("Label claim must be greater than zero when result basis is PercentLabelClaim.");
-            }
+            throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
         }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.ConversionFactor != 1.0m)
                 throw new InvalidOperationException("Conversion factor must be 1.0 for Dissolution specifications.");
         }
@@ -386,12 +422,12 @@ public class SpecificationService
         {
             if (spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not allowed for Disintegration specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
@@ -403,12 +439,12 @@ public class SpecificationService
         {
             if (spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
                 throw new InvalidOperationException("Label claim is not allowed for WeightVariation specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
@@ -420,18 +456,18 @@ public class SpecificationService
         {
             if (spec.HplcMethodAnalyteId.HasValue)
                 throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
-            if (spec.TestAnalyteId.HasValue)
-                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Result basis is not used for this test type.");
             if (spec.SampleMatrix.HasValue)
-                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Sample matrix is not used for this test type.");
             if (spec.LabelClaim.HasValue)
-                throw new InvalidOperationException("Label claim is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Label claim is not used for this test type.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new InvalidOperationException("Label claim unit is only allowed for Calibration Curve specifications.");
+                throw new InvalidOperationException("Label claim unit is not used for this test type.");
             if (spec.ConversionFactor != 1.0m)
-                throw new InvalidOperationException("Conversion factor must be 1.0 for non-Calibration Curve specifications.");
+                throw new InvalidOperationException("Conversion factor must be 1.0 for this test type.");
         }
     }
 

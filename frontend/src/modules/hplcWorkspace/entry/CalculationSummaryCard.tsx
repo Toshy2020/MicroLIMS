@@ -15,6 +15,7 @@ import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { HplcPreviewResultDto, HplcOfficialResultDto } from "../types";
 
+
 export interface OfficialResultsCardProps {
   official: HplcOfficialResultDto[];
   basis?: string;
@@ -63,6 +64,8 @@ export function OfficialResultsCard({
                     ? "% Assay"
                     : o.quantity === "AmountPerUnit"
                     ? "Amount per Unit"
+                    : o.quantity === "ResidualSolventPpm" || o.quantity === "Residual solvent (ppm)"
+                    ? "Residual solvent (ppm)"
                     : o.quantity;
 
                 return (
@@ -98,21 +101,20 @@ export function OfficialResultsCard({
           </Table>
         </TableContainer>
       )}
-
     </Box>
   );
 }
 
 export interface CalculationSummaryCardProps {
-  preview: HplcPreviewResultDto[];
-  basis: string;
+  preview?: HplcPreviewResultDto[];
+  basis?: string;
   official?: HplcOfficialResultDto[];
   submitted?: boolean;
 }
 
 export function CalculationSummaryCard({
-  preview,
-  basis,
+  preview = [],
+  basis = "",
   official,
   submitted
 }: CalculationSummaryCardProps) {
@@ -121,6 +123,10 @@ export function CalculationSummaryCard({
   if (submitted) {
     return <OfficialResultsCard official={official || []} basis={basis} />;
   }
+
+  const isResidualSolventsPreview = preview.some(
+    (p) => p.quantity === "Residual solvent (ppm)" || p.quantity === "ResidualSolventPpm"
+  );
 
   return (
     <Box>
@@ -132,10 +138,16 @@ export function CalculationSummaryCard({
         </Typography>
       </Box>
 
+      {isResidualSolventsPreview && (
+        <Alert severity="info" sx={{ mb: 1.5, py: 0.5, fontSize: 12 }}>
+          <strong>Residual Solvents Formula:</strong> ppm = (C_std × V / W) × (r_u / r̄_std)
+        </Alert>
+      )}
+
       {preview.length === 0 ? (
         <Box sx={{ p: 3 }}>
           <Alert severity="info">
-            No preview results available yet. Enter actual weights and responses above and click <strong>Save Replicates</strong> to generate the preview calculation.
+            No preview results available yet. Enter actual weights and {isResidualSolventsPreview ? "areas" : "responses"} above and click <strong>Save Replicates</strong> to generate the preview calculation.
           </Alert>
         </Box>
       ) : (
@@ -160,6 +172,8 @@ export function CalculationSummaryCard({
                     ? "% Assay"
                     : p.quantity === "AmountPerUnit"
                     ? "Amount per Unit"
+                    : p.quantity === "ResidualSolventPpm" || p.quantity === "Residual solvent (ppm)"
+                    ? "Residual solvent (ppm)"
                     : p.quantity;
 
                 return (

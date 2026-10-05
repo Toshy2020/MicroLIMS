@@ -12,22 +12,32 @@ namespace MicroLIMS.Application.Services;
 
 public record HplcMobilePhaseInput(string Channel, int SolutionMasterId, decimal? RatioPercent);
 public record HplcGradientStepInput(decimal TimeMin, decimal PercentA, decimal PercentB, decimal PercentC, decimal PercentD);
-public record HplcAnalyteInput(int? Id, string Name, decimal WavelengthNm, int StandardEntryId,
+public record GcOvenStepInput(decimal? RateCPerMin, decimal TemperatureC, decimal HoldMin);
+public record HplcAnalyteInput(int? Id, string Name, decimal? WavelengthNm, int StandardEntryId,
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent = null, decimal? SstMinResolution = null, decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null, decimal? SstMinRetentionFactor = null,
-    decimal? SstMinSignalToNoise = null, decimal? SstMinPeakToValley = null, decimal? StandardDilution = null);
+    decimal? SstMinSignalToNoise = null, decimal? SstMinPeakToValley = null, decimal? StandardDilution = null,
+    decimal? StandardConcentrationUgPerMl = null);
 
 public record SaveHplcMethodRequest(
     string Name, string Abbreviation, DateTime EffectiveDate,
-    string ColumnDesignation, decimal ColumnLengthMm, decimal ColumnInternalDiameterMm, decimal ParticleSizeUm,
-    decimal ColumnTemperatureC, ElutionMode ElutionMode, decimal FlowRateMlPerMin,
+    string ColumnDesignation, decimal ColumnLengthMm, decimal ColumnInternalDiameterMm, decimal? ParticleSizeUm,
+    decimal? ColumnTemperatureC, ElutionMode ElutionMode, decimal FlowRateMlPerMin,
     HplcDetectorType DetectorType, decimal InjectionVolumeUl, decimal RunTimeMin, int DiluentSolutionId,
     List<HplcMobilePhaseInput> MobilePhases, List<HplcGradientStepInput> GradientSteps, List<HplcAnalyteInput> Analytes,
     string? ColumnBrand = null, string? ColumnPartNumber = null, decimal? EquilibrationMin = null,
-    int? SectionId = null, string? Reason = null);   // Reason required on update, ignored on create
+    int? SectionId = null, string? Reason = null,   // Reason required on update, ignored on create
+    HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay,
+    decimal? FilmThicknessUm = null, CarrierGas? CarrierGas = null, decimal? SplitRatio = null,
+    decimal? InletTemperatureC = null, decimal? DetectorTemperatureC = null,
+    List<GcOvenStepInput>? OvenSteps = null,
+    bool HeadspaceEnabled = false, decimal? HeadspaceEquilibrationTemperatureC = null,
+    decimal? HeadspaceEquilibrationMin = null, decimal? HeadspaceTransferLineTemperatureC = null,
+    decimal? SampleSolutionVolumeMl = null);
 
-public record HplcMethodListItem(int Id, string Name, string Abbreviation, bool IsActive, int AnalyteCount, string SectionName, DateTime LastModifiedAt);
+public record HplcMethodListItem(int Id, string Name, string Abbreviation, bool IsActive, int AnalyteCount, string SectionName, DateTime LastModifiedAt,
+    HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay);
 public record HplcMethodHistoryEntry(DateTime At, string UserName, string Action, string? Reason, string? BeforeJson, string? AfterJson);
 
 // HPLC method master (HPLC chain S3, spec 3.3): parameters, gradient, mobile
@@ -35,7 +45,7 @@ public record HplcMethodHistoryEntry(DateTime At, string UserName, string Action
 // SolutionMasterService (S2): edit in place with a required reason, no
 // versions (D7). Each edit writes one audit event whose single change is the
 // whole method as JSON before -> after, so the history screen reads one list.
-public class HplcMethodService
+public partial class HplcMethodService
 {
     private const string CreatedActionCode = "HplcMethod.Created";
     private const string UpdatedActionCode = "HplcMethod.Updated";
@@ -62,7 +72,7 @@ public class HplcMethodService
         _auditEventService = auditEventService;
     }
 
-    public async Task<List<HplcMethodListItem>> GetAllAsync(int currentUserId, bool activeOnly = false, CancellationToken ct = default)
+    public async Task<List<HplcMethodListItem>> GetAllAsync(int currentUserId, bool activeOnly = false, HplcTechnique? technique = null, CancellationToken ct = default)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
         var query = _db.HplcMethods.Include(m => m.Section).Include(m => m.Analytes).AsNoTracking().AsQueryable();
@@ -73,8 +83,11 @@ public class HplcMethodService
         if (activeOnly)
             query = query.Where(m => m.IsActive);
 
+        if (technique.HasValue)
+            query = query.Where(m => m.Technique == technique.Value);
+
         return (await query.OrderBy(m => m.Name).ToListAsync(ct))
-            .Select(m => new HplcMethodListItem(m.Id, m.Name, m.Abbreviation, m.IsActive, m.Analytes.Count, m.Section?.Name ?? string.Empty, m.LastModifiedAt))
+            .Select(m => new HplcMethodListItem(m.Id, m.Name, m.Abbreviation, m.IsActive, m.Analytes.Count, m.Section?.Name ?? string.Empty, m.LastModifiedAt, m.Technique, m.ResultMode))
             .ToList();
     }
 
@@ -111,6 +124,7 @@ public class HplcMethodService
         ApplyFields(method, r, abbr);
         ReplaceMobilePhases(method, r);
         ReplaceGradientSteps(method, r);
+        ReplaceOvenSteps(method, r);
         ApplyAnalytes(method, r);
 
         _db.HplcMethods.Add(method);
@@ -139,11 +153,15 @@ public class HplcMethodService
         var method = await _db.HplcMethods
             .Include(m => m.MobilePhases)
             .Include(m => m.GradientSteps)
+            .Include(m => m.OvenSteps)
             .Include(m => m.Analytes)
             .FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException($"HPLC method {id} not found.");
 
         RecordVersion.EnsureCurrent(_db, method);
+
+        if (r.Technique != method.Technique || r.ResultMode != method.ResultMode)
+            throw new InvalidOperationException("The technique and result mode can't be changed after the method is created.");
 
         var alreadyUsedSolutionIds = new HashSet<int>(method.MobilePhases.Select(p => p.SolutionMasterId)) { method.DiluentSolutionId };
         var alreadyUsedStandardIds = new HashSet<int>(method.Analytes.Select(a => a.StandardEntryId));
@@ -166,6 +184,7 @@ public class HplcMethodService
         ApplyFields(method, r, abbr);
         ReplaceMobilePhases(method, r);
         ReplaceGradientSteps(method, r);
+        ReplaceOvenSteps(method, r);
         ApplyAnalytes(method, r);
         method.LastModifiedByUserId = currentUserId;
         method.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
@@ -253,6 +272,7 @@ public class HplcMethodService
             .Include(m => m.DiluentSolution)
             .Include(m => m.MobilePhases).ThenInclude(p => p.SolutionMaster)
             .Include(m => m.GradientSteps)
+            .Include(m => m.OvenSteps)
             .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry);
 
     private static string ValidateReason(string? reason)
@@ -284,6 +304,35 @@ public class HplcMethodService
         method.InjectionVolumeUl = r.InjectionVolumeUl;
         method.RunTimeMin = r.RunTimeMin;
         method.DiluentSolutionId = r.DiluentSolutionId;
+        method.Technique = r.Technique;
+        method.ResultMode = r.ResultMode;
+        method.FilmThicknessUm = r.FilmThicknessUm;
+        method.CarrierGas = r.CarrierGas;
+        method.SplitRatio = r.SplitRatio;
+        method.InletTemperatureC = r.InletTemperatureC;
+        method.DetectorTemperatureC = r.DetectorTemperatureC;
+        method.HeadspaceEnabled = r.HeadspaceEnabled;
+        method.HeadspaceEquilibrationTemperatureC = r.HeadspaceEquilibrationTemperatureC;
+        method.HeadspaceEquilibrationMin = r.HeadspaceEquilibrationMin;
+        method.HeadspaceTransferLineTemperatureC = r.HeadspaceTransferLineTemperatureC;
+        method.SampleSolutionVolumeMl = r.SampleSolutionVolumeMl;
+    }
+
+    private void ReplaceOvenSteps(HplcMethod method, SaveHplcMethodRequest r)
+    {
+        _db.HplcMethodOvenSteps.RemoveRange(method.OvenSteps);
+        method.OvenSteps.Clear();
+        var no = 1;
+        foreach (var os in r.OvenSteps ?? new List<GcOvenStepInput>())
+        {
+            method.OvenSteps.Add(new HplcMethodOvenStep
+            {
+                StepNo = no++,
+                RateCPerMin = os.RateCPerMin,
+                TemperatureC = os.TemperatureC,
+                HoldMin = os.HoldMin
+            });
+        }
     }
 
     private void ReplaceMobilePhases(HplcMethod method, SaveHplcMethodRequest r)
@@ -356,6 +405,7 @@ public class HplcMethodService
             analyte.SstMinSignalToNoise = input.SstMinSignalToNoise;
             analyte.SstMinPeakToValley = input.SstMinPeakToValley;
             analyte.StandardDilution = input.StandardDilution;
+            analyte.StandardConcentrationUgPerMl = input.StandardConcentrationUgPerMl;
         }
 
         var toRemove = method.Analytes.Where(a => a.Id != 0 && !keepIds.Contains(a.Id)).ToList();
@@ -387,8 +437,7 @@ public class HplcMethodService
         if (string.IsNullOrWhiteSpace(r.ColumnDesignation))
             throw new InvalidOperationException("Column designation is required.");
 
-        if (r.ColumnLengthMm <= 0m || r.ColumnInternalDiameterMm <= 0m || r.ParticleSizeUm <= 0m || r.ColumnTemperatureC <= 0m
-            || r.FlowRateMlPerMin <= 0m || r.InjectionVolumeUl <= 0m || r.RunTimeMin <= 0m)
+        if (r.ColumnLengthMm <= 0m || r.ColumnInternalDiameterMm <= 0m || r.FlowRateMlPerMin <= 0m || r.InjectionVolumeUl <= 0m || r.RunTimeMin <= 0m)
             throw new InvalidOperationException("Column and run parameters must be greater than zero.");
 
         if (r.EquilibrationMin.HasValue && r.EquilibrationMin.Value < 0m)
@@ -403,6 +452,67 @@ public class HplcMethodService
             throw new InvalidOperationException("The diluent solution must be of type Diluent.");
         if (!diluent.IsActive && !alreadyUsedSolutionIds.Contains(diluent.Id))
             throw new InvalidOperationException("The diluent solution is inactive.");
+
+        if (r.Technique == HplcTechnique.Gc)
+            ValidateGcSection(r);
+        else
+            await ValidateHplcSectionAsync(r, sectionId, alreadyUsedSolutionIds, ct);
+
+        // Analytes
+        if (r.Analytes.Count < 1)
+            throw new InvalidOperationException("At least one analyte is required.");
+
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in r.Analytes)
+        {
+            if (string.IsNullOrWhiteSpace(a.Name))
+                throw new InvalidOperationException("Analyte name is required.");
+            if (!names.Add(a.Name.Trim()))
+                throw new InvalidOperationException($"Analyte name \"{a.Name}\" is used more than once.");
+
+            if (a.StandardInjections < 1)
+                throw new InvalidOperationException("Standard injections must be at least 1.");
+
+            if ((a.SstMaxRsdPercent.HasValue && a.SstMaxRsdPercent.Value <= 0m)
+                || (a.SstMinResolution.HasValue && a.SstMinResolution.Value <= 0m)
+                || (a.SstMaxTailingFactor.HasValue && a.SstMaxTailingFactor.Value <= 0m)
+                || (a.SstMinTheoreticalPlates.HasValue && a.SstMinTheoreticalPlates.Value <= 0m)
+                || (a.SstMinRetentionFactor.HasValue && a.SstMinRetentionFactor.Value <= 0m)
+                || (a.SstMinSignalToNoise.HasValue && a.SstMinSignalToNoise.Value <= 0m)
+                || (a.SstMinPeakToValley.HasValue && a.SstMinPeakToValley.Value <= 0m))
+                throw new InvalidOperationException("System suitability criteria must be greater than zero when given.");
+
+            var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == a.StandardEntryId, ct)
+                ?? throw new InvalidOperationException($"Standard entry {a.StandardEntryId} not found.");
+            if (standard.SectionId != sectionId)
+                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" belongs to another laboratory.");
+            if (standard.Category != MaterialMasterCategory.ReferenceStandard)
+                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" must be a reference standard.");
+            if (!standard.IsActive && !alreadyUsedStandardIds.Contains(standard.Id))
+                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" is inactive.");
+        }
+
+        return abbr;
+    }
+
+    private async Task ValidateHplcSectionAsync(
+        SaveHplcMethodRequest r, int sectionId, HashSet<int> alreadyUsedSolutionIds, CancellationToken ct)
+    {
+        if (!(r.ParticleSizeUm > 0m) || !(r.ColumnTemperatureC > 0m))
+            throw new InvalidOperationException("Column and run parameters must be greater than zero.");
+
+        if (r.DetectorType is not (HplcDetectorType.UV or HplcDetectorType.PDA or HplcDetectorType.FLD
+            or HplcDetectorType.RI or HplcDetectorType.ELSD or HplcDetectorType.Other))
+            throw new InvalidOperationException($"Detector {r.DetectorType} is not an HPLC detector.");
+
+        if (r.ResultMode != HplcResultMode.Assay)
+            throw new InvalidOperationException("Residual solvents mode is only available for GC methods.");
+
+        if (r.FilmThicknessUm.HasValue || r.CarrierGas.HasValue || r.SplitRatio.HasValue || r.InletTemperatureC.HasValue
+            || r.DetectorTemperatureC.HasValue || r.SampleSolutionVolumeMl.HasValue
+            || r.OvenSteps?.Count > 0 || r.HeadspaceEnabled
+            || r.Analytes.Any(a => a.StandardConcentrationUgPerMl.HasValue))
+            throw new InvalidOperationException("GC settings are not used on an HPLC method.");
 
         // Mobile phases
         if (r.MobilePhases.Count < 1)
@@ -482,19 +592,9 @@ public class HplcMethodService
             throw new InvalidOperationException("Isocratic elution must not have gradient steps.");
         }
 
-        // Analytes
-        if (r.Analytes.Count < 1)
-            throw new InvalidOperationException("At least one analyte is required.");
-
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var a in r.Analytes)
         {
-            if (string.IsNullOrWhiteSpace(a.Name))
-                throw new InvalidOperationException("Analyte name is required.");
-            if (!names.Add(a.Name.Trim()))
-                throw new InvalidOperationException($"Analyte name \"{a.Name}\" is used more than once.");
-
-            if (a.WavelengthNm < 190m || a.WavelengthNm > 900m)
+            if (!(a.WavelengthNm >= 190m && a.WavelengthNm <= 900m))
                 throw new InvalidOperationException("Analyte wavelength must be between 190 and 900 nm.");
 
             if (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m)
@@ -502,29 +602,6 @@ public class HplcMethodService
 
             if (a.StandardDilution.HasValue && a.StandardDilution.Value <= 0m)
                 throw new InvalidOperationException("Standard dilution must be greater than zero.");
-
-            if (a.StandardInjections < 1)
-                throw new InvalidOperationException("Standard injections must be at least 1.");
-
-            if ((a.SstMaxRsdPercent.HasValue && a.SstMaxRsdPercent.Value <= 0m)
-                || (a.SstMinResolution.HasValue && a.SstMinResolution.Value <= 0m)
-                || (a.SstMaxTailingFactor.HasValue && a.SstMaxTailingFactor.Value <= 0m)
-                || (a.SstMinTheoreticalPlates.HasValue && a.SstMinTheoreticalPlates.Value <= 0m)
-                || (a.SstMinRetentionFactor.HasValue && a.SstMinRetentionFactor.Value <= 0m)
-                || (a.SstMinSignalToNoise.HasValue && a.SstMinSignalToNoise.Value <= 0m)
-                || (a.SstMinPeakToValley.HasValue && a.SstMinPeakToValley.Value <= 0m))
-                throw new InvalidOperationException("System suitability criteria must be greater than zero when given.");
-
-            var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == a.StandardEntryId, ct)
-                ?? throw new InvalidOperationException($"Standard entry {a.StandardEntryId} not found.");
-            if (standard.SectionId != sectionId)
-                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" belongs to another laboratory.");
-            if (standard.Category != MaterialMasterCategory.ReferenceStandard)
-                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" must be a reference standard.");
-            if (!standard.IsActive && !alreadyUsedStandardIds.Contains(standard.Id))
-                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" is inactive.");
         }
-
-        return abbr;
     }
 }

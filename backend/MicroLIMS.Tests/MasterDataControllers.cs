@@ -22,7 +22,6 @@ public sealed class MasterDataControllers
     public OrganismMasterDataController Organism { get; }
     public TestDefinitionMasterDataController TestDefinition { get; }
     public TestWorkflowStepMasterDataController TestWorkflowStep { get; }
-    public TestAnalyteMasterDataController TestAnalyte { get; }
     public TestStageReplicateMasterDataController TestStageReplicate { get; }
 
     // Same arguments the single MasterDataController used to take.
@@ -45,14 +44,13 @@ public sealed class MasterDataControllers
         Organism = new(new OrganismMasterDataService(db));
         TestDefinition = new(new TestDefinitionMasterDataService(db, scope));
         TestWorkflowStep = new(new TestWorkflowStepMasterDataService(db));
-        TestAnalyte = new(new TestAnalyteMasterDataService(db, scope));
         TestStageReplicate = new(new TestStageReplicateMasterDataService(db, scope));
     }
 
     private IEnumerable<ControllerBase> All =>
     [
         Water, EnvironmentalMonitoring, AfterCleaning, Specification, ReferenceList, Equipment,
-        Media, Organism, TestDefinition, TestWorkflowStep, TestAnalyte, TestStageReplicate
+        Media, Organism, TestDefinition, TestWorkflowStep, TestStageReplicate
     ];
 
     public ControllerContext ControllerContext

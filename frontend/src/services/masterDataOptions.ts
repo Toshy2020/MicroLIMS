@@ -92,51 +92,6 @@ export interface UpdateTestDefinitionStageReplicateRequest {
   sampleReplicates?: number | null;
 }
 
-export interface TestAnalyteDto {
-  id: number;
-  // Row version, sent back as If-Match when this record is edited.
-  version?: number;
-  testDefinitionId: number;
-  element: string;
-  wavelengthNm: number;
-  // Set for CalibrationCurve (ICP-OES) analytes.
-  view: "Axial" | "Radial" | null;
-  loqMgPerL: number | null;
-  displayOrder: number;
-  isActive: boolean;
-  // Legacy per-analyte system suitability criteria
-  // (null = not checked). CalibrationCurve (ICP-OES) analytes never set these.
-  sstMaxRsdPercent?: number | null;
-  sstMinResolution?: number | null;
-  sstMaxTailingFactor?: number | null;
-  sstMinTheoreticalPlates?: number | null;
-}
-
-export interface CreateTestAnalyteRequest {
-  element: string;
-  wavelengthNm: number;
-  view?: "Axial" | "Radial" | null;
-  loqMgPerL?: number | null;
-  displayOrder?: number;
-  sstMaxRsdPercent?: number | null;
-  sstMinResolution?: number | null;
-  sstMaxTailingFactor?: number | null;
-  sstMinTheoreticalPlates?: number | null;
-}
-
-export interface UpdateTestAnalyteRequest {
-  element?: string;
-  wavelengthNm?: number;
-  view?: "Axial" | "Radial" | null;
-  loqMgPerL?: number | null;
-  displayOrder?: number;
-  isActive?: boolean;
-  sstMaxRsdPercent?: number | null;
-  sstMinResolution?: number | null;
-  sstMaxTailingFactor?: number | null;
-  sstMinTheoreticalPlates?: number | null;
-}
-
 export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   code: string;
   displayName: string;
@@ -149,25 +104,6 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
-  calibrationEntryMode?: string | null;
-  calMinCorrelation?: number | null;
-  calCorrelationType?: string | null;
-  calMinStandards?: number | null;
-  calCheckRecoveryLowPercent?: number | null;
-  calCheckRecoveryHighPercent?: number | null;
-  calBlankMax?: number | null;
-  calIsRecoveryLowPercent?: number | null;
-  calIsRecoveryHighPercent?: number | null;
-  calRequireBlank?: boolean | null;
-  calRequireIcv?: boolean | null;
-  calRequireCcv?: boolean | null;
-  calRequireInternalStandard?: boolean | null;
-  reportedConcentrationBasis?: string | null;
-  calMaxRunAgeHours?: number | null;
-  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
-  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
-  calInstrumentType?: "IcpOes" | "Aas" | null;
-  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
@@ -194,6 +130,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
+  icpMethodId?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -208,25 +145,6 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
-  calibrationEntryMode?: string | null;
-  calMinCorrelation?: number | null;
-  calCorrelationType?: string | null;
-  calMinStandards?: number | null;
-  calCheckRecoveryLowPercent?: number | null;
-  calCheckRecoveryHighPercent?: number | null;
-  calBlankMax?: number | null;
-  calIsRecoveryLowPercent?: number | null;
-  calIsRecoveryHighPercent?: number | null;
-  calRequireBlank?: boolean | null;
-  calRequireIcv?: boolean | null;
-  calRequireCcv?: boolean | null;
-  calRequireInternalStandard?: boolean | null;
-  reportedConcentrationBasis?: string | null;
-  calMaxRunAgeHours?: number | null;
-  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
-  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
-  calInstrumentType?: "IcpOes" | "Aas" | null;
-  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
@@ -253,6 +171,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
+  icpMethodId?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master
@@ -325,18 +244,7 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }, ifMatch(version)).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
-    apiClient.get("/masterdata/equation-types").then((r) => {
-      const list: EquationTypeDto[] = r.data.data || [];
-      if (!list.some((e) => e.code === "CalibrationCurve")) {
-        list.push({
-          code: "CalibrationCurve",
-          name: "Calibration Curve",
-          formulaText: "r / r² >= MinCorrelation, Standards >= MinStandards, ICV/CCV recovery within [Low, High]%, Blank <= MaxBlank (or LOQ), IS recovery within [Low, High]%",
-          requiredInputs: ["CorrelationValue", "CorrelationType", "NumberOfStandards", "LowestStandardMgPerL", "HighestStandardMgPerL", "Checks"]
-        });
-      }
-      return list;
-    }),
+    apiClient.get("/masterdata/equation-types").then((r) => r.data.data || []),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
   createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
     const payload = typeof codeOrPayload === "string"
@@ -358,14 +266,6 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
-  getTestAnalytes: (testDefinitionId: number): Promise<TestAnalyteDto[]> =>
-    apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/analytes`).then((r) => r.data.data),
-  createTestAnalyte: (testDefinitionId: number, payload: CreateTestAnalyteRequest): Promise<TestAnalyteDto> =>
-    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/analytes`, payload).then((r) => r.data.data),
-  updateTestAnalyte: (testDefinitionId: number, analyteId: number, payload: UpdateTestAnalyteRequest, version?: number): Promise<TestAnalyteDto> =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload, ifMatch(version)).then((r) => r.data.data),
-  deleteTestAnalyte: (testDefinitionId: number, analyteId: number): Promise<{ message?: string; deactivated?: boolean; deleted?: boolean }> =>
-    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`).then((r) => r.data.data),
   getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`).then((r) => r.data.data),
   createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>

@@ -26,6 +26,16 @@ public class TestWorkflowStepMasterDataService
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
+        // Only the step-driven workflows (CountTest <-> Observation) can be
+        // switched here; every other workflow is set by the test type and
+        // paired with its equation in TestDefinitionMasterDataService.
+        static bool StepDriven(WorkflowType w) => w is WorkflowType.CountTest or WorkflowType.Observation;
+        var dedicatedEquation = entity.EquationType is EquationType.HplcMethodAssay or EquationType.IcpMethodAssay
+            or EquationType.Dissolution or EquationType.Disintegration or EquationType.WeightVariation
+            or EquationType.Titration or EquationType.Measurement or EquationType.Qualitative
+            or EquationType.GravimetricLoss or EquationType.GravimetricResidue;
+        if (!StepDriven(entity.WorkflowType) || !StepDriven(request.WorkflowType) || dedicatedEquation)
+            throw new InvalidOperationException("The workflow type of this test is set by its test type; change it in the test settings.");
         entity.WorkflowType = request.WorkflowType;
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);

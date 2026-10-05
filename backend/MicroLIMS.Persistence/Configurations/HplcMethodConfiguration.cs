@@ -23,6 +23,14 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
         builder.Property(e => e.FlowRateMlPerMin).HasColumnType("decimal(10,3)");
         builder.Property(e => e.InjectionVolumeUl).HasColumnType("decimal(10,3)");
         builder.Property(e => e.RunTimeMin).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.FilmThicknessUm).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.SplitRatio).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.InletTemperatureC).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.DetectorTemperatureC).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.HeadspaceEquilibrationTemperatureC).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.HeadspaceEquilibrationMin).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.HeadspaceTransferLineTemperatureC).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.SampleSolutionVolumeMl).HasColumnType("decimal(10,3)");
 
         builder.HasIndex(e => new { e.SectionId, e.Abbreviation }).IsUnique();
 
@@ -31,6 +39,7 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
 
         builder.HasMany(e => e.MobilePhases).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(e => e.GradientSteps).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(e => e.OvenSteps).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(e => e.Analytes).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -79,9 +88,22 @@ public class HplcMethodAnalyteConfiguration : IEntityTypeConfiguration<HplcMetho
         builder.Property(e => e.SstMinSignalToNoise).HasColumnType("decimal(10,3)");
         builder.Property(e => e.SstMinPeakToValley).HasColumnType("decimal(10,3)");
         builder.Property(e => e.StandardDilution).HasColumnType("decimal(12,4)");
+        builder.Property(e => e.StandardConcentrationUgPerMl).HasColumnType("decimal(12,4)");
 
         builder.HasIndex(e => new { e.HplcMethodId, e.Name }).IsUnique();
 
         builder.HasOne(e => e.StandardEntry).WithMany().HasForeignKey(e => e.StandardEntryId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class HplcMethodOvenStepConfiguration : IEntityTypeConfiguration<HplcMethodOvenStep>
+{
+    public void Configure(EntityTypeBuilder<HplcMethodOvenStep> builder)
+    {
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.RateCPerMin).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.TemperatureC).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.HoldMin).HasColumnType("decimal(10,3)");
+        builder.HasIndex(e => new { e.HplcMethodId, e.StepNo }).IsUnique();
     }
 }

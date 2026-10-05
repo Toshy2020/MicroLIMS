@@ -85,7 +85,7 @@ public class AdminPasswordRecoveryTests
     public async Task RecoveryCode_IsHonouredOnlyInsideItsFifteenMinuteWindow(int minutesLater, bool accepted)
     {
         var db = CreateDbContext();
-        var clock = new CalibrationCurveSliceS1Tests.FakeTimeProvider(new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero));
+        var clock = new HplcRunServiceTests.FakeTimeProvider(new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero));
         var service = new AdminPasswordRecoveryService(db, clock);
         db.Users.Add(new User { Id = 2, FullName = "Target User", Username = "windowed", RoleId = 4, IsActive = true });
         await db.SaveChangesAsync();

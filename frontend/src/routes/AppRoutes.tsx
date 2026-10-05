@@ -31,7 +31,6 @@ const TrackingBoardPage = lazy(() => import("../modules/receiving/TrackingBoardP
 const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleReportPage").then((m) => ({ default: m.SampleReportPage })));
 const SampleCoaPage = lazy(() => import("../modules/testingWorkspace/SampleCoaPage").then((m) => ({ default: m.SampleCoaPage })));
 const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaReportPage").then((m) => ({ default: m.MediaReportPage })));
-const CalibrationRunReportPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunReportPage").then((m) => ({ default: m.CalibrationRunReportPage })));
 const CryovialReportPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialReportPage").then((m) => ({ default: m.CryovialReportPage })));
 const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/ItemsPage").then((m) => ({ default: m.ItemsPage })));
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
@@ -44,7 +43,6 @@ const MediaEvaluationPage = lazy(() => import("../modules/laboratoryConfiguratio
 const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/water/WaterConfigPage").then((m) => ({ default: m.WaterConfigPage })));
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
 const AfterCleaningConfigPage = lazy(() => import("../modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage").then((m) => ({ default: m.AfterCleaningConfigPage })));
-const CalibrationRunsPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunsPage").then((m) => ({ default: m.CalibrationRunsPage })));
 const CryovialsPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialsPage").then((m) => ({ default: m.CryovialsPage })));
 const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ReceivingConfigurationPage").then((m) => ({ default: m.ReceivingConfigurationPage })));
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
@@ -53,6 +51,7 @@ const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfig
 const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
+const IcpMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/IcpMethodsPage").then((m) => ({ default: m.IcpMethodsPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -60,6 +59,9 @@ const HplcWorkspacePage = lazy(() => import("../modules/hplcWorkspace/overview/H
 const HplcInstrumentWorkspace = lazy(() => import("../modules/hplcWorkspace/run/HplcInstrumentWorkspace").then((m) => ({ default: m.HplcInstrumentWorkspace })));
 const StartHplcRunWizard = lazy(() => import("../modules/hplcWorkspace/run/StartHplcRunWizard").then((m) => ({ default: m.StartHplcRunWizard })));
 const HplcSampleEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/HplcSampleEntryPage").then((m) => ({ default: m.HplcSampleEntryPage })));
+const IcpWorkspacePage = lazy(() => import("../modules/icpWorkspace/overview/IcpWorkspacePage").then((m) => ({ default: m.IcpWorkspacePage })));
+const IcpRunWorkspace = lazy(() => import("../modules/icpWorkspace/run/IcpRunWorkspace").then((m) => ({ default: m.IcpRunWorkspace })));
+const IcpSampleEntryPage = lazy(() => import("../modules/icpWorkspace/entry/IcpSampleEntryPage").then((m) => ({ default: m.IcpSampleEntryPage })));
 const WorkingStandardsPage = lazy(() => import("../modules/workingStandards/WorkingStandardsPage").then((m) => ({ default: m.WorkingStandardsPage })));
 const QualificationEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/QualificationEntryPage").then((m) => ({ default: m.QualificationEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
@@ -101,7 +103,6 @@ export function AppRoutes() {
           <Route path="/samples/:id/coa" element={<SampleCoaPage />} />
           <Route path="/media/:id/report" element={<MediaReportPage />} />
           <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
-          <Route path="/laboratory/calibration-runs/:id/report" element={<CalibrationRunReportPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -155,7 +156,6 @@ export function AppRoutes() {
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.TEST_WORKFLOW_EXECUTE} />}>
               <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
-              <Route path="/laboratory/calibration-runs" element={<CalibrationRunsPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
               <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
@@ -179,6 +179,32 @@ export function AppRoutes() {
             <Route path="/hplc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
             <Route path="/hplc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
+
+            {/* GC Workspace (slice G2b) */}
+            <Route path="/gc-workspace" element={<HplcWorkspacePage />} />
+            <Route path="/gc-workspace/:instrumentId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/new-run" element={<StartHplcRunWizard />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/sst" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/samples" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/evidence" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/history" element={<HplcInstrumentWorkspace />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+            <Route path="/gc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
+            <Route path="/gc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
+
+            {/* ICP Workspace (slice I3) */}
+            <Route path="/icp-workspace" element={<IcpWorkspacePage />} />
+            <Route path="/icp-workspace/:instrumentId" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/calibration" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/ccv" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/samples" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/evidence" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/history" element={<IcpRunWorkspace />} />
+            <Route path="/icp-workspace/:instrumentId/run/:runId/sample/:runSampleId" element={<IcpSampleEntryPage />} />
+            <Route path="/icp-workspace/:instrumentId/history" element={<IcpRunWorkspace />} />
+
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
@@ -208,6 +234,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/material-master" element={<MaterialMasterPage />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
+              <Route path="/laboratory-configuration/icp-methods" element={<IcpMethodsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

@@ -21,11 +21,13 @@ import { WorkingStandardPreviewCard } from "./WorkingStandardPreviewCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { tableHeadSx } from "../../../theme";
+import { useTechnique } from "../useTechnique";
 import type { HplcQualificationEntryDto, HplcReplicateDto, HplcReplicateInput } from "../types";
 
 export function QualificationEntryPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { basePath } = useTechnique();
   const { permissions, role } = useAuth();
   const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE) || role === "SystemAdministrator";
 
@@ -88,7 +90,7 @@ export function QualificationEntryPage() {
     }
   };
 
-  const handleBack = () => { navigate(`/hplc-workspace/${instrumentId}/run/${runId}/samples`); };
+  const handleBack = () => { navigate(`${basePath}/${instrumentId}/run/${runId}/samples`); };
 
   if (loading) {
     return (

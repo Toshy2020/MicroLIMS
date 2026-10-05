@@ -38,9 +38,6 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(ElectronicSignature), nameof(ElectronicSignature.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
-        new UserReferenceEntry(typeof(CalibrationRun), nameof(CalibrationRun.PerformedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - analyst who performed the signed calibration run"),
-        new UserReferenceEntry(typeof(CalibrationRun), nameof(CalibrationRun.WithdrawnByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - section head who withdrew the calibration run"),
-        new UserReferenceEntry(typeof(CalibrationRunDocument), nameof(CalibrationRunDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - calibration report uploader"),
         new UserReferenceEntry(typeof(EquipmentDocument), nameof(EquipmentDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(EquipmentStatusHistory), nameof(EquipmentStatusHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(ItemDocument), nameof(ItemDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
@@ -202,6 +199,8 @@ public static class UserReferenceRegistry
         // HPLC chain S3 - HPLC method master
         new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(IcpMethod), nameof(IcpMethod.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(IcpMethod), nameof(IcpMethod.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
 
         // HPLC chain S4 - Solution Preparation area
         new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.StartedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the preparation"),
@@ -223,5 +222,11 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.RejectedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, rejection signature"),
         new UserReferenceEntry(typeof(WorkingStandardDocument), nameof(WorkingStandardDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, uploader of the attachment"),
         new UserReferenceEntry(typeof(HplcEvidence), nameof(HplcEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
+        new UserReferenceEntry(typeof(IcpRun), nameof(IcpRun.AnalystUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the run"),
+        new UserReferenceEntry(typeof(IcpCalibration), nameof(IcpCalibration.ConfirmedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the calibration confirmation"),
+        new UserReferenceEntry(typeof(IcpCcvReading), nameof(IcpCcvReading.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who entered the CCV reading"),
+        new UserReferenceEntry(typeof(IcpRunSample), nameof(IcpRunSample.AssignedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample assignment"),
+        new UserReferenceEntry(typeof(IcpRunSample), nameof(IcpRunSample.RemovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample removal"),
+        new UserReferenceEntry(typeof(IcpEvidence), nameof(IcpEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
     };
 }

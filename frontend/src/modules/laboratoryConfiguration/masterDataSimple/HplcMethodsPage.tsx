@@ -41,6 +41,7 @@ export function HplcMethodsPage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [techniqueFilter, setTechniqueFilter] = useState<"ALL" | "Hplc" | "Gc">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [sectionFilter, setSectionFilter] = useState<string>("ALL");
 
@@ -134,12 +135,13 @@ export function HplcMethodsPage() {
           m.sectionName.toLowerCase().includes(q);
         if (!match) return false;
       }
+      if (techniqueFilter !== "ALL" && (m.technique ?? "Hplc") !== techniqueFilter) return false;
       if (statusFilter === "ACTIVE" && !m.isActive) return false;
       if (statusFilter === "INACTIVE" && m.isActive) return false;
       if (sectionFilter !== "ALL" && m.sectionName !== sectionFilter) return false;
       return true;
     });
-  }, [methods, searchQuery, statusFilter, sectionFilter]);
+  }, [methods, searchQuery, techniqueFilter, statusFilter, sectionFilter]);
 
   const resolveSectionDisplay = (secName?: string) => {
     if (secName) return secName;
@@ -154,8 +156,8 @@ export function HplcMethodsPage() {
 
   return (
     <LabPage
-      title="HPLC Methods Master"
-      subtitle="Manage chromatography methods, column chemistry, mobile phase channels, gradient steps, and analyte theoretical constants with SST criteria."
+      title="Chromatography Methods Master"
+      subtitle="Manage HPLC and GC methods, column chemistry, carrier gas/oven parameters, mobile phases, and analyte theoretical constants with SST criteria."
       actions={addButton}
       filters={
         <FilterBar
@@ -166,6 +168,19 @@ export function HplcMethodsPage() {
           onRefresh={loadData}
           refreshing={loading}
         >
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="method-technique-filter-label">Technique</InputLabel>
+            <Select
+              labelId="method-technique-filter-label"
+              label="Technique"
+              value={techniqueFilter}
+              onChange={(e) => setTechniqueFilter(e.target.value as "ALL" | "Hplc" | "Gc")}
+            >
+              <MenuItem value="ALL">All Techniques</MenuItem>
+              <MenuItem value="Hplc">HPLC</MenuItem>
+              <MenuItem value="Gc">GC</MenuItem>
+            </Select>
+          </FormControl>
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel id="method-status-filter-label">Status</InputLabel>
             <Select
@@ -204,6 +219,7 @@ export function HplcMethodsPage() {
         methods={filteredMethods}
         loading={loading}
         searchQuery={searchQuery}
+        techniqueFilter={techniqueFilter}
         statusFilter={statusFilter}
         sectionFilter={sectionFilter}
         resolveSectionDisplay={resolveSectionDisplay}

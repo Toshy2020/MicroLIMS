@@ -206,6 +206,10 @@ public static class TestServiceFactory
         new(db, new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
+    public static IcpMethodService IcpMethod(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
     public static SolutionPreparationService SolutionPreparation(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,
@@ -240,20 +244,17 @@ public static class TestServiceFactory
             storage ?? new InMemoryFileStorageService(),
             clock);
 
-    public static CalibrationRunService CalibrationRun(
+    public static IcpRunService IcpRun(
         MicroLimsDbContext db,
-        IFileStorageService? storage = null,
         IUserSectionScopeService? scope = null,
         IElectronicSignatureService? signatures = null,
-        ILogger<CalibrationRunService>? logger = null,
+        IFileStorageService? storage = null,
         ILabClock? clock = null) =>
         new(db,
-            storage ?? new InMemoryFileStorageService(),
-            signatures ?? new ElectronicSignatureService(db),
             scope ?? new UserSectionScopeService(db),
-            logger ?? NullLogger<CalibrationRunService>.Instance,
+            signatures ?? new ElectronicSignatureService(db),
+            storage ?? new InMemoryFileStorageService(),
             clock);
-
 
     // Finished Product receipts and corrections require a known production
     // stage (by name, case-insensitive) - fixtures seed the one they use.

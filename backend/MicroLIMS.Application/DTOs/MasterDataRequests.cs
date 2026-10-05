@@ -49,7 +49,6 @@ public record CreateSpecificationRequest(
     decimal? SampleQuantity = null,
     string? SampleQuantityUnit = null,
     List<SpecificationStageDto>? Stages = null,
-    int? TestAnalyteId = null,
     ResultBasis? ResultBasis = null,
     SampleMatrix? SampleMatrix = null,
     decimal? LabelClaim = null,
@@ -57,7 +56,8 @@ public record CreateSpecificationRequest(
     decimal? ConversionFactor = null,
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
-    ProductionStageRole? ProductionStageRole = null);
+    ProductionStageRole? ProductionStageRole = null,
+    int? IcpMethodElementId = null);
 
 public record UpdateSpecificationRequest(
     string TestCode,
@@ -82,7 +82,6 @@ public record UpdateSpecificationRequest(
     decimal? SampleQuantity = null,
     string? SampleQuantityUnit = null,
     List<SpecificationStageDto>? Stages = null,
-    int? TestAnalyteId = null,
     ResultBasis? ResultBasis = null,
     SampleMatrix? SampleMatrix = null,
     decimal? LabelClaim = null,
@@ -90,7 +89,8 @@ public record UpdateSpecificationRequest(
     decimal? ConversionFactor = null,
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
-    ProductionStageRole? ProductionStageRole = null);
+    ProductionStageRole? ProductionStageRole = null,
+    int? IcpMethodElementId = null);
 
 // GET shape for specifications - every field the frontend already binds to,
 // unchanged, plus CanEdit/SectionName so the UI can show the other lab's
@@ -119,7 +119,6 @@ public record SpecificationRowDto(
     ExpectedPresence? ExpectedState,
     decimal? SampleQuantity,
     string? SampleQuantityUnit,
-    int? TestAnalyteId,
     ResultBasis? ResultBasis,
     SampleMatrix? SampleMatrix,
     decimal? LabelClaim,
@@ -130,7 +129,8 @@ public record SpecificationRowDto(
     bool CanEdit,
     string SectionName,
     int? HplcMethodAnalyteId = null,
-    ProductionStageRole? ProductionStageRole = null)
+    ProductionStageRole? ProductionStageRole = null,
+    int? IcpMethodElementId = null)
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
@@ -185,23 +185,6 @@ public record CreateTestDefinitionRequest(
     decimal? SstMinResolution = null,
     decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null,
-    CalibrationEntryMode? CalibrationEntryMode = null,
-    decimal? CalMinCorrelation = null,
-    CorrelationType? CalCorrelationType = null,
-    int? CalMinStandards = null,
-    decimal? CalCheckRecoveryLowPercent = null,
-    decimal? CalCheckRecoveryHighPercent = null,
-    decimal? CalBlankMax = null,
-    decimal? CalIsRecoveryLowPercent = null,
-    decimal? CalIsRecoveryHighPercent = null,
-    bool? CalRequireBlank = null,
-    bool? CalRequireIcv = null,
-    bool? CalRequireCcv = null,
-    bool? CalRequireInternalStandard = null,
-    ReportedConcentrationBasis? ReportedConcentrationBasis = null,
-    int? CalMaxRunAgeHours = null,
-    EquipmentType? CalInstrumentType = null,
-    string? CalStandardLevelsMgPerL = null,
     int? ReplicateCount = null,
     MeasurementEvaluationBasis? EvaluationBasis = null,
     string? ConditionFields = null,
@@ -242,7 +225,8 @@ public record CreateTestDefinitionRequest(
     int? TitrationIndicatorEntryId = null,
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
-    int? TitrationStandardEntryId = null)
+    int? TitrationStandardEntryId = null,
+    int? IcpMethodId = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
@@ -264,24 +248,6 @@ public record UpdateTestDefinitionRequest(
     decimal? SstMinResolution = null,
     decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null,
-    CalibrationEntryMode? CalibrationEntryMode = null,
-    decimal? CalMinCorrelation = null,
-    CorrelationType? CalCorrelationType = null,
-    int? CalMinStandards = null,
-    decimal? CalCheckRecoveryLowPercent = null,
-    decimal? CalCheckRecoveryHighPercent = null,
-    decimal? CalBlankMax = null,
-    decimal? CalIsRecoveryLowPercent = null,
-    decimal? CalIsRecoveryHighPercent = null,
-    bool? CalRequireBlank = null,
-    bool? CalRequireIcv = null,
-    bool? CalRequireCcv = null,
-    bool? CalRequireInternalStandard = null,
-    ReportedConcentrationBasis? ReportedConcentrationBasis = null,
-    int? CalMaxRunAgeHours = null,
-    EquipmentType? CalInstrumentType = null,
-    // Empty string clears the levels; null means keep the existing value.
-    string? CalStandardLevelsMgPerL = null,
     int? ReplicateCount = null,
     MeasurementEvaluationBasis? EvaluationBasis = null,
     string? ConditionFields = null,
@@ -322,7 +288,8 @@ public record UpdateTestDefinitionRequest(
     int? TitrationIndicatorEntryId = null,
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
-    int? TitrationStandardEntryId = null)
+    int? TitrationStandardEntryId = null,
+    int? IcpMethodId = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and

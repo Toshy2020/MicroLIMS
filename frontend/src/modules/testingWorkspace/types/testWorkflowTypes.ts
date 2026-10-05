@@ -15,14 +15,15 @@ export type GrowthObservation = "NoGrowth" | "GrowthNonConforming" | "GrowthConf
 export type WorkflowType =
   | "CountTest"
   | "Observation"
-  | "ElementalAssay"
   | "Measurement"
   | "Gravimetric"
   | "Qualitative"
   | "Dissolution"
   | "Disintegration"
   | "WeightVariation"
-  | "Titration";
+  | "Titration"
+  | "HplcMethodAssay"
+  | "IcpMethodAssay";
 
 export interface TestWorkflowResult {
   outcomeSummary: string;

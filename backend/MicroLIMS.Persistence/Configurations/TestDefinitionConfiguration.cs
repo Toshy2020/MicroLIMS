@@ -27,13 +27,6 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.SstMaxTailingFactor).HasPrecision(18, 4);
         builder.Property(t => t.SstMinTheoreticalPlates).HasPrecision(18, 4);
 
-        builder.Property(t => t.CalMinCorrelation).HasPrecision(10, 6);
-        builder.Property(t => t.CalCheckRecoveryLowPercent).HasPrecision(18, 4);
-        builder.Property(t => t.CalCheckRecoveryHighPercent).HasPrecision(18, 4);
-        builder.Property(t => t.CalBlankMax).HasPrecision(18, 6);
-        builder.Property(t => t.CalIsRecoveryLowPercent).HasPrecision(18, 4);
-        builder.Property(t => t.CalIsRecoveryHighPercent).HasPrecision(18, 4);
-        builder.Property(t => t.CalStandardLevelsMgPerL).HasMaxLength(200);
 
         builder.Property(t => t.DissolutionS1Offset).HasPrecision(28, 10);
         builder.Property(t => t.DissolutionS2MinOffset).HasPrecision(28, 10);
@@ -63,14 +56,14 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.HasOne(t => t.TitrationIndicatorEntry).WithMany()
             .HasForeignKey(t => t.TitrationIndicatorEntryId).OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(t => t.Analytes)
-            .WithOne(a => a.TestDefinition)
-            .HasForeignKey(a => a.TestDefinitionId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(t => t.HplcMethod)
             .WithMany()
             .HasForeignKey(t => t.HplcMethodId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.IcpMethod)
+            .WithMany()
+            .HasForeignKey(t => t.IcpMethodId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

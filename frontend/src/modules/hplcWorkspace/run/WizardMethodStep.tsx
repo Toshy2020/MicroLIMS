@@ -7,14 +7,16 @@ import {
   Stack,
   useTheme
 } from "@mui/material";
-import type { HplcMethodOptionDto } from "../types";
+import type { HplcMethodOptionDto, HplcTechnique } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { MethodReadOnlyPanel } from "./MethodReadOnlyPanel";
+import { useTechnique } from "../useTechnique";
 
 export interface WizardMethodStepProps {
   methodOptions: HplcMethodOptionDto[];
   selectedMethodId: number | null;
   selectedMethod: HplcMethodResponse | null;
+  technique?: HplcTechnique;
   onSelectMethod: (id: number) => void;
 }
 
@@ -22,14 +24,18 @@ export function WizardMethodStep({
   methodOptions,
   selectedMethodId,
   selectedMethod,
+  technique,
   onSelectMethod
 }: WizardMethodStepProps) {
   const theme = useTheme();
+  const { technique: routeTechnique } = useTechnique();
+  const activeTechnique = technique ?? routeTechnique;
+  const label = activeTechnique === "Gc" ? "GC" : "HPLC";
 
   return (
     <Stack spacing={2.5}>
       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-        Select an Active HPLC Method:
+        Select an Active {label} Method:
       </Typography>
       <Grid container spacing={2}>
         {methodOptions.map((opt) => (

@@ -182,23 +182,6 @@ public class TestDefinitionResponse
     public decimal? SstMinResolution { get; init; }
     public decimal? SstMaxTailingFactor { get; init; }
     public decimal? SstMinTheoreticalPlates { get; init; }
-    public CalibrationEntryMode? CalibrationEntryMode { get; init; }
-    public decimal? CalMinCorrelation { get; init; }
-    public CorrelationType? CalCorrelationType { get; init; }
-    public int? CalMinStandards { get; init; }
-    public decimal? CalCheckRecoveryLowPercent { get; init; }
-    public decimal? CalCheckRecoveryHighPercent { get; init; }
-    public decimal? CalBlankMax { get; init; }
-    public decimal? CalIsRecoveryLowPercent { get; init; }
-    public decimal? CalIsRecoveryHighPercent { get; init; }
-    public bool? CalRequireBlank { get; init; }
-    public bool? CalRequireIcv { get; init; }
-    public bool? CalRequireCcv { get; init; }
-    public bool? CalRequireInternalStandard { get; init; }
-    public ReportedConcentrationBasis? ReportedConcentrationBasis { get; init; }
-    public int? CalMaxRunAgeHours { get; init; }
-    public EquipmentType? CalInstrumentType { get; init; }
-    public string? CalStandardLevelsMgPerL { get; init; }
     public int? ReplicateCount { get; init; }
     public MeasurementEvaluationBasis? EvaluationBasis { get; init; }
     public string? ConditionFields { get; init; }
@@ -225,6 +208,7 @@ public class TestDefinitionResponse
     public int? WvCapsuleS2ExtraUnits { get; init; }
     public int? WvCapsuleS2MaxOutside { get; init; }
     public int? HplcMethodId { get; init; }
+    public int? IcpMethodId { get; init; }
     public TitrationType? TitrationType { get; init; }
     public bool? TitrationNonAqueous { get; init; }
     public TitrationMode? TitrationMode { get; init; }
@@ -259,23 +243,6 @@ public class TestDefinitionResponse
         SstMinResolution = e.SstMinResolution,
         SstMaxTailingFactor = e.SstMaxTailingFactor,
         SstMinTheoreticalPlates = e.SstMinTheoreticalPlates,
-        CalibrationEntryMode = e.CalibrationEntryMode,
-        CalMinCorrelation = e.CalMinCorrelation,
-        CalCorrelationType = e.CalCorrelationType,
-        CalMinStandards = e.CalMinStandards,
-        CalCheckRecoveryLowPercent = e.CalCheckRecoveryLowPercent,
-        CalCheckRecoveryHighPercent = e.CalCheckRecoveryHighPercent,
-        CalBlankMax = e.CalBlankMax,
-        CalIsRecoveryLowPercent = e.CalIsRecoveryLowPercent,
-        CalIsRecoveryHighPercent = e.CalIsRecoveryHighPercent,
-        CalRequireBlank = e.CalRequireBlank,
-        CalRequireIcv = e.CalRequireIcv,
-        CalRequireCcv = e.CalRequireCcv,
-        CalRequireInternalStandard = e.CalRequireInternalStandard,
-        ReportedConcentrationBasis = e.ReportedConcentrationBasis,
-        CalMaxRunAgeHours = e.CalMaxRunAgeHours,
-        CalInstrumentType = e.CalInstrumentType,
-        CalStandardLevelsMgPerL = e.CalStandardLevelsMgPerL,
         ReplicateCount = e.ReplicateCount,
         EvaluationBasis = e.EvaluationBasis,
         ConditionFields = e.ConditionFields,
@@ -302,6 +269,7 @@ public class TestDefinitionResponse
         WvCapsuleS2ExtraUnits = e.WvCapsuleS2ExtraUnits,
         WvCapsuleS2MaxOutside = e.WvCapsuleS2MaxOutside,
         HplcMethodId = e.HplcMethodId,
+        IcpMethodId = e.IcpMethodId,
         TitrationType = e.TitrationType,
         TitrationNonAqueous = e.TitrationNonAqueous,
         TitrationMode = e.TitrationMode,
@@ -347,7 +315,6 @@ public class SpecificationResponse
     public ExpectedPresence? ExpectedState { get; init; }
     public decimal? SampleQuantity { get; init; }
     public string? SampleQuantityUnit { get; init; }
-    public int? TestAnalyteId { get; init; }
     public ResultBasis? ResultBasis { get; init; }
     public SampleMatrix? SampleMatrix { get; init; }
     public decimal? LabelClaim { get; init; }
@@ -355,6 +322,7 @@ public class SpecificationResponse
     public decimal ConversionFactor { get; init; }
     public DosageForm? DosageForm { get; init; }
     public int? HplcMethodAnalyteId { get; init; }
+    public int? IcpMethodElementId { get; init; }
     public ProductionStageRole? ProductionStageRole { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
@@ -385,7 +353,6 @@ public class SpecificationResponse
         ExpectedState = e.ExpectedState,
         SampleQuantity = e.SampleQuantity,
         SampleQuantityUnit = e.SampleQuantityUnit,
-        TestAnalyteId = e.TestAnalyteId,
         ResultBasis = e.ResultBasis,
         SampleMatrix = e.SampleMatrix,
         LabelClaim = e.LabelClaim,
@@ -393,6 +360,7 @@ public class SpecificationResponse
         ConversionFactor = e.ConversionFactor,
         DosageForm = e.DosageForm,
         HplcMethodAnalyteId = e.HplcMethodAnalyteId,
+        IcpMethodElementId = e.IcpMethodElementId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

@@ -70,24 +70,6 @@ public class ReportConformanceTests
     }
 
     [Fact]
-    public void FailingElement_FailsTheElementalAssay()
-    {
-        var card = CardFor(new TestOrderSummaryDetailDto
-        {
-            ElementalAssay = new ElementalAssayDetailDto
-            {
-                Elements =
-                {
-                    new ElementalAssayElementDetailDto { Element = "Zn", Status = ResultStatus.WithinLimits },
-                    new ElementalAssayElementDetailDto { Element = "Pb", Status = ResultStatus.OutOfSpecification }
-                }
-            }
-        });
-
-        Assert.Equal(ReportTone.Danger, card.Tone);
-    }
-
-    [Fact]
     public void BiochemicalAbsence_OverridesConformingGrowthAtPlating()
     {
         var card = CardFor(new TestOrderSummaryDetailDto

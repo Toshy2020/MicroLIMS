@@ -46,28 +46,6 @@ public class TestDefinition : IVersionedEntity
     public decimal? SstMaxTailingFactor { get; set; }
     public decimal? SstMinTheoreticalPlates { get; set; }
 
-    // Finished Product / ICP-OES Calibration Curve criteria
-    public CalibrationEntryMode? CalibrationEntryMode { get; set; }
-    public decimal? CalMinCorrelation { get; set; }
-    public CorrelationType? CalCorrelationType { get; set; }
-    public int? CalMinStandards { get; set; }
-    public decimal? CalCheckRecoveryLowPercent { get; set; }
-    public decimal? CalCheckRecoveryHighPercent { get; set; }
-    public decimal? CalBlankMax { get; set; }
-    public decimal? CalIsRecoveryLowPercent { get; set; }
-    public decimal? CalIsRecoveryHighPercent { get; set; }
-    public bool? CalRequireBlank { get; set; }
-    public bool? CalRequireIcv { get; set; }
-    public bool? CalRequireCcv { get; set; }
-    public bool? CalRequireInternalStandard { get; set; }
-    public ReportedConcentrationBasis? ReportedConcentrationBasis { get; set; }
-    public int? CalMaxRunAgeHours { get; set; } = 24;
-    // AAS reuses this same calibration-curve path (D-A4): null means IcpOes (existing rows).
-    public EquipmentType? CalInstrumentType { get; set; }
-    // Comma-separated standard concentrations in mg/L, e.g. "1, 5" (invariant culture,
-    // normalised ascending). Null means the CalMinStandards count-only rule applies instead.
-    public string? CalStandardLevelsMgPerL { get; set; }
-
     // Finished Product / Numeric Measurement criteria
     public int? ReplicateCount { get; set; }
     public MeasurementEvaluationBasis? EvaluationBasis { get; set; }
@@ -108,6 +86,10 @@ public class TestDefinition : IVersionedEntity
     public int? HplcMethodId { get; set; }
     public HplcMethod? HplcMethod { get; set; }
 
+    // ICP workspace - IcpMethodAssay tests point at an ICP method master
+    public int? IcpMethodId { get; set; }
+    public IcpMethod? IcpMethod { get; set; }
+
     // Titration assay criteria (null for every other workflow)
     public TitrationType? TitrationType { get; set; }
     public bool? TitrationNonAqueous { get; set; }
@@ -129,8 +111,6 @@ public class TestDefinition : IVersionedEntity
     public decimal? TitrationExpansionCoefficient { get; set; }
     public int? TitrationStandardEntryId { get; set; }         // Relative: reference standard master entry
     public MaterialMasterEntry? TitrationStandardEntry { get; set; }
-
-    public List<TestAnalyte> Analytes { get; set; } = new();
 
     // Finished Product / Standard-Comparison Assay - per-stage-role
     // standard/sample replicate counts. See TestDefinitionStageReplicate.

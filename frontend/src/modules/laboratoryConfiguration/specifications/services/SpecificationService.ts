@@ -25,7 +25,8 @@ export type ResultBasis =
   | "PercentLabelClaim"
   | "PercentAsIs"
   | "PercentDriedBasis"
-  | "PercentAnhydrousBasis";
+  | "PercentAnhydrousBasis"
+  | "Ppm";
 
 export type SampleMatrix = "Solid" | "Liquid";
 
@@ -79,7 +80,6 @@ export interface SpecificationDto {
   unit?: string | null;
   dilutionFactor?: number | null;
   stages?: SpecificationStageDto[];
-  testAnalyteId?: number | null;
   resultBasis?: ResultBasis | string | null;
   sampleMatrix?: SampleMatrix | string | null;
   labelClaim?: number | string | null;
@@ -93,6 +93,7 @@ export interface SpecificationDto {
   canEdit?: boolean;
   sectionName?: string;
   hplcMethodAnalyteId?: number | null;
+  icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | string | null;
 }
 
@@ -120,7 +121,6 @@ export interface CreateSpecificationPayload {
   unit?: string | null;
   dilutionFactor?: number | null;
   stages?: Array<{ stageNumber: number; stageLabel: string; acceptanceCriteriaText: string }>;
-  testAnalyteId?: number | null;
   resultBasis?: ResultBasis | null;
   sampleMatrix?: SampleMatrix | null;
   labelClaim?: number | null;
@@ -128,6 +128,7 @@ export interface CreateSpecificationPayload {
   conversionFactor?: number | null;
   dosageForm?: DosageForm | null;
   hplcMethodAnalyteId?: number | null;
+  icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | null;
 }
 

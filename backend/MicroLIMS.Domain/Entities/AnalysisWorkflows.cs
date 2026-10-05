@@ -10,7 +10,6 @@ public static class AnalysisWorkflows
 {
     private static readonly HashSet<WorkflowType> Workflows = new()
     {
-        WorkflowType.ElementalAssay,
         WorkflowType.Measurement,
         WorkflowType.Gravimetric,
         WorkflowType.Qualitative,
@@ -18,6 +17,7 @@ public static class AnalysisWorkflows
         WorkflowType.Disintegration,
         WorkflowType.WeightVariation,
         WorkflowType.HplcMethodAssay,
+        WorkflowType.IcpMethodAssay,
         WorkflowType.Titration
     };
 
@@ -27,7 +27,6 @@ public static class AnalysisWorkflows
 
     public static string GetDisplayName(WorkflowType workflowType) => workflowType switch
     {
-        WorkflowType.ElementalAssay => "elemental assay",
         WorkflowType.Measurement => "measurement",
         WorkflowType.Gravimetric => "gravimetric",
         WorkflowType.Qualitative => "qualitative",
@@ -35,6 +34,7 @@ public static class AnalysisWorkflows
         WorkflowType.Disintegration => "disintegration",
         WorkflowType.WeightVariation => "weight variation",
         WorkflowType.HplcMethodAssay => "HPLC method assay",
+        WorkflowType.IcpMethodAssay => "ICP method assay",
         WorkflowType.Titration => "titration",
         _ => "test analysis"
     };

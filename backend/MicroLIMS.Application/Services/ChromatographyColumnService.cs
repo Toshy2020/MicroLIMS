@@ -114,8 +114,8 @@ public class ChromatographyColumnService
 
             foreach (var eq in compatibleEquipment)
             {
-                if (eq.Type != EquipmentType.Hplc)
-                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" is not an HPLC instrument. Only HPLC equipment can be linked to a chromatography column.");
+                if (eq.Type != EquipmentType.Hplc && eq.Type != EquipmentType.Gc)
+                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
                 if (eq.SectionId != sectionId)
                     throw new InvalidOperationException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
             }
@@ -184,8 +184,8 @@ public class ChromatographyColumnService
 
             foreach (var eq in compatibleEquipment)
             {
-                if (eq.Type != EquipmentType.Hplc)
-                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" is not an HPLC instrument. Only HPLC equipment can be linked to a chromatography column.");
+                if (eq.Type != EquipmentType.Hplc && eq.Type != EquipmentType.Gc)
+                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
                 if (eq.SectionId != column.SectionId)
                     throw new InvalidOperationException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
             }

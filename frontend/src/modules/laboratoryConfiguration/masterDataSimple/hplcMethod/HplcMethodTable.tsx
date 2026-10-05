@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Chip, Typography } from "@mui/material";
+import { Chip, Typography, Stack } from "@mui/material";
 import { RegisterTable, RegisterColumn } from "../../../../components/lab";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { HplcMethodListItem } from "../services/HplcMethodService";
@@ -8,6 +8,7 @@ export interface HplcMethodTableProps {
   methods: HplcMethodListItem[];
   loading: boolean;
   searchQuery: string;
+  techniqueFilter?: string;
   statusFilter: string;
   sectionFilter: string;
   resolveSectionDisplay: (sectionName: string) => string;
@@ -22,6 +23,7 @@ export function HplcMethodTable({
   methods,
   loading,
   searchQuery,
+  techniqueFilter = "ALL",
   statusFilter,
   sectionFilter,
   resolveSectionDisplay,
@@ -44,6 +46,36 @@ export function HplcMethodTable({
       render: (m) => (
         <Chip label={m.abbreviation} size="small" color="primary" variant="outlined" sx={{ fontSize: 11, fontWeight: 700 }} />
       )
+    },
+    {
+      key: "technique",
+      label: "Technique",
+      sortable: true,
+      sortValue: (m) => m.technique ?? "Hplc",
+      render: (m) => {
+        const isGc = m.technique === "Gc";
+        const isResidual = isGc && m.resultMode === "ResidualSolvents";
+        return (
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+            <Chip
+              label={isGc ? "GC" : "HPLC"}
+              size="small"
+              color={isGc ? "secondary" : "default"}
+              variant="outlined"
+              sx={{ fontSize: 11, fontWeight: 700 }}
+            />
+            {isResidual && (
+              <Chip
+                label="Residual solvents"
+                size="small"
+                color="warning"
+                variant="outlined"
+                sx={{ fontSize: 10, fontWeight: 600 }}
+              />
+            )}
+          </Stack>
+        );
+      }
     },
     {
       key: "analyteCount",
@@ -84,7 +116,11 @@ export function HplcMethodTable({
     }
   ];
 
-  const filtersActive = Boolean(searchQuery.trim()) || statusFilter !== "ALL" || sectionFilter !== "ALL";
+  const filtersActive =
+    Boolean(searchQuery.trim()) ||
+    techniqueFilter !== "ALL" ||
+    statusFilter !== "ALL" ||
+    sectionFilter !== "ALL";
 
   return (
     <RegisterTable
@@ -102,10 +138,10 @@ export function HplcMethodTable({
       ]}
       empty={
         filtersActive
-          ? { title: "No HPLC methods found", description: "Try adjusting your search or filters." }
+          ? { title: "No chromatography methods found", description: "Try adjusting your search or filters." }
           : {
-              title: "No HPLC methods found",
-              description: "Register your first HPLC analytical method master.",
+              title: "No chromatography methods found",
+              description: "Register your first chromatography analytical method master.",
               action: emptyAction
             }
       }

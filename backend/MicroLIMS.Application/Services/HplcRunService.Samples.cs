@@ -204,7 +204,13 @@ public partial class HplcRunService
                 var matches = responses.Where(x => x.HplcMethodAnalyteId == analyte.Id).ToList();
                 if (matches.Count != 1)
                     throw new InvalidOperationException($"Replicate {i + 1}: exactly one response for {analyte.Name} is required.");
-                if (matches[0].Response <= 0)
+                if (context.IsResidualSolvents)
+                {
+                    // A solvent that is not detected gives a zero response.
+                    if (matches[0].Response < 0)
+                        throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
+                }
+                else if (matches[0].Response <= 0)
                     throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
             }
         }
@@ -297,7 +303,7 @@ public partial class HplcRunService
 
     private async Task<HplcSampleEntryDto> BuildEntryDtoAsync(HplcSampleEntryContext c, CancellationToken ct)
     {
-        var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
+        var individual = !c.IsResidualSolvents && HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var problem = c.SubmitProblem();
 
         // The preview is what submission would store; shown only once every
@@ -305,10 +311,10 @@ public partial class HplcRunService
         var preview = new List<HplcPreviewResultDto>();
         if (c.EntryProblem() == null)
         {
-            var rows = HplcSampleAssayEvaluator.Evaluate(c.BuildAnalyteInputs(), c.StageRole);
+            var rows = c.EvaluateRows();
             preview = rows.Select(row => new HplcPreviewResultDto(
                 row.AnalyteId, row.AnalyteName,
-                row.Basis == ResultBasis.MgPerUnit ? "Amount per unit" : "Assay %", row.ReplicateNo,
+                row.Basis == ResultBasis.Ppm ? "Residual solvent (ppm)" : row.Basis == ResultBasis.MgPerUnit ? "Amount per unit" : "Assay %", row.ReplicateNo,
                 row.Value, row.Display, row.Unit, row.Status,
                 !string.IsNullOrWhiteSpace(row.Spec.SpecLimit) ? row.Spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(row.Spec))).ToList();
         }

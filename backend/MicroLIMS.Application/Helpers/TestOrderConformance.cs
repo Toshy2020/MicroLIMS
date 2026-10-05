@@ -9,15 +9,12 @@ namespace MicroLIMS.Application.Helpers;
 // it, so they cannot disagree about the same test.
 public static class TestOrderConformance
 {
-    // One verdict per recorded result: each location, each element of an
-    // elemental assay, each measured parameter, the count reading, or the
-    // single qualitative call.
+    // One verdict per recorded result: each location, each measured
+    // parameter, the count reading, or the single qualitative call.
     public static IEnumerable<ResultConformance> Outcomes(TestOrderSummaryDetailDto t)
     {
         if (t.Locations.Count > 0)
             return t.Locations.Select(l => ResultConformanceRules.FromStatus(l.Status));
-        if (t.ElementalAssay is { } assay)
-            return assay.Elements.Select(e => ResultConformanceRules.FromStatus(e.Status));
         if (t.Analysis is { } analysis)
             return analysis.ParameterResults.Select(p => ResultConformanceRules.FromStatus(p.ComparisonStatus));
         if (t.CountTestReadings.Count > 0)

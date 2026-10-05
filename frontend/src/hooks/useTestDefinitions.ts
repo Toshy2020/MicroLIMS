@@ -21,25 +21,6 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
-  calibrationEntryMode?: string | null;
-  calMinCorrelation?: number | null;
-  calCorrelationType?: string | null;
-  calMinStandards?: number | null;
-  calCheckRecoveryLowPercent?: number | null;
-  calCheckRecoveryHighPercent?: number | null;
-  calBlankMax?: number | null;
-  calIsRecoveryLowPercent?: number | null;
-  calIsRecoveryHighPercent?: number | null;
-  calRequireBlank?: boolean | null;
-  calRequireIcv?: boolean | null;
-  calRequireCcv?: boolean | null;
-  calRequireInternalStandard?: boolean | null;
-  reportedConcentrationBasis?: string | null;
-  calMaxRunAgeHours?: number | null;
-  // CalibrationCurve only: instrument family (null = ICP-OES, existing rows) and
-  // optional fixed standard levels (e.g. "1, 5"; null = no fixed levels configured).
-  calInstrumentType?: "IcpOes" | "Aas" | null;
-  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
@@ -66,6 +47,7 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
+  icpMethodId?: number | null;
   sectionId?: number;
   section?: {
     id: number;

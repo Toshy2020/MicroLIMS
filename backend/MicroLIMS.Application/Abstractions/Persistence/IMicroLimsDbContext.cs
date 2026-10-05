@@ -77,12 +77,7 @@ public interface IMicroLimsDbContext
     DbSet<ProductionStage> ProductionStages { get; }
     DbSet<Equipment> Equipment { get; }
     DbSet<ChromatographyColumn> ChromatographyColumns { get; }
-    DbSet<TestAnalyte> TestAnalytes { get; }
     DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates { get; }
-    DbSet<CalibrationRun> CalibrationRuns { get; }
-    DbSet<CalibrationRunDocument> CalibrationRunDocuments { get; }
-    DbSet<CalibrationRunAnalyte> CalibrationRunAnalytes { get; }
-    DbSet<CalibrationRunCheck> CalibrationRunChecks { get; }
     DbSet<TestAnalysis> TestAnalyses { get; }
     DbSet<ParameterResult> ParameterResults { get; }
     DbSet<ResultReading> ResultReadings { get; }
@@ -105,8 +100,11 @@ public interface IMicroLimsDbContext
     DbSet<SolutionComponent> SolutionComponents { get; }
     DbSet<HplcMethod> HplcMethods { get; }
     DbSet<HplcMethodAnalyte> HplcMethodAnalytes { get; }
+    DbSet<IcpMethod> IcpMethods { get; }
+    DbSet<IcpMethodElement> IcpMethodElements { get; }
     DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases { get; }
     DbSet<HplcMethodGradientStep> HplcMethodGradientSteps { get; }
+    DbSet<HplcMethodOvenStep> HplcMethodOvenSteps { get; }
     DbSet<SolutionPreparation> SolutionPreparations { get; }
     DbSet<SolutionPreparationComponent> SolutionPreparationComponents { get; }
     DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories { get; }
@@ -123,6 +121,14 @@ public interface IMicroLimsDbContext
     DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
     DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
     DbSet<HplcEvidence> HplcEvidences { get; }
+    DbSet<IcpRun> IcpRuns { get; }
+    DbSet<IcpCalibration> IcpCalibrations { get; }
+    DbSet<IcpCalibrationElement> IcpCalibrationElements { get; }
+    DbSet<IcpCcvReading> IcpCcvReadings { get; }
+    DbSet<IcpRunSample> IcpRunSamples { get; }
+    DbSet<IcpSampleReplicate> IcpSampleReplicates { get; }
+    DbSet<IcpReplicateConcentration> IcpReplicateConcentrations { get; }
+    DbSet<IcpEvidence> IcpEvidences { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }

@@ -144,9 +144,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MaterialMasterService>();
         services.AddScoped<SolutionMasterService>();
         services.AddScoped<HplcMethodService>();
+        services.AddScoped<IcpMethodService>();
         services.AddScoped<SolutionPreparationService>();
         services.AddScoped<TitrantStandardizationService>();
         services.AddScoped<HplcRunService>();
+        services.AddScoped<IcpRunService>();
         services.AddScoped<WorkingStandardService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
@@ -158,8 +160,6 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()));
 
-        services.AddScoped<ICalibrationRunService, CalibrationRunService>();
-        services.AddScoped<CalibrationRunService>();
         services.AddScoped<PathogenSessionService>();
         services.AddScoped<LocationPathogenObservationService>();
         services.AddScoped<ConfirmationAgreementEvaluator>();
@@ -191,7 +191,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OrganismMasterDataService>();
         services.AddScoped<TestDefinitionMasterDataService>();
         services.AddScoped<TestWorkflowStepMasterDataService>();
-        services.AddScoped<TestAnalyteMasterDataService>();
         services.AddScoped<TestStageReplicateMasterDataService>();
 
         // Validators

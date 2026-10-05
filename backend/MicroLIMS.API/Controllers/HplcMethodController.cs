@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -19,8 +20,8 @@ public class HplcMethodController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] bool activeOnly = false) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(CurrentUserId, activeOnly)));
+    public async Task<IActionResult> GetAll([FromQuery] bool activeOnly = false, [FromQuery] HplcTechnique? technique = null) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(CurrentUserId, activeOnly, technique)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id) =>

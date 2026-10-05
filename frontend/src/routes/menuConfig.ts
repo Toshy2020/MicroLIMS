@@ -125,10 +125,11 @@ const physchemArea: MenuItem = {
   group: "LABORATORIES",
   children: [
     { label: "Workspace", path: "/physicochemical/workspace" },
-    { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
     { label: "Solution Preparation", path: "/preparation", permission: PERMISSIONS.SOLUTIONS_PREPARE },
     { label: "Working Standards", path: "/working-standards" },
     { label: "HPLC Workspace", path: "/hplc-workspace" },
+    { label: "GC Workspace", path: "/gc-workspace" },
+    { label: "ICP Workspace", path: "/icp-workspace" },
     { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
   ]
@@ -146,7 +147,8 @@ const physchemConfigArea: MenuItem = {
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
     { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
     { label: "Solutions", path: "/laboratory-configuration/solution-master" },
-    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" }
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods" },
+    { label: "ICP Methods", path: "/laboratory-configuration/icp-methods" }
   ]
 };
 

@@ -128,8 +128,6 @@ export interface TestOrderSummaryDetail {
   incubations: IncubationDetail[];
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
-  // Elemental Assay only - the active result, null for other tests.
-  elementalAssay?: ElementalAssayDetail | null;
   // Generic TestAnalysis workflow result, null for other tests.
   analysis?: AnalysisDetail | null;
   pathogenObservations: PathogenObservationDetail[];
@@ -270,33 +268,6 @@ export interface SampleSummary {
   certificate: CertificateOfAnalysis;
 }
 
-export interface ElementalAssayElementDetail {
-  parameterName: string;
-  element: string;
-  runCode: string;
-  runAnalytePassed: boolean;
-  reportedPpm: number;
-  overRange: boolean;
-  belowLoq: boolean;
-  mgPerUnit: number | null;
-  resultClaim: number | null;
-  percentLabelClaim: number | null;
-  reportedDisplay: string;
-  specLimit: string | null;
-  unit: string | null;
-  status: string;
-}
-
-export interface ElementalAssayDetail {
-  sampleMatrix: "Solid" | "Liquid" | string;
-  unitAmount: number;
-  unitAmountUnit: string;
-  analysedAt: string;
-  enteredByName: string | null;
-  enteredAt: string;
-  elements: ElementalAssayElementDetail[];
-}
-
 export type ReadingKind =
   | "Replicate"
   | "Unit"
@@ -341,7 +312,6 @@ export interface ParameterResultDetail {
   comparisonStatus: string;
   overRange: boolean;
   belowLoq: boolean;
-  validityRecordItemId: number | null;
   calculationJson: string | null;
   stageReached: number | null;
   readings: ResultReadingDetail[];
@@ -350,7 +320,7 @@ export interface ParameterResultDetail {
 export interface AnalysisDetail {
   id: number;
   testOrderId: number;
-  analysisType: "CountTest" | "Observation" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
+  analysisType: "CountTest" | "Observation" | "Disintegration" | "WeightVariation" | "HplcMethodAssay" | "IcpMethodAssay" | string;
   equipmentId: number | null;
   equipmentCode: string | null;
   equipmentName: string | null;

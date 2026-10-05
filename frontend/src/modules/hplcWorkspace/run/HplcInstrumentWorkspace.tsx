@@ -33,6 +33,7 @@ import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../types";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
+import { useTechnique } from "../useTechnique";
 
 const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
   { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },
@@ -55,6 +56,7 @@ export function HplcInstrumentWorkspace() {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const { technique, label, routes } = useTechnique();
   const { instrumentId, runId } = useParams<{ instrumentId: string; runId?: string }>();
   const equipmentId = Number(instrumentId);
   const { permissions, role } = useAuth();
@@ -120,11 +122,11 @@ export function HplcInstrumentWorkspace() {
       loadRunData();
     } else {
       setLoading(true);
-      HplcWorkspaceService.getInstruments()
+      HplcWorkspaceService.getInstruments(technique)
         .then((insts) => {
           const matched = insts.find((i) => i.equipmentId === equipmentId);
           if (matched?.activeRun) {
-            navigate(`/hplc-workspace/${equipmentId}/run/${matched.activeRun.runId}`, { replace: true });
+            navigate(routes.run(equipmentId, matched.activeRun.runId), { replace: true });
           } else {
             HplcWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns);
             setActiveTab(4);
@@ -133,7 +135,7 @@ export function HplcInstrumentWorkspace() {
         })
         .catch(() => setLoading(false));
     }
-  }, [equipmentId, runId, navigate, loadRunData]);
+  }, [equipmentId, runId, navigate, loadRunData, technique, routes]);
 
   // A failed load showed the History tab as if this instrument had no runs.
   const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
@@ -151,7 +153,7 @@ export function HplcInstrumentWorkspace() {
     if (!run) return;
     const tabPaths = ["", "/sst", "/samples", "/evidence", "/history"];
     const suffix = tabPaths[newTab] ?? "";
-    navigate(`/hplc-workspace/${equipmentId}/run/${run.id}${suffix}`);
+    navigate(`${routes.run(equipmentId, run.id)}${suffix}`);
   };
 
   const handleAbandonRun = async () => {
@@ -197,7 +199,7 @@ export function HplcInstrumentWorkspace() {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="warning">Run not found or closed.</Alert>
-        <Button onClick={() => navigate("/hplc-workspace")} sx={{ mt: 2 }}>Back to Instruments</Button>
+        <Button onClick={() => navigate(routes.root)} sx={{ mt: 2 }}>Back to Instruments</Button>
       </Box>
     );
   }
@@ -206,7 +208,7 @@ export function HplcInstrumentWorkspace() {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/hplc-workspace")}
+        onClick={() => navigate(routes.root)}
         sx={{ mb: 1.5, textTransform: "none", color: "text.secondary" }}
       >
         Instruments
@@ -257,15 +259,19 @@ export function HplcInstrumentWorkspace() {
         <Stack spacing={2}>
           <ResultSection step={1} title="Run setup">
             <Stack spacing={2}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Assigned Mobile Phases
-              </Typography>
-              <RegisterTable
-                columns={MOBILE_PHASE_COLUMNS}
-                rows={run.mobilePhases}
-                getRowId={(mp) => mp.id}
-                empty={{ title: "No mobile phases assigned" }}
-              />
+              {technique !== "Gc" && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Assigned Mobile Phases
+                  </Typography>
+                  <RegisterTable
+                    columns={MOBILE_PHASE_COLUMNS}
+                    rows={run.mobilePhases}
+                    getRowId={(mp) => mp.id}
+                    empty={{ title: "No mobile phases assigned" }}
+                  />
+                </>
+              )}
               {method && <MethodReadOnlyPanel method={method} />}
             </Stack>
           </ResultSection>
@@ -317,14 +323,15 @@ export function HplcInstrumentWorkspace() {
         <HplcRunHistoryTable
           historyRuns={historyRuns}
           equipmentId={equipmentId}
-          onSelectRun={(selectedRunId) => navigate(`/hplc-workspace/${equipmentId}/run/${selectedRunId}`)}
+          technique={technique}
+          onSelectRun={(selectedRunId) => navigate(routes.run(equipmentId, selectedRunId))}
         />
       )}
 
       {/* Abandon Run Dialog */}
       <ReasonDialog
         open={abandonOpen}
-        title="Abandon HPLC Run"
+        title={`Abandon ${label} Run`}
         onClose={() => setAbandonOpen(false)}
         onConfirm={handleAbandonRun}
         confirmText="Abandon Run"

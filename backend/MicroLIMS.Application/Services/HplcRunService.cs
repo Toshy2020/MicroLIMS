@@ -15,7 +15,14 @@ namespace MicroLIMS.Application.Services;
 
 public record HplcActiveRunSummaryDto(int RunId, string Code, string MethodAbbreviation, string AnalystName, int SampleCount, HplcSstStatus SstStatus);
 public record HplcInstrumentDto(int EquipmentId, string Code, string Name, string State, string? Reason, HplcActiveRunSummaryDto? ActiveRun);
-public record HplcMethodOptionDto(int Id, string Abbreviation, string Name, string ColumnDesignation, int EligibleTestOrderCount);
+public static class HplcTechniqueEquipment
+{
+    public static EquipmentType For(HplcTechnique t) => t == HplcTechnique.Gc ? EquipmentType.Gc : EquipmentType.Hplc;
+    public static string Label(HplcTechnique t) => t == HplcTechnique.Gc ? "GC" : "HPLC";
+}
+
+public record HplcMethodOptionDto(int Id, string Abbreviation, string Name, string ColumnDesignation, int EligibleTestOrderCount,
+    HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay);
 
 // ---- Start run ----
 
@@ -107,12 +114,13 @@ public partial class HplcRunService
         if (run.Sst == null) return missing;
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
         var methodById = snapshot?.Analytes.ToDictionary(a => a.Id) ?? new Dictionary<int, HplcMethodAnalyteResponse>();
+        var residualSolvents = snapshot?.ResultMode == HplcResultMode.ResidualSolvents;
 
         foreach (var a in run.Sst.Analytes.OrderBy(x => x.Id))
         {
             var fields = new List<string>();
             if (a.StandardMaterialId == null) fields.Add("reference standard lot");
-            if (!(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
+            if (!residualSolvents && !(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
             if (methodById.TryGetValue(a.HplcMethodAnalyteId, out var m))
             {
                 var blank = Enumerable.Range(1, m.StandardInjections)
@@ -158,10 +166,10 @@ public partial class HplcRunService
 
     // ---- Instruments / methods ----
 
-    public async Task<List<HplcInstrumentDto>> GetInstrumentsAsync(int userId, CancellationToken ct = default)
+    public async Task<List<HplcInstrumentDto>> GetInstrumentsAsync(int userId, HplcTechnique technique = HplcTechnique.Hplc, CancellationToken ct = default)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
-        var query = _db.Equipment.Where(e => e.Type == EquipmentType.Hplc).AsNoTracking();
+        var query = _db.Equipment.Where(e => e.Type == HplcTechniqueEquipment.For(technique)).AsNoTracking();
         if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         var equipmentList = await query.OrderBy(e => e.Code).ToListAsync(ct);
 
@@ -204,10 +212,10 @@ public partial class HplcRunService
         return result;
     }
 
-    public async Task<List<HplcMethodOptionDto>> GetMethodOptionsAsync(int userId, CancellationToken ct = default)
+    public async Task<List<HplcMethodOptionDto>> GetMethodOptionsAsync(int userId, HplcTechnique technique = HplcTechnique.Hplc, CancellationToken ct = default)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
-        var query = _db.HplcMethods.Where(m => m.IsActive).AsNoTracking();
+        var query = _db.HplcMethods.Where(m => m.IsActive && m.Technique == technique).AsNoTracking();
         if (scope != null) query = query.Where(m => scope.Contains(m.SectionId));
         var methods = await query.OrderBy(m => m.Name).ToListAsync(ct);
 
@@ -228,7 +236,7 @@ public partial class HplcRunService
                     codes.Contains(o.TestCode) && !o.IsSuperseded && o.CurrentStep != WorkflowStep.Ready
                     && o.Sample != null && o.Sample.Status != SampleStatus.Voided && o.Sample.Status != SampleStatus.Cancelled, ct);
             }
-            result.Add(new HplcMethodOptionDto(m.Id, m.Abbreviation, m.Name, m.ColumnDesignation, count));
+            result.Add(new HplcMethodOptionDto(m.Id, m.Abbreviation, m.Name, m.ColumnDesignation, count, m.Technique, m.ResultMode));
         }
 
         return result;
@@ -262,9 +270,6 @@ public partial class HplcRunService
         if (scope != null && !scope.Contains(equipment.SectionId))
             throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
-        if (equipment.Type != EquipmentType.Hplc)
-            throw new InvalidOperationException($"\"{equipment.Name}\" is not an HPLC instrument.");
-
         var hasOpenRun = await _db.HplcRuns.AnyAsync(run => run.EquipmentId == equipment.Id && run.Status == HplcRunStatus.Open, ct);
         if (hasOpenRun)
             throw new InvalidOperationException($"\"{equipment.Name}\" already has an open run.");
@@ -278,9 +283,13 @@ public partial class HplcRunService
             .Include(m => m.DiluentSolution)
             .Include(m => m.MobilePhases).ThenInclude(mp => mp.SolutionMaster)
             .Include(m => m.GradientSteps)
+            .Include(m => m.OvenSteps)
             .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry)
             .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId, ct)
             ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
+
+        if (equipment.Type != HplcTechniqueEquipment.For(method.Technique))
+            throw new InvalidOperationException($"\"{equipment.Name}\" is not a {HplcTechniqueEquipment.Label(method.Technique)} instrument; method {method.Abbreviation} needs one.");
 
         if (!method.IsActive)
             throw new InvalidOperationException($"HPLC method \"{method.Name}\" is inactive.");
@@ -390,6 +399,7 @@ public partial class HplcRunService
         var method = await _db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == run.HplcMethodId, ct);
         var methodAnalyteById = method.Analytes.ToDictionary(a => a.Id);
         var today = _clock.LabToday;
+        var residualSolvents = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)?.ResultMode == HplcResultMode.ResidualSolvents;
 
         foreach (var input in r.Analytes ?? new List<SaveSstAnalyteInput>())
         {
@@ -399,7 +409,7 @@ public partial class HplcRunService
             if (!methodAnalyteById.TryGetValue(analyteRow.HplcMethodAnalyteId, out var methodAnalyte))
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: method analyte not found.");
 
-            if (input.StandardWeightMg <= 0)
+            if (!residualSolvents && input.StandardWeightMg <= 0)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: standard weight must be greater than zero.");
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId, ct)
@@ -412,13 +422,16 @@ public partial class HplcRunService
             if (!check.Usable)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
 
-            if (!lot.Purity.HasValue)
-                throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");
-            if (!lot.MoisturePercent.HasValue)
-                throw new InvalidOperationException($"Lot {lot.LotLabel} has no moisture content recorded.");
+            if (!residualSolvents)
+            {
+                if (!lot.Purity.HasValue)
+                    throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");
+                if (!lot.MoisturePercent.HasValue)
+                    throw new InvalidOperationException($"Lot {lot.LotLabel} has no moisture content recorded.");
+            }
 
             analyteRow.StandardMaterialId = lot.Id;
-            analyteRow.StandardWeightMg = input.StandardWeightMg;
+            analyteRow.StandardWeightMg = input.StandardWeightMg > 0 ? input.StandardWeightMg : null;
             analyteRow.StandardPurityPercent = lot.Purity;
             analyteRow.StandardMoisturePercent = lot.MoisturePercent;
             analyteRow.ReportedRsdPercent = input.ReportedRsdPercent;

@@ -15,7 +15,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
-import { ElementalAssayPanel } from "./ElementalAssayPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
 import { TitrationPanel } from "./TitrationPanel";
@@ -298,23 +297,6 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       <Box sx={{ py: 4 }}>
         {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
       </Box>
-    );
-  }
-
-  // Elemental Assay (ICP-OES Calibration Curve) - signed calibration run analyte
-  // link + ppm entry.
-  if (current.workflowType === "ElementalAssay") {
-    return (
-      <ElementalAssayPanel
-        testOrderId={testOrderId}
-        displayName={displayName}
-        testCode={testCode}
-        itemId={itemId}
-        sampleId={sampleId}
-        current={current}
-        onRecorded={load}
-        onClose={onClose}
-      />
     );
   }
 

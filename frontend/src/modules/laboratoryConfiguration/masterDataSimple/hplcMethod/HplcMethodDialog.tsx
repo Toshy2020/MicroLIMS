@@ -20,6 +20,7 @@ import { HplcColumnSection } from "./HplcColumnSection";
 import { HplcElutionDetectionTab } from "./HplcElutionDetectionTab";
 import { HplcSolutionsSection } from "./HplcSolutionsSection";
 import { HplcAnalytesSection } from "./HplcAnalytesSection";
+import { GcConditionsSection } from "./GcConditionsSection";
 import { useHplcMethodDialogState } from "./useHplcMethodDialogState";
 
 export interface HplcMethodDialogProps {
@@ -50,6 +51,8 @@ export function HplcMethodDialog({
     loadedEntity,
     form,
     updateField,
+    handleTechniqueChange,
+    handleResultModeChange,
     dialogError,
     setDialogError,
     errors,
@@ -77,8 +80,9 @@ export function HplcMethodDialog({
   });
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const isGc = form.technique === "Gc";
 
-  // After a failed submit, bring the first field with an error into view (after any tab switch renders).
+  // After a failed submit, bring the first field with an error into view.
   useEffect(() => {
     if (scrollTick === 0) return;
     const timer = window.setTimeout(() => {
@@ -89,7 +93,6 @@ export function HplcMethodDialog({
     return () => window.clearTimeout(timer);
   }, [scrollTick]);
 
-  // A tab with field errors shows an error-colored count on its label.
   const tabLabel = (label: string, tab: number) => {
     const count = tabErrorCounts[tab] ?? 0;
     return count > 0 ? (
@@ -105,7 +108,11 @@ export function HplcMethodDialog({
     <>
       <FloatingDialog
         open={open}
-        title={editingId ? `Edit HPLC Method: ${form.name || loadedEntity?.name || ""}` : "Add HPLC Method Master"}
+        title={
+          editingId
+            ? `Edit ${isGc ? "GC" : "HPLC"} Method: ${form.name || loadedEntity?.name || ""}`
+            : `Add ${isGc ? "GC" : "HPLC"} Method Master`
+        }
         onClose={onClose}
         maxWidth="md"
         actions={
@@ -119,7 +126,7 @@ export function HplcMethodDialog({
               disabled={saving || loadingMethod}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : editingId ? "Save Changes" : "Create Method"}
+              {saving ? "Saving..." : editingId ? "Save Changes" : `Create ${isGc ? "GC" : "HPLC"} Method`}
             </Button>
           </>
         }
@@ -145,6 +152,10 @@ export function HplcMethodDialog({
           ) : (
             <>
               <HplcGeneralSection
+                technique={form.technique}
+                resultMode={form.resultMode}
+                onTechniqueChange={handleTechniqueChange}
+                onResultModeChange={handleResultModeChange}
                 name={form.name}
                 abbreviation={form.abbreviation}
                 effectiveDate={form.effectiveDate}
@@ -159,90 +170,209 @@ export function HplcMethodDialog({
                 onSectionIdChange={(val) => updateField("sectionId", val)}
               />
 
-              <Tabs
-                value={tabIndex}
-                onChange={(_, next) => setTabIndex(next)}
-                sx={{ borderBottom: 1, borderColor: "divider" }}
-              >
-                <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                <Tab label={tabLabel("Elution & Detection", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                <Tab label={tabLabel("Solutions", 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                <Tab label={tabLabel(`Analytes (${form.analytes.length})`, 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
-              </Tabs>
+              {isGc ? (
+                // GC Tabs: Column (0), Conditions & Oven (1), Analytes (2)
+                <Tabs
+                  value={tabIndex > 2 ? 0 : tabIndex}
+                  onChange={(_, next) => setTabIndex(next)}
+                  sx={{ borderBottom: 1, borderColor: "divider" }}
+                >
+                  <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel("GC Conditions & Oven", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(`Analytes (${form.analytes.length})`, 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                </Tabs>
+              ) : (
+                // HPLC Tabs: Column (0), Elution & Detection (1), Solutions (2), Analytes (3)
+                <Tabs
+                  value={tabIndex}
+                  onChange={(_, next) => setTabIndex(next)}
+                  sx={{ borderBottom: 1, borderColor: "divider" }}
+                >
+                  <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel("Elution & Detection", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel("Solutions", 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(`Analytes (${form.analytes.length})`, 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                </Tabs>
+              )}
 
+              {/* Tab 0: Column (Shared component, adjusts fields by technique) */}
               {tabIndex === 0 && (
                 <HplcColumnSection
+                  technique={form.technique}
                   columnDesignation={form.columnDesignation}
-                  columnLengthMm={form.columnLengthMm}
+                  columnLength={form.columnLength}
                   columnInternalDiameterMm={form.columnInternalDiameterMm}
                   particleSizeUm={form.particleSizeUm}
+                  filmThicknessUm={form.filmThicknessUm}
                   columnBrand={form.columnBrand}
                   columnPartNumber={form.columnPartNumber}
                   columnTemperatureC={form.columnTemperatureC}
                   errors={errors}
                   onColumnDesignationChange={(val) => updateField("columnDesignation", val)}
-                  onColumnLengthMmChange={(val) => updateField("columnLengthMm", val)}
+                  onColumnLengthChange={(val) => {
+                    updateField("columnLength", val);
+                  }}
                   onColumnInternalDiameterMmChange={(val) => updateField("columnInternalDiameterMm", val)}
                   onParticleSizeUmChange={(val) => updateField("particleSizeUm", val)}
+                  onFilmThicknessUmChange={(val) => updateField("filmThicknessUm", val)}
                   onColumnBrandChange={(val) => updateField("columnBrand", val)}
                   onColumnPartNumberChange={(val) => updateField("columnPartNumber", val)}
                   onColumnTemperatureCChange={(val) => updateField("columnTemperatureC", val)}
                 />
               )}
 
+              {/* Tab 1: GC Conditions & Oven (GC) or Elution & Detection (HPLC) */}
               {tabIndex === 1 && (
-                <HplcElutionDetectionTab
-                  elutionMode={form.elutionMode}
-                  flowRateMlPerMin={form.flowRateMlPerMin}
-                  equilibrationMin={form.equilibrationMin}
-                  gradientSteps={form.gradientSteps}
-                  mobilePhases={form.mobilePhases}
-                  detectorType={form.detectorType}
-                  injectionVolumeUl={form.injectionVolumeUl}
-                  runTimeMin={form.runTimeMin}
-                  errors={errors}
-                  onElutionModeChange={(val) => updateField("elutionMode", val)}
-                  onFlowRateMlPerMinChange={(val) => updateField("flowRateMlPerMin", val)}
-                  onEquilibrationMinChange={(val) => updateField("equilibrationMin", val)}
-                  onGradientStepsChange={(steps) => updateField("gradientSteps", steps)}
-                  onDetectorTypeChange={(val) => updateField("detectorType", val)}
-                  onInjectionVolumeUlChange={(val) => updateField("injectionVolumeUl", val)}
-                  onRunTimeMinChange={(val) => updateField("runTimeMin", val)}
-                />
-              )}
-
-              {tabIndex === 2 && (
-                <HplcSolutionsSection
-                  diluentSolutionId={form.diluentSolutionId}
-                  mobilePhases={form.mobilePhases}
-                  elutionMode={form.elutionMode}
-                  availableDiluents={availableDiluents}
-                  availableMobilePhases={availableMobilePhases}
-                  errors={errors}
-                  onDiluentSolutionIdChange={(val) => updateField("diluentSolutionId", val)}
-                  onMobilePhaseChange={(idx, field, val) => {
-                    const next = [...form.mobilePhases];
-                    next[idx] = { ...next[idx], [field]: val };
-                    updateField("mobilePhases", next);
-                  }}
-                  onAddChannel={() => {
-                    const used = new Set(form.mobilePhases.map((p) => p.channel));
-                    const nextCh = CHANNELS.find((c) => !used.has(c));
-                    if (nextCh) {
-                      updateField("mobilePhases", [
-                        ...form.mobilePhases,
-                        { channel: nextCh, solutionMasterId: "", ratioPercent: "" }
-                      ]);
+                isGc ? (
+                  <GcConditionsSection
+                    carrierGas={form.carrierGas}
+                    splitRatio={form.splitRatio}
+                    flowRateMlPerMin={form.flowRateMlPerMin}
+                    inletTemperatureC={form.inletTemperatureC}
+                    detectorTemperatureC={form.detectorTemperatureC}
+                    detectorType={form.detectorType}
+                    injectionVolumeUl={form.injectionVolumeUl}
+                    runTimeMin={form.runTimeMin}
+                    diluentSolutionId={form.diluentSolutionId}
+                    availableDiluents={availableDiluents}
+                    headspaceEnabled={form.headspaceEnabled}
+                    headspaceEquilibrationTemperatureC={form.headspaceEquilibrationTemperatureC}
+                    headspaceEquilibrationMin={form.headspaceEquilibrationMin}
+                    headspaceTransferLineTemperatureC={form.headspaceTransferLineTemperatureC}
+                    ovenSteps={form.ovenSteps}
+                    errors={errors}
+                    onCarrierGasChange={(val) => updateField("carrierGas", val)}
+                    onSplitRatioChange={(val) => updateField("splitRatio", val)}
+                    onFlowRateMlPerMinChange={(val) => updateField("flowRateMlPerMin", val)}
+                    onInletTemperatureCChange={(val) => updateField("inletTemperatureC", val)}
+                    onDetectorTemperatureCChange={(val) => updateField("detectorTemperatureC", val)}
+                    onDetectorTypeChange={(val) => updateField("detectorType", val)}
+                    onInjectionVolumeUlChange={(val) => updateField("injectionVolumeUl", val)}
+                    onRunTimeMinChange={(val) => updateField("runTimeMin", val)}
+                    onDiluentSolutionIdChange={(val) => updateField("diluentSolutionId", val)}
+                    onHeadspaceEnabledChange={(val) => updateField("headspaceEnabled", val)}
+                    onHeadspaceEquilibrationTemperatureCChange={(val) =>
+                      updateField("headspaceEquilibrationTemperatureC", val)
                     }
-                  }}
-                  onRemoveChannel={(idx) => {
-                    updateField("mobilePhases", form.mobilePhases.filter((_, i) => i !== idx));
-                  }}
-                />
+                    onHeadspaceEquilibrationMinChange={(val) =>
+                      updateField("headspaceEquilibrationMin", val)
+                    }
+                    onHeadspaceTransferLineTemperatureCChange={(val) =>
+                      updateField("headspaceTransferLineTemperatureC", val)
+                    }
+                    onOvenStepsChange={(steps) => updateField("ovenSteps", steps)}
+                  />
+                ) : (
+                  <HplcElutionDetectionTab
+                    technique="Hplc"
+                    elutionMode={form.elutionMode}
+                    flowRateMlPerMin={form.flowRateMlPerMin}
+                    equilibrationMin={form.equilibrationMin}
+                    gradientSteps={form.gradientSteps}
+                    mobilePhases={form.mobilePhases}
+                    detectorType={form.detectorType}
+                    injectionVolumeUl={form.injectionVolumeUl}
+                    runTimeMin={form.runTimeMin}
+                    errors={errors}
+                    onElutionModeChange={(val) => updateField("elutionMode", val)}
+                    onFlowRateMlPerMinChange={(val) => updateField("flowRateMlPerMin", val)}
+                    onEquilibrationMinChange={(val) => updateField("equilibrationMin", val)}
+                    onGradientStepsChange={(steps) => updateField("gradientSteps", steps)}
+                    onDetectorTypeChange={(val) => updateField("detectorType", val)}
+                    onInjectionVolumeUlChange={(val) => updateField("injectionVolumeUl", val)}
+                    onRunTimeMinChange={(val) => updateField("runTimeMin", val)}
+                  />
+                )
               )}
 
-              {tabIndex === 3 && (
+              {/* Tab 2: Solutions (HPLC) or Analytes (GC) */}
+              {tabIndex === 2 && (
+                isGc ? (
+                  <HplcAnalytesSection
+                    technique="Gc"
+                    resultMode={form.resultMode}
+                    sampleSolutionVolumeMl={form.sampleSolutionVolumeMl}
+                    onSampleSolutionVolumeMlChange={(val) => updateField("sampleSolutionVolumeMl", val)}
+                    analytes={form.analytes}
+                    availableStandards={availableReferenceStandards}
+                    errors={errors}
+                    onAnalyteChange={(idx, field, val) => {
+                      const next = [...form.analytes];
+                      next[idx] = { ...next[idx], [field]: val };
+                      updateField("analytes", next);
+                    }}
+                    onAddAnalyte={() => {
+                      const isResidual = form.resultMode === "ResidualSolvents";
+                      updateField("analytes", [
+                        ...form.analytes,
+                        {
+                          name: "",
+                          wavelengthNm: "",
+                          standardEntryId: "",
+                          theoreticalWeightStdMg: isResidual ? "0" : "50",
+                          theoreticalWeightTestMg: isResidual ? "0" : "50",
+                          standardDilution: "",
+                          standardInjections: "5",
+                          sstMaxRsdPercent: "2.0",
+                          sstMinResolution: "",
+                          sstMaxTailingFactor: "2.0",
+                          sstMinTheoreticalPlates: "2000",
+                          sstMinRetentionFactor: "",
+                          sstMinSignalToNoise: "",
+                          sstMinPeakToValley: "",
+                          standardConcentrationUgPerMl: isResidual ? "100" : ""
+                        }
+                      ]);
+                    }}
+                    onRemoveAnalyte={(idx) => {
+                      updateField("analytes", form.analytes.filter((_, i) => i !== idx));
+                    }}
+                    onMoveAnalyte={(idx, direction) => {
+                      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+                      if (targetIdx < 0 || targetIdx >= form.analytes.length) return;
+                      const copy = [...form.analytes];
+                      const temp = copy[idx];
+                      copy[idx] = copy[targetIdx];
+                      copy[targetIdx] = temp;
+                      updateField("analytes", copy);
+                    }}
+                  />
+                ) : (
+                  <HplcSolutionsSection
+                    diluentSolutionId={form.diluentSolutionId}
+                    mobilePhases={form.mobilePhases}
+                    elutionMode={form.elutionMode}
+                    availableDiluents={availableDiluents}
+                    availableMobilePhases={availableMobilePhases}
+                    errors={errors}
+                    onDiluentSolutionIdChange={(val) => updateField("diluentSolutionId", val)}
+                    onMobilePhaseChange={(idx, field, val) => {
+                      const next = [...form.mobilePhases];
+                      next[idx] = { ...next[idx], [field]: val };
+                      updateField("mobilePhases", next);
+                    }}
+                    onAddChannel={() => {
+                      const used = new Set(form.mobilePhases.map((p) => p.channel));
+                      const nextCh = CHANNELS.find((c) => !used.has(c));
+                      if (nextCh) {
+                        updateField("mobilePhases", [
+                          ...form.mobilePhases,
+                          { channel: nextCh, solutionMasterId: "", ratioPercent: "" }
+                        ]);
+                      }
+                    }}
+                    onRemoveChannel={(idx) => {
+                      updateField("mobilePhases", form.mobilePhases.filter((_, i) => i !== idx));
+                    }}
+                  />
+                )
+              )}
+
+              {/* Tab 3: Analytes (HPLC only) */}
+              {!isGc && tabIndex === 3 && (
                 <HplcAnalytesSection
+                  technique="Hplc"
+                  resultMode="Assay"
                   analytes={form.analytes}
                   availableStandards={availableReferenceStandards}
                   errors={errors}
@@ -268,7 +398,8 @@ export function HplcMethodDialog({
                         sstMinTheoreticalPlates: "2000",
                         sstMinRetentionFactor: "",
                         sstMinSignalToNoise: "",
-                        sstMinPeakToValley: ""
+                        sstMinPeakToValley: "",
+                        standardConcentrationUgPerMl: ""
                       }
                     ]);
                   }}
@@ -293,15 +424,17 @@ export function HplcMethodDialog({
 
       <ReasonDialog
         open={reasonDialogOpen}
-        title="Confirm HPLC Method Changes"
-        onClose={() => { if (!saving) setReasonDialogOpen(false); }}
+        title={`Confirm ${isGc ? "GC" : "HPLC"} Method Changes`}
+        onClose={() => {
+          if (!saving) setReasonDialogOpen(false);
+        }}
         onConfirm={handleConfirmEditWithReason}
         confirmText="Save Method"
         loading={saving}
         reason={editReason}
         onReasonChange={setEditReason}
         label="Reason for Change *"
-        placeholder="Explain why this HPLC method is being updated (required by data integrity standards)..."
+        placeholder={`Explain why this ${isGc ? "GC" : "HPLC"} method is being updated (required by data integrity standards)...`}
         disabled={!editReason.trim() || saving}
       />
     </>

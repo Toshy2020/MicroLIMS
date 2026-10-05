@@ -152,13 +152,8 @@ public class SampleSummaryService
                     r.ComparisonStatus,
                     r.OverRange,
                     r.BelowLoq,
-                    r.ValidityRecordItemId,
                     r.CalculationJson,
                     r.StageReached,
-                    RunCode = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.CalibrationRun != null
-                        ? r.CalibrationRunAnalyte.CalibrationRun.Code
-                        : string.Empty,
-                    RunAnalytePassed = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.Passed,
                     Readings = r.Readings.OrderBy(rd => rd.Index).Select(rd => new ResultReadingDetailDto
                     {
                         Id = rd.Id,
@@ -555,44 +550,6 @@ public class SampleSummaryService
                     EnteredByName = NameOf(r.EnteredByUserId),
                     EnteredAt = r.EnteredAt
                 }).ToList(),
-                ElementalAssay = activeAnalyses.Where(e => e.TestOrderId == order.Id && e.AnalysisType == WorkflowType.ElementalAssay).Select(e => new ElementalAssayDetailDto
-                {
-                    SampleMatrix = e.SampleMatrix ?? SampleMatrix.Solid,
-                    UnitAmount = e.UnitAmount ?? 0m,
-                    UnitAmountUnit = (e.SampleMatrix ?? SampleMatrix.Solid) == SampleMatrix.Solid ? "g" : "mL",
-                    AnalysedAt = e.AnalysedAt,
-                    EnteredByName = NameOf(e.EnteredByUserId),
-                    EnteredAt = e.EnteredAt,
-                    Elements = e.Results.Select(r =>
-                    {
-                        ElementalCalculationData? calc = null;
-                        if (!string.IsNullOrWhiteSpace(r.CalculationJson))
-                        {
-                            try
-                            {
-                                calc = System.Text.Json.JsonSerializer.Deserialize<ElementalCalculationData>(r.CalculationJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                            }
-                            catch { }
-                        }
-                        return new ElementalAssayElementDetailDto
-                        {
-                            ParameterName = r.ParameterName,
-                            Element = calc?.Element ?? r.ParameterName,
-                            RunCode = !string.IsNullOrWhiteSpace(calc?.RunCode) ? calc.RunCode : r.RunCode,
-                            RunAnalytePassed = calc?.RunAnalytePassed ?? r.RunAnalytePassed,
-                            ReportedPpm = calc?.ReportedPpm ?? 0m,
-                            OverRange = r.OverRange,
-                            BelowLoq = r.BelowLoq,
-                            MgPerUnit = calc?.MgPerUnit,
-                            ResultClaim = calc?.ResultClaim,
-                            PercentLabelClaim = calc?.PercentLabelClaim,
-                            ReportedDisplay = r.ReportedDisplay,
-                            SpecLimit = r.SpecLimit,
-                            Unit = r.Unit,
-                            Status = r.ComparisonStatus
-                        };
-                    }).ToList()
-                }).FirstOrDefault(),
                 Analysis = activeAnalyses.Where(e => e.TestOrderId == order.Id).Select(e => new AnalysisDetailDto
                 {
                     Id = e.Id,
@@ -623,7 +580,6 @@ public class SampleSummaryService
                         ComparisonStatus = r.ComparisonStatus,
                         OverRange = r.OverRange,
                         BelowLoq = r.BelowLoq,
-                        ValidityRecordItemId = r.ValidityRecordItemId,
                         CalculationJson = r.CalculationJson,
                         StageReached = r.StageReached,
                         Readings = r.Readings
@@ -821,19 +777,6 @@ public class SampleSummaryService
                     lines.Add($"    Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
                 }
             }
-            else if (order.ElementalAssay is { } elemental)
-            {
-                string V(decimal? d) => ExportNumber(d);
-                lines.Add("  FINAL RESULT (ELEMENTAL ASSAY):");
-                lines.Add($"    Matrix: {elemental.SampleMatrix}   Unit Amount: {V(elemental.UnitAmount)} {elemental.UnitAmountUnit}   Analysed At: {FormatDateTime(elemental.AnalysedAt)}");
-                lines.Add($"    Entered By: {elemental.EnteredByName}   Entered At: {FormatDateTime(elemental.EnteredAt)}");
-                foreach (var el in elemental.Elements)
-                {
-                    var claimStr = el.ResultClaim.HasValue ? V(el.ResultClaim) : "-";
-                    var plcStr = el.PercentLabelClaim.HasValue ? $"{V(el.PercentLabelClaim)} %" : "-";
-                    lines.Add($"    {el.Element}: {V(el.ReportedPpm)} ppm x {V(elemental.UnitAmount)} {elemental.UnitAmountUnit} / 1000 = {V(el.MgPerUnit)} mg, Claim: {claimStr}, %LC: {plcStr}, Status: {el.Status}");
-                }
-            }
             else if (order.Analysis is { } analysis)
             {
                 lines.Add($"  FINAL RESULT ({analysis.AnalysisType}):");
@@ -859,7 +802,7 @@ public class SampleSummaryService
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }
-            else if (order.Results.Count > 0 && order.ElementalAssay is null && order.Analysis is null)
+            else if (order.Results.Count > 0 && order.Analysis is null)
             {
                 lines.Add("  FINAL RESULT:");
                 foreach (var r in order.Results)

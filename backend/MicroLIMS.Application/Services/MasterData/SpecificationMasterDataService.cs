@@ -62,9 +62,9 @@ public class SpecificationMasterDataService
                 s.Id, s.ItemId, s.TestCode, s.AlertLimit, s.ActionLimit, s.SpecLimit, s.Unit, s.DilutionFactor,
                 s.ParameterName, s.DisplayOrder, s.LimitType, s.ReferenceStandard, s.LowerLimit, s.UpperLimit,
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
-                s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
+                s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.ResultBasis, s.SampleMatrix,
                 s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -106,7 +106,6 @@ public class SpecificationMasterDataService
             SpecLimit = request.SpecLimit ?? string.Empty,
             Unit = request.Unit ?? string.Empty,
             DilutionFactor = request.DilutionFactor,
-            TestAnalyteId = request.TestAnalyteId,
             ResultBasis = request.ResultBasis,
             SampleMatrix = request.SampleMatrix,
             LabelClaim = request.LabelClaim,
@@ -114,6 +113,7 @@ public class SpecificationMasterDataService
             ConversionFactor = request.ConversionFactor ?? 1.0m,
             DosageForm = request.DosageForm,
             HplcMethodAnalyteId = request.HplcMethodAnalyteId,
+            IcpMethodElementId = request.IcpMethodElementId,
             ProductionStageRole = request.ProductionStageRole,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
@@ -172,13 +172,13 @@ public class SpecificationMasterDataService
             spec.SpecLimit = request.SpecLimit;
         spec.Unit = request.Unit ?? string.Empty;
         spec.DilutionFactor = request.DilutionFactor;
-        spec.TestAnalyteId = request.TestAnalyteId;
         spec.ResultBasis = request.ResultBasis;
         spec.SampleMatrix = request.SampleMatrix;
         spec.LabelClaim = request.LabelClaim;
         spec.LabelClaimUnit = request.LabelClaimUnit;
         spec.DosageForm = request.DosageForm;
         spec.HplcMethodAnalyteId = request.HplcMethodAnalyteId;
+        spec.IcpMethodElementId = request.IcpMethodElementId;
         spec.ProductionStageRole = request.ProductionStageRole;
         if (request.ConversionFactor.HasValue)
             spec.ConversionFactor = request.ConversionFactor.Value;

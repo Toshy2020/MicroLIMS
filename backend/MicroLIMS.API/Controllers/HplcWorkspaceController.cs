@@ -31,12 +31,12 @@ public class HplcWorkspaceController : ControllerBase
     // ---- Reads ----
 
     [HttpGet("instruments")]
-    public async Task<IActionResult> GetInstruments() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetInstrumentsAsync(CurrentUserId)));
+    public async Task<IActionResult> GetInstruments([FromQuery] HplcTechnique technique = HplcTechnique.Hplc) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetInstrumentsAsync(CurrentUserId, technique)));
 
     [HttpGet("method-options")]
-    public async Task<IActionResult> GetMethodOptions() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetMethodOptionsAsync(CurrentUserId)));
+    public async Task<IActionResult> GetMethodOptions([FromQuery] HplcTechnique technique = HplcTechnique.Hplc) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetMethodOptionsAsync(CurrentUserId, technique)));
 
     [HttpGet("instruments/{equipmentId:int}/runs")]
     public async Task<IActionResult> GetRunHistory(int equipmentId) =>

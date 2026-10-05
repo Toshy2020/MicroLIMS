@@ -47,10 +47,7 @@ public class Specification : IVersionedEntity
     public decimal? SampleQuantity { get; set; }
     public string? SampleQuantityUnit { get; set; }
 
-    // Elemental Assay / Calibration Curve (Slice S3a)
-    public int? TestAnalyteId { get; set; }
-    [JsonIgnore]
-    public TestAnalyte? TestAnalyte { get; set; }
+    // Result basis / sample matrix / label claim / conversion factor
     public ResultBasis? ResultBasis { get; set; }
     public SampleMatrix? SampleMatrix { get; set; }
     public decimal? LabelClaim { get; set; }
@@ -61,10 +58,15 @@ public class Specification : IVersionedEntity
     public DosageForm? DosageForm { get; set; }
 
     // HPLC chain S3 - HplcMethodAssay specification rows are keyed by
-    // method analyte instead of TestAnalyteId (spec 3.4).
+    // method analyte (spec 3.4).
     public int? HplcMethodAnalyteId { get; set; }
     [JsonIgnore]
     public HplcMethodAnalyte? HplcMethodAnalyte { get; set; }
+
+    // ICP workspace - IcpMethodAssay specification rows are keyed by method element + basis.
+    public int? IcpMethodElementId { get; set; }
+    [JsonIgnore]
+    public IcpMethodElement? IcpMethodElement { get; set; }
 
     public List<SpecificationStage> Stages { get; set; } = new();
 }

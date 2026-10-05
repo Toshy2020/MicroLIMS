@@ -10,12 +10,15 @@ public record HplcMethodGradientStepResponse(
     int Id, decimal TimeMin, decimal PercentA, decimal PercentB, decimal PercentC, decimal PercentD);
 
 public record HplcMethodAnalyteResponse(
-    int Id, int DisplayOrder, string Name, decimal WavelengthNm,
+    int Id, int DisplayOrder, string Name, decimal? WavelengthNm,
     int StandardEntryId, string StandardEntryCode,
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent, decimal? SstMinResolution, decimal? SstMaxTailingFactor,
     decimal? SstMinTheoreticalPlates, decimal? SstMinRetentionFactor, decimal? SstMinSignalToNoise,
-    decimal? SstMinPeakToValley, decimal? StandardDilution = null);
+    decimal? SstMinPeakToValley, decimal? StandardDilution = null,
+    decimal? StandardConcentrationUgPerMl = null);
+
+public record HplcMethodOvenStepResponse(int Id, int StepNo, decimal? RateCPerMin, decimal TemperatureC, decimal HoldMin);
 
 public class HplcMethodResponse
 {
@@ -31,10 +34,10 @@ public class HplcMethodResponse
     public string ColumnDesignation { get; init; } = null!;
     public decimal ColumnLengthMm { get; init; }
     public decimal ColumnInternalDiameterMm { get; init; }
-    public decimal ParticleSizeUm { get; init; }
+    public decimal? ParticleSizeUm { get; init; }
     public string? ColumnBrand { get; init; }
     public string? ColumnPartNumber { get; init; }
-    public decimal ColumnTemperatureC { get; init; }
+    public decimal? ColumnTemperatureC { get; init; }
 
     public ElutionMode ElutionMode { get; init; }
     public decimal? EquilibrationMin { get; init; }
@@ -43,6 +46,20 @@ public class HplcMethodResponse
     public HplcDetectorType DetectorType { get; init; }
     public decimal InjectionVolumeUl { get; init; }
     public decimal RunTimeMin { get; init; }
+
+    public HplcTechnique Technique { get; init; }
+    public HplcResultMode ResultMode { get; init; }
+    public decimal? FilmThicknessUm { get; init; }
+    public CarrierGas? CarrierGas { get; init; }
+    public decimal? SplitRatio { get; init; }
+    public decimal? InletTemperatureC { get; init; }
+    public decimal? DetectorTemperatureC { get; init; }
+    public bool HeadspaceEnabled { get; init; }
+    public decimal? HeadspaceEquilibrationTemperatureC { get; init; }
+    public decimal? HeadspaceEquilibrationMin { get; init; }
+    public decimal? HeadspaceTransferLineTemperatureC { get; init; }
+    public decimal? SampleSolutionVolumeMl { get; init; }
+    public List<HplcMethodOvenStepResponse> OvenSteps { get; init; } = new();
 
     public int DiluentSolutionId { get; init; }
     public string? DiluentSolutionName { get; init; }
@@ -79,6 +96,22 @@ public class HplcMethodResponse
         DetectorType = m.DetectorType,
         InjectionVolumeUl = m.InjectionVolumeUl,
         RunTimeMin = m.RunTimeMin,
+        Technique = m.Technique,
+        ResultMode = m.ResultMode,
+        FilmThicknessUm = m.FilmThicknessUm,
+        CarrierGas = m.CarrierGas,
+        SplitRatio = m.SplitRatio,
+        InletTemperatureC = m.InletTemperatureC,
+        DetectorTemperatureC = m.DetectorTemperatureC,
+        HeadspaceEnabled = m.HeadspaceEnabled,
+        HeadspaceEquilibrationTemperatureC = m.HeadspaceEquilibrationTemperatureC,
+        HeadspaceEquilibrationMin = m.HeadspaceEquilibrationMin,
+        HeadspaceTransferLineTemperatureC = m.HeadspaceTransferLineTemperatureC,
+        SampleSolutionVolumeMl = m.SampleSolutionVolumeMl,
+        OvenSteps = m.OvenSteps
+            .OrderBy(s => s.StepNo)
+            .Select(s => new HplcMethodOvenStepResponse(s.Id, s.StepNo, s.RateCPerMin, s.TemperatureC, s.HoldMin))
+            .ToList(),
         DiluentSolutionId = m.DiluentSolutionId,
         DiluentSolutionName = m.DiluentSolution?.Name,
         MobilePhases = m.MobilePhases
@@ -98,7 +131,7 @@ public class HplcMethodResponse
                 a.TheoreticalWeightStdMg, a.TheoreticalWeightTestMg, a.StandardInjections,
                 a.SstMaxRsdPercent, a.SstMinResolution, a.SstMaxTailingFactor,
                 a.SstMinTheoreticalPlates, a.SstMinRetentionFactor, a.SstMinSignalToNoise,
-                a.SstMinPeakToValley, a.StandardDilution))
+                a.SstMinPeakToValley, a.StandardDilution, a.StandardConcentrationUgPerMl))
             .ToList(),
         CreatedByUserId = m.CreatedByUserId,
         CreatedAt = m.CreatedAt,

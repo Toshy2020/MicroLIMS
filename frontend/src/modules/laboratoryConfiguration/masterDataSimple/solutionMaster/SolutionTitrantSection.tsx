@@ -162,13 +162,15 @@ export function SolutionTitrantSection({
                 value={standardEntryId}
                 onChange={(e) => onStandardEntryIdChange(e.target.value)}
               >
-                {availableTitrantStandardEntries.map((m) => (
-                  <MenuItem key={m.id} value={m.id}>
-                    {m.code} - {m.name} ({m.category})
-                  </MenuItem>
-                ))}
+                {availableTitrantStandardEntries
+                  .filter((m) => m.category === "PrimaryStandard")
+                  .map((m) => (
+                    <MenuItem key={m.id} value={m.id}>
+                      {m.code} - {m.name}
+                    </MenuItem>
+                  ))}
               </Select>
-              <FormHelperText>Reference Standards or Reagents in section</FormHelperText>
+              <FormHelperText>Primary Standards in section</FormHelperText>
             </FormControl>
 
             <TextField

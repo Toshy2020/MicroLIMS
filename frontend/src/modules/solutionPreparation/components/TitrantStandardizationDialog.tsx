@@ -206,6 +206,11 @@ export function TitrantStandardizationDialog({
       // The result replaces the form - only Close is offered, so it cannot be submitted twice.
       setResult(data);
       onSuccess(data);
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = errorObj.response?.data?.message ?? errorObj.message ?? "Standardization failed.";
+      setValidationError(msg);
+      throw err;
     } finally {
       setSubmitting(false);
     }

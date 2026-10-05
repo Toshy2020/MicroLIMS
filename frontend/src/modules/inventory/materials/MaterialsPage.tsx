@@ -67,6 +67,14 @@ export function MaterialsPage() {
     [sections]
   );
 
+  const activeSectionId = useMemo(() => {
+    if (labParam) {
+      const found = sections.find((s) => s.sectionCode === labParam);
+      if (found) return found.sectionId;
+    }
+    return undefined;
+  }, [labParam, sections]);
+
   const [items, setItems] = useState<MaterialItem[] | null>(null);
   const [printList, setPrintList] = useState<MaterialItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,7 +250,7 @@ export function MaterialsPage() {
               {m.materialType === "DehydratedMedia" && m.mediaProductId == null && (
                 <StatusBadge status="OnHold" label="Not linked to a media product" />
               )}
-              {m.materialType === "ReferenceStandard" && m.purity != null && (
+              {(m.materialType === "ReferenceStandard" || m.materialType === "PrimaryStandard") && m.purity != null && (
                 <StatusBadge status="Assigned" label={`Purity: ${m.purity}%`} />
               )}
             </Box>
@@ -347,6 +355,7 @@ export function MaterialsPage() {
               resultCount={filteredItems.length}
               onRefresh={loadData}
               refreshing={loading}
+              sectionId={activeSectionId}
             />
           }
         >

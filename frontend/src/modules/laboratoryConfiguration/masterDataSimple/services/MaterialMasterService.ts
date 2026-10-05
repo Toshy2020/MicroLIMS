@@ -2,7 +2,7 @@ import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type { ApiResponse } from "./EquipmentConfigurationService";
 import type { MaterialUnit } from "../../../inventory/materials/types/materialTypes";
 
-export type MaterialMasterCategory = "Reagent" | "Indicator" | "ReferenceStandard";
+export type MaterialMasterCategory = "Reagent" | "Indicator" | "ReferenceStandard" | "PrimaryStandard";
 
 export interface MaterialMasterEntry {
   id: number;

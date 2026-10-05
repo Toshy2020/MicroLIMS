@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Select, MenuItem, FormControl, InputLabel, Button, Divider } from "@mui/material";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
-import { MaterialItem, MaterialFilterState, MaterialType } from "../types/materialTypes";
+import { MaterialItem, MaterialFilterState, MaterialType, MATERIAL_TYPE_LABELS } from "../types/materialTypes";
+import { MaterialService } from "../services/MaterialService";
 import { FilterBar } from "../../../../components/lab";
 
 export const MATERIAL_TYPE_OPTIONS: { label: string; value: MaterialType }[] = [
@@ -16,7 +17,9 @@ export const MATERIAL_TYPE_OPTIONS: { label: string; value: MaterialType }[] = [
   { label: "Reference Buffer", value: "ReferenceBuffer" },
   { label: "Disposable Tool", value: "DisposableTool" },
   { label: "Other", value: "Other" },
-  { label: "Reference Standard", value: "ReferenceStandard" }
+  { label: "Reference Standard", value: "ReferenceStandard" },
+  { label: "Working Standard", value: "WorkingStandard" },
+  { label: "Primary Standard", value: "PrimaryStandard" }
 ];
 
 interface MaterialFilterBarProps {
@@ -29,17 +32,56 @@ interface MaterialFilterBarProps {
   resultCount?: number;
   onRefresh?: () => void;
   refreshing?: boolean;
+  sectionId?: number;
 }
 
-export function MaterialFilterBar({ items, filters, onFilterChange, onReset, extraActive, resultCount, onRefresh, refreshing }: MaterialFilterBarProps) {
-  // Extract unique dynamic dropdown options from current dataset
+export function MaterialFilterBar({ items, filters, onFilterChange, onReset, extraActive, resultCount, onRefresh, refreshing, sectionId }: MaterialFilterBarProps) {
+  const [typeOptionsData, setTypeOptionsData] = useState<{
+    builtIn: MaterialType[];
+    custom: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    let canceled = false;
+    MaterialService.getTypeOptions(sectionId)
+      .then((data) => {
+        if (!canceled && data) {
+          setTypeOptionsData(data);
+        }
+      })
+      .catch(() => {
+        if (!canceled) {
+          setTypeOptionsData(null);
+        }
+      });
+    return () => {
+      canceled = true;
+    };
+  }, [sectionId]);
+
+  const typeOptions = useMemo(() => {
+    if (typeOptionsData) {
+      return typeOptionsData.builtIn.map((bt) => ({
+        value: bt,
+        label: MATERIAL_TYPE_LABELS[bt] ?? MATERIAL_TYPE_OPTIONS.find((o) => o.value === bt)?.label ?? bt
+      }));
+    }
+    return MATERIAL_TYPE_OPTIONS;
+  }, [typeOptionsData]);
+
+  // Extract unique dynamic dropdown options from current dataset + section options
   const customTypes = useMemo(() => {
     const set = new Set<string>();
+    if (typeOptionsData?.custom) {
+      typeOptionsData.custom.forEach((ct) => {
+        if (ct?.trim()) set.add(ct.trim());
+      });
+    }
     items.forEach((i) => {
       if (i.customType?.trim()) set.add(i.customType.trim());
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [items]);
+  }, [typeOptionsData, items]);
 
   const manufacturers = useMemo(() => {
     const set = new Set<string>();
@@ -83,7 +125,7 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
           <MenuItem value="">
             <em>All Types</em>
           </MenuItem>
-          {MATERIAL_TYPE_OPTIONS.map((opt) => (
+          {typeOptions.map((opt) => (
             <MenuItem key={opt.value} value={opt.value}>
               {opt.label}
             </MenuItem>

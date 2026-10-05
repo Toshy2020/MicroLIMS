@@ -195,7 +195,7 @@ public class TitrantStandardizationServiceTests
     {
         var (section, userId) = await SeedAsync(db);
         var solventEntry = await AddEntryAsync(db, section.Id, "SOLV-01");
-        var standardEntry = await AddEntryAsync(db, section.Id, "STD-KHP", MaterialMasterCategory.ReferenceStandard);
+        var standardEntry = await AddEntryAsync(db, section.Id, "STD-KHP", MaterialMasterCategory.PrimaryStandard);
         await AddSolventLotAsync(db, section.Id, solventEntry);
         return new Scenario { Section = section, UserId = userId, SolventEntry = solventEntry, StandardEntry = standardEntry };
     }

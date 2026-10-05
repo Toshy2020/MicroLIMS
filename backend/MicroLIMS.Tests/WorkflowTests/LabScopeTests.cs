@@ -97,7 +97,7 @@ public class LabScopeTests
         Assert.Equal(new[] { fp.Id, micro.Id }.OrderBy(x => x), fullScope!.OrderBy(x => x));
 
         var service = TestServiceFactory.TestingWorkspace(db, scope);
-        var filter = new TestingWorkspaceFilterDto { LabSectionId = fp.Id };
+        var filter = new TestingWorkspaceFilterDto { LabSectionId = fp.Id, Area = "fp" };
 
         var result = await service.GetActiveSamplesAsync(filter, userId);
 
@@ -145,7 +145,7 @@ public class LabScopeTests
 
         var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
 
-        var fpCounts = await service.GetWorkloadCountsAsync(userId, fp.Id);
+        var fpCounts = await service.GetWorkloadCountsAsync(userId, fp.Id, "fp");
         Assert.Equal(1, fpCounts.Mine);
 
         var microCounts = await service.GetWorkloadCountsAsync(userId, micro.Id);
@@ -177,7 +177,7 @@ public class LabScopeTests
 
         var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
 
-        var dto = await service.GetSampleAsync(sample.Id, userId, fp.Id);
+        var dto = await service.GetSampleAsync(sample.Id, userId, fp.Id, "fp");
 
         Assert.NotNull(dto);
         var assignedTest = Assert.Single(dto!.AssignedTests);
@@ -262,10 +262,10 @@ public class LabScopeTests
 
         var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
 
-        var fpRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id }, userId)).Items);
+        var fpRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id, Area = "fp" }, userId)).Items);
         Assert.Equal("Ready", fpRow.PreparationStatus);
-        Assert.Empty((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id, WorkloadFilter = "needsPreparation" }, userId)).Items);
-        Assert.Equal(0, (await service.GetWorkloadCountsAsync(userId, fp.Id)).NeedsPreparation);
+        Assert.Empty((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id, Area = "fp", WorkloadFilter = "needsPreparation" }, userId)).Items);
+        Assert.Equal(0, (await service.GetWorkloadCountsAsync(userId, fp.Id, "fp")).NeedsPreparation);
 
         var microRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = micro.Id }, userId)).Items);
         Assert.Equal("NeedsPreparation", microRow.PreparationStatus);
@@ -303,9 +303,9 @@ public class LabScopeTests
 
         var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
 
-        var fpRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id }, userId)).Items);
+        var fpRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id, Area = "fp" }, userId)).Items);
         Assert.Equal("UnderApproval", fpRow.Status);
-        Assert.Equal("UnderApproval", (await service.GetSampleAsync(sample.Id, userId, fp.Id))!.Status);
+        Assert.Equal("UnderApproval", (await service.GetSampleAsync(sample.Id, userId, fp.Id, "fp"))!.Status);
 
         var microRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = micro.Id }, userId)).Items);
         Assert.Equal("InTesting", microRow.Status);

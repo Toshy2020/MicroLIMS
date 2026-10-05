@@ -507,8 +507,8 @@ TestWorkflowStepMasterDataController.MoveTestWorkflowStep(Int32, MoveTestWorkflo
 TestWorkflowStepMasterDataController.UpdateTestWorkflowStep(Int32, UpdateTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateWorkflowType(Int32, UpdateWorkflowTypeRequest): SystemAdministrator,SectionHead
 TestingWorkspaceController.GetActivePaged(TestingWorkspaceFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst
-TestingWorkspaceController.GetOne(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
-TestingWorkspaceController.GetWorkloadCounts(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+TestingWorkspaceController.GetOne(Int32, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst
+TestingWorkspaceController.GetWorkloadCounts(Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 UserAnalystController.GetEligibleAnalysts(): SystemAdministrator,SectionHead
 UserController.ChangeRole(Int32, ChangeRoleRequest): SystemAdministrator
 UserController.Create(CreateUserRequest): SystemAdministrator

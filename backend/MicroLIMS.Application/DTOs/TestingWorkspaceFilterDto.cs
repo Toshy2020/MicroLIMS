@@ -23,6 +23,11 @@ public class TestingWorkspaceFilterDto
     /// </summary>
     public int? LabSectionId { get; set; }
 
+    /// <summary>
+    /// "fp" or "rmpm"; required when LabSectionId is the Physicochemical section.
+    /// </summary>
+    public string? Area { get; set; }
+
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
 

@@ -38,7 +38,7 @@ public class RetiredElementalAssayTests
     {
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
-        await AssertRetiredAsync(() => new TestDefinitionMasterDataService(db, new UserSectionScopeService(db))
+        await AssertRetiredAsync(() => TestServiceFactory.TestDefinitionMaster(db)
             .CreateTestDefinitionAsync(userId, new CreateTestDefinitionRequest(
                 Code: "EA-1", DisplayName: "EA", SectionId: section.Id, WorkflowType: WorkflowType.ElementalAssay)));
     }
@@ -48,7 +48,7 @@ public class RetiredElementalAssayTests
     {
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
-        await AssertRetiredAsync(() => new TestDefinitionMasterDataService(db, new UserSectionScopeService(db))
+        await AssertRetiredAsync(() => TestServiceFactory.TestDefinitionMaster(db)
             .CreateTestDefinitionAsync(userId, new CreateTestDefinitionRequest(
                 Code: "CC-1", DisplayName: "CC", SectionId: section.Id, EquationType: EquationType.CalibrationCurve)));
     }

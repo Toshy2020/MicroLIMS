@@ -132,6 +132,11 @@ public static class TestServiceFactory
 
     public static SpecificationService Specification(MicroLimsDbContext db) => new(db);
 
+    public static MicroLIMS.Application.Services.MasterData.TestDefinitionMasterDataService TestDefinitionMaster(
+        MicroLimsDbContext db, IUserSectionScopeService? scope = null, IAuditEventService? audit = null) =>
+        new(db, scope ?? new UserSectionScopeService(db),
+            audit ?? new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db));
 

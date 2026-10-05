@@ -42,7 +42,7 @@ public sealed class MasterDataControllers
         Equipment = new(new EquipmentMasterDataService(db, scope), configService, scope, columnService);
         Media = new(new MediaMasterDataService(db), mediaProductService, mediaIncubationConditionService);
         Organism = new(new OrganismMasterDataService(db));
-        TestDefinition = new(new TestDefinitionMasterDataService(db, scope));
+        TestDefinition = new(TestServiceFactory.TestDefinitionMaster(db, scope));
         TestWorkflowStep = new(new TestWorkflowStepMasterDataService(db));
         TestStageReplicate = new(new TestStageReplicateMasterDataService(db, scope));
     }

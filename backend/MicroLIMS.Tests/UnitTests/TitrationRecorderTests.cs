@@ -575,7 +575,7 @@ public class TitrationRecorderTests
     {
         var db = NewDb();
         var s = TitrationScenario.Seed(db, o);
-        var svc = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var svc = TestServiceFactory.TestDefinitionMaster(db);
         await Task.CompletedTask;
         return (db, s, svc);
     }

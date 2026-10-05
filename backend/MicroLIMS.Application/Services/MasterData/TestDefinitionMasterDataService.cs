@@ -19,10 +19,9 @@ public class TestDefinitionMasterDataService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    private readonly IAuditEventService? _audit;
+    private readonly IAuditEventService _audit;
 
-    // ponytail: audit is optional so existing test constructors keep compiling; DI always supplies it.
-    public TestDefinitionMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, IAuditEventService? audit = null)
+    public TestDefinitionMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, IAuditEventService audit)
     {
         _db = db;
         _scope = scope;
@@ -369,7 +368,11 @@ public class TestDefinitionMasterDataService
         return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<TestDefinitionResponse> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
+    // One transaction: the titration change and its audit event commit or roll back together.
+    public Task<TestDefinitionResponse> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request) =>
+        UnitOfWork.RunAsync(_db, () => UpdateTestDefinitionCoreAsync(currentUserId, id, request));
+
+    private async Task<TestDefinitionResponse> UpdateTestDefinitionCoreAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
@@ -759,7 +762,7 @@ public class TestDefinitionMasterDataService
 
         await _db.SaveChangesAsync();
 
-        if (titrationAudit is { } a && _audit != null)
+        if (titrationAudit is { } a)
         {
             _db.CurrentUserId = currentUserId;
             await _audit.RecordUserEventAsync("TestDefinition.TitrationChanged", AuditActionCategory.Configuration,

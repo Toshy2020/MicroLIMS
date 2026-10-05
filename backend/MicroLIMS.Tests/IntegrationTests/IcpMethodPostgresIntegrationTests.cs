@@ -65,7 +65,7 @@ public class IcpMethodPostgresIntegrationTests
         Assert.Equal(ids, updated.Elements.OrderBy(e => e.DisplayOrder).Select(e => e.Id));
 
         // Link a test definition and one specification row to the first element.
-        var def = await new TestDefinitionMasterDataService(db, new UserSectionScopeService(db))
+        var def = await TestServiceFactory.TestDefinitionMaster(db)
             .CreateTestDefinitionAsync(userId, new CreateTestDefinitionRequest(
                 Code: "ICP-" + tag, DisplayName: "ICP " + tag, SectionId: section.Id,
                 WorkflowType: WorkflowType.IcpMethodAssay, EquationType: EquationType.IcpMethodAssay,

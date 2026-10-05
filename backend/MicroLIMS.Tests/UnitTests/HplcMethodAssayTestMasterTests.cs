@@ -157,7 +157,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var created = await service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id));
 
@@ -171,7 +171,7 @@ public class HplcMethodAssayTestMasterTests
         var (section, userId) = await SeedAsync(db);
         var otherSection = await AddOtherSectionAsync(db, section.DepartmentId);
         var method = await AddMethodAsync(db, otherSection.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));
@@ -183,7 +183,7 @@ public class HplcMethodAssayTestMasterTests
     {
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var req = AssayReq(section.Id, null);
 
@@ -197,7 +197,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId, active: false);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var req = AssayReq(section.Id, method.Id);
 
@@ -212,7 +212,7 @@ public class HplcMethodAssayTestMasterTests
         var (section, userId) = await SeedAsync(db);
         var otherSection = await AddOtherSectionAsync(db, section.DepartmentId);
         var method = await AddMethodAsync(db, otherSection.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var req = AssayReq(section.Id, method.Id);
 
@@ -226,7 +226,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var req = AssayReq(section.Id, method.Id) with { EquationType = EquationType.None };
 
@@ -240,7 +240,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var req = new CreateTestDefinitionRequest(
             Code: "OTH-1", DisplayName: "Other test", SectionId: section.Id,
@@ -258,7 +258,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var created = await service.CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
 
@@ -278,7 +278,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var testService = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var testService = TestServiceFactory.TestDefinitionMaster(db);
         var testDef = await testService.CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
 
         var item = new Item
@@ -307,7 +307,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var testService = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var testService = TestServiceFactory.TestDefinitionMaster(db);
         var testDef = await testService.CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
         var analyteId = method.Analytes[0].Id;
 
@@ -337,7 +337,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var testService = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var testService = TestServiceFactory.TestDefinitionMaster(db);
         var testDef = await testService.CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
         var analyteId = method.Analytes[0].Id;
 
@@ -367,7 +367,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var testService = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var testService = TestServiceFactory.TestDefinitionMaster(db);
         var testDef = await testService.CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
         var analyteId = method.Analytes[0].Id;
 
@@ -398,7 +398,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var testService = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var testService = TestServiceFactory.TestDefinitionMaster(db);
         var testDef = await testService.CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
         var analyteId = method.Analytes[0].Id;
 
@@ -486,7 +486,7 @@ public class HplcMethodAssayTestMasterTests
     {
         var (section, userId) = await SeedAsync(db);
         var method = await AddRsMethodAsync(db, section.Id);
-        var testDef = await new TestDefinitionMasterDataService(db, new UserSectionScopeService(db))
+        var testDef = await TestServiceFactory.TestDefinitionMaster(db)
             .CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id, code: "RS-T1"));
         var item = new Item
         {
@@ -530,7 +530,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddMethodAsync(db, section.Id, userId);
-        var testDef = await new TestDefinitionMasterDataService(db, new UserSectionScopeService(db)).CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
+        var testDef = await TestServiceFactory.TestDefinitionMaster(db).CreateTestDefinitionAsync(userId, AssayReq(section.Id, method.Id));
         var item = new Item { Code = "ITEM-" + Guid.NewGuid().ToString("N")[..6], Name = "Item 1",
             AssignedTests = { new SampleTest { TestCode = testDef.Code, DisplayName = testDef.DisplayName } } };
         db.Items.Add(item);
@@ -576,7 +576,7 @@ public class HplcMethodAssayTestMasterTests
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
         var method = await AddRsMethodAsync(db, section.Id);
-        var service = new TestDefinitionMasterDataService(db, new UserSectionScopeService(db));
+        var service = TestServiceFactory.TestDefinitionMaster(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));

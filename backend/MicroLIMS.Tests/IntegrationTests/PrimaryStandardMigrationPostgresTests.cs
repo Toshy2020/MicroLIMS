@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using MicroLIMS.Persistence.DbContext;
@@ -53,7 +53,15 @@ public class PrimaryStandardMigrationPostgresTests
             Assert.Equal(0, await Scalar(c, $"SELECT \"Category\" FROM \"MaterialMasterEntries\" WHERE \"Id\" = {other}"));
             Assert.Equal(6, await Scalar(c, $"SELECT \"MaterialType\" FROM \"Materials\" WHERE \"Id\" = {otherLot}"));
 
+            await AssertAudit(c, "MaterialMasterEntry", khp, "{\"Category\":0}", "{\"Category\":3}");
+            await AssertAudit(c, "Material", khpLot, "{\"MaterialType\":6}", "{\"MaterialType\":13}");
+            Assert.Equal(2, await Scalar(c, "SELECT count(*) FROM \"AuditLogs\" WHERE \"ActorType\" = 2 AND \"SystemProcessName\" = 'Migration 20261005100326_PrimaryStandardType'"));
+
             await migrator.MigrateAsync(Before);
+
+            await AssertAudit(c, "MaterialMasterEntry", khp, "{\"Category\":3}", "{\"Category\":0}");
+            await AssertAudit(c, "Material", khpLot, "{\"MaterialType\":13}", "{\"MaterialType\":6}");
+            Assert.Equal(4, await Scalar(c, "SELECT count(*) FROM \"AuditLogs\" WHERE \"ActorType\" = 2 AND \"SystemProcessName\" = 'Migration 20261005100326_PrimaryStandardType'"));
 
             Assert.Equal(0, await Scalar(c, $"SELECT \"Category\" FROM \"MaterialMasterEntries\" WHERE \"Id\" = {khp}"));
             Assert.Equal(6, await Scalar(c, $"SELECT \"MaterialType\" FROM \"Materials\" WHERE \"Id\" = {khpLot}"));
@@ -100,6 +108,11 @@ public class PrimaryStandardMigrationPostgresTests
         foreach (var v in values.Values) cmd.Parameters.AddWithValue($"p{n++}", v);
         return (int)(await cmd.ExecuteScalarAsync())!;
     }
+
+    private static async Task AssertAudit(NpgsqlConnection c, string entity, int id, string prev, string next) =>
+        Assert.Equal(1, await Scalar(c,
+            $"SELECT count(*) FROM \"AuditLogs\" WHERE \"EntityName\" = '{entity}' AND \"EntityId\" = '{id}' AND \"ActorType\" = 2 " +
+            $"AND \"PreviousValue\" = '{prev}' AND \"NewValue\" = '{next}'"));
 
     private static async Task<long> Scalar(NpgsqlConnection c, string sql)
     {

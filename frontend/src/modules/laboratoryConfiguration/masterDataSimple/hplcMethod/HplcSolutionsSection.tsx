@@ -21,6 +21,7 @@ import { MobilePhaseRowState, CHANNELS } from "./hplcMethodForm";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcSolutionsSectionProps {
+  sectionSelected?: boolean;
   diluentSolutionId: number | "";
   mobilePhases: MobilePhaseRowState[];
   elutionMode: ElutionMode;
@@ -34,6 +35,7 @@ export interface HplcSolutionsSectionProps {
 }
 
 export function HplcSolutionsSection({
+  sectionSelected = true,
   diluentSolutionId,
   mobilePhases,
   elutionMode,
@@ -55,7 +57,9 @@ export function HplcSolutionsSection({
         Solutions &amp; Solvent Channels
       </Typography>
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-        Assign master diluent and mobile phase solutions for HPLC channels A through D.
+        Assign master diluent and mobile phase solutions for HPLC channels A through D. Only active
+        solution masters of the matching type (Diluent / Mobile Phase) from this method&apos;s laboratory
+        section are listed.
       </Typography>
 
       <Stack spacing={2.5}>
@@ -70,7 +74,7 @@ export function HplcSolutionsSection({
           >
             {availableDiluents.length === 0 ? (
               <MenuItem disabled value="">
-                <em>No diluent solution masters available in this section</em>
+                <em>{sectionSelected ? "No active Diluent solution masters in this method's section" : "Select a laboratory section first"}</em>
               </MenuItem>
             ) : (
               availableDiluents.map((s) => (
@@ -144,7 +148,7 @@ export function HplcSolutionsSection({
                   >
                     {availableMobilePhases.length === 0 ? (
                       <MenuItem disabled value="">
-                        <em>No mobile phase solution masters available in this section</em>
+                        <em>{sectionSelected ? "No active Mobile Phase solution masters in this method's section" : "Select a laboratory section first"}</em>
                       </MenuItem>
                     ) : (
                       availableMobilePhases.map((s) => (

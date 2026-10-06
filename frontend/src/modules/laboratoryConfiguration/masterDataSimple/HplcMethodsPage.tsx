@@ -85,14 +85,32 @@ export function HplcMethodsPage() {
     loadData();
   }, [loadData]);
 
+  // Solutions and reference standards are often created in another tab
+  // while this page is open; re-read them so the dialog's pickers include
+  // anything added since the page loaded.
+  const refreshPickerData = useCallback(async () => {
+    try {
+      const [solutionData, materialData] = await Promise.all([
+        SolutionMasterService.getAll(),
+        MaterialMasterService.getAll(undefined, true)
+      ]);
+      setSolutions(Array.isArray(solutionData) ? solutionData : []);
+      setMaterialMasters(Array.isArray(materialData) ? materialData : []);
+    } catch (err: unknown) {
+      console.error("Failed to refresh solutions / reference standards:", err);
+    }
+  }, []);
+
   const handleOpenAdd = () => {
     setEditingId(null);
     setDialogOpen(true);
+    void refreshPickerData();
   };
 
   const handleOpenEdit = (m: HplcMethodListItem) => {
     setEditingId(m.id);
     setDialogOpen(true);
+    void refreshPickerData();
   };
 
   const handleOpenToggleActive = (m: HplcMethodListItem) => {
@@ -235,7 +253,6 @@ export function HplcMethodsPage() {
         editingId={editingId}
         solutions={solutions}
         materialMasters={materialMasters}
-        sections={sections}
         mySections={mySections}
         onClose={() => setDialogOpen(false)}
         onSuccess={loadData}

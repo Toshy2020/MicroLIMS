@@ -278,6 +278,7 @@ LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.ReplaceMemberships(Int32, ReplaceUserMembershipsRequest): SystemAdministrator
+MasterDataWorkbookController.Download(): SystemAdministrator,SectionHead
 MaterialController.Create(SaveMaterialHttpRequest): SystemAdministrator,SectionHead,Analyst
 MaterialController.GetAll(Nullable`1): SystemAdministrator,SectionHead,Analyst
 MaterialController.GetDefaultUnit(MaterialType): SystemAdministrator,SectionHead,Analyst

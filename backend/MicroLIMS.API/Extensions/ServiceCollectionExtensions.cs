@@ -192,6 +192,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<TestDefinitionMasterDataService>();
         services.AddScoped<TestWorkflowStepMasterDataService>();
         services.AddScoped<TestStageReplicateMasterDataService>();
+        services.AddScoped<MicroLIMS.Application.Abstractions.Workbook.IWorkbookFormat, MicroLIMS.Infrastructure.Workbook.ClosedXmlWorkbookFormat>();
+        services.AddScoped<MicroLIMS.Application.Services.MasterDataWorkbook.MasterDataWorkbookService>();
 
         // Validators
         services.AddScoped<ReceiveSampleValidator>();

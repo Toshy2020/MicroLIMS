@@ -42,6 +42,7 @@ const APP_ROUTES = {
   FP_TEST_MASTER: "/laboratory-configuration/fp-test-master",
   EQUATION_TYPES: "/laboratory-configuration/equation-types",
   ORGANISMS: "/laboratory-configuration/organisms",
+  MASTER_DATA_WORKBOOK: "/laboratory-configuration/master-data-workbook",
   ITEMS: "/laboratory-configuration/items",
   MEDIA_CONFIGURATIONS: "/laboratory-configuration/media-configurations",
   WATER: "/laboratory-configuration/water",

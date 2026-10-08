@@ -70,6 +70,8 @@ public interface IMicroLimsDbContext
     DbSet<ReportSnapshot> ReportSnapshots { get; }
     DbSet<ResultRecord> ResultRecords { get; }
     DbSet<DataExportLog> DataExportLogs { get; }
+    DbSet<MasterDataImport> MasterDataImports { get; }
+    DbSet<MasterDataImportRecord> MasterDataImportRecords { get; }
     DbSet<CauseOfTesting> CausesOfTesting { get; }
     DbSet<DiluentType> DiluentTypes { get; }
     DbSet<Neutralizer> Neutralizers { get; }

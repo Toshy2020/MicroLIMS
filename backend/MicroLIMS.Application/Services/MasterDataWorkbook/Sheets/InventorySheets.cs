@@ -54,8 +54,10 @@ public sealed class MaterialMasterSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "SectionCode"), Cell(c, "Code"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
-        (await db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section).OrderBy(e => e.Code).ToListAsync())
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
+        (await db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section)
+            .Where(e => sectionScope == null || sectionScope.Contains(e.SectionId))
+            .OrderBy(e => e.Code).ToListAsync())
         .Select(e => new Dictionary<string, string>
         {
             ["SectionCode"] = e.Section?.Code ?? string.Empty, ["Code"] = e.Code, ["Name"] = e.Name,
@@ -99,7 +101,7 @@ public sealed class MediaProductsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.MediaProducts.AsNoTracking().OrderBy(p => p.Code).ToListAsync())
         .Select(p => new Dictionary<string, string> { ["Code"] = p.Code, ["Name"] = p.Name }).ToList();
 
@@ -131,7 +133,7 @@ public sealed class EquipmentSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Equipment.AsNoTracking().Include(e => e.Section).OrderBy(e => e.Code).ToListAsync())
         .Select(e => new Dictionary<string, string>
         {
@@ -172,7 +174,7 @@ public sealed class ItemsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Items.AsNoTracking().Include(i => i.AssignedTests).OrderBy(i => i.Code).ToListAsync())
         .Select(i => new Dictionary<string, string>
         {
@@ -186,13 +188,16 @@ public sealed class ItemsSheet : SheetHandler
     public override async Task<CreatedRecord> CreateAsync(RowReader r, ImportContext ctx)
     {
         var codes = r.List("TestCodes");
-        var tests = await ctx.Db.TestDefinitions.Where(t => codes.Contains(t.Code)).Select(t => new { t.Code, t.DisplayName }).ToListAsync();
-        if (codes.FirstOrDefault(c => tests.All(t => t.Code != c)) is { } missing)
+        var lowered = codes.Select(c => c.ToLower()).ToList();
+        var tests = await ctx.Db.TestDefinitions.Where(t => lowered.Contains(t.Code.ToLower())).Select(t => new { t.Code, t.DisplayName }).ToListAsync();
+        if (codes.FirstOrDefault(c => tests.All(t => !t.Code.Equals(c, StringComparison.OrdinalIgnoreCase))) is { } missing)
             throw new RowError("TestCodes", $"No test definition with code '{missing}'. Create it in Test Master first.");
 
+        // Stored with Test Master's spelling of each code.
         var created = await _service.CreateAsync(new ItemSaveRequest(
             r.Text("Name"), r.Text("Code"), r.Enum<SampleCategory>("Category"), r.OptionalText("SopNumber"),
-            codes.Select(c => new ItemTestRequest(c, tests.First(t => t.Code == c).DisplayName)).ToList()));
+            codes.Select(c => tests.First(t => t.Code.Equals(c, StringComparison.OrdinalIgnoreCase)))
+                .Select(t => new ItemTestRequest(t.Code, t.DisplayName)).ToList()));
         await _service.SetActiveAsync(created.Id, false);
         return Created("Item", created.Id, r);
     }

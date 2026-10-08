@@ -24,7 +24,7 @@ public class MasterDataWorkbookController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Download()
     {
-        var (content, fileName) = await _service.DownloadAsync();
+        var (content, fileName) = await _service.DownloadAsync(CurrentUserId);
         return File(content, MasterDataWorkbookService.XlsxContentType, fileName);
     }
 

@@ -7,7 +7,19 @@ namespace MicroLIMS.Application.Services.MasterDataWorkbook;
 public class RowError : Exception
 {
     public RowError(string? column, string message) : base(message) { Column = column; }
+
+    // For a problem on another sheet's row (a stage row read while
+    // creating its specification).
+    public RowError(string sheet, int row, string? column, string message) : base(message)
+    {
+        Sheet = sheet;
+        Row = row;
+        Column = column;
+    }
+
     public string? Column { get; }
+    public string? Sheet { get; }
+    public int? Row { get; }
 }
 
 // Typed access to one workbook row. Every value arrives as invariant text

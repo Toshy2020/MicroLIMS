@@ -46,7 +46,7 @@ public sealed class SpecificationsSheet : SheetHandler
     public override string KeyOf(IReadOnlyDictionary<string, string> c) =>
         SpecKey(Cell(c, "ItemCode"), Cell(c, "TestCode"), Cell(c, "ParameterName"), Cell(c, "ProductionStageRole"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Specifications.AsNoTracking()
             .Include(s => s.Item)
             .Include(s => s.HplcMethodAnalyte).ThenInclude(a => a!.HplcMethod)
@@ -79,11 +79,12 @@ public sealed class SpecificationsSheet : SheetHandler
     public override async Task<CreatedRecord> CreateAsync(RowReader r, ImportContext ctx)
     {
         var itemCode = r.Text("ItemCode");
-        var itemId = await ctx.Db.Items.Where(i => i.Code == itemCode).Select(i => (int?)i.Id).FirstOrDefaultAsync()
+        var itemId = await ctx.Db.Items.Where(i => i.Code.ToLower() == itemCode.ToLower()).Select(i => (int?)i.Id).FirstOrDefaultAsync()
             ?? throw new RowError("ItemCode", $"No item with code '{itemCode}'. Add it on the Items sheet.");
-        var testCode = r.Text("TestCode");
-        if (!await ctx.Db.TestDefinitions.AnyAsync(t => t.Code == testCode))
-            throw new RowError("TestCode", $"No test definition with code '{testCode}'. Create it in Test Master first.");
+        var typedTest = r.Text("TestCode");
+        // Test Master's spelling of the code.
+        var testCode = await ctx.Db.TestDefinitions.Where(t => t.Code.ToLower() == typedTest.ToLower()).Select(t => t.Code).FirstOrDefaultAsync()
+            ?? throw new RowError("TestCode", $"No test definition with code '{typedTest}'. Create it in Test Master first.");
         var parameter = r.Text("ParameterName");
         var role = r.OptionalEnum<ProductionStageRole>("ProductionStageRole");
         var key = SpecKey(itemCode, testCode, parameter, role?.ToString());
@@ -126,7 +127,7 @@ public sealed class SpecificationsSheet : SheetHandler
                 }
                 catch (RowError e)
                 {
-                    throw new RowError(e.Column, $"{SpecificationStagesSheet.SheetName} row {row.RowNumber}: {e.Message}");
+                    throw new RowError(SpecificationStagesSheet.SheetName, row.RowNumber, e.Column, e.Message);
                 }
             })
             .ToList();
@@ -137,7 +138,7 @@ public sealed class SpecificationsSheet : SheetHandler
     {
         if (text is null) return null;
         var (abbr, name) = Split(text, "HplcAnalyte");
-        return await db.HplcMethodAnalytes.Where(a => a.HplcMethod!.Abbreviation == abbr && a.Name == name).Select(a => (int?)a.Id).FirstOrDefaultAsync()
+        return await db.HplcMethodAnalytes.Where(a => a.HplcMethod!.Abbreviation.ToLower() == abbr.ToLower() && a.Name.ToLower() == name.ToLower()).Select(a => (int?)a.Id).FirstOrDefaultAsync()
             ?? throw new RowError("HplcAnalyte", $"No HPLC method '{abbr}' with analyte '{name}'.");
     }
 
@@ -145,7 +146,7 @@ public sealed class SpecificationsSheet : SheetHandler
     {
         if (text is null) return null;
         var (abbr, symbol) = Split(text, "IcpElement");
-        return await db.IcpMethodElements.Where(e => e.IcpMethod!.Abbreviation == abbr && e.Symbol == symbol).Select(e => (int?)e.Id).FirstOrDefaultAsync()
+        return await db.IcpMethodElements.Where(e => e.IcpMethod!.Abbreviation.ToLower() == abbr.ToLower() && e.Symbol.ToLower() == symbol.ToLower()).Select(e => (int?)e.Id).FirstOrDefaultAsync()
             ?? throw new RowError("IcpElement", $"No ICP method '{abbr}' with element '{symbol}'.");
     }
 
@@ -178,7 +179,7 @@ public sealed class SpecificationStagesSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => ParentKey(c) + "|" + Key(Cell(c, "StageNumber"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.SpecificationStages.AsNoTracking().Include(s => s.Specification).ThenInclude(s => s!.Item)
             .OrderBy(s => s.Specification!.Item!.Code).ThenBy(s => s.Specification!.TestCode).ThenBy(s => s.StageNumber)
             .ToListAsync())
@@ -198,7 +199,15 @@ public sealed class SpecificationStagesSheet : SheetHandler
             ["ProductionStageRole"] = r.OptionalText("ProductionStageRole") ?? string.Empty,
         });
         if (!ctx.CreatedSpecifications.TryGetValue(parent, out var specId))
-            throw new RowError(null, "Stages load only together with a new row on the Specifications sheet. To change the stages of an existing specification, use the Specifications screen.");
+        {
+            // Its specification row is in this workbook but failed: point at
+            // that failure instead of sending the lab looking for a row.
+            var specRow = ctx.Sheet(SpecificationsSheet.SheetName)?.Rows
+                .FirstOrDefault(row => SpecificationStagesSheet.ParentKey(row.Cells) == parent);
+            throw new RowError(null, specRow is not null
+                ? $"Not loaded because its specification (Specifications row {specRow.RowNumber}) was not loaded. Fix the errors listed for that row or for its stage rows."
+                : "Stages load only together with a new row on the Specifications sheet. To change the stages of an existing specification, use the Specifications screen.");
+        }
 
         var stageNumber = r.RequiredInt("StageNumber");
         var id = await ctx.Db.SpecificationStages

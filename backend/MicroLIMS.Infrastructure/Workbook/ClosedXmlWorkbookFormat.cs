@@ -12,7 +12,12 @@ public class ClosedXmlWorkbookFormat : IWorkbookFormat
 {
     public const string InstructionsSheet = "Instructions";
     public const string ListsSheet = "Lists";
-    private const int ValidatedRows = 5000;
+    // Drop-downs cover the existing rows plus this many new rows (the
+    // load limit, MasterDataWorkbookRunner.MaxDataRows).
+    private const int ValidatedRows = MasterDataWorkbookRunner.MaxDataRows;
+
+    private static int LastValidatedRow(WorkbookContent content, string sheet) =>
+        1 + (content.Sheets.FirstOrDefault(s => s.Name == sheet)?.Rows.Count ?? 0) + ValidatedRows;
 
     public byte[] Write(WorkbookContent content)
     {
@@ -47,7 +52,7 @@ public class ClosedXmlWorkbookFormat : IWorkbookFormat
             var target = wb.Worksheets.FirstOrDefault(w => w.Name == choice.Sheet);
             var col = ColumnIndex(content, choice.Sheet, choice.Column);
             if (target is null || col is null) continue;
-            var range = target.Range(2, col.Value, ValidatedRows + 1, col.Value);
+            var range = target.Range(2, col.Value, LastValidatedRow(content, choice.Sheet), col.Value);
 
             if (choice.Values is { Count: > 0 } values)
             {
@@ -61,7 +66,7 @@ public class ClosedXmlWorkbookFormat : IWorkbookFormat
                 var source = wb.Worksheets.FirstOrDefault(w => w.Name == choice.SourceSheet);
                 var sourceCol = ColumnIndex(content, choice.SourceSheet, choice.SourceColumn);
                 if (source is null || sourceCol is null) continue;
-                range.CreateDataValidation().List(source.Range(2, sourceCol.Value, ValidatedRows + 1, sourceCol.Value), true);
+                range.CreateDataValidation().List(source.Range(2, sourceCol.Value, LastValidatedRow(content, choice.SourceSheet), sourceCol.Value), true);
             }
         }
         lists.Visibility = XLWorksheetVisibility.Hidden;

@@ -48,7 +48,9 @@ public abstract class SheetHandler
     public abstract string KeyOf(IReadOnlyDictionary<string, string> cells);
 
     // Every current database record of this type, as workbook rows.
-    public abstract Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db);
+    // sectionScope (from IUserSectionScopeService; null = all sections)
+    // limits section-owned records to the ones the user may see.
+    public abstract Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope);
 
     // Creates the record through the existing service. Throws RowError
     // (or whatever the service throws) when the row cannot be created.

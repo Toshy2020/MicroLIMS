@@ -23,7 +23,7 @@ public sealed class OrganismsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "ScientificName"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Organisms.AsNoTracking().OrderBy(o => o.ScientificName).ToListAsync())
         .Select(o => new Dictionary<string, string>
         {
@@ -53,7 +53,7 @@ public sealed class ProductionStagesSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Name"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.ProductionStages.AsNoTracking().OrderBy(s => s.Name).ToListAsync())
         .Select(s => new Dictionary<string, string> { ["Name"] = s.Name, ["Role"] = s.Role.ToString() }).ToList();
 
@@ -79,7 +79,7 @@ public sealed class EmDepartmentsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Name"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Departments.AsNoTracking().OrderBy(d => d.Name).ToListAsync())
         .Select(d => new Dictionary<string, string> { ["Name"] = d.Name, ["Class"] = d.Class, ["TestingFrequency"] = d.TestingFrequency }).ToList();
 
@@ -106,7 +106,7 @@ public sealed class EmRoomsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Department"), Cell(c, "Name"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Rooms.AsNoTracking().Include(r => r.Department).OrderBy(r => r.Department!.Name).ThenBy(r => r.Name).ToListAsync())
         .Select(r => new Dictionary<string, string>
         {
@@ -136,7 +136,7 @@ public sealed class WaterDepartmentsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Name"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.WaterDepartments.AsNoTracking().OrderBy(d => d.Name).ToListAsync())
         .Select(d => new Dictionary<string, string> { ["Name"] = d.Name }).ToList();
 
@@ -164,7 +164,7 @@ public sealed class WaterPointsSheet : SheetHandler
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
 
-    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db) =>
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.WaterSamplingPoints.AsNoTracking().Include(p => p.WaterDepartment).OrderBy(p => p.Code).ToListAsync())
         .Select(p => new Dictionary<string, string>
         {
@@ -180,12 +180,15 @@ public sealed class WaterPointsSheet : SheetHandler
                 ?? throw new RowError("WaterDepartment", $"No water department named '{deptName}'.");
 
         var codes = r.List("TestCodes");
-        var known = await ctx.Db.TestDefinitions.Where(t => codes.Contains(t.Code)).Select(t => t.Code).ToListAsync();
-        if (codes.Except(known).FirstOrDefault() is { } missing)
+        var lowered = codes.Select(c => c.ToLower()).ToList();
+        var known = await ctx.Db.TestDefinitions.Where(t => lowered.Contains(t.Code.ToLower())).Select(t => t.Code).ToListAsync();
+        if (codes.FirstOrDefault(c => !known.Contains(c, StringComparer.OrdinalIgnoreCase)) is { } missing)
             throw new RowError("TestCodes", $"No test definition with code '{missing}'.");
 
+        // Stored with Test Master's spelling of each code.
+        var canonical = codes.Select(c => known.First(k => k.Equals(c, StringComparison.OrdinalIgnoreCase))).ToList();
         var created = await _service.CreateWaterSamplingPointAsync(new CreateWaterSamplingPointRequest(
-            r.Text("Code"), r.Text("Location"), r.OptionalText("TestingFrequency") ?? string.Empty, codes.ToList(), deptId));
+            r.Text("Code"), r.Text("Location"), r.OptionalText("TestingFrequency") ?? string.Empty, canonical, deptId));
         return Created("WaterSamplingPoint", created.Id, r);
     }
 }

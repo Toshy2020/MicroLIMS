@@ -21,6 +21,9 @@ public class MasterDataWorkbookService
 {
     public const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     public const long MaxFileBytes = 10 * 1024 * 1024;
+    // Column sizes of MasterDataImport (MasterDataImportConfiguration).
+    private const int MaxFileNameLength = 260;
+    private const int MaxCommentLength = 2000;
 
     private readonly IMicroLimsDbContext _db;
     private readonly IWorkbookFormat _format;
@@ -59,8 +62,11 @@ public class MasterDataWorkbookService
         _runner = new MasterDataWorkbookRunner(db, _sheets);
     }
 
-    public async Task<(byte[] Content, string FileName)> DownloadAsync()
+    // System administrators get every section's records; everyone else
+    // only the sections they belong to.
+    public async Task<(byte[] Content, string FileName)> DownloadAsync(int userId)
     {
+        var scope = await new UserSectionScopeService(_db).GetAccessibleSectionIdsAsync(userId);
         var sheets = new List<WorkbookSheet>();
         var choices = new List<WorkbookColumnChoices>();
         var help = new List<WorkbookInstructionRow>();
@@ -68,7 +74,7 @@ public class MasterDataWorkbookService
         foreach (var handler in _sheets)
         {
             var columns = handler.Columns.Select(c => c.Name).ToList();
-            var rows = (await handler.ExportAsync(_db))
+            var rows = (await handler.ExportAsync(_db, scope))
                 .Select((cells, i) => new WorkbookRow(i + 2, cells))
                 .ToList();
             sheets.Add(new WorkbookSheet(handler.Name, columns, rows));
@@ -119,6 +125,10 @@ public class MasterDataWorkbookService
     // error rolls the whole load back - nothing is half-loaded.
     public async Task<MasterDataImportResult> ImportAsync(byte[] file, string fileName, int userId, string password, string? comment, string? ipAddress)
     {
+        fileName = Path.GetFileName(fileName);
+        if (fileName.Length > MaxFileNameLength)
+            throw new InvalidOperationException($"The file name is longer than {MaxFileNameLength} characters. Rename the file and try again.");
+        CheckCommentLength(comment);
         var sheets = ReadSheets(file);
         try
         {
@@ -127,7 +137,7 @@ public class MasterDataWorkbookService
                 _db.CurrentUserId = userId;
                 var import = new MasterDataImport
                 {
-                    FileName = Path.GetFileName(fileName),
+                    FileName = fileName,
                     FileSha256 = Convert.ToHexString(SHA256.HashData(file)),
                     ImportedByUserId = userId,
                     ImportedAt = _time.GetUtcNow().UtcDateTime,
@@ -179,6 +189,7 @@ public class MasterDataWorkbookService
     // material master entries it created.
     public async Task<MasterDataImportDto> VerifyAsync(int id, int userId, string password, string? comment, string? ipAddress)
     {
+        CheckCommentLength(comment);
         await UnitOfWork.RunAsync(_db, async () =>
         {
             var import = await _db.MasterDataImports.Include(i => i.Records).FirstOrDefaultAsync(i => i.Id == id)
@@ -187,6 +198,19 @@ public class MasterDataWorkbookService
                 throw new InvalidOperationException("This load has already been verified.");
             if (import.ImportedByUserId == userId)
                 throw new InvalidOperationException("The person who loaded the workbook cannot verify it. Ask a second person.");
+
+            // The verifier must be able to see what they verify: material
+            // master entries belong to lab sections. Checked before signing.
+            var scope = await new UserSectionScopeService(_db).GetAccessibleSectionIdsAsync(userId);
+            if (scope is not null)
+            {
+                var entryIds = import.Records.Where(r => r.EntityType == "MaterialMasterEntry").Select(r => r.EntityId).ToList();
+                var outside = await _db.MaterialMasterEntries.Where(e => entryIds.Contains(e.Id) && !scope.Contains(e.SectionId))
+                    .Select(e => e.Section!.Code).Distinct().OrderBy(c => c).ToListAsync();
+                if (outside.Count > 0)
+                    throw new InvalidOperationException(
+                        $"This load added material master entries to lab section(s) you are not a member of: {string.Join(", ", outside)}. Ask a Section Head of that section to verify it.");
+            }
 
             _db.CurrentUserId = userId;
             await _signatures.SignAsync(userId, password, SignatureMeaning.Reviewed,
@@ -219,7 +243,8 @@ public class MasterDataWorkbookService
     private async Task<List<MasterDataImportDto>> LoadDtosAsync(System.Linq.Expressions.Expression<Func<MasterDataImport, bool>> filter)
     {
         var imports = await _db.MasterDataImports.AsNoTracking()
-            .Include(i => i.ImportedByUser).Include(i => i.VerifiedByUser).Include(i => i.Records)
+            .Include(i => i.ImportedByUser).Include(i => i.VerifiedByUser)
+            .Include(i => i.Records.Where(r => r.EntityType == "Item")) // only items are listed
             .Where(filter).OrderByDescending(i => i.ImportedAt).ToListAsync();
 
         var itemIds = imports.SelectMany(i => i.Records).Where(r => r.EntityType == "Item").Select(r => r.EntityId).Distinct().ToList();
@@ -233,6 +258,12 @@ public class MasterDataWorkbookService
             JsonSerializer.Deserialize<List<WorkbookSheetSummary>>(i.SummaryJson) ?? new List<WorkbookSheetSummary>(),
             withoutSpecs.Where(w => i.Records.Any(r => r.EntityType == "Item" && r.EntityId == w.Id)).Select(w => w.Code).ToList()))
             .ToList();
+    }
+
+    private static void CheckCommentLength(string? comment)
+    {
+        if (comment?.Trim().Length > MaxCommentLength)
+            throw new InvalidOperationException($"The comment is longer than {MaxCommentLength} characters. Shorten it and sign again.");
     }
 
     internal IReadOnlyList<WorkbookSheet> ReadSheets(byte[] file)

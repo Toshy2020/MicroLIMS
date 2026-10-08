@@ -85,7 +85,7 @@ export function MasterDataWorkbookPage() {
             </Button>
             <Typography variant="body2">{file?.name ?? "No file chosen"}</Typography>
             <Button variant="contained" disabled={!file || busy} onClick={check}>{busy ? "Checking..." : "Check file"}</Button>
-            <Button variant="contained" color="success" disabled={!canLoad(report) || busy} onClick={() => setSigning("load")}>Load and sign</Button>
+            <Button variant="contained" color="success" disabled={!file || !canLoad(report) || busy} onClick={() => setSigning("load")}>Load and sign</Button>
           </Stack>
           {report && <Stack sx={{ mt: 2 }}><WorkbookReportTable report={report} /></Stack>}
         </Paper>

@@ -102,17 +102,17 @@ The step-by-step instructions for lab users are in ML-SOP-MDW-001. In outline:
 1. **Prepare** the workbook from the approved source documents: specifications, SOPs, the equipment list, the media list, and the EM and water sampling plans. Download the workbook from MicroLIMS and add the new rows to it.
 2. **Check** the file in MicroLIMS (*Check file*). This is a dry run: everything a load would do is done and then rolled back. Fix every error listed.
 3. **Load and sign.** A user with the Master Data Manage permission (Section Head or System Administrator) loads the workbook and signs (signature meaning: *master data changed*). If any row has an error, nothing is loaded. Items and material master entries are created **inactive**.
-4. **Verify.** A **second person** with the same permission compares the load with the source documents and signs *Verify* (signature meaning: *reviewed*). This activates the items and material master entries. The person who loaded the workbook cannot verify it; the system refuses.
+4. **Verify.** A **second person** with the same permission compares the load with the source documents and signs *Verify* (signature meaning: *reviewed*). This activates the items and material master entries. The system refuses a verification by the person who loaded the workbook. It also refuses, before signing, a verifier who is not a member of a lab section the load added material master entries to.
 5. **Approve.** The Process Owner(s) and QA approve the workbook. Its file name and SHA-256 hash are recorded in §8.
 
 Test definitions and methods (§3.2) must exist before the Specifications sheet can be loaded. The workbook is therefore usually loaded twice: sheets 1–10 first, then the specifications.
 
 ## 5. Moving configuration from VAL to PROD
 
-1. In VAL, download the master data workbook once the configuration there is approved. This file is the approved workbook. Record its hash in §8.
+1. In VAL, a **System Administrator** downloads the master data workbook once the configuration there is approved. Only a System Administrator's download contains every lab section's material master entries; a Section Head's download contains only their own sections. This file is the approved workbook. Record its hash in §8.
 2. In PROD, configure the screen-based records of §3.2 the same way as in VAL, from the approved printouts.
 3. In PROD, run *Check file* with the approved workbook. **Attach the report showing 0 errors** as IQ evidence.
-4. Load and sign, then a second person verifies, as in §4.
+4. A System Administrator loads and signs. A second person verifies, as in §4: a second System Administrator, or a Section Head who is a member of every section the load added material master entries to.
 5. **Acceptance:** the hash on the PROD import record equals the approved hash recorded in §8. Any difference is a deviation.
 
 Do not edit the approved workbook between VAL and PROD. Any change makes a new version, which needs approval again.

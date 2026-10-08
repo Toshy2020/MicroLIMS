@@ -33,25 +33,28 @@ public sealed class MasterDataWorkbookRunner
         foreach (var unknown in sheets.Where(s => _sheets.All(h => !h.Name.Equals(s.Name, StringComparison.OrdinalIgnoreCase))))
             errors.Add(new WorkbookRowError(unknown.Name, 1, null, $"Unknown sheet '{unknown.Name}'. Use the sheets of the downloaded workbook."));
 
-        var rowCount = sheets.Sum(s => s.Rows.Count);
-        if (rowCount > MaxDataRows)
-        {
-            errors.Add(new WorkbookRowError(string.Empty, 0, null, $"The workbook has {rowCount} rows; the limit is {MaxDataRows}. Split it into several uploads."));
-            return (new WorkbookReport(summaries, errors), created);
-        }
-
         _db.CurrentUserId = userId;
         var ctx = new ImportContext(_db, userId, sheets);
 
         // What existed BEFORE this load - computed up front, so rows created
         // by an earlier sheet (e.g. stages created with their specification)
-        // are not mistaken for pre-existing ones.
+        // are not mistaken for pre-existing ones. Only sheets in the upload
+        // are read, and unscoped: existence is checked across all sections.
         var existing = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
-        foreach (var handler in _sheets)
-            existing[handler.Name] = (await handler.ExportAsync(_db))
+        foreach (var handler in _sheets.Where(h => ctx.Sheet(h.Name) is not null))
+            existing[handler.Name] = (await handler.ExportAsync(_db, sectionScope: null))
                 .GroupBy(handler.KeyOf)
                 .ToDictionary(g => g.Key, g => g.First());
         _db.ChangeTracker.Clear();
+
+        // The limit is on NEW rows: a downloaded workbook lists every
+        // existing record, and those cost only a comparison.
+        var newRows = existing.Sum(e => ctx.Sheet(e.Key)!.Rows.Count(r => !e.Value.ContainsKey(_sheets.First(h => h.Name == e.Key).KeyOf(r.Cells))));
+        if (newRows > MaxDataRows)
+        {
+            errors.Add(new WorkbookRowError(string.Empty, 0, null, $"The workbook has {newRows} new rows; the limit is {MaxDataRows}. Split it into several uploads."));
+            return (new WorkbookReport(summaries, errors), created);
+        }
 
         foreach (var handler in _sheets)
         {
@@ -99,7 +102,8 @@ public sealed class MasterDataWorkbookRunner
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
                     await tx.RollbackToSavepointAsync(Savepoint);
-                    errors.Add(new WorkbookRowError(sheet.Name, row.RowNumber, (e as RowError)?.Column, MessageOf(e)));
+                    var rowError = e as RowError;
+                    errors.Add(new WorkbookRowError(rowError?.Sheet ?? sheet.Name, rowError?.Row ?? row.RowNumber, rowError?.Column, MessageOf(e)));
                 }
                 finally
                 {

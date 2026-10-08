@@ -42,7 +42,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         db.Organisms.Add(new Organism { ScientificName = "Dl organism " + tag });
         await db.SaveChangesAsync();
 
-        var (content, fileName) = await Service(db).DownloadAsync();
+        var (content, fileName) = await Service(db).DownloadAsync((await AdminAsync(db)).Id);
 
         Assert.EndsWith(".xlsx", fileName);
         using var wb = new XLWorkbook(new MemoryStream(content));
@@ -239,7 +239,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         var tag = Guid.NewGuid().ToString("N")[..8];
         await Service(db).ImportAsync(ItemWorkbook(tag), "x.xlsx", admin.Id, Password, null, null);
 
-        var (export, _) = await Service(db).DownloadAsync();
+        var (export, _) = await Service(db).DownloadAsync(admin.Id);
         var report = await Service(db).ValidateAsync(export, admin.Id);
 
         Assert.False(report.HasErrors, string.Join("\n", report.Errors.Select(e => $"{e.Sheet} {e.Row} {e.Column}: {e.Message}")));
@@ -315,5 +315,118 @@ public class MasterDataWorkbookPostgresIntegrationTests
         var e = Assert.Single(report.Errors);
         Assert.Equal("SectionCode", e.Column);
         Assert.Contains("not a member", e.Message);
+    }
+
+    private static byte[] MicroReagentWorkbook(string tag) => Workbook(("MaterialMaster", new[]
+    {
+        R(("SectionCode", "MICRO"), ("Code", "RG-" + tag), ("Name", "Reagent " + tag), ("Category", "Reagent"), ("BaseUnit", "Gram")),
+    }));
+
+    [PostgresFact]
+    public async Task Verify_ByUserOutsideTheEntrySection_IsRefusedBeforeSigning()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var loader = await AdminAsync(db);
+        var outsider = await AdminAsync(db, RoleType.SectionHead); // no memberships
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        var result = await Service(db).ImportAsync(MicroReagentWorkbook(tag), "x.xlsx", loader.Id, Password, null, null);
+        Assert.True(result.Committed, string.Join("\n", result.Report.Errors.Select(e => e.Message)));
+
+        var e = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Service(db).VerifyAsync(result.Import!.Id, outsider.Id, Password, null, null));
+
+        Assert.Contains("MICRO", e.Message);
+        await using var fresh = _fixture.CreateDbContext();
+        Assert.False(await fresh.ElectronicSignatures.AnyAsync(s => s.EntityType == "MasterDataImport" && s.UserId == outsider.Id));
+    }
+
+    [PostgresFact]
+    public async Task Download_BySectionHead_HasOnlyTheirSectionsMaterialMaster()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var outsider = await AdminAsync(db, RoleType.SectionHead); // no memberships
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        var load = await Service(db).ImportAsync(MicroReagentWorkbook(tag), "x.xlsx", admin.Id, Password, null, null);
+        Assert.True(load.Committed, string.Join(" | ", load.Report.Errors.Select(e => e.Message)));
+
+        bool Lists(byte[] content)
+        {
+            using var wb = new XLWorkbook(new MemoryStream(content));
+            return wb.Worksheet("MaterialMaster").Column(2).CellsUsed().Any(c => c.GetString().Equals("RG-" + tag, StringComparison.OrdinalIgnoreCase));
+        }
+
+        Assert.True(Lists((await Service(db).DownloadAsync(admin.Id)).Content));
+        Assert.False(Lists((await Service(db).DownloadAsync(outsider.Id)).Content));
+    }
+
+    [PostgresFact]
+    public async Task Validate_RowLimit_CountsOnlyNewRows()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        db.Organisms.Add(new Organism { ScientificName = "Many " + tag });
+        await db.SaveChangesAsync();
+
+        // More rows than the limit, all naming one existing organism.
+        var rows = Enumerable.Range(0, MasterDataWorkbookRunner.MaxDataRows + 1)
+            .Select(_ => R(("ScientificName", "Many " + tag))).ToArray();
+        var report = await Service(db).ValidateAsync(Workbook(("Organisms", rows)), admin.Id);
+
+        Assert.DoesNotContain(report.Errors, e => e.Message.Contains("the limit is"));
+        Assert.Equal(1, report.Sheets.Single().Unchanged);
+    }
+
+    [PostgresFact]
+    public async Task Validate_CodesInAnotherCase_StillMatch()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        db.TestDefinitions.Add(new TestDefinition { Code = "AS-" + tag, DisplayName = "Assay " + tag, SectionId = _fixture.SeededSectionId, IsActive = true });
+        await db.SaveChangesAsync();
+
+        var report = await Service(db).ValidateAsync(Workbook(
+            ("Items", new[] { R(("Code", "IT-" + tag), ("Name", "Item " + tag), ("Category", "RawMaterial"), ("TestCodes", "as-" + tag.ToLowerInvariant())) }),
+            ("Specifications", new[] { R(("ItemCode", "it-" + tag.ToLowerInvariant()), ("TestCode", "as-" + tag.ToLowerInvariant()),
+                ("ParameterName", "Assay"), ("LimitType", "Range"), ("LowerLimit", "95"), ("UpperLimit", "105")) })), admin.Id);
+
+        Assert.False(report.HasErrors, string.Join("\n", report.Errors.Select(e => $"{e.Sheet} {e.Row} {e.Column}: {e.Message}")));
+    }
+
+    [PostgresFact]
+    public async Task Import_TooLongComment_IsRefusedWithAMessage()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+
+        var e = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Service(db).ImportAsync(ItemWorkbook(tag), "x.xlsx", admin.Id, Password, new string('c', 2001), null));
+
+        Assert.Contains("comment", e.Message);
+        Assert.False(await db.Items.AnyAsync(i => i.Code == "IT-" + tag));
+    }
+
+    [PostgresFact]
+    public async Task Validate_BadStageRow_IsReportedOnTheStageSheet()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        db.TestDefinitions.Add(new TestDefinition { Code = "MS-" + tag, DisplayName = "Staged " + tag, SectionId = _fixture.SeededSectionId, IsActive = true });
+        await db.SaveChangesAsync();
+
+        var report = await Service(db).ValidateAsync(Workbook(
+            ("Items", new[] { R(("Code", "FP-" + tag), ("Name", "Tablet " + tag), ("Category", "FinishedProduct"), ("TestCodes", "MS-" + tag)) }),
+            ("Specifications", new[] { R(("ItemCode", "FP-" + tag), ("TestCode", "MS-" + tag), ("ParameterName", "Staged"), ("LimitType", "MultiStage")) }),
+            ("SpecificationStages", new[]
+            {
+                R(("ItemCode", "FP-" + tag), ("TestCode", "MS-" + tag), ("ParameterName", "Staged"), ("StageNumber", "1"), ("StageLabel", ""), ("AcceptanceCriteria", "x")),
+            })), admin.Id);
+
+        Assert.Contains(report.Errors, e => (e.Sheet, e.Row, e.Column) == ("SpecificationStages", 2, "StageLabel"));
+        Assert.DoesNotContain(report.Errors, e => e.Sheet == "Specifications");
     }
 }

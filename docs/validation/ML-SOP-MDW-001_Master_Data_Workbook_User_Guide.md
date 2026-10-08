@@ -14,6 +14,7 @@
 - Loading the workbook and verifying a load need the **Master Data Manage** permission. Section Heads and System Administrators have it.
 - **Two people are always needed.** One person loads the workbook and signs. A **second person** checks the load against the source documents and signs *Verify*. MicroLIMS refuses a verification by the person who loaded the workbook.
 - You can only add records for **your own lab sections**. For example, a Physicochemical Section Head cannot load Microbiology specifications or Microbiology equipment. Ask a Section Head of that lab.
+- The verifier must also be a member of every lab section the load added material master entries to. System Administrators can verify any load.
 - Both signatures use your own MicroLIMS password. Never sign for someone else.
 
 ## 2. Gather the sources
@@ -36,7 +37,9 @@ Every row you add must come from one of these documents. The second person check
 2. Click **Download workbook**. The file is named `MicroLIMS-master-data-<date>.xlsx`.
 3. Open it in Excel and read the **Instructions** sheet first.
 
-The workbook already lists every record that is in MicroLIMS. **Do not change or delete those rows.** Add your new rows underneath them.
+The workbook already lists every record that is in MicroLIMS. On the MaterialMaster sheet, a Section Head sees only the entries of their own sections; a System Administrator sees all of them. **Do not change or delete the listed rows.** Add your new rows underneath them.
+
+The limit per upload is **5,000 new rows**. Rows that are already in MicroLIMS do not count towards it.
 
 ## 4. Fill sheets 1–10
 
@@ -289,7 +292,7 @@ Use `MultiStage` for tests whose acceptance criteria are written per stage, othe
 
 ## 9. Second person: verify the load
 
-1. Sign in as yourself. You must not be the person who loaded the workbook.
+1. Sign in as yourself. You must not be the person who loaded the workbook. If the load added material master entries, you must be a member of their lab sections (or a System Administrator). Otherwise MicroLIMS refuses before you sign.
 2. Open **General Laboratory Configuration → Master Data Workbook**. Under **Loads and verification**, find the load marked **Waiting for verification**.
 3. Click the file name to download the loaded workbook. Compare **every new row** with the source documents from step 2. *New records* shows how many rows were added.
 4. If everything is correct, click **Verify**, enter a comment (for example "checked against SPEC-xxx rev. n") and your password, and click **Sign**. The status becomes **Verified by** *your name*. The items and material master entries from that load become active.

@@ -47,7 +47,10 @@ once; rows already loaded are reported as "unchanged".
    that a service rejects records the service's message against that sheet and
    row; the load continues to collect every error, then rolls back. The data
    layer already joins an outer transaction (`MicroLimsDbContext.SaveChangesAsync`,
-   `UnitOfWork`), and audit rows are written inside it.
+   `UnitOfWork`), and audit rows are written inside it. Each row runs inside
+   its own savepoint: a row that fails is rolled back to that savepoint and
+   the change tracker is cleared, so a PostgreSQL error on one row cannot
+   abort the transaction for the rest.
 2. **References by code or name, never by database id.** Item code, test code,
    section code, department name, `Method / Analyte`. Resolved after earlier
    sheets have been created in the same transaction, so a workbook can
@@ -69,12 +72,18 @@ once; rows already loaded are reported as "unchanged".
    checking the import, signs `Reviewed` on the import, and that activates
    them. Samples cannot be received against an inactive item, so its
    specifications cannot be used before verification. The same user who
-   committed cannot verify (`SegregationOfDutiesGuard`). Organisms, rooms,
+   committed cannot verify: the service compares the verifier's user id with
+   the importer's (the test-order `SegregationOfDutiesGuard` does not apply to
+   imports). The import history lists items from the import that have no
+   specification yet, so the verifier can see when verification would release
+   an item without limits. Organisms, rooms,
    departments, water points, media products, stages and equipment are
    active at once; they are only used through items, tests or later screens.
-7. **Export.** "Download current data" writes the same workbook from the
-   database. Its sheets 1–12 round-trip: re-uploading an export gives all
-   "unchanged".
+7. **One download, not two.** "Download workbook" returns the current data
+   in the template format; on an empty database it is the blank template.
+   Re-uploading it gives all "unchanged". Reference drop-downs point at the
+   referenced sheet's own column, so rows typed into the workbook can be
+   picked too.
 8. **Permission.** `MasterData.Manage` for template, export, dry run and
    commit; verification also needs `MasterData.Manage` and a different user.
 
@@ -82,8 +91,7 @@ once; rows already loaded are reported as "unchanged".
 
 | Method | Route | Does |
 |---|---|---|
-| GET | `api/masterdata/workbook/template` | Blank workbook with drop-downs |
-| GET | `api/masterdata/workbook/export` | Current data in the same format |
+| GET | `api/masterdata/workbook` | Current data in workbook format (blank template on an empty database) |
 | POST | `api/masterdata/workbook/validate` | Multipart file → dry run report (nothing saved) |
 | POST | `api/masterdata/workbook/import` | File + password + comment → commit, returns import record |
 | GET | `api/masterdata/workbook/imports` | Import history |

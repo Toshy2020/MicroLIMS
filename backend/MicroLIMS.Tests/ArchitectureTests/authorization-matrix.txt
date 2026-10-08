@@ -279,7 +279,11 @@ LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHea
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.ReplaceMemberships(Int32, ReplaceUserMembershipsRequest): SystemAdministrator
 MasterDataWorkbookController.Download(): SystemAdministrator,SectionHead
+MasterDataWorkbookController.GetFile(Int32): SystemAdministrator,SectionHead
+MasterDataWorkbookController.GetImports(): SystemAdministrator,SectionHead
+MasterDataWorkbookController.Import(IFormFile, String, String): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Validate(IFormFile): SystemAdministrator,SectionHead
+MasterDataWorkbookController.Verify(Int32, VerifyMasterDataImportRequest): SystemAdministrator,SectionHead
 MaterialController.Create(SaveMaterialHttpRequest): SystemAdministrator,SectionHead,Analyst
 MaterialController.GetAll(Nullable`1): SystemAdministrator,SectionHead,Analyst
 MaterialController.GetDefaultUnit(MaterialType): SystemAdministrator,SectionHead,Analyst

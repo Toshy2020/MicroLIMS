@@ -40,4 +40,28 @@ public class MasterDataWorkbookController : ControllerBase
         await file.CopyToAsync(ms);
         return ms.ToArray();
     }
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("import")]
+    [RequestSizeLimit(MasterDataWorkbookService.MaxFileBytes + 1024 * 1024)]
+    public async Task<IActionResult> Import(IFormFile file, [FromForm] string password, [FromForm] string? comment) =>
+        Ok(ApiResponse<object>.Ok(await _service.ImportAsync(await ReadAsync(file), file.FileName, CurrentUserId, password, comment, IpAddress)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpGet("imports")]
+    public async Task<IActionResult> GetImports() =>
+        Ok(ApiResponse<object>.Ok(await _service.GetImportsAsync()));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("imports/{id}/verify")]
+    public async Task<IActionResult> Verify(int id, VerifyMasterDataImportRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _service.VerifyAsync(id, CurrentUserId, request.Password, request.Comment, IpAddress)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpGet("imports/{id}/file")]
+    public async Task<IActionResult> GetFile(int id)
+    {
+        var (content, fileName) = await _service.GetFileAsync(id);
+        return File(content, MasterDataWorkbookService.XlsxContentType, fileName);
+    }
 }

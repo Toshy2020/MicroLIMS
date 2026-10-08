@@ -172,4 +172,131 @@ public class MasterDataWorkbookPostgresIntegrationTests
         var report = await Service(db).ValidateAsync(Workbook(("Sheet1", new[] { R(("A", "x")) })), admin.Id);
         Assert.Contains("Unknown sheet", Assert.Single(report.Errors).Message);
     }
+
+    private static byte[] ItemWorkbook(string tag) => Workbook(
+        ("MediaProducts", new[] { R(("Code", "P" + tag), ("Name", "Product " + tag)) }),
+        ("Items", new[] { R(("Code", "IT-" + tag), ("Name", "Item " + tag), ("Category", "RawMaterial"), ("TestCodes", "")) }));
+
+    [PostgresFact]
+    public async Task Commit_CreatesRowsSignatureRecordAndFile_ItemsInactive()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        var storage = new InMemoryFileStorageService();
+        var file = ItemWorkbook(tag);
+
+        var result = await Service(db, storage).ImportAsync(file, "lab.xlsx", admin.Id, Password, "initial load", "127.0.0.1");
+
+        Assert.True(result.Committed);
+        var import = await db.MasterDataImports.Include(i => i.Records).SingleAsync(i => i.Id == result.Import!.Id);
+        Assert.Equal("Loaded", result.Import!.Status);
+        Assert.Equal(2, import.Records.Count);
+        Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(file)), import.FileSha256);
+        Assert.Equal(file, storage.Files[import.StorageKey]);
+        Assert.False((await db.Items.SingleAsync(i => i.Code == "IT-" + tag)).IsActive);
+        Assert.True(await db.ElectronicSignatures.AnyAsync(s =>
+            s.EntityType == "MasterDataImport" && s.EntityId == import.Id && s.MeaningOfSignature == SignatureMeaning.MasterDataChanged));
+        Assert.Contains("IT-" + tag, result.Import.ItemsWithoutSpecifications);
+    }
+
+    [PostgresFact]
+    public async Task Commit_WithErrors_CreatesNothing()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+
+        var result = await Service(db).ImportAsync(Workbook(
+            ("MediaProducts", new[] { R(("Code", "Q" + tag), ("Name", "Ok " + tag)) }),
+            ("EmRooms", new[] { R(("Department", "No dept " + tag), ("Name", "R")) })), "x.xlsx", admin.Id, Password, null, null);
+
+        Assert.False(result.Committed);
+        Assert.True(result.Report.HasErrors);
+        Assert.False(await db.MediaProducts.AnyAsync(p => p.Code == "Q" + tag));
+    }
+
+    [PostgresFact]
+    public async Task Commit_WrongPassword_CreatesNothing()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+
+        await Assert.ThrowsAsync<MicroLIMS.Application.Interfaces.SignatureVerificationException>(() =>
+            Service(db).ImportAsync(ItemWorkbook(tag), "x.xlsx", admin.Id, "wrong", null, null));
+
+        await using var fresh = _fixture.CreateDbContext();
+        Assert.False(await fresh.Items.AnyAsync(i => i.Code == "IT-" + tag));
+        Assert.False(await fresh.MasterDataImports.AnyAsync(i => i.ImportedByUserId == admin.Id));
+    }
+
+    [PostgresFact]
+    public async Task ExportThenReimport_IsAllUnchanged()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        await Service(db).ImportAsync(ItemWorkbook(tag), "x.xlsx", admin.Id, Password, null, null);
+
+        var (export, _) = await Service(db).DownloadAsync();
+        var report = await Service(db).ValidateAsync(export, admin.Id);
+
+        Assert.False(report.HasErrors, string.Join("\n", report.Errors.Select(e => $"{e.Sheet} {e.Row} {e.Column}: {e.Message}")));
+        Assert.All(report.Sheets, s => Assert.Equal(0, s.Created));
+    }
+
+    [PostgresFact]
+    public async Task Verify_BySameUser_IsRefused()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var result = await Service(db).ImportAsync(ItemWorkbook(Guid.NewGuid().ToString("N")[..8]), "x.xlsx", admin.Id, Password, null, null);
+
+        var e = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Service(db).VerifyAsync(result.Import!.Id, admin.Id, Password, null, null));
+        Assert.Contains("cannot verify", e.Message);
+    }
+
+    [PostgresFact]
+    public async Task Verify_ByAnotherUser_ActivatesItems()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var loader = await AdminAsync(db);
+        var verifier = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        var result = await Service(db).ImportAsync(ItemWorkbook(tag), "x.xlsx", loader.Id, Password, null, null);
+
+        var verified = await Service(db).VerifyAsync(result.Import!.Id, verifier.Id, Password, "checked against spec sheets", null);
+
+        Assert.Equal("Verified", verified.Status);
+        await using var fresh = _fixture.CreateDbContext();
+        Assert.True((await fresh.Items.SingleAsync(i => i.Code == "IT-" + tag)).IsActive);
+        Assert.True(await fresh.ElectronicSignatures.AnyAsync(s =>
+            s.EntityType == "MasterDataImport" && s.EntityId == verified.Id && s.MeaningOfSignature == SignatureMeaning.Reviewed && s.UserId == verifier.Id));
+    }
+
+    [PostgresFact]
+    public async Task Specifications_WithStages_LoadTogether()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var admin = await AdminAsync(db);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        db.TestDefinitions.Add(new TestDefinition { Code = "DIS-" + tag, DisplayName = "Dissolution " + tag, SectionId = _fixture.SeededSectionId, IsActive = true });
+        await db.SaveChangesAsync();
+
+        var result = await Service(db).ImportAsync(Workbook(
+            ("Items", new[] { R(("Code", "FP-" + tag), ("Name", "Tablet " + tag), ("Category", "FinishedProduct"), ("TestCodes", "DIS-" + tag)) }),
+            ("Specifications", new[] { R(("ItemCode", "FP-" + tag), ("TestCode", "DIS-" + tag), ("ParameterName", "Dissolution"),
+                ("LimitType", "MultiStage"), ("Unit", "%")) }),
+            ("SpecificationStages", new[]
+            {
+                R(("ItemCode", "FP-" + tag), ("TestCode", "DIS-" + tag), ("ParameterName", "Dissolution"), ("StageNumber", "1"), ("StageLabel", "S1"), ("AcceptanceCriteria", "Each unit not less than Q+5%")),
+                R(("ItemCode", "FP-" + tag), ("TestCode", "DIS-" + tag), ("ParameterName", "Dissolution"), ("StageNumber", "2"), ("StageLabel", "S2"), ("AcceptanceCriteria", "Average not less than Q")),
+            })), "x.xlsx", admin.Id, Password, null, null);
+
+        Assert.True(result.Committed, string.Join("\n", result.Report.Errors.Select(e => $"{e.Sheet} {e.Row} {e.Column}: {e.Message}")));
+        Assert.Equal(2, result.Report.Sheets.Single(s => s.Sheet == "SpecificationStages").Created);
+        Assert.Empty(result.Import!.ItemsWithoutSpecifications);
+    }
 }

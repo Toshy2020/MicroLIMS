@@ -1,9 +1,15 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Abstractions.Workbook;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services.MasterData;
+using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Exceptions;
 
 namespace MicroLIMS.Application.Services.MasterDataWorkbook;
 
@@ -99,6 +105,134 @@ public class MasterDataWorkbookService
             await tx.RollbackAsync();
             _db.ChangeTracker.Clear();
         }
+    }
+
+    private sealed class RejectedException : Exception
+    {
+        public RejectedException(WorkbookReport report) { Report = report; }
+        public WorkbookReport Report { get; }
+    }
+
+    // Signed load. The import record is signed FIRST, so a wrong password
+    // fails before any row is touched; UnitOfWork keeps the refused
+    // attempt on record even though everything else rolls back. Any row
+    // error rolls the whole load back - nothing is half-loaded.
+    public async Task<MasterDataImportResult> ImportAsync(byte[] file, string fileName, int userId, string password, string? comment, string? ipAddress)
+    {
+        var sheets = ReadSheets(file);
+        try
+        {
+            var importId = await UnitOfWork.RunAsync(_db, async () =>
+            {
+                _db.CurrentUserId = userId;
+                var import = new MasterDataImport
+                {
+                    FileName = Path.GetFileName(fileName),
+                    FileSha256 = Convert.ToHexString(SHA256.HashData(file)),
+                    ImportedByUserId = userId,
+                    ImportedAt = _time.GetUtcNow().UtcDateTime,
+                    Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
+                    Status = MasterDataImportStatus.Loaded,
+                };
+                _db.MasterDataImports.Add(import);
+                await _db.SaveChangesAsync();
+
+                await _signatures.SignAsync(userId, password, SignatureMeaning.MasterDataChanged,
+                    ReviewEntityTypes.MasterDataImport, import.Id, import.Comment ?? $"Loaded {import.FileName}", ipAddress);
+                await _db.SaveChangesAsync();
+                var id = import.Id;
+
+                var (report, created) = await _runner.RunAsync(sheets, userId);
+                if (report.HasErrors)
+                    throw new RejectedException(report);
+
+                // ponytail: the file is stored before the final commit; if
+                // that commit then fails, the stored copy is orphaned (no row
+                // points at it). Harmless, and rare.
+                var key = await _storage.SaveAsync(
+                    $"master-data-imports/{_time.GetUtcNow().UtcDateTime:yyyyMMddHHmmss}_{Guid.NewGuid():N}.xlsx", file);
+
+                var saved = await _db.MasterDataImports.FirstAsync(i => i.Id == id);
+                saved.StorageKey = key;
+                saved.SummaryJson = JsonSerializer.Serialize(report.Sheets);
+                _db.MasterDataImportRecords.AddRange(created.Select(c => new MasterDataImportRecord
+                {
+                    MasterDataImportId = id, EntityType = c.EntityType, EntityId = c.EntityId, Sheet = c.Sheet, RowNumber = c.RowNumber,
+                }));
+                await _db.SaveChangesAsync();
+                return id;
+            });
+
+            var dto = (await LoadDtosAsync(i => i.Id == importId)).Single();
+            return new MasterDataImportResult(true, new WorkbookReport(dto.Sheets, Array.Empty<WorkbookRowError>()), dto);
+        }
+        catch (RejectedException rejected)
+        {
+            return new MasterDataImportResult(false, rejected.Report, null);
+        }
+    }
+
+    public Task<List<MasterDataImportDto>> GetImportsAsync() => LoadDtosAsync(_ => true);
+
+    // Second-person verification: a different user checks the load against
+    // the approved source documents and signs; that activates the items and
+    // material master entries it created.
+    public async Task<MasterDataImportDto> VerifyAsync(int id, int userId, string password, string? comment, string? ipAddress)
+    {
+        await UnitOfWork.RunAsync(_db, async () =>
+        {
+            var import = await _db.MasterDataImports.Include(i => i.Records).FirstOrDefaultAsync(i => i.Id == id)
+                ?? throw new NotFoundException($"Master data import {id} not found.");
+            if (import.Status != MasterDataImportStatus.Loaded)
+                throw new InvalidOperationException("This load has already been verified.");
+            if (import.ImportedByUserId == userId)
+                throw new InvalidOperationException("The person who loaded the workbook cannot verify it. Ask a second person.");
+
+            _db.CurrentUserId = userId;
+            await _signatures.SignAsync(userId, password, SignatureMeaning.Reviewed,
+                ReviewEntityTypes.MasterDataImport, id, string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(), ipAddress);
+
+            import.Status = MasterDataImportStatus.Verified;
+            import.VerifiedByUserId = userId;
+            import.VerifiedAt = _time.GetUtcNow().UtcDateTime;
+            import.VerificationComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+            await _db.SaveChangesAsync();
+
+            foreach (var record in import.Records.Where(r => r.EntityType == "Item"))
+                if (await _db.Items.AnyAsync(i => i.Id == record.EntityId))
+                    await _items.SetActiveAsync(record.EntityId, true);
+            foreach (var record in import.Records.Where(r => r.EntityType == "MaterialMasterEntry"))
+                if (await _db.MaterialMasterEntries.AnyAsync(e => e.Id == record.EntityId))
+                    await _materialMaster.SetActiveAsync(record.EntityId, true, userId);
+        });
+
+        return (await LoadDtosAsync(i => i.Id == id)).Single();
+    }
+
+    public async Task<(byte[] Content, string FileName)> GetFileAsync(int id)
+    {
+        var import = await _db.MasterDataImports.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id)
+            ?? throw new NotFoundException($"Master data import {id} not found.");
+        return (await _storage.ReadAsync(import.StorageKey), import.FileName);
+    }
+
+    private async Task<List<MasterDataImportDto>> LoadDtosAsync(System.Linq.Expressions.Expression<Func<MasterDataImport, bool>> filter)
+    {
+        var imports = await _db.MasterDataImports.AsNoTracking()
+            .Include(i => i.ImportedByUser).Include(i => i.VerifiedByUser).Include(i => i.Records)
+            .Where(filter).OrderByDescending(i => i.ImportedAt).ToListAsync();
+
+        var itemIds = imports.SelectMany(i => i.Records).Where(r => r.EntityType == "Item").Select(r => r.EntityId).Distinct().ToList();
+        var withoutSpecs = await _db.Items.AsNoTracking()
+            .Where(i => itemIds.Contains(i.Id) && !_db.Specifications.Any(s => s.ItemId == i.Id))
+            .Select(i => new { i.Id, i.Code }).ToListAsync();
+
+        return imports.Select(i => new MasterDataImportDto(
+            i.Id, i.FileName, i.FileSha256, i.ImportedByUser?.FullName ?? string.Empty, i.ImportedAt, i.Comment,
+            i.Status.ToString(), i.VerifiedByUser?.FullName, i.VerifiedAt,
+            JsonSerializer.Deserialize<List<WorkbookSheetSummary>>(i.SummaryJson) ?? new List<WorkbookSheetSummary>(),
+            withoutSpecs.Where(w => i.Records.Any(r => r.EntityType == "Item" && r.EntityId == w.Id)).Select(w => w.Code).ToList()))
+            .ToList();
     }
 
     internal IReadOnlyList<WorkbookSheet> ReadSheets(byte[] file)

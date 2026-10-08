@@ -34,4 +34,18 @@ public static partial class WorkbookValues
             _ => text,
         };
     }
+
+    // Columns whose workbook value differs from the database value after
+    // normalising (case, spaces, trailing zeros, Yes/True, list order).
+    public static List<string> DifferentColumns(
+        IEnumerable<SheetColumn> columns,
+        IReadOnlyDictionary<string, string> current,
+        IReadOnlyDictionary<string, string> row) =>
+        columns
+            .Where(c => !string.Equals(
+                Normalise(current.TryGetValue(c.Name, out var a) ? a : null, c.IsList),
+                Normalise(row.TryGetValue(c.Name, out var b) ? b : null, c.IsList),
+                StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Name)
+            .ToList();
 }

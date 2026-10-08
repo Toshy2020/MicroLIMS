@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Abstractions.Workbook;
@@ -23,6 +24,7 @@ public class MasterDataWorkbookService
     private readonly ItemService _items;
     private readonly MaterialMasterService _materialMaster;
     private readonly IReadOnlyList<SheetHandler> _sheets;
+    private readonly MasterDataWorkbookRunner _runner;
 
     public MasterDataWorkbookService(
         IMicroLimsDbContext db,
@@ -48,6 +50,7 @@ public class MasterDataWorkbookService
         _items = items;
         _materialMaster = materialMaster;
         _sheets = MasterDataSheets.Create(organisms, referenceLists, em, water, materialMaster, mediaProducts, equipment, items, specifications);
+        _runner = new MasterDataWorkbookRunner(db, _sheets);
     }
 
     public async Task<(byte[] Content, string FileName)> DownloadAsync()
@@ -79,6 +82,23 @@ public class MasterDataWorkbookService
         var bytes = _format.Write(new WorkbookContent(sheets, choices, MasterDataSheets.Instructions, help));
         var stamp = _time.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd");
         return (bytes, $"MicroLIMS-master-data-{stamp}.xlsx");
+    }
+
+    // Dry run: everything a load would do, then rolled back.
+    public async Task<WorkbookReport> ValidateAsync(byte[] file, int userId)
+    {
+        var sheets = ReadSheets(file);
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            var (report, _) = await _runner.RunAsync(sheets, userId);
+            return report;
+        }
+        finally
+        {
+            await tx.RollbackAsync();
+            _db.ChangeTracker.Clear();
+        }
     }
 
     internal IReadOnlyList<WorkbookSheet> ReadSheets(byte[] file)

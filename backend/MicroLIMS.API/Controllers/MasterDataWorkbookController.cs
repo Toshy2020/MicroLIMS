@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services.MasterDataWorkbook;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
@@ -25,5 +26,18 @@ public class MasterDataWorkbookController : ControllerBase
     {
         var (content, fileName) = await _service.DownloadAsync();
         return File(content, MasterDataWorkbookService.XlsxContentType, fileName);
+    }
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("validate")]
+    [RequestSizeLimit(MasterDataWorkbookService.MaxFileBytes + 1024 * 1024)]
+    public async Task<IActionResult> Validate(IFormFile file) =>
+        Ok(ApiResponse<object>.Ok(await _service.ValidateAsync(await ReadAsync(file), CurrentUserId)));
+
+    private static async Task<byte[]> ReadAsync(IFormFile file)
+    {
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        return ms.ToArray();
     }
 }

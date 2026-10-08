@@ -14,15 +14,26 @@ public sealed class ReportTextReader(TesseractOcr ocr) : IReportTextReader
             return await ocr.ReadPageAsync(content, ct);
 
         using var pdf = PdfDocument.Open(content);
-        var page = pdf.GetPage(1);
-        var words = page.GetWords().Where(w => !string.IsNullOrWhiteSpace(w.Text)).ToList();
-        if (words.Count > 0)
-            return new ReportText(ReportTextSource.TextLayer, GroupIntoLines(words), []);
+        var pages = pdf.GetPages().ToList();
+        var words = pages.Select(p => p.GetWords().Where(w => !string.IsNullOrWhiteSpace(w.Text)).ToList()).ToList();
+        if (words.Any(w => w.Count > 0))
+            return new ReportText(ReportTextSource.TextLayer, words.SelectMany(GroupIntoLines).ToList(), []);
 
-        var image = page.GetImages().OrderByDescending(i => i.Bounds.Width * i.Bounds.Height).FirstOrDefault()
-            ?? throw new InvalidOperationException($"'{fileName}' has neither text nor a page image to read.");
-        var bytes = image.TryGetPng(out var png) ? png : image.RawBytes.ToArray();
-        return await ocr.ReadPageAsync(bytes, ct);
+        // Scanned: OCR each page's image, in page order.
+        var lines = new List<ReportLine>();
+        var cross = new List<ReportLine>();
+        var problems = new List<string>();
+        foreach (var page in pages)
+        {
+            var image = page.GetImages().OrderByDescending(i => i.Bounds.Width * i.Bounds.Height).FirstOrDefault()
+                ?? throw new InvalidOperationException($"'{fileName}' page {page.Number} has neither text nor an image to read.");
+            var bytes = image.TryGetPng(out var png) ? png : image.RawBytes.ToArray();
+            var text = await ocr.ReadPageAsync(bytes, ct);
+            lines.AddRange(text.Lines);
+            cross.AddRange(text.CrossCheckLines);
+            problems.AddRange((text.ReaderProblems ?? []).Select(p => pages.Count > 1 ? $"Page {page.Number}: {p}" : p));
+        }
+        return new ReportText(ReportTextSource.Ocr, lines, cross, problems);
     }
 
     private static bool IsPdf(byte[] b) => b.Length > 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F';

@@ -23,7 +23,7 @@ public sealed record ReportText(
     IReadOnlyList<string>? ReaderProblems = null);
 
 // Turns an instrument report file (text PDF, scanned PDF, or photo) into
-// lines of text. One page per report: only the first page is read.
+// lines of text, all pages in order.
 public interface IReportTextReader
 {
     Task<ReportText> ReadAsync(byte[] content, string fileName, CancellationToken ct = default);

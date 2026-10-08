@@ -9,9 +9,21 @@ namespace MicroLIMS.Application.Services.MasterDataWorkbook.Sheets;
 
 internal static class SectionLookup
 {
-    public static async Task<int> IdAsync(IMicroLimsDbContext db, string code) =>
-        await db.DocumentSections.Where(s => s.Code.ToLower() == code.ToLower()).Select(s => (int?)s.Id).FirstOrDefaultAsync()
-        ?? throw new RowError("SectionCode", $"No laboratory section with code '{code}'.");
+    // Resolves the code and runs the create-time section rules (active,
+    // user is a member) up front, so a refusal points at SectionCode.
+    public static async Task<int> IdAsync(ImportContext ctx, string code)
+    {
+        var id = await ctx.Db.DocumentSections.Where(s => s.Code.ToLower() == code.ToLower()).Select(s => (int?)s.Id).FirstOrDefaultAsync()
+            ?? throw new RowError("SectionCode", $"No laboratory section with code '{code}'.");
+        try
+        {
+            return await new UserSectionScopeService(ctx.Db).ResolveSectionForCreateAsync(ctx.UserId, id);
+        }
+        catch (InvalidOperationException e)
+        {
+            throw new RowError("SectionCode", e.Message);
+        }
+    }
 
     public static async Task<IReadOnlyList<string>> CodesAsync(IMicroLimsDbContext db) =>
         await db.DocumentSections.Where(s => s.IsActive).OrderBy(s => s.Code).Select(s => s.Code).ToListAsync();
@@ -61,7 +73,7 @@ public sealed class MaterialMasterSheet : SheetHandler
     // activates it (MasterDataWorkbookService.VerifyAsync).
     public override async Task<CreatedRecord> CreateAsync(RowReader r, ImportContext ctx)
     {
-        var sectionId = await SectionLookup.IdAsync(ctx.Db, r.Text("SectionCode"));
+        var sectionId = await SectionLookup.IdAsync(ctx, r.Text("SectionCode"));
         var created = await _service.CreateAsync(new SaveMaterialMasterEntryRequest(
             r.Text("Code"), r.Text("Name"), r.Enum<MaterialMasterCategory>("Category"),
             r.OptionalText("Grade"), r.OptionalText("Source"), r.Enum<MaterialUnit>("BaseUnit"), sectionId,
@@ -134,7 +146,7 @@ public sealed class EquipmentSheet : SheetHandler
 
     public override async Task<CreatedRecord> CreateAsync(RowReader r, ImportContext ctx)
     {
-        int? sectionId = r.OptionalText("SectionCode") is { } code ? await SectionLookup.IdAsync(ctx.Db, code) : null;
+        int? sectionId = r.OptionalText("SectionCode") is { } code ? await SectionLookup.IdAsync(ctx, code) : null;
         var created = await _service.CreateEquipmentAsync(ctx.UserId, new CreateEquipmentRequest(
             r.Text("Name"), r.Text("Code"), r.Enum<EquipmentType>("Type"), r.OptionalText("Location"),
             r.Decimal("SetPointTemperature"), r.Date("CalibrationDueDate"), r.OptionalText("Vendor"),

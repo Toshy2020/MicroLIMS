@@ -66,9 +66,9 @@ public class MasterDataWorkbookPostgresIntegrationTests
 
     internal static Dictionary<string, string> R(params (string Col, string Val)[] cells) => cells.ToDictionary(c => c.Col, c => c.Val);
 
-    private async Task<User> AdminAsync(MicroLimsDbContext db)
+    private async Task<User> AdminAsync(MicroLimsDbContext db, RoleType roleType = RoleType.SystemAdministrator)
     {
-        var role = await db.Roles.FirstAsync(r => r.Type == RoleType.SystemAdministrator);
+        var role = await db.Roles.FirstAsync(r => r.Type == roleType);
         var user = new User
         {
             FullName = "Workbook Admin", Username = ("mdw_" + Guid.NewGuid().ToString("N"))[..15],
@@ -298,5 +298,22 @@ public class MasterDataWorkbookPostgresIntegrationTests
         Assert.True(result.Committed, string.Join("\n", result.Report.Errors.Select(e => $"{e.Sheet} {e.Row} {e.Column}: {e.Message}")));
         Assert.Equal(2, result.Report.Sheets.Single(s => s.Sheet == "SpecificationStages").Created);
         Assert.Empty(result.Import!.ItemsWithoutSpecifications);
+    }
+
+    [PostgresFact]
+    public async Task Validate_SectionTheUserIsNotIn_PointsAtSectionCode()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var head = await AdminAsync(db, RoleType.SectionHead); // no memberships
+        var tag = Guid.NewGuid().ToString("N")[..8];
+
+        var report = await Service(db).ValidateAsync(Workbook(("Equipment", new[]
+        {
+            R(("Code", "INC-" + tag), ("Name", "Incubator"), ("Type", "Incubator"), ("SectionCode", "MICRO")),
+        })), head.Id);
+
+        var e = Assert.Single(report.Errors);
+        Assert.Equal("SectionCode", e.Column);
+        Assert.Contains("not a member", e.Message);
     }
 }

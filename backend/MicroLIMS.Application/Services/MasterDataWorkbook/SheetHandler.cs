@@ -28,9 +28,9 @@ public sealed class ImportContext
     public int UserId { get; }
     public IReadOnlyList<WorkbookSheet> Sheets { get; }
 
-    // Keys (SpecificationsSheet.KeyOf) of specifications created in this
-    // load: their stage rows were created with them.
-    public HashSet<string> CreatedSpecificationKeys { get; } = new();
+    // Specifications created in this load (SpecificationsSheet.KeyOf -> id):
+    // their stage rows were created with them.
+    public Dictionary<string, int> CreatedSpecifications { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public WorkbookSheet? Sheet(string name) =>
         Sheets.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));

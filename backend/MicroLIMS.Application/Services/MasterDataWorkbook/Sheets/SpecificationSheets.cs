@@ -105,7 +105,7 @@ public sealed class SpecificationsSheet : SheetHandler
             ProductionStageRole: role,
             IcpMethodElementId: await ElementIdAsync(ctx.Db, r.OptionalText("IcpElement"))));
 
-        ctx.CreatedSpecificationKeys.Add(key);
+        ctx.CreatedSpecifications[key] = created.Id;
         return Created("Specification", created.Id, r);
     }
 
@@ -197,15 +197,14 @@ public sealed class SpecificationStagesSheet : SheetHandler
             ["ItemCode"] = r.Text("ItemCode"), ["TestCode"] = r.Text("TestCode"), ["ParameterName"] = r.Text("ParameterName"),
             ["ProductionStageRole"] = r.OptionalText("ProductionStageRole") ?? string.Empty,
         });
-        if (!ctx.CreatedSpecificationKeys.Contains(parent))
+        if (!ctx.CreatedSpecifications.TryGetValue(parent, out var specId))
             throw new RowError(null, "Stages load only together with a new row on the Specifications sheet. To change the stages of an existing specification, use the Specifications screen.");
 
-        var itemCode = r.Text("ItemCode"); var testCode = r.Text("TestCode"); var parameter = r.Text("ParameterName");
         var stageNumber = r.RequiredInt("StageNumber");
         var id = await ctx.Db.SpecificationStages
-            .Where(s => s.StageNumber == stageNumber && s.Specification!.Item!.Code == itemCode
-                        && s.Specification.TestCode == testCode && s.Specification.ParameterName == parameter)
-            .Select(s => s.Id).FirstAsync();
+            .Where(s => s.SpecificationId == specId && s.StageNumber == stageNumber)
+            .Select(s => (int?)s.Id).FirstOrDefaultAsync()
+            ?? throw new RowError("StageNumber", $"Stage {stageNumber} was not created with its specification.");
         return Created("SpecificationStage", id, r);
     }
 }

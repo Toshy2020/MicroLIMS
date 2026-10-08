@@ -20,4 +20,7 @@
     <ProjectReference Include="..\MicroLIMS.Persistence\MicroLIMS.Persistence.csproj" />
     <ProjectReference Include="..\MicroLIMS.Shared\MicroLIMS.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures/EmpowerReports/*.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

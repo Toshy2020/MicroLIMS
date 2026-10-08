@@ -11,6 +11,8 @@ using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
+using MicroLIMS.Application.Services.InstrumentImport;
+using MicroLIMS.Infrastructure.InstrumentImport;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Application.Abstractions.Notifications;
@@ -276,6 +278,12 @@ public static class ServiceCollectionExtensions
         {
             throw new InvalidOperationException($"Unknown Storage:Provider '{storageProvider}'. Use 'Local' or 'S3'.");
         }
+
+        // Instrument report OCR: "tesseract" on PATH in the Docker image;
+        // set Ocr:TesseractPath to the .exe on Windows.
+        services.AddSingleton<IReportTextReader>(_ => new ReportTextReader(new TesseractOcr(
+            config["Ocr:TesseractPath"] ?? "tesseract",
+            config["Ocr:WorkDirectory"] ?? Path.GetTempPath())));
 
         // Takes the validated JwtSettings registered in Program.cs rather
         // than reading Jwt:Key again - a second read is what allowed the

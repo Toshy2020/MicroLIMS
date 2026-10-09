@@ -60,27 +60,13 @@ public class EquipmentInventoryController : ControllerBase
     [HttpGet("{id:int}/activities")]
     public async Task<IActionResult> GetActiveActivities(int id)
     {
-        try
-        {
-            return Ok(ApiResponse<object>.Ok(await _service.GetActiveActivitiesForEquipmentAsync(id, CurrentUserId)));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        return Ok(ApiResponse<object>.Ok(await _service.GetActiveActivitiesForEquipmentAsync(id, CurrentUserId)));
     }
 
     [HttpGet("{id:int}/history")]
     public async Task<IActionResult> GetHistory(int id, [FromQuery] string? itemCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
-        try
-        {
-            return Ok(ApiResponse<object>.Ok(await _service.GetHistoricalActivitiesForEquipmentAsync(id, CurrentUserId, itemCode, fromDate, toDate)));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        return Ok(ApiResponse<object>.Ok(await _service.GetHistoricalActivitiesForEquipmentAsync(id, CurrentUserId, itemCode, fromDate, toDate)));
     }
 
     [HttpGet("where-is-it")]
@@ -96,30 +82,16 @@ public class EquipmentInventoryController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, SaveEquipmentInventoryHttpRequest r)
     {
-        try
-        {
-            await _service.UpdateAsync(id, new SaveEquipmentInventoryRequest(
-                r.InstrumentType, r.ManufacturerName, r.SerialNumber, r.FirmwareVersion, r.Code, r.Location,
-                r.CalibrationDueDate, r.Status, r.StatusChangeComment, r.SectionId), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _service.UpdateAsync(id, new SaveEquipmentInventoryRequest(
+            r.InstrumentType, r.ManufacturerName, r.SerialNumber, r.FirmwareVersion, r.Code, r.Location,
+            r.CalibrationDueDate, r.Status, r.StatusChangeComment, r.SectionId), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     [HttpGet("{id:int}/status-history")]
     public async Task<IActionResult> GetStatusHistory(int id)
     {
-        try
-        {
-            var history = await _service.GetStatusHistoryAsync(id, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(history));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var history = await _service.GetStatusHistoryAsync(id, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(history));
     }
 }

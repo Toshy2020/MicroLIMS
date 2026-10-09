@@ -82,23 +82,16 @@ public class SampleController : ControllerBase
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Receive(ReceiveItemBasedSampleRequest request)
     {
-        try
-        {
-            // UnauthorizedAccessException (targeting a lab outside the
-            // user's scope) is mapped globally by ExceptionMiddleware to
-            // 403, so it is deliberately left uncaught here.
-            var targets = await _receiptLabs.ResolveTargetsAsync(CurrentUserId,
-                User.HasClaim("permission", PermissionConstants.SamplesReceive), request.TargetSectionIds);
-            var sample = await _receivingService.ReceiveSampleAsync(new ItemBasedReceiveRequest(
-                request.ItemId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy,
-                request.BatchNumber, request.ControlNumber, request.MfgDate, request.ExpDate,
-                request.ProductionStage, CurrentUserId, targets));
-            return Ok(ApiResponse<object>.Ok(sample));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        // UnauthorizedAccessException (targeting a lab outside the
+        // user's scope) is mapped globally by ExceptionMiddleware to
+        // 403, so it is deliberately left uncaught here.
+        var targets = await _receiptLabs.ResolveTargetsAsync(CurrentUserId,
+            User.HasClaim("permission", PermissionConstants.SamplesReceive), request.TargetSectionIds);
+        var sample = await _receivingService.ReceiveSampleAsync(new ItemBasedReceiveRequest(
+            request.ItemId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy,
+            request.BatchNumber, request.ControlNumber, request.MfgDate, request.ExpDate,
+            request.ProductionStage, CurrentUserId, targets));
+        return Ok(ApiResponse<object>.Ok(sample));
     }
 
     // Lists which laboratories the given item's assigned tests belong to,
@@ -115,26 +108,19 @@ public class SampleController : ControllerBase
     public async Task<IActionResult> Correct(int id, CorrectSampleRequest request)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        try
-        {
-            var sample = await _correctionService.CorrectAsync(
-                id,
-                new SampleCorrectionRequest(
-                    request.ControlNumber, request.SampledBy, request.CauseOfTestingId,
-                    request.BatchNumber, request.MfgDate, request.ExpDate, request.SampleQuantity,
-                    request.ProductionStage, request.PreviousProductName, request.PreviousProductBatchNumber,
-                    request.StorageCondition, request.StorageTimeHours,
-                    request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId),
-                request.Reason,
-                request.Password,
-                CurrentUserId,
-                HttpContext.Connection.RemoteIpAddress?.ToString());
-            return Ok(ApiResponse<object>.Ok(sample));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var sample = await _correctionService.CorrectAsync(
+            id,
+            new SampleCorrectionRequest(
+                request.ControlNumber, request.SampledBy, request.CauseOfTestingId,
+                request.BatchNumber, request.MfgDate, request.ExpDate, request.SampleQuantity,
+                request.ProductionStage, request.PreviousProductName, request.PreviousProductBatchNumber,
+                request.StorageCondition, request.StorageTimeHours,
+                request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId),
+            request.Reason,
+            request.Password,
+            CurrentUserId,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+        return Ok(ApiResponse<object>.Ok(sample));
     }
 
     [HttpPut("{id}/assign-analyst")]
@@ -142,15 +128,8 @@ public class SampleController : ControllerBase
     public async Task<IActionResult> AssignAnalyst(int id, AssignAnalystRequest request)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        try
-        {
-            var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
-            return Ok(ApiResponse<object>.Ok(sample));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
+        return Ok(ApiResponse<object>.Ok(sample));
     }
 
     [HttpPost("{id}/void")]
@@ -158,16 +137,9 @@ public class SampleController : ControllerBase
     public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        try
-        {
-            var sample = await _correctionService.VoidAsync(
-                id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
-            return Ok(ApiResponse<object>.Ok(sample));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var sample = await _correctionService.VoidAsync(
+            id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
+        return Ok(ApiResponse<object>.Ok(sample));
     }
 
     // A second laboratory's tests added to a sample already received -
@@ -176,12 +148,8 @@ public class SampleController : ControllerBase
     [Authorize(Policy = PermissionConstants.SamplesReceive)]
     public async Task<IActionResult> AddLaboratory(int id, AddLaboratoryRequest request)
     {
-        try
-        {
-            await _addLaboratory.AddAsync(id, request.SectionId, CurrentUserId, request.Password, request.Reason,
-                HttpContext.Connection.RemoteIpAddress?.ToString());
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException) { return BadRequest(ApiResponse<object>.Fail(ex.Message)); }
+        await _addLaboratory.AddAsync(id, request.SectionId, CurrentUserId, request.Password, request.Reason,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

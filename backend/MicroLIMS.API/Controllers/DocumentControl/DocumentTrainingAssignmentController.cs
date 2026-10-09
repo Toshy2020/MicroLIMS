@@ -103,19 +103,8 @@ public class DocumentTrainingAssignmentController : ControllerBase
             return StatusCode(403, ApiResponse<object>.Fail("Only Section Heads and System Administrators can assign training."));
         }
 
-        try
-        {
-            var result = await _trainingService.AssignToUsersAsync(request, CurrentUserId);
-            return Ok(ApiResponse<TrainingAssignmentGenerationResultDto>.Ok(result, "Training assignments processed successfully."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _trainingService.AssignToUsersAsync(request, CurrentUserId);
+        return Ok(ApiResponse<TrainingAssignmentGenerationResultDto>.Ok(result, "Training assignments processed successfully."));
     }
 
     /// <summary>
@@ -129,19 +118,8 @@ public class DocumentTrainingAssignmentController : ControllerBase
             return StatusCode(403, ApiResponse<object>.Fail("Only Section Heads and System Administrators can assign training to groups."));
         }
 
-        try
-        {
-            var result = await _trainingService.AssignToGroupAsync(request, CurrentUserId);
-            return Ok(ApiResponse<TrainingAssignmentGenerationResultDto>.Ok(result, "Bulk training assignments processed successfully."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _trainingService.AssignToGroupAsync(request, CurrentUserId);
+        return Ok(ApiResponse<TrainingAssignmentGenerationResultDto>.Ok(result, "Bulk training assignments processed successfully."));
     }
 
     /// <summary>

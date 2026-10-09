@@ -42,57 +42,29 @@ public class RoleController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateRoleRequest request)
     {
-        try
-        {
-            var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType);
-            return Ok(ApiResponse<RoleDetailDto>.Ok(created));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType);
+        return Ok(ApiResponse<RoleDetailDto>.Ok(created));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateRoleRequest request)
     {
-        try
-        {
-            var updated = await _roleService.UpdateAsync(id, request.Name, request.Description);
-            return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _roleService.UpdateAsync(id, request.Name, request.Description);
+        return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        try
-        {
-            await _roleService.DeleteAsync(id);
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _roleService.DeleteAsync(id);
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     [HttpPut("{id}/permissions")]
     public async Task<IActionResult> UpdatePermissions(int id, UpdateRolePermissionsRequest request)
     {
-        try
-        {
-            var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId);
-            return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId);
+        return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
     }
 
     [HttpGet("/api/permissions")]

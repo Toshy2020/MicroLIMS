@@ -39,15 +39,8 @@ public class DiscussionController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        try
-        {
-            var result = await _discussionService.GetPostByIdAsync(id);
-            return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _discussionService.GetPostByIdAsync(id);
+        return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(result));
     }
 
     public class CreatePostForm
@@ -64,100 +57,56 @@ public class DiscussionController : ControllerBase
     [RequestFormLimits(MultipartBodyLengthLimit = DiscussionAttachmentPolicy.MaxRequestBytes)]
     public async Task<IActionResult> CreatePost([FromForm] CreatePostForm form)
     {
-        try
-        {
-            // Refuse an oversized set before buffering it; the service
-            // re-checks everything (DiscussionAttachmentPolicy).
-            if (form.Files is { Count: > DiscussionAttachmentPolicy.MaxFiles })
-                return BadRequest(ApiResponse<object>.Fail(
-                    $"A post can carry at most {DiscussionAttachmentPolicy.MaxFiles} attachments; {form.Files.Count} were attached."));
+        // Refuse an oversized set before buffering it; the service
+        // re-checks everything (DiscussionAttachmentPolicy).
+        if (form.Files is { Count: > DiscussionAttachmentPolicy.MaxFiles })
+            return BadRequest(ApiResponse<object>.Fail(
+                $"A post can carry at most {DiscussionAttachmentPolicy.MaxFiles} attachments; {form.Files.Count} were attached."));
 
-            var attachments = new List<(string FileName, string ContentType, byte[] Data)>();
-            if (form.Files != null)
+        var attachments = new List<(string FileName, string ContentType, byte[] Data)>();
+        if (form.Files != null)
+        {
+            foreach (var file in form.Files)
             {
-                foreach (var file in form.Files)
+                if (file.Length > 0)
                 {
-                    if (file.Length > 0)
-                    {
-                        using var ms = new MemoryStream();
-                        await file.CopyToAsync(ms);
-                        attachments.Add((file.FileName, file.ContentType, ms.ToArray()));
-                    }
+                    using var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+                    attachments.Add((file.FileName, file.ContentType, ms.ToArray()));
                 }
             }
-
-            var request = new CreateDiscussionPostRequest(
-                form.Title,
-                form.Content,
-                (DiscussionCategory)form.Category,
-                form.IsImportant
-            );
-
-            var created = await _discussionService.CreatePostAsync(request, attachments, CurrentUserId);
-            return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(created));
         }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+
+        var request = new CreateDiscussionPostRequest(
+            form.Title,
+            form.Content,
+            (DiscussionCategory)form.Category,
+            form.IsImportant
+        );
+
+        var created = await _discussionService.CreatePostAsync(request, attachments, CurrentUserId);
+        return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(created));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdatePost(int id, [FromBody] UpdateDiscussionPostRequest request)
     {
-        try
-        {
-            var updated = await _discussionService.UpdatePostAsync(id, request, CurrentUserId, CanEditAny);
-            return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(updated));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _discussionService.UpdatePostAsync(id, request, CurrentUserId, CanEditAny);
+        return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(updated));
     }
 
     [HttpPatch("{id}/important")]
     public async Task<IActionResult> ToggleImportant(int id)
     {
-        try
-        {
-            var isImportant = await _discussionService.ToggleImportantAsync(id, CurrentUserId, CanEditAny);
-            return Ok(ApiResponse<object>.Ok(new { isImportant }));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
+        var isImportant = await _discussionService.ToggleImportantAsync(id, CurrentUserId, CanEditAny);
+        return Ok(ApiResponse<object>.Ok(new { isImportant }));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeletePost(int id)
     {
-        try
-        {
-            await _discussionService.DeletePostAsync(id, CurrentUserId, CanEditAny);
-            return Ok(ApiResponse<object>.Ok(new { message = "Post deleted successfully." }));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
+        await _discussionService.DeletePostAsync(id, CurrentUserId, CanEditAny);
+        return Ok(ApiResponse<object>.Ok(new { message = "Post deleted successfully." }));
     }
 
     [HttpGet("{id}/history")]
@@ -170,19 +119,8 @@ public class DiscussionController : ControllerBase
     [HttpGet("{id}/attachments/{attachmentId}/download")]
     public async Task<IActionResult> DownloadAttachment(int id, int attachmentId)
     {
-        try
-        {
-            var (data, contentType, fileName) = await _discussionService.GetAttachmentContentAsync(id, attachmentId);
-            return File(data, contentType, fileName);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var (data, contentType, fileName) = await _discussionService.GetAttachmentContentAsync(id, attachmentId);
+        return File(data, contentType, fileName);
     }
 
     // ---- Comments ----
@@ -190,58 +128,21 @@ public class DiscussionController : ControllerBase
     [HttpPost("{id}/comments")]
     public async Task<IActionResult> AddComment(int id, [FromBody] CreateDiscussionCommentRequest request)
     {
-        try
-        {
-            var comment = await _discussionService.AddCommentAsync(id, request, CurrentUserId);
-            return Ok(ApiResponse<DiscussionCommentDto>.Ok(comment));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var comment = await _discussionService.AddCommentAsync(id, request, CurrentUserId);
+        return Ok(ApiResponse<DiscussionCommentDto>.Ok(comment));
     }
 
     [HttpPut("{id}/comments/{commentId}")]
     public async Task<IActionResult> UpdateComment(int id, int commentId, [FromBody] UpdateDiscussionCommentRequest request)
     {
-        try
-        {
-            var comment = await _discussionService.UpdateCommentAsync(id, commentId, request, CurrentUserId, CanEditAny);
-            return Ok(ApiResponse<DiscussionCommentDto>.Ok(comment));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var comment = await _discussionService.UpdateCommentAsync(id, commentId, request, CurrentUserId, CanEditAny);
+        return Ok(ApiResponse<DiscussionCommentDto>.Ok(comment));
     }
 
     [HttpDelete("{id}/comments/{commentId}")]
     public async Task<IActionResult> DeleteComment(int id, int commentId)
     {
-        try
-        {
-            await _discussionService.DeleteCommentAsync(id, commentId, CurrentUserId, CanEditAny);
-            return Ok(ApiResponse<object>.Ok(new { message = "Comment deleted successfully." }));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
+        await _discussionService.DeleteCommentAsync(id, commentId, CurrentUserId, CanEditAny);
+        return Ok(ApiResponse<object>.Ok(new { message = "Comment deleted successfully." }));
     }
 }

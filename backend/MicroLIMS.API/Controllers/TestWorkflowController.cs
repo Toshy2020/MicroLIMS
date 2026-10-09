@@ -138,16 +138,9 @@ public class TestWorkflowController : ControllerBase
             await _scopeService.EnsureTestOrdersAccessAsync(CurrentUserId, request.TestOrderIds, ct);
         }
 
-        try
-        {
-            var result = await _groupedTestActionService.ExecuteBatchSelectMediaAsync(
-                request, CurrentUserId, CurrentRole, ct);
-            return Ok(ApiResponse<BatchSelectMediaResponse>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _groupedTestActionService.ExecuteBatchSelectMediaAsync(
+            request, CurrentUserId, CurrentRole, ct);
+        return Ok(ApiResponse<BatchSelectMediaResponse>.Ok(result));
     }
 
     // ApiResponse has no error-code field, so the code travels as the

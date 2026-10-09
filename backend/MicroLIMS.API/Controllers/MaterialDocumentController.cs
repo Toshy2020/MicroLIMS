@@ -63,19 +63,12 @@ public class MaterialDocumentController : ControllerBase
             content = ms.ToArray();
         }
 
-        try
-        {
-            var result = await _service.UploadAsync(materialId, new UploadMaterialDocumentRequest(
-                documentType,
-                file.FileName,
-                file.ContentType,
-                content), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.UploadAsync(materialId, new UploadMaterialDocumentRequest(
+            documentType,
+            file.FileName,
+            file.ContentType,
+            content), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // ---- Download / view document content ----
@@ -139,17 +132,10 @@ public class MaterialDocumentController : ControllerBase
             content = ms.ToArray();
         }
 
-        try
-        {
-            var result = await _service.SupersedeAsync(documentId, materialId,
-                new SupersedeMaterialDocumentRequest(file.FileName, file.ContentType, content, reason),
-                CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.SupersedeAsync(documentId, materialId,
+            new SupersedeMaterialDocumentRequest(file.FileName, file.ContentType, content, reason),
+            CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // ---- Void (SectionHead / SystemAdministrator only) ----
@@ -157,16 +143,9 @@ public class MaterialDocumentController : ControllerBase
     [Authorize(Policy = PermissionConstants.MaterialsDocumentControl)]
     public async Task<IActionResult> Void(int documentId, [FromQuery] int materialId, VoidDocumentHttpRequest request)
     {
-        try
-        {
-            var result = await _service.VoidAsync(documentId, materialId,
-                new VoidMaterialDocumentRequest(request.Reason), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.VoidAsync(documentId, materialId,
+            new VoidMaterialDocumentRequest(request.Reason), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     private static bool IsInlineType(string contentType) =>

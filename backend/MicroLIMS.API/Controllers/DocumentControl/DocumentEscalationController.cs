@@ -85,18 +85,7 @@ public class DocumentEscalationController : ControllerBase
             return StatusCode(403, ApiResponse<object>.Fail("Only Section Heads and System Administrators can resolve escalation records."));
         }
 
-        try
-        {
-            var result = await _escalationService.ResolveEscalationAsync(request, CurrentUserId);
-            return Ok(ApiResponse<DocumentEscalationSummaryDto>.Ok(result, "Escalation resolved successfully."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _escalationService.ResolveEscalationAsync(request, CurrentUserId);
+        return Ok(ApiResponse<DocumentEscalationSummaryDto>.Ok(result, "Escalation resolved successfully."));
     }
 }

@@ -121,15 +121,8 @@ public class DocumentConfigurationController : ControllerBase
     [HttpGet("departments/{departmentId:int}/sections")]
     public async Task<IActionResult> GetSections(int departmentId, [FromQuery] bool includeInactive = false)
     {
-        try
-        {
-            var sections = await _configService.GetSectionsByDepartmentAsync(departmentId, includeInactive);
-            return Ok(ApiResponse<List<DocumentSectionDto>>.Ok(sections));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
+        var sections = await _configService.GetSectionsByDepartmentAsync(departmentId, includeInactive);
+        return Ok(ApiResponse<List<DocumentSectionDto>>.Ok(sections));
     }
 
     [HttpPost("sections")]

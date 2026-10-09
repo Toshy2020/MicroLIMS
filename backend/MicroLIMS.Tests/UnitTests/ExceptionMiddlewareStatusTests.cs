@@ -52,4 +52,13 @@ public class ExceptionMiddlewareStatusTests
 
         Assert.Equal(StatusCodes.Status400BadRequest, status);
     }
+
+    [Fact]
+    public async Task UnauthorizedAccess_Is403_WithItsMessage()
+    {
+        var (status, body) = await RunAsync(new UnauthorizedAccessException("Not your task."));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, status);
+        Assert.Contains("Not your task.", body);
+    }
 }

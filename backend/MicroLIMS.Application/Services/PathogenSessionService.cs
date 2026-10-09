@@ -267,51 +267,19 @@ public class PathogenSessionService
         if (sample == null) return null;
 
         var sessionId = $"SESSION-{sample.ReferenceNumber}";
-        var testCodes = sample.TestOrders.Select(t => t.TestCode).Distinct().ToList();
-
-        // Load Test Definitions from Test Master
-        var testDefs = await _db.TestDefinitions
-            .Include(t => t.Steps)
-                .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.Material)
-            .Include(t => t.Steps)
-                .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.IncubationCondition)
-            .Where(t => testCodes.Contains(t.Code))
-            .ToDictionaryAsync(t => t.Code);
-
-        // Load Users for attribution
-        var users = await _db.Users.ToDictionaryAsync(u => u.Id, u => u.FullName);
-        string UserName(int? uid) => (uid.HasValue && users.TryGetValue(uid.Value, out var name)) ? name : "Unknown";
+        var data = await PathogenSessionData.LoadAsync(_db, sample);
+        var testDefs = data.TestDefs;
+        var UserName = data.UserName;
+        var incubations = data.Incubations;
+        var stepResults = data.StepResults;
+        var primaryObservations = data.PrimaryObservations;
+        var countTestReadings = data.CountTestReadings;
 
         // Group Locations
         var groupedLocations = SessionLocationGrouper.Group(sample);
 
-        // Load Incubations and WorkflowStepResults for all test orders
-        var toIds = sample.TestOrders.Select(t => t.Id).ToList();
-        var incubations = await _db.Incubations
-            .Include(i => i.Media)
-                .ThenInclude(m => m!.Material)
-            .Include(i => i.IncubatorEquipment)
-            .Where(i => i.TestOrderId.HasValue && toIds.Contains(i.TestOrderId.Value))
-            .ToListAsync();
-
-        var stepResults = await _db.WorkflowStepResults
-            .Where(w => toIds.Contains(w.TestOrderId))
-            .ToListAsync();
-
-        var primaryObservations = await _db.LocationPathogenObservations
-            .Include(o => o.ConfirmatoryPlateObservations)
-                .ThenInclude(p => p.Material)
-            .Where(o => toIds.Contains(o.TestOrderId))
-            .ToListAsync();
-
         var primaryObsMap = primaryObservations
             .ToDictionary(o => (o.SampleLocationId, o.TestOrderId));
-
-        var countTestReadings = await _db.CountTestReadings
-            .Where(c => toIds.Contains(c.TestOrderId))
-            .ToListAsync();
 
         var mediaLookup = incubations
             .Where(i => i.MediaId.HasValue && i.Media != null)

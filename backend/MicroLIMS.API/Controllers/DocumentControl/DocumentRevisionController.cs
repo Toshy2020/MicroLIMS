@@ -27,23 +27,8 @@ public class DocumentRevisionController : ControllerBase
     [HttpPost("documents/{masterId:int}/propose-revision")]
     public async Task<IActionResult> ProposeNextRevision(int masterId, [FromBody] ProposeNextRevisionRequest request)
     {
-        try
-        {
-            var result = await _revisionService.ProposeNextRevisionAsync(masterId, request.RevisionType, CurrentUserId);
-            return Ok(ApiResponse<ProposeNextRevisionResponse>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _revisionService.ProposeNextRevisionAsync(masterId, request.RevisionType, CurrentUserId);
+        return Ok(ApiResponse<ProposeNextRevisionResponse>.Ok(result));
     }
 
     [HttpPost("documents/{masterId:int}/revisions")]
@@ -54,23 +39,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.CreateRevisionFromEffectiveAsync(masterId, request, CurrentUserId);
             return CreatedAtAction(nameof(GetRevisionDetails), new { revisionId = result.Id }, ApiResponse<DocumentRevisionDto>.Ok(result, "Revision created successfully in Draft status."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -79,33 +48,15 @@ public class DocumentRevisionController : ControllerBase
     [HttpGet("revisions/{revisionId:int}")]
     public async Task<IActionResult> GetRevisionDetails(int revisionId)
     {
-        try
-        {
-            var result = await _revisionService.GetRevisionDetailsAsync(revisionId, CurrentUserId);
-            return Ok(ApiResponse<DocumentRevisionDto>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _revisionService.GetRevisionDetailsAsync(revisionId, CurrentUserId);
+        return Ok(ApiResponse<DocumentRevisionDto>.Ok(result));
     }
 
     [HttpGet("revisions/{revisionId:int}/change-items")]
     public async Task<IActionResult> GetChangeItems(int revisionId)
     {
-        try
-        {
-            var result = await _revisionService.GetChangeItemsAsync(revisionId, CurrentUserId);
-            return Ok(ApiResponse<IReadOnlyList<RevisionChangeItemDto>>.Ok(result));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _revisionService.GetChangeItemsAsync(revisionId, CurrentUserId);
+        return Ok(ApiResponse<IReadOnlyList<RevisionChangeItemDto>>.Ok(result));
     }
 
     [HttpPost("revisions/{revisionId:int}/change-items")]
@@ -116,23 +67,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.AddChangeItemAsync(revisionId, request, CurrentUserId);
             return Ok(ApiResponse<RevisionChangeItemDto>.Ok(result, "Change item added successfully."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -146,23 +81,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.UpdateChangeItemAsync(changeItemId, request, CurrentUserId);
             return Ok(ApiResponse<RevisionChangeItemDto>.Ok(result, "Change item updated successfully."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -174,27 +93,8 @@ public class DocumentRevisionController : ControllerBase
     [HttpPost("change-items/{changeItemId:int}/deactivate")]
     public async Task<IActionResult> DeactivateChangeItem(int changeItemId)
     {
-        try
-        {
-            await _revisionService.DeactivateChangeItemAsync(changeItemId, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(null!, "Change item removed successfully."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _revisionService.DeactivateChangeItemAsync(changeItemId, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(null!, "Change item removed successfully."));
     }
 
     [HttpPost("revisions/{revisionId:int}/findings/{findingId:int}/convert")]
@@ -205,23 +105,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.ConvertFindingToChangeItemAsync(revisionId, findingId, request, CurrentUserId);
             return Ok(ApiResponse<RevisionChangeItemDto>.Ok(result, "Review finding transferred to structured change item."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -230,15 +114,8 @@ public class DocumentRevisionController : ControllerBase
     [HttpGet("revisions/{revisionId:int}/impact-assessment")]
     public async Task<IActionResult> GetImpactAssessment(int revisionId)
     {
-        try
-        {
-            var result = await _revisionService.GetImpactAssessmentAsync(revisionId, CurrentUserId);
-            return Ok(ApiResponse<RevisionImpactAssessmentDto?>.Ok(result));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _revisionService.GetImpactAssessmentAsync(revisionId, CurrentUserId);
+        return Ok(ApiResponse<RevisionImpactAssessmentDto?>.Ok(result));
     }
 
     [HttpPost("revisions/{revisionId:int}/impact-assessment")]
@@ -249,23 +126,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.SaveImpactAssessmentAsync(revisionId, request, CurrentUserId);
             return Ok(ApiResponse<RevisionImpactAssessmentDto>.Ok(result, "Revision impact assessment saved successfully."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

@@ -695,7 +695,7 @@ public class PeriodicReviewService : IPeriodicReviewService
         }
         else
         {
-            throw new ArgumentOutOfRangeException(nameof(request.Outcome), "Invalid periodic review outcome.");
+            throw new InvalidOperationException("Invalid periodic review outcome.");
         }
 
         return await GetReviewTaskByIdAsync(taskId, userId);

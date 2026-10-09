@@ -149,9 +149,5 @@ public class UserController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
     }
 }

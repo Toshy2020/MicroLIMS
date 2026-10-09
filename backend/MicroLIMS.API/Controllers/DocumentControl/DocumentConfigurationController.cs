@@ -61,10 +61,6 @@ public class DocumentConfigurationController : ControllerBase
             var result = await _configService.UpdateDocumentTypeAsync(id, request, CurrentUserId);
             return Ok(ApiResponse<DocumentTypeDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -108,10 +104,6 @@ public class DocumentConfigurationController : ControllerBase
             var result = await _configService.UpdateDepartmentAsync(id, request, CurrentUserId);
             return Ok(ApiResponse<DocumentDepartmentDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -134,10 +126,6 @@ public class DocumentConfigurationController : ControllerBase
             var result = await _configService.CreateSectionAsync(request, CurrentUserId);
             return Ok(ApiResponse<DocumentSectionDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -156,10 +144,6 @@ public class DocumentConfigurationController : ControllerBase
         {
             var result = await _configService.UpdateSectionAsync(id, request, CurrentUserId);
             return Ok(ApiResponse<DocumentSectionDto>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
         catch (ArgumentException ex)
         {
@@ -208,10 +192,6 @@ public class DocumentConfigurationController : ControllerBase
         {
             var result = await _configService.UpdateConfigurationSettingAsync(key, request, CurrentUserId);
             return Ok(ApiResponse<ConfigurationSettingDto>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
         catch (ArgumentException ex)
         {

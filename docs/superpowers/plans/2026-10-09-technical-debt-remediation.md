@@ -498,3 +498,16 @@ Full suite after every commit: `Failed: 0, Skipped: 0`; final count 2792 passed 
 Mistake caught and fixed during execution: after extracting `DescribeTsbRanges` its comment was left above `StartSharedTsbAsync`; moved back in commit `ee405d25`.
 
 Phases 3 and 5 are intentionally not started (stop for review).
+
+## Execution log, Phase 3 (2026-10-09, same branch, local only)
+
+Full suite after every commit: `Failed: 0, Skipped: 0`; final count 2816 passed.
+
+| Task | Status | What actually happened |
+|---|---|---|
+| 11 | Done `60eb4391` (golden test) + `ae7ce46d` | Golden-output test first (3 golden JSON files: retest chain, every location branch, incubation stage pairs, analysis, scoped vs unscoped sections). `GetSummaryAsync` 565 -> 255 lines (the rest is data loading); new `Services/SampleSummary/` with `SampleSummaryData`, `SampleSummaryTestOrderBuilder`, `SampleSummarySectionsBuilder`, `SampleSummaryUserIds`. Anonymous analysis projection became named rows. Golden output unchanged byte-for-byte. |
+| 12 | Done `bf270a71` | `Services/Dashboard/SectionHeadQueueBuilder.cs`: review queue, approval queue, 4 attention-item groups; `SampleDisplayName.For` replaces 5 copies. `GetSectionHeadDashboardAsync` ~355 -> ~215 lines (remaining: queries, analyst workloads). Counting rules untouched; existing dashboard tests unchanged and green. |
+| 13 | Done `a596f78b` | `GetActionableGroupsAsync` 451 -> ~155 lines: `EvaluateOrderAsync` (per-order decision), `ActionableGroupBuilder` (grouping, clustering, permitted media). `ExecuteBatchSelectMediaAsync`: lot/incubator/result-entry preconditions in `BatchSelectMediaRules`; engine calls, history rows and saves not touched. |
+| 14 | Done `42e44475` | `ExecuteApprovalDecisionCoreAsync` keeps guards + dispatch; the three branches are verbatim methods. Change-item/impact mappers moved to `DocumentDtoMapper` (also used by `DocumentRevisionService`); duplicated signature query is one helper. |
+
+`MaxLines` not lowered again: the largest non-migration backend file is still `PathogenSessionService.cs` (1,404 lines), so 1,500 is already tight. Phases 4 and 5 not started.

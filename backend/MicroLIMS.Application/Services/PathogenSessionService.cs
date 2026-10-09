@@ -905,33 +905,7 @@ public class PathogenSessionService
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator, cancellationToken)
             ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
 
-        // One incubation holds every chosen plate, each medium timed by its own
-        // configuration on this step (never step-level or default hours): it
-        // runs to the longest maximum, never short of the longest minimum, and
-        // the incubator must suit every medium's temperature range - the same
-        // rule as TestWorkflowEngine.SubmitConfirmatorySetupAsync.
-        var materialIds = request.MediaMaterialIds.Distinct().ToList();
-        await SectionMediaRule.EnsureMaterialsAsync(_db, materialIds, testOrder.SectionId, cancellationToken);
-        if (request.MediaLotIds is { Count: > 0 })
-            await SectionMediaRule.EnsureLotsAsync(_db, request.MediaLotIds, testOrder.SectionId, cancellationToken);
-        var productByMaterial = await _db.Materials
-            .Where(m => materialIds.Contains(m.Id))
-            .ToDictionaryAsync(m => m.Id, m => m.MediaProductId, cancellationToken);
-
-        var chosen = new List<(TestWorkflowStepMedia Medium, IncubationWindow Window)>();
-        foreach (var materialId in materialIds)
-        {
-            var medium = IncubationWindowResolver.MatchStepMedium(confirmatoryStep.StepMedia, materialId, productByMaterial.GetValueOrDefault(materialId))
-                ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
-                    $"Material #{materialId} is not on the permitted media list of step \"{confirmatoryStep.StepName}\".");
-            var window = IncubationWindowResolver.Require(medium, confirmatoryStep.StepName);
-
-            if (!await _incubatorEligibility.IsWithinRangeAsync(medium.Id, incubator.Id, cancellationToken))
-                throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
-                    $"Incubator {incubator.Code}'s set point is outside the {window.TemperatureText} range of \"{medium.Material?.MaterialName ?? $"material #{materialId}"}\".");
-
-            chosen.Add((medium, window));
-        }
+        var chosen = await ResolveChosenConfirmatoryMediaAsync(request, testOrder, confirmatoryStep, incubator, cancellationToken);
 
         var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
         var endUtc = startUtc.AddHours(chosen.Max(c => c.Window.MaxHours));
@@ -966,6 +940,44 @@ public class PathogenSessionService
 
         await _db.SaveChangesAsync(cancellationToken);
         return (await GetSessionAsync(sampleId))!;
+    }
+
+    // Each chosen confirmatory medium with its own configured window, after
+    // checking the section's media rule and that the incubator suits every
+    // medium's temperature range.
+    private async Task<List<(TestWorkflowStepMedia Medium, IncubationWindow Window)>> ResolveChosenConfirmatoryMediaAsync(
+        BatchConfirmatorySetupRequest request, TestOrder testOrder, TestWorkflowStep confirmatoryStep,
+        Equipment incubator, CancellationToken cancellationToken)
+    {
+        // One incubation holds every chosen plate, each medium timed by its own
+        // configuration on this step (never step-level or default hours): it
+        // runs to the longest maximum, never short of the longest minimum, and
+        // the incubator must suit every medium's temperature range - the same
+        // rule as TestWorkflowEngine.SubmitConfirmatorySetupAsync.
+        var materialIds = request.MediaMaterialIds.Distinct().ToList();
+        await SectionMediaRule.EnsureMaterialsAsync(_db, materialIds, testOrder.SectionId, cancellationToken);
+        if (request.MediaLotIds is { Count: > 0 })
+            await SectionMediaRule.EnsureLotsAsync(_db, request.MediaLotIds, testOrder.SectionId, cancellationToken);
+        var productByMaterial = await _db.Materials
+            .Where(m => materialIds.Contains(m.Id))
+            .ToDictionaryAsync(m => m.Id, m => m.MediaProductId, cancellationToken);
+
+        var chosen = new List<(TestWorkflowStepMedia Medium, IncubationWindow Window)>();
+        foreach (var materialId in materialIds)
+        {
+            var medium = IncubationWindowResolver.MatchStepMedium(confirmatoryStep.StepMedia, materialId, productByMaterial.GetValueOrDefault(materialId))
+                ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                    $"Material #{materialId} is not on the permitted media list of step \"{confirmatoryStep.StepName}\".");
+            var window = IncubationWindowResolver.Require(medium, confirmatoryStep.StepName);
+
+            if (!await _incubatorEligibility.IsWithinRangeAsync(medium.Id, incubator.Id, cancellationToken))
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
+                    $"Incubator {incubator.Code}'s set point is outside the {window.TemperatureText} range of \"{medium.Material?.MaterialName ?? $"material #{materialId}"}\".");
+
+            chosen.Add((medium, window));
+        }
+
+        return chosen;
     }
 
     public async Task<PathogenTestingSessionDto> SaveBatchConfirmatoryPlateReadingsAsync(

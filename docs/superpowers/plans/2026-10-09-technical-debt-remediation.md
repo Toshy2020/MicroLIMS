@@ -474,3 +474,27 @@ Files and counts: `MediaEvaluationWorkflowDialog.tsx` (18), `AnalystKpiService.t
 - **Placeholders:** Phases 3 and Task 8 start with a block-mapping step because those line ranges have not been read yet; the deliverable of that step is explicit and is appended to this file. Tasks 5-7 contain real code because their source lines were read.
 - **Type consistency:** `PathogenSessionData`, `SharedTsbResult`, `SessionLocationGrouper.Group`, `SharedTsbStateBuilder.Build` and `AssignedTestBuilder` are named identically wherever they appear.
 - **Review Focus:** items 1-2 -> Task 5, 3 -> Task 6, 4 -> Task 7, 5 -> Task 1.
+
+---
+
+## Execution log (2026-10-09, branch `refactor/debt-phase-1-2`, local only, nothing pushed)
+
+Full suite after every commit: `Failed: 0, Skipped: 0`; final count 2792 passed (was 2766).
+
+| Task | Status | What actually happened |
+|---|---|---|
+| 0 | Step 1 done; Steps 2-4 are yours | `MICROLIMS_TEST_POSTGRES` moved to a top-level `env` key in `.claude/settings.local.json`. A Claude Code restart is needed for it to take effect in new sessions. Browser smoke test and PR are still to do. |
+| 1 | Done `92899966` | Records were lines 17-73 (not 20-90): 57 lines moved byte-for-byte to `TestWorkflowRequests.cs`. |
+| 2 | Done (no change needed) | Only `PathogenSessionService.cs:284` was unfiltered. |
+| 3 | Done `ae935726` | Three of four copies merged; `PeriodicReviewService` differs and was left alone. |
+| 4 | Not started | Needs your decision on the scratch files. |
+| 5 | Done `23e0881d` | `SessionLocationGrouper`, 4 tests. |
+| 6 | Done `a1775e26` | `PathogenSessionData`; whole-table Users load now only referenced users, 2 tests. |
+| 7 | Done `899017f6` | `SharedTsbStateBuilder`, 3 tests. |
+| 8 | Done, split differently | Block F became four pieces instead of one `AssignedTestBuilder`: `ResultMatrixBuilder` (5 tests), `SessionStatusResolver` (5 tests), `AssignedTestStepBuilder` (4 tests) and a private `BuildCountResultAsync` (needs the database). `GetSessionAsync` went 566 -> 163 lines (target was ~120; the rest is the sample-graph query and DTO assembly). |
+| 9 | Done | `StartSharedTsbCoreAsync` 207 -> 103, `StartSharedConfirmatorySetupAsync` 118 -> under 100, `SaveBatchConfirmatoryPlateReadingsAsync` 127 -> under 100. Only whole contiguous blocks were moved, no statement reordered. The mutation blocks that write audit rows were not touched. |
+| 10 | Done | `SourceFileSizeTests.MaxLines` 2000 -> 1500. `PathogenSessionService` is still 1,404 lines (the file holds many other methods), so it cannot go lower until that file is split by responsibility. |
+
+Mistake caught and fixed during execution: after extracting `DescribeTsbRanges` its comment was left above `StartSharedTsbAsync`; moved back in commit `ee405d25`.
+
+Phases 3 and 5 are intentionally not started (stop for review).

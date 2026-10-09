@@ -29,7 +29,7 @@ public static class BatchSelectMediaRules
         }
     }
 
-    public static void EnsureIncubatorUsable(Equipment? incubator, int incubatorEquipmentId, DateTime now)
+    public static void EnsureIncubatorUsable([System.Diagnostics.CodeAnalysis.NotNull] Equipment? incubator, int incubatorEquipmentId, DateTime now)
     {
         if (incubator == null)
         {

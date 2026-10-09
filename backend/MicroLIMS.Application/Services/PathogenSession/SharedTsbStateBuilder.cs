@@ -140,6 +140,8 @@ public static class SharedTsbStateBuilder
         return new SharedTsbResult(sharedTsbDto, tsbApplicableCodes, ownTsbByOrder, tsbIncubating, tsbCompleted);
     }
 
+    // One range when every test agrees; otherwise each test's own, so a test
+    // with a different window is never hidden behind another's.
     private static string? DescribeTsbRanges(IEnumerable<(string TestCode, List<IncubationWindow> Windows)> tests, Func<IncubationWindow, string> text)
     {
         var perTest = tests

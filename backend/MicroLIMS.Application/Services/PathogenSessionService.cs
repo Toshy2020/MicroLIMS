@@ -543,34 +543,8 @@ public class PathogenSessionService
         int pendingCount = availableCount; // Only available and empty cells are truly pending entry
 
         // Overall Session Status Computation
-        string sessionStatus = "NOT_STARTED";
-        string sessionStatusDisplay = "Not Started";
-
-        if (completedCount == totalRequired && totalRequired > 0)
-        {
-            sessionStatus = sample.Status == SampleStatus.Approved ? "COMPLETED" : "READY_FOR_REVIEW";
-            sessionStatusDisplay = sample.Status == SampleStatus.Approved ? "Completed & Approved" : "Ready for Technical Review";
-        }
-        else if (completedCount > 0)
-        {
-            sessionStatus = "RESULTS_IN_PROGRESS";
-            sessionStatusDisplay = $"Results In Progress ({completedCount}/{totalRequired})";
-        }
-        else if (tsbIncubating)
-        {
-            sessionStatus = "TSB_INCUBATING";
-            sessionStatusDisplay = "TSB Enrichment Incubating";
-        }
-        else if (tsbCompleted)
-        {
-            sessionStatus = "TSB_COMPLETED";
-            sessionStatusDisplay = "TSB Complete, Downstream Testing";
-        }
-        else if (tsbApplicableCodes.Count == 0)
-        {
-            sessionStatus = "DOWNSTREAM_TESTING";
-            sessionStatusDisplay = "Testing In Progress";
-        }
+        var (sessionStatus, sessionStatusDisplay) = SessionStatusResolver.Resolve(
+            completedCount, totalRequired, sample.Status, tsbIncubating, tsbCompleted, tsbApplicableCodes.Count);
 
         var programName = sample.Category switch
         {
@@ -614,8 +588,6 @@ public class PathogenSessionService
             missingResults);
     }
 
-    // One range when every test agrees; otherwise each test's own, so a test
-    // with a different window is never hidden behind another's.
     public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>
         UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId));
 

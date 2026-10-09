@@ -54,4 +54,55 @@ public static class DocumentDtoMapper
             f.GeneratedFromSourceFileId
         );
     }
+
+    public static RevisionChangeItemDto MapChangeItem(RevisionChangeItem i, string username, string fullName)
+    {
+        return new RevisionChangeItemDto(
+            i.Id,
+            i.DocumentRevisionId,
+            i.SectionNumber,
+            i.SectionTitle,
+            i.DescriptionOfChange,
+            i.ChangeRationale,
+            i.ChangeCategory,
+            i.Status,
+            i.OriginatingReviewFindingId,
+            i.CreatedByUserId,
+            username,
+            fullName,
+            i.CreatedAt,
+            i.ModifiedAt
+        ) { Version = i.Version };
+    }
+
+    public static RevisionImpactAssessmentDto MapImpact(RevisionImpactAssessment a, string username, string fullName)
+    {
+        return new RevisionImpactAssessmentDto(
+            a.Id,
+            a.DocumentRevisionId,
+            a.ProcedureOrMethodImpact,
+            a.ProcedureOrMethodDetails,
+            a.TrainingImpact,
+            a.TrainingDetails,
+            a.FormsOrTemplatesImpact,
+            a.FormsOrTemplatesDetails,
+            a.SpecificationsImpact,
+            a.SpecificationsDetails,
+            a.EquipmentImpact,
+            a.EquipmentDetails,
+            a.MaterialsOrMediaImpact,
+            a.MaterialsOrMediaDetails,
+            a.ValidationImpact,
+            a.ValidationDetails,
+            a.RegulatoryCommitmentImpact,
+            a.RegulatoryCommitmentDetails,
+            a.RelatedDocumentsImpact,
+            a.RelatedDocumentsDetails,
+            a.IsComplete,
+            a.CompletedByUserId,
+            username,
+            fullName,
+            a.CompletedAt
+        );
+    }
 }

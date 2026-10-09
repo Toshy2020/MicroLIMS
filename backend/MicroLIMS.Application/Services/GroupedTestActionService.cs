@@ -10,7 +10,7 @@ using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
-internal record CandidateActionItem(
+public record CandidateActionItem(
     TestOrder Order,
     Sample Sample,
     TestWorkflowStep CurrentStep,
@@ -146,399 +146,279 @@ public class GroupedTestActionService
 
         foreach (var order in candidateOrders)
         {
-            var sample = order.Sample;
-            if (sample == null) continue;
+            var outcome = await EvaluateOrderAsync(order, analystNames, materialIdsByProduct, preparedSampleIds, stepLookups, openMediaLookup, seenTsbSampleIds, ct);
+            if (outcome.Candidate != null) candidates.Add(outcome.Candidate);
+            if (outcome.Excluded != null) excludedResultEntry.Add(outcome.Excluded);
+        }
 
-            // Test Preparation gate - every category, not just the
-            // location-based ones. PreparationStatus turns Ready only once
-            // the sample's preparation step has been signed off, so an
-            // unprepared sample offers no incubation action at all.
-            if (sample.PreparationStatus != SamplePreparationStatus.Ready)
-                continue;
-            if (sample.ItemId != null && !preparedSampleIds.Contains(sample.Id))
-                continue;
+        return ActionableGroupBuilder.Build(candidates, actionType, _time.GetUtcNow().UtcDateTime, excludedResultEntry);
+    }
 
-            if (!stepLookups.TryGetValue(order.Id, out var lookup) || lookup.Details is null)
-                continue;
-            var stepDetails = lookup.Details;
-            var stepResult = stepDetails.Result;
+    // One candidate order's contribution to the grouped-action list.
+    private async Task<CandidateOutcome> EvaluateOrderAsync(
+        TestOrder order,
+        Dictionary<int, string> analystNames,
+        Dictionary<int, List<int>> materialIdsByProduct,
+        HashSet<int> preparedSampleIds,
+        IReadOnlyDictionary<int, CurrentStepLookup> stepLookups,
+        Dictionary<int, (int MaterialId, int? MediaProductId)> openMediaLookup,
+        HashSet<int> seenTsbSampleIds,
+        CancellationToken ct)
+    {
+        var sample = order.Sample;
+        if (sample == null) return CandidateOutcome.None;
 
-            if (stepResult.AllStepsComplete || stepResult.Step == null)
-                continue;
+        // Test Preparation gate - every category, not just the
+        // location-based ones. PreparationStatus turns Ready only once
+        // the sample's preparation step has been signed off, so an
+        // unprepared sample offers no incubation action at all.
+        if (sample.PreparationStatus != SamplePreparationStatus.Ready)
+            return CandidateOutcome.None;
+        if (sample.ItemId != null && !preparedSampleIds.Contains(sample.Id))
+            return CandidateOutcome.None;
 
-            var definition = stepDetails.Definition;
-            var step = stepResult.Step;
-            var displayName = sample.Item?.Name ?? sample.WaterSamplingPoint?.Code ?? sample.Department?.Name ?? sample.Machine?.Name ?? sample.ReferenceNumber;
-            var analystName = order.AssignedAnalystId.HasValue && analystNames.TryGetValue(order.AssignedAnalystId.Value, out var an) ? an : null;
+        if (!stepLookups.TryGetValue(order.Id, out var lookup) || lookup.Details is null)
+            return CandidateOutcome.None;
+        var stepDetails = lookup.Details;
+        var stepResult = stepDetails.Result;
 
-            var openInc = stepResult.OpenIncubation;
-            if (openInc != null && openInc.CompletedAt == null)
+        if (stepResult.AllStepsComplete || stepResult.Step == null)
+            return CandidateOutcome.None;
+
+        var definition = stepDetails.Definition;
+        var step = stepResult.Step;
+        var displayName = sample.Item?.Name ?? sample.WaterSamplingPoint?.Code ?? sample.Department?.Name ?? sample.Machine?.Name ?? sample.ReferenceNumber;
+        var analystName = order.AssignedAnalystId.HasValue && analystNames.TryGetValue(order.AssignedAnalystId.Value, out var an) ? an : null;
+
+        var openInc = stepResult.OpenIncubation;
+        if (openInc != null && openInc.CompletedAt == null)
+        {
+            // An incubation is currently open for this step.
+            // Check if its minimum incubation duration has elapsed:
+            var startUtc = openInc.IncubationStartUtc ?? openInc.StartedAt;
+            int minHours = 0;
+            if (openInc.StageNumber == 2)
             {
-                // An incubation is currently open for this step.
-                // Check if its minimum incubation duration has elapsed:
-                var startUtc = openInc.IncubationStartUtc ?? openInc.StartedAt;
-                int minHours = 0;
-                if (openInc.StageNumber == 2)
+                var stage2 = step.IncubationStages?.FirstOrDefault(s => s.StageNumber == 2);
+                minHours = stage2?.IncubationMinHours ?? step.IncubationMinHours;
+            }
+            else
+            {
+                // Timed by the medium this test used; an unconfigured window
+                // offers no grouped action (the engine would refuse it). The lots
+                // were loaded once above, so this needs no query per order.
+                var window = IncubationWindowResolver.ForIncubation(step, openInc, openMediaLookup);
+                if (window is null)
+                    return CandidateOutcome.None;
+                minHours = window.MinHours;
+            }
+
+            var minReadyAt = startUtc != default ? startUtc.AddHours(minHours) : (DateTime?)null;
+            bool isReady = openInc.MinimumDurationOverriddenByUserId.HasValue || (minReadyAt.HasValue && _time.GetUtcNow().UtcDateTime >= minReadyAt.Value);
+
+            if (!isReady)
+            {
+                // Actively incubating - not yet ready for any action
+                return CandidateOutcome.None;
+            }
+
+            // Minimum duration has elapsed! Determine the pending executable action:
+            if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth)
+            {
+                // Broth enrichment completed. The operational transition is:
+                // complete broth and transfer to next selective broth or plating!
+                var nextStep = definition.Steps.Where(s => s.StepOrder > step.StepOrder).OrderBy(s => s.StepOrder).FirstOrDefault();
+                if (nextStep != null && nextStep.StepType is StepType.SelectiveBroth or StepType.SelectivePlating)
                 {
-                    var stage2 = step.IncubationStages?.FirstOrDefault(s => s.StageNumber == 2);
-                    minHours = stage2?.IncubationMinHours ?? step.IncubationMinHours;
-                }
-                else
-                {
-                    // Timed by the medium this test used; an unconfigured window
-                    // offers no grouped action (the engine would refuse it). The lots
-                    // were loaded once above, so this needs no query per order.
-                    var window = IncubationWindowResolver.ForIncubation(step, openInc, openMediaLookup);
-                    if (window is null)
-                        continue;
-                    minHours = window.MinHours;
-                }
+                    var nextStepMedias = await _db.TestWorkflowStepMedias
+                        .Include(m => m.Material)
+                        .Include(m => m.IncubationCondition)
+                        .Where(m => m.TestWorkflowStepId == nextStep.Id)
+                        .ToListAsync(ct);
 
-                var minReadyAt = startUtc != default ? startUtc.AddHours(minHours) : (DateTime?)null;
-                bool isReady = openInc.MinimumDurationOverriddenByUserId.HasValue || (minReadyAt.HasValue && _time.GetUtcNow().UtcDateTime >= minReadyAt.Value);
+                    var (permittedMaterialIds, permittedNames) = ActionableGroupBuilder.PermittedMedia(nextStepMedias, materialIdsByProduct);
 
-                if (!isReady)
-                {
-                    // Actively incubating - not yet ready for any action
-                    continue;
-                }
+                    var transitionLabel = $"{step.StepName} → {nextStep.StepName}";
 
-                // Minimum duration has elapsed! Determine the pending executable action:
-                if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth)
-                {
-                    // Broth enrichment completed. The operational transition is:
-                    // complete broth and transfer to next selective broth or plating!
-                    var nextStep = definition.Steps.Where(s => s.StepOrder > step.StepOrder).OrderBy(s => s.StepOrder).FirstOrDefault();
-                    if (nextStep != null && nextStep.StepType is StepType.SelectiveBroth or StepType.SelectivePlating)
-                    {
-                        var nextStepMedias = await _db.TestWorkflowStepMedias
-                            .Include(m => m.Material)
-                            .Include(m => m.IncubationCondition)
-                            .Where(m => m.TestWorkflowStepId == nextStep.Id)
-                            .ToListAsync(ct);
+                    var nextWindow = IncubationWindowResolver.ForStep(nextStepMedias);
+                    if (nextWindow is null)
+                        return CandidateOutcome.None;
 
-                        var productIds = nextStepMedias
-                            .Select(StepMediumMatcher.ProductOf)
-                            .Where(p => p.HasValue)
-                            .Select(p => p!.Value)
-                            .Distinct()
-                            .ToList();
-
-                        var siblingMaterialIds = productIds.SelectMany(p => materialIdsByProduct.TryGetValue(p, out var ids) ? ids : new List<int>());
-                        var permittedMaterialIds = nextStepMedias.Select(m => m.MaterialId).Union(siblingMaterialIds).Distinct().ToList();
-
-                        var permittedNames = string.Join(" / ", nextStepMedias.Select(m => m.Material?.MaterialName).Where(n => !string.IsNullOrEmpty(n)).Distinct());
-
-                        var transitionLabel = $"{step.StepName} → {nextStep.StepName}";
-
-                        var nextWindow = IncubationWindowResolver.ForStep(nextStepMedias);
-                        if (nextWindow is null)
-                            continue;
-
-                        candidates.Add(new CandidateActionItem(
-                            Order: order,
-                            Sample: sample,
-                            CurrentStep: step,
-                            TargetStep: nextStep,
-                            ActionType: "TRANSFER_SELECTIVE",
-                            TransitionType: "TRANSFER_SELECTIVE",
-                            TransitionLabel: transitionLabel,
-                            StepType: nextStep.StepType.ToString(),
-                            StepName: nextStep.StepName,
-                            PredecessorStepName: step.StepName,
-                            TestCode: order.TestCode,
-                            DisplayName: displayName,
-                            PermittedMaterialIds: permittedMaterialIds,
-                            PermittedMaterialNames: permittedNames,
-                            TempMin: nextWindow.TempMin,
-                            TempMax: nextWindow.TempMax,
-                            IncubationMinHours: nextWindow.MinHours,
-                            IncubationMaxHours: nextWindow.MaxHours,
-                            AssignedAnalystName: analystName
-                        ));
-                    }
-                    continue;
-                }
-                else if (step.StepType == StepType.PlateCount && step.RequiresIncubationTransfer && openInc.StageNumber == 1)
-                {
-                    // Stage 1 completed for a two-stage plate count.
-                    // Operational transition: transfer to Stage 2 incubator!
-                    var stage2Config = await _db.TestWorkflowStepIncubationStages
-                        .FirstOrDefaultAsync(s => s.TestWorkflowStepId == step.Id && s.StageNumber == 2, ct);
-
-                    var tempMin = stage2Config?.TempMin ?? step.TemperatureMin;
-                    var tempMax = stage2Config?.TempMax ?? step.TemperatureMax;
-                    var minH = stage2Config?.IncubationMinHours ?? step.IncubationMinHours;
-                    var maxH = stage2Config?.IncubationMaxHours ?? step.IncubationMaxHours;
-
-                    candidates.Add(new CandidateActionItem(
+                    return CandidateOutcome.Of(new CandidateActionItem(
                         Order: order,
                         Sample: sample,
                         CurrentStep: step,
-                        TargetStep: step,
-                        ActionType: "TRANSFER_INCUBATOR",
-                        TransitionType: "TRANSFER_INCUBATOR",
-                        TransitionLabel: $"Transfer to Stage 2 Incubator ({step.StepName})",
-                        StepType: step.StepType.ToString(),
-                        StepName: step.StepName,
+                        TargetStep: nextStep,
+                        ActionType: "TRANSFER_SELECTIVE",
+                        TransitionType: "TRANSFER_SELECTIVE",
+                        TransitionLabel: transitionLabel,
+                        StepType: nextStep.StepType.ToString(),
+                        StepName: nextStep.StepName,
                         PredecessorStepName: step.StepName,
                         TestCode: order.TestCode,
                         DisplayName: displayName,
-                        PermittedMaterialIds: new List<int>(), // Media remains the same; plate transfers to incubator
-                        PermittedMaterialNames: "Existing Plate Media",
-                        TempMin: tempMin,
-                        TempMax: tempMax,
-                        IncubationMinHours: minH,
-                        IncubationMaxHours: maxH,
+                        PermittedMaterialIds: permittedMaterialIds,
+                        PermittedMaterialNames: permittedNames,
+                        TempMin: nextWindow.TempMin,
+                        TempMax: nextWindow.TempMax,
+                        IncubationMinHours: nextWindow.MinHours,
+                        IncubationMaxHours: nextWindow.MaxHours,
                         AssignedAnalystName: analystName
                     ));
-                    continue;
                 }
-                else if (step.StepType == StepType.PlateCount)
-                {
-                    // PlateCount incubation complete -> colony count entry
-                    // NON-GROUPABLE ANALYTICAL RESULT ENTRY
-                    excludedResultEntry.Add(new ExcludedResultEntryTestOrderDto(
-                        order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
-                        "Colony count requires individual analytical result entry"
-                    ));
-                    continue;
-                }
-                else if (step.StepType == StepType.SelectivePlating)
-                {
-                    // Selective plating incubation complete -> observation reading
-                    // NON-GROUPABLE ANALYTICAL RESULT ENTRY
-                    excludedResultEntry.Add(new ExcludedResultEntryTestOrderDto(
-                        order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
-                        "Selective plate reading requires individual microbiological observation"
-                    ));
-                    continue;
-                }
-                else if (step.StepType == StepType.ConfirmatoryPlating)
-                {
-                    // Confirmatory plating observation readout
-                    // NON-GROUPABLE ANALYTICAL RESULT ENTRY
-                    excludedResultEntry.Add(new ExcludedResultEntryTestOrderDto(
-                        order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
-                        "Confirmatory plating readout requires individual plate observation"
-                    ));
-                    continue;
-                }
-                else
-                {
-                    continue;
-                }
+                return CandidateOutcome.None;
             }
-
-            // No open incubation on current step. Check if predecessor steps are all completed:
-            if (step.StepOrder > 1)
+            else if (step.StepType == StepType.PlateCount && step.RequiresIncubationTransfer && openInc.StageNumber == 1)
             {
-                var hasActivePredecessorIncubation = await _db.Incubations.AnyAsync(i =>
-                    i.TestOrderId == order.Id &&
-                    i.StepNumber < step.StepOrder &&
-                    (i.CompletedAt == null || (!i.MinimumDurationOverriddenByUserId.HasValue && i.IncubationEndUtc.HasValue && _time.GetUtcNow().UtcDateTime < i.IncubationEndUtc.Value)),
-                    ct);
+                // Stage 1 completed for a two-stage plate count.
+                // Operational transition: transfer to Stage 2 incubator!
+                var stage2Config = await _db.TestWorkflowStepIncubationStages
+                    .FirstOrDefaultAsync(s => s.TestWorkflowStepId == step.Id && s.StageNumber == 2, ct);
 
-                if (hasActivePredecessorIncubation)
-                    continue;
+                var tempMin = stage2Config?.TempMin ?? step.TemperatureMin;
+                var tempMax = stage2Config?.TempMax ?? step.TemperatureMax;
+                var minH = stage2Config?.IncubationMinHours ?? step.IncubationMinHours;
+                var maxH = stage2Config?.IncubationMaxHours ?? step.IncubationMaxHours;
 
-                var predecessors = definition.Steps.Where(s => s.StepOrder < step.StepOrder).ToList();
-                bool allPredecessorsDone = true;
-                foreach (var pred in predecessors)
-                {
-                    if (!TestWorkflowEngine.IsStepDone(stepDetails.Facts, definition.WorkflowType, pred))
-                    {
-                        allPredecessorsDone = false;
-                        break;
-                    }
-                }
-
-                if (!allPredecessorsDone)
-                    continue;
-            }
-
-            if (step.StepType is StepType.PlateCount or StepType.BrothEnrichment or StepType.SelectiveBroth or StepType.SelectivePlating)
-            {
-                var isSharedTsb = step.StepType == StepType.BrothEnrichment || step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase);
-                if (isSharedTsb && step.StepOrder == 1)
-                {
-                    if (seenTsbSampleIds.Contains(order.SampleId))
-                    {
-                        continue;
-                    }
-                    seenTsbSampleIds.Add(order.SampleId);
-                }
-
-                var stepMediaList = await _db.TestWorkflowStepMedias
-                    .Include(m => m.Material)
-                    .Include(m => m.IncubationCondition)
-                    .Where(m => m.TestWorkflowStepId == step.Id)
-                    .ToListAsync(ct);
-
-                var productIds = stepMediaList
-                    .Select(StepMediumMatcher.ProductOf)
-                    .Where(p => p.HasValue)
-                    .Select(p => p!.Value)
-                    .Distinct()
-                    .ToList();
-
-                var siblingMaterialIds = productIds.SelectMany(p => materialIdsByProduct.TryGetValue(p, out var ids) ? ids : new List<int>());
-                var permittedMaterialIds = stepMediaList.Select(m => m.MaterialId).Union(siblingMaterialIds).Distinct().ToList();
-
-                var permittedNames = string.Join(" / ", stepMediaList.Select(m => m.Material?.MaterialName).Where(n => !string.IsNullOrEmpty(n)).Distinct());
-
-                var setupWindow = IncubationWindowResolver.ForStep(stepMediaList);
-                if (setupWindow is null)
-                    continue;
-
-                candidates.Add(new CandidateActionItem(
+                return CandidateOutcome.Of(new CandidateActionItem(
                     Order: order,
                     Sample: sample,
                     CurrentStep: step,
                     TargetStep: step,
-                    ActionType: "SETUP_INCUBATION",
-                    TransitionType: "SETUP_INCUBATION",
-                    TransitionLabel: step.StepName,
+                    ActionType: "TRANSFER_INCUBATOR",
+                    TransitionType: "TRANSFER_INCUBATOR",
+                    TransitionLabel: $"Transfer to Stage 2 Incubator ({step.StepName})",
                     StepType: step.StepType.ToString(),
                     StepName: step.StepName,
-                    PredecessorStepName: null,
+                    PredecessorStepName: step.StepName,
                     TestCode: order.TestCode,
                     DisplayName: displayName,
-                    PermittedMaterialIds: permittedMaterialIds,
-                    PermittedMaterialNames: permittedNames,
-                    TempMin: setupWindow.TempMin,
-                    TempMax: setupWindow.TempMax,
-                    IncubationMinHours: setupWindow.MinHours,
-                    IncubationMaxHours: setupWindow.MaxHours,
+                    PermittedMaterialIds: new List<int>(), // Media remains the same; plate transfers to incubator
+                    PermittedMaterialNames: "Existing Plate Media",
+                    TempMin: tempMin,
+                    TempMax: tempMax,
+                    IncubationMinHours: minH,
+                    IncubationMaxHours: maxH,
                     AssignedAnalystName: analystName
                 ));
             }
-            else if (step.StepType == StepType.BiochemicalTest)
+            else if (step.StepType == StepType.PlateCount)
             {
-                // Biochemical test entry
+                // PlateCount incubation complete -> colony count entry
                 // NON-GROUPABLE ANALYTICAL RESULT ENTRY
-                excludedResultEntry.Add(new ExcludedResultEntryTestOrderDto(
+                return CandidateOutcome.Of(new ExcludedResultEntryTestOrderDto(
                     order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
-                    "Biochemical test interpretation requires individual analytical result entry"
+                    "Colony count requires individual analytical result entry"
                 ));
+            }
+            else if (step.StepType == StepType.SelectivePlating)
+            {
+                // Selective plating incubation complete -> observation reading
+                // NON-GROUPABLE ANALYTICAL RESULT ENTRY
+                return CandidateOutcome.Of(new ExcludedResultEntryTestOrderDto(
+                    order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
+                    "Selective plate reading requires individual microbiological observation"
+                ));
+            }
+            else if (step.StepType == StepType.ConfirmatoryPlating)
+            {
+                // Confirmatory plating observation readout
+                // NON-GROUPABLE ANALYTICAL RESULT ENTRY
+                return CandidateOutcome.Of(new ExcludedResultEntryTestOrderDto(
+                    order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
+                    "Confirmatory plating readout requires individual plate observation"
+                ));
+            }
+            else
+            {
+                return CandidateOutcome.None;
             }
         }
 
-        if (!string.IsNullOrEmpty(actionType))
+        // No open incubation on current step. Check if predecessor steps are all completed:
+        if (step.StepOrder > 1)
         {
-            candidates = candidates.Where(c => string.Equals(c.ActionType, actionType, StringComparison.OrdinalIgnoreCase) ||
-                                               string.Equals(c.TransitionType, actionType, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
+            var hasActivePredecessorIncubation = await _db.Incubations.AnyAsync(i =>
+                i.TestOrderId == order.Id &&
+                i.StepNumber < step.StepOrder &&
+                (i.CompletedAt == null || (!i.MinimumDurationOverriddenByUserId.HasValue && i.IncubationEndUtc.HasValue && _time.GetUtcNow().UtcDateTime < i.IncubationEndUtc.Value)),
+                ct);
 
-        var rawGroups = candidates.GroupBy(c => (c.TransitionType, c.StepType, c.StepName)).ToList();
-        var finalGroups = new List<ActionableGroupDto>();
+            if (hasActivePredecessorIncubation)
+                return CandidateOutcome.None;
 
-        foreach (var rg in rawGroups)
-        {
-            var subClusters = ClusterByCompatibility(rg.ToList());
-
-            foreach (var cluster in subClusters)
+            var predecessors = definition.Steps.Where(s => s.StepOrder < step.StepOrder).ToList();
+            bool allPredecessorsDone = true;
+            foreach (var pred in predecessors)
             {
-                var isTransferIncubator = cluster[0].TransitionType == "TRANSFER_INCUBATOR";
-
-                List<int> commonMaterials = new();
-                if (!isTransferIncubator)
+                if (!TestWorkflowEngine.IsStepDone(stepDetails.Facts, definition.WorkflowType, pred))
                 {
-                    commonMaterials = cluster.Select(c => c.PermittedMaterialIds).Aggregate((a, b) => a.Intersect(b).ToList());
-                    if (!commonMaterials.Any() && cluster.First().PermittedMaterialIds.Any())
-                        continue;
-                }
-
-                var effTempMin = cluster.Max(c => c.TempMin);
-                var effTempMax = cluster.Min(c => c.TempMax);
-                if (effTempMin > effTempMax)
-                    continue;
-
-                var effMinHours = cluster.Max(c => c.IncubationMinHours);
-                var effMaxHours = cluster.Max(c => c.IncubationMaxHours);
-
-                var distinctSamples = cluster.Select(c => c.Sample.Id).Distinct().Count();
-                var groupKey = $"{cluster[0].TransitionType}|{cluster[0].StepType}|{cluster[0].StepName}|{effTempMin}-{effTempMax}|{effMinHours}h";
-
-                var testOrderDtos = cluster.Select(c => new ActionableTestOrderSummaryDto(
-                    c.Order.Id,
-                    c.Sample.Id,
-                    c.Sample.ReferenceNumber,
-                    c.DisplayName,
-                    c.Order.TestCode,
-                    c.Sample.BatchNumber,
-                    c.Order.AssignedAnalystId,
-                    c.AssignedAnalystName
-                )).ToList();
-
-                var urgency = cluster.Any(c => c.Sample.ReceivedAt < _time.GetUtcNow().UtcDateTime.AddHours(-24)) ? "Overdue" : "DueNow";
-
-                finalGroups.Add(new ActionableGroupDto(
-                    GroupKey: groupKey,
-                    ActionType: cluster[0].ActionType,
-                    StepType: cluster[0].StepType,
-                    StepName: cluster[0].StepName,
-                    TestCode: cluster[0].TestCode,
-                    SampleCount: distinctSamples,
-                    TestOrderCount: cluster.Count,
-                    TempMin: effTempMin,
-                    TempMax: effTempMax,
-                    IncubationMinHours: effMinHours,
-                    IncubationMaxHours: effMaxHours,
-                    PermittedMaterialIds: commonMaterials,
-                    PermittedMaterialNames: cluster[0].PermittedMaterialNames,
-                    Urgency: urgency,
-                    TestOrders: testOrderDtos,
-                    TransitionType: cluster[0].TransitionType,
-                    TransitionLabel: cluster[0].TransitionLabel,
-                    TargetStepName: cluster[0].TargetStep.StepName,
-                    PredecessorStepName: cluster[0].PredecessorStepName
-                ));
-            }
-        }
-
-        return new ActionableGroupsResponse(
-            Groups: finalGroups.OrderByDescending(g => g.TestOrderCount).ToList(),
-            ExcludedResultEntryCount: excludedResultEntry.Count,
-            ExcludedResultEntryTestOrders: excludedResultEntry
-        );
-    }
-
-    private static List<List<CandidateActionItem>> ClusterByCompatibility(List<CandidateActionItem> items)
-    {
-        var clusters = new List<List<CandidateActionItem>>();
-
-        foreach (var item in items)
-        {
-            bool placed = false;
-            foreach (var cluster in clusters)
-            {
-                bool isIncTransfer = item.TransitionType == "TRANSFER_INCUBATOR";
-                bool canIntersectMats = isIncTransfer;
-                if (!isIncTransfer)
-                {
-                    var commonMats = cluster.Select(c => c.PermittedMaterialIds).Aggregate((a, b) => a.Intersect(b).ToList());
-                    canIntersectMats = !item.PermittedMaterialIds.Any() || commonMats.Intersect(item.PermittedMaterialIds).Any();
-                }
-
-                var effMin = Math.Max(cluster.Max(c => c.TempMin), item.TempMin);
-                var effMax = Math.Min(cluster.Min(c => c.TempMax), item.TempMax);
-
-                if (canIntersectMats && effMin <= effMax)
-                {
-                    cluster.Add(item);
-                    placed = true;
+                    allPredecessorsDone = false;
                     break;
                 }
             }
 
-            if (!placed)
-            {
-                clusters.Add(new List<CandidateActionItem> { item });
-            }
+            if (!allPredecessorsDone)
+                return CandidateOutcome.None;
         }
 
-        return clusters;
+        if (step.StepType is StepType.PlateCount or StepType.BrothEnrichment or StepType.SelectiveBroth or StepType.SelectivePlating)
+        {
+            var isSharedTsb = step.StepType == StepType.BrothEnrichment || step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase);
+            if (isSharedTsb && step.StepOrder == 1)
+            {
+                if (seenTsbSampleIds.Contains(order.SampleId))
+                {
+                    return CandidateOutcome.None;
+                }
+                seenTsbSampleIds.Add(order.SampleId);
+            }
+
+            var stepMediaList = await _db.TestWorkflowStepMedias
+                .Include(m => m.Material)
+                .Include(m => m.IncubationCondition)
+                .Where(m => m.TestWorkflowStepId == step.Id)
+                .ToListAsync(ct);
+
+            var (permittedMaterialIds, permittedNames) = ActionableGroupBuilder.PermittedMedia(stepMediaList, materialIdsByProduct);
+
+            var setupWindow = IncubationWindowResolver.ForStep(stepMediaList);
+            if (setupWindow is null)
+                return CandidateOutcome.None;
+
+            return CandidateOutcome.Of(new CandidateActionItem(
+                Order: order,
+                Sample: sample,
+                CurrentStep: step,
+                TargetStep: step,
+                ActionType: "SETUP_INCUBATION",
+                TransitionType: "SETUP_INCUBATION",
+                TransitionLabel: step.StepName,
+                StepType: step.StepType.ToString(),
+                StepName: step.StepName,
+                PredecessorStepName: null,
+                TestCode: order.TestCode,
+                DisplayName: displayName,
+                PermittedMaterialIds: permittedMaterialIds,
+                PermittedMaterialNames: permittedNames,
+                TempMin: setupWindow.TempMin,
+                TempMax: setupWindow.TempMax,
+                IncubationMinHours: setupWindow.MinHours,
+                IncubationMaxHours: setupWindow.MaxHours,
+                AssignedAnalystName: analystName
+            ));
+        }
+        else if (step.StepType == StepType.BiochemicalTest)
+        {
+            // Biochemical test entry
+            // NON-GROUPABLE ANALYTICAL RESULT ENTRY
+            return CandidateOutcome.Of(new ExcludedResultEntryTestOrderDto(
+                order.Id, sample.Id, sample.ReferenceNumber, displayName, order.TestCode, step.StepName,
+                "Biochemical test interpretation requires individual analytical result entry"
+            ));
+        }
+
+        return CandidateOutcome.None;
     }
 
     public async Task<BatchSelectMediaResponse> ExecuteBatchSelectMediaAsync(
@@ -552,13 +432,7 @@ public class GroupedTestActionService
             return new BatchSelectMediaResponse(0, 0, 0, new(), new());
         }
 
-        // Domain Guard: Explicitly disallow any request targeting a result-entry operation
-        var stepNameLower = request.StepName.ToLowerInvariant();
-        if (stepNameLower.Contains("result") || stepNameLower.Contains("reading") ||
-            (stepNameLower.Contains("count") && !stepNameLower.Contains("incubation") && !stepNameLower.Contains("tamc") && !stepNameLower.Contains("tymc")))
-        {
-            throw new InvalidOperationException("Grouped actions cannot be executed against analytical result-entry operations. Result entry must be performed individually.");
-        }
+        BatchSelectMediaRules.EnsureNotResultEntry(request.StepName);
 
         var isTransferIncubator = string.Equals(request.TransitionType, "TRANSFER_INCUBATOR", StringComparison.OrdinalIgnoreCase);
 
@@ -576,30 +450,12 @@ public class GroupedTestActionService
             {
                 throw new InvalidOperationException($"Media lot {request.MediaLotId.Value} was not found.");
             }
-            if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
-            {
-                throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
-            }
-            if (media.ExpiryDate <= _time.GetUtcNow().UtcDateTime)
-            {
-                throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is expired (expired on {media.ExpiryDate:yyyy-MM-dd}).");
-            }
+            BatchSelectMediaRules.EnsureMediaLotUsable(media, _time.GetUtcNow().UtcDateTime);
         }
 
         var incubator = await _db.Equipment
             .FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator, ct);
-        if (incubator == null)
-        {
-            throw new InvalidOperationException($"Incubator equipment {request.IncubatorEquipmentId} was not found or is not an incubator.");
-        }
-        if (incubator.SetPointTemperature == null)
-        {
-            throw new InvalidOperationException($"Incubator \"{incubator.Code}\" has no calibrated set point temperature.");
-        }
-        if (incubator.CalibrationDueDate != null && incubator.CalibrationDueDate < _time.GetUtcNow().UtcDateTime)
-        {
-            throw new InvalidOperationException($"Incubator \"{incubator.Code}\" calibration expired on {incubator.CalibrationDueDate:yyyy-MM-dd}.");
-        }
+        BatchSelectMediaRules.EnsureIncubatorUsable(incubator, request.IncubatorEquipmentId, _time.GetUtcNow().UtcDateTime);
 
         var succeeded = new List<BatchActionSuccessItem>();
         var skipped = new List<BatchActionSkippedItem>();
@@ -640,10 +496,7 @@ public class GroupedTestActionService
 
             if (!isPrepared)
             {
-                skipped.Add(new BatchActionSkippedItem(id, sampleRef,
-                    order.Sample?.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning
-                        ? "Sample preparation is not complete (locations/swabs not verified)."
-                        : "Test Preparation is not complete for this sample."));
+                skipped.Add(new BatchActionSkippedItem(id, sampleRef, BatchSelectMediaRules.NotPreparedMessage(order.Sample)));
                 continue;
             }
 
@@ -690,23 +543,11 @@ public class GroupedTestActionService
                          (startUtc != default && _time.GetUtcNow().UtcDateTime >= activeWindow.MinReadyAt(startUtc)));
                 }
 
-                if (isReady)
+                var resultEntryReason = BatchSelectMediaRules.ResultEntrySkipReason(activeStep, activeInc, isReady);
+                if (resultEntryReason != null)
                 {
-                    if (activeStep.StepType is StepType.PlateCount && (!activeStep.RequiresIncubationTransfer || activeInc.StageNumber == 2))
-                    {
-                        skipped.Add(new BatchActionSkippedItem(id, sampleRef, "Test order requires individual colony count entry. Result entry cannot be grouped."));
-                        continue;
-                    }
-                    if (activeStep.StepType is StepType.SelectivePlating)
-                    {
-                        skipped.Add(new BatchActionSkippedItem(id, sampleRef, "Test order requires individual selective plate observation. Observations cannot be grouped."));
-                        continue;
-                    }
-                    if (activeStep.StepType is StepType.ConfirmatoryPlating)
-                    {
-                        skipped.Add(new BatchActionSkippedItem(id, sampleRef, "Test order requires individual confirmatory readout. Observations cannot be grouped."));
-                        continue;
-                    }
+                    skipped.Add(new BatchActionSkippedItem(id, sampleRef, resultEntryReason));
+                    continue;
                 }
             }
 

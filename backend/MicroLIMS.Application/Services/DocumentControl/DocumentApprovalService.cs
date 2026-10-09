@@ -292,11 +292,11 @@ public class DocumentApprovalService : IDocumentApprovalService
         var master = revision.DocumentMaster;
 
         var taskDto = MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, task.DecisionByUser);
-        var revisionDto = MapRevisionDto(revision);
+        var revisionDto = DocumentDtoMapper.MapRevision(revision);
         var masterDto = MapMasterDto(master);
 
         var activePdf = revision.Files.FirstOrDefault(f => f.FileRole == FileRole.ControlledPdf && f.IsActive);
-        var pdfDto = activePdf != null ? MapFileDto(activePdf) : null;
+        var pdfDto = activePdf != null ? DocumentDtoMapper.MapFile(activePdf) : null;
 
         var changeItems = revision.ChangeItems
             .OrderBy(c => c.SectionNumber)
@@ -841,53 +841,6 @@ public class DocumentApprovalService : IDocumentApprovalService
         );
     }
 
-    private static DocumentRevisionDto MapRevisionDto(DocumentRevision r)
-    {
-        return new DocumentRevisionDto(
-            r.Id,
-            r.DocumentMasterId,
-            r.RevisionNumber,
-            r.RevisionSequence,
-            r.RevisionStatus,
-            r.EffectiveDate,
-            r.NextReviewDate,
-            r.ReviewCycleMonths,
-            r.RevisionType,
-            r.ReasonForRevision,
-            r.ChangeReference,
-            r.RecordOrigin,
-            r.CreatedAt,
-            r.CreatedByUserId,
-            r.CreatedByUser?.FullName ?? "",
-            r.CancelledAt,
-            r.CancelledByUserId,
-            r.CancelledByUser?.FullName,
-            r.CancelReason,
-            r.Files.OrderByDescending(f => f.UploadedAt).Select(MapFileDto).ToList()
-        );
-    }
-
-    private static RevisionFileDto MapFileDto(RevisionFile f)
-    {
-        return new RevisionFileDto(
-            f.Id,
-            f.DocumentRevisionId,
-            f.FileRole,
-            f.FileName,
-            f.ContentType,
-            f.SizeBytes,
-            f.ContentSha256,
-            f.IsActive,
-            f.SupersededByFileId,
-            f.UploadedAt,
-            f.UploadedByUserId,
-            f.UploadedByUser?.FullName ?? "",
-            f.FileVersion,
-            f.IsApprovedFinalSource,
-            f.GeneratedFromSourceFileId
-        );
-    }
-
     private static DocumentMasterDto MapMasterDto(DocumentMaster m)
     {
         var curRev = m.CurrentEffectiveRevisionId.HasValue
@@ -937,7 +890,7 @@ public class DocumentApprovalService : IDocumentApprovalService
                 a.AssignedByUserId,
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
-            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(MapRevisionDto).ToList()
+            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList()
         ) { Version = m.Version };
     }
 

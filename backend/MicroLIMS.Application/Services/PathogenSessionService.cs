@@ -314,33 +314,7 @@ public class PathogenSessionService
 
             var ownTsbComplete = ownTsbByOrder.TryGetValue(to.Id, out var ownTsb) && ownTsb.IsComplete;
 
-            var stepDtos = new List<SessionWorkflowStepDto>();
-            foreach (var s in steps)
-            {
-                var inc = toIncubations.FirstOrDefault(i => i.StepName == s.StepName || (requiresTsb && s.StepOrder == 1 && i.StepName.Contains("TSB")));
-                var res = toStepResults.FirstOrDefault(r => r.StepName == s.StepName);
-                var isDone = (inc != null && inc.CompletedAt.HasValue) || res != null || (requiresTsb && s.StepOrder == 1 && ownTsbComplete);
-                var outcome = inc?.Outcome ?? (res != null ? "Complete" : (isDone ? "Complete" : null));
-
-                // The medium its incubation actually used; before a lot is
-                // chosen, the step media's range - never step-level hours.
-                var stepWindow = inc != null
-                    ? IncubationWindowResolver.ForIncubation(s, inc, mediaLookup)
-                    : IncubationWindowResolver.ForStep(s.StepMedia);
-                stepDtos.Add(new SessionWorkflowStepDto(
-                    s.StepOrder,
-                    s.StepName,
-                    s.StepType.ToString(),
-                    null,
-                    s.StepType == StepType.BiochemicalTest ? null : s.StepType.ToString(),
-                    stepWindow?.MinHours ?? 0,
-                    stepWindow?.MaxHours ?? 0,
-                    stepWindow?.TempMin ?? 0,
-                    stepWindow?.TempMax ?? 0,
-                    isDone,
-                    outcome,
-                    inc?.CompletedAt ?? res?.SubmittedAtUtc));
-            }
+            var stepDtos = AssignedTestStepBuilder.Build(steps, toIncubations, toStepResults, requiresTsb, ownTsbComplete, mediaLookup);
 
             // Determine Test Session State & Result Entry Allowance
             var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, toIncubations, stepDtos, _time.GetUtcNow().UtcDateTime, steps, sample.Status, mediaLookup);
@@ -352,41 +326,7 @@ public class PathogenSessionService
             string workflowStatus = stateResult.WorkflowStatus;
 
             var countReading = countTestReadings.FirstOrDefault(c => c.TestOrderId == to.Id);
-            CountResultDto? countResultDto = null;
-            if (countReading != null)
-            {
-                // Same configured-unit-first pattern as TestWorkflowEngine/
-                // ResultProjectionService - Specification.Unit is required
-                // for Item-based count tests as of the 2026-09 Preparation
-                // Configuration simplification, which removed the old
-                // SamplePreparation.Unit fallback used here.
-                string? configuredUnit = null;
-                if (sample.ItemId is not null)
-                {
-                    var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, to.TestCode);
-                    configuredUnit = spec?.Unit;
-                }
-                else if (sample.WaterSamplingPointId is not null)
-                {
-                    var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == to.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
-                    configuredUnit = config?.Unit;
-                }
-
-                var unit = !string.IsNullOrWhiteSpace(configuredUnit)
-                    ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
-                    : TestWorkflowEngine.GetCfuUnit(sample.Category, null);
-                countResultDto = new CountResultDto(
-                    countReading.PlateReadings,
-                    countReading.DilutionFactor,
-                    countReading.Average,
-                    countReading.CalculatedResult,
-                    countReading.ReportedResult,
-                    countReading.Status,
-                    countReading.HasNonNumericReading,
-                    countReading.NonNumericValue,
-                    countReading.RequiresReview,
-                    unit);
-            }
+            var countResultDto = await BuildCountResultAsync(sample, to, countReading);
 
             assignedTestDtos.Add(new SessionAssignedTestDto(
                 to.Id,
@@ -462,6 +402,50 @@ public class PathogenSessionService
             sharedTsbDto,
             matrix,
             missingResults);
+    }
+
+    // The count test's recorded reading with its reporting unit: the
+    // specification's (or sampling configuration's) unit first, the category
+    // default otherwise.
+    private async Task<CountResultDto?> BuildCountResultAsync(Sample sample, TestOrder to, CountTestReading? countReading)
+    {
+        CountResultDto? countResultDto = null;
+        if (countReading != null)
+        {
+            // Same configured-unit-first pattern as TestWorkflowEngine/
+            // ResultProjectionService - Specification.Unit is required
+            // for Item-based count tests as of the 2026-09 Preparation
+            // Configuration simplification, which removed the old
+            // SamplePreparation.Unit fallback used here.
+            string? configuredUnit = null;
+            if (sample.ItemId is not null)
+            {
+                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, to.TestCode);
+                configuredUnit = spec?.Unit;
+            }
+            else if (sample.WaterSamplingPointId is not null)
+            {
+                var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == to.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+                configuredUnit = config?.Unit;
+            }
+
+            var unit = !string.IsNullOrWhiteSpace(configuredUnit)
+                ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
+                : TestWorkflowEngine.GetCfuUnit(sample.Category, null);
+            countResultDto = new CountResultDto(
+                countReading.PlateReadings,
+                countReading.DilutionFactor,
+                countReading.Average,
+                countReading.CalculatedResult,
+                countReading.ReportedResult,
+                countReading.Status,
+                countReading.HasNonNumericReading,
+                countReading.NonNumericValue,
+                countReading.RequiresReview,
+                unit);
+        }
+
+        return countResultDto;
     }
 
     public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>

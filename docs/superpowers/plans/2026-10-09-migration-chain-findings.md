@@ -22,4 +22,4 @@ Measured 2026-10-09 on the development PC (local Postgres 18, Release build of `
 
 Do nothing. Nothing here shows the chain slowing a deploy. Squashing would only be worth discussing if a production start on Render is measured and the history check or model build turns out to dominate, and it would need a fresh baseline migration plus a plan for the existing Neon history table, so it should not be done without your decision. If you want the production number, the next step is to time a Render restart from its logs.
 
-Side note: the history table holds 152 rows while the folder has 154 migration classes by the earlier count; the difference was not investigated (it may be a counting difference in the earlier figure).
+Side note: the plan's "154 migrations" was a file count; 151 migrations have a Designer file and the history table has 152 rows (one migration without a Designer file was not tracked down). Neither number changes the recommendation.

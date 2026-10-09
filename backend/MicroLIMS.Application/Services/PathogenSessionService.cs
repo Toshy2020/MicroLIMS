@@ -448,16 +448,10 @@ public class PathogenSessionService
         return countResultDto;
     }
 
-    public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>
-        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId));
-
-    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(int sampleId, StartSharedTsbRequest request, int userId)
+    // GMP gate: a shared TSB start is refused (and the refusal audited) until
+    // the sample's test preparation is confirmed.
+    private async Task EnsurePreparedAsync(Sample sample, int userId)
     {
-        var sample = await _db.Samples
-            .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
-
         var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
         if (isPrepared && sample.ItemId != null)
         {
@@ -513,20 +507,14 @@ public class PathogenSessionService
                 WorkflowErrorCodes.PreparationNotConfirmed,
                 $"Test Preparation must be completed and confirmed for sample {sample.ReferenceNumber} before incubation can be started for step \"Shared TSB\".");
         }
+    }
 
-        var media = await _db.Media
-            .Include(m => m.Material)
-            .FirstOrDefaultAsync(m => m.Id == request.MediaLotId)
-            ?? throw new InvalidOperationException($"Media #{request.MediaLotId} not found.");
-
-        if (media.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
-            throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
-
-        // The incubator is Laboratory Configuration equipment, which carries
-        // the set point - never the EquipmentInventories asset register.
-        var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator)
-            ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
-
+    // Which of the sample's tests take this TSB lot: each is timed by its own
+    // TSB medium, and the whole start is refused (naming the test) when a
+    // joining test's window is unconfigured or the incubator is out of range.
+    private async Task<List<(TestOrder Order, TestWorkflowStep Step, IncubationWindow Window)>> ResolveJoiningTestsAsync(
+        Sample sample, Media media, Equipment incubator)
+    {
         var testCodes = sample.TestOrders.Select(t => t.TestCode).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
@@ -578,6 +566,36 @@ public class PathogenSessionService
         if (joining.Count == 0)
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot #{media.LotNumber} ({media.Material?.MaterialName ?? "unknown"}) is not the TSB medium of any test on this sample.");
+
+        return joining;
+    }
+
+    public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId));
+
+    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(int sampleId, StartSharedTsbRequest request, int userId)
+    {
+        var sample = await _db.Samples
+            .Include(s => s.TestOrders)
+            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+
+        await EnsurePreparedAsync(sample, userId);
+
+        var media = await _db.Media
+            .Include(m => m.Material)
+            .FirstOrDefaultAsync(m => m.Id == request.MediaLotId)
+            ?? throw new InvalidOperationException($"Media #{request.MediaLotId} not found.");
+
+        if (media.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
+            throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
+
+        // The incubator is Laboratory Configuration equipment, which carries
+        // the set point - never the EquipmentInventories asset register.
+        var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator)
+            ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
+
+        var joining = await ResolveJoiningTestsAsync(sample, media, incubator);
 
         foreach (var sectionId in joining.Select(j => j.Order.SectionId).Distinct())
             SectionMediaRule.EnsureLot(media, sectionId);

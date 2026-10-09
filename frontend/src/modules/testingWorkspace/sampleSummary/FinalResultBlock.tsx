@@ -1,4 +1,4 @@
-import { Box, Typography, Stack, Alert } from "@mui/material";
+import { Box, Typography, Stack } from "@mui/material";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { TestOrderSummaryDetail } from "../types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "../utils/pathogenObservationLabel";

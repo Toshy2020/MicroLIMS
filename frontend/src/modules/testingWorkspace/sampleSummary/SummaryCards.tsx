@@ -1,4 +1,4 @@
-import { Box, Typography, Divider, Alert, Table, TableHead, TableRow, TableCell, TableBody, Paper, useTheme, TableContainer } from "@mui/material";
+import { Box, Typography, Divider, Table, TableHead, TableRow, TableCell, TableBody, Paper, useTheme, TableContainer } from "@mui/material";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../../theme";
 import { SampleSummary, SampleLocationDetail, IncubationDetail } from "../types/sampleSummaryTypes";

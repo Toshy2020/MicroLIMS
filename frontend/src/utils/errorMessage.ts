@@ -10,3 +10,7 @@ export function getErrorMessage(err: unknown, fallback: string): string {
   if (typeof serverMessage === "string" && serverMessage.trim()) return serverMessage;
   return err.message?.trim() ? err.message : fallback;
 }
+
+// The server's own message on a failed request, if it sent one.
+export const serverMessage = (e: unknown): string | undefined =>
+  (e as { response?: { data?: { message?: string } } } | null)?.response?.data?.message;

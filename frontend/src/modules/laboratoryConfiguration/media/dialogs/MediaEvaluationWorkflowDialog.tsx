@@ -13,7 +13,8 @@ import {
 } from "@mui/material";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
-import { MediaEvaluationService, serverMessage } from "../../mediaEvaluation/services/MediaEvaluationService";
+import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEvaluationService";
+import { serverMessage } from "../../../../utils/errorMessage";
 import type {
   ChallengeFormState,
   MediaEvaluationChallenge,

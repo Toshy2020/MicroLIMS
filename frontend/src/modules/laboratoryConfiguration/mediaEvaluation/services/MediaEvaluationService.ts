@@ -1,10 +1,6 @@
 import { apiClient } from "../../../../services/apiClient";
 import type { MediaEvaluationDetail, RecordResultPayload } from "../types/mediaEvaluationTypes";
 
-// Server-supplied business-rule message on a failed request, if any.
-export const serverMessage = (e: unknown): string | undefined =>
-  (e as { response?: { data?: { message?: string } } } | null)?.response?.data?.message;
-
 export const MediaEvaluationService = {
   getAll: (status?: string): Promise<MediaEvaluationDetail[]> =>
     apiClient.get("/media-evaluations", { params: status ? { status } : {} }).then((r) => r.data.data),

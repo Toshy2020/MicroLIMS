@@ -511,3 +511,19 @@ Full suite after every commit: `Failed: 0, Skipped: 0`; final count 2816 passed.
 | 14 | Done `42e44475` | `ExecuteApprovalDecisionCoreAsync` keeps guards + dispatch; the three branches are verbatim methods. Change-item/impact mappers moved to `DocumentDtoMapper` (also used by `DocumentRevisionService`); duplicated signature query is one helper. |
 
 `MaxLines` not lowered again: the largest non-migration backend file is still `PathogenSessionService.cs` (1,404 lines), so 1,500 is already tight. Phases 4 and 5 not started.
+
+## Execution log, Phases 4-6 (2026-10-09, same branch, local only)
+
+Backend suite 2817 passed / 0 failed / 0 skipped. Frontend: `npm run build` clean, `npm run lint` 0 errors (407 warnings, down from 484), `npm test` 162/162.
+
+| Task | Status | What actually happened |
+|---|---|---|
+| 15 | Done `6f9548b9` | `DbContextPortTests` added. Interface and context already match; the "164 vs 163" was a miscount. Guard only. |
+| 16 | Done `c07a748c`, `16cb20dd` | Findings in `2026-10-09-migration-chain-findings.md`: empty-DB start 41 s, at head ~9 s locally. Recommendation: do nothing. Render/Neon not measured. |
+| 17 | Done (3 commits) | `TestMasterPage.tsx` 2801 -> 1445 lines: `testMaster/testMasterConstants.ts`, `TestStageReplicatesSection.tsx`, `WorkflowStepsSection.tsx`. Pure moves. Browser smoke NOT done (yours). |
+| 18 | Done (7 commits) | `SampleSummaryDialog.tsx` 2108 -> 657 lines: `sampleSummary/` has `summaryFormatting.ts`, `SummaryCards`, `AnalysisBlocks`, `FinalResultBlock`, `TestResultsSection`, `ApprovalSignaturesCard`. Pure moves. Browser smoke NOT done (yours). |
+| 19 | 4 of 5 done | `any` removed from `AnalystKpiService.ts` (new `kpiDtos.ts`), `MediaEvaluationPage.tsx`, `ApprovedMediaListPage.tsx`, `MediaEvaluationWorkflowDialog.tsx`. `TestWorkflowDialog.tsx` skipped: typing `current` breaks the props of 7 child panels that declare index-signature shapes; needs the panel prop types loosened plus `returnInfo` and `PreviousStepDetail.stageNumber` added to `testWorkflowTypes.ts`. |
+
+Behavior change in Task 19 (a bug fix, not a pure typing change): `AnalystKpiService.getWorkloadWeights` read `w.weight` and `w.changedByName`, but the backend `WorkloadWeightDto` sends `workloadWeight` and `changedBy`; the mapper now uses the real names. Before, the weight was always undefined and "changed by" always showed "System Admin".
+
+Found while typing (preserved, not fixed): the media lot responses carry no `mediaType`, `preparedByName` or `preparedByUser`, yet `ApprovedMediaListPage` and `MediaEvaluationPage` read them, so the Media Type column/filter is effectively empty and Prepared By shows only the user-id fallback. Needs a decision on what those columns should show.

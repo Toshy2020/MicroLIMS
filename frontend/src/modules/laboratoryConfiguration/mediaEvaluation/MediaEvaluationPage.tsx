@@ -8,8 +8,11 @@ import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { FloatingDialog } from "../../../components/FloatingDialog";
-import { MediaEvaluationService } from "./services/MediaEvaluationService";
+import { MediaEvaluationService, serverMessage } from "./services/MediaEvaluationService";
 import { CryovialService } from "../cryovials/services/CryovialService";
+import type { CryovialItem } from "../cryovials/types/cryovialTypes";
+import type { IncubatorEquipmentItem } from "../../../services/lookupCache";
+import type { ChallengeFormState, MediaEvaluationChallenge, MediaEvaluationDetail, RecordResultPayload } from "./types/mediaEvaluationTypes";
 import { masterDataOptions, mediaClassLabel, evaluationTypeLabel } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
@@ -20,12 +23,12 @@ const STATUSES = ["Assigned", "InProgress", "Completed"];
 // NonConform. Completing with Conform is the only thing that releases
 // the Media lot for routine use (see MediaEvaluationEngine).
 export function MediaEvaluationPage() {
-  const [evaluations, setEvaluations] = useState<any[]>([]);
+  const [evaluations, setEvaluations] = useState<MediaEvaluationDetail[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
-  const [selected, setSelected] = useState<any | null>(null);
-  const [cryovials, setCryovials] = useState<any[]>([]);
-  const [incubators, setIncubators] = useState<any[]>([]);
-  const [forms, setForms] = useState<Record<number, any>>({});
+  const [selected, setSelected] = useState<MediaEvaluationDetail | null>(null);
+  const [cryovials, setCryovials] = useState<CryovialItem[]>([]);
+  const [incubators, setIncubators] = useState<IncubatorEquipmentItem[]>([]);
+  const [forms, setForms] = useState<Record<number, ChallengeFormState>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const loadList = () => MediaEvaluationService.getAll(statusFilter || undefined).then(setEvaluations);
@@ -47,7 +50,7 @@ export function MediaEvaluationPage() {
   };
   const closeDetail = () => setSelected(null);
 
-  const setField = (challengeId: number, k: string, v: any) =>
+  const setField = (challengeId: number, k: keyof ChallengeFormState, v: ChallengeFormState[keyof ChallengeFormState]) =>
     setForms((f) => ({ ...f, [challengeId]: { ...f[challengeId], [k]: v } }));
 
   // Hard-filtered to Approved, non-destroyed, non-expired batches whose
@@ -59,58 +62,58 @@ export function MediaEvaluationPage() {
       c.organismId === organismId);
   };
 
-  const pickCryovial = async (challenge: any) => {
+  const pickCryovial = async (challenge: MediaEvaluationChallenge) => {
     const cryovialId = forms[challenge.id]?.cryovialId;
     if (!cryovialId) return;
     try {
       await MediaEvaluationService.selectCryovial(challenge.id, Number(cryovialId));
       setMessage({ text: "Cryovial selected.", ok: true });
       await refreshDetail();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not select cryovial.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not select cryovial.", ok: false });
     }
   };
 
-  const recordIncubation = async (challenge: any) => {
+  const recordIncubation = async (challenge: MediaEvaluationChallenge) => {
     const incubatorEquipmentId = forms[challenge.id]?.incubatorEquipmentId;
     if (!incubatorEquipmentId) return;
     try {
       await MediaEvaluationService.recordIncubation(challenge.id, Number(incubatorEquipmentId));
       setMessage({ text: "Incubation recorded.", ok: true });
       await refreshDetail();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not record incubation.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not record incubation.", ok: false });
     }
   };
 
-  const recordResult = async (challenge: any) => {
+  const recordResult = async (challenge: MediaEvaluationChallenge) => {
     const form = forms[challenge.id] ?? {};
-    const payload: any = {};
-    if (selected.evaluationType === "GrowthPromotion") {
+    const payload: RecordResultPayload = {};
+    if (selected?.evaluationType === "GrowthPromotion") {
       payload.oldMediaCount = Number(form.oldMediaCount);
       payload.newMediaCount = Number(form.newMediaCount);
-    } else if (selected.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Inhibition") {
+    } else if (selected?.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Inhibition") {
       payload.growthObserved = form.growthObserved === "yes";
-    } else if (selected.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Indication") {
+    } else if (selected?.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Indication") {
       payload.observedDescription = form.observedDescription ?? "";
       payload.manualConform = form.manualConform === "conform";
-    } else if (selected.evaluationType === "EnrichmentCharacteristics") {
+    } else if (selected?.evaluationType === "EnrichmentCharacteristics") {
       payload.isTurbid = form.isTurbid === "yes";
     }
     try {
       await MediaEvaluationService.recordResult(challenge.id, payload);
       setMessage({ text: "Result recorded.", ok: true });
       await refreshDetail();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not record result.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not record result.", ok: false });
     }
   };
 
   // The incubation duration is a hard gate, not a suggestion - matches
   // MediaEvaluationEngine.RecordResultAsync's server-side check.
-  const isReadyToRead = (c: any) => !!c.incubation && new Date(c.incubation.expectedReadingAt) <= new Date();
+  const isReadyToRead = (c: MediaEvaluationChallenge) => !!c.incubation && new Date(c.incubation.expectedReadingAt!) <= new Date();
 
-  const previewRecovery = (form: any) => {
+  const previewRecovery = (form?: ChallengeFormState) => {
     const oldC = Number(form?.oldMediaCount), newC = Number(form?.newMediaCount);
     if (!oldC) return null;
     return Math.round((newC / oldC) * 1000) / 10;
@@ -136,7 +139,7 @@ export function MediaEvaluationPage() {
               {evaluations.map((e) => (
                 <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => openDetail(e.id)}>
                   <TableCell>{e.media?.lotNumber}</TableCell>
-                  <TableCell>{mediaClassLabel(e.media?.mediaType?.class)}</TableCell>
+                  <TableCell>{mediaClassLabel() /* MediaResponse has no mediaType: this cell has always rendered blank */}</TableCell>
                   <TableCell>{evaluationTypeLabel(e.evaluationType)}</TableCell>
                   <TableCell><StatusBadge status={e.status} /></TableCell>
                   <TableCell>{e.outcome ? <StatusBadge status={e.outcome} /> : "—"}</TableCell>
@@ -171,7 +174,7 @@ export function MediaEvaluationPage() {
                 {selected.challenges.length === 0 && (
                   <Alert severity="warning">No challenges assigned yet - add Media Challenge Specs for this material under Laboratory Configuration.</Alert>
                 )}
-                {selected.challenges.map((c: any) => {
+                {selected.challenges.map((c) => {
                   const form = forms[c.id] ?? {};
                   const options = cryovialOptionsFor(c.organismId);
                   return (
@@ -200,7 +203,7 @@ export function MediaEvaluationPage() {
                             }}>
                               <Select size="small" displayEmpty value={form.cryovialId ?? ""} onChange={(e) => setField(c.id, "cryovialId", e.target.value)} sx={{ minWidth: 240 }} inputProps={{ "aria-label": "Cryovial batch" }}>
                                 <MenuItem value=""><em>Cryovial batch</em></MenuItem>
-                                {options.map((o: any) => <MenuItem key={o.id} value={o.id}>{o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials)</MenuItem>)}
+                                {options.map((o) => <MenuItem key={o.id} value={o.id}>{o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials)</MenuItem>)}
                               </Select>
                               <Button size="small" variant="outlined" disabled={!form.cryovialId} onClick={() => pickCryovial(c)}>Select</Button>
                             </Stack>
@@ -213,7 +216,7 @@ export function MediaEvaluationPage() {
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
                           {", "}
-                          {isReadyToRead(c) ? "ready to read" : `earliest reading ${new Date(c.incubation.expectedReadingAt).toLocaleString()}`}
+                          {isReadyToRead(c) ? "ready to read" : `earliest reading ${new Date(c.incubation.expectedReadingAt!).toLocaleString()}`}
                         </Typography>
                       ) : (
                         <Stack
@@ -225,7 +228,7 @@ export function MediaEvaluationPage() {
                           }}>
                           <Select size="small" displayEmpty value={form.incubatorEquipmentId ?? ""} onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)} sx={{ minWidth: 200 }} inputProps={{ "aria-label": "Incubator" }}>
                             <MenuItem value=""><em>Incubator</em></MenuItem>
-                            {incubators.map((i: any) => <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>)}
+                            {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>)}
                           </Select>
                           <Button size="small" variant="outlined" disabled={!form.incubatorEquipmentId} onClick={() => recordIncubation(c)}>Record Incubation</Button>
                         </Stack>
@@ -250,7 +253,7 @@ export function MediaEvaluationPage() {
                       ) : !isReadyToRead(c) ? (
                         <Alert severity="info" sx={{ mt: 1 }}>
                           {c.incubation
-                            ? `Incubation still in progress - result entry opens at ${new Date(c.incubation.expectedReadingAt).toLocaleString()}.`
+                            ? `Incubation still in progress - result entry opens at ${new Date(c.incubation.expectedReadingAt!).toLocaleString()}.`
                             : "Record incubation before a result can be entered."}
                         </Alert>
                       ) : (

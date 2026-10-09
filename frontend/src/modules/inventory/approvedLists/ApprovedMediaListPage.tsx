@@ -44,8 +44,17 @@ import { PrintableTable } from "../../../components/PrintableTable";
 import { TableSkeleton } from "../../../components/TableSkeleton";
 import { formatLabDate } from "../../../utils/formatDate";
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
-import { UserService } from "../../users/services/UserService";
+import { UserService, UserRecord } from "../../users/services/UserService";
+import type { MediaLot } from "../../laboratoryConfiguration/mediaEvaluation/types/mediaEvaluationTypes";
 import { StatusTone } from "../../../theme/statusTokens";
+
+// GET /media/released returns MediaResponse. The three extra fields are read by
+// this page but the backend does not send them (they are always undefined).
+type ReleasedMediaRow = MediaLot & {
+  mediaType?: { class?: string };
+  preparedByName?: string;
+  preparedByUser?: { fullName?: string };
+};
 
 interface ApprovedMediaFilterState {
   search: string;
@@ -107,7 +116,7 @@ export function ApprovedMediaListPage() {
   const { action, purple } = theme.custom.status;
 
   // Data states
-  const [media, setMedia] = useState<any[]>([]);
+  const [media, setMedia] = useState<ReleasedMediaRow[]>([]);
   const [userMap, setUserMap] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,7 +149,7 @@ export function ApprovedMediaListPage() {
       setError(null);
       const [releasedMedia, users] = await Promise.all([
         masterDataOptions.getReleasedMedia(),
-        UserService.getAll().catch(() => [] as any[])
+        UserService.getAll().catch(() => [] as UserRecord[])
       ]);
 
       const map: Record<number, string> = {};
@@ -313,7 +322,7 @@ export function ApprovedMediaListPage() {
   }, [media]);
 
   // User name resolution helper
-  const getPreparedByName = (m: any) => {
+  const getPreparedByName = (m: ReleasedMediaRow) => {
     if (m.preparedByName) return m.preparedByName;
     if (m.preparedByUser?.fullName) return m.preparedByUser.fullName;
     if (m.preparedByUserId && userMap[m.preparedByUserId]) return userMap[m.preparedByUserId];
@@ -322,25 +331,25 @@ export function ApprovedMediaListPage() {
 
   // Printable table columns
   const printColumns = [
-    { label: "Lot Number", render: (m: any) => m.lotNumber },
+    { label: "Lot Number", render: (m: ReleasedMediaRow) => m.lotNumber },
     {
       label: "Media Type",
-      render: (m: any) => m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"
+      render: (m: ReleasedMediaRow) => m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"
     },
     {
       label: "pH Result",
-      render: (m: any) => (m.ph != null ? Number(m.ph).toFixed(2) : "—")
+      render: (m: ReleasedMediaRow) => (m.ph != null ? Number(m.ph).toFixed(2) : "—")
     },
-    { label: "Prepared By", render: (m: any) => getPreparedByName(m) },
-    { label: "Total Volume", render: (m: any) => m.totalVolume || "—" },
-    { label: "Total Weight", render: (m: any) => (m.totalWeight != null ? `${m.totalWeight} g` : "—") },
-    { label: "Manufacturer Lot", render: (m: any) => m.manufacturerLot || "—" },
-    { label: "Manufacturer", render: (m: any) => m.manufacturerName || m.material?.manufacturerName || "—" },
-    { label: "Prepared On", render: (m: any) => formatLabDate(m.preparedAt) },
-    { label: "Expiry", render: (m: any) => formatLabDate(m.expiryDate) },
+    { label: "Prepared By", render: (m: ReleasedMediaRow) => getPreparedByName(m) },
+    { label: "Total Volume", render: (m: ReleasedMediaRow) => m.totalVolume || "—" },
+    { label: "Total Weight", render: (m: ReleasedMediaRow) => (m.totalWeight != null ? `${m.totalWeight} g` : "—") },
+    { label: "Manufacturer Lot", render: (m: ReleasedMediaRow) => m.manufacturerLot || "—" },
+    { label: "Manufacturer", render: (m: ReleasedMediaRow) => m.manufacturerName || m.material?.manufacturerName || "—" },
+    { label: "Prepared On", render: (m: ReleasedMediaRow) => formatLabDate(m.preparedAt) },
+    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabDate(m.expiryDate) },
     {
       label: "Status",
-      render: (m: any) => (m.status === "OutOfStock" ? "Out of Stock" : "Released")
+      render: (m: ReleasedMediaRow) => (m.status === "OutOfStock" ? "Out of Stock" : "Released")
     }
   ];
 

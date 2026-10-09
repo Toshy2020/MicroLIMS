@@ -1037,6 +1037,34 @@ public class PathogenSessionService
             }
         }
 
+        ApplyConfirmationAgreement(primaryObsList, testDefs, userId);
+
+        if (!string.IsNullOrWhiteSpace(request.BiochemicalComment))
+        {
+            var distinctTestOrders = primaryObsList.Select(o => o.TestOrder).Where(t => t != null).Distinct().ToList();
+            foreach (var to in distinctTestOrders)
+            {
+                _db.WorkflowHistories.Add(new WorkflowHistory
+                {
+                    TestOrderId = to!.Id,
+                    FromStep = to.CurrentStep,
+                    ToStep = to.CurrentStep,
+                    Note = $"Biochemical Supporting Observation: {request.BiochemicalComment.Trim()}",
+                    PerformedByUserId = userId,
+                    Timestamp = _time.GetUtcNow().UtcDateTime
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return (await GetSessionAsync(sampleId))!;
+    }
+
+    // Decides each primary observation's reported result from how its
+    // confirmatory plates agree, once all required media have a reading.
+    private void ApplyConfirmationAgreement(
+        List<LocationPathogenObservation> primaryObsList, Dictionary<string, TestDefinition> testDefs, int userId)
+    {
         // Apply ConfirmationAgreementEvaluator across all configured media for each primary observation
         foreach (var primaryObs in primaryObsList)
         {
@@ -1073,26 +1101,6 @@ public class PathogenSessionService
                 primaryObs.SampleLocation.EnteredByUserId = userId;
             }
         }
-
-        if (!string.IsNullOrWhiteSpace(request.BiochemicalComment))
-        {
-            var distinctTestOrders = primaryObsList.Select(o => o.TestOrder).Where(t => t != null).Distinct().ToList();
-            foreach (var to in distinctTestOrders)
-            {
-                _db.WorkflowHistories.Add(new WorkflowHistory
-                {
-                    TestOrderId = to!.Id,
-                    FromStep = to.CurrentStep,
-                    ToStep = to.CurrentStep,
-                    Note = $"Biochemical Supporting Observation: {request.BiochemicalComment.Trim()}",
-                    PerformedByUserId = userId,
-                    Timestamp = _time.GetUtcNow().UtcDateTime
-                });
-            }
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
-        return (await GetSessionAsync(sampleId))!;
     }
 
     public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(int sampleId, SaveResultMatrixRequest request, int userId)

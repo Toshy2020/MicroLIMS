@@ -1,0 +1,1390 @@
+{
+  "SampleId": 1,
+  "ReferenceNumber": "S-2026-0001",
+  "Category": "FinishedProduct",
+  "DisplayName": "Talc Powder",
+  "ProductionStage": "Bulk",
+  "CauseOfTesting": "Routine",
+  "BatchNumber": "B-100",
+  "ControlNumber": "CTRL-1",
+  "Status": "Approved",
+  "ReceivedByName": "Alice Analyst",
+  "ReceivedAt": "2026-03-02T09:00:00Z",
+  "SampledBy": "Dan Sampler",
+  "SampleQuantity": "100 g",
+  "MfgDate": "2026-03-01T00:00:00Z",
+  "ExpDate": "2026-03-28T00:00:00Z",
+  "WaterSamplingPointCode": null,
+  "WaterSamplingPointLocation": null,
+  "StorageCondition": "Refrigerator",
+  "StorageTimeHours": 6,
+  "AssignedAnalystId": 1,
+  "AssignedAnalystName": "Alice Analyst",
+  "ReviewedByName": "Bob Reviewer",
+  "ReviewedAt": "2026-03-10T09:00:00Z",
+  "ApprovedByName": "Carol Approver",
+  "ApprovedAt": "2026-03-11T09:00:00Z",
+  "ApprovalDecision": "Approve",
+  "CertificateRemarks": "Released.",
+  "PreviousProductName": null,
+  "PreviousProductBatchNumber": null,
+  "Preparation": {
+    "Amount": 10,
+    "Technique": "Filtration",
+    "FiltrationVolume": 100,
+    "WashingVolume": 300,
+    "Diluent": "Buffered peptone",
+    "Neutralizer": "Polysorbate 80",
+    "PreparedByName": "Bob Reviewer",
+    "PreparedAt": "2026-03-02T10:00:00Z"
+  },
+  "TestOrders": [
+    {
+      "TestOrderId": 1,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "TAMC",
+      "TestDisplayName": "Total Aerobic Microbial Count",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": "Bacteria: 100 CFU/g; Fungi: 10 – 50 CFU/g; Total: Conforms",
+      "Status": "Approved",
+      "CurrentStep": "Approved",
+      "WorkflowState": "APPROVED",
+      "WorkflowStateDisplay": "Completed & Approved",
+      "WorkflowStatus": "Completed",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Plate Count",
+          "StageNumber": 1,
+          "MediaLotNumber": "TSA/001/26",
+          "MediaMaterialName": "Tryptic Soy Agar",
+          "IncubatorName": "Incubator 30-35",
+          "Temperature": "30-35",
+          "Duration": "72h",
+          "StartedAt": "2026-03-03T08:00:00Z",
+          "ExpectedReadingAt": "2026-03-06T08:00:00Z",
+          "CompletedAt": "2026-03-03T20:00:00Z",
+          "Outcome": "Transferred",
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": "2026-03-03T20:00:00Z",
+          "TransferredByName": "Bob Reviewer",
+          "CompletedByName": "Bob Reviewer",
+          "SameAnalystBothStages": null
+        },
+        {
+          "StepName": "Plate Count",
+          "StageNumber": 2,
+          "MediaLotNumber": "TSA/001/26",
+          "MediaMaterialName": "Tryptic Soy Agar",
+          "IncubatorName": "Incubator 30-35",
+          "Temperature": "30-35",
+          "Duration": "48h",
+          "StartedAt": "2026-03-03T21:00:00Z",
+          "ExpectedReadingAt": "2026-03-05T21:00:00Z",
+          "CompletedAt": null,
+          "Outcome": null,
+          "StartedByName": "Bob Reviewer",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": null,
+          "SameAnalystBothStages": false
+        },
+        {
+          "StepName": "Yeast Count",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": "20-25",
+          "Duration": "120h",
+          "StartedAt": "2026-03-03T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-06T08:00:00Z",
+          "Outcome": "Read",
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Carol Approver",
+          "SameAnalystBothStages": null
+        },
+        {
+          "StepName": "Mold Count",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-03T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-03T18:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": "2026-03-03T18:00:00Z",
+          "TransferredByName": "Carol Approver",
+          "CompletedByName": "Carol Approver",
+          "SameAnalystBothStages": null
+        },
+        {
+          "StepName": "Mold Count",
+          "StageNumber": 2,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-03T19:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-05T19:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Carol Approver",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": null,
+          "SameAnalystBothStages": false
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [
+        {
+          "StepName": "Plate Count",
+          "PlateReadings": "10,12",
+          "DilutionFactor": 1,
+          "Average": 11,
+          "CalculatedResult": 11,
+          "ReportedResult": "11",
+          "AlertLimit": "10",
+          "ActionLimit": "50",
+          "SpecLimit": "100",
+          "Status": "AlertLimitExceeded",
+          "HasNonNumericReading": false,
+          "NonNumericValue": null,
+          "RequiresReview": false,
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-06T09:00:00Z"
+        },
+        {
+          "StepName": "Yeast Count",
+          "PlateReadings": "0,0",
+          "DilutionFactor": 10,
+          "Average": 0,
+          "CalculatedResult": 0,
+          "ReportedResult": "<10",
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": "100",
+          "Status": "WithinLimits",
+          "HasNonNumericReading": false,
+          "NonNumericValue": null,
+          "RequiresReview": false,
+          "EnteredByName": "Carol Approver",
+          "EnteredAt": "2026-03-06T10:00:00Z"
+        }
+      ],
+      "Analysis": null,
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 2,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "ECOLI",
+      "TestDisplayName": "E. coli",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": "Absent in 1 g",
+      "Status": "Reviewed",
+      "CurrentStep": "Reviewed",
+      "WorkflowState": "APPROVED",
+      "WorkflowStateDisplay": "Completed & Approved",
+      "WorkflowStatus": "Completed",
+      "UsesSharedTsb": true,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Selective Plating",
+          "StageNumber": 1,
+          "MediaLotNumber": "TSA/001/26",
+          "MediaMaterialName": "Tryptic Soy Agar",
+          "IncubatorName": "Incubator 30-35",
+          "Temperature": "35",
+          "Duration": "24h",
+          "StartedAt": "2026-03-04T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-05T08:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Alice Analyst",
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [],
+      "Analysis": null,
+      "PathogenObservations": [
+        {
+          "StepName": "TSB Enrichment",
+          "StepOrder": 1,
+          "Observation": "NoGrowth",
+          "ObservedByName": "Carol Approver",
+          "ObservedAt": "2026-03-04T09:00:00Z"
+        }
+      ],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": [
+        {
+          "LocationKey": "Room:1",
+          "LocationName": "Room 101",
+          "GradeClassification": "Grade C",
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Detected (+)",
+          "Status": "OutOfSpecification",
+          "Unit": null,
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-05T12:01:00Z"
+        },
+        {
+          "LocationKey": "MachinePart:1",
+          "LocationName": "Paddle",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Not Detected (-)",
+          "Status": "WithinLimits",
+          "Unit": null,
+          "EnteredByName": "Bob Reviewer",
+          "EnteredAt": "2026-03-05T12:02:00Z"
+        },
+        {
+          "LocationKey": "Water:1",
+          "LocationName": "WTU-1",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Inconclusive (Retest)",
+          "Status": "RequiresReview",
+          "Unit": null,
+          "EnteredByName": "Carol Approver",
+          "EnteredAt": "2026-03-05T12:03:00Z"
+        },
+        {
+          "LocationKey": "Water:2",
+          "LocationName": "WTU-2",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Detected",
+          "Status": "OutOfSpecification",
+          "Unit": null,
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-05T12:04:00Z"
+        },
+        {
+          "LocationKey": "RoomConfig:99",
+          "LocationName": "Location 5",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Absent",
+          "Status": "WithinLimits",
+          "Unit": null,
+          "EnteredByName": "Bob Reviewer",
+          "EnteredAt": "2026-03-05T12:05:00Z"
+        },
+        {
+          "LocationKey": "MachinePartConfig:98",
+          "LocationName": "Location 6",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Not Detected (-)",
+          "Status": "WithinLimits",
+          "Unit": null,
+          "EnteredByName": "Carol Approver",
+          "EnteredAt": "2026-03-05T12:06:00Z"
+        },
+        {
+          "LocationKey": "Loc:7",
+          "LocationName": "Location 7",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Growth Non-Conforming",
+          "Status": "PendingConfirmation",
+          "Unit": null,
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-05T12:07:00Z"
+        },
+        {
+          "LocationKey": "Loc:8",
+          "LocationName": "Location 8",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "Growth Conforming (Presumptive +)",
+          "Status": "PendingConfirmation",
+          "Unit": null,
+          "EnteredByName": "Bob Reviewer",
+          "EnteredAt": "2026-03-05T12:08:00Z"
+        },
+        {
+          "LocationKey": "Room:1",
+          "LocationName": "Room 101",
+          "GradeClassification": "Grade C",
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "10 CFU",
+          "Status": "AlertLimitExceeded",
+          "Unit": null,
+          "EnteredByName": "Carol Approver",
+          "EnteredAt": "2026-03-05T12:09:00Z"
+        },
+        {
+          "LocationKey": "Loc:10",
+          "LocationName": "Location 10",
+          "GradeClassification": null,
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": null,
+          "CFUResult": null,
+          "CalculatedResult": null,
+          "ReportedResult": "OK",
+          "Status": "WithinLimits",
+          "Unit": null,
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-05T12:10:00Z"
+        }
+      ]
+    },
+    {
+      "TestOrderId": 3,
+      "SectionId": 2,
+      "SectionName": "Physicochemical",
+      "TestCode": "PH",
+      "TestDisplayName": "pH",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": "5.0 – 7.0",
+      "Status": "Approved",
+      "CurrentStep": "Approved",
+      "WorkflowState": "APPROVED",
+      "WorkflowStateDisplay": "Completed & Approved",
+      "WorkflowStatus": "Completed",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Measure",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-05T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-05T09:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Bob Reviewer",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Alice Analyst",
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [
+        {
+          "RawValue": "6.2",
+          "InterpretedValue": "6.2",
+          "Type": "Numeric",
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-05T10:00:00Z"
+        }
+      ],
+      "CountTestReadings": [],
+      "Analysis": {
+        "Id": 1,
+        "TestOrderId": 3,
+        "AnalysisType": "Measurement",
+        "EquipmentId": 2,
+        "EquipmentCode": "PH-001",
+        "EquipmentName": "pH Meter",
+        "AnalysedAt": "2026-03-05T09:00:00Z",
+        "UnitAmount": 1.5,
+        "ConditionsJson": "{\"temp\":\"25\"}",
+        "ValidityRecordType": "Buffer",
+        "ValidityRecordId": 7,
+        "EnteredByName": "Alice Analyst",
+        "EnteredAt": "2026-03-05T10:00:00Z",
+        "Comment": "pH check",
+        "ParameterResults": [
+          {
+            "Id": 1,
+            "SpecificationId": 5,
+            "ParameterName": "pH",
+            "ReportedValue": 6.2,
+            "ReportedDisplay": "6.2",
+            "Unit": "pH",
+            "SpecLimit": "5.0-7.0",
+            "ResultBasis": "PercentAsIs",
+            "ComparisonStatus": "WithinLimits",
+            "OverRange": false,
+            "BelowLoq": true,
+            "CalculationJson": "{\"k\":1}",
+            "StageReached": 1,
+            "Readings": [
+              {
+                "Id": 2,
+                "Kind": "Replicate",
+                "Index": 1,
+                "Stage": 1,
+                "TimePointMinutes": 5,
+                "Value1": 6.1,
+                "Value2": 6.2,
+                "Value3": 6.3,
+                "Text": "ok",
+                "ComputedValue": 6.2,
+                "Passed": null
+              },
+              {
+                "Id": 1,
+                "Kind": "Replicate",
+                "Index": 2,
+                "Stage": null,
+                "TimePointMinutes": null,
+                "Value1": 6.3,
+                "Value2": null,
+                "Value3": null,
+                "Text": null,
+                "ComputedValue": 6.3,
+                "Passed": true
+              }
+            ]
+          }
+        ]
+      },
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 4,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "SALM",
+      "TestDisplayName": "SALM",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": null,
+      "Status": "Reviewed",
+      "CurrentStep": "Ready",
+      "WorkflowState": "APPROVED",
+      "WorkflowStateDisplay": "Completed & Approved",
+      "WorkflowStatus": "Completed",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Selective Plating",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-04T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-05T08:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Carol Approver",
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [
+        {
+          "RawValue": "Absent",
+          "InterpretedValue": null,
+          "Type": "GrowthNoGrowth",
+          "EnteredByName": "Carol Approver",
+          "EnteredAt": "2026-03-05T11:00:00Z"
+        }
+      ],
+      "CountTestReadings": [],
+      "Analysis": null,
+      "PathogenObservations": [
+        {
+          "StepName": "Selective Plating",
+          "StepOrder": 2,
+          "Observation": "GrowthConforming",
+          "ObservedByName": "Bob Reviewer",
+          "ObservedAt": "2026-03-05T09:00:00Z"
+        },
+        {
+          "StepName": "Selective Plating",
+          "StepOrder": 2,
+          "Observation": "GrowthNonConforming",
+          "ObservedByName": "Carol Approver",
+          "ObservedAt": "2026-03-05T10:00:00Z"
+        }
+      ],
+      "BiochemicalResults": [
+        {
+          "StepName": "Biochemical",
+          "BiochemicalResultText": "Oxidase negative",
+          "OrganismDetected": true,
+          "SubmittedByName": "Bob Reviewer",
+          "SubmittedAt": "2026-03-05T14:00:00Z"
+        },
+        {
+          "StepName": "Biochemical 2",
+          "BiochemicalResultText": "Indole positive",
+          "OrganismDetected": false,
+          "SubmittedByName": "Carol Approver",
+          "SubmittedAt": "2026-03-05T15:00:00Z"
+        },
+        {
+          "StepName": "Biochemical 3",
+          "BiochemicalResultText": "Inconclusive",
+          "OrganismDetected": null,
+          "SubmittedByName": "Alice Analyst",
+          "SubmittedAt": "2026-03-05T16:00:00Z"
+        }
+      ],
+      "WorkflowHistory": [
+        {
+          "FromStep": "Waiting",
+          "ToStep": "Ready",
+          "Note": "Done",
+          "PerformedByName": "Bob Reviewer",
+          "Timestamp": "2026-03-05T18:00:00Z"
+        }
+      ],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 5,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "PSEUD",
+      "TestDisplayName": "PSEUD",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": null,
+      "Status": "InProgress",
+      "CurrentStep": "Incubating",
+      "WorkflowState": "APPROVED",
+      "WorkflowStateDisplay": "Completed & Approved",
+      "WorkflowStatus": "Completed",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Enrichment",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-04T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-05T08:00:00Z",
+          "Outcome": null,
+          "StartedByName": null,
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Carol Approver",
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [],
+      "Analysis": null,
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [
+        {
+          "FromStep": "Waiting",
+          "ToStep": "Running",
+          "Note": "Started",
+          "PerformedByName": "Alice Analyst",
+          "Timestamp": "2026-03-04T08:00:00Z"
+        },
+        {
+          "FromStep": "Running",
+          "ToStep": "Incubating",
+          "Note": null,
+          "PerformedByName": "Carol Approver",
+          "Timestamp": "2026-03-05T08:00:00Z"
+        }
+      ],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 6,
+      "SectionId": 2,
+      "SectionName": "Physicochemical",
+      "TestCode": "BCC",
+      "TestDisplayName": "BCC",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": null,
+      "Status": "InProgress",
+      "CurrentStep": "Running",
+      "WorkflowState": "APPROVED",
+      "WorkflowStateDisplay": "Completed & Approved",
+      "WorkflowStatus": "Completed",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Enrichment",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-04T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-05T08:00:00Z",
+          "Outcome": null,
+          "StartedByName": null,
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": null,
+          "SameAnalystBothStages": null
+        },
+        {
+          "StepName": "Plating",
+          "StageNumber": 2,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-05T09:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": null,
+          "Outcome": null,
+          "StartedByName": "Bob Reviewer",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": null,
+          "SameAnalystBothStages": false
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [],
+      "Analysis": null,
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 7,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "TYMC",
+      "TestDisplayName": "Total Yeast and Mold Count",
+      "SourceSampleReferenceNumber": null,
+      "SpecificationText": null,
+      "Status": "RetestRequested",
+      "CurrentStep": "Incubating",
+      "WorkflowState": "SUPERSEDED",
+      "WorkflowStateDisplay": "Superseded: retested on a new sample",
+      "WorkflowStatus": "Superseded",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": true,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": true,
+      "CancelledAtStep": "Incubating",
+      "CancelledAtStage": 1,
+      "Incubations": [
+        {
+          "StepName": "Yeast Count",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-03T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": null,
+          "Outcome": null,
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": null,
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [],
+      "Analysis": null,
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 8,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "TYMC",
+      "TestDisplayName": "Total Yeast and Mold Count",
+      "SourceSampleReferenceNumber": "S-2026-0001-R1",
+      "SpecificationText": null,
+      "Status": "RetestRequested",
+      "CurrentStep": "Ready",
+      "WorkflowState": "SUPERSEDED",
+      "WorkflowStateDisplay": "Superseded: retested on a new sample",
+      "WorkflowStatus": "Superseded",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": true,
+      "IsResultEntryAllowed": false,
+      "ResultLockReason": null,
+      "IsSuperseded": true,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Yeast Count",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-12T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-15T08:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Alice Analyst",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Alice Analyst",
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [
+        {
+          "StepName": "Yeast Count",
+          "PlateReadings": "120,130",
+          "DilutionFactor": 1,
+          "Average": 125,
+          "CalculatedResult": 125,
+          "ReportedResult": "125",
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": "100",
+          "Status": "OutOfSpecification",
+          "HasNonNumericReading": false,
+          "NonNumericValue": null,
+          "RequiresReview": false,
+          "EnteredByName": "Alice Analyst",
+          "EnteredAt": "2026-03-15T09:00:00Z"
+        }
+      ],
+      "Analysis": null,
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": []
+    },
+    {
+      "TestOrderId": 9,
+      "SectionId": 1,
+      "SectionName": "Microbiology",
+      "TestCode": "TYMC",
+      "TestDisplayName": "Total Yeast and Mold Count",
+      "SourceSampleReferenceNumber": "S-2026-0001-R2",
+      "SpecificationText": null,
+      "Status": "ResultEntered",
+      "CurrentStep": "Ready",
+      "WorkflowState": "RESULTS_RECORDED",
+      "WorkflowStateDisplay": "Result Recorded, Pending Review",
+      "WorkflowStatus": "PendingReview",
+      "UsesSharedTsb": false,
+      "IsWorkflowLocked": false,
+      "IsResultEntryAllowed": true,
+      "ResultLockReason": null,
+      "IsSuperseded": false,
+      "CancelledAtStep": null,
+      "CancelledAtStage": null,
+      "Incubations": [
+        {
+          "StepName": "Yeast Count",
+          "StageNumber": 1,
+          "MediaLotNumber": null,
+          "MediaMaterialName": null,
+          "IncubatorName": null,
+          "Temperature": null,
+          "Duration": null,
+          "StartedAt": "2026-03-14T08:00:00Z",
+          "ExpectedReadingAt": null,
+          "CompletedAt": "2026-03-17T08:00:00Z",
+          "Outcome": null,
+          "StartedByName": "Bob Reviewer",
+          "TransferredAt": null,
+          "TransferredByName": null,
+          "CompletedByName": "Bob Reviewer",
+          "SameAnalystBothStages": null
+        }
+      ],
+      "Results": [],
+      "CountTestReadings": [
+        {
+          "StepName": "Yeast Count",
+          "PlateReadings": "30,32",
+          "DilutionFactor": 1,
+          "Average": 31,
+          "CalculatedResult": 31,
+          "ReportedResult": "31",
+          "AlertLimit": null,
+          "ActionLimit": null,
+          "SpecLimit": "100",
+          "Status": "WithinLimits",
+          "HasNonNumericReading": false,
+          "NonNumericValue": null,
+          "RequiresReview": false,
+          "EnteredByName": "Bob Reviewer",
+          "EnteredAt": "2026-03-17T09:00:00Z"
+        }
+      ],
+      "Analysis": null,
+      "PathogenObservations": [],
+      "BiochemicalResults": [],
+      "WorkflowHistory": [],
+      "Locations": []
+    }
+  ],
+  "Timeline": [
+    {
+      "EventType": "SubmittedForReview",
+      "PerformedByName": "Alice Analyst",
+      "Timestamp": "2026-03-09T08:00:00Z",
+      "Comment": null,
+      "Decision": null
+    },
+    {
+      "EventType": "ReviewCompleted",
+      "PerformedByName": "Bob Reviewer",
+      "Timestamp": "2026-03-10T09:00:00Z",
+      "Comment": "Looks fine",
+      "Decision": null
+    },
+    {
+      "EventType": "ApprovalDecisionMade",
+      "PerformedByName": "Carol Approver",
+      "Timestamp": "2026-03-11T09:00:00Z",
+      "Comment": null,
+      "Decision": "Approve"
+    }
+  ],
+  "Signatures": [
+    {
+      "PrintedName": "Bob Reviewer",
+      "Username": "bob",
+      "Role": "Reviewer",
+      "Meaning": "Reviewed",
+      "SignedAt": "2026-03-10T09:00:00Z",
+      "Comment": "Looks fine"
+    },
+    {
+      "PrintedName": "Carol Approver",
+      "Username": "carol",
+      "Role": "Approver",
+      "Meaning": "Approved",
+      "SignedAt": "2026-03-11T09:00:00Z",
+      "Comment": null
+    }
+  ],
+  "Sections": [
+    {
+      "SectionId": 1,
+      "SectionCode": "MICRO",
+      "SectionName": "Microbiology",
+      "Status": "Approved",
+      "CanView": true,
+      "ReviewedByName": "Bob Reviewer",
+      "ReviewedAt": "2026-03-10T09:00:00Z",
+      "ApprovedByName": "Carol Approver",
+      "ApprovedAt": "2026-03-11T09:00:00Z",
+      "ApprovalDecision": "Approve",
+      "CertificateRemarks": "Micro released.",
+      "CoaAvailable": true,
+      "ClosedByName": null,
+      "ClosedAt": null,
+      "CloseReason": null
+    },
+    {
+      "SectionId": 2,
+      "SectionCode": "PCHEM",
+      "SectionName": "Physicochemical",
+      "Status": "Closed",
+      "CanView": true,
+      "ReviewedByName": null,
+      "ReviewedAt": null,
+      "ApprovedByName": null,
+      "ApprovedAt": null,
+      "ApprovalDecision": null,
+      "CertificateRemarks": null,
+      "CoaAvailable": false,
+      "ClosedByName": "Bob Reviewer",
+      "ClosedAt": "2026-03-09T15:00:00Z",
+      "CloseReason": "Closed with the sample."
+    }
+  ],
+  "AllSectionsVisible": true,
+  "OverallStatus": "Approved",
+  "CombinedCoaAvailable": true,
+  "Certificate": {
+    "Sample": {
+      "Matrix": {
+        "Columns": [
+          {
+            "TestOrderId": 2,
+            "TestCode": "ECOLI",
+            "TestDisplayName": "E. coli",
+            "IsQuantitative": false,
+            "Unit": null
+          }
+        ],
+        "Rows": [
+          {
+            "LocationKey": "Room:1",
+            "LocationName": "Room 101",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Detected (+)",
+                "Conform": false
+              }
+            ]
+          },
+          {
+            "LocationKey": "MachinePart:1",
+            "LocationName": "Paddle",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Absent",
+                "Conform": true
+              }
+            ]
+          },
+          {
+            "LocationKey": "Water:1",
+            "LocationName": "WTU-1",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Inconclusive (Retest)",
+                "Conform": false
+              }
+            ]
+          },
+          {
+            "LocationKey": "Water:2",
+            "LocationName": "WTU-2",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Detected",
+                "Conform": false
+              }
+            ]
+          },
+          {
+            "LocationKey": "RoomConfig:99",
+            "LocationName": "Location 5",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Absent",
+                "Conform": true
+              }
+            ]
+          },
+          {
+            "LocationKey": "MachinePartConfig:98",
+            "LocationName": "Location 6",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Absent",
+                "Conform": true
+              }
+            ]
+          },
+          {
+            "LocationKey": "Loc:7",
+            "LocationName": "Location 7",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Growth Non-Conforming",
+                "Conform": false
+              }
+            ]
+          },
+          {
+            "LocationKey": "Loc:8",
+            "LocationName": "Location 8",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Growth Conforming (Presumptive +)",
+                "Conform": false
+              }
+            ]
+          },
+          {
+            "LocationKey": "Loc:10",
+            "LocationName": "Location 10",
+            "Cells": [
+              {
+                "Kind": "qualitative",
+                "Alert": null,
+                "Action": null,
+                "Spec": null,
+                "Result": "Absent",
+                "Conform": true
+              }
+            ]
+          }
+        ],
+        "TestConclusions": [
+          {
+            "TestOrderId": 2,
+            "TestCode": "ECOLI",
+            "TestDisplayName": "E. coli",
+            "Conforms": false,
+            "FailingLocationNames": [
+              "Room 101",
+              "WTU-1",
+              "WTU-2",
+              "Location 7",
+              "Location 8"
+            ],
+            "UnconfiguredLocationNames": [],
+            "MissingResultLocationNames": []
+          }
+        ],
+        "OverallComplies": false,
+        "TotalTests": 1,
+        "TotalLocations": 9,
+        "Units": []
+      },
+      "Simple": null,
+      "Complies": false,
+      "ConclusionText": "This sample does not comply with the specified requirements. Exceptions: E. coli at Room 101, WTU-1, WTU-2, Location 7, Location 8.",
+      "ResultDate": "2026-03-17T09:00:00Z"
+    },
+    "Sections": [
+      {
+        "SectionId": 1,
+        "SectionName": "Microbiology",
+        "Scope": {
+          "Matrix": {
+            "Columns": [
+              {
+                "TestOrderId": 2,
+                "TestCode": "ECOLI",
+                "TestDisplayName": "E. coli",
+                "IsQuantitative": false,
+                "Unit": null
+              }
+            ],
+            "Rows": [
+              {
+                "LocationKey": "Room:1",
+                "LocationName": "Room 101",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Detected (+)",
+                    "Conform": false
+                  }
+                ]
+              },
+              {
+                "LocationKey": "MachinePart:1",
+                "LocationName": "Paddle",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Absent",
+                    "Conform": true
+                  }
+                ]
+              },
+              {
+                "LocationKey": "Water:1",
+                "LocationName": "WTU-1",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Inconclusive (Retest)",
+                    "Conform": false
+                  }
+                ]
+              },
+              {
+                "LocationKey": "Water:2",
+                "LocationName": "WTU-2",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Detected",
+                    "Conform": false
+                  }
+                ]
+              },
+              {
+                "LocationKey": "RoomConfig:99",
+                "LocationName": "Location 5",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Absent",
+                    "Conform": true
+                  }
+                ]
+              },
+              {
+                "LocationKey": "MachinePartConfig:98",
+                "LocationName": "Location 6",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Absent",
+                    "Conform": true
+                  }
+                ]
+              },
+              {
+                "LocationKey": "Loc:7",
+                "LocationName": "Location 7",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Growth Non-Conforming",
+                    "Conform": false
+                  }
+                ]
+              },
+              {
+                "LocationKey": "Loc:8",
+                "LocationName": "Location 8",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Growth Conforming (Presumptive +)",
+                    "Conform": false
+                  }
+                ]
+              },
+              {
+                "LocationKey": "Loc:10",
+                "LocationName": "Location 10",
+                "Cells": [
+                  {
+                    "Kind": "qualitative",
+                    "Alert": null,
+                    "Action": null,
+                    "Spec": null,
+                    "Result": "Absent",
+                    "Conform": true
+                  }
+                ]
+              }
+            ],
+            "TestConclusions": [
+              {
+                "TestOrderId": 2,
+                "TestCode": "ECOLI",
+                "TestDisplayName": "E. coli",
+                "Conforms": false,
+                "FailingLocationNames": [
+                  "Room 101",
+                  "WTU-1",
+                  "WTU-2",
+                  "Location 7",
+                  "Location 8"
+                ],
+                "UnconfiguredLocationNames": [],
+                "MissingResultLocationNames": []
+              }
+            ],
+            "OverallComplies": false,
+            "TotalTests": 1,
+            "TotalLocations": 9,
+            "Units": []
+          },
+          "Simple": null,
+          "Complies": false,
+          "ConclusionText": "This sample does not comply with the specified requirements. Exceptions: E. coli at Room 101, WTU-1, WTU-2, Location 7, Location 8.",
+          "ResultDate": "2026-03-17T09:00:00Z"
+        }
+      },
+      {
+        "SectionId": 2,
+        "SectionName": "Physicochemical",
+        "Scope": {
+          "Matrix": null,
+          "Simple": {
+            "Rows": [
+              {
+                "TestOrderId": 3,
+                "TestCode": "PH:pH",
+                "TestDisplayName": "pH",
+                "Specification": "5.0-7.0 pH",
+                "Result": "6.2",
+                "AnalystName": "Alice Analyst",
+                "AnalystAt": "2026-03-05T10:00:00Z",
+                "Conform": true,
+                "LimitsNotConfigured": false,
+                "NoResult": false
+              },
+              {
+                "TestOrderId": 6,
+                "TestCode": "BCC",
+                "TestDisplayName": "BCC",
+                "Specification": null,
+                "Result": "—",
+                "AnalystName": null,
+                "AnalystAt": null,
+                "Conform": false,
+                "LimitsNotConfigured": false,
+                "NoResult": true
+              }
+            ],
+            "OverallComplies": false
+          },
+          "Complies": false,
+          "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
+          "ResultDate": "2026-03-05T10:00:00Z"
+        }
+      }
+    ]
+  }
+}

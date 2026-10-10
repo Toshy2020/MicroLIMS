@@ -66,3 +66,9 @@ workbook_copy.xlsx
 /assay_met.txt
 /page_[0-9].txt
 /temp_*.txt
+
+# Local tooling and demo output
+/.agents/
+/.claude/scripts/
+/.ua/
+/scripts/demo-video/

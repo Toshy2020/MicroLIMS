@@ -15,8 +15,8 @@ namespace MicroLIMS.Application.Services;
 // single-section sample behaves exactly as the old whole-sample approval
 // did. Rejecting rejects the whole sample; a retest carries only the
 // deciding section's tests. Only 4 of ApprovalDecision's 6 values are
-// reachable here - Investigation/OOSInvestigation stay TestOrder-level-only
-// (ApprovalService).
+// reachable here - Investigation/OOSInvestigation are not
+// sample-approval decisions.
 public class SampleApprovalService
 {
     private readonly IMicroLimsDbContext _db;

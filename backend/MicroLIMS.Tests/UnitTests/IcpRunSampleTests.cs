@@ -331,7 +331,7 @@ public class IcpRunSampleTests
         db.Users.Add(head);
         await db.SaveChangesAsync();
         TestServiceFactory.AssignUserToMicroSection(db, head.Id);
-        await TestServiceFactory.Review(db).ReturnToAnalystAsync(orderId, head.Id, "Recheck");
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(orderId, head.Id, "Recheck");
     }
 
     [Fact]

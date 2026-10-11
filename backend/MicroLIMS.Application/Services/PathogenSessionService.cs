@@ -1273,7 +1273,7 @@ public class PathogenSessionService
             ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         // Rejecting a sample takes SectionHead or SystemAdministrator
-        // (ApprovalController). This endpoint takes Analyst. Resetting used to
+        // (SampleApprovalController). This endpoint takes Analyst. Resetting used to
         // send a Rejected sample back to Received, which let the lower
         // privilege undo the higher one's decision about the material and left
         // nothing but an audit line behind. A rejection is reversed through the

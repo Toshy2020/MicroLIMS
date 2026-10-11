@@ -237,7 +237,7 @@ public partial class HplcRunServiceTests
         await SubmitAsync(db, t);
         var head = await AddSectionHeadAsync(db, t.Scenario);
 
-        await TestServiceFactory.Review(db).ReturnToAnalystAsync(t.Order.Id, head.Id, "Recheck weights");
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(t.Order.Id, head.Id, "Recheck weights");
 
         var entry = await t.Service.GetSampleEntryAsync(t.RunSampleId, t.Scenario.UserId);
         Assert.True(entry.Editable);

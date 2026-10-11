@@ -85,9 +85,6 @@ public static class TestServiceFactory
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator());
 
-    public static ReviewService Review(MicroLimsDbContext db) =>
-        new(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
-
     public static SampleCorrectionService SampleCorrection(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));

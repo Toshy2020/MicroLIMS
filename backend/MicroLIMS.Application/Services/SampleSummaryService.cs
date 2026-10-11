@@ -377,7 +377,7 @@ public class SampleSummaryService
     private static string FileStemFor(SampleSummaryDto s) => $"SampleSummary_{s.ReferenceNumber}";
 
     // Flattens every section of the summary into the plain lines
-    // SimplePdfWriter/SimpleDocxWriter expect - same shape as the 5
+    // SimpleDocxWriter expects - same shape as the 5
     // sections SampleSummaryDialog.tsx renders, so the export reads as
     // the same document, just on paper/in Word instead of a floating page.
     public static List<string> BuildReportLines(SampleSummaryDto s)

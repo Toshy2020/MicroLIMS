@@ -4,8 +4,8 @@ using MicroLIMS.Application.Abstractions.Persistence;
 namespace MicroLIMS.Application.Services;
 
 // GMP segregation of duties: the person who performed a test must not
-// also review or approve it. Shared by ReviewService.MarkReviewedAsync
-// and ApprovalService.DecideAsync. Deliberately role-agnostic - it only
+// also review or approve it. Shared by sample review, media and
+// cryovial release and pathogen confirmation. Deliberately role-agnostic - it only
 // ever compares user IDs, so there is no code path for any role
 // (including SystemAdministrator) to bypass it.
 public class SegregationOfDutiesGuard

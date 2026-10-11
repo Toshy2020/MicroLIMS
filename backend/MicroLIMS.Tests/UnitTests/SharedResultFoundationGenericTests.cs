@@ -313,7 +313,7 @@ public class SharedResultFoundationGenericTests
         db.TestAnalyses.Add(analysis);
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         var ret = await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Re-measure needed");
 
         Assert.NotNull(ret);

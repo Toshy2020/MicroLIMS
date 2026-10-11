@@ -3,8 +3,6 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Pdf;
-using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Persistence.DbContext;
 using Xunit;
 
@@ -12,23 +10,6 @@ namespace MicroLIMS.Tests.WorkflowTests;
 
 public class AfterCleaningReceivingTests
 {
-    private class TestPdfGenerator : IPdfGenerator
-    {
-        public List<string> CapturedLines { get; } = new();
-
-        public Task<byte[]> GenerateAsync(string templateName, Dictionary<string, object> data) =>
-            Task.FromResult(new byte[] { 1, 2, 3 });
-
-        public Task<byte[]> GenerateFromLinesAsync(string title, IEnumerable<string> lines)
-        {
-            CapturedLines.AddRange(lines);
-            return Task.FromResult(new byte[] { 1, 2, 3 });
-        }
-
-        public Task<byte[]> GenerateReportAsync(ReportDocument document) =>
-            Task.FromResult(new byte[] { 1, 2, 3 });
-    }
-
     private static MicroLimsDbContext NewDb()
     {
         var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
@@ -131,40 +112,5 @@ public class AfterCleaningReceivingTests
         Assert.Null(dto.ItemId);
         Assert.Equal(customProductName, dto.PreviousProductName);
         Assert.Equal(customBatchNumber, dto.PreviousProductBatchNumber);
-    }
-
-    [Fact]
-    public async Task GenerateAfterCleaningReportPdfAsync_IncludesPreviousProductAndBatch()
-    {
-        using var db = NewDb();
-        var machine = new Machine { Name = "Blender 01" };
-        var cause = new CauseOfTesting { Name = "Routine" };
-        db.Machines.Add(machine);
-        db.CausesOfTesting.Add(cause);
-        await db.SaveChangesAsync();
-
-        var sample = new Sample
-        {
-            ReferenceNumber = "AC0826001",
-            Category = SampleCategory.AfterCleaning,
-            MachineId = machine.Id,
-            CauseOfTestingId = cause.Id,
-            SampledBy = "Analyst 1",
-            ControlNumber = "AC-CTRL-01",
-            ReceivedByUserId = 1,
-            PreviousProductName = "Ibuprofen 400 mg Tablets",
-            PreviousProductBatchNumber = "IBU-260825",
-            BatchNumber = "IBU-260825"
-        };
-        db.Samples.Add(sample);
-        await db.SaveChangesAsync();
-
-        var testPdf = new TestPdfGenerator();
-        var reportService = new ReportService(testPdf, db);
-        var bytes = await reportService.GenerateAfterCleaningReportPdfAsync(sample.Id);
-
-        Assert.NotNull(bytes);
-        Assert.NotEmpty(bytes);
-        Assert.Contains(testPdf.CapturedLines, l => l.Contains("Previous Product: Ibuprofen 400 mg Tablets") && l.Contains("Previous Batch: IBU-260825"));
     }
 }

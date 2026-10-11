@@ -180,7 +180,7 @@ public class ReturnToAnalystTests
         var currentBefore = await engine.GetCurrentStepAsync(order.Id);
         Assert.True(currentBefore.AllStepsComplete);
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         var returnEvent = await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Plate count recount requested due to bubble artifact");
 
         // Assertions on returned state
@@ -220,7 +220,7 @@ public class ReturnToAnalystTests
         await using var db = NewDb();
         var (order, analyst, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount plates");
 
         var engine = TestServiceFactory.TestWorkflow(db);
@@ -277,7 +277,7 @@ public class ReturnToAnalystTests
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewerId: 99, "Try again"));
@@ -309,7 +309,7 @@ public class ReturnToAnalystTests
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewerId: 99, "Premature return"));
@@ -323,7 +323,7 @@ public class ReturnToAnalystTests
         await using var db = NewDb();
         var (order, analyst, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         var beforeTime = DateTime.UtcNow.AddSeconds(-1);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Re-verify plates");
         var afterTime = DateTime.UtcNow.AddSeconds(1);
@@ -352,7 +352,7 @@ public class ReturnToAnalystTests
         await using var db = NewDb();
         var (order, analyst, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         var returnEvent = await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, null);
 
         Assert.Null(returnEvent.Reason);
@@ -370,7 +370,7 @@ public class ReturnToAnalystTests
         sample.Status = SampleStatus.UnderReview;
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount");
 
         await db.Entry(sample).ReloadAsync();
@@ -387,7 +387,7 @@ public class ReturnToAnalystTests
         sample.ReferenceNumber = "FP0107026";
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Plate count recount requested due to bubble artifact");
 
         var notificationService = TestServiceFactory.DashboardNotification(db);
@@ -417,7 +417,7 @@ public class ReturnToAnalystTests
         sample.ReferenceNumber = "WP2608001";
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, null);
 
         var notificationService = TestServiceFactory.DashboardNotification(db);
@@ -439,7 +439,7 @@ public class ReturnToAnalystTests
         sample.ReferenceNumber = "FP0107026";
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount required");
 
         var spyPush = new SpyNotificationService();
@@ -475,7 +475,7 @@ public class ReturnToAnalystTests
         Assert.Null(pendingBefore);
 
         // 2. Immediately after return: Return event exists & zero active readings -> pending is true
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount plates due to artifact");
 
         var pendingAfterReturn = await TestReturnHelper.GetPendingReturnAsync(db, order.Id);
@@ -543,7 +543,7 @@ public class ReturnToAnalystTests
         Assert.Null(returnInfoBefore);
 
         // Reviewer returns test order
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount plates 1 and 2");
 
         // After return: returnInfo is present with reason and returnedAt
@@ -591,7 +591,7 @@ public class ReturnToAnalystTests
         Assert.Null(testBefore.ReturnReason);
 
         // Return order
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "TNTC threshold check required");
 
         // After return
@@ -629,7 +629,7 @@ public class ReturnToAnalystTests
         Assert.Empty(tasksBefore);
 
         // Return order
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Colony count verification");
 
         // After return: My Tasks contains an urgent task to revise the test
@@ -668,7 +668,7 @@ public class ReturnToAnalystTests
         Assert.Equal(0, initialCounts[analyst.Id]);
 
         // Reviewer returns count test order
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount required");
 
         // Count for analyst increments to 1
@@ -690,7 +690,7 @@ public class ReturnToAnalystTests
         sample.Status = SampleStatus.UnderApproval;
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount"));
 
@@ -707,7 +707,7 @@ public class ReturnToAnalystTests
         sample.Status = SampleStatus.Approved;
         await db.SaveChangesAsync();
 
-        var reviewService = TestServiceFactory.Review(db);
+        var reviewService = TestServiceFactory.SampleReview(db);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount"));
 

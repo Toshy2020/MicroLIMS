@@ -68,6 +68,10 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      # The instrument-report OCR tests shell out to the tesseract CLI.
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+
       # Packages only - never bin/obj, which would risk a stale build
       # passing the gate.
       - name: Cache NuGet packages

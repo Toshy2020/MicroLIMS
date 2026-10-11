@@ -19,7 +19,7 @@ import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleS
 import { SampleSummary, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
-import { CloseTestingDialog } from "../approval/CloseTestingDialog";
+import { CloseTestingDialog } from "./dialogs/CloseTestingDialog";
 import { DECISION_OPTIONS, formatDate, formatSectionStatus, isTestOrderNonPassing } from "./sampleSummary/summaryFormatting";
 import { SampleIdentityCard, SamplePreparationCard } from "./sampleSummary/SummaryCards";
 import { TestResultsSection } from "./sampleSummary/TestResultsSection";

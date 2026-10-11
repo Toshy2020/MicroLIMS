@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button, Typography, Box, TextField, useTheme } from "@mui/material";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
-import { FloatingDialog } from "../../components/FloatingDialog";
-import { SignatureDialog } from "../../components/SignatureDialog";
-import { SampleSummaryService } from "../testingWorkspace/services/SampleSummaryService";
+import { FloatingDialog } from "../../../components/FloatingDialog";
+import { SignatureDialog } from "../../../components/SignatureDialog";
+import { SampleSummaryService } from "../services/SampleSummaryService";
 
 interface Props {
   open: boolean;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Typography, Select, MenuItem, Button, Stack, Alert, AlertTitle, Box,
+  Typography, Button, Stack, Alert, AlertTitle, Box,
   List, ListItem,
   ListItemIcon, ListItemText, CircularProgress, useTheme
 } from "@mui/material";
@@ -15,6 +15,8 @@ import {
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "../utils/incubationWindow";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
+import { StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields } from "./StepLayout";
 
 interface Props {
   testOrderId: number;
@@ -50,9 +52,25 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
     siblingOrders: []
   });
 
+  // Entry Point C: Check if shared TSB is already recorded for this sample.
+  // Gated strictly to BrothEnrichment (primary non-selective enrichment) — never SelectiveBroth (e.g. RVS)
+  const isBrothEnrichmentStep = step.stepType === "BrothEnrichment";
+
+  // The sibling-order lookup behind the shared TSB prompt is started with the
+  // step configuration instead of on click, so Start Incubation responds at
+  // once. A rejection is still handled where it is awaited.
+  const siblingsRequest = useRef<Promise<SiblingPathogenOrder[]> | null>(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
+    if (isBrothEnrichmentStep) {
+      const request = TestWorkflowService.getSiblingPathogenOrders(testOrderId);
+      request.catch(() => undefined);
+      siblingsRequest.current = request;
+    } else {
+      siblingsRequest.current = null;
+    }
     TestWorkflowService.getPermittedConfirmatoryMedia(testOrderId, step.stepName)
       .then(async (res) => {
         const only = res.permittedMedia[0] ?? null;
@@ -64,11 +82,8 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       })
       .catch((e) => setError(workflowErrorDisplayMessage(parseWorkflowError(e))))
       .finally(() => setLoading(false));
-  }, [testOrderId, step.stepName]);
+  }, [testOrderId, step.stepName, isBrothEnrichmentStep]);
 
-  // Entry Point C: Check if shared TSB is already recorded for this sample.
-  // Gated strictly to BrothEnrichment (primary non-selective enrichment) — never SelectiveBroth (e.g. RVS)
-  const isBrothEnrichmentStep = step.stepType === "BrothEnrichment";
   const sharedTsb = current?.sharedTsbSummary;
   const isSharedBrothComplete = current?.previousSteps?.some(
     (p) => (p.stepName === "Broth Enrichment" || p.stepName.includes("TSB")) &&
@@ -131,27 +146,19 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           </Alert>
         )}
 
-        <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1.5, p: 2, mb: 2 }}>
-          <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>TSB Lot:</strong> {summary.mediaLotNumber ?? "Standard Lot"}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>Incubator:</strong> {summary.incubatorCode ?? "Standard Incubator"}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>Started:</strong> {summary.incubationStartUtc ? new Date(summary.incubationStartUtc).toLocaleString() : "Recorded"}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 0.5 }}>
-            <strong>By:</strong> {summary.startedByUserName}
-          </Typography>
-          {summary.minReadyAt && (
-            <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
-              Available from: {new Date(summary.minReadyAt).toLocaleString()}
-            </Typography>
-          )}
+        <Box sx={{ border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 2, p: 2, mb: 2 }}>
+          <StepDetailList
+            rows={[
+              { label: "TSB lot", value: summary.mediaLotNumber ?? "Standard Lot" },
+              { label: "Incubator", value: summary.incubatorCode ?? "Standard Incubator" },
+              { label: "Started", value: summary.incubationStartUtc ? new Date(summary.incubationStartUtc).toLocaleString() : "Recorded" },
+              { label: "By", value: summary.startedByUserName },
+              ...(summary.minReadyAt ? [{ label: "Available from", value: new Date(summary.minReadyAt).toLocaleString() }] : [])
+            ]}
+          />
         </Box>
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <StepActionBar>
           <Button
             variant="contained"
             onClick={handleProceedSharedTsb}
@@ -160,7 +167,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           >
             {saving ? "Advancing..." : "Proceed to Next Step →"}
           </Button>
-        </Box>
+        </StepActionBar>
       </Box>
     );
   }
@@ -198,7 +205,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
     }
 
     try {
-      const siblings = await TestWorkflowService.getSiblingPathogenOrders(testOrderId);
+      const siblings = await (siblingsRequest.current ?? TestWorkflowService.getSiblingPathogenOrders(testOrderId));
       if (siblings && siblings.length > 0) {
         const selectedLot = medium.availableLots.find((l) => l.id === Number(mediaLotId));
         const selectedInc = incubators.find((i) => i.id === Number(equipmentId));
@@ -224,38 +231,52 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
     await doStartIncubation();
   };
 
-  if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
+  if (loading) return <DialogBodySkeleton blocks={3} blockHeight={48} />;
   if (error && !medium) return <Alert severity="error">{error}</Alert>;
   if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
 
+  const canStart = Boolean(mediaLotId && equipmentId);
+
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Alert severity="info">
-        This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once
-        the assigned incubation window completes.
-      </Alert>
-      <Typography variant="body2">Medium: <strong>{medium.mediaName}</strong></Typography>
-      <Select displayEmpty size="small" value={mediaLotId} onChange={(e) => setMediaLotId(Number(e.target.value))} inputProps={{ "aria-label": "Media lot" }}>
-        <MenuItem value=""><em>Media Lot</em></MenuItem>
-        {medium.availableLots.map((l) => (
-          <MenuItem key={l.id} value={l.id}>{l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
-        ))}
-      </Select>
-      <Select displayEmpty size="small" value={equipmentId} onChange={(e) => setEquipmentId(Number(e.target.value))} inputProps={{ "aria-label": `Incubator (${medium.tempMin}-${medium.tempMax} °C)` }}>
-        <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
-        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setTemperature}°C</MenuItem>)}
-      </Select>
-      <Typography variant="body2">
-        <strong>Assigned Incubation:</strong> {step.incubationMinHours}–{step.incubationMaxHours} h
-      </Typography>
-      <Stack direction="row" sx={{
-        justifyContent: "flex-end"
-      }}>
-        <Button variant="contained" onClick={handleStartIncubation} disabled={saving}>
+
+      <FixedMediumRow mediaName={medium.mediaName} />
+
+      <MediaLotIncubatorFields
+        idPrefix="broth"
+        lots={medium.availableLots}
+        incubators={incubators}
+        tempMin={medium.tempMin}
+        tempMax={medium.tempMax}
+        mediaLotId={mediaLotId}
+        equipmentId={equipmentId}
+        onLotChange={setMediaLotId}
+        onIncubatorChange={setEquipmentId}
+      />
+
+      <IncubationTimeline
+        points={[
+          { label: "Start", value: "0 h", active: true },
+          { label: "Ready from", value: `${step.incubationMinHours} h` },
+          { label: "Read by", value: `${step.incubationMaxHours} h` }
+        ]}
+      />
+
+      <StepActionBar
+        note={canStart
+          ? "Start time, media lot and incubator are recorded in the audit trail."
+          : "Select a media lot and an incubator to continue."}
+      >
+        <Button
+          variant="contained"
+          onClick={handleStartIncubation}
+          disabled={saving || !canStart}
+          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
+        >
           {saving ? "Starting..." : "Start Incubation"}
         </Button>
-      </Stack>
+      </StepActionBar>
 
       {/* Entry Point B — Sibling Confirmation Dialog */}
       <FloatingDialog

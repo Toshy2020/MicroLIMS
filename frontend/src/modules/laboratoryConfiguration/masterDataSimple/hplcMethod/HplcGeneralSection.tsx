@@ -26,7 +26,6 @@ export interface HplcGeneralSectionProps {
   errors: HplcMethodErrors;
   editingId: number | null;
   mySections: LaboratorySection[];
-  sections: LaboratorySection[];
   onNameChange: (val: string) => void;
   onAbbreviationChange: (val: string) => void;
   onEffectiveDateChange: (val: string) => void;
@@ -45,7 +44,6 @@ export function HplcGeneralSection({
   errors,
   editingId,
   mySections,
-  sections,
   onNameChange,
   onAbbreviationChange,
   onEffectiveDateChange,
@@ -170,7 +168,7 @@ export function HplcGeneralSection({
             value={sectionId}
             onChange={(e) => onSectionIdChange(Number(e.target.value) || "")}
           >
-            {sections.map((sec) => (
+            {mySections.map((sec) => (
               <MenuItem key={sec.sectionId} value={sec.sectionId}>
                 {sec.sectionName}
               </MenuItem>

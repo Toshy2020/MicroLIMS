@@ -340,6 +340,7 @@ export function useHplcMethodDialogState({
     setReasonDialogOpen,
     editReason,
     setEditReason,
+    currentSectionId,
     availableDiluents,
     availableMobilePhases,
     availableReferenceStandards,

@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { Typography, TextField, Button, Stack, Alert, Divider, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Typography, TextField, Button, Stack, Alert } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { TestWorkflowStepDto, AnalystDecision } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { StepActionBar, FixedMediumRow, ObservationOptions } from "./StepLayout";
+
+type DetectionChoice = "not-detected" | "detected";
+const DETECTION_OPTIONS: { value: DetectionChoice; title: string; detail: string }[] = [
+  { value: "not-detected", title: "Not Detected", detail: "The biochemical result does not identify the target organism" },
+  { value: "detected", title: "Detected", detail: "The biochemical result identifies the target organism" }
+];
 
 interface Props {
   testOrderId: number;
@@ -82,32 +89,32 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
 
   if (phase === "decision") {
     return (
-      <Stack spacing={1.5}>
+      <Stack spacing={2}>
         {decisionError && <Alert severity="error">{decisionError}</Alert>}
         <Alert severity="success">
           Confirmatory result: <strong>All Conforming</strong>. An analyst decision is required before this
           workflow proceeds.
         </Alert>
-        <Divider />
         <Alert severity="warning">
           Submitting as Detected without biochemical confirmation will be flagged for the reviewer.
         </Alert>
-        <Stack direction="row" spacing={1.5} sx={{
-          justifyContent: "flex-end"
-        }}>
+        <StepActionBar>
           <Button variant="outlined" color="warning" onClick={() => decide("SubmitAsDetected")}>
             Submit as Detected (skip biochemical)
           </Button>
           <Button variant="contained" onClick={() => decide("ProceedToBiochemical")}>
             Proceed to Biochemical Test
           </Button>
-        </Stack>
+        </StepActionBar>
       </Stack>
     );
   }
 
+  const types = step.phenotypicTestTypes?.length ? step.phenotypicTestTypes : (step.phenotypicTestType ? [step.phenotypicTestType] : []);
+  const canSubmit = Boolean(text.trim()) && organismDetected !== null;
+
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
       {formError && <Alert severity="error">{formError}</Alert>}
       {confirmatoryOutcome === "Inconclusive" && (
         <Alert severity="warning">
@@ -115,42 +122,32 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
           audit trail. Biochemical identification can still resolve it; record the result below.
         </Alert>
       )}
-      {(() => {
-        const types = step.phenotypicTestTypes?.length ? step.phenotypicTestTypes : (step.phenotypicTestType ? [step.phenotypicTestType] : []);
-        if (types.length === 0) return null;
-        return (
-          <Alert severity="info">
-            This step covers: <strong>{types.map((t) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")}</strong>.
-            Record the combined result for all of them below.
-          </Alert>
-        );
-      })()}
-      <Typography variant="body2" sx={{
-        color: "text.secondary"
-      }}>
-        Record the biochemical confirmation result (e.g. IMViC pattern, API strip result).
-      </Typography>
+      {types.length > 0 && (
+        <FixedMediumRow
+          label={types.length === 1 ? "Test" : "Tests covered - record one combined result"}
+          mediaName={types.map((t) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")}
+        />
+      )}
       <TextField
-        multiline minRows={4} label="Biochemical Result" value={text}
+        id="biochemical-result"
+        multiline minRows={4} required label="Biochemical result" value={text}
         onChange={(e) => setText(e.target.value)}
+        helperText="For example an IMViC pattern or API strip result."
+        slotProps={{ inputLabel: { shrink: true } }}
       />
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
         Based on this result, is the organism Detected or Not Detected? This decision, not the free-text
         result alone, determines the final workflow result.
       </Typography>
-      <ToggleButtonGroup
-        exclusive
-        value={organismDetected === null ? null : organismDetected ? "detected" : "not-detected"}
-        onChange={(_, value) => { if (value !== null) setOrganismDetected(value === "detected"); }}
-      >
-        <ToggleButton value="not-detected" color="success">Not Detected</ToggleButton>
-        <ToggleButton value="detected" color="error">Detected</ToggleButton>
-      </ToggleButtonGroup>
-      <Stack direction="row" sx={{
-        justifyContent: "flex-end"
-      }}>
-        <Button variant="contained" disabled={!text.trim() || organismDetected === null} onClick={submit}>Submit</Button>
-      </Stack>
+      <ObservationOptions
+        name="biochemical-detection"
+        value={organismDetected === null ? "" : organismDetected ? "detected" : "not-detected"}
+        onChange={(v) => setOrganismDetected(v === "detected")}
+        options={DETECTION_OPTIONS}
+      />
+      <StepActionBar note={canSubmit ? "The result and your decision are recorded in the audit trail." : "Enter the result and choose Detected or Not Detected to continue."}>
+        <Button variant="contained" disabled={!canSubmit} onClick={submit}>Submit Result</Button>
+      </StepActionBar>
     </Stack>
   );
 }

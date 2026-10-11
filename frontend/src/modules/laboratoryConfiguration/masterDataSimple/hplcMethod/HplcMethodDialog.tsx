@@ -28,7 +28,6 @@ export interface HplcMethodDialogProps {
   editingId: number | null;
   solutions: SolutionMaster[];
   materialMasters: MaterialMasterEntry[];
-  sections: LaboratorySection[];
   mySections: LaboratorySection[];
   onClose: () => void;
   onSuccess: () => void;
@@ -39,7 +38,6 @@ export function HplcMethodDialog({
   editingId,
   solutions,
   materialMasters,
-  sections,
   mySections,
   onClose,
   onSuccess
@@ -64,6 +62,7 @@ export function HplcMethodDialog({
     setReasonDialogOpen,
     editReason,
     setEditReason,
+    currentSectionId,
     availableDiluents,
     availableMobilePhases,
     availableReferenceStandards,
@@ -163,7 +162,6 @@ export function HplcMethodDialog({
                 errors={errors}
                 editingId={editingId}
                 mySections={mySections}
-                sections={sections}
                 onNameChange={(val) => updateField("name", val)}
                 onAbbreviationChange={(val) => updateField("abbreviation", val)}
                 onEffectiveDateChange={(val) => updateField("effectiveDate", val)}
@@ -339,6 +337,7 @@ export function HplcMethodDialog({
                   />
                 ) : (
                   <HplcSolutionsSection
+                    sectionSelected={currentSectionId != null}
                     diluentSolutionId={form.diluentSolutionId}
                     mobilePhases={form.mobilePhases}
                     elutionMode={form.elutionMode}

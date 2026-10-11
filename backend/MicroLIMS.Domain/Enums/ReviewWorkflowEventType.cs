@@ -25,5 +25,8 @@ public enum ReviewWorkflowEventType
     // A second laboratory's tests were added to an already-received
     // sample. SectionId holds the laboratory added; the Comment holds
     // the reason.
-    LaboratoryAdded
+    LaboratoryAdded,
+
+    // Storage location changed for a prepared media lot or cryovial batch.
+    StorageLocationChanged
 }

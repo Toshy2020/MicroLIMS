@@ -51,4 +51,5 @@ public class Media
     public DateTime? ApprovedAt { get; set; }
 
     public bool IsReleasedForUse { get; set; } // set true only by MediaReleaseService.DecideAsync on an approved release
+    public List<MediaStorageEntry> StorageEntries { get; set; } = new();
 }

@@ -20,6 +20,7 @@ public class CryovialResponse
     public int NumberOfVialsPrepared { get; init; }
     public int VialsRemaining { get; init; }
     public string StorageCondition { get; init; } = null!;
+    public int? StorageEquipmentId { get; init; }
     public bool PhysicalCheckConfirmed { get; init; }
     public string PhysicalCheckText { get; init; } = null!;
     public DateTime PreparedAt { get; init; }
@@ -45,6 +46,7 @@ public class CryovialResponse
         NumberOfVialsPrepared = e.NumberOfVialsPrepared,
         VialsRemaining = e.VialsRemaining,
         StorageCondition = e.StorageCondition,
+        StorageEquipmentId = e.StorageEquipmentId,
         PhysicalCheckConfirmed = e.PhysicalCheckConfirmed,
         PhysicalCheckText = e.PhysicalCheckText,
         PreparedAt = e.PreparedAt,

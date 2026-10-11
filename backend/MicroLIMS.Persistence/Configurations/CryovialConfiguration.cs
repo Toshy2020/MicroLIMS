@@ -24,6 +24,8 @@ public class CryovialConfiguration : IEntityTypeConfiguration<Cryovial>
         // history - same reasoning as the Media/Incubation FKs.
         builder.HasOne(c => c.Material).WithMany().HasForeignKey(c => c.MaterialId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(c => c.Organism).WithMany().HasForeignKey(c => c.OrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.StorageEquipment).WithMany().HasForeignKey(c => c.StorageEquipmentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(c => c.StorageEquipmentId);
     }
 }
 

@@ -1,17 +1,23 @@
-import { useEffect, useState } from "react";
-import {
-  Typography, Select, MenuItem, TextField, Button, Stack, Alert,
-  RadioGroup, FormControlLabel, Radio, Box, CircularProgress
-} from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
+import { TextField, Button, Stack, Alert, CircularProgress } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import {
   TestWorkflowStepDto, CurrentStepResponse, PermittedConfirmatoryMediaEntry, GrowthObservation
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
-import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE, serverIncubationWindow } from "../utils/incubationWindow";
-import { useAuth } from "../../../contexts/AuthContext";
-import { PERMISSIONS } from "../../../routes/routes";
-import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { serverIncubationWindow } from "../utils/incubationWindow";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
+import {
+  StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields,
+  ExpectedAppearanceNote, ObservationOptions
+} from "./StepLayout";
+import { IncubationWaitingView } from "./IncubationWaitingView";
+
+const OBSERVATION_OPTIONS: { value: GrowthObservation; title: string; detail: string }[] = [
+  { value: "NoGrowth", title: "No growth", detail: "Target absent" },
+  { value: "GrowthNonConforming", title: "Growth, does not match expected appearance", detail: "Target absent" },
+  { value: "GrowthConforming", title: "Growth matching expected appearance", detail: "Presumptive positive" }
+];
 
 interface Props {
   testOrderId: number;
@@ -30,10 +36,9 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
-  const [skipping, setSkipping] = useState(false);
-  const { permissions } = useAuth();
-  const canOverride = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
+  // Set by the waiting screen when its countdown reaches zero.
+  const [countdownReady, setCountdownReady] = useState(false);
+  const handleReady = useCallback(() => setCountdownReady(true), []);
 
   useEffect(() => {
     setLoading(true);
@@ -61,29 +66,12 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
 
   // Window, start, readiness and expected end exactly as the server resolved
   // them from this test's own medium - no local hour calculations.
-  const {
-    tempMin, tempMax, minHours: incMinHours, maxHours: incMaxHours,
-    incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady
-  } = serverIncubationWindow(step, current);
+  const { incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady } = serverIncubationWindow(step, current);
 
   const phase: "setup" | "waiting" | "readout" =
     !isStepIncubating ? "setup" :
-    !isTimeReady ? "waiting" :
+    !(isTimeReady || countdownReady) || windowNotConfigured ? "waiting" :
     "readout";
-
-  const confirmSkipWait = async () => {
-    setError(null);
-    setSkipping(true);
-    try {
-      await TestWorkflowService.overrideMinimumDuration(testOrderId);
-      setSkipDialogOpen(false);
-      onSubmitted();
-    } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
-    } finally {
-      setSkipping(false);
-    }
-  };
 
   // Phase 1: Start incubation
   const handleStartIncubation = async () => {
@@ -128,72 +116,45 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
     }
   };
 
-  if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
+  if (loading) return <DialogBodySkeleton blocks={3} blockHeight={48} />;
   if (error && !medium) return <Alert severity="error">{error}</Alert>;
   if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Typography variant="body2">Medium: <strong>{medium.mediaName}</strong></Typography>
-      {medium.expectedAppearance === null ? (
-        <Alert severity="warning">
-          Expected appearance not configured in Test Master. Growth vs. no-growth can still be recorded,
-          but a conforming/non-conforming judgment is unreliable until Test Master is fixed.
-        </Alert>
-      ) : (
-        <Alert severity="info">
-          Expected appearance of a target-positive colony: <strong>{medium.expectedAppearance}</strong>
-        </Alert>
-      )}
+      <FixedMediumRow mediaName={medium.mediaName} />
+      <ExpectedAppearanceNote mediaName={medium.mediaName} expectedAppearance={medium.expectedAppearance} />
 
       {/* Phase 1: Setup (Start Incubation) */}
       {phase === "setup" && (
         <>
-          <Select
-            displayEmpty
-            size="small"
-            value={mediaLotId}
-            onChange={(e) => setMediaLotId(Number(e.target.value))}
-            inputProps={{ "aria-label": "Media lot" }}
+          <MediaLotIncubatorFields
+            idPrefix="selective-plating"
+            lots={medium.availableLots}
+            incubators={incubators}
+            tempMin={medium.tempMin}
+            tempMax={medium.tempMax}
+            mediaLotId={mediaLotId}
+            equipmentId={equipmentId}
+            onLotChange={setMediaLotId}
+            onIncubatorChange={setEquipmentId}
+          />
+
+          <IncubationTimeline
+            points={[
+              { label: "Start", value: "0 h", active: true },
+              { label: "Ready from", value: `${step.incubationMinHours} h` },
+              { label: "Read by", value: `${step.incubationMaxHours} h` }
+            ]}
+          />
+
+          <StepActionBar
+            note={mediaLotId && equipmentId
+              ? "Start time, media lot and incubator are recorded in the audit trail."
+              : "Select a media lot and an incubator to continue."}
           >
-            <MenuItem value=""><em>Media Lot</em></MenuItem>
-            {medium.availableLots.map((l) => (
-              <MenuItem key={l.id} value={l.id}>
-                {l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}
-              </MenuItem>
-            ))}
-          </Select>
-
-          <Select
-            displayEmpty
-            size="small"
-            value={equipmentId}
-            onChange={(e) => setEquipmentId(Number(e.target.value))}
-            inputProps={{ "aria-label": `Incubator (${medium.tempMin}-${medium.tempMax} °C)` }}
-          >
-            <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
-            {incubators.map((i) => (
-              <MenuItem key={i.id} value={i.id}>
-                {i.name} ({i.code}), {i.setTemperature}°C
-              </MenuItem>
-            ))}
-          </Select>
-
-          {/* Read-only template duration */}
-          <Box sx={{ p: 1.5, backgroundColor: "background.default", borderRadius: 1 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Incubation Duration (from Test Master)
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {step.incubationMinHours}–{step.incubationMaxHours} hours
-            </Typography>
-          </Box>
-
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
             <Button
               variant="contained"
               onClick={handleStartIncubation}
@@ -202,121 +163,55 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             >
               {submitting ? "Starting..." : "Start Incubation"}
             </Button>
-          </Stack>
+          </StepActionBar>
         </>
       )}
 
-      {/* Phase 2: Waiting (Incubation in Progress, not ready yet) */}
+      {/* Phase 2: Waiting - countdown to the plate reading */}
       {phase === "waiting" && (
-        <>
-          <Alert severity="info">
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Incubation in progress.
-            </Typography>
-            {tempMin != null && tempMax != null && tempMin > 0 && (
-              <Typography variant="body2">
-                Temperature: <strong>{tempMin}–{tempMax} °C</strong>
-              </Typography>
-            )}
-            {incMinHours != null && incMaxHours != null && incMinHours > 0 && (
-              <Typography variant="body2">
-                Duration: <strong>{incMinHours}–{incMaxHours} hours</strong>
-              </Typography>
-            )}
-            {incubationStartUtc && (
-              <Typography variant="body2">
-                Started: <strong>{incubationStartUtc.toLocaleString()}</strong>
-              </Typography>
-            )}
-            {expectedEndAt && (
-              <Typography variant="body2">
-                Expected reading: <strong>{expectedEndAt.toLocaleString()}</strong>
-              </Typography>
-            )}
-          </Alert>
-
-          {windowNotConfigured && (
-            <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>
+        <IncubationWaitingView
+          testOrderId={testOrderId}
+          step={step}
+          current={current}
+          onSubmitted={onSubmitted}
+          nextLabel="Plate reading"
+          onReady={handleReady}
+          renderAction={() => (
+            <Button variant="contained" disabled>Record Observation</Button>
           )}
-
-          {minReadyAt && (
-            <Alert severity="warning">
-              Not ready yet. Available from {minReadyAt.toLocaleString()}.
-            </Alert>
-          )}
-
-          <Stack
-            direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-            {canOverride && !windowNotConfigured ? (
-              <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
-                Skip Wait
-              </Button>
-            ) : <span />}
-            <Button variant="contained" disabled>
-              Record Observation
-            </Button>
-          </Stack>
-        </>
+        />
       )}
 
       {/* Phase 3: Readout (Ready for observation) */}
       {phase === "readout" && (
         <>
-          <Alert severity="success">
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              ✓ Incubation complete, ready for observation.
-            </Typography>
-            {incubationStartUtc && (
-              <Typography variant="body2">
-                Started: <strong>{incubationStartUtc.toLocaleString()}</strong>
-              </Typography>
-            )}
-            {minReadyAt && (
-              <Typography variant="body2">
-                Available from: <strong>{minReadyAt.toLocaleString()}</strong>
-              </Typography>
-            )}
-          </Alert>
-
-          <Typography variant="subtitle2">Observation</Typography>
-          <RadioGroup
-            value={observation}
-            onChange={(e) => setObservation(e.target.value as GrowthObservation)}
-          >
-            <FormControlLabel
-              value="NoGrowth"
-              control={<Radio />}
-              label="No growth: target absent"
-            />
-            <FormControlLabel
-              value="GrowthNonConforming"
-              control={<Radio />}
-              label="Growth present, does not match expected appearance: target absent"
-            />
-            <FormControlLabel
-              value="GrowthConforming"
-              control={<Radio />}
-              label="Growth matching expected appearance: presumptive positive"
-            />
-          </RadioGroup>
-
-          <TextField
-            size="small"
-            multiline
-            minRows={2}
-            label="Observed Appearance Note (optional)"
-            value={appearanceNote}
-            onChange={(e) => setAppearanceNote(e.target.value)}
-            helperText="Optional notes on colony characteristics observed on the plate."
+          <Alert severity="success">Incubation complete. Read the plate and record what you observe.</Alert>
+          <StepDetailList
+            rows={[
+              ...(incubationStartUtc ? [{ label: "Started", value: incubationStartUtc.toLocaleString() }] : []),
+              ...(minReadyAt ? [{ label: "Ready from", value: minReadyAt.toLocaleString() }] : []),
+              ...(expectedEndAt ? [{ label: "Read by", value: expectedEndAt.toLocaleString() }] : [])
+            ]}
           />
 
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
+          <ObservationOptions
+            name="selective-plating-observation"
+            value={observation}
+            onChange={setObservation}
+            options={OBSERVATION_OPTIONS}
+          />
+
+          <TextField
+            id="selective-plating-note"
+            multiline
+            minRows={2}
+            label="Observed appearance note (optional)"
+            value={appearanceNote}
+            onChange={(e) => setAppearanceNote(e.target.value)}
+            helperText="Colony characteristics seen on the plate."
+          />
+
+          <StepActionBar note={observation ? undefined : "Select an observation to continue."}>
             <Button
               variant="contained"
               onClick={handleSubmitObservation}
@@ -325,16 +220,9 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             >
               {submitting ? "Recording..." : "Record Observation"}
             </Button>
-          </Stack>
+          </StepActionBar>
         </>
       )}
-
-      <ConfirmationDialog
-        open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
-        onConfirm={confirmSkipWait}
-        onCancel={() => setSkipDialogOpen(false)}
-      />
     </Stack>
   );
 }

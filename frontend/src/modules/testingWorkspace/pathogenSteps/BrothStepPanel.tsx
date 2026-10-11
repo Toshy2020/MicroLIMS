@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Typography, TextField, MenuItem, Button, Stack, Alert, AlertTitle, Box,
+  Typography, Button, Stack, Alert, AlertTitle, Box,
   List, ListItem,
   ListItemIcon, ListItemText, CircularProgress, useTheme
 } from "@mui/material";
@@ -8,7 +8,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import {
   TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, CurrentStepResponse, SiblingPathogenOrder
@@ -17,7 +16,7 @@ import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workfl
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "../utils/incubationWindow";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
-import { StepActionBar, StepDetailList, IncubationTimeline } from "./StepLayout";
+import { StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields } from "./StepLayout";
 
 interface Props {
   testOrderId: number;
@@ -236,56 +235,25 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
   if (error && !medium) return <Alert severity="error">{error}</Alert>;
   if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
 
-  const lotCount = medium.availableLots.length;
   const canStart = Boolean(mediaLotId && equipmentId);
 
   return (
     <Stack spacing={2}>
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", borderRadius: 2, px: 1.5, py: 1 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>Medium</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>{medium.mediaName}</Typography>
-        </Box>
-        <Typography variant="caption" title="Assigned in Test Master" sx={{ ml: "auto", color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, whiteSpace: "nowrap" }}>
-          <LockOutlinedIcon sx={{ fontSize: 14 }} /> Test Master
-        </Typography>
-      </Box>
+      <FixedMediumRow mediaName={medium.mediaName} />
 
-      <TextField
-        select
-        fullWidth
-        required
-        id="broth-media-lot"
-        label="Media lot"
-        value={mediaLotId}
-        onChange={(e) => setMediaLotId(Number(e.target.value))}
-        helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
-        error={lotCount === 0}
-        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-      >
-        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
-        {medium.availableLots.map((l) => (
-          <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
-        ))}
-      </TextField>
-
-      <TextField
-        select
-        fullWidth
-        required
-        id="broth-incubator"
-        label="Incubator"
-        value={equipmentId}
-        onChange={(e) => setEquipmentId(Number(e.target.value))}
-        helperText={incubators.length === 0 ? `No incubators are set within ${medium.tempMin}–${medium.tempMax} °C` : `Only incubators set within ${medium.tempMin}–${medium.tempMax} °C are listed`}
-        error={incubators.length === 0}
-        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-      >
-        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
-        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
-      </TextField>
+      <MediaLotIncubatorFields
+        idPrefix="broth"
+        lots={medium.availableLots}
+        incubators={incubators}
+        tempMin={medium.tempMin}
+        tempMax={medium.tempMax}
+        mediaLotId={mediaLotId}
+        equipmentId={equipmentId}
+        onLotChange={setMediaLotId}
+        onIncubatorChange={setEquipmentId}
+      />
 
       <IncubationTimeline
         points={[

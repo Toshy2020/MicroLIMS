@@ -1,12 +1,6 @@
-import React, { useMemo } from "react";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
-import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
-import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
+import { useMemo } from "react";
+import { Box, ButtonBase, Tooltip, Typography, useTheme } from "@mui/material";
 import { StatusTone } from "../../../theme/statusTokens";
-import { SummaryTiles, type SummaryTile } from "../../../components/configHierarchy/SummaryTiles";
 
 // These tiles used to count sample categories (Product/RM/PM/Water/AC/EM),
 // which duplicated the Item Type dropdown immediately below them. They now
@@ -37,13 +31,12 @@ export type AllWorkloadFilterKey = WorkloadFilterKey | DeepLinkWorkloadFilterKey
 // sample the browser had downloaded. That copy is gone rather than left
 // unreferenced: two definitions of one GMP rule drift, and the frontend is not
 // where laboratory logic belongs. What stays below is presentation only -
-// label, hint, icon and tone.
+// label, hint and tone.
 
 interface TileConfig {
   key: WorkloadFilterKey;
   label: string;
   hint: string;
-  icon: React.ReactNode;
   tone: StatusTone;
   assignersOnly?: boolean;
 }
@@ -53,42 +46,36 @@ const TILES: TileConfig[] = [
     key: "needsPreparation",
     label: "Needs Preparation",
     hint: "Preparation not yet signed off",
-    icon: <ScienceOutlinedIcon />,
     tone: "inconclusive"
   },
   {
     key: "readyToRead",
     label: "Ready to Read",
     hint: "Incubation complete, awaiting result entry",
-    icon: <VisibilityOutlinedIcon />,
     tone: "purple"
   },
   {
     key: "awaitingReview",
     label: "Awaiting Review",
     hint: "All tests complete, awaiting reviewer",
-    icon: <RateReviewOutlinedIcon />,
     tone: "info"
   },
   {
     key: "overdue",
     label: "Overdue",
     hint: "Open more than 24 hours after receipt",
-    icon: <ScheduleOutlinedIcon />,
     tone: "detected"
   },
   {
     key: "mine",
     label: "Assigned to Me",
     hint: "Samples with a test assigned to you",
-    icon: <PersonOutlineIcon />,
     tone: "action"
   },
   {
     key: "unassigned",
     label: "Unassigned",
     hint: "No analyst assigned yet",
-    icon: <PersonOffOutlinedIcon />,
     tone: "pending",
     assignersOnly: true
   }
@@ -98,27 +85,72 @@ interface Props {
   counts?: Record<WorkloadFilterKey, number> | null;
   activeKey: AllWorkloadFilterKey | null;
   onSelect: (key: WorkloadFilterKey) => void;
+  // "All samples" tab - clears the workload filter.
+  onClear?: () => void;
   canAssignAnalyst: boolean;
 }
 
-export function SampleStatusKpiCards({ counts, activeKey, onSelect, canAssignAnalyst }: Props) {
-  const tiles = useMemo<SummaryTile[]>(
-    () =>
-      TILES.filter((t) => !t.assignersOnly || canAssignAnalyst).map((card) => {
-        const count = counts?.[card.key] ?? 0;
-        return {
-          label: card.label,
-          value: count,
-          caption: count === 1 ? "sample" : "samples",
-          hint: card.hint,
-          icon: card.icon,
-          tone: card.tone,
-          active: activeKey === card.key,
-          onClick: () => onSelect(card.key)
-        };
-      }),
-    [counts, activeKey, onSelect, canAssignAnalyst]
-  );
+// Work queues as a row of tabs above the register: one tap filters the list
+// to that queue. Queues with work take their tone's colour; empty ones stay
+// grey so the eye lands on what needs doing.
+export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, canAssignAnalyst }: Props) {
+  const theme = useTheme();
+  const tiles = useMemo(() => TILES.filter((t) => !t.assignersOnly || canAssignAnalyst), [canAssignAnalyst]);
+  const isTileKey = (k: AllWorkloadFilterKey | null) => tiles.some((t) => t.key === k);
 
-  return <SummaryTiles tiles={tiles} />;
+  const tab = (key: string, label: string, hint: string, count: number | null, tone: StatusTone | null, active: boolean, onClick: () => void) => {
+    const toneText = tone && count ? theme.custom.status[tone].text : undefined;
+    return (
+      <Tooltip key={key} title={hint} disableInteractive>
+        <ButtonBase
+          onClick={onClick}
+          aria-pressed={active}
+          sx={{
+            flex: "1 0 auto",
+            minWidth: 120,
+            display: "grid",
+            justifyItems: "start",
+            gap: 0.25,
+            px: 2,
+            pt: 1.25,
+            pb: 1,
+            textAlign: "left",
+            borderBottom: "3px solid",
+            borderColor: active ? "primary.main" : "transparent",
+            bgcolor: active ? theme.custom.status.purple.bg : "transparent",
+            "&:hover": { bgcolor: active ? theme.custom.status.purple.bg : "action.hover" },
+            "&.Mui-focusVisible": { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: -2 }
+          }}
+        >
+          <Typography sx={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: count === 0 ? "text.disabled" : toneText ?? "text.primary" }}>
+            {count ?? "—"}
+          </Typography>
+          <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: active ? "text.primary" : "text.secondary", fontWeight: active ? 600 : 400 }}>
+            {label}
+          </Typography>
+        </ButtonBase>
+      </Tooltip>
+    );
+  };
+
+  return (
+    <Box
+      component="nav"
+      aria-label="Work queues"
+      sx={{
+        display: "flex",
+        overflowX: "auto",
+        mb: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        bgcolor: "background.paper"
+      }}
+    >
+      {onClear && tab("all", "All samples", "Every sample in this laboratory", null, null, !activeKey || !isTileKey(activeKey), onClear)}
+      {tiles.map((t) =>
+        tab(t.key, t.label, t.hint, counts?.[t.key] ?? 0, t.tone, activeKey === t.key, () => onSelect(t.key))
+      )}
+    </Box>
+  );
 }

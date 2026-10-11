@@ -13,6 +13,7 @@ public record PrepareCryovialsHttpRequest(
     List<IdentityConfirmationRowRequest> Panel, int DiscsUsed);
 public record ApproveRequest(bool Approved, string Password, string? Comment);
 public record ThawVialRequest(string? Notes);
+public record MoveCryovialStorageRequest(int? EquipmentId, string? LocationText, string Reason);
 
 // Cryovial batches - prepared directly from a LyophilizedMicroorganism
 // Material row, identity-confirmed, and approval-gated before GPT can
@@ -68,6 +69,13 @@ public class CryovialController : ControllerBase
         await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         await _service.ThawVialAsync(id, CurrentUserId, r.Notes);
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPost("{id}/move-storage")]
+    public async Task<IActionResult> MoveStorage(int id, [FromBody] MoveCryovialStorageRequest r)
+    {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _service.MoveStorageAsync(id, CurrentUserId, r.EquipmentId, r.LocationText, r.Reason)));
     }
 
     [HttpGet("{id}/summary")]

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
@@ -25,16 +26,18 @@ public class MediaController : ControllerBase
 {
     private readonly MediaPreparationService _mediaPrep;
     private readonly MediaReleaseService _mediaRelease;
+    private readonly MediaStorageService _mediaStorage;
     private readonly MediaSummaryService _summary;
     private readonly MediaExpiryService _expiry;
     private readonly IUserSectionScopeService _scopeService;
 
-    public MediaController(MediaPreparationService mediaPrep, MediaReleaseService mediaRelease, MediaSummaryService summary, MediaExpiryService expiry,
-        IUserSectionScopeService scopeService)
+    public MediaController(MediaPreparationService mediaPrep, MediaReleaseService mediaRelease, MediaStorageService mediaStorage,
+        MediaSummaryService summary, MediaExpiryService expiry, IUserSectionScopeService scopeService)
     {
         _scopeService = scopeService;
         _mediaPrep = mediaPrep;
         _mediaRelease = mediaRelease;
+        _mediaStorage = mediaStorage;
         _summary = summary;
         _expiry = expiry;
     }
@@ -84,6 +87,27 @@ public class MediaController : ControllerBase
         await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
         await _mediaPrep.MarkOutOfStockAsync(id, CurrentUserId, request?.Comment);
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpGet("{id}/storage")]
+    public async Task<IActionResult> GetStorageEntries(int id)
+    {
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _mediaStorage.GetStorageEntriesAsync(id)));
+    }
+
+    [HttpPost("{id}/storage")]
+    public async Task<IActionResult> AddStorageEntry(int id, [FromBody] AddMediaStorageEntryRequest request)
+    {
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _mediaStorage.AddStorageEntryAsync(id, CurrentUserId, request)));
+    }
+
+    [HttpPost("{id}/storage/{entryId}/move")]
+    public async Task<IActionResult> MoveStorageEntry(int id, int entryId, [FromBody] MoveMediaStorageEntryRequest request)
+    {
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _mediaStorage.MoveStorageEntryAsync(id, entryId, CurrentUserId, request)));
     }
 
     [HttpGet("{id}/summary")]

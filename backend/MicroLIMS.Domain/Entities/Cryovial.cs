@@ -45,6 +45,8 @@ public class Cryovial
     public int NumberOfVialsPrepared { get; set; }
     public int VialsRemaining { get; set; } // set equal to NumberOfVialsPrepared at preparation time
     public string StorageCondition { get; set; } = string.Empty;
+    public int? StorageEquipmentId { get; set; }
+    public EquipmentInventory? StorageEquipment { get; set; }
     public bool PhysicalCheckConfirmed { get; set; }
     public string PhysicalCheckText { get; set; } = string.Empty;
     public DateTime PreparedAt { get; set; } = DateTime.UtcNow; // scopes the per-MaterialId yearly Code sequence

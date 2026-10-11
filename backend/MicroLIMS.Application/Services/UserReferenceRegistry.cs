@@ -157,6 +157,7 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(OosInvestigationDocument), nameof(OosInvestigationDocument.VoidedByUserId), UserReferenceDisposition.Blocks, "No DB FK - document lifecycle provenance"),
         new UserReferenceEntry(typeof(Media), nameof(Media.PreparedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(Media), nameof(Media.ApprovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(MediaStorageEntry), nameof(MediaStorageEntry.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(MediaEvaluation), nameof(MediaEvaluation.CompletedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(MediaEvaluationChallenge), nameof(MediaEvaluationChallenge.ReadByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(MediaUsage), nameof(MediaUsage.UsedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),

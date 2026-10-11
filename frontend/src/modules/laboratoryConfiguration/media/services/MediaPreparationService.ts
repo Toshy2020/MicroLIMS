@@ -9,5 +9,10 @@ export const MediaPreparationService = {
   getAwaitingApproval: () => apiClient.get("/media/awaiting-approval").then((r) => r.data.data),
 
   decideRelease: (mediaId: number, password: string, approved: boolean, comment?: string) =>
-    apiClient.post(`/media/${mediaId}/release`, { password, approved, comment }).then((r) => r.data.data)
+    apiClient.post(`/media/${mediaId}/release`, { password, approved, comment }).then((r) => r.data.data),
+
+  getStorage: (mediaId: number) => apiClient.get(`/media/${mediaId}/storage`).then((r) => r.data.data),
+  addStorage: (mediaId: number, payload: any) => apiClient.post(`/media/${mediaId}/storage`, payload).then((r) => r.data.data),
+  moveStorage: (mediaId: number, entryId: number, payload: any) =>
+    apiClient.post(`/media/${mediaId}/storage/${entryId}/move`, payload).then((r) => r.data.data)
 };

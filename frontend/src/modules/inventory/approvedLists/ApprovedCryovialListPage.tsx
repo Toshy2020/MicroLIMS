@@ -86,7 +86,7 @@ function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30
   return diffDays <= daysThreshold;
 }
 
-export function ApprovedCryovialListPage() {
+export function ApprovedCryovialListPage({ embedded = false }: { embedded?: boolean }) {
   const theme = useTheme();
   const { action, detected, purple } = theme.custom.status;
 
@@ -298,10 +298,12 @@ export function ApprovedCryovialListPage() {
   return (
     <>
       <Box className="no-print">
-        <PageHeader
-          title="Approved Cryovial List"
-          subtitle="Approved, non-destroyed cryovials available for use."
-        />
+        {!embedded && (
+          <PageHeader
+            title="Approved Cryovial List"
+            subtitle="Approved, non-destroyed cryovials available for use."
+          />
+        )}
 
         {message && (
           <Alert

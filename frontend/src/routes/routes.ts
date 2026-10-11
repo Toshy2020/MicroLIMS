@@ -60,8 +60,6 @@ const APP_ROUTES = {
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",
   INVENTORY_EQUIPMENT: "/inventory/equipment",
-  APPROVED_MEDIA: "/inventory/approved-media",
-  APPROVED_CRYOVIALS: "/inventory/approved-cryovials",
 
   // Document Control (Release 1a / 1c)
   DOCUMENT_CONTROL_DASHBOARD: "/document-control",

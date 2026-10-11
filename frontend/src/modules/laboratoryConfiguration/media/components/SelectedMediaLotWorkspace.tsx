@@ -31,6 +31,7 @@ import { evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
+import { MediaStoragePanel } from "./MediaStoragePanel";
 import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
@@ -279,7 +280,11 @@ export function SelectedMediaLotWorkspace({
         <Tab label="Preparation Overview" />
         <Tab label={`Evaluations (${matchingEvaluations.length || (summary?.evaluation ? 1 : 0)})`} />
         <Tab label="Release & Audit Trail" />
+        {lot.isReleasedForUse && <Tab label="Storage" />}
       </Tabs>
+
+      {/* TAB 3: STORAGE (released lots only) */}
+      {activeTab === 3 && lot.isReleasedForUse && <MediaStoragePanel lot={lot} />}
 
       {/* TAB 0: OVERVIEW */}
       {activeTab === 0 && (

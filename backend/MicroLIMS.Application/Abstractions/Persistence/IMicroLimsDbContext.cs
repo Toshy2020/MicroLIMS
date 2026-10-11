@@ -36,6 +36,7 @@ public interface IMicroLimsDbContext
     DbSet<Media> Media { get; }
     DbSet<MediaEvaluation> MediaEvaluations { get; }
     DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges { get; }
+    DbSet<MediaStorageEntry> MediaStorageEntries { get; }
     DbSet<Cryovial> Cryovials { get; }
     DbSet<IdentityConfirmationEntry> IdentityConfirmationEntries { get; }
     DbSet<ThawEvent> ThawEvents { get; }

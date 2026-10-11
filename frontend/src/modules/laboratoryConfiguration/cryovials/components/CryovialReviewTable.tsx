@@ -14,6 +14,7 @@ interface CryovialReviewTableProps {
   onApproveClick: (cryovial: CryovialItem, approved: boolean) => void;
   onThawClick: (cryovial: CryovialItem) => void;
   onDestroyClick: (cryovial: CryovialItem) => void;
+  onMoveStorageClick: (cryovial: CryovialItem) => void;
 }
 
 const isExpired = (expiryDateStr: string) => {
@@ -108,7 +109,7 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
   }
 ];
 
-export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick }: CryovialReviewTableProps) {
+export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick, onMoveStorageClick }: CryovialReviewTableProps) {
   // Same availability rules as the former inline buttons.
   const rowActions = (c: CryovialItem): RegisterRowAction[] => {
     const actions: RegisterRowAction[] = [];
@@ -119,6 +120,9 @@ export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick
     } else {
       if (c.approvalStatus === "Approved" && !c.isDestroyed && !isExpired(c.expiryDate) && c.vialsRemaining > 0) {
         actions.push({ label: "Thaw vial", onClick: () => onThawClick(c) });
+      }
+      if (c.approvalStatus === "Approved" && !c.isDestroyed) {
+        actions.push({ label: "Change storage location", onClick: () => onMoveStorageClick(c) });
       }
       if (!c.isDestroyed) {
         actions.push({ label: "Destroy (decommission batch)", danger: true, onClick: () => onDestroyClick(c) });

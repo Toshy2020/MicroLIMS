@@ -75,8 +75,6 @@ const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorM
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const EquipmentInventoryPage = lazy(() => import("../modules/inventory/equipment/EquipmentInventoryPage").then((m) => ({ default: m.EquipmentInventoryPage })));
-const ApprovedMediaListPage = lazy(() => import("../modules/inventory/approvedLists/ApprovedMediaListPage").then((m) => ({ default: m.ApprovedMediaListPage })));
-const ApprovedCryovialListPage = lazy(() => import("../modules/inventory/approvedLists/ApprovedCryovialListPage").then((m) => ({ default: m.ApprovedCryovialListPage })));
 const DocumentControlDashboardPage = lazy(() => import("../modules/documentControl/pages/DocumentControlDashboardPage").then((m) => ({ default: m.DocumentControlDashboardPage })));
 const DocumentLibraryPage = lazy(() => import("../modules/documentControl/pages/DocumentLibraryPage").then((m) => ({ default: m.DocumentLibraryPage })));
 const MyReadingListPage = lazy(() => import("../modules/documentControl/pages/MyReadingListPage").then((m) => ({ default: m.MyReadingListPage })));
@@ -259,12 +257,9 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.EQUIPMENT_MANAGE} />}>
               <Route path="/inventory/equipment" element={<EquipmentInventoryPage />} />
             </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.MEDIA_PREPARE} />}>
-              <Route path="/inventory/approved-media" element={<ApprovedMediaListPage />} />
-            </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
-              <Route path="/inventory/approved-cryovials" element={<ApprovedCryovialListPage />} />
-            </Route>
+            {/* Old bookmarks: the approved lists now live as tabs on their host pages. */}
+            <Route path="/inventory/approved-media" element={<Navigate to="/laboratory-configuration/media?tab=approved" replace />} />
+            <Route path="/inventory/approved-cryovials" element={<Navigate to="/laboratory-configuration/cryovials?tab=approved" replace />} />
 
             <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
               <Route path="/error-monitoring" element={<ErrorMonitoringPage />} />

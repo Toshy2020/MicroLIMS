@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Alert } from "@mui/material";
+import { Button, Alert, Tabs, Tab } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { LabPage } from "../../../components/lab";
@@ -11,6 +12,8 @@ import { CryovialReviewTable } from "./components/CryovialReviewTable";
 import { PrepareCryovialBatchDialog } from "./components/PrepareCryovialBatchDialog";
 import { ThawVialReasonDialog } from "./components/ThawVialReasonDialog";
 import { DestroyCryovialDialog } from "./components/DestroyCryovialDialog";
+import { MoveCryovialStorageDialog } from "./components/MoveCryovialStorageDialog";
+import { ApprovedCryovialListPage } from "../../inventory/approvedLists/ApprovedCryovialListPage";
 
 const INITIAL_FILTERS: CryovialFilterState = {
   search: "",
@@ -20,6 +23,8 @@ const INITIAL_FILTERS: CryovialFilterState = {
 };
 
 export function CryovialsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "approved" ? "approved" : "register";
   const [cryovials, setCryovials] = useState<CryovialItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
@@ -31,6 +36,7 @@ export function CryovialsPage() {
   const [isPrepareOpen, setIsPrepareOpen] = useState(false);
   const [thawItem, setThawItem] = useState<CryovialItem | null>(null);
   const [destroyItem, setDestroyItem] = useState<CryovialItem | null>(null);
+  const [moveItem, setMoveItem] = useState<CryovialItem | null>(null);
   const [pendingDecision, setPendingDecision] = useState<{ cryovial: CryovialItem; approved: boolean } | null>(null);
   const [decisionComment, setDecisionComment] = useState("");
 
@@ -157,8 +163,29 @@ export function CryovialsPage() {
 
   const isFiltered = Object.values(filters).some((v) => v !== "");
 
+  const tabs = (
+    <Tabs
+      value={tab}
+      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
+      sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+    >
+      <Tab value="register" label="Cryovials" />
+      <Tab value="approved" label="Approved Cryovials" />
+    </Tabs>
+  );
+
+  if (tab === "approved") {
+    return (
+      <>
+        {tabs}
+        <ApprovedCryovialListPage embedded />
+      </>
+    );
+  }
+
   return (
     <>
+      {tabs}
       <LabPage
         title="Cryovials"
         subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material."
@@ -193,6 +220,7 @@ export function CryovialsPage() {
           onApproveClick={handleApproveClick}
           onThawClick={(item) => setThawItem(item)}
           onDestroyClick={(item) => setDestroyItem(item)}
+          onMoveStorageClick={(item) => setMoveItem(item)}
         />
       </LabPage>
 
@@ -213,6 +241,16 @@ export function CryovialsPage() {
         cryovial={thawItem}
         onCancel={() => setThawItem(null)}
         onConfirm={handleThawConfirm}
+      />
+
+      <MoveCryovialStorageDialog
+        cryovial={moveItem}
+        onClose={() => setMoveItem(null)}
+        onMoved={(text) => {
+          setMoveItem(null);
+          setMessage({ text, ok: true });
+          loadData();
+        }}
       />
 
       {/* Destroy Confirmation Dialog */}

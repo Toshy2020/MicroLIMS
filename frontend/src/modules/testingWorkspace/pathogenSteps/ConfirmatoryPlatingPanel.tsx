@@ -321,7 +321,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
           step={step}
           current={current}
           onSubmitted={onSubmitted}
-          nextLabel="Plate reading"
+          nextLabel="plate reading"
           onReady={handleReady}
           renderAction={() => (
             <Button variant="contained" disabled>Submit Observations</Button>

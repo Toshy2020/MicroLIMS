@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
-import { Alert, Box, FormControlLabel, MenuItem, Radio, RadioGroup, TextField, Typography } from "@mui/material";
+import { ReactNode, useState } from "react";
+import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, TextField, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 // Shared building blocks for the pathogen step panels, so every step reads
@@ -137,20 +137,87 @@ export function MediaLotIncubatorFields({
           <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
         ))}
       </TextField>
-      <TextField
-        select fullWidth required disabled={disabled}
+      <IncubatorField
         id={`${idPrefix}-incubator`}
-        label="Incubator"
+        incubators={incubators}
+        tempMin={tempMin}
+        tempMax={tempMax}
         value={equipmentId}
-        onChange={(e) => onIncubatorChange(Number(e.target.value))}
-        helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
-        error={!disabled && incubators.length === 0}
-        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-      >
-        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
-        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
-      </TextField>
+        onChange={onIncubatorChange}
+        disabled={disabled}
+      />
     </>
+  );
+}
+
+// Labelled incubator picker listing only incubators set within the range.
+export function IncubatorField({
+  id, incubators, tempMin, tempMax, value, onChange, disabled = false, label = "Incubator"
+}: {
+  id: string;
+  incubators: IncubatorOption[];
+  tempMin: number;
+  tempMax: number;
+  value: number | "";
+  onChange: (id: number) => void;
+  disabled?: boolean;
+  label?: string;
+}) {
+  return (
+    <TextField
+      select fullWidth required disabled={disabled}
+      id={id}
+      label={label}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
+      error={!disabled && incubators.length === 0}
+      slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+    >
+      <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
+      {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
+    </TextField>
+  );
+}
+
+export type StepChipTone = "info" | "purple" | "notDetected" | "inconclusive" | "pending";
+
+// Step name with a status chip, an optional caption and an optional
+// "What happens in this step?" explanation - the heading of every step.
+export function StepHeading({ title, chip, caption, help }: {
+  title: ReactNode;
+  chip?: { label: string; tone: StepChipTone } | null;
+  caption?: ReactNode;
+  help?: string;
+}) {
+  const theme = useTheme();
+  const [showHelp, setShowHelp] = useState(false);
+  const tone = chip ? theme.custom.status[chip.tone] : null;
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.5 }}>
+        <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>{title}</Typography>
+        {chip && tone && (
+          <Box
+            component="span"
+            sx={{ px: 1, py: 0.25, borderRadius: 999, fontSize: 11.5, fontWeight: 600, border: "1px solid", lineHeight: 1.5, bgcolor: tone.bg, color: tone.text, borderColor: tone.border }}
+          >
+            {chip.label}
+          </Box>
+        )}
+        {caption && <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>{caption}</Typography>}
+      </Box>
+      {help && (
+        <Box sx={{ mt: 0.5 }}>
+          <Link component="button" type="button" variant="caption" underline="hover" aria-expanded={showHelp} onClick={() => setShowHelp((v) => !v)}>
+            {showHelp ? "Hide step details" : "What happens in this step?"}
+          </Link>
+          <Collapse in={showHelp} unmountOnExit>
+            <Typography variant="caption" component="p" sx={{ color: "text.secondary", mt: 0.5, mb: 0 }}>{help}</Typography>
+          </Collapse>
+        </Box>
+      )}
+    </Box>
   );
 }
 

@@ -26,15 +26,17 @@ public class SampleApprovalService
     private readonly ResultProjectionService _resultProjection;
     private readonly ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService _scope;
+    private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly TimeProvider _time;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
-        TimeProvider? timeProvider = null)
+        SegregationOfDutiesGuard segregationOfDuties, TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _scope = scope;
+        _segregationOfDuties = segregationOfDuties;
         _db = db;
         _reviewGate = reviewGate;
         _summary = summary;
@@ -164,14 +166,7 @@ public class SampleApprovalService
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         foreach (var order in currentOrders)
         {
-            if (order.AssignedAnalystId == sectionHeadUserId)
-                throw new InvalidOperationException("You cannot approve a sample you tested.");
-
-            var enteredResult = await _db.Results.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
-                || await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
-                || await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == order.Id && p.ObservedByUserId == sectionHeadUserId)
-                || await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == order.Id && e.EnteredByUserId == sectionHeadUserId);
-            if (enteredResult)
+            if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, sectionHeadUserId))
                 throw new InvalidOperationException("You cannot approve a sample you tested.");
         }
 

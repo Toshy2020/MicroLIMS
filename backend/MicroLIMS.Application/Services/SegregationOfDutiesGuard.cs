@@ -4,8 +4,8 @@ using MicroLIMS.Application.Abstractions.Persistence;
 namespace MicroLIMS.Application.Services;
 
 // GMP segregation of duties: the person who performed a test must not
-// also review or approve it. Shared by sample review, media and
-// cryovial release and pathogen confirmation. Deliberately role-agnostic - it only
+// also review or approve it. Shared by sample review and approval, media
+// and cryovial release and pathogen confirmation. Deliberately role-agnostic - it only
 // ever compares user IDs, so there is no code path for any role
 // (including SystemAdministrator) to bypass it.
 public class SegregationOfDutiesGuard
@@ -17,10 +17,11 @@ public class SegregationOfDutiesGuard
         _db = db;
     }
 
-    // "Performed" = assigned as the analyst, or entered/observed any raw
-    // result for this test order - Result, CountTestReading,
-    // PathogenObservation, WorkflowStepResult and ConfirmatoryPlate-
-    // Observation are the only result-bearing tables tied to a TestOrder
+    // "Performed" = assigned as the analyst, prepared the sample, or
+    // entered/observed any raw result for this test order - Result,
+    // CountTestReading, PathogenObservation, WorkflowStepResult,
+    // TestAnalysis and ConfirmatoryPlateObservation are the only
+    // result-bearing tables tied to a TestOrder
     public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId)
     {
         var orderInfo = await _db.TestOrders
@@ -37,6 +38,8 @@ public class SegregationOfDutiesGuard
         if (await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
         if (await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == testOrderId && p.ObservedByUserId == userId)) return true;
         if (await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId && r.SubmittedByUserId == userId)) return true;
+        // Physicochemical workspaces (HPLC, dissolution, titration...) record here.
+        if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == testOrderId && a.EnteredByUserId == userId)) return true;
 
         // Confirmatory plate readings are APPENDED to a result row that
         // whoever ran the setup submitted, so the WorkflowStepResult

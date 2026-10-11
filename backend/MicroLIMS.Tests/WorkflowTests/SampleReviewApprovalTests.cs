@@ -151,6 +151,56 @@ public class SampleReviewApprovalTests
         Assert.Contains("cannot approve a sample you reviewed", ex.Message);
     }
 
+    // Sample approval runs the shared segregation-of-duties guard, so any
+    // hand in the test - not just the assigned analyst or a result entry -
+    // bars the section head from approving it.
+    private static async Task AssertSectionHeadCannotApproveAfterAsync(Action<MicroLimsDbContext, Sample, TestOrder> involveSectionHead)
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await CompleteTestAsync(db, order, media, analystId: 1);
+        await NewReviewService(db).CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
+
+        involveSectionHead(db, sample, order);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
+        Assert.Equal("You cannot approve a sample you tested.", ex.Message);
+    }
+
+    [Fact]
+    public Task DecideAsync_ApproverPreparedTheSample_Throws() =>
+        AssertSectionHeadCannotApproveAfterAsync((db, sample, _) => db.SamplePreparations.Add(new SamplePreparation
+        {
+            SampleId = sample.Id, Amount = 10m, Technique = "PourPlate", PreparedByUserId = 3, Neutralizer = "Tween", Diluent = "Buffer"
+        }));
+
+    [Fact]
+    public Task DecideAsync_ApproverSubmittedAStepResult_Throws() =>
+        AssertSectionHeadCannotApproveAfterAsync((db, _, order) => db.WorkflowStepResults.Add(new WorkflowStepResult
+        {
+            TestOrderId = order.Id, StepName = "Selective Plating", SubmittedByUserId = 3
+        }));
+
+    [Fact]
+    public Task DecideAsync_ApproverOnlyReadTheConfirmatoryPlates_Throws() =>
+        AssertSectionHeadCannotApproveAfterAsync((db, _, order) => db.WorkflowStepResults.Add(new WorkflowStepResult
+        {
+            TestOrderId = order.Id, StepName = "Confirmatory Plating", SubmittedByUserId = 1,
+            ConfirmatoryObservations = { new ConfirmatoryPlateObservation { MaterialId = 1, Observation = GrowthObservation.GrowthConforming, RecordedByUserId = 3 } }
+        }));
+
+    [Fact]
+    public Task DecideAsync_ApproverEnteredATestAnalysis_Throws() =>
+        AssertSectionHeadCannotApproveAfterAsync((db, _, order) => db.TestAnalyses.Add(new TestAnalysis
+        {
+            TestOrderId = order.Id, AnalysisType = WorkflowType.Dissolution, EnteredByUserId = 3, IsActive = true
+        }));
+
     [Fact]
     public async Task DecideAsync_Approve_SetsSampleAndTestOrdersApproved()
     {

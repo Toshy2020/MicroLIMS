@@ -790,6 +790,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         counts={workloadCounts}
         activeKey={workloadFilter}
         onSelect={handleSelectWorkload}
+        onClear={() => {
+          setWorkloadFilter(null);
+          setPage(1);
+        }}
         canAssignAnalyst={permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)}
       />
 

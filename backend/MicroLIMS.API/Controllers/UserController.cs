@@ -56,151 +56,81 @@ public class UserController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Create(CreateUserRequest request)
     {
-        try
-        {
-            var user = new User { FullName = request.FullName, Username = request.Username, RoleId = request.RoleId, Email = request.Email, JobTitle = request.JobTitle };
-            var created = await _userService.CreateAsync(user, request.Password);
-            return Ok(ApiResponse<object>.Ok(created));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var user = new User { FullName = request.FullName, Username = request.Username, RoleId = request.RoleId, Email = request.Email, JobTitle = request.JobTitle };
+        var created = await _userService.CreateAsync(user, request.Password);
+        return Ok(ApiResponse<object>.Ok(created));
     }
 
     [HttpPut("{id}")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateProfile(int id, UpdateProfileRequest request)
     {
-        try
-        {
-            var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     [HttpPut("{id}/role")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> ChangeRole(int id, ChangeRoleRequest request)
     {
-        try
-        {
-            var updated = await _userService.ChangeRoleAsync(id, request.RoleId, request.Reason, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _userService.ChangeRoleAsync(id, request.RoleId, request.Reason, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     [HttpPut("{id}/status")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> SetStatus(int id, SetStatusRequest request)
     {
-        try
-        {
-            var updated = await _userService.SetStatusAsync(id, request.IsActive, request.Reason, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _userService.SetStatusAsync(id, request.IsActive, request.Reason, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     [HttpPut("{id}/deactivate")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Deactivate(int id)
     {
-        try
-        {
-            var updated = await _userService.SetStatusAsync(id, false, "Deactivated via legacy endpoint", CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _userService.SetStatusAsync(id, false, "Deactivated via legacy endpoint", CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     [HttpPut("{id}/email")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateEmail(int id, UpdateEmailRequest request)
     {
-        try
-        {
-            await _userService.UpdateEmailAsync(id, request.Email);
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _userService.UpdateEmailAsync(id, request.Email);
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     [HttpPut("{id}/unlock")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Unlock(int id, UnlockUserRequest request)
     {
-        try
-        {
-            var updated = await _userService.UnlockUserAsync(id, request.Reason, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _userService.UnlockUserAsync(id, request.Reason, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     [HttpPost("{id}/password-reset")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> InitiatePasswordReset(int id, AdminResetPasswordRequest request)
     {
-        try
-        {
-            await _userService.InitiatePasswordResetAsync(id, request.Reason, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(new { message = "Password reset instructions sent to user's email." }));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _userService.InitiatePasswordResetAsync(id, request.Reason, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { message = "Password reset instructions sent to user's email." }));
     }
 
     [HttpPost("{id}/admin-password-recovery")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> CreateAdminPasswordRecovery(int id, AdminPasswordRecoveryRequest request)
     {
-        try
-        {
-            var result = await _adminPasswordRecoveryService.CreateRecoveryRequestAsync(id, request.Reason, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _adminPasswordRecoveryService.CreateRecoveryRequestAsync(id, request.Reason, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     [HttpPut("{id}/force-password-change")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> ForcePasswordChange(int id)
     {
-        try
-        {
-            var updated = await _userService.ForcePasswordChangeAsync(id, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _userService.ForcePasswordChangeAsync(id, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     // Permanent, irreversible removal of a User row - distinct from the
@@ -218,10 +148,6 @@ public class UserController : ControllerBase
         catch (UserHasHistoryException ex)
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
     }
 }

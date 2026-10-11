@@ -510,11 +510,10 @@ public class Release1cIntegrationVerificationPostgresTests
         {
             ControllerContext = CreateContext(sectionHead.Id, nameof(RoleType.SectionHead))
         };
-        var ackRes = await sectionHeadAckController.SubmitAcknowledgement(assignment.Id, otherUserAckReq);
-        var statusResult = Assert.IsType<ObjectResult>(ackRes);
-        Assert.Equal(403, statusResult.StatusCode);
-        var errorData = Assert.IsType<ApiResponse<object>>(statusResult.Value);
-        Assert.Contains("not authorized", errorData.Message, StringComparison.OrdinalIgnoreCase);
+        // The controller no longer maps this itself; ExceptionMiddleware turns it into a 403.
+        var forbidden = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => sectionHeadAckController.SubmitAcknowledgement(assignment.Id, otherUserAckReq));
+        Assert.Contains("not authorized", forbidden.Message, StringComparison.OrdinalIgnoreCase);
 
         // 3. Non-admin user querying grid is strictly restricted to their own row
         var gridRes = await matrixController.GetTrainingMatrixGrid(new TrainingMatrixFilterDto());

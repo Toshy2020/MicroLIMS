@@ -8,7 +8,7 @@ namespace MicroLIMS.Tests.ArchitectureTests;
 // generated and exempt.
 public class SourceFileSizeTests
 {
-    private const int MaxLines = 2000;
+    private const int MaxLines = 1500;
 
     private static string BackendDirectory([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", ".."));

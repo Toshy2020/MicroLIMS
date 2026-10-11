@@ -204,7 +204,7 @@ public class IcpMethodAssayRecorderTests
         await db.SaveChangesAsync();
         TestServiceFactory.AssignUserToMicroSection(db, head.Id);
 
-        await TestServiceFactory.Review(db).ReturnToAnalystAsync((await db.TestOrders.SingleAsync()).Id, head.Id, "Recheck");
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync((await db.TestOrders.SingleAsync()).Id, head.Id, "Recheck");
 
         var entry = await f.S.Service.GetSampleEntryAsync(rsId, f.S.UserId);
         Assert.True(entry.Editable);

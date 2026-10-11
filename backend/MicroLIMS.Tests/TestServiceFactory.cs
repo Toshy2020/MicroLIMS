@@ -85,9 +85,6 @@ public static class TestServiceFactory
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator());
 
-    public static ReviewService Review(MicroLimsDbContext db) =>
-        new(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
-
     public static SampleCorrectionService SampleCorrection(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
@@ -138,7 +135,7 @@ public static class TestServiceFactory
             audit ?? new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db));
 
     public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
         new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));

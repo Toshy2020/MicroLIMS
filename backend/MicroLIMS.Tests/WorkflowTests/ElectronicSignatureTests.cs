@@ -33,20 +33,6 @@ public class ElectronicSignatureTests
         return user;
     }
 
-    private static async Task<TestOrder> SeedResultEnteredOrder(MicroLimsDbContext db, int analystId)
-    {
-        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = $"CTRL-{Guid.NewGuid():N}", Status = SampleStatus.Received };
-        var order = new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready };
-        sample.TestOrders.Add(order);
-        db.Samples.Add(sample);
-        await db.SaveChangesAsync();
-
-        db.Results.Add(new Result { TestOrderId = order.Id, RawValue = "10", Type = ResultType.Numeric, EnteredByUserId = analystId });
-        await db.SaveChangesAsync();
-
-        return order;
-    }
-
     [Fact]
     public async Task SignAsync_WrongPassword_ThrowsAndWritesNoSignature()
     {
@@ -169,41 +155,5 @@ public class ElectronicSignatureTests
             .SignAsync(user.Id, CorrectPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null);
 
         Assert.Equal(user.Id, signature.UserId);
-    }
-
-    [Fact]
-    public async Task MarkReviewedAsync_WrongPassword_WritesNoSignatureAndNoStatusChange()
-    {
-        await using var db = NewDb();
-        var user = await SeedUser(db);
-        var order = await SeedResultEnteredOrder(db, analystId: 999);
-        var review = new ReviewService(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
-
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => review.MarkReviewedAsync(order.Id, user.Id, "comment", WrongPassword, null));
-
-        Assert.Empty(db.ElectronicSignatures);
-        var reloaded = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
-        Assert.Equal(ApprovalStatus.ResultEntered, reloaded.Status);
-        Assert.Empty(db.WorkflowHistories);
-    }
-
-    [Fact]
-    public async Task MarkReviewedAsync_CorrectPassword_WritesBothSignatureAndStatusChange()
-    {
-        await using var db = NewDb();
-        var user = await SeedUser(db);
-        var order = await SeedResultEnteredOrder(db, analystId: 999);
-        var review = new ReviewService(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
-
-        await review.MarkReviewedAsync(order.Id, user.Id, "comment", CorrectPassword, "10.0.0.1");
-
-        var signature = await db.ElectronicSignatures.SingleAsync();
-        Assert.Equal("TestOrder", signature.EntityType);
-        Assert.Equal(order.Id, signature.EntityId);
-        Assert.Equal(SignatureMeaning.Reviewed, signature.MeaningOfSignature);
-        Assert.Equal("10.0.0.1", signature.IpAddress);
-
-        var reloaded = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
-        Assert.Equal(ApprovalStatus.Reviewed, reloaded.Status);
     }
 }

@@ -228,5 +228,9 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(IcpRunSample), nameof(IcpRunSample.AssignedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample assignment"),
         new UserReferenceEntry(typeof(IcpRunSample), nameof(IcpRunSample.RemovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample removal"),
         new UserReferenceEntry(typeof(IcpEvidence), nameof(IcpEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
+
+        // Master data workbook import
+        new UserReferenceEntry(typeof(MasterDataImport), nameof(MasterDataImport.ImportedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - loaded a master data workbook (GMP record)"),
+        new UserReferenceEntry(typeof(MasterDataImport), nameof(MasterDataImport.VerifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - verified a master data workbook load (GMP record)"),
     };
 }

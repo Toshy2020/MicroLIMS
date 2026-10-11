@@ -27,37 +27,15 @@ public class DocumentControlController : ControllerBase
     [HttpGet("library")]
     public async Task<IActionResult> GetLibrary([FromQuery] DocumentLibraryFilterRequest filter)
     {
-        try
-        {
-            var response = await _masterService.GetLibraryAsync(filter, CurrentUserId);
-            return Ok(ApiResponse<DocumentLibraryResponse>.Ok(response));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var response = await _masterService.GetLibraryAsync(filter, CurrentUserId);
+        return Ok(ApiResponse<DocumentLibraryResponse>.Ok(response));
     }
 
     [HttpGet("documents/{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        try
-        {
-            var doc = await _masterService.GetByIdAsync(id, CurrentUserId);
-            return Ok(ApiResponse<DocumentMasterDto>.Ok(doc));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var doc = await _masterService.GetByIdAsync(id, CurrentUserId);
+        return Ok(ApiResponse<DocumentMasterDto>.Ok(doc));
     }
 
     [HttpPost("documents")]
@@ -76,10 +54,6 @@ public class DocumentControlController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
     }
 
     [HttpPut("documents/{id:int}/metadata")]
@@ -90,14 +64,6 @@ public class DocumentControlController : ControllerBase
             var result = await _masterService.UpdateDraftMetadataAsync(id, request, CurrentUserId);
             return Ok(ApiResponse<DocumentMasterDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -105,10 +71,6 @@ public class DocumentControlController : ControllerBase
         catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
     }
 
@@ -120,23 +82,7 @@ public class DocumentControlController : ControllerBase
             var result = await _masterService.VoidMasterAsync(id, request, CurrentUserId);
             return Ok(ApiResponse<DocumentMasterDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -150,23 +96,7 @@ public class DocumentControlController : ControllerBase
             var result = await _masterService.CancelDraftRevisionAsync(revisionId, request, CurrentUserId);
             return Ok(ApiResponse<DocumentRevisionDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -175,23 +105,8 @@ public class DocumentControlController : ControllerBase
     [HttpPost("documents/{id:int}/assignments")]
     public async Task<IActionResult> AddAssignment(int id, [FromBody] CreateAssignmentRequest request)
     {
-        try
-        {
-            var result = await _masterService.AddOrUpdateAssignmentAsync(id, request, CurrentUserId);
-            return Ok(ApiResponse<DocumentMasterAssignmentDto>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _masterService.AddOrUpdateAssignmentAsync(id, request, CurrentUserId);
+        return Ok(ApiResponse<DocumentMasterAssignmentDto>.Ok(result));
     }
 
     // POST, not DELETE. RemoveAssignmentAsync already retains the record by
@@ -201,22 +116,7 @@ public class DocumentControlController : ControllerBase
     [HttpPost("documents/{id:int}/assignments/{assignmentId:int}/deactivate")]
     public async Task<IActionResult> RemoveAssignment(int id, int assignmentId)
     {
-        try
-        {
-            await _masterService.RemoveAssignmentAsync(id, assignmentId, CurrentUserId);
-            return Ok(ApiResponse<bool>.Ok(true, "Assignment removed successfully."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _masterService.RemoveAssignmentAsync(id, assignmentId, CurrentUserId);
+        return Ok(ApiResponse<bool>.Ok(true, "Assignment removed successfully."));
     }
 }

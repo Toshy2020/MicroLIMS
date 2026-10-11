@@ -4924,6 +4924,113 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("MachinePartConfigurations");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("FileSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ImportedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("SummaryJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("VerifiedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportedByUserId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.ToTable("MasterDataImports");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImportRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("MasterDataImportId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sheet")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MasterDataImportId");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("MasterDataImportRecords");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Material", b =>
                 {
                     b.Property<int>("Id")
@@ -11149,6 +11256,35 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("MachinePart");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImport", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "ImportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImportedByUser");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImportRecord", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.MasterDataImport", "MasterDataImport")
+                        .WithMany("Records")
+                        .HasForeignKey("MasterDataImportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MasterDataImport");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Material", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.MaterialMasterEntry", "MaterialMasterEntry")
@@ -12711,6 +12847,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MachinePart", b =>
                 {
                     b.Navigation("TestConfigurations");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImport", b =>
+                {
+                    b.Navigation("Records");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaConfiguration", b =>

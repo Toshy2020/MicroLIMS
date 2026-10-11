@@ -29,16 +29,9 @@ public class OosInvestigationDocumentController : ControllerBase
     [HttpGet("api/oos-tracking/{oosGroupCode}/investigation-documents")]
     public async Task<IActionResult> GetDocuments(string oosGroupCode)
     {
-        try
-        {
-            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
-            var result = await _service.GetDocumentsAsync(oosGroupCode);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        var result = await _service.GetDocumentsAsync(oosGroupCode);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Upload a new investigation document to an OOS group.
@@ -56,35 +49,21 @@ public class OosInvestigationDocumentController : ControllerBase
             content = ms.ToArray();
         }
 
-        try
-        {
-            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
-            var result = await _service.UploadAsync(oosGroupCode, new UploadOosInvestigationDocumentRequest(
-                file.FileName,
-                file.ContentType,
-                content), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        var result = await _service.UploadAsync(oosGroupCode, new UploadOosInvestigationDocumentRequest(
+            file.FileName,
+            file.ContentType,
+            content), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Retrieve the raw content of an investigation document.
     [HttpGet("api/oos-investigation-documents/{documentId:int}/content")]
     public async Task<IActionResult> GetContent(int documentId, [FromQuery] string oosGroupCode)
     {
-        try
-        {
-            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
-            var (meta, bytes) = await _service.GetContentAsync(documentId, oosGroupCode, CurrentUserId);
-            return File(bytes, meta.ContentType, meta.OriginalFileName);
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        var (meta, bytes) = await _service.GetContentAsync(documentId, oosGroupCode, CurrentUserId);
+        return File(bytes, meta.ContentType, meta.OriginalFileName);
     }
 
     // Supersede an existing document with a replacement file.
@@ -104,20 +83,13 @@ public class OosInvestigationDocumentController : ControllerBase
             content = ms.ToArray();
         }
 
-        try
-        {
-            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
-            var result = await _service.SupersedeAsync(documentId, oosGroupCode, new SupersedeOosInvestigationDocumentRequest(
-                file.FileName,
-                file.ContentType,
-                content,
-                reason), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        var result = await _service.SupersedeAsync(documentId, oosGroupCode, new SupersedeOosInvestigationDocumentRequest(
+            file.FileName,
+            file.ContentType,
+            content,
+            reason), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Void a document. The file is retained for audit; document is marked Voided.
@@ -127,15 +99,8 @@ public class OosInvestigationDocumentController : ControllerBase
         if (string.IsNullOrWhiteSpace(request?.Reason))
             return BadRequest(ApiResponse<object>.Fail("A reason for voiding is required."));
 
-        try
-        {
-            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
-            var result = await _service.VoidAsync(documentId, oosGroupCode, request, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        var result = await _service.VoidAsync(documentId, oosGroupCode, request, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 }

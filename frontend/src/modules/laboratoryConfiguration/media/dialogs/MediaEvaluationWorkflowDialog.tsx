@@ -14,6 +14,17 @@ import {
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEvaluationService";
+import { serverMessage } from "../../../../utils/errorMessage";
+import type {
+  ChallengeFormState,
+  MediaEvaluationChallenge,
+  MediaEvaluationDetail,
+  MediaLot,
+  RecordResultPayload
+} from "../../mediaEvaluation/types/mediaEvaluationTypes";
+import type { CryovialItem } from "../../cryovials/types/cryovialTypes";
+import type { MaterialItem } from "../../../inventory/materials/types/materialTypes";
+import type { IncubatorEquipmentItem } from "../../../../services/lookupCache";
 import { CryovialService } from "../../cryovials/services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
@@ -29,12 +40,12 @@ interface Props {
 
 export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onUpdated }: Props) {
   const theme = useTheme();
-  const [evaluation, setEvaluation] = useState<any | null>(null);
-  const [cryovials, setCryovials] = useState<any[]>([]);
-  const [disks, setDisks] = useState<any[]>([]);
-  const [incubators, setIncubators] = useState<any[]>([]);
-  const [referenceLotOptions, setReferenceLotOptions] = useState<any[]>([]);
-  const [forms, setForms] = useState<Record<number, any>>({});
+  const [evaluation, setEvaluation] = useState<MediaEvaluationDetail | null>(null);
+  const [cryovials, setCryovials] = useState<CryovialItem[]>([]);
+  const [disks, setDisks] = useState<MaterialItem[]>([]);
+  const [incubators, setIncubators] = useState<IncubatorEquipmentItem[]>([]);
+  const [referenceLotOptions, setReferenceLotOptions] = useState<MediaLot[]>([]);
+  const [forms, setForms] = useState<Record<number, ChallengeFormState>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
@@ -45,8 +56,8 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     try {
       const data = await MediaEvaluationService.getById(evaluationId);
       setEvaluation(data);
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not load evaluation details.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not load evaluation details.", ok: false });
     }
   };
 
@@ -84,9 +95,9 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   // Undefined (untouched) defaults to the auto-suggestion when one
   // exists, or straight to free text when no prior lot of this material
   // has ever been released.
-  const referenceModeFor = (form: any): "linked" | "freetext" =>
+  const referenceModeFor = (form: ChallengeFormState): "linked" | "freetext" =>
     form.referenceFreeText === true ? "freetext" : form.referenceFreeText === false ? "linked" : referenceLotOptions.length > 0 ? "linked" : "freetext";
-  const referenceMediaIdFor = (form: any) => (form.referenceMediaId !== undefined ? form.referenceMediaId : referenceLotOptions[0]?.id ?? "");
+  const referenceMediaIdFor = (form: ChallengeFormState) => (form.referenceMediaId !== undefined ? form.referenceMediaId : referenceLotOptions[0]?.id ?? "");
 
   const refreshDetail = async () => {
     if (!evaluationId) return;
@@ -95,7 +106,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     onUpdated();
   };
 
-  const setField = (challengeId: number, k: string, v: any) =>
+  const setField = (challengeId: number, k: keyof ChallengeFormState, v: ChallengeFormState[keyof ChallengeFormState]) =>
     setForms((f) => ({ ...f, [challengeId]: { ...f[challengeId], [k]: v } }));
 
   const cryovialOptionsFor = (organismId: number) => {
@@ -117,7 +128,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   // Step 1's picker merges both organism-source types into one Select -
   // value is "cv:<id>" or "disk:<id>" so a single selection unambiguously
   // identifies which backend action to call.
-  const pickOrganismSource = async (challenge: any) => {
+  const pickOrganismSource = async (challenge: MediaEvaluationChallenge) => {
     const selection = forms[challenge.id]?.sourceSelection as string | undefined;
     if (!selection) return;
     try {
@@ -128,27 +139,27 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       }
       setMessage({ text: "Organism source selected.", ok: true });
       await refreshDetail();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not select organism source.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not select organism source.", ok: false });
     }
   };
 
-  const recordIncubation = async (challenge: any) => {
+  const recordIncubation = async (challenge: MediaEvaluationChallenge) => {
     const incubatorEquipmentId = forms[challenge.id]?.incubatorEquipmentId;
     if (!incubatorEquipmentId) return;
     try {
       await MediaEvaluationService.recordIncubation(challenge.id, Number(incubatorEquipmentId));
       setMessage({ text: "Incubation recorded.", ok: true });
       await refreshDetail();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not record incubation.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not record incubation.", ok: false });
     }
   };
 
-  const recordResult = async (challenge: any) => {
+  const recordResult = async (challenge: MediaEvaluationChallenge) => {
     const form = forms[challenge.id] ?? {};
-    const payload: any = {};
-    if (evaluation.evaluationType === "GrowthPromotion") {
+    const payload: RecordResultPayload = {};
+    if (evaluation?.evaluationType === "GrowthPromotion") {
       payload.oldMediaCount = Number(form.oldMediaCount);
       payload.newMediaCount = Number(form.newMediaCount);
       if (referenceModeFor(form) === "linked") {
@@ -158,26 +169,26 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
         payload.referenceMediaId = null;
         payload.referenceMediaLabel = (form.referenceMediaLabel ?? "").trim();
       }
-    } else if (evaluation.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Inhibition") {
+    } else if (evaluation?.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Inhibition") {
       payload.growthObserved = form.growthObserved === "yes";
-    } else if (evaluation.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Indication") {
+    } else if (evaluation?.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Indication") {
       payload.observedDescription = form.observedDescription ?? "";
       payload.manualConform = form.manualConform === "conform";
-    } else if (evaluation.evaluationType === "EnrichmentCharacteristics") {
+    } else if (evaluation?.evaluationType === "EnrichmentCharacteristics") {
       payload.isTurbid = form.isTurbid === "yes";
     }
     try {
       await MediaEvaluationService.recordResult(challenge.id, payload);
       setMessage({ text: "Result recorded successfully.", ok: true });
       await refreshDetail();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not record result.", ok: false });
+    } catch (e) {
+      setMessage({ text: serverMessage(e) ?? "Could not record result.", ok: false });
     }
   };
 
-  const isReadyToRead = (c: any) => !!c.incubation && new Date(c.incubation.expectedReadingAt) <= new Date();
+  const isReadyToRead = (c: MediaEvaluationChallenge) => !!c.incubation && new Date(c.incubation.expectedReadingAt!) <= new Date();
 
-  const previewRecovery = (form: any) => {
+  const previewRecovery = (form?: ChallengeFormState) => {
     const oldC = Number(form?.oldMediaCount), newC = Number(form?.newMediaCount);
     if (!oldC) return null;
     return Math.round((newC / oldC) * 1000) / 10;
@@ -232,7 +243,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                 </Alert>
               )}
 
-              {evaluation.challenges.map((c: any) => {
+              {evaluation.challenges.map((c) => {
                 const form = forms[c.id] ?? {};
                 const options = cryovialOptionsFor(c.organismId);
                 const diskOpts = diskOptionsFor(c.organismId);
@@ -288,7 +299,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               sx={{ minWidth: 320 }}
                               inputProps={{ "aria-label": "Reference lot" }}
                             >
-                              {referenceLotOptions.map((m: any) => (
+                              {referenceLotOptions.map((m) => (
                                 <MenuItem key={m.id} value={m.id}>
                                   {m.lotNumber}, prepared {new Date(m.preparedAt).toLocaleDateString()}
                                 </MenuItem>
@@ -345,12 +356,12 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               <MenuItem value="">
                                 <em>Select Cryovial or Disk</em>
                               </MenuItem>
-                              {options.map((o: any) => (
+                              {options.map((o) => (
                                 <MenuItem key={`cv:${o.id}`} value={`cv:${o.id}`}>
                                   {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left), Cryovial
                                 </MenuItem>
                               ))}
-                              {diskOpts.map((d: any) => (
+                              {diskOpts.map((d) => (
                                 <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
                                   {d.materialName}, batch {d.batchNumber} ({d.quantityRemaining} left), Lyophilized Disk
                                 </MenuItem>
@@ -378,7 +389,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         {isReadyToRead(c) ? (
                           <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Ready to read</span>
                         ) : (
-                          <span>Earliest reading: {new Date(c.incubation.expectedReadingAt).toLocaleString()}</span>
+                          <span>Earliest reading: {new Date(c.incubation.expectedReadingAt!).toLocaleString()}</span>
                         )}
                       </Typography>
                     ) : (
@@ -400,7 +411,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             <MenuItem value="">
                               <em>Select Incubator</em>
                             </MenuItem>
-                            {incubators.map((i: any) => (
+                            {incubators.map((i) => (
                               <MenuItem key={i.id} value={i.id}>
                                 {i.name}
                               </MenuItem>
@@ -454,7 +465,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     ) : !isReadyToRead(c) ? (
                       <Alert severity="info" sx={{ mt: 1 }}>
                         {c.incubation
-                          ? `Incubation still in progress; result entry opens at ${new Date(c.incubation.expectedReadingAt).toLocaleString()}.`
+                          ? `Incubation still in progress; result entry opens at ${new Date(c.incubation.expectedReadingAt!).toLocaleString()}.`
                           : "Record incubation before a result can be entered."}
                       </Alert>
                     ) : (

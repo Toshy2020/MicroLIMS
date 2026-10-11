@@ -30,69 +30,29 @@ public class MessageController : ControllerBase
     [HttpGet("conversations/{id}")]
     public async Task<IActionResult> GetConversationById(int id)
     {
-        try
-        {
-            var result = await _messageService.GetConversationByIdAsync(id, CurrentUserId);
-            return Ok(ApiResponse<ConversationSummaryDto>.Ok(result));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _messageService.GetConversationByIdAsync(id, CurrentUserId);
+        return Ok(ApiResponse<ConversationSummaryDto>.Ok(result));
     }
 
     [HttpPost("conversations")]
     public async Task<IActionResult> CreateConversation([FromBody] CreateConversationRequest request)
     {
-        try
-        {
-            var result = await _messageService.CreateConversationAsync(request, CurrentUserId);
-            return Ok(ApiResponse<ConversationSummaryDto>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _messageService.CreateConversationAsync(request, CurrentUserId);
+        return Ok(ApiResponse<ConversationSummaryDto>.Ok(result));
     }
 
     [HttpGet("conversations/{id}/messages")]
     public async Task<IActionResult> GetMessages(int id, [FromQuery] int take = 50)
     {
-        try
-        {
-            var messages = await _messageService.GetMessagesAsync(id, CurrentUserId, take);
-            return Ok(ApiResponse<List<DirectMessageDto>>.Ok(messages));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
+        var messages = await _messageService.GetMessagesAsync(id, CurrentUserId, take);
+        return Ok(ApiResponse<List<DirectMessageDto>>.Ok(messages));
     }
 
     [HttpPost("conversations/{id}/messages")]
     public async Task<IActionResult> SendMessage(int id, [FromBody] SendMessageRequest request)
     {
-        try
-        {
-            var message = await _messageService.SendMessageAsync(id, request, CurrentUserId);
-            return Ok(ApiResponse<DirectMessageDto>.Ok(message));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var message = await _messageService.SendMessageAsync(id, request, CurrentUserId);
+        return Ok(ApiResponse<DirectMessageDto>.Ok(message));
     }
 
     [HttpPost("conversations/{id}/read")]

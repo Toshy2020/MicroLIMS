@@ -11,6 +11,8 @@ using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
+using MicroLIMS.Application.Services.InstrumentImport;
+using MicroLIMS.Infrastructure.InstrumentImport;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Application.Abstractions.Notifications;
@@ -56,7 +58,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITestWorkspaceService, TestingWorkspaceService>();
         services.AddScoped<WorkflowStateResolver>();
         services.AddScoped<IResultService, ResultService>();
-        services.AddScoped<IReportService, ReportService>();
         // Security Audit Trail. Scoped so an event is appended to the same
         // DbContext (and therefore the same transaction) as the state
         // change that caused it. The HTTP-backed request context supplies
@@ -69,8 +70,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ElectronicSignatureService>();
         services.AddScoped<IElectronicSignatureService>(sp => sp.GetRequiredService<ElectronicSignatureService>());
         services.AddScoped<SegregationOfDutiesGuard>();
-        services.AddScoped<ReviewService>();
-        services.AddScoped<ApprovalService>();
         services.AddScoped<ReviewGateService>();
         services.AddScoped<RecordArchiveService>();
         services.AddScoped<MediaReleaseService>();
@@ -111,7 +110,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<UserService>();
         services.AddScoped<UserDeletionService>();
         services.AddScoped<AdminPasswordRecoveryService>();
-        services.AddScoped<AuditService>();
         services.AddScoped<PermissionService>();
         services.AddScoped<RoleService>();
         services.AddScoped<ReferenceNumberGenerator>();
@@ -192,6 +190,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<TestDefinitionMasterDataService>();
         services.AddScoped<TestWorkflowStepMasterDataService>();
         services.AddScoped<TestStageReplicateMasterDataService>();
+        services.AddScoped<MicroLIMS.Application.Abstractions.Workbook.IWorkbookFormat, MicroLIMS.Infrastructure.Workbook.ClosedXmlWorkbookFormat>();
+        services.AddScoped<MicroLIMS.Application.Services.MasterDataWorkbook.MasterDataWorkbookService>();
 
         // Validators
         services.AddScoped<ReceiveSampleValidator>();
@@ -274,6 +274,12 @@ public static class ServiceCollectionExtensions
         {
             throw new InvalidOperationException($"Unknown Storage:Provider '{storageProvider}'. Use 'Local' or 'S3'.");
         }
+
+        // Instrument report OCR: "tesseract" on PATH in the Docker image;
+        // set Ocr:TesseractPath to the .exe on Windows.
+        services.AddSingleton<IReportTextReader>(_ => new ReportTextReader(new TesseractOcr(
+            config["Ocr:TesseractPath"] ?? "tesseract",
+            config["Ocr:WorkDirectory"] ?? Path.GetTempPath())));
 
         // Takes the validated JwtSettings registered in Program.cs rather
         // than reading Jwt:Key again - a second read is what allowed the

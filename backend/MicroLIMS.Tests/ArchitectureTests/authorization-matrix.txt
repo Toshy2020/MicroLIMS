@@ -11,7 +11,6 @@ AfterCleaningMasterDataController.GetMachines(): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.UpdateMachine(Int32, UpdateMachineRequest): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.UpdateMachinePart(Int32, UpdateMachinePartRequest): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.UpdateMachinePartConfiguration(Int32, UpdateMachinePartConfigRequest): SystemAdministrator,SectionHead
-ApprovalController.Decide(ApprovalRequest): SystemAdministrator,SectionHead
 ArchivedRecordsController.Download(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 ArchivedRecordsController.GetForEntity(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 AuditController.Get(String, String): SystemAdministrator,SectionHead
@@ -278,6 +277,12 @@ LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.ReplaceMemberships(Int32, ReplaceUserMembershipsRequest): SystemAdministrator
+MasterDataWorkbookController.Download(): SystemAdministrator,SectionHead
+MasterDataWorkbookController.GetFile(Int32): SystemAdministrator,SectionHead
+MasterDataWorkbookController.GetImports(): SystemAdministrator,SectionHead
+MasterDataWorkbookController.Import(IFormFile, String, String): SystemAdministrator,SectionHead
+MasterDataWorkbookController.Validate(IFormFile): SystemAdministrator,SectionHead
+MasterDataWorkbookController.Verify(Int32, VerifyMasterDataImportRequest): SystemAdministrator,SectionHead
 MaterialController.Create(SaveMaterialHttpRequest): SystemAdministrator,SectionHead,Analyst
 MaterialController.GetAll(Nullable`1): SystemAdministrator,SectionHead,Analyst
 MaterialController.GetDefaultUnit(MaterialType): SystemAdministrator,SectionHead,Analyst
@@ -376,10 +381,6 @@ ReferenceListMasterDataController.GetSamplers(): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateCauseOfTesting(Int32, String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateProductionStage(Int32, UpdateProductionStageRequest): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateSampler(Int32, String): SystemAdministrator,SectionHead
-ReportController.AfterCleaning(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-ReportController.EM(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst
-ReportController.Product(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-ReportController.Water(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst
 ReportingAdminController.Backfill(): SystemAdministrator
 ReportingController.ExportMediaGpt(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 ReportingController.ExportReferenceStrains(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -400,9 +401,6 @@ ReportingController.GetReferenceStrainResults(String, Nullable`1, Nullable`1, Nu
 ReportingController.GetResults(String, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 ReportingController.GetTrend(String, String, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 ResultController.GetForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
-ReviewController.ReturnToAnalyst(ReturnToAnalystRequest): SystemAdministrator,SectionHead,Reviewer
-ReviewController.Review(ReviewRequest): SystemAdministrator,SectionHead,Reviewer
-ReviewController.ReviewBatch(QuickReviewBatchRequest): SystemAdministrator,SectionHead,Reviewer
 RoleController.Create(CreateRoleRequest): SystemAdministrator
 RoleController.Delete(Int32): SystemAdministrator
 RoleController.GetAll(): SystemAdministrator

@@ -52,4 +52,22 @@ public class ExceptionMiddlewareStatusTests
 
         Assert.Equal(StatusCodes.Status400BadRequest, status);
     }
+
+    [Fact]
+    public async Task UnexpectedException_Is500_AndDoesNotLeakItsMessage()
+    {
+        var (status, body) = await RunAsync(new NullReferenceException("secret internal detail"));
+
+        Assert.Equal(StatusCodes.Status500InternalServerError, status);
+        Assert.DoesNotContain("secret internal detail", body);
+    }
+
+    [Fact]
+    public async Task UnauthorizedAccess_Is403_WithItsMessage()
+    {
+        var (status, body) = await RunAsync(new UnauthorizedAccessException("Not your task."));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, status);
+        Assert.Contains("Not your task.", body);
+    }
 }

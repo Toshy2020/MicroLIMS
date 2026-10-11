@@ -5,6 +5,8 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Workflows;
 
 namespace MicroLIMS.Application.Services;
 
@@ -150,5 +152,119 @@ public class SampleReviewService
 
         SampleSectionRollup.Apply(sample);
         await _db.SaveChangesAsync();
+    }
+
+    public Task<TestReturnEventResponse> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
+        UnitOfWork.RunAsync(_db, async () => TestReturnEventResponse.From(await ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason)));
+
+    private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(int testOrderId, int reviewerId, string? reason)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId);
+        // Review is per section: this test's own section must not have been
+        // reviewed yet. A sample that is past review as a whole (every
+        // section is, then) or closed is refused outright.
+        var sectionStatus = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId);
+        if (sample != null && (sample.Status is SampleStatus.UnderApproval
+            or SampleStatus.Approved
+            or SampleStatus.Rejected
+            or SampleStatus.RetestRequested
+            or SampleStatus.Cancelled
+            or SampleStatus.Voided
+            || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
+        {
+            throw new InvalidOperationException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
+        }
+
+        if (order.Status != ApprovalStatus.ResultEntered)
+            throw new InvalidOperationException($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.");
+
+        var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+
+        if (definition.WorkflowType == WorkflowType.CountTest)
+        {
+            // 1. Soft-supersede all active CountTestReading rows for this test order
+            var activeReadings = await _db.CountTestReadings
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeReadings)
+            {
+                r.IsActive = false;
+            }
+
+            // 2. Reopen the closed Incubation row for this count test step
+            var latestIncubation = await _db.Incubations
+                .Where(i => i.TestOrderId == testOrderId)
+                .OrderByDescending(i => i.Id)
+                .FirstOrDefaultAsync();
+
+            if (latestIncubation != null)
+            {
+                latestIncubation.CompletedAt = null;
+                latestIncubation.CompletedByUserId = null;
+                latestIncubation.Outcome = null;
+            }
+        }
+        else if (AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+        {
+            // 1. Soft-supersede all active TestAnalysis rows for this test order
+            var activeAnalyses = await _db.TestAnalyses
+                .Where(e => e.TestOrderId == testOrderId && e.IsActive)
+                .ToListAsync();
+            foreach (var e in activeAnalyses)
+            {
+                e.IsActive = false;
+            }
+
+            // 2. Soft-supersede all active ParameterResult rows for this test order
+            var activeResults = await _db.ParameterResults
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeResults)
+            {
+                r.IsActive = false;
+            }
+        }
+
+        // 3. If this test's section was auto-submitted for review, send the
+        // section back to testing and roll the sample status up again
+        if (sample != null && sectionStatus == SectionSignoffStatus.UnderReview)
+        {
+            SampleSectionRollup.GetOrAdd(sample, order.SectionId).Status = SectionSignoffStatus.InTesting;
+            SampleSectionRollup.Apply(sample);
+        }
+
+        // 4. Revert TestOrder state back to Incubating/Running (keeps AssignedAnalystId unchanged)
+        var transitionNote = string.IsNullOrWhiteSpace(reason)
+            ? "Returned to analyst by reviewer"
+            : $"Returned to analyst: {reason.Trim()}";
+
+        var targetStep = AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType)
+            ? WorkflowStep.Running
+            : WorkflowStep.Incubating;
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, targetStep, reviewerId, transitionNote);
+
+        // 5. Create distinct queryable audit record for Return to Analyst event
+        var returnEvent = new TestReturnEvent
+        {
+            TestOrderId = testOrderId,
+            ReviewerUserId = reviewerId,
+            AssignedAnalystId = order.AssignedAnalystId,
+            Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+            ReturnedAt = _time.GetUtcNow().UtcDateTime
+        };
+
+        _db.TestReturnEvents.Add(returnEvent);
+        await _db.SaveChangesAsync();
+
+        return returnEvent;
     }
 }

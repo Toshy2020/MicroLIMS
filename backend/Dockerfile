@@ -27,6 +27,11 @@ RUN dotnet publish MicroLIMS.API.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+# Tesseract OCR for scanned / photographed instrument reports
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
 # Ensure storage directory exists with app user ownership before switching user
 RUN mkdir -p /app/storage && chown -R app:app /app
 

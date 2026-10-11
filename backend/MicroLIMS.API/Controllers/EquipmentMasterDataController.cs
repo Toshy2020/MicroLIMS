@@ -62,15 +62,8 @@ public class EquipmentMasterDataController : ControllerBase
     public async Task<IActionResult> UpdateSetPoint(int id, [FromBody] UpdateIncubatorSetPointRequest request)
     {
         await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
-        try
-        {
-            var updated = await _configService.UpdateIncubatorSetPointAsync(id, request, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(updated));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var updated = await _configService.UpdateIncubatorSetPointAsync(id, request, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     [HttpGet("equipment/{id:int}/set-point-history")]
@@ -96,47 +89,26 @@ public class EquipmentMasterDataController : ControllerBase
     public async Task<IActionResult> SaveAutoclaveProgram(int id, [FromBody] SaveAutoclaveProgramRequest request)
     {
         await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
-        try
-        {
-            var req = request with { EquipmentId = id };
-            var saved = await _configService.SaveAutoclaveProgramAsync(req, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(saved));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var req = request with { EquipmentId = id };
+        var saved = await _configService.SaveAutoclaveProgramAsync(req, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(saved));
     }
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/autoclave-programs/{programId:int}")]
     public async Task<IActionResult> UpdateAutoclaveProgram(int programId, [FromBody] SaveAutoclaveProgramRequest request)
     {
-        try
-        {
-            var req = request with { Id = programId };
-            var saved = await _configService.SaveAutoclaveProgramAsync(req, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(saved));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var req = request with { Id = programId };
+        var saved = await _configService.SaveAutoclaveProgramAsync(req, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(saved));
     }
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/autoclave-programs/{programId:int}/status")]
     public async Task<IActionResult> SetAutoclaveProgramStatus(int programId, [FromBody] SetAutoclaveProgramStatusHttpRequest request)
     {
-        try
-        {
-            await _configService.SetAutoclaveProgramStatusAsync(programId, request.IsActive, request.Comment ?? "", CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        await _configService.SetAutoclaveProgramStatusAsync(programId, request.IsActive, request.Comment ?? "", CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     [HttpGet("equipment/autoclave-programs/{programId:int}/history")]

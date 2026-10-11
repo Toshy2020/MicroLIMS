@@ -4,6 +4,7 @@ import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlin
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import TableViewOutlinedIcon from "@mui/icons-material/TableViewOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
@@ -211,6 +212,7 @@ const physchemConfigArea: MenuItem = {
 // Shared across both labs, not tied to either one's membership.
 const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", description: "Items the labs test and the tests auto-assigned on receipt.", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.ITEMS_MANAGE };
 const receivingConfigItem: MenuItem = { label: "Receiving Configuration", description: "Reference lists offered on the sample receiving form.", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
+const masterDataWorkbookItem: MenuItem = { label: "Master Data Workbook", description: "Load master data and specifications from one Excel workbook.", path: "/laboratory-configuration/master-data-workbook", icon: TableViewOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 
 // Drops every item whose permission the user lacks, then any parent left
 // with no children.
@@ -260,7 +262,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
     items.push(buildPhyschemArea(areas), physchemConfigArea);
   }
   items.push(
-    itemsItem, receivingConfigItem,
+    itemsItem, receivingConfigItem, masterDataWorkbookItem,
     documentControlItem(role), usersItem, rolesItem, reportsItem, auditSearchItem, oosTrackingItem, errorMonitoringItem
   );
   return groupItems(visibleItems(items, permissions));

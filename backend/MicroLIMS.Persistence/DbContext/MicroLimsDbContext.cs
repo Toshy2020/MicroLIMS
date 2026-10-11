@@ -66,6 +66,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<ReportSnapshot> ReportSnapshots => Set<ReportSnapshot>();
     public DbSet<ResultRecord> ResultRecords => Set<ResultRecord>();
     public DbSet<DataExportLog> DataExportLogs => Set<DataExportLog>();
+    public DbSet<MasterDataImport> MasterDataImports => Set<MasterDataImport>();
+    public DbSet<MasterDataImportRecord> MasterDataImportRecords => Set<MasterDataImportRecord>();
 
     // Phase 1 additions
     public DbSet<CauseOfTesting> CausesOfTesting => Set<CauseOfTesting>();

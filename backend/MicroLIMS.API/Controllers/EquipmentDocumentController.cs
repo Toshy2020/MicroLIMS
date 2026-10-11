@@ -32,15 +32,8 @@ public class EquipmentDocumentController : ControllerBase
     [Authorize(Policy = PermissionConstants.EquipmentManage)]
     public async Task<IActionResult> GetDocuments(int equipmentId)
     {
-        try
-        {
-            var result = await _service.GetDocumentsAsync(equipmentId, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.GetDocumentsAsync(equipmentId, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Upload a new document to an equipment record.
@@ -59,19 +52,12 @@ public class EquipmentDocumentController : ControllerBase
             content = ms.ToArray();
         }
 
-        try
-        {
-            var result = await _service.UploadAsync(equipmentId, new UploadEquipmentDocumentRequest(
-                documentType,
-                file.FileName,
-                file.ContentType,
-                content), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.UploadAsync(equipmentId, new UploadEquipmentDocumentRequest(
+            documentType,
+            file.FileName,
+            file.ContentType,
+            content), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Retrieve the raw content of an equipment document.
@@ -79,15 +65,8 @@ public class EquipmentDocumentController : ControllerBase
     [Authorize(Policy = PermissionConstants.EquipmentManage)]
     public async Task<IActionResult> GetContent(int documentId, [FromQuery] int equipmentId)
     {
-        try
-        {
-            var (meta, bytes) = await _service.GetContentAsync(documentId, equipmentId, CurrentUserId);
-            return File(bytes, meta.ContentType, meta.OriginalFileName);
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var (meta, bytes) = await _service.GetContentAsync(documentId, equipmentId, CurrentUserId);
+        return File(bytes, meta.ContentType, meta.OriginalFileName);
     }
 
     // Supersede an existing document with a replacement file.
@@ -109,19 +88,12 @@ public class EquipmentDocumentController : ControllerBase
             content = ms.ToArray();
         }
 
-        try
-        {
-            var result = await _service.SupersedeAsync(documentId, equipmentId, new SupersedeEquipmentDocumentRequest(
-                file.FileName,
-                file.ContentType,
-                content,
-                reason), CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.SupersedeAsync(documentId, equipmentId, new SupersedeEquipmentDocumentRequest(
+            file.FileName,
+            file.ContentType,
+            content,
+            reason), CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Void a document. The file is retained for audit; document is marked Voided.
@@ -133,14 +105,7 @@ public class EquipmentDocumentController : ControllerBase
         if (string.IsNullOrWhiteSpace(request?.Reason))
             return BadRequest(ApiResponse<object>.Fail("A reason for voiding is required."));
 
-        try
-        {
-            var result = await _service.VoidAsync(documentId, equipmentId, request, CurrentUserId);
-            return Ok(ApiResponse<object>.Ok(result));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _service.VoidAsync(documentId, equipmentId, request, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 }

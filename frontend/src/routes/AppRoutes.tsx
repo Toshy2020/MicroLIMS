@@ -37,6 +37,7 @@ const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/It
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
 const EquationTypesPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquationTypesPage").then((m) => ({ default: m.EquationTypesPage })));
 const OrganismsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/OrganismsPage").then((m) => ({ default: m.OrganismsPage })));
+const MasterDataWorkbookPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataWorkbook/MasterDataWorkbookPage").then((m) => ({ default: m.MasterDataWorkbookPage })));
 const SpecificationsPage = lazy(() => import("../modules/laboratoryConfiguration/specifications/SpecificationsPage").then((m) => ({ default: m.SpecificationsPage })));
 const MediaPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaPage").then((m) => ({ default: m.MediaPage })));
 const MediaConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaConfigurationPage").then((m) => ({ default: m.MediaConfigurationPage })));
@@ -226,6 +227,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/rm-pm-test-master" element={<TestMasterPage key="rmpm" lab="fp" area="rmpm" />} />
               <Route path="/laboratory-configuration/equation-types" element={<EquationTypesPage />} />
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
+              <Route path="/laboratory-configuration/master-data-workbook" element={<MasterDataWorkbookPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />
               <Route path="/laboratory-configuration/media-configurations" element={<MediaConfigurationPage />} />
               <Route path="/laboratory-configuration/water" element={<WaterConfigPage />} />

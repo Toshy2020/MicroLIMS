@@ -20,13 +20,11 @@ public record ReturnTestToAnalystRequest(int TestOrderId, string? Reason);
 public class SampleReviewController : ControllerBase
 {
     private readonly SampleReviewService _reviewService;
-    private readonly ReviewService _testOrderReviewService;
     private readonly IUserSectionScopeService _scopeService;
 
-    public SampleReviewController(SampleReviewService reviewService, ReviewService testOrderReviewService, IUserSectionScopeService scopeService)
+    public SampleReviewController(SampleReviewService reviewService, IUserSectionScopeService scopeService)
     {
         _reviewService = reviewService;
-        _testOrderReviewService = testOrderReviewService;
         _scopeService = scopeService;
     }
 
@@ -41,18 +39,17 @@ public class SampleReviewController : ControllerBase
     }
 
     // Returns one test order on this sample to the analyst for revision
-    // (count tests only - see ReviewService.ReturnToAnalystAsync). The
+    // (count tests only - see SampleReviewService.ReturnToAnalystAsync). The
     // `id` route param (sample id) isn't needed by the service itself
     // (the transition is entirely TestOrderId-scoped, including reverting
     // the parent Sample's own status if needed) - kept on this route
     // because that's where a reviewer actually reaches this action from
-    // (SampleSummaryDialog.tsx's per-test view), not api/review's now-dead
-    // standalone ReviewPage.
+    // (SampleSummaryDialog.tsx's per-test view).
     [HttpPost("return-test")]
     public async Task<IActionResult> ReturnTestToAnalyst(int id, ReturnTestToAnalystRequest request)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, request.TestOrderId);
-        var result = await _testOrderReviewService.ReturnToAnalystAsync(request.TestOrderId, CurrentUserId, request.Reason);
+        var result = await _reviewService.ReturnToAnalystAsync(request.TestOrderId, CurrentUserId, request.Reason);
         return Ok(ApiResponse<object>.Ok(result));
     }
 }

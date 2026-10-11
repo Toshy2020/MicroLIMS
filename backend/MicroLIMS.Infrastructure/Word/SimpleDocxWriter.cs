@@ -4,11 +4,11 @@ using System.Text;
 
 namespace MicroLIMS.Infrastructure.Word;
 
-// A dependency-free minimal .docx writer, same philosophy as
-// SimplePdfWriter: a genuinely valid OOXML Word document (opens in
+// A dependency-free minimal .docx writer:
+// a genuinely valid OOXML Word document (opens in
 // Word/LibreOffice/Google Docs) built from a title + a flat list of
-// text lines, not a full-fidelity layout engine. No pagination limit
-// like the PDF writer - Word paginates the flowed text itself.
+// text lines, not a full-fidelity layout engine. Word paginates the
+// flowed text itself.
 public static class SimpleDocxWriter
 {
     public static byte[] WriteTextDocument(string title, IEnumerable<string> lines)

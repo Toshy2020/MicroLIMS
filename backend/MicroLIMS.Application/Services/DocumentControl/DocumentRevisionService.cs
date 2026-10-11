@@ -267,7 +267,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             }
         );
 
-        return MapChangeItemDto(item, user?.Username ?? "", user?.FullName ?? "");
+        return DocumentDtoMapper.MapChangeItem(item, user?.Username ?? "", user?.FullName ?? "");
     }
 
     public Task<RevisionChangeItemDto> UpdateChangeItemAsync(int changeItemId, UpdateChangeItemRequest request, int userId) =>
@@ -316,7 +316,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             }
         );
 
-        return MapChangeItemDto(item, item.CreatedByUser?.Username ?? "", item.CreatedByUser?.FullName ?? "");
+        return DocumentDtoMapper.MapChangeItem(item, item.CreatedByUser?.Username ?? "", item.CreatedByUser?.FullName ?? "");
     }
 
     // Deactivates a change item instead of deleting it. DC-URS-184 forbids
@@ -373,7 +373,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             .OrderBy(c => c.SectionNumber)
             .ToListAsync();
 
-        return items.Select(i => MapChangeItemDto(i, i.CreatedByUser?.Username ?? "", i.CreatedByUser?.FullName ?? "")).ToList();
+        return items.Select(i => DocumentDtoMapper.MapChangeItem(i, i.CreatedByUser?.Username ?? "", i.CreatedByUser?.FullName ?? "")).ToList();
     }
 
     public Task<RevisionChangeItemDto> ConvertFindingToChangeItemAsync(int revisionId, int findingId, ConvertFindingRequest request, int userId) =>
@@ -431,7 +431,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             }
         );
 
-        return MapChangeItemDto(item, user?.Username ?? "", user?.FullName ?? "");
+        return DocumentDtoMapper.MapChangeItem(item, user?.Username ?? "", user?.FullName ?? "");
     }
 
     public Task<RevisionImpactAssessmentDto> SaveImpactAssessmentAsync(int revisionId, SaveImpactAssessmentRequest request, int userId) =>
@@ -525,7 +525,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             }
         );
 
-        return MapImpactDto(assessment, user?.Username ?? "", user?.FullName ?? "");
+        return DocumentDtoMapper.MapImpact(assessment, user?.Username ?? "", user?.FullName ?? "");
     }
 
     public async Task<RevisionImpactAssessmentDto?> GetImpactAssessmentAsync(int revisionId, int userId)
@@ -536,7 +536,7 @@ public class DocumentRevisionService : IDocumentRevisionService
 
         if (assessment == null) return null;
 
-        return MapImpactDto(assessment, assessment.CompletedByUser?.Username ?? "", assessment.CompletedByUser?.FullName ?? "");
+        return DocumentDtoMapper.MapImpact(assessment, assessment.CompletedByUser?.Username ?? "", assessment.CompletedByUser?.FullName ?? "");
     }
 
     // ---- Internal Helpers ----
@@ -587,57 +587,6 @@ public class DocumentRevisionService : IDocumentRevisionService
         }
     }
 
-    private static RevisionChangeItemDto MapChangeItemDto(RevisionChangeItem i, string username, string fullName)
-    {
-        return new RevisionChangeItemDto(
-            i.Id,
-            i.DocumentRevisionId,
-            i.SectionNumber,
-            i.SectionTitle,
-            i.DescriptionOfChange,
-            i.ChangeRationale,
-            i.ChangeCategory,
-            i.Status,
-            i.OriginatingReviewFindingId,
-            i.CreatedByUserId,
-            username,
-            fullName,
-            i.CreatedAt,
-            i.ModifiedAt
-        ) { Version = i.Version };
-    }
-
-    private static RevisionImpactAssessmentDto MapImpactDto(RevisionImpactAssessment a, string username, string fullName)
-    {
-        return new RevisionImpactAssessmentDto(
-            a.Id,
-            a.DocumentRevisionId,
-            a.ProcedureOrMethodImpact,
-            a.ProcedureOrMethodDetails,
-            a.TrainingImpact,
-            a.TrainingDetails,
-            a.FormsOrTemplatesImpact,
-            a.FormsOrTemplatesDetails,
-            a.SpecificationsImpact,
-            a.SpecificationsDetails,
-            a.EquipmentImpact,
-            a.EquipmentDetails,
-            a.MaterialsOrMediaImpact,
-            a.MaterialsOrMediaDetails,
-            a.ValidationImpact,
-            a.ValidationDetails,
-            a.RegulatoryCommitmentImpact,
-            a.RegulatoryCommitmentDetails,
-            a.RelatedDocumentsImpact,
-            a.RelatedDocumentsDetails,
-            a.IsComplete,
-            a.CompletedByUserId,
-            username,
-            fullName,
-            a.CompletedAt
-        );
-    }
-
     private async Task<DocumentRevisionDto> MapRevisionDtoAsync(int revisionId)
     {
         var r = await _db.DocumentRevisions
@@ -649,45 +598,6 @@ public class DocumentRevisionService : IDocumentRevisionService
             .FirstOrDefaultAsync(r => r.Id == revisionId)
             ?? throw new KeyNotFoundException($"Revision {revisionId} not found.");
 
-        var files = r.Files.OrderByDescending(f => f.UploadedAt).Select(f => new RevisionFileDto(
-            f.Id,
-            f.DocumentRevisionId,
-            f.FileRole,
-            f.FileName,
-            f.ContentType,
-            f.SizeBytes,
-            f.ContentSha256,
-            f.IsActive,
-            f.SupersededByFileId,
-            f.UploadedAt,
-            f.UploadedByUserId,
-            f.UploadedByUser?.FullName ?? "",
-            f.FileVersion,
-            f.IsApprovedFinalSource,
-            f.GeneratedFromSourceFileId
-        )).ToList();
-
-        return new DocumentRevisionDto(
-            r.Id,
-            r.DocumentMasterId,
-            r.RevisionNumber,
-            r.RevisionSequence,
-            r.RevisionStatus,
-            r.EffectiveDate,
-            r.NextReviewDate,
-            r.ReviewCycleMonths,
-            r.RevisionType,
-            r.ReasonForRevision,
-            r.ChangeReference,
-            r.RecordOrigin,
-            r.CreatedAt,
-            r.CreatedByUserId,
-            r.CreatedByUser?.FullName ?? "",
-            r.CancelledAt,
-            r.CancelledByUserId,
-            r.CancelledByUser?.FullName,
-            r.CancelReason,
-            files
-        );
+        return DocumentDtoMapper.MapRevision(r);
     }
 }

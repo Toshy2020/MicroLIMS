@@ -279,9 +279,9 @@ public class DocumentControlRestApiUnitTests
             ConfirmedLegalStatement: false // Unconfirmed!
         );
 
-        var result = await ackController.SubmitAcknowledgement(assignment1.Id, request);
-        var badReq = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.NotNull(badReq.Value);
+        // The controller no longer maps this itself; ExceptionMiddleware turns it into a 400.
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ackController.SubmitAcknowledgement(assignment1.Id, request));
     }
 
     [Fact]

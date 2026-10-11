@@ -617,7 +617,7 @@ public class DocumentMasterService : IDocumentMasterService
             changes: changes,
             entityId: revision.Id.ToString());
 
-        return MapRevisionToDto(revision);
+        return DocumentDtoMapper.MapRevision(revision);
     }
 
     public Task<DocumentMasterAssignmentDto> AddOrUpdateAssignmentAsync(int documentMasterId, CreateAssignmentRequest request, int userId) =>
@@ -784,49 +784,7 @@ public class DocumentMasterService : IDocumentMasterService
                 a.AssignedByUserId,
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
-            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(MapRevisionToDto).ToList()
+            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList()
         ) { Version = m.Version };
-    }
-
-    private static DocumentRevisionDto MapRevisionToDto(DocumentRevision r)
-    {
-        return new DocumentRevisionDto(
-            r.Id,
-            r.DocumentMasterId,
-            r.RevisionNumber,
-            r.RevisionSequence,
-            r.RevisionStatus,
-            r.EffectiveDate,
-            r.NextReviewDate,
-            r.ReviewCycleMonths,
-            r.RevisionType,
-            r.ReasonForRevision,
-            r.ChangeReference,
-            r.RecordOrigin,
-            r.CreatedAt,
-            r.CreatedByUserId,
-            r.CreatedByUser?.FullName ?? "",
-            r.CancelledAt,
-            r.CancelledByUserId,
-            r.CancelledByUser?.FullName,
-            r.CancelReason,
-            r.Files.OrderByDescending(f => f.UploadedAt).Select(f => new RevisionFileDto(
-                f.Id,
-                f.DocumentRevisionId,
-                f.FileRole,
-                f.FileName,
-                f.ContentType,
-                f.SizeBytes,
-                f.ContentSha256,
-                f.IsActive,
-                f.SupersededByFileId,
-                f.UploadedAt,
-                f.UploadedByUserId,
-                f.UploadedByUser?.FullName ?? "",
-                f.FileVersion,
-                f.IsApprovedFinalSource,
-                f.GeneratedFromSourceFileId
-            )).ToList()
-        );
     }
 }

@@ -649,7 +649,7 @@ public class DocumentReviewService : IDocumentReviewService
         }
         else
         {
-            throw new ArgumentOutOfRangeException(nameof(request.Decision), "Invalid review decision.");
+            throw new InvalidOperationException("Invalid review decision.");
         }
 
         return await GetReviewTaskByIdAsync(task.Id, userId);

@@ -67,10 +67,10 @@ public class AuditSearchAndTraceabilityTests
     }
 
     [Fact]
-    public async Task AuditService_GetForEntity_EnrichesUserIdentity()
+    public async Task AuditSearch_GetForEntity_EnrichesUserIdentity()
     {
         await using var db = NewDb();
-        var auditService = new AuditService(db);
+        var auditService = new AuditSearchService(db);
 
         db.AuditLogs.Add(new AuditLog
         {

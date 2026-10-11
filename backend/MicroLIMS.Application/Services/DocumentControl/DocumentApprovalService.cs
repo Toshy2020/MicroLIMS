@@ -292,58 +292,20 @@ public class DocumentApprovalService : IDocumentApprovalService
         var master = revision.DocumentMaster;
 
         var taskDto = MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, task.DecisionByUser);
-        var revisionDto = MapRevisionDto(revision);
+        var revisionDto = DocumentDtoMapper.MapRevision(revision);
         var masterDto = MapMasterDto(master);
 
         var activePdf = revision.Files.FirstOrDefault(f => f.FileRole == FileRole.ControlledPdf && f.IsActive);
-        var pdfDto = activePdf != null ? MapFileDto(activePdf) : null;
+        var pdfDto = activePdf != null ? DocumentDtoMapper.MapFile(activePdf) : null;
 
         var changeItems = revision.ChangeItems
             .OrderBy(c => c.SectionNumber)
-            .Select(c => new RevisionChangeItemDto(
-                c.Id,
-                c.DocumentRevisionId,
-                c.SectionNumber,
-                c.SectionTitle,
-                c.DescriptionOfChange,
-                c.ChangeRationale,
-                c.ChangeCategory,
-                c.Status,
-                c.OriginatingReviewFindingId,
-                c.CreatedByUserId,
-                c.CreatedByUser?.Username ?? "",
-                c.CreatedByUser?.FullName ?? "",
-                c.CreatedAt,
-                c.ModifiedAt
-            ) { Version = c.Version }).ToList();
+            .Select(c => DocumentDtoMapper.MapChangeItem(c, c.CreatedByUser?.Username ?? "", c.CreatedByUser?.FullName ?? ""))
+            .ToList();
 
-        var impactDto = revision.ImpactAssessment != null ? new RevisionImpactAssessmentDto(
-            revision.ImpactAssessment.Id,
-            revision.ImpactAssessment.DocumentRevisionId,
-            revision.ImpactAssessment.ProcedureOrMethodImpact,
-            revision.ImpactAssessment.ProcedureOrMethodDetails,
-            revision.ImpactAssessment.TrainingImpact,
-            revision.ImpactAssessment.TrainingDetails,
-            revision.ImpactAssessment.FormsOrTemplatesImpact,
-            revision.ImpactAssessment.FormsOrTemplatesDetails,
-            revision.ImpactAssessment.SpecificationsImpact,
-            revision.ImpactAssessment.SpecificationsDetails,
-            revision.ImpactAssessment.EquipmentImpact,
-            revision.ImpactAssessment.EquipmentDetails,
-            revision.ImpactAssessment.MaterialsOrMediaImpact,
-            revision.ImpactAssessment.MaterialsOrMediaDetails,
-            revision.ImpactAssessment.ValidationImpact,
-            revision.ImpactAssessment.ValidationDetails,
-            revision.ImpactAssessment.RegulatoryCommitmentImpact,
-            revision.ImpactAssessment.RegulatoryCommitmentDetails,
-            revision.ImpactAssessment.RelatedDocumentsImpact,
-            revision.ImpactAssessment.RelatedDocumentsDetails,
-            revision.ImpactAssessment.IsComplete,
-            revision.ImpactAssessment.CompletedByUserId,
-            revision.ImpactAssessment.CompletedByUser?.Username ?? "",
-            revision.ImpactAssessment.CompletedByUser?.FullName ?? "",
-            revision.ImpactAssessment.CompletedAt
-        ) : null;
+        var impactDto = revision.ImpactAssessment != null
+            ? DocumentDtoMapper.MapImpact(revision.ImpactAssessment, revision.ImpactAssessment.CompletedByUser?.Username ?? "", revision.ImpactAssessment.CompletedByUser?.FullName ?? "")
+            : null;
 
         var reviewHistory = revision.ReviewTasks
             .OrderByDescending(rt => rt.AssignedAt)
@@ -352,23 +314,7 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         var readiness = EvaluateReadiness(task, userId);
 
-        var activeSignature = await _db.ElectronicSignatures
-            .Where(s => s.EntityType == "DocumentRevision" && s.EntityId == revision.Id && s.MeaningOfSignature == SignatureMeaning.Approved)
-            .OrderByDescending(s => s.SignedAt)
-            .Select(s => new ElectronicSignatureDto(
-                s.Id,
-                s.UserId,
-                s.UserFullNameSnapshot,
-                s.UsernameSnapshot,
-                s.RoleSnapshot,
-                s.MeaningOfSignature,
-                s.EntityType,
-                s.EntityId,
-                s.SignedAt,
-                s.Comment,
-                s.IpAddress
-            ))
-            .FirstOrDefaultAsync();
+        var activeSignature = await LatestApprovalSignatureAsync(revision.Id);
 
         // Record Dossier Viewed Audit Event (DC-URS-074, FS-1b-074)
         await _audit.RecordUserEventAsync(
@@ -403,8 +349,12 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (task == null)
             throw new KeyNotFoundException($"Document approval task {approvalTaskId} not found.");
 
-        return await _db.ElectronicSignatures
-            .Where(s => s.EntityType == "DocumentRevision" && s.EntityId == task.DocumentRevisionId && s.MeaningOfSignature == SignatureMeaning.Approved)
+        return await LatestApprovalSignatureAsync(task.DocumentRevisionId);
+    }
+
+    private Task<ElectronicSignatureDto?> LatestApprovalSignatureAsync(int revisionId) =>
+        _db.ElectronicSignatures
+            .Where(s => s.EntityType == "DocumentRevision" && s.EntityId == revisionId && s.MeaningOfSignature == SignatureMeaning.Approved)
             .OrderByDescending(s => s.SignedAt)
             .Select(s => new ElectronicSignatureDto(
                 s.Id,
@@ -420,7 +370,6 @@ public class DocumentApprovalService : IDocumentApprovalService
                 s.IpAddress
             ))
             .FirstOrDefaultAsync();
-    }
 
     public Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null) =>
         UnitOfWork.RunAsync(_db, () => ExecuteApprovalDecisionCoreAsync(approvalTaskId, request, userId, ipAddress));
@@ -455,7 +404,6 @@ public class DocumentApprovalService : IDocumentApprovalService
             throw new InvalidOperationException($"Cannot execute decision on approval task in status '{task.Status}'.");
 
         var revision = task.DocumentRevision;
-        var master = revision.DocumentMaster;
 
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Actor cannot be Author, Actor cannot be Reviewer! SystemAdministrator is NOT exempt!
@@ -471,205 +419,226 @@ public class DocumentApprovalService : IDocumentApprovalService
         var now = _time.GetUtcNow().UtcDateTime;
 
         if (request.Decision == DocumentApprovalDecision.ReturnForCorrection)
-        {
-            if (string.IsNullOrWhiteSpace(request.DecisionNotes) || request.DecisionNotes.Trim().Length < 10)
-            {
-                throw new ArgumentException("A mandatory justification of at least 10 characters is required when returning a revision for correction.", nameof(request.DecisionNotes));
-            }
-
-            task.Status = DocumentApprovalTaskStatus.ReturnedForCorrection;
-            task.Decision = DocumentApprovalDecision.ReturnForCorrection;
-            task.DecisionAt = now;
-            task.DecisionByUserId = userId;
-            task.DecisionNotes = request.DecisionNotes.Trim();
-
-            // Revert revision status to Draft (DC-URS-075, FS-1b-075)
-            revision.RevisionStatus = DocumentRevisionStatus.Draft;
-
-            _db.CurrentUserId = userId;
-            await _db.SaveChangesAsync();
-
-            await _audit.RecordUserEventAsync(
-                actionCode: "RevisionReturnedByApprover",
-                actionCategory: AuditActionCategory.Approval,
-                recordType: nameof(DocumentApprovalTask),
-                documentMasterId: master.Id,
-                documentRevisionId: revision.Id,
-                reason: task.DecisionNotes,
-                changes: new[]
-                {
-                    new AuditFieldChange("Status", DocumentApprovalTaskStatus.Pending.ToString(), task.Status.ToString()),
-                    new AuditFieldChange("RevisionStatus", DocumentRevisionStatus.AwaitingApproval.ToString(), revision.RevisionStatus.ToString()),
-                    new AuditFieldChange("DecisionNotes", null, task.DecisionNotes)
-                },
-                entityId: task.Id.ToString()
-            );
-
-            return MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, actorUser);
-        }
+            return await ReturnForCorrectionAsync(task, request, userId, actorUser, now);
 
         if (request.Decision == DocumentApprovalDecision.Decline)
-        {
-            if (string.IsNullOrWhiteSpace(request.DecisionNotes) || request.DecisionNotes.Trim().Length < 10)
-            {
-                throw new ArgumentException("A mandatory justification of at least 10 characters is required when declining a revision.", nameof(request.DecisionNotes));
-            }
-
-            task.Status = DocumentApprovalTaskStatus.Declined;
-            task.Decision = DocumentApprovalDecision.Decline;
-            task.DecisionAt = now;
-            task.DecisionByUserId = userId;
-            task.DecisionNotes = request.DecisionNotes.Trim();
-
-            // Mark revision as Cancelled (DC-URS-075, FS-1b-075)
-            revision.RevisionStatus = DocumentRevisionStatus.Cancelled;
-            revision.CancelledAt = now;
-            revision.CancelledByUserId = userId;
-            revision.CancelReason = task.DecisionNotes;
-
-            _db.CurrentUserId = userId;
-            await _db.SaveChangesAsync();
-
-            await _audit.RecordUserEventAsync(
-                actionCode: "RevisionDeclinedByApprover",
-                actionCategory: AuditActionCategory.Approval,
-                recordType: nameof(DocumentApprovalTask),
-                documentMasterId: master.Id,
-                documentRevisionId: revision.Id,
-                reason: task.DecisionNotes,
-                changes: new[]
-                {
-                    new AuditFieldChange("Status", DocumentApprovalTaskStatus.Pending.ToString(), task.Status.ToString()),
-                    new AuditFieldChange("RevisionStatus", DocumentRevisionStatus.AwaitingApproval.ToString(), revision.RevisionStatus.ToString()),
-                    new AuditFieldChange("DecisionNotes", null, task.DecisionNotes)
-                },
-                entityId: task.Id.ToString()
-            );
-
-            return MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, actorUser);
-        }
+            return await DeclineAsync(task, request, userId, actorUser, now);
 
         if (request.Decision == DocumentApprovalDecision.Approve)
-        {
-            // 21 CFR Part 11 Electronic Signature Requirement (DC-URS-076, FS-1b-076)
-            // An approval decision strictly requires authenticated password re-entry.
-            if (string.IsNullOrWhiteSpace(request.Password))
-            {
-                throw new InvalidOperationException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
-            }
-
-            // Verify readiness strictly server-side
-            var readiness = EvaluateReadiness(task, userId);
-            if (!readiness.IsReady)
-            {
-                throw new InvalidOperationException(
-                    "Cannot approve document revision: Prerequisites not met. Errors: " + string.Join("; ", readiness.ValidationErrors));
-            }
-
-            // Check duplicate signature prevention
-            var existingSig = await _db.ElectronicSignatures
-                .AnyAsync(s => s.EntityType == "DocumentRevision" && s.EntityId == revision.Id && s.MeaningOfSignature == SignatureMeaning.Approved);
-            if (existingSig)
-            {
-                throw new InvalidOperationException($"An electronic signature for approval has already been applied to revision {revision.RevisionNumber}.");
-            }
-
-            // Execute 21 CFR Part 11 Electronic Signature ceremony via qualified IElectronicSignatureService
-            // This verifies the user's password hash via BCrypt. If it fails, it throws and writes a failed signature audit event.
-            // When successful, it adds the ElectronicSignature entity to the change tracker without saving, ensuring
-            // that the electronic signature and the approval state mutations are committed atomically in the single SaveChangesAsync.
-            var signatureComment = string.IsNullOrWhiteSpace(request.DecisionNotes)
-                ? $"Approved document revision {revision.RevisionNumber}"
-                : request.DecisionNotes.Trim();
-
-            var signature = await _signatureService.SignAsync(
-                userId: userId,
-                password: request.Password,
-                meaning: SignatureMeaning.Approved,
-                entityType: "DocumentRevision",
-                entityId: revision.Id,
-                comment: signatureComment,
-                ipAddress: ipAddress
-            );
-
-            // Determine effective date and target status (DC-URS-075, FS-1b-076)
-            var effectiveDate = request.EffectiveDate ?? task.TargetEffectiveDate ?? revision.EffectiveDate ?? now;
-            bool isFutureEffective = effectiveDate.Date > now.Date;
-
-            task.Status = DocumentApprovalTaskStatus.Approved;
-            task.Decision = DocumentApprovalDecision.Approve;
-            task.DecisionAt = now;
-            task.DecisionByUserId = userId;
-            task.DecisionNotes = request.DecisionNotes?.Trim();
-
-            if (isFutureEffective)
-            {
-                revision.RevisionStatus = DocumentRevisionStatus.FutureEffective;
-                revision.EffectiveDate = effectiveDate;
-            }
-            else
-            {
-                revision.RevisionStatus = DocumentRevisionStatus.Effective;
-                revision.EffectiveDate = effectiveDate;
-                revision.NextReviewDate = effectiveDate.AddMonths(revision.ReviewCycleMonths ?? 24);
-
-                // Supersede prior effective revision in the same transaction
-                var priorEffective = master.Revisions
-                    .Where(r => r.Id != revision.Id && r.RevisionStatus == DocumentRevisionStatus.Effective)
-                    .ToList();
-
-                foreach (var prior in priorEffective)
-                {
-                    prior.RevisionStatus = DocumentRevisionStatus.Superseded;
-                }
-
-                master.CurrentEffectiveRevisionId = revision.Id;
-            }
-
-            _db.CurrentUserId = userId;
-            await _db.SaveChangesAsync();
-
-            // Semantic Audit Trail for Part 11 Signature & Approval (DC-URS-077, DC-URS-079, FS-1b-077)
-            await _audit.RecordUserEventAsync(
-                actionCode: "ElectronicSignatureApplied",
-                actionCategory: AuditActionCategory.Approval,
-                recordType: nameof(ElectronicSignature),
-                documentMasterId: master.Id,
-                documentRevisionId: revision.Id,
-                reason: $"21 CFR Part 11 Electronic Signature ({SignatureMeaning.Approved}) applied by {signature.UserFullNameSnapshot} ({signature.RoleSnapshot})",
-                changes: new[]
-                {
-                    new AuditFieldChange("SignatureId", null, signature.Id.ToString()),
-                    new AuditFieldChange("SignerUsername", null, signature.UsernameSnapshot),
-                    new AuditFieldChange("SignerFullName", null, signature.UserFullNameSnapshot),
-                    new AuditFieldChange("SignerRole", null, signature.RoleSnapshot),
-                    new AuditFieldChange("Meaning", null, signature.MeaningOfSignature.ToString()),
-                    new AuditFieldChange("SignedAt", null, signature.SignedAt.ToString("O"))
-                },
-                entityId: signature.Id.ToString()
-            );
-
-            await _audit.RecordUserEventAsync(
-                actionCode: "DocumentRevisionApproved",
-                actionCategory: AuditActionCategory.Approval,
-                recordType: nameof(DocumentApprovalTask),
-                documentMasterId: master.Id,
-                documentRevisionId: revision.Id,
-                reason: task.DecisionNotes ?? $"Approved revision {revision.RevisionNumber} (Status: {revision.RevisionStatus})",
-                changes: new[]
-                {
-                    new AuditFieldChange("Status", DocumentApprovalTaskStatus.Pending.ToString(), task.Status.ToString()),
-                    new AuditFieldChange("RevisionStatus", DocumentRevisionStatus.AwaitingApproval.ToString(), revision.RevisionStatus.ToString()),
-                    new AuditFieldChange("EffectiveDate", null, revision.EffectiveDate?.ToString("O")),
-                    new AuditFieldChange("NextReviewDate", null, revision.NextReviewDate?.ToString("O"))
-                },
-                entityId: task.Id.ToString()
-            );
-
-            return MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, actorUser);
-        }
+            return await ApproveAsync(task, request, userId, actorUser, now, ipAddress);
 
         throw new ArgumentException($"Unsupported approval decision: {request.Decision}", nameof(request.Decision));
+    }
+
+    private async Task<DocumentApprovalTaskDto> ReturnForCorrectionAsync(
+        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, DateTime now)
+    {
+        var revision = task.DocumentRevision;
+        var master = revision.DocumentMaster;
+
+        if (string.IsNullOrWhiteSpace(request.DecisionNotes) || request.DecisionNotes.Trim().Length < 10)
+        {
+            throw new ArgumentException("A mandatory justification of at least 10 characters is required when returning a revision for correction.", nameof(request.DecisionNotes));
+        }
+
+        task.Status = DocumentApprovalTaskStatus.ReturnedForCorrection;
+        task.Decision = DocumentApprovalDecision.ReturnForCorrection;
+        task.DecisionAt = now;
+        task.DecisionByUserId = userId;
+        task.DecisionNotes = request.DecisionNotes.Trim();
+
+        // Revert revision status to Draft (DC-URS-075, FS-1b-075)
+        revision.RevisionStatus = DocumentRevisionStatus.Draft;
+
+        _db.CurrentUserId = userId;
+        await _db.SaveChangesAsync();
+
+        await _audit.RecordUserEventAsync(
+            actionCode: "RevisionReturnedByApprover",
+            actionCategory: AuditActionCategory.Approval,
+            recordType: nameof(DocumentApprovalTask),
+            documentMasterId: master.Id,
+            documentRevisionId: revision.Id,
+            reason: task.DecisionNotes,
+            changes: new[]
+            {
+                new AuditFieldChange("Status", DocumentApprovalTaskStatus.Pending.ToString(), task.Status.ToString()),
+                new AuditFieldChange("RevisionStatus", DocumentRevisionStatus.AwaitingApproval.ToString(), revision.RevisionStatus.ToString()),
+                new AuditFieldChange("DecisionNotes", null, task.DecisionNotes)
+            },
+            entityId: task.Id.ToString()
+        );
+
+        return MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, actorUser);
+    }
+
+    private async Task<DocumentApprovalTaskDto> DeclineAsync(
+        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, DateTime now)
+    {
+        var revision = task.DocumentRevision;
+        var master = revision.DocumentMaster;
+
+        if (string.IsNullOrWhiteSpace(request.DecisionNotes) || request.DecisionNotes.Trim().Length < 10)
+        {
+            throw new ArgumentException("A mandatory justification of at least 10 characters is required when declining a revision.", nameof(request.DecisionNotes));
+        }
+
+        task.Status = DocumentApprovalTaskStatus.Declined;
+        task.Decision = DocumentApprovalDecision.Decline;
+        task.DecisionAt = now;
+        task.DecisionByUserId = userId;
+        task.DecisionNotes = request.DecisionNotes.Trim();
+
+        // Mark revision as Cancelled (DC-URS-075, FS-1b-075)
+        revision.RevisionStatus = DocumentRevisionStatus.Cancelled;
+        revision.CancelledAt = now;
+        revision.CancelledByUserId = userId;
+        revision.CancelReason = task.DecisionNotes;
+
+        _db.CurrentUserId = userId;
+        await _db.SaveChangesAsync();
+
+        await _audit.RecordUserEventAsync(
+            actionCode: "RevisionDeclinedByApprover",
+            actionCategory: AuditActionCategory.Approval,
+            recordType: nameof(DocumentApprovalTask),
+            documentMasterId: master.Id,
+            documentRevisionId: revision.Id,
+            reason: task.DecisionNotes,
+            changes: new[]
+            {
+                new AuditFieldChange("Status", DocumentApprovalTaskStatus.Pending.ToString(), task.Status.ToString()),
+                new AuditFieldChange("RevisionStatus", DocumentRevisionStatus.AwaitingApproval.ToString(), revision.RevisionStatus.ToString()),
+                new AuditFieldChange("DecisionNotes", null, task.DecisionNotes)
+            },
+            entityId: task.Id.ToString()
+        );
+
+        return MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, actorUser);
+    }
+
+    private async Task<DocumentApprovalTaskDto> ApproveAsync(
+        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, DateTime now, string? ipAddress)
+    {
+        var revision = task.DocumentRevision;
+        var master = revision.DocumentMaster;
+
+        // 21 CFR Part 11 Electronic Signature Requirement (DC-URS-076, FS-1b-076)
+        // An approval decision strictly requires authenticated password re-entry.
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            throw new InvalidOperationException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
+        }
+
+        // Verify readiness strictly server-side
+        var readiness = EvaluateReadiness(task, userId);
+        if (!readiness.IsReady)
+        {
+            throw new InvalidOperationException(
+                "Cannot approve document revision: Prerequisites not met. Errors: " + string.Join("; ", readiness.ValidationErrors));
+        }
+
+        // Check duplicate signature prevention
+        var existingSig = await _db.ElectronicSignatures
+            .AnyAsync(s => s.EntityType == "DocumentRevision" && s.EntityId == revision.Id && s.MeaningOfSignature == SignatureMeaning.Approved);
+        if (existingSig)
+        {
+            throw new InvalidOperationException($"An electronic signature for approval has already been applied to revision {revision.RevisionNumber}.");
+        }
+
+        // Execute 21 CFR Part 11 Electronic Signature ceremony via qualified IElectronicSignatureService
+        // This verifies the user's password hash via BCrypt. If it fails, it throws and writes a failed signature audit event.
+        // When successful, it adds the ElectronicSignature entity to the change tracker without saving, ensuring
+        // that the electronic signature and the approval state mutations are committed atomically in the single SaveChangesAsync.
+        var signatureComment = string.IsNullOrWhiteSpace(request.DecisionNotes)
+            ? $"Approved document revision {revision.RevisionNumber}"
+            : request.DecisionNotes.Trim();
+
+        var signature = await _signatureService.SignAsync(
+            userId: userId,
+            password: request.Password,
+            meaning: SignatureMeaning.Approved,
+            entityType: "DocumentRevision",
+            entityId: revision.Id,
+            comment: signatureComment,
+            ipAddress: ipAddress
+        );
+
+        // Determine effective date and target status (DC-URS-075, FS-1b-076)
+        var effectiveDate = request.EffectiveDate ?? task.TargetEffectiveDate ?? revision.EffectiveDate ?? now;
+        bool isFutureEffective = effectiveDate.Date > now.Date;
+
+        task.Status = DocumentApprovalTaskStatus.Approved;
+        task.Decision = DocumentApprovalDecision.Approve;
+        task.DecisionAt = now;
+        task.DecisionByUserId = userId;
+        task.DecisionNotes = request.DecisionNotes?.Trim();
+
+        if (isFutureEffective)
+        {
+            revision.RevisionStatus = DocumentRevisionStatus.FutureEffective;
+            revision.EffectiveDate = effectiveDate;
+        }
+        else
+        {
+            revision.RevisionStatus = DocumentRevisionStatus.Effective;
+            revision.EffectiveDate = effectiveDate;
+            revision.NextReviewDate = effectiveDate.AddMonths(revision.ReviewCycleMonths ?? 24);
+
+            // Supersede prior effective revision in the same transaction
+            var priorEffective = master.Revisions
+                .Where(r => r.Id != revision.Id && r.RevisionStatus == DocumentRevisionStatus.Effective)
+                .ToList();
+
+            foreach (var prior in priorEffective)
+            {
+                prior.RevisionStatus = DocumentRevisionStatus.Superseded;
+            }
+
+            master.CurrentEffectiveRevisionId = revision.Id;
+        }
+
+        _db.CurrentUserId = userId;
+        await _db.SaveChangesAsync();
+
+        // Semantic Audit Trail for Part 11 Signature & Approval (DC-URS-077, DC-URS-079, FS-1b-077)
+        await _audit.RecordUserEventAsync(
+            actionCode: "ElectronicSignatureApplied",
+            actionCategory: AuditActionCategory.Approval,
+            recordType: nameof(ElectronicSignature),
+            documentMasterId: master.Id,
+            documentRevisionId: revision.Id,
+            reason: $"21 CFR Part 11 Electronic Signature ({SignatureMeaning.Approved}) applied by {signature.UserFullNameSnapshot} ({signature.RoleSnapshot})",
+            changes: new[]
+            {
+                new AuditFieldChange("SignatureId", null, signature.Id.ToString()),
+                new AuditFieldChange("SignerUsername", null, signature.UsernameSnapshot),
+                new AuditFieldChange("SignerFullName", null, signature.UserFullNameSnapshot),
+                new AuditFieldChange("SignerRole", null, signature.RoleSnapshot),
+                new AuditFieldChange("Meaning", null, signature.MeaningOfSignature.ToString()),
+                new AuditFieldChange("SignedAt", null, signature.SignedAt.ToString("O"))
+            },
+            entityId: signature.Id.ToString()
+        );
+
+        await _audit.RecordUserEventAsync(
+            actionCode: "DocumentRevisionApproved",
+            actionCategory: AuditActionCategory.Approval,
+            recordType: nameof(DocumentApprovalTask),
+            documentMasterId: master.Id,
+            documentRevisionId: revision.Id,
+            reason: task.DecisionNotes ?? $"Approved revision {revision.RevisionNumber} (Status: {revision.RevisionStatus})",
+            changes: new[]
+            {
+                new AuditFieldChange("Status", DocumentApprovalTaskStatus.Pending.ToString(), task.Status.ToString()),
+                new AuditFieldChange("RevisionStatus", DocumentRevisionStatus.AwaitingApproval.ToString(), revision.RevisionStatus.ToString()),
+                new AuditFieldChange("EffectiveDate", null, revision.EffectiveDate?.ToString("O")),
+                new AuditFieldChange("NextReviewDate", null, revision.NextReviewDate?.ToString("O"))
+            },
+            entityId: task.Id.ToString()
+        );
+
+        return MapApprovalTaskDto(task, master, revision, task.AssignedApproverUser, task.AssignedByUser, actorUser);
     }
 
     // ---- Helper Methods ----
@@ -841,53 +810,6 @@ public class DocumentApprovalService : IDocumentApprovalService
         );
     }
 
-    private static DocumentRevisionDto MapRevisionDto(DocumentRevision r)
-    {
-        return new DocumentRevisionDto(
-            r.Id,
-            r.DocumentMasterId,
-            r.RevisionNumber,
-            r.RevisionSequence,
-            r.RevisionStatus,
-            r.EffectiveDate,
-            r.NextReviewDate,
-            r.ReviewCycleMonths,
-            r.RevisionType,
-            r.ReasonForRevision,
-            r.ChangeReference,
-            r.RecordOrigin,
-            r.CreatedAt,
-            r.CreatedByUserId,
-            r.CreatedByUser?.FullName ?? "",
-            r.CancelledAt,
-            r.CancelledByUserId,
-            r.CancelledByUser?.FullName,
-            r.CancelReason,
-            r.Files.OrderByDescending(f => f.UploadedAt).Select(MapFileDto).ToList()
-        );
-    }
-
-    private static RevisionFileDto MapFileDto(RevisionFile f)
-    {
-        return new RevisionFileDto(
-            f.Id,
-            f.DocumentRevisionId,
-            f.FileRole,
-            f.FileName,
-            f.ContentType,
-            f.SizeBytes,
-            f.ContentSha256,
-            f.IsActive,
-            f.SupersededByFileId,
-            f.UploadedAt,
-            f.UploadedByUserId,
-            f.UploadedByUser?.FullName ?? "",
-            f.FileVersion,
-            f.IsApprovedFinalSource,
-            f.GeneratedFromSourceFileId
-        );
-    }
-
     private static DocumentMasterDto MapMasterDto(DocumentMaster m)
     {
         var curRev = m.CurrentEffectiveRevisionId.HasValue
@@ -937,7 +859,7 @@ public class DocumentApprovalService : IDocumentApprovalService
                 a.AssignedByUserId,
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
-            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(MapRevisionDto).ToList()
+            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList()
         ) { Version = m.Version };
     }
 

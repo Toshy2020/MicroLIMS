@@ -61,3 +61,14 @@ osteocare_vitd3_worksheet.html
 workbook_details.json
 test_worksheet.js
 workbook_copy.xlsx
+
+# Scratch text dumps from PDF extraction in the repo root
+/assay_met.txt
+/page_[0-9].txt
+/temp_*.txt
+
+# Local tooling and demo output
+/.agents/
+/.claude/scripts/
+/.ua/
+/scripts/demo-video/

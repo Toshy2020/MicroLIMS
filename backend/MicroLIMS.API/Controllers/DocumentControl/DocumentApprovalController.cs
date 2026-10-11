@@ -28,60 +28,23 @@ public class DocumentApprovalController : ControllerBase
     [HttpPost("revisions/{revisionId:int}/approvals")]
     public async Task<IActionResult> CreateApprovalTask(int revisionId, [FromBody] CreateApprovalTaskRequest request)
     {
-        try
-        {
-            var result = await _approvalService.CreateApprovalTaskAsync(revisionId, request, CurrentUserId);
-            return CreatedAtAction(nameof(GetApprovalTask), new { approvalTaskId = result.Id },
-                ApiResponse<DocumentApprovalTaskDto>.Ok(result, "Approval task created successfully."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await _approvalService.CreateApprovalTaskAsync(revisionId, request, CurrentUserId);
+        return CreatedAtAction(nameof(GetApprovalTask), new { approvalTaskId = result.Id },
+            ApiResponse<DocumentApprovalTaskDto>.Ok(result, "Approval task created successfully."));
     }
 
     [HttpGet("revisions/{revisionId:int}/active-approval")]
     public async Task<IActionResult> GetActiveApprovalTask(int revisionId)
     {
-        try
-        {
-            var task = await _approvalService.GetActiveApprovalTaskForRevisionAsync(revisionId, CurrentUserId);
-            return Ok(ApiResponse<DocumentApprovalTaskDto?>.Ok(task));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var task = await _approvalService.GetActiveApprovalTaskForRevisionAsync(revisionId, CurrentUserId);
+        return Ok(ApiResponse<DocumentApprovalTaskDto?>.Ok(task));
     }
 
     [HttpGet("approvals/{approvalTaskId:int}")]
     public async Task<IActionResult> GetApprovalTask(int approvalTaskId)
     {
-        try
-        {
-            var task = await _approvalService.GetApprovalTaskByIdAsync(approvalTaskId, CurrentUserId);
-            return Ok(ApiResponse<DocumentApprovalTaskDto>.Ok(task));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var task = await _approvalService.GetApprovalTaskByIdAsync(approvalTaskId, CurrentUserId);
+        return Ok(ApiResponse<DocumentApprovalTaskDto>.Ok(task));
     }
 
     [HttpGet("approvals")]
@@ -90,55 +53,22 @@ public class DocumentApprovalController : ControllerBase
         [FromQuery] int? approverUserId,
         [FromQuery] DocumentApprovalTaskStatus? status)
     {
-        try
-        {
-            var tasks = await _approvalService.GetApprovalTasksAsync(revisionId, approverUserId, status, CurrentUserId);
-            return Ok(ApiResponse<IReadOnlyList<DocumentApprovalTaskDto>>.Ok(tasks));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var tasks = await _approvalService.GetApprovalTasksAsync(revisionId, approverUserId, status, CurrentUserId);
+        return Ok(ApiResponse<IReadOnlyList<DocumentApprovalTaskDto>>.Ok(tasks));
     }
 
     [HttpGet("approvals/{approvalTaskId:int}/dossier")]
     public async Task<IActionResult> GetApprovalDossier(int approvalTaskId)
     {
-        try
-        {
-            var dossier = await _approvalService.GetApprovalDossierAsync(approvalTaskId, CurrentUserId);
-            return Ok(ApiResponse<ApprovalDossierDto>.Ok(dossier));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var dossier = await _approvalService.GetApprovalDossierAsync(approvalTaskId, CurrentUserId);
+        return Ok(ApiResponse<ApprovalDossierDto>.Ok(dossier));
     }
 
     [HttpGet("approvals/{approvalTaskId:int}/readiness")]
     public async Task<IActionResult> ValidateApprovalReadiness(int approvalTaskId)
     {
-        try
-        {
-            var readiness = await _approvalService.ValidateApprovalReadinessAsync(approvalTaskId, CurrentUserId);
-            return Ok(ApiResponse<ApprovalReadinessDto>.Ok(readiness));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var readiness = await _approvalService.ValidateApprovalReadinessAsync(approvalTaskId, CurrentUserId);
+        return Ok(ApiResponse<ApprovalReadinessDto>.Ok(readiness));
     }
 
     [HttpPost("approvals/{approvalTaskId:int}/decide")]
@@ -150,23 +80,7 @@ public class DocumentApprovalController : ControllerBase
             var result = await _approvalService.ExecuteApprovalDecisionAsync(approvalTaskId, request, CurrentUserId, ip);
             return Ok(ApiResponse<DocumentApprovalTaskDto>.Ok(result, $"Approval decision '{request.Decision}' executed successfully."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -188,23 +102,7 @@ public class DocumentApprovalController : ControllerBase
             var result = await _approvalService.ExecuteApprovalDecisionAsync(approvalTaskId, decideRequest, CurrentUserId, ip);
             return Ok(ApiResponse<DocumentApprovalTaskDto>.Ok(result, "21 CFR Part 11 Electronic signature applied and revision approved successfully."));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -213,18 +111,7 @@ public class DocumentApprovalController : ControllerBase
     [HttpGet("approvals/{approvalTaskId:int}/signature")]
     public async Task<IActionResult> GetApprovalSignature(int approvalTaskId)
     {
-        try
-        {
-            var signature = await _approvalService.GetApprovalSignatureAsync(approvalTaskId, CurrentUserId);
-            return Ok(ApiResponse<ElectronicSignatureDto?>.Ok(signature));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
+        var signature = await _approvalService.GetApprovalSignatureAsync(approvalTaskId, CurrentUserId);
+        return Ok(ApiResponse<ElectronicSignatureDto?>.Ok(signature));
     }
 }

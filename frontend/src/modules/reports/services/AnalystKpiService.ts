@@ -6,6 +6,19 @@ import {
   AnalystPerformanceDetail,
   WorkloadWeightConfig
 } from "../types/reportingTypes";
+import {
+  AnalystKpiDto,
+  CompletionStatsDto,
+  DelayTrackingDto,
+  MonthlyTatPoint,
+  OverallOnTimeOutcomeDto,
+  SampleQueueCountsDto,
+  SampleSlaOutcomeDto,
+  StageTatSummaryDto,
+  StepViolationOutcomeDto,
+  WorkflowBottleneckDeltaDto,
+  WorkloadWeightDto
+} from "./kpiDtos";
 import { OverviewService } from "./OverviewService";
 import { ReportingService } from "./ReportingService";
 import { computeQuickPeriodRange, QuickPeriod } from "../utils/dateRange";
@@ -35,7 +48,7 @@ export const AnalystKpiService = {
       workflowBottleneckDeltasRes, overallOnTimeRes, overallOnTimeByAnalystRes,
       returnToAnalystRes
     ] = await Promise.all([
-      apiClient.get<{ success: boolean; data: any[] }>("/kpi/analysts", {
+      apiClient.get<{ success: boolean; data: AnalystKpiDto[] }>("/kpi/analysts", {
         params: {
           category: categoryParam,
           location: locationParam,
@@ -47,14 +60,14 @@ export const AnalystKpiService = {
         }
         return null;
       }),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/completion-stats", {
+      apiClient.get<{ success: boolean; data: CompletionStatsDto }>("/kpi/completion-stats", {
         params: {
           category: categoryParam,
           location: locationParam,
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/delay-tracking", {
+      apiClient.get<{ success: boolean; data: DelayTrackingDto }>("/kpi/delay-tracking", {
         params: {
           category: categoryParam,
           location: locationParam,
@@ -62,7 +75,7 @@ export const AnalystKpiService = {
         }
       }).catch(() => null),
       OverviewService.getOverviewData(fromDate, toDate).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/sample-queue-counts", {
+      apiClient.get<{ success: boolean; data: SampleQueueCountsDto }>("/kpi/sample-queue-counts", {
         params: {
           category: categoryParam,
           location: locationParam,
@@ -71,7 +84,7 @@ export const AnalystKpiService = {
       }).catch(() => null),
       ReportingService.searchResults({ fromDate, toDate, resultLevel: "OutOfSpecification", page: 1, pageSize: 1 }).catch(() => null),
       ReportingService.getCompletedByMonth(6).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/sample-assignment-sla", {
+      apiClient.get<{ success: boolean; data: SampleSlaOutcomeDto }>("/kpi/sample-assignment-sla", {
         params: {
           analystId: filterAnalystId,
           fromDate,
@@ -81,7 +94,7 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/step-violations", {
+      apiClient.get<{ success: boolean; data: StepViolationOutcomeDto }>("/kpi/step-violations", {
         params: {
           analystId: filterAnalystId,
           fromDate,
@@ -91,7 +104,7 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/stage-tat-summary", {
+      apiClient.get<{ success: boolean; data: StageTatSummaryDto }>("/kpi/stage-tat-summary", {
         params: {
           analystId: filterAnalystId,
           fromDate,
@@ -101,7 +114,7 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any[] }>("/kpi/testing-tat-by-month", {
+      apiClient.get<{ success: boolean; data: MonthlyTatPoint[] }>("/kpi/testing-tat-by-month", {
         params: {
           months: 6,
           category: categoryParam,
@@ -109,7 +122,7 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: Record<string, any> }>("/kpi/sample-assignment-sla-by-analyst", {
+      apiClient.get<{ success: boolean; data: Record<string, SampleSlaOutcomeDto> }>("/kpi/sample-assignment-sla-by-analyst", {
         params: {
           fromDate,
           toDate,
@@ -118,14 +131,14 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/workflow-bottleneck-deltas", {
+      apiClient.get<{ success: boolean; data: WorkflowBottleneckDeltaDto }>("/kpi/workflow-bottleneck-deltas", {
         params: {
           category: categoryParam,
           location: locationParam,
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/overall-on-time-completion", {
+      apiClient.get<{ success: boolean; data: OverallOnTimeOutcomeDto }>("/kpi/overall-on-time-completion", {
         params: {
           fromDate,
           toDate,
@@ -134,7 +147,7 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
-      apiClient.get<{ success: boolean; data: Record<string, any> }>("/kpi/overall-on-time-completion-by-analyst", {
+      apiClient.get<{ success: boolean; data: Record<string, OverallOnTimeOutcomeDto> }>("/kpi/overall-on-time-completion-by-analyst", {
         params: {
           fromDate,
           toDate,
@@ -161,11 +174,11 @@ export const AnalystKpiService = {
     const sampleSlaData = sampleSlaRes?.data?.data;
     const stepViolationsData = stepViolationsRes?.data?.data;
     const stageTatSummary = stageTatSummaryRes?.data?.data;
-    const testingTatByMonth: { month: string; avgTestingDays: number | null }[] = testingTatByMonthRes?.data?.data ?? [];
-    const slaByAnalyst: Record<string, { totalAssigned: number; onTimeCount: number; overdueCount: number }> = sampleSlaByAnalystRes?.data?.data ?? {};
+    const testingTatByMonth: MonthlyTatPoint[] = testingTatByMonthRes?.data?.data ?? [];
+    const slaByAnalyst: Record<string, SampleSlaOutcomeDto> = sampleSlaByAnalystRes?.data?.data ?? {};
     const workflowBottleneckDeltas = workflowBottleneckDeltasRes?.data?.data;
     const overallOnTime = overallOnTimeRes?.data?.data;
-    const overallOnTimeByAnalyst: Record<string, { totalAssigned: number; onTimeCount: number; overdueCount: number }> = overallOnTimeByAnalystRes?.data?.data ?? {};
+    const overallOnTimeByAnalyst: Record<string, OverallOnTimeOutcomeDto> = overallOnTimeByAnalystRes?.data?.data ?? {};
     const returnToAnalystByAnalyst: Record<string, number> | null = returnToAnalystRes?.data?.data ?? null;
 
     const comparisonRows = buildComparisonRows(realAnalysts, slaByAnalyst, overallOnTimeByAnalyst);
@@ -219,12 +232,12 @@ export const AnalystKpiService = {
       },
       onTimeCompletion: {
         title: "On-Time Completion",
-        value: overallOnTime?.totalAssigned > 0
+        value: overallOnTime && overallOnTime.totalAssigned > 0
           ? `${Number(((overallOnTime.onTimeCount / overallOnTime.totalAssigned) * 100).toFixed(1))}%`
           : "Not Available",
-        deltaPercent: overallOnTime?.totalAssigned > 0 ? Number(((overallOnTime.onTimeCount / overallOnTime.totalAssigned) * 100).toFixed(1)) : 0,
+        deltaPercent: overallOnTime && overallOnTime.totalAssigned > 0 ? Number(((overallOnTime.onTimeCount / overallOnTime.totalAssigned) * 100).toFixed(1)) : 0,
         deltaDirection: "up",
-        comparisonLabel: overallOnTime?.totalAssigned > 0
+        comparisonLabel: overallOnTime && overallOnTime.totalAssigned > 0
           ? `${overallOnTime.onTimeCount} of ${overallOnTime.totalAssigned} samples on time, every stage reached`
           : "No assigned samples in range",
         tooltip: "A sample counts as on time only if every stage it has actually reached (Testing ≤7d, Review ≤24h, Approval ≤24h) met that stage's own SLA."
@@ -258,20 +271,20 @@ export const AnalystKpiService = {
       },
       sampleSla: {
         totalAssigned: sampleSlaData?.totalAssigned ?? 0,
-        onTimePercent: sampleSlaData?.totalAssigned > 0
+        onTimePercent: sampleSlaData && sampleSlaData.totalAssigned > 0
           ? Number(((sampleSlaData.onTimeCount / sampleSlaData.totalAssigned) * 100).toFixed(1))
           : 100,
-        overduePercent: sampleSlaData?.totalAssigned > 0
+        overduePercent: sampleSlaData && sampleSlaData.totalAssigned > 0
           ? Number(((sampleSlaData.overdueCount / sampleSlaData.totalAssigned) * 100).toFixed(1))
           : 0
       },
       stepViolations: {
         totalAssignedTests: stepViolationsData?.totalAssignedTests ?? 0,
-        onTimePercent: stepViolationsData?.totalAssignedTests > 0
+        onTimePercent: stepViolationsData && stepViolationsData.totalAssignedTests > 0
           ? Number((100 - (stepViolationsData.testsWithViolationCount / stepViolationsData.totalAssignedTests) * 100).toFixed(1))
           : 100,
         violationCount: stepViolationsData?.violationCount ?? 0,
-        violationPercent: stepViolationsData?.totalAssignedTests > 0
+        violationPercent: stepViolationsData && stepViolationsData.totalAssignedTests > 0
           ? Number(((stepViolationsData.testsWithViolationCount / stepViolationsData.totalAssignedTests) * 100).toFixed(1))
           : 0
       },
@@ -312,16 +325,16 @@ export const AnalystKpiService = {
   },
 
   async getWorkloadWeights(): Promise<WorkloadWeightConfig[]> {
-    const res = await apiClient.get<{ success: boolean; data: any[] }>("/kpi/workload-weights");
-    return (res.data.data || []).map((w: any) => ({
+    const res = await apiClient.get<{ success: boolean; data: WorkloadWeightDto[] }>("/kpi/workload-weights");
+    return (res.data.data || []).map((w) => ({
       testCode: w.testCode,
       testName: w.testName || w.testCode,
       category: w.category,
-      workloadWeight: w.weight,
+      workloadWeight: w.workloadWeight,
       effectiveDate: w.effectiveDate ? new Date(w.effectiveDate).toLocaleDateString("en-GB") : "Baseline",
       status: w.status === "Inactive" ? "Inactive" : "Active",
       reasonForChange: w.reasonForChange || undefined,
-      changedBy: w.changedByName || "System Admin",
+      changedBy: w.changedBy || "System Admin",
       changedAt: w.changedAt || ""
     }));
   },
@@ -339,9 +352,9 @@ export const AnalystKpiService = {
 };
 
 function buildComparisonRows(
-  backendKpis: any[],
-  slaByAnalyst?: Record<string, { totalAssigned: number; onTimeCount: number; overdueCount: number }>,
-  overallOnTimeByAnalyst?: Record<string, { totalAssigned: number; onTimeCount: number; overdueCount: number }>
+  backendKpis: AnalystKpiDto[],
+  slaByAnalyst?: Record<string, SampleSlaOutcomeDto>,
+  overallOnTimeByAnalyst?: Record<string, OverallOnTimeOutcomeDto>
 ): AnalystComparisonRow[] {
   if (!Array.isArray(backendKpis) || backendKpis.length === 0) {
     return [];
@@ -385,7 +398,7 @@ function buildComparisonRows(
 function buildAnalystDetail(
   analystId: number,
   rows: AnalystComparisonRow[],
-  stageTatSummary?: any,
+  stageTatSummary?: StageTatSummaryDto,
   returnToAnalystByAnalyst?: Record<string, number> | null
 ): AnalystPerformanceDetail | null {
   const row = rows.find((r) => r.analystId === analystId) ?? rows[0];

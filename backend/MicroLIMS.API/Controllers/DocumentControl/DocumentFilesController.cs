@@ -59,14 +59,6 @@ public class DocumentFilesController : ControllerBase
 
             return Ok(ApiResponse<RevisionFileDto>.Ok(result));
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
@@ -74,10 +66,6 @@ public class DocumentFilesController : ControllerBase
         catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return StatusCode(422, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
     }
 
@@ -94,14 +82,6 @@ public class DocumentFilesController : ControllerBase
 
             return File(content, meta.ContentType);
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (StoredFileNotFoundException)
         {
             return StatusCode(500, ApiResponse<object>.Fail(StoredFileMissingMessage));
@@ -109,14 +89,6 @@ public class DocumentFilesController : ControllerBase
         catch (InvalidOperationException ex) when (ex.Message.Contains("integrity"))
         {
             return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
     }
 
@@ -133,14 +105,6 @@ public class DocumentFilesController : ControllerBase
 
             return File(content, meta.ContentType);
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
-        }
         catch (StoredFileNotFoundException)
         {
             return StatusCode(500, ApiResponse<object>.Fail(StoredFileMissingMessage));
@@ -148,14 +112,6 @@ public class DocumentFilesController : ControllerBase
         catch (InvalidOperationException ex) when (ex.Message.Contains("integrity"))
         {
             return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex) when (ex is not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
     }
 }

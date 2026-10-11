@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -69,7 +70,29 @@ public class AuditSearchService
         if (!string.IsNullOrWhiteSpace(r.Action)) query = query.Where(a => a.Action == r.Action);
 
         var logs = await query.OrderByDescending(a => a.Timestamp).Take(r.Take).ToListAsync();
+        return await ToDtosAsync(logs);
+    }
 
+    // Every entry for one record, newest first - no Take limit.
+    public async Task<List<AuditLogDto>> GetForEntityAsync(string entityName, string entityId)
+    {
+        var logs = await _db.AuditLogs
+            .Where(a => a.EntityName == entityName && a.EntityId == entityId)
+            .OrderByDescending(a => a.Timestamp)
+            .ToListAsync();
+        return await ToDtosAsync(logs);
+    }
+
+    // Newest first, optionally for one username.
+    public async Task<List<LoginHistoryResponse>> GetLoginHistoryAsync(string? username, int take)
+    {
+        var query = _db.LoginHistories.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(username)) query = query.Where(l => l.Username == username);
+        return (await query.OrderByDescending(l => l.Timestamp).Take(take).ToListAsync()).Select(LoginHistoryResponse.From).ToList();
+    }
+
+    private async Task<List<AuditLogDto>> ToDtosAsync(List<AuditLog> logs)
+    {
         var userIds = logs.Select(l => l.UserId).Where(id => id.HasValue && id.Value > 0).Select(id => id!.Value).Distinct().ToList();
         var userMap = await _db.Users
             .Include(u => u.Role)

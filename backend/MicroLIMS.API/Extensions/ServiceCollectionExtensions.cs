@@ -110,7 +110,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<UserService>();
         services.AddScoped<UserDeletionService>();
         services.AddScoped<AdminPasswordRecoveryService>();
-        services.AddScoped<AuditService>();
         services.AddScoped<PermissionService>();
         services.AddScoped<RoleService>();
         services.AddScoped<ReferenceNumberGenerator>();

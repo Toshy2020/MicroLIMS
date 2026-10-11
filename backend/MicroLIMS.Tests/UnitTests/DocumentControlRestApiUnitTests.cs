@@ -162,6 +162,7 @@ public class DocumentControlRestApiUnitTests
         var apiRes = Assert.IsType<ApiResponse<PagedResult<DocumentTrainingAssignmentDto>>>(okResult.Value);
 
         Assert.True(apiRes.Success);
+        Assert.NotNull(apiRes.Data);
         Assert.Single(apiRes.Data.Items);
         Assert.Equal("SOP-QC-001", apiRes.Data.Items[0].CompanyDocumentCode);
     }
@@ -177,6 +178,7 @@ public class DocumentControlRestApiUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var apiRes = Assert.IsType<ApiResponse<DocumentTrainingAssignmentDto>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Equal(assignment1.Id, apiRes.Data.Id);
         Assert.Equal("DOC-API-0001", apiRes.Data.MicroLimsDocumentId);
     }
@@ -205,6 +207,7 @@ public class DocumentControlRestApiUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var apiRes = Assert.IsType<ApiResponse<IReadOnlyList<DocumentTrainingAssignmentDto>>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Single(apiRes.Data);
         Assert.Equal(analyst1.Id, apiRes.Data[0].AssignedUserId);
     }
@@ -224,6 +227,7 @@ public class DocumentControlRestApiUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var apiRes = Assert.IsType<ApiResponse<TrainingAssignmentGenerationResultDto>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Equal(1, apiRes.Data.NewAssignmentsCreated);
     }
 
@@ -260,6 +264,7 @@ public class DocumentControlRestApiUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var apiRes = Assert.IsType<ApiResponse<AcknowledgementResultDto>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Equal(assignment1.Id, apiRes.Data.AssignmentId);
         Assert.Equal(TrainingAssignmentStatus.Acknowledged, apiRes.Data.Status);
 
@@ -314,6 +319,7 @@ public class DocumentControlRestApiUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var apiRes = Assert.IsType<ApiResponse<EscalationProcessingResultDto>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.True(apiRes.Data.TotalEscalationsCreated >= 1);
     }
 
@@ -338,6 +344,7 @@ public class DocumentControlRestApiUnitTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var apiRes = Assert.IsType<ApiResponse<DocumentEscalationSummaryDto>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Equal(DocumentEscalationStatus.Resolved, apiRes.Data.Status);
         Assert.Equal(admin.Id, apiRes.Data.ResolvedByUserId);
     }

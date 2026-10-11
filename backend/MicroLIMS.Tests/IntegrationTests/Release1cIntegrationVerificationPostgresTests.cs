@@ -263,6 +263,7 @@ public class Release1cIntegrationVerificationPostgresTests
         var myAssignmentsRes = await trainingController.GetMyAssignments();
         var ok1 = Assert.IsType<OkObjectResult>(myAssignmentsRes);
         var listData = Assert.IsType<ApiResponse<IReadOnlyList<DocumentTrainingAssignmentDto>>>(ok1.Value).Data;
+        Assert.NotNull(listData);
         Assert.Contains(listData, a => a.Id == assignment.Id && a.Status == TrainingAssignmentStatus.Assigned);
 
         // 2. Record reading progress to 100% -> MUST remain Reading, NOT Acknowledged
@@ -519,6 +520,7 @@ public class Release1cIntegrationVerificationPostgresTests
         var gridRes = await matrixController.GetTrainingMatrixGrid(new TrainingMatrixFilterDto());
         var okGrid = Assert.IsType<OkObjectResult>(gridRes);
         var gridData = Assert.IsType<ApiResponse<TrainingMatrixGridDto>>(okGrid.Value).Data;
+        Assert.NotNull(gridData);
         Assert.Single(gridData.Users);
         Assert.Equal(trainee.Id, gridData.Users[0].UserId);
     }

@@ -311,7 +311,7 @@ public class SpecLimitParserTests
     [InlineData("Absent in 10g", null, "Absent in 10g")]
     public void SampleSummaryService_FormatSpecificationText_FormatsCorrectly(string? specLimit, string? unit, string? expected)
     {
-        var spec = new Specification { SpecLimit = specLimit, Unit = unit };
+        var spec = new Specification { SpecLimit = specLimit!, Unit = unit! };
         var formatted = SampleSummaryService.FormatSpecificationText(spec);
         Assert.Equal(expected, formatted);
     }
@@ -320,7 +320,7 @@ public class SpecLimitParserTests
     public void SampleSummaryService_FormatSpecificationText_NullOrEmptySpec_ReturnsNull()
     {
         Assert.Null(SampleSummaryService.FormatSpecificationText(null));
-        Assert.Null(SampleSummaryService.FormatSpecificationText(new Specification { SpecLimit = null }));
+        Assert.Null(SampleSummaryService.FormatSpecificationText(new Specification { SpecLimit = null! }));
         Assert.Null(SampleSummaryService.FormatSpecificationText(new Specification { SpecLimit = "" }));
         Assert.Null(SampleSummaryService.FormatSpecificationText(new Specification { SpecLimit = "   " }));
     }

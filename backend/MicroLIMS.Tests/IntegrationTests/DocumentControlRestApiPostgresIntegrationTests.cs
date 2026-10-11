@@ -154,6 +154,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var okResult = Assert.IsType<OkObjectResult>(myAssignmentsRes);
         var apiRes = Assert.IsType<ApiResponse<IReadOnlyList<DocumentTrainingAssignmentDto>>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Contains(apiRes.Data, a => a.Id == assignmentId);
     }
 
@@ -182,6 +183,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var okResult = Assert.IsType<OkObjectResult>(submitRes);
         var apiRes = Assert.IsType<ApiResponse<AcknowledgementResultDto>>(okResult.Value);
 
+        Assert.NotNull(apiRes.Data);
         Assert.Equal(assignmentId, apiRes.Data.AssignmentId);
         Assert.Equal(TrainingAssignmentStatus.Acknowledged, apiRes.Data.Status);
 
@@ -218,12 +220,14 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var processRes = await controller.ProcessDueEscalations();
         var okResult1 = Assert.IsType<OkObjectResult>(processRes);
         var apiRes1 = Assert.IsType<ApiResponse<EscalationProcessingResultDto>>(okResult1.Value);
+        Assert.NotNull(apiRes1.Data);
         Assert.True(apiRes1.Data.TotalEscalationsCreated >= 1);
 
         // 2. Query history
         var historyRes = await controller.GetAssignmentEscalationHistory(assignmentId);
         var okResult2 = Assert.IsType<OkObjectResult>(historyRes);
         var apiRes2 = Assert.IsType<ApiResponse<IReadOnlyList<DocumentEscalationSummaryDto>>>(okResult2.Value);
+        Assert.NotNull(apiRes2.Data);
         Assert.NotEmpty(apiRes2.Data);
 
         var escalationToResolve = apiRes2.Data[0];
@@ -238,6 +242,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var okResult3 = Assert.IsType<OkObjectResult>(resolveRes);
         var apiRes3 = Assert.IsType<ApiResponse<DocumentEscalationSummaryDto>>(okResult3.Value);
 
+        Assert.NotNull(apiRes3.Data);
         Assert.Equal(DocumentEscalationStatus.Resolved, apiRes3.Data.Status);
     }
 
@@ -264,6 +269,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var myAssignmentsRes = await trainingController.GetMyAssignments();
         var ok1 = Assert.IsType<OkObjectResult>(myAssignmentsRes);
         var listData = Assert.IsType<ApiResponse<IReadOnlyList<DocumentTrainingAssignmentDto>>>(ok1.Value).Data;
+        Assert.NotNull(listData);
         var myAssignment = Assert.Single(listData, a => a.Id == assignmentId);
         Assert.Equal(TrainingAssignmentStatus.Assigned, myAssignment.Status);
         Assert.Equal(revId, myAssignment.DocumentRevisionId);
@@ -296,6 +302,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var contextRes = await ackController.GetAcknowledgementContext(assignmentId);
         var okCtx = Assert.IsType<OkObjectResult>(contextRes);
         var ctxData = Assert.IsType<ApiResponse<AcknowledgementPresentationDto>>(okCtx.Value).Data;
+        Assert.NotNull(ctxData);
         Assert.True(ctxData.CanAcknowledge);
         Assert.NotEmpty(ctxData.LegalStatementText);
 
@@ -309,12 +316,14 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var ackRes = await ackController.SubmitAcknowledgement(assignmentId, ackReq);
         var okAck = Assert.IsType<OkObjectResult>(ackRes);
         var ackData = Assert.IsType<ApiResponse<AcknowledgementResultDto>>(okAck.Value).Data;
+        Assert.NotNull(ackData);
         Assert.Equal(TrainingAssignmentStatus.Acknowledged, ackData.Status);
 
         // 6. Refresh My Reading List: verify state transitioned to Acknowledged
         var myAssignmentsRefreshed = await trainingController.GetMyAssignments();
         var ok2 = Assert.IsType<OkObjectResult>(myAssignmentsRefreshed);
         var refreshedData = Assert.IsType<ApiResponse<IReadOnlyList<DocumentTrainingAssignmentDto>>>(ok2.Value).Data;
+        Assert.NotNull(refreshedData);
         var completedAssignment = Assert.Single(refreshedData, a => a.Id == assignmentId);
         Assert.Equal(TrainingAssignmentStatus.Acknowledged, completedAssignment.Status);
         Assert.NotNull(completedAssignment.AcknowledgedAtUtc);
@@ -337,6 +346,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var okGrid = Assert.IsType<OkObjectResult>(gridRes);
         var gridData = Assert.IsType<ApiResponse<TrainingMatrixGridDto>>(okGrid.Value).Data;
 
+        Assert.NotNull(gridData);
         Assert.True(gridData.TotalUsers >= 1);
         Assert.True(gridData.TotalDocuments >= 1);
         Assert.Contains(gridData.Documents, d => d.DocumentMasterId == masterId);
@@ -346,6 +356,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var okKpis = Assert.IsType<OkObjectResult>(kpisRes);
         var kpisData = Assert.IsType<ApiResponse<ComplianceKpiSummaryDto>>(okKpis.Value).Data;
 
+        Assert.NotNull(kpisData);
         Assert.True(kpisData.TotalTrackedUsers >= 1);
         Assert.True(kpisData.TotalEffectiveDocuments >= 1);
         Assert.True(kpisData.OverallComplianceRatePercentage >= 0.0);
@@ -354,12 +365,14 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var docRes = await controller.GetDocumentCompliance(masterId);
         var okDoc = Assert.IsType<OkObjectResult>(docRes);
         var docData = Assert.IsType<ApiResponse<DocumentComplianceDetailDto>>(okDoc.Value).Data;
+        Assert.NotNull(docData);
         Assert.Equal(masterId, docData.DocumentMasterId);
 
         // 4. Query User Compliance Drilldown
         var userRes = await controller.GetUserCompliance(_fixture.SeededUserId);
         var okUser = Assert.IsType<OkObjectResult>(userRes);
         var userData = Assert.IsType<ApiResponse<UserComplianceDetailDto>>(okUser.Value).Data;
+        Assert.NotNull(userData);
         Assert.Equal(_fixture.SeededUserId, userData.UserId);
     }
 }

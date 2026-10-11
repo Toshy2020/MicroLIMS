@@ -176,7 +176,9 @@ public class SelectivePlatingTests
         var controller = new TestWorkflowController(engine, new TestWorkflowQueryService(db, eligibility, snapshot), new UserSectionScopeService(db),
             new GroupedTestActionService(db, engine, eligibility), new CurrentStepViewService(db, engine));
 
+#pragma warning disable CS0618 // the retired endpoint is what this test covers
         var result = controller.SubmitSelectivePlating_Retired(99) as ObjectResult;
+#pragma warning restore CS0618
         Assert.NotNull(result);
         Assert.Equal(410, result.StatusCode);
     }

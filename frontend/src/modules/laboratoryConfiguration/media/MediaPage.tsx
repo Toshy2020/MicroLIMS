@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Alert } from "@mui/material";
+import { Box, Button, Alert, Tabs, Tab } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { LabPage } from "../../../components/lab";
 import { SectionTitle } from "../../../components/SectionTitle";
@@ -15,8 +16,11 @@ import { MarkOutOfStockDialog } from "./dialogs/MarkOutOfStockDialog";
 import { MediaPreparationService } from "./services/MediaPreparationService";
 import { MediaEvaluationService } from "../mediaEvaluation/services/MediaEvaluationService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { ApprovedMediaListPage } from "../../inventory/approvedLists/ApprovedMediaListPage";
 
 export function MediaPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "approved" ? "approved" : "lots";
   const [lots, setLots] = useState<any[]>([]);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [awaitingApprovalIds, setAwaitingApprovalIds] = useState<Set<number>>(new Set());
@@ -185,8 +189,29 @@ export function MediaPage() {
     />
   );
 
+  const tabs = (
+    <Tabs
+      value={tab}
+      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
+      sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+    >
+      <Tab value="lots" label="Media Lots" />
+      <Tab value="approved" label="Approved Media" />
+    </Tabs>
+  );
+
+  if (tab === "approved") {
+    return (
+      <>
+        {tabs}
+        <ApprovedMediaListPage embedded />
+      </>
+    );
+  }
+
   return (
     <>
+      {tabs}
       <LabPage
         title="Media Preparation & Evaluation"
         subtitle="Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics)."

@@ -6,5 +6,7 @@ export const CryovialService = {
   approve: (id: number, approved: boolean, password: string, comment?: string) =>
     apiClient.post(`/cryovials/${id}/approve`, { approved, password, comment }).then((r) => r.data.data),
   destroy: (id: number) => apiClient.post(`/cryovials/${id}/destroy`).then((r) => r.data.data),
-  thawVial: (id: number, notes?: string) => apiClient.post(`/cryovials/${id}/thaw`, { notes: notes || null }).then((r) => r.data.data)
+  moveStorage: (id: number, payload: { equipmentId: number | null; locationText: string | null; reason: string }) =>
+    apiClient.post(`/cryovials/${id}/move-storage`, payload).then((r) => r.data.data),
+  thawVial:(id: number, notes?: string) => apiClient.post(`/cryovials/${id}/thaw`, { notes: notes || null }).then((r) => r.data.data)
 };

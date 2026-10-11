@@ -35,7 +35,6 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ThermostatOutlinedIcon from "@mui/icons-material/ThermostatOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
 import WaterOutlinedIcon from "@mui/icons-material/WaterOutlined";
@@ -137,9 +136,7 @@ const microArea: MenuItem = {
     { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: ScienceOutlinedIcon, permission: PERMISSIONS.MEDIA_PREPARE, description: "Prepare media lots and record growth promotion and sterility checks." },
     { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Reference strain cryovials: preparation, use and stock." },
     { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, description: "Receive and track microbiology reagents and consumables." },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Microbiology instruments, calibration and maintenance status." },
-    { label: "Approved Media List", path: "/inventory/approved-media", icon: VerifiedOutlinedIcon, permission: PERMISSIONS.MEDIA_PREPARE, description: "Media lots released for use in testing." },
-    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials", icon: FactCheckOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Cryovials released for use in testing." }
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Microbiology instruments, calibration and maintenance status." }
   ]
 };
 

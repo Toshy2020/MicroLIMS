@@ -916,6 +916,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("StorageEquipmentId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("VialsRemaining")
                         .HasColumnType("integer");
 
@@ -933,6 +936,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("MaterialId");
 
                     b.HasIndex("OrganismId");
+
+                    b.HasIndex("StorageEquipmentId");
 
                     b.ToTable("Cryovials");
                 });
@@ -5747,6 +5752,57 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("MediaProducts");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaStorageEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("EquipmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Form")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("LocationText")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("MediaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("MediaId", "Form", "EquipmentId", "LocationText")
+                        .IsUnique();
+
+                    b.ToTable("MediaStorageEntries");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaUsage", b =>
                 {
                     b.Property<int>("Id")
@@ -9916,9 +9972,16 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.EquipmentInventory", "StorageEquipment")
+                        .WithMany()
+                        .HasForeignKey("StorageEquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Material");
 
                     b.Navigation("Organism");
+
+                    b.Navigation("StorageEquipment");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DiluentType", b =>
@@ -11478,6 +11541,24 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("MediaProduct");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaStorageEntry", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.EquipmentInventory", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "Media")
+                        .WithMany("StorageEntries")
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Media");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaUsage", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.Media", "Media")
@@ -12852,6 +12933,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImport", b =>
                 {
                     b.Navigation("Records");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.Media", b =>
+                {
+                    b.Navigation("StorageEntries");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaConfiguration", b =>

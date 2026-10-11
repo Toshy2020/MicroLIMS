@@ -74,6 +74,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RecordArchiveService>();
         services.AddScoped<MediaReleaseService>();
         services.AddScoped<MediaSummaryService>();
+        services.AddScoped<MediaStorageService>();
         services.AddScoped<CryovialSummaryService>();
         services.AddScoped<SampleReviewService>();
         services.AddScoped<SampleApprovalService>();

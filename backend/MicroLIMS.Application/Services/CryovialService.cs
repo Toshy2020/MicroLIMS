@@ -210,4 +210,66 @@ public class CryovialService
     // Used by GPT: a Cryovial batch can only supply challenge organisms if approved.
     public async Task<bool> IsCryovialApprovedAsync(int cryovialId) =>
         await _db.Cryovials.AnyAsync(c => c.Id == cryovialId && c.ApprovalStatus == ApprovalGateStatus.Approved && !c.IsDestroyed);
+
+    public Task<CryovialResponse> MoveStorageAsync(int cryovialId, int userId, int? equipmentId, string? locationText, string reason) =>
+        UnitOfWork.RunAsync(_db, () => MoveStorageCoreAsync(cryovialId, userId, equipmentId, locationText, reason));
+
+    private async Task<CryovialResponse> MoveStorageCoreAsync(int cryovialId, int userId, int? equipmentId, string? locationText, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("A reason is required to move cryovial storage.");
+
+        var hasEquipment = equipmentId.HasValue;
+        var hasLocationText = !string.IsNullOrWhiteSpace(locationText);
+        if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
+            throw new InvalidOperationException("Exactly one of EquipmentId or LocationText must be provided.");
+
+        var cryovial = await _db.Cryovials
+            .Include(c => c.Material)
+            .Include(c => c.Organism)
+            .Include(c => c.IdentityConfirmations)
+            .Include(c => c.ThawHistory)
+            .FirstOrDefaultAsync(c => c.Id == cryovialId)
+            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+
+        if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved)
+            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved - cannot move storage.");
+        if (cryovial.IsDestroyed)
+            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} has been destroyed and cannot be moved.");
+
+        EquipmentInventory? equipment = null;
+        string newLocation;
+
+        if (hasEquipment)
+        {
+            equipment = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId!.Value)
+                ?? throw new NotFoundException($"Equipment {equipmentId!.Value} not found.");
+
+            if (equipment.Status != EquipmentOperationalStatus.InService)
+                throw new InvalidOperationException($"Equipment {equipment.Code} is not currently in service.");
+
+            newLocation = $"{equipment.InstrumentType}, {equipment.ManufacturerName} ({equipment.Code})";
+        }
+        else
+        {
+            newLocation = locationText!.Trim();
+        }
+
+        var oldLocation = cryovial.StorageCondition;
+        cryovial.StorageEquipmentId = equipmentId;
+        cryovial.StorageCondition = newLocation;
+
+        var comment = $"Cryovial storage location moved from \"{oldLocation}\" to \"{newLocation}\". Reason: {reason.Trim()}";
+        await _reviewGate.LogEventAsync(
+            ReviewEntityTypes.Cryovial,
+            cryovialId,
+            userId,
+            ReviewWorkflowEventType.StorageLocationChanged,
+            comment);
+
+        _db.CurrentUserId = userId;
+        await _db.SaveChangesAsync();
+
+        return CryovialResponse.From(cryovial);
+    }
 }

@@ -61,6 +61,7 @@ public class CryovialSummaryService
             NumberOfVialsPrepared = cryovial.NumberOfVialsPrepared,
             VialsRemaining = cryovial.VialsRemaining,
             StorageCondition = cryovial.StorageCondition,
+            StorageEquipmentId = cryovial.StorageEquipmentId,
             PhysicalCheckConfirmed = cryovial.PhysicalCheckConfirmed,
             PhysicalCheckText = cryovial.PhysicalCheckText,
             OrganismDescription = cryovial.Organism?.Description,

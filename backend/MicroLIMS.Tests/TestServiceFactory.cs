@@ -153,6 +153,9 @@ public static class TestServiceFactory
     public static MediaPreparationService MediaPreparation(MicroLimsDbContext db) =>
         new(db, new MaterialService(db, new UserSectionScopeService(db)), ReviewGate(db));
 
+    public static MediaStorageService MediaStorage(MicroLimsDbContext db) =>
+        new(db, ReviewGate(db));
+
     public static IncubatorEligibilityService IncubatorEligibility(MicroLimsDbContext db) => new(db);
 
     public static MediaAppearanceSnapshotService AppearanceSnapshot(MicroLimsDbContext db) =>

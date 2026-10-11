@@ -111,7 +111,7 @@ function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30
   return diffDays <= daysThreshold;
 }
 
-export function ApprovedMediaListPage() {
+export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean }) {
   const theme = useTheme();
   const { action, purple } = theme.custom.status;
 
@@ -356,10 +356,12 @@ export function ApprovedMediaListPage() {
   return (
     <>
       <Box className="no-print">
-        <PageHeader
-          title="Approved Media List"
-          subtitle="Prepared media lots that passed GPT and are released for routine use."
-        />
+        {!embedded && (
+          <PageHeader
+            title="Approved Media List"
+            subtitle="Prepared media lots that passed GPT and are released for routine use."
+          />
+        )}
 
         {error && (
           <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>

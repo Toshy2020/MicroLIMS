@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import { Box, Typography } from "@mui/material";
+import { Alert, Box, FormControlLabel, MenuItem, Radio, RadioGroup, TextField, Typography } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 // Shared building blocks for the pathogen step panels, so every step reads
 // the same way: label/value rows for recorded details and an action bar
@@ -80,5 +81,131 @@ export function IncubationTimeline({ points }: { points: { label: string; value:
         ))}
       </Box>
     </Box>
+  );
+}
+
+// A medium fixed by the step template, with a lock showing it comes from
+// Test Master and can't be changed here.
+export function FixedMediumRow({ mediaName, label = "Medium" }: { mediaName: string; label?: string }) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", borderRadius: 2, px: 1.5, py: 1 }}>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>{mediaName}</Typography>
+      </Box>
+      <Typography variant="caption" title="Assigned in Test Master" sx={{ ml: "auto", color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, whiteSpace: "nowrap" }}>
+        <LockOutlinedIcon sx={{ fontSize: 14 }} /> Test Master
+      </Typography>
+    </Box>
+  );
+}
+
+interface LotOption { id: number; lotNumber: string; expiryDate: string }
+interface IncubatorOption { id: number; name: string; code: string; setTemperature: number }
+
+// Labelled media lot + incubator pickers with helper text, shared by every
+// step that starts an incubation.
+export function MediaLotIncubatorFields({
+  idPrefix, lots, incubators, tempMin, tempMax, mediaLotId, equipmentId, onLotChange, onIncubatorChange, disabled = false
+}: {
+  idPrefix: string;
+  lots: LotOption[];
+  incubators: IncubatorOption[];
+  tempMin: number;
+  tempMax: number;
+  mediaLotId: number | "";
+  equipmentId: number | "";
+  onLotChange: (id: number) => void;
+  onIncubatorChange: (id: number) => void;
+  disabled?: boolean;
+}) {
+  const lotCount = lots.length;
+  return (
+    <>
+      <TextField
+        select fullWidth required disabled={disabled}
+        id={`${idPrefix}-media-lot`}
+        label="Media lot"
+        value={mediaLotId}
+        onChange={(e) => onLotChange(Number(e.target.value))}
+        helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
+        error={!disabled && lotCount === 0}
+        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+      >
+        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
+        {lots.map((l) => (
+          <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select fullWidth required disabled={disabled}
+        id={`${idPrefix}-incubator`}
+        label="Incubator"
+        value={equipmentId}
+        onChange={(e) => onIncubatorChange(Number(e.target.value))}
+        helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
+        error={!disabled && incubators.length === 0}
+        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+      >
+        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
+        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
+      </TextField>
+    </>
+  );
+}
+
+// What a target-positive colony looks like on this medium, or a warning
+// when Test Master has no expected appearance configured.
+export function ExpectedAppearanceNote({ mediaName, expectedAppearance }: { mediaName: string; expectedAppearance: string | null }) {
+  return expectedAppearance === null ? (
+    <Alert severity="warning">
+      Expected appearance not configured in Test Master for {mediaName}. Growth vs. no-growth can still be recorded,
+      but a conforming/non-conforming judgment is unreliable until Test Master is fixed.
+    </Alert>
+  ) : (
+    <Alert severity="info" icon={false} sx={{ py: 0.25 }}>
+      <Typography variant="caption" sx={{ display: "block", textTransform: "uppercase", letterSpacing: "0.06em" }}>Expected target-positive colony</Typography>
+      <strong>{expectedAppearance}</strong>
+    </Alert>
+  );
+}
+
+// Observation choices as full-width cards with a large tap area.
+export function ObservationOptions<T extends string>({
+  name, value, onChange, options, disabled = false
+}: {
+  name: string;
+  value: T | "";
+  onChange: (value: T) => void;
+  options: { value: T; title: string; detail?: string }[];
+  disabled?: boolean;
+}) {
+  return (
+    <RadioGroup name={name} value={value} onChange={(e) => onChange(e.target.value as T)} sx={{ gap: 1 }}>
+      {options.map((o) => {
+        const selected = value === o.value;
+        return (
+          <FormControlLabel
+            key={o.value}
+            value={o.value}
+            disabled={disabled}
+            control={<Radio />}
+            label={
+              <Box sx={{ py: 0.75 }}>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>{o.title}</Typography>
+                {o.detail && <Typography variant="caption" sx={{ color: "text.secondary" }}>{o.detail}</Typography>}
+              </Box>
+            }
+            sx={{
+              m: 0, pr: 1.5, alignItems: "flex-start", minHeight: 48,
+              border: "1px solid", borderRadius: 2,
+              borderColor: selected ? "primary.main" : "divider",
+              bgcolor: selected ? "action.selected" : "transparent",
+              "& .MuiRadio-root": { pt: 1.25 }
+            }}
+          />
+        );
+      })}
+    </RadioGroup>
   );
 }

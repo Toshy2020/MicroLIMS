@@ -50,3 +50,29 @@ describe("BrothWaitingPanel countdown", () => {
     expect(proceed.disabled).toBe(false);
   });
 });
+
+describe("SelectivePlatingPanel countdown", () => {
+  it("shows the shared countdown while incubating and switches to plate reading at zero", async () => {
+    const { SelectivePlatingPanel } = await import("./SelectivePlatingPanel");
+    const { TestWorkflowService } = await import("../services/TestWorkflowService");
+    Object.assign(TestWorkflowService, {
+      getPermittedConfirmatoryMedia: vi.fn().mockResolvedValue({
+        permittedMedia: [{ stepMediaId: 3, mediaName: "MacConkey agar", tempMin: 30, tempMax: 35, expectedAppearance: "Pink colonies", availableLots: [] }]
+      }),
+      getEligibleIncubators: vi.fn().mockResolvedValue({ eligibleIncubators: [] })
+    });
+    const platingStep = { ...step, stepName: "MAR", stepType: "SelectivePlating", incubationMinHours: 1, incubationMaxHours: 2 } as TestWorkflowStepDto;
+    const c = { ...current(3600), step: platingStep } as CurrentStepResponse;
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <SelectivePlatingPanel testOrderId={7} step={platingStep} current={c} onSubmitted={() => {}} />
+      </ThemeProvider>
+    );
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    expect(screen.getByText("01:00:00")).toBeTruthy();
+    expect(screen.getByText("Pink colonies")).toBeTruthy();
+
+    act(() => { vi.advanceTimersByTime(3600 * 1000); });
+    expect(screen.getByText("Growth matching expected appearance")).toBeTruthy();
+  });
+});

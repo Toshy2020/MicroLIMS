@@ -11,6 +11,7 @@ import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
 import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
 import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 import { StepChainStrip } from "./components/StepChainStrip";
+import { serverIncubationWindow } from "./utils/incubationWindow";
 
 interface Props { testOrderId: number; testCode: string; displayName: string; onClose?: () => void; }
 
@@ -21,6 +22,15 @@ function getConfirmatoryOutcome(current: CurrentStepResponse): string | null {
   const confirmatoryStep = current.completedSteps.find((s) => s.stepType === "ConfirmatoryPlating");
   return confirmatoryStep?.outcome ?? null;
 }
+
+// One-line explanation per step type, behind "What happens in this step?".
+const STEP_HELP: Record<string, string> = {
+  BrothEnrichment: "This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once the assigned incubation window completes.",
+  SelectiveBroth: "This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once the assigned incubation window completes.",
+  SelectivePlating: "Plate onto the selective medium and start incubation. Once the minimum incubation has passed, read the plate and record what grew against the expected appearance.",
+  ConfirmatoryPlating: "Plate onto each confirmatory medium the method permits and start incubation. Once the minimum incubation has passed, record an observation for every plate.",
+  BiochemicalTest: "Record the biochemical identification result and whether it shows the target organism. Your Detected / Not Detected decision sets the final result."
+};
 
 const chipSx = { px: 1, py: 0.25, borderRadius: 999, fontSize: 11.5, fontWeight: 600, border: "1px solid", lineHeight: 1.5 } as const;
 const toneSx = (tone: { bg: string; text: string; border: string }) => ({ bgcolor: tone.bg, color: tone.text, borderColor: tone.border });
@@ -84,24 +94,33 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   if (!step) return <Alert severity="error">No current step is available for this test order.</Alert>;
 
   const isBrothStep = step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth";
-  const isIncubating = isBrothStep && current.incubationLock != null;
+  const isPlatingStep = step.stepType === "SelectivePlating" || step.stepType === "ConfirmatoryPlating";
+  const isIncubating = current.incubationLock != null
+    || (current.previousSteps ?? []).some((p) => p.stepName === step.stepName && p.status === "Incubating");
+  const { isTimeReady } = serverIncubationWindow(step, current);
+
+  const status = theme.custom.status;
+  const stepChip: { label: string; tone: { bg: string; text: string; border: string } } | null =
+    isBrothStep ? (isIncubating ? { label: "Incubating", tone: status.purple } : { label: "Preparation · no pass/fail", tone: status.info })
+    : isPlatingStep ? (!isIncubating ? { label: "Set up", tone: status.info } : isTimeReady ? { label: "Ready to read", tone: status.notDetected } : { label: "Incubating", tone: status.purple })
+    : step.stepType === "BiochemicalTest" ? { label: "Result entry", tone: status.info }
+    : null;
+  const stepHelp = STEP_HELP[step.stepType];
 
   return (
     <Box>
       <StepChainStrip current={current} />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.5, mb: isBrothStep ? 0.5 : 1.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.5, mb: stepHelp ? 0.5 : 1.5 }}>
         <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>{step.stepName}</Typography>
-        {isBrothStep && (
-          <Box component="span" sx={{ ...chipSx, ...(isIncubating ? toneSx(theme.custom.status.purple) : toneSx(theme.custom.status.info)) }}>
-            {isIncubating ? "Incubating" : "Preparation · no pass/fail"}
-          </Box>
+        {stepChip && (
+          <Box component="span" sx={{ ...chipSx, ...toneSx(stepChip.tone) }}>{stepChip.label}</Box>
         )}
         {step.isFinalStep && <Typography component="span" variant="caption" sx={{
           color: "text.secondary"
         }}>(determines the final result)</Typography>}
       </Box>
-      {isBrothStep && (
+      {stepHelp && (
         <Box sx={{ mb: 2 }}>
           <Link
             component="button"
@@ -115,8 +134,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
           </Link>
           <Collapse in={showStepHelp} unmountOnExit>
             <Typography variant="caption" component="p" sx={{ color: "text.secondary", mt: 0.5, mb: 0 }}>
-              This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once
-              the assigned incubation window completes.
+              {stepHelp}
             </Typography>
           </Collapse>
         </Box>

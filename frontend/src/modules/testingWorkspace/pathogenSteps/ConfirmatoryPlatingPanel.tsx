@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Box, Typography, Select, MenuItem, Button, Stack, Alert,
-  Checkbox, FormControlLabel, RadioGroup, Radio, CircularProgress
+  Box, Typography, Button, Stack, Alert,
+  Checkbox, FormControlLabel, CircularProgress
 } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import {
@@ -9,10 +9,19 @@ import {
   GrowthObservation, AnalystDecision
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
-import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE, serverIncubationWindow } from "../utils/incubationWindow";
-import { useAuth } from "../../../contexts/AuthContext";
-import { PERMISSIONS } from "../../../routes/routes";
-import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { serverIncubationWindow } from "../utils/incubationWindow";
+import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
+import {
+  StepActionBar, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields,
+  ExpectedAppearanceNote, ObservationOptions
+} from "./StepLayout";
+import { IncubationWaitingView } from "./IncubationWaitingView";
+
+const OBSERVATION_OPTIONS: { value: GrowthObservation; title: string; detail?: string }[] = [
+  { value: "NoGrowth", title: "No growth" },
+  { value: "GrowthNonConforming", title: "Growth, does not match expected appearance" },
+  { value: "GrowthConforming", title: "Growth matching expected appearance", detail: "Conforming" }
+];
 
 interface Props {
   testOrderId: number;
@@ -47,10 +56,9 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   const [error, setError] = useState<string | null>(null);
   const [alreadyRecordedMessage, setAlreadyRecordedMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
-  const [skipping, setSkipping] = useState(false);
-  const { permissions } = useAuth();
-  const canOverride = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
+  // Set by the waiting screen when its countdown reaches zero.
+  const [countdownReady, setCountdownReady] = useState(false);
+  const handleReady = useCallback(() => setCountdownReady(true), []);
 
   // Setup phase state, keyed by stepMediaId.
   const [setupRows, setSetupRows] = useState<Record<number, SetupRow>>({});
@@ -72,14 +80,11 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   // Window, start, readiness and expected end exactly as the server resolved
   // them (the panel's longest window across its chosen media) - no local
   // hour calculations.
-  const {
-    tempMin, tempMax, minHours: incMinHours, maxHours: incMaxHours,
-    incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady
-  } = serverIncubationWindow(step, current);
+  const { windowNotConfigured, isTimeReady } = serverIncubationWindow(step, current);
 
   const initialPhase: Phase =
     !isStepIncubating ? "setup" :
-    !isTimeReady ? "waiting" :
+    !(isTimeReady || countdownReady) || windowNotConfigured ? "waiting" :
     "readout";
 
   const [phase, setPhase] = useState<Phase>(initialPhase);
@@ -87,20 +92,6 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   useEffect(() => {
     setPhase(initialPhase);
   }, [initialPhase]);
-
-  const confirmSkipWait = async () => {
-    setError(null);
-    setSkipping(true);
-    try {
-      await TestWorkflowService.overrideMinimumDuration(testOrderId);
-      setSkipDialogOpen(false);
-      onSubmitted();
-    } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
-    } finally {
-      setSkipping(false);
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -232,7 +223,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     }
   };
 
-  if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
+  if (loading) return <DialogBodySkeleton blocks={3} blockHeight={48} />;
   if (alreadyRecordedMessage) {
     return (
       <Alert severity="info">
@@ -241,220 +232,153 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     );
   }
 
+  const checkedSetupRows = Object.values(setupRows).filter((r) => r.checked);
+  const setupComplete = checkedSetupRows.length > 0 && checkedSetupRows.every((r) => r.mediaLotId && r.equipmentId);
+  const activeReadout = readoutMedia.filter((m) => isReadoutActive(m.materialId));
+  const readoutComplete = activeReadout.length > 0 && activeReadout.every((m) => observations[m.materialId]);
+
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
       {error && <Alert severity="error">{error}</Alert>}
-      {organism && (
-        <Typography variant="body2" sx={{ mb: 1 }}>
-          Target organism: <strong>{organism.name}</strong>
-        </Typography>
-      )}
+      {organism && <FixedMediumRow label="Target organism" mediaName={organism.name} />}
 
       {phase === "setup" && (
-        <Stack spacing={1.5}>
-          <Alert severity="info">
-            Check every medium you actually plated for this confirmatory run, choose its lot and incubator, then
-            set the shared incubation duration below. Only what the step template permits can be selected - there is
-            no way to add another medium here.
-          </Alert>
+        <>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Tick every medium you actually plated, then choose its lot and incubator. Only media the step template
+            permits are listed.
+          </Typography>
           {permitted.map((m) => {
             const row = setupRows[m.stepMediaId] ?? {
               entry: m, checked: false, mediaLotId: "", equipmentId: "", incubators: []
             };
             return (
-              <Box key={m.stepMediaId} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+              <Box
+                key={m.stepMediaId}
+                sx={{
+                  border: "1px solid", borderColor: row.checked ? "primary.main" : "divider", borderRadius: 2,
+                  p: 1.5, display: "grid", gap: 1.5
+                }}
+              >
                 <FormControlLabel
+                  sx={{ m: 0 }}
                   control={<Checkbox checked={row.checked} onChange={(e) => toggleChecked(m.stepMediaId, e.target.checked)} />}
                   label={<Typography sx={{ fontWeight: 600 }}>{m.mediaName}</Typography>}
                 />
-                {m.expectedAppearance === null ? (
-                  <Alert severity="warning" sx={{ mb: 1 }}>
-                    Expected appearance not configured in Test Master for {m.mediaName}. This medium can still be
-                    plated and read; a conforming/non-conforming judgment is unreliable until Test Master is fixed.
-                  </Alert>
-                ) : (
-                  <Alert severity="info" sx={{ mb: 1 }}>
-                    Expected appearance of a target-positive colony: <strong>{m.expectedAppearance}</strong>
-                  </Alert>
+                <ExpectedAppearanceNote mediaName={m.mediaName} expectedAppearance={m.expectedAppearance} />
+                {row.checked && (
+                  <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+                    <MediaLotIncubatorFields
+                      idPrefix={`confirmatory-${m.stepMediaId}`}
+                      lots={m.availableLots}
+                      incubators={row.incubators}
+                      tempMin={m.tempMin}
+                      tempMax={m.tempMax}
+                      mediaLotId={row.mediaLotId}
+                      equipmentId={row.equipmentId}
+                      onLotChange={(id) => setLot(m.stepMediaId, id)}
+                      onIncubatorChange={(id) => setEquipment(m.stepMediaId, id)}
+                    />
+                  </Box>
                 )}
-                <Stack useFlexGap direction="row" spacing={1} sx={{
-                  flexWrap: "wrap"
-                }}>
-                  <Select
-                    displayEmpty size="small" value={row.mediaLotId} disabled={!row.checked}
-                    onChange={(e) => setLot(m.stepMediaId, Number(e.target.value))}
-                    sx={{ minWidth: 220 }}
-                    inputProps={{ "aria-label": `${m.mediaName} media lot` }}
-                  >
-                    <MenuItem value=""><em>Media Lot</em></MenuItem>
-                    {m.availableLots.map((l) => (
-                      <MenuItem key={l.id} value={l.id}>{l.lotNumber}, expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
-                    ))}
-                  </Select>
-                  <Select
-                    displayEmpty size="small" value={row.equipmentId} disabled={!row.checked}
-                    onChange={(e) => setEquipment(m.stepMediaId, Number(e.target.value))}
-                    sx={{ minWidth: 220 }}
-                    inputProps={{ "aria-label": `${m.mediaName} incubator (${m.tempMin}-${m.tempMax} °C)` }}
-                  >
-                    <MenuItem value=""><em>Incubator ({m.tempMin}-{m.tempMax} °C)</em></MenuItem>
-                    {row.incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setTemperature}°C</MenuItem>)}
-                  </Select>
-                </Stack>
               </Box>
             );
           })}
-          <Box sx={{ p: 1.5, backgroundColor: "background.default", borderRadius: 1, mb: 1 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Incubation Duration (from Test Master)
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {step.incubationMaxHours > 0
-                ? `${step.incubationMinHours}–${step.incubationMaxHours} hours`
-                : "Not configured in Test Master"}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Each medium keeps its own window; the shared incubation runs to the longest one selected
-            </Typography>
-          </Box>
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
+          {step.incubationMaxHours > 0 ? (
+            <IncubationTimeline
+              points={[
+                { label: "Start", value: "0 h", active: true },
+                { label: "Ready from", value: `${step.incubationMinHours} h` },
+                { label: "Read by", value: `${step.incubationMaxHours} h` }
+              ]}
+            />
+          ) : (
+            <Alert severity="warning">Incubation duration is not configured in Test Master.</Alert>
+          )}
+          <Typography variant="caption" sx={{ color: "text.secondary", mt: -1 }}>
+            Each medium keeps its own window; the shared incubation runs to the longest one selected.
+          </Typography>
+          <StepActionBar
+            note={setupComplete
+              ? "Start time, media lots and incubators are recorded in the audit trail."
+              : "Tick at least one medium and choose its lot and incubator to continue."}
+          >
             <Button
               variant="contained"
               onClick={submitSetup}
-              disabled={submitting}
+              disabled={submitting || !setupComplete}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              {submitting ? "Starting..." : "Submit Setup"}
+              {submitting ? "Starting..." : "Start Incubation"}
             </Button>
-          </Stack>
-        </Stack>
+          </StepActionBar>
+        </>
       )}
 
       {phase === "waiting" && (
-        <Stack spacing={1.5}>
-          <Alert severity="info">
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Confirmatory incubation in progress.
-            </Typography>
-            {tempMin != null && tempMax != null && tempMin > 0 && (
-              <Typography variant="body2">
-                Temperature: <strong>{tempMin}–{tempMax} °C</strong>
-              </Typography>
-            )}
-            {incMinHours != null && incMaxHours != null && incMinHours > 0 && (
-              <Typography variant="body2">
-                Duration: <strong>{incMinHours}–{incMaxHours} hours</strong>
-              </Typography>
-            )}
-            {incubationStartUtc && (
-              <Typography variant="body2">
-                Started: <strong>{incubationStartUtc.toLocaleString()}</strong>
-              </Typography>
-            )}
-            {expectedEndAt && (
-              <Typography variant="body2">
-                Expected reading: <strong>{expectedEndAt.toLocaleString()}</strong>
-              </Typography>
-            )}
-          </Alert>
-
-          {windowNotConfigured && (
-            <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>
+        <IncubationWaitingView
+          testOrderId={testOrderId}
+          step={step}
+          current={current}
+          onSubmitted={onSubmitted}
+          nextLabel="Plate reading"
+          onReady={handleReady}
+          renderAction={() => (
+            <Button variant="contained" disabled>Submit Observations</Button>
           )}
-
-          {minReadyAt && (
-            <Alert severity="warning">
-              Not ready yet. Available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
-            </Alert>
-          )}
-
-          <Stack
-            direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-            {canOverride && !windowNotConfigured ? (
-              <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
-                Skip Wait
-              </Button>
-            ) : <span />}
-            <Button variant="contained" disabled>
-              Incubation In Progress
-            </Button>
-          </Stack>
-        </Stack>
+        />
       )}
 
       {phase === "readout" && (
-        <Stack spacing={1.5}>
+        <>
           {readoutUncertain ? (
             <Alert severity="warning">
               Confirmatory media for this step were already selected in a previous session. Confirm
               each medium before recording its observation.
             </Alert>
           ) : (
-            <Alert severity="info">Read each plate and record what you observe against the expected appearance.</Alert>
+            <Alert severity="success">Incubation complete. Read each plate against its expected appearance.</Alert>
           )}
           {readoutMedia.map((m) => {
             const checked = isReadoutActive(m.materialId);
             const value = observations[m.materialId] ?? "";
             return (
-              <Box key={m.materialId} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+              <Box key={m.materialId} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 1.5, display: "grid", gap: 1.5 }}>
+                <Typography sx={{ fontWeight: 600 }}>{m.mediaName}</Typography>
                 {readoutUncertain && (
                   <FormControlLabel
+                    sx={{ m: 0 }}
                     control={<Checkbox checked={checked} onChange={(e) =>
                       setReadoutChecked((prev) => ({ ...prev, [m.materialId]: e.target.checked }))} />}
                     label="This medium was actually plated"
                   />
                 )}
-                <Typography sx={{ fontWeight: 600 }}>{m.mediaName}</Typography>
-                {m.expectedAppearance === null ? (
-                  <Alert severity="warning" sx={{ my: 1 }}>
-                    Expected appearance not configured in Test Master for {m.mediaName}. An observation can still be
-                    recorded, but a conforming/non-conforming judgment is unreliable until Test Master is fixed.
-                  </Alert>
-                ) : (
-                  <Alert severity="info" sx={{ my: 1 }}>
-                    Expected appearance of a target-positive colony: <strong>{m.expectedAppearance}</strong>
-                  </Alert>
-                )}
-                <RadioGroup
+                <ExpectedAppearanceNote mediaName={m.mediaName} expectedAppearance={m.expectedAppearance} />
+                <ObservationOptions
+                  name={`confirmatory-observation-${m.materialId}`}
                   value={value}
-                  onChange={(e) => setObservations((prev) => ({ ...prev, [m.materialId]: e.target.value as GrowthObservation }))}
-                >
-                  <FormControlLabel value="NoGrowth" control={<Radio />} disabled={!checked} label="No growth" />
-                  <FormControlLabel
-                    value="GrowthNonConforming" control={<Radio />} disabled={!checked}
-                    label="Growth present, does not match expected appearance"
-                  />
-                  <FormControlLabel
-                    value="GrowthConforming" control={<Radio />} disabled={!checked}
-                    label="Growth matching expected appearance: conforming"
-                  />
-                </RadioGroup>
+                  disabled={!checked}
+                  onChange={(v) => setObservations((prev) => ({ ...prev, [m.materialId]: v }))}
+                  options={OBSERVATION_OPTIONS}
+                />
               </Box>
             );
           })}
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
+          <StepActionBar note={readoutComplete ? undefined : "Record an observation for every plated medium to continue."}>
             <Button
               variant="contained"
               onClick={submitReadout}
-              disabled={submitting}
+              disabled={submitting || !readoutComplete}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
               {submitting ? "Submitting..." : "Submit Observations"}
             </Button>
-          </Stack>
-        </Stack>
+          </StepActionBar>
+        </>
       )}
 
       {phase === "decision" && (
-        <Stack spacing={1.5}>
+        <>
           <Alert severity="success">
             Every confirmatory medium showed growth matching the target organism's expected appearance.
           </Alert>
@@ -462,33 +386,24 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             Per SOP, choose whether to conclude detection from this conforming confirmatory result alone,
             or proceed with biochemical confirmation.
           </Typography>
-          <Stack direction="row" spacing={2} sx={{
-            justifyContent: "flex-end"
-          }}>
+          <StepActionBar>
             <Button
-              variant="contained" color="error" onClick={() => decide("SubmitAsDetected")}
+              variant="outlined" color="error" onClick={() => decide("SubmitAsDetected")}
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
               Conclude as Detected
             </Button>
             <Button
-              variant="outlined" onClick={() => decide("ProceedToBiochemical")}
+              variant="contained" onClick={() => decide("ProceedToBiochemical")}
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
               Proceed to Biochemical Confirmation
             </Button>
-          </Stack>
-        </Stack>
+          </StepActionBar>
+        </>
       )}
-
-      <ConfirmationDialog
-        open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
-        onConfirm={confirmSkipWait}
-        onCancel={() => setSkipDialogOpen(false)}
-      />
     </Stack>
   );
 }

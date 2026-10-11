@@ -189,11 +189,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId) =>
         _pathogenConfirmationRecorder.SubmitSelectivePlatingObservationAsync(testOrderId, stepName, observation, observedAppearanceNote, userId);
 
-    public Task<StepResultDto> SubmitSelectivePlatingAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId) =>
-        _pathogenConfirmationRecorder.SubmitSelectivePlatingAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, incubationEndUtc, observation, userId);
-
     public Task<StepResultDto> SubmitConfirmatorySetupAsync(
         int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
         DateTime incubationStartUtc, DateTime incubationEndUtc, int userId) =>

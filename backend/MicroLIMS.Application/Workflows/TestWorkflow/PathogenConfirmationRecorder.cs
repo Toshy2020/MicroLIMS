@@ -380,20 +380,6 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
             userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: ResultStatus.NotDetected, Flags: new List<string>());
     }
 
-    [Obsolete("Use StartSelectivePlatingIncubationAsync followed by SubmitSelectivePlatingObservationAsync.")]
-public Task<StepResultDto> SubmitSelectivePlatingAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId) =>
-        UnitOfWork.RunAsync(_db, () => SubmitSelectivePlatingCoreAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, incubationEndUtc, observation, userId));
-
-    private async Task<StepResultDto> SubmitSelectivePlatingCoreAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
-    {
-        await StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId);
-        return await SubmitSelectivePlatingObservationAsync(testOrderId, stepName, observation, null, userId);
-    }
-
     // The analyst's media panel for this run. Every chosen medium must be
     // on the step's permitted list, with a released lot and an in-range
     // incubator, before any plate goes into an incubator.

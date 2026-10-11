@@ -147,8 +147,9 @@ public sealed class TitrationRecorder : TestWorkflowSupport
             ackJustification = p.DueTitrantJustification?.Trim();
             if (string.IsNullOrEmpty(ackJustification) || ackJustification.Length < 10 || ackJustification.Length > 500)
                 throw new InvalidOperationException("The justification must be 10 to 500 characters.");
-            var codes = new List<string> { titrantPrep.Code };
-            if (excess != null && excess.Value.Opt.Warning != null) codes.Add(excess.Value.Prep.Code);
+            // Both passed the Prepared check, so both have their code.
+            var codes = new List<string> { titrantPrep.Code! };
+            if (excess != null && excess.Value.Opt.Warning != null) codes.Add(excess.Value.Prep.Code!);
             ack = new { justification = ackJustification, titrantCodes = codes, acknowledgedAt = nowUtc };
         }
         else if (p.DueTitrantAcknowledged == true || !string.IsNullOrWhiteSpace(p.DueTitrantJustification))

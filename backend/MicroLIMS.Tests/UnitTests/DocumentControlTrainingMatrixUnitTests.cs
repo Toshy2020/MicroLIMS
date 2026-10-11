@@ -121,6 +121,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var ok = Assert.IsType<OkObjectResult>(res);
         var data = Assert.IsType<ApiResponse<TrainingMatrixGridDto>>(ok.Value).Data;
 
+        Assert.NotNull(data);
         Assert.Equal(10, data.TotalUsers);
         Assert.Equal(5, data.TotalDocuments);
     }
@@ -153,6 +154,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var ok = Assert.IsType<OkObjectResult>(res);
         var data = Assert.IsType<ApiResponse<ComplianceKpiSummaryDto>>(ok.Value).Data;
 
+        Assert.NotNull(data);
         Assert.Equal(85.0, data.OverallComplianceRatePercentage);
         Assert.Equal(5, data.OverdueAssignments);
         Assert.Equal(2, data.SupersededGapCount);
@@ -185,6 +187,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var ok = Assert.IsType<OkObjectResult>(res);
         var data = Assert.IsType<ApiResponse<DocumentComplianceDetailDto>>(ok.Value).Data;
 
+        Assert.NotNull(data);
         Assert.Equal("SOP-MIC-001", data.CompanyDocumentCode);
         Assert.Equal(15, data.AssignedUserCount);
         Assert.Equal(12, data.CompletedUserCount);

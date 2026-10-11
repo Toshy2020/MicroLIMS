@@ -266,10 +266,6 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<StepResultDto> SubmitSelectivePlatingObservationAsync(int testOrderId, string stepName, GrowthObservation observation,
         string? observedAppearanceNote, int userId);
 
-    [Obsolete("Use StartSelectivePlatingIncubationAsync followed by SubmitSelectivePlatingObservationAsync.")]
-    Task<StepResultDto> SubmitSelectivePlatingAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId);
-
     Task<StepResultDto> SubmitConfirmatorySetupAsync(int testOrderId, string stepName,
         IReadOnlyList<ConfirmatorySelectionInput> selections, DateTime incubationStartUtc, DateTime incubationEndUtc, int userId);
 

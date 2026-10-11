@@ -985,6 +985,7 @@ public class PathogenSessionServiceTests
         await db.SaveChangesAsync();
 
         var session = await service.GetSessionAsync(sampleId);
+        Assert.NotNull(session);
         var tamcTest = session.AssignedTests.First(t => t.TestCode == "TAMC-Water");
 
         Assert.False(tamcTest.IsResultEntryAllowed);
@@ -1016,6 +1017,7 @@ public class PathogenSessionServiceTests
         await db.SaveChangesAsync();
 
         var session = await service.GetSessionAsync(sampleId);
+        Assert.NotNull(session);
         var tamcTest = session.AssignedTests.First(t => t.TestCode == "TAMC-Water");
 
         Assert.True(tamcTest.IsResultEntryAllowed);
@@ -1051,6 +1053,7 @@ public class PathogenSessionServiceTests
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-1)), 5);
 
         var session = await service.GetSessionAsync(sampleId);
+        Assert.NotNull(session);
         var bcc = session.AssignedTests.First(t => t.TestCode == "BCC");
         var tamc = session.AssignedTests.First(t => t.TestCode == "TAMC-Water");
 

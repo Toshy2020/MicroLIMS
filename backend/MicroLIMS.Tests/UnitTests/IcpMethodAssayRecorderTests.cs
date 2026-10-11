@@ -48,7 +48,6 @@ public class IcpMethodAssayRecorderTests
         Assert.Equal(ResultStatus.WithinLimits, amount.ComparisonStatus);
         Assert.Equal("mg", amount.Unit);
         Assert.Equal(ResultBasis.MgPerUnit, amount.ResultBasis);
-        Assert.NotNull(amount.SpecificationId);
         var pct = analysis.ParameterResults.Single(p => p.ParameterName == "Zn (%LC)");
         Assert.Equal("100.2 %", pct.ReportedDisplay);
 

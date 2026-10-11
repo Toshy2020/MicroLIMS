@@ -92,7 +92,7 @@ public class SamplePreparationController : ControllerBase
         }
 
         var result = await _service.ConfirmBatchFromConfigurationAsync(
-            new BatchConfirmPreparationRequest(r.SampleIds, r.ConfigurationId, r.Password),
+            new BatchConfirmPreparationRequest(r.SampleIds ?? [], r.ConfigurationId, r.Password),
             CurrentUserId, ClientIp, ct);
 
         return Ok(ApiResponse<BatchConfirmPreparationResponse>.Ok(result));

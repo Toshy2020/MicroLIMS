@@ -72,7 +72,7 @@ public class TestWorkflowSupport
 
     // The five pathogen step types record their completion as a
     // WorkflowStepResult row, not a PathogenObservation - only
-    // SubmitSelectivePlatingAsync writes an observation, so a
+    // SubmitSelectivePlatingObservationAsync writes an observation, so a
     // PathogenObservations-only "done" test can never see a broth,
     // confirmatory or biochemical step finish. Legacy Observation-type
     // steps (StepType.PlateCount aside, anything driven through

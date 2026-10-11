@@ -9,6 +9,20 @@ public record SeededMedia(int BrothLotId, int SelectiveBrothLotId, int Selective
     int BrothMaterialId, int SelectiveBrothMaterialId, int SelectivePlatingMaterialId, int XldMaterialId, int TsiMaterialId,
     int XldStepMediaId, int TsiStepMediaId, int SelectiveBrothIncubatorId);
 
+// Start-then-read selective plating in one call, for tests that just
+// need the step done. The end time is unused (the server sets it).
+public static class SelectivePlatingTestExtensions
+{
+    public static async Task<MicroLIMS.Application.Workflows.StepResultDto> SubmitSelectivePlatingAsync(
+        this MicroLIMS.Application.Workflows.ITestWorkflowEngine engine,
+        int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
+    {
+        await engine.StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId);
+        return await engine.SubmitSelectivePlatingObservationAsync(testOrderId, stepName, observation, null, userId);
+    }
+}
+
 // Builds the canonical five-stage pathogen template plus every master
 // row it depends on. Mirrors DbSeeder.SeedPathogenTemplate.
 public static class PathogenTestData

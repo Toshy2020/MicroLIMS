@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton, useTheme } from "@mui/material";
+import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
@@ -11,9 +11,6 @@ import { LocationResultGridDialog } from "./LocationResultGridDialog";
 import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDialog";
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
-import { useAuth } from "../../contexts/AuthContext";
-import { PERMISSIONS } from "../../routes/routes";
-import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
@@ -22,7 +19,19 @@ import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
 import { WeightVariationPanel } from "./WeightVariationPanel";
-import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
+import {
+  StepActionBar, StepDetailList, StepHeading, StepChipTone, IncubationTimeline, FixedMediumRow,
+  MediaLotIncubatorFields, IncubatorField
+} from "./pathogenSteps/StepLayout";
+import { IncubationWaitingView } from "./pathogenSteps/IncubationWaitingView";
+import type { IncubatorEquipmentItem } from "../../services/lookupCache";
+
+// The shared incubator picker's option shape, from the lookup cache's items.
+const incubatorOptions = (items: IncubatorEquipmentItem[]) =>
+  items.map((i) => ({ id: i.id, name: i.name, code: i.code, setTemperature: i.setPointTemperature ?? 0 }));
+
+const COUNT_STEP_HELP =
+  "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.";
 
 interface Props {
   testOrderId: number;
@@ -160,24 +169,6 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const windowNotConfigured = current?.incubationLock?.windowNotConfigured ?? false;
   const minimumDurationOverridden = current?.incubationLock?.minimumDurationOverridden ?? false;
   const isTimeReady = !windowNotConfigured && (!minReadyAt || new Date() >= minReadyAt || minimumDurationOverridden);
-
-  const { permissions } = useAuth();
-  const canOverrideWait = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
-  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
-  const [skipping, setSkipping] = useState(false);
-  const confirmSkipWait = async () => {
-    setError(null);
-    setSkipping(true);
-    try {
-      await TestWorkflowService.overrideMinimumDuration(testOrderId);
-      setSkipDialogOpen(false);
-      await load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not skip the wait.");
-    } finally {
-      setSkipping(false);
-    }
-  };
 
   const startIncubation = async () => {
     setError(null);
@@ -426,6 +417,15 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     return <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} onClose={onClose} />;
   }
 
+  const stepChip: { label: string; tone: StepChipTone } | null =
+    phase === "select-media" ? { label: "Set up", tone: "info" }
+    : phase === "transfer-stage-2" ? { label: "Stage 2 transfer", tone: "info" }
+    : phase === "awaiting-result" ? (isTimeReady ? { label: "Ready to read", tone: "notDetected" } : { label: "Incubating", tone: "purple" })
+    : phase === "enter-result" ? { label: "Result entry", tone: "info" }
+    : phase === "step-complete" ? { label: "Recorded", tone: "notDetected" }
+    : null;
+  const stepHelp = current.workflowType === "CountTest" ? COUNT_STEP_HELP : undefined;
+
   if (phase === "all-complete") {
     const outcome = lastOutcome?.finalResult ?? current.finalResult;
     return (
@@ -458,175 +458,118 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       )}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
-        Step {step.stepOrder}: {step.stepName}
-        {isTwoStageTransfer && <Typography component="span" variant="caption" sx={{
-          color: "text.secondary"
-        }}> (Two-stage transfer: Stage {currentStageNumber} of 2)</Typography>}
-        {step.isFinalStep && <Typography component="span" variant="caption" sx={{
-          color: "text.secondary"
-        }}> (determines the final result)</Typography>}
-      </Typography>
+      <StepHeading
+        title={step.stepName}
+        chip={stepChip}
+        caption={[
+          isTwoStageTransfer ? `Stage ${currentStageNumber} of 2` : null,
+          step.isFinalStep ? "(determines the final result)" : null
+        ].filter(Boolean).join(" · ") || undefined}
+        help={stepHelp}
+      />
 
       {phase === "select-media" && (
-        <Stack spacing={1.5}>
-          <Typography variant="body2" sx={{
-            color: "text.secondary"
-          }}>
-            Requires {permittedMaterialNames || "an approved"} media.
-          </Typography>
+        <Stack spacing={2}>
+          <FixedMediumRow label="Permitted medium" mediaName={permittedMaterialNames || "Approved media"} />
 
-          <Select<number | "">
-            displayEmpty
-            size="small"
-            value={mediaId}
-            onChange={(e) => {
-              const val = e.target.value === "" ? "" : Number(e.target.value);
-              setMediaId(val);
-              setIncubatorId("");
-            }}
-            inputProps={{ "aria-label": "Media batch" }}
+          <MediaLotIncubatorFields
+            idPrefix="count"
+            lots={matchingMedia}
+            incubators={incubatorOptions(matchingIncubators)}
+            tempMin={stage1TempMin}
+            tempMax={stage1TempMax}
+            mediaLotId={mediaId}
+            equipmentId={incubatorId}
+            onLotChange={(id) => { setMediaId(id); setIncubatorId(""); }}
+            onIncubatorChange={setIncubatorId}
+          />
+
+          <IncubationTimeline
+            points={[
+              { label: isTwoStageTransfer ? "Stage 1 start" : "Start", value: "0 h", active: true },
+              { label: "Ready from", value: `${stage1IncMinHours} h` },
+              { label: "Read by", value: `${stage1IncMaxHours} h` }
+            ]}
+          />
+
+          <StepActionBar
+            note={mediaId && incubatorId
+              ? "Start time, media lot and incubator are recorded in the audit trail."
+              : "Select a media lot and an incubator to continue."}
           >
-            <MenuItem value=""><em>Media Batch ({permittedMaterialNames || "approved"} lots only)</em></MenuItem>
-            {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber}, expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
-          </Select>
-
-          <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))} inputProps={{ "aria-label": "Stage 1 incubator" }}>
-            <MenuItem value=""><em>Stage 1 Incubator ({stage1TempMin}-{stage1TempMax} °C)</em></MenuItem>
-            {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}), {i.setPointTemperature}°C</MenuItem>)}
-          </Select>
-          {matchingIncubators.length === 0 && (
-            <Alert severity="warning">No incubator is set to {stage1TempMin}-{stage1TempMax} °C for this step.</Alert>
-          )}
-          {mediaId && incubatorId && (
-            <Typography variant="body2" sx={{
-              color: "text.secondary"
-            }}>
-              Required Temperature (Stage 1): <strong>{stage1TempMin}-{stage1TempMax} °C</strong>
-              {", "}Incubation Period: <strong>{stage1IncMinHours}-{stage1IncMaxHours} hours</strong>
-            </Typography>
-          )}
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
-            <Button
-              variant="contained"
-              disabled={!mediaId || !incubatorId}
-              onClick={startIncubation}
-            >
+            <Button variant="contained" disabled={!mediaId || !incubatorId} onClick={startIncubation}>
               Start Incubation
             </Button>
-          </Stack>
+          </StepActionBar>
         </Stack>
       )}
 
       {phase === "transfer-stage-2" && stage2Config && (
-        <Stack spacing={1.5}>
+        <Stack spacing={2}>
           <Alert severity="info">
-            Stage 1 incubation is complete. Transfer plates to Stage 2 incubator ({stage2Config.tempMin}-{stage2Config.tempMax} °C) to start the second stage.
+            Stage 1 incubation is complete. Move the plates to an incubator set within {stage2Config.tempMin}–{stage2Config.tempMax} °C to start Stage 2.
           </Alert>
 
-          <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-            <Typography variant="body2" sx={{
-              color: "text.secondary"
-            }}>
-              Media Lot (inherited): <strong>{openIncubationRow?.lotNumber ?? "Selected in Stage 1"}</strong>
-            </Typography>
-            <Typography variant="body2" sx={{
-              color: "text.secondary"
-            }}>
-              Stage 2 Required Temperature: <strong>{stage2Config.tempMin}-{stage2Config.tempMax} °C</strong>
-              {", "}Incubation Period: <strong>{stage2Config.incubationMinHours}-{stage2Config.incubationMaxHours} hours</strong>
-            </Typography>
-          </Box>
+          <StepDetailList
+            rows={[
+              { label: "Media lot (from Stage 1)", value: openIncubationRow?.lotNumber ?? "Selected in Stage 1" },
+              { label: "Stage 2 temperature", value: `${stage2Config.tempMin}–${stage2Config.tempMax} °C` },
+              { label: "Stage 2 incubation", value: `${stage2Config.incubationMinHours}–${stage2Config.incubationMaxHours} h` }
+            ]}
+          />
 
-          <Select
-            displayEmpty
-            size="small"
+          <IncubatorField
+            id="count-stage2-incubator"
+            label="Stage 2 incubator"
+            incubators={incubatorOptions(matchingStage2Incubators)}
+            tempMin={stage2Config.tempMin}
+            tempMax={stage2Config.tempMax}
             value={stage2IncubatorId}
-            onChange={(e) => setStage2IncubatorId(Number(e.target.value))}
-            inputProps={{ "aria-label": "Stage 2 incubator" }}
-          >
-            <MenuItem value="">
-              <em>Select Stage 2 Incubator ({stage2Config.tempMin}-{stage2Config.tempMax} °C)</em>
-            </MenuItem>
-            {matchingStage2Incubators.map((i) => (
-              <MenuItem key={i.id} value={i.id}>
-                {i.name} ({i.code}), {i.setPointTemperature}°C
-              </MenuItem>
-            ))}
-          </Select>
-          {matchingStage2Incubators.length === 0 && (
-            <Alert severity="warning">No incubator is set to {stage2Config.tempMin}-{stage2Config.tempMax} °C for Stage 2.</Alert>
-          )}
+            onChange={setStage2IncubatorId}
+          />
 
-          <Stack direction="row" spacing={1} sx={{
-            justifyContent: "flex-end"
-          }}>
+          <StepActionBar note={stage2IncubatorId ? undefined : "Select a Stage 2 incubator to continue."}>
             <Button variant="outlined" onClick={() => setPhase("awaiting-result")}>Back</Button>
-            <Button
-              variant="contained"
-              disabled={!stage2IncubatorId}
-              onClick={startStage2Incubation}
-            >
+            <Button variant="contained" disabled={!stage2IncubatorId} onClick={startStage2Incubation}>
               Start Stage 2 Incubation
             </Button>
-          </Stack>
+          </StepActionBar>
         </Stack>
       )}
 
       {phase === "awaiting-result" && current.incubationLock && (
-        <Stack spacing={1.5}>
-          <Alert severity="info">
-            Incubation in progress {isTwoStageTransfer ? `(Stage ${currentStageNumber} of 2)` : ""}.
-          </Alert>
-          <Typography variant="body2">Temperature: <strong>{activeTempMin}-{activeTempMax} °C</strong></Typography>
-          <Typography variant="body2">Duration: <strong>{activeIncMinHours}-{activeIncMaxHours} hours</strong></Typography>
-          <Typography variant="body2">Expected reading: <strong>{new Date(current.incubationLock.incubationEndUtc).toLocaleString()}</strong></Typography>
-          {windowNotConfigured && (
-            <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>
-          )}
-          {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Not ready yet - available from {minReadyAt.toLocaleString()}.</Alert>
-          )}
-          {minimumDurationOverridden && (
-            <Alert severity="info">Minimum wait time was skipped by a Section Head/System Administrator.</Alert>
-          )}
-          <Stack direction="row" sx={{
-            justifyContent: "space-between"
-          }}>
-            {canOverrideWait && !isTimeReady && !windowNotConfigured ? (
-              <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
-                Skip Wait
-              </Button>
-            ) : <span />}
-            {isTwoStageTransfer && !isStage2 ? (
-              <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("transfer-stage-2")}>
+        <IncubationWaitingView
+          testOrderId={testOrderId}
+          step={step}
+          current={current}
+          onSubmitted={load}
+          incubationWindow={{ tempMin: activeTempMin, tempMax: activeTempMax, minHours: activeIncMinHours, maxHours: activeIncMaxHours }}
+          nextLabel={
+            isTwoStageTransfer && !isStage2 ? "Stage 2 transfer"
+            : isEmOrAfterCleaning && !step.isFinalStep && !isTwoStageTransfer ? "the next incubation window"
+            : "plate reading"
+          }
+          renderAction={(ready) =>
+            isTwoStageTransfer && !isStage2 ? (
+              <Button variant="contained" disabled={!ready} onClick={() => setPhase("transfer-stage-2")}>
                 Transfer to Stage 2 Incubation
               </Button>
             ) : isTwoStageTransfer && isStage2 ? (
               isBatchOrder ? (
-                <Button variant="contained" disabled={!isTimeReady} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
+                <Button variant="contained" disabled={!ready} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
               ) : (
-                <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("enter-result")}>Record Result</Button>
+                <Button variant="contained" disabled={!ready} onClick={() => setPhase("enter-result")}>Record Result</Button>
               )
-            ) : isEmOrAfterCleaning && step && !step.isFinalStep ? (
-              <Button variant="contained" disabled={!isTimeReady} onClick={advanceIncubationWindow}>Advance to Next Incubation Window</Button>
+            ) : isEmOrAfterCleaning && !step.isFinalStep ? (
+              <Button variant="contained" disabled={!ready} onClick={advanceIncubationWindow}>Advance to Next Incubation Window</Button>
             ) : isBatchOrder ? (
-              <Button variant="contained" disabled={!isTimeReady} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
+              <Button variant="contained" disabled={!ready} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
             ) : (
-              <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("enter-result")}>Record Result</Button>
-            )}
-          </Stack>
-        </Stack>
+              <Button variant="contained" disabled={!ready} onClick={() => setPhase("enter-result")}>Record Result</Button>
+            )
+          }
+        />
       )}
-
-      <ConfirmationDialog
-        open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
-        onConfirm={confirmSkipWait}
-        onCancel={() => setSkipDialogOpen(false)}
-      />
 
       {current.workflowType === "CountTest" && isWaterCountBatch ? (
         <WaterLocationResultGridDialog
@@ -664,23 +607,18 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       )}
 
       {phase === "enter-result" && (
-        <Stack spacing={1.5}>
+        <Stack spacing={2}>
           {current.workflowType === "CountTest" && (
             <>
               {dilutionFactorNotConfigured ? (
-                <Alert severity="error" sx={{ mb: 1 }}>
+                <Alert severity="error">
                   No Dilution Factor is configured for this test on the item's Specifications tab. Ask a Section Head/Admin to configure it before recording a result.
                 </Alert>
               ) : (
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{
-                    alignItems: "flex-start",
-                    mb: 1
-                  }}>
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
                   <TextField
-                    label="Dilution Factor"
+                    id="count-dilution-factor"
+                    label="Dilution factor"
                     type="number"
                     value={dilutionFactor}
                     onChange={(e) => setDilutionFactor(e.target.value)}
@@ -692,24 +630,23 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                           ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
                           : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
                     }
-                    sx={{ maxWidth: 300 }}
+                    sx={{ flex: 1, maxWidth: 320 }}
                     slotProps={{
-                      htmlInput: { step: "1", min: "1" }
+                      inputLabel: { shrink: true },
+                      htmlInput: { step: "1", min: "1", inputMode: "numeric" }
                     }}
                   />
                   {!isDirectCount && !dilutionFactorOverriding && (
                     <IconButton aria-label="Override dilution factor"
-                      size="small"
                       onClick={() => setDilutionFactorOverriding(true)}
                       title="Override configured Dilution Factor"
-                      sx={{ mt: 1 }}
+                      sx={{ mt: 0.5 }}
                     >
                       <EditIcon fontSize="small" />
                     </IconButton>
                   )}
                   {dilutionFactorOverriding && (
                     <Button
-                      size="small"
                       sx={{ mt: 1 }}
                       onClick={() => {
                         setDilutionFactorOverriding(false);
@@ -720,11 +657,12 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                       Cancel Override
                     </Button>
                   )}
-                </Stack>
+                </Box>
               )}
 
               {dilutionFactorDiffersFromConfigured && (
                 <TextField
+                  id="count-dilution-justification"
                   label="Justification for override"
                   required
                   multiline
@@ -734,70 +672,71 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                   error={!dilutionFactorOverrideNote.trim()}
                   helperText="Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
                   fullWidth
-                  sx={{ mb: 1 }}
                 />
               )}
 
-              <Stack spacing={1}>
-                {readings.map((r, i) => (
-                  <Stack direction="row" spacing={1} key={i} sx={{
-                    alignItems: "center"
-                  }}>
-                    <TextField
-                      size="small"
-                      label={`Plate ${i + 1}`}
-                      value={r}
-                      onChange={(e) => updateReading(i, e.target.value)}
-                      placeholder="Colony count or TNTC"
-                      helperText={
-                        isNonNumeric(r)
-                          ? "⚠ Non-numeric, will be flagged for reviewer decision"
-                          : ""
-                      }
-                      sx={{
-                        flex: 1,
-                        "& .MuiOutlinedInput-root fieldset": {
-                          borderColor: isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
-                        }
-                      }}
-                    />
-                    <IconButton aria-label={`Remove reading ${i + 1}`} size="small" onClick={() => removeReading(i)}><CloseIcon fontSize="small" /></IconButton>
-                  </Stack>
-                ))}
-              </Stack>
-              <Button startIcon={<AddIcon />} onClick={addReading} sx={{ alignSelf: "flex-start" }}>Add Plate</Button>
-
-              {liveResult && (
-                <Box
-                  sx={{
-                    p: 1.5,
-                    mt: 1,
-                    mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: liveResult.isNonNumeric ? theme.custom.status.inconclusive.bg : theme.custom.status.notDetected.bg,
-                    border: `1px solid ${liveResult.isNonNumeric ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border}`
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {liveResult.isNonNumeric ? "⚠ " : "✓ "}
-                    Calculated result: {liveResult.display}
-                  </Typography>
-                  {liveResult.isNonNumeric && (
-                    <Typography variant="caption" sx={{ color: theme.custom.status.inconclusive.text, display: "block", mt: 0.5 }}>
-                      Non-numeric result: reviewer will decide accept or retest
-                    </Typography>
-                  )}
+              <Box>
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", mb: 1 }}>
+                  Plate counts
+                </Typography>
+                <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+                  {readings.map((r, i) => (
+                    <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+                      <TextField
+                        id={`count-plate-${i + 1}`}
+                        label={`Plate ${i + 1}`}
+                        value={r}
+                        onChange={(e) => updateReading(i, e.target.value)}
+                        placeholder="Colonies or TNTC"
+                        helperText={isNonNumeric(r) ? "Non-numeric: flagged for reviewer decision" : " "}
+                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: "numeric" } }}
+                        sx={{
+                          flex: 1,
+                          "& .MuiOutlinedInput-root fieldset": {
+                            borderColor: isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
+                          }
+                        }}
+                      />
+                      <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ))}
                 </Box>
-              )}
+                <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>Add Plate</Button>
+              </Box>
+
+              <Box
+                aria-live="polite"
+                sx={{
+                  p: 2, borderRadius: 2, border: "1px solid",
+                  bgcolor: !liveResult ? "action.hover" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.bg : theme.custom.status.notDetected.bg,
+                  borderColor: !liveResult ? "divider" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border
+                }}
+              >
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Calculated result
+                </Typography>
+                <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                  {liveResult ? liveResult.display : "—"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: liveResult?.isNonNumeric ? theme.custom.status.inconclusive.text : "text.secondary" }}>
+                  {!liveResult
+                    ? "Enter plate counts to see the result."
+                    : liveResult.isNonNumeric
+                      ? "Non-numeric result: the reviewer will decide to accept or retest."
+                      : `Average of the plate counts × dilution factor ${dilutionFactor || 1}.`}
+                </Typography>
+              </Box>
             </>
           )}
 
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
           )}
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
+          <StepActionBar
+            note={readings.every((r) => r.trim() === "") ? "Enter at least one plate count to continue." : "The result is recorded in the audit trail."}
+          >
             <Button
               variant="contained"
               disabled={!isTimeReady || dilutionFactorNotConfigured || (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim())}
@@ -805,27 +744,33 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             >
               {current.workflowType === "CountTest" ? "Calculate" : "Submit"}
             </Button>
-          </Stack>
+          </StepActionBar>
         </Stack>
       )}
 
       {phase === "step-complete" && lastOutcome && (
-        <Stack spacing={1.5}>
+        <Stack spacing={2}>
           {lastOutcome.isDefinitive ? (
             <Alert severity="success">
               Step recorded: <strong>{lastOutcome.outcomeSummary}</strong>
-              {lastOutcome.average != null && `: Average ${lastOutcome.average}, Calculated ${lastOutcome.calculatedResult}, Status ${lastOutcome.status}`}
             </Alert>
           ) : (
             <Alert severity="warning">
               {lastOutcome.outcomeSummary} - this step must be repeated with a fresh media lot.
             </Alert>
           )}
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
+          {lastOutcome.isDefinitive && lastOutcome.average != null && (
+            <StepDetailList
+              rows={[
+                { label: "Average", value: String(lastOutcome.average) },
+                { label: "Calculated", value: String(lastOutcome.calculatedResult) },
+                { label: "Status", value: String(lastOutcome.status) }
+              ]}
+            />
+          )}
+          <StepActionBar>
             <Button variant="contained" onClick={load}>{lastOutcome.isDefinitive ? "Proceed to Next Step" : "Retry This Step"}</Button>
-          </Stack>
+          </StepActionBar>
         </Stack>
       )}
     </Box>

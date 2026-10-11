@@ -32,6 +32,9 @@ interface Props {
   // Called once when the minimum incubation has elapsed (countdown at zero,
   // or a supervisor skipped the wait).
   onReady?: () => void;
+  // Stage-aware window when it differs from the step's own (two-stage count
+  // tests); otherwise the server-resolved step window is used.
+  incubationWindow?: { tempMin: number; tempMax: number; minHours: number; maxHours: number };
   // The step's primary action, rendered in the action bar; receives whether
   // the minimum incubation has elapsed.
   renderAction: (ready: boolean) => ReactNode;
@@ -41,7 +44,7 @@ interface Props {
 // minimum incubation time to zero, the Started / Ready from / Read by
 // timeline, the recorded lot and incubator, and the supervisor Skip Wait.
 // Readiness is still enforced by the server on submit.
-export function IncubationWaitingView({ testOrderId, step, current, onSubmitted, nextLabel, onReady, renderAction }: Props) {
+export function IncubationWaitingView({ testOrderId, step, current, onSubmitted, nextLabel, onReady, incubationWindow, renderAction }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -51,10 +54,9 @@ export function IncubationWaitingView({ testOrderId, step, current, onSubmitted,
 
   // Window, start, readiness and expected end exactly as the server resolved
   // them from this test's own medium - no local hour calculations.
-  const {
-    tempMin, tempMax, minHours, maxHours,
-    incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady
-  } = serverIncubationWindow(step, current);
+  const server = serverIncubationWindow(step, current);
+  const { incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady } = server;
+  const { tempMin, tempMax, minHours, maxHours } = incubationWindow ?? server;
 
   // Recomputed whenever the step is reloaded (new incubationLock object).
   const lock = current?.incubationLock ?? null;

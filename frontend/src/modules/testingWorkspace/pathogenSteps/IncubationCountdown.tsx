@@ -13,6 +13,7 @@ interface Props {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function formatRemaining(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -78,7 +79,7 @@ export const IncubationCountdown = memo(function IncubationCountdown({ deadlineM
         </Box>
       </Box>
       <Typography variant="body2" sx={{ color: reached ? (t) => t.custom.status.notDetected.text : "text.secondary", fontWeight: reached ? 600 : 400, textAlign: "center" }}>
-        {reached ? `${nextLabel} is available now` : `until ${nextLabel} is available (${totalHours} h minimum incubation)`}
+        {reached ? `${capitalize(nextLabel)} is available now` : `until ${nextLabel} is available (${totalHours} h minimum incubation)`}
       </Typography>
     </Box>
   );

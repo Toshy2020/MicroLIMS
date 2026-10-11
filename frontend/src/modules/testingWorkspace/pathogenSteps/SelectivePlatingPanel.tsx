@@ -174,7 +174,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
           step={step}
           current={current}
           onSubmitted={onSubmitted}
-          nextLabel="Plate reading"
+          nextLabel="plate reading"
           onReady={handleReady}
           renderAction={() => (
             <Button variant="contained" disabled>Record Observation</Button>

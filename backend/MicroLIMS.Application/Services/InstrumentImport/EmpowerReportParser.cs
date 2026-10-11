@@ -117,6 +117,13 @@ public static class EmpowerReportParser
             result[field] = new ExtractedField(raw, conf, mismatch);
         }
 
+        // Both OCR passes can misread a lone digit the same way (a photographed
+        // "1" read as "4" twice, at high confidence), so the cross-check above
+        // cannot catch it. The injection number says which injection the peak
+        // values belong to, so an OCR'd one is always confirmed by eye.
+        if (text.Source == ReportTextSource.Ocr && result.TryGetValue(EmpowerField.InjectionNo, out var inj) && !inj.CrossCheckMismatch)
+            problems.Add($"InjectionNo: read by OCR as '{inj.Raw}' - confirm the injection number against the report.");
+
         foreach (var f in Required.Where(f => !result.ContainsKey(f)))
             problems.Add($"{f}: not found on the report.");
         foreach (var f in new[] { EmpowerField.DateAcquired, EmpowerField.DateProcessed })

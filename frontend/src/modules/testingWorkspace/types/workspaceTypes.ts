@@ -43,6 +43,9 @@ export interface SampleCard {
   status: string;
   preparationStatus: string;
   receivedAt: string;
+  // From the server's overdue rule (same as the Overdue tab).
+  dueAt?: string | null;
+  isOverdue?: boolean;
   sampleQuantity: string | null;
   sampledBy: string;
   mfgDate: string | null;

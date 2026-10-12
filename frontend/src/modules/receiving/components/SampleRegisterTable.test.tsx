@@ -89,6 +89,22 @@ describe("SampleRegisterTable", () => {
   });
 });
 
+describe("SampleRegisterTable row edge", () => {
+  it("keeps the red overdue edge on a selected row", () => {
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <SampleRegisterTable
+          samples={[sample({ dueAt: new Date(Date.now() - 3600e3).toISOString(), isOverdue: true })]}
+          selectedSampleId={91}
+          onTestClick={vi.fn()} onViewSummary={vi.fn()} onViewReport={vi.fn()} onViewAuditHistory={vi.fn()} onPrepareSample={vi.fn()}
+        />
+      </ThemeProvider>
+    );
+    const firstCell = screen.getByText("Osteocare Liquid").closest("td") as HTMLElement;
+    expect(getComputedStyle(firstCell).boxShadow.toLowerCase()).toContain(lightTheme.custom.status.detected.text.toLowerCase());
+  });
+});
+
 describe("dueLabel", () => {
   const now = Date.parse("2026-10-12T09:00:00Z");
   it("words the time left or overdue", () => {

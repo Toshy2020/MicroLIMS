@@ -84,7 +84,9 @@ export function SampleTableRow({
           // collapsed-border table.
           "& > td:first-of-type": {
             boxShadow: `inset 4px 0 0 ${
-              isSelected
+              sample.isOverdue
+                ? theme.custom.status.detected.text
+                : isSelected
                 ? theme.custom.status.purple.border
                 : needsPreparation
                 ? theme.custom.status.inconclusive.border
@@ -159,7 +161,9 @@ export function SampleTableRow({
           // collapsed-border table.
           "& > td:first-of-type": {
             boxShadow: `inset 4px 0 0 ${
-              isSelected
+              sample.isOverdue
+                ? theme.custom.status.detected.text
+                : isSelected
                 ? theme.custom.status.purple.border
                 : needsPreparation
                 ? theme.custom.status.inconclusive.border

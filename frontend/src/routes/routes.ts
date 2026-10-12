@@ -228,6 +228,7 @@ export const PERMISSIONS = {
   TEST_WORKFLOW_EXECUTE: "TestWorkflow.Execute",
   TEST_WORKFLOW_SUPERVISE: "TestWorkflow.Supervise",
   CRYOVIALS_MANAGE: "Cryovials.Manage",
+  CRYOVIALS_APPROVE: "Cryovials.Approve",
   MATERIALS_MANAGE: "Materials.Manage",
   MATERIALS_DOCUMENT_CONTROL: "Materials.DocumentControl",
   EQUIPMENT_MANAGE: "Equipment.Manage",

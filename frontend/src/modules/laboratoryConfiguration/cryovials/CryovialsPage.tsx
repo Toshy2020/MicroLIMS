@@ -14,6 +14,8 @@ import { ThawVialReasonDialog } from "./components/ThawVialReasonDialog";
 import { DestroyCryovialDialog } from "./components/DestroyCryovialDialog";
 import { MoveCryovialStorageDialog } from "./components/MoveCryovialStorageDialog";
 import { ApprovedCryovialListPage } from "../../inventory/approvedLists/ApprovedCryovialListPage";
+import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 
 const INITIAL_FILTERS: CryovialFilterState = {
   search: "",
@@ -23,6 +25,7 @@ const INITIAL_FILTERS: CryovialFilterState = {
 };
 
 export function CryovialsPage() {
+  const { permissions } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") === "approved" ? "approved" : "register";
   const [cryovials, setCryovials] = useState<CryovialItem[] | null>(null);
@@ -221,6 +224,7 @@ export function CryovialsPage() {
           onThawClick={(item) => setThawItem(item)}
           onDestroyClick={(item) => setDestroyItem(item)}
           onMoveStorageClick={(item) => setMoveItem(item)}
+          canMoveStorage={permissions.includes(PERMISSIONS.CRYOVIALS_APPROVE)}
         />
       </LabPage>
 

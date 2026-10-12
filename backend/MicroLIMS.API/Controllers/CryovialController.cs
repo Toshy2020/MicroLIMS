@@ -72,6 +72,9 @@ public class CryovialController : ControllerBase
     }
 
     [HttpPost("{id}/move-storage")]
+    // Moving a cryovial batch is a supervisory action: limited to the roles
+    // that approve batches (System Administrator, Section Head).
+    [Authorize(Policy = PermissionConstants.CryovialsApprove)]
     public async Task<IActionResult> MoveStorage(int id, [FromBody] MoveCryovialStorageRequest r)
     {
         await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);

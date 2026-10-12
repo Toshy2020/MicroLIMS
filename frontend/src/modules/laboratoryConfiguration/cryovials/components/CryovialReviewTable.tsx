@@ -15,6 +15,9 @@ interface CryovialReviewTableProps {
   onThawClick: (cryovial: CryovialItem) => void;
   onDestroyClick: (cryovial: CryovialItem) => void;
   onMoveStorageClick: (cryovial: CryovialItem) => void;
+  // Moving a batch is limited to System Administrators and Section Heads
+  // (the server enforces it; this only hides the action from others).
+  canMoveStorage?: boolean;
 }
 
 const isExpired = (expiryDateStr: string) => {
@@ -109,7 +112,7 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
   }
 ];
 
-export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick, onMoveStorageClick }: CryovialReviewTableProps) {
+export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick, onMoveStorageClick, canMoveStorage = false }: CryovialReviewTableProps) {
   // Same availability rules as the former inline buttons.
   const rowActions = (c: CryovialItem): RegisterRowAction[] => {
     const actions: RegisterRowAction[] = [];
@@ -121,7 +124,7 @@ export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick
       if (c.approvalStatus === "Approved" && !c.isDestroyed && !isExpired(c.expiryDate) && c.vialsRemaining > 0) {
         actions.push({ label: "Thaw vial", onClick: () => onThawClick(c) });
       }
-      if (c.approvalStatus === "Approved" && !c.isDestroyed) {
+      if (canMoveStorage && c.approvalStatus === "Approved" && !c.isDestroyed) {
         actions.push({ label: "Change storage location", onClick: () => onMoveStorageClick(c) });
       }
       if (!c.isDestroyed) {

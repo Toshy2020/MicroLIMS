@@ -32,6 +32,7 @@ CryovialController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.GetSummary(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+CryovialController.MoveStorage(Int32, MoveCryovialStorageRequest): SystemAdministrator,SectionHead
 CryovialController.PrepareCryovials(PrepareCryovialsHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.ThawVial(Int32, ThawVialRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 DashboardController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -300,15 +301,18 @@ MaterialMasterController.Create(SaveMaterialMasterEntryRequest): SystemAdministr
 MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 MaterialMasterController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
 MaterialMasterController.Update(Int32, SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
+MediaController.AddStorageEntry(Int32, AddMediaStorageEntryRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.DecideRelease(Int32, DecideMediaReleaseRequest): SystemAdministrator,SectionHead
 MediaController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetAwaitingApproval(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetExpiring(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetReleased(Nullable`1, Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+MediaController.GetStorageEntries(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetSummary(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.MarkOutOfStock(Int32, MarkOutOfStockHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+MediaController.MoveStorageEntry(Int32, Int32, MoveMediaStorageEntryRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.Prepare(PrepareMediaHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaEvaluationController.GetAll(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaEvaluationController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

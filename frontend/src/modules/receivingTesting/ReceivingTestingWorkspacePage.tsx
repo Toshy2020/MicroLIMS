@@ -794,6 +794,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           setWorkloadFilter(null);
           setPage(1);
         }}
+        allCount={workloadFilter || hasActiveFilters ? null : totalCount}
         canAssignAnalyst={permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)}
       />
 

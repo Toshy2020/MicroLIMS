@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../theme";
-import { SampleRegisterTable } from "./SampleRegisterTable";
+import { SampleRegisterTable, dueLabel } from "./SampleRegisterTable";
 import type { SampleRecord } from "../types/receivingTypes";
 
 vi.mock("../../../contexts/AuthContext", () => ({ useAuth: () => ({ permissions: [] }) }));
@@ -68,5 +68,33 @@ describe("SampleRegisterTable", () => {
   it("asks for preparation before anything else", () => {
     renderTable([sample({ preparationStatus: "NeedsPreparation" })]);
     expect(screen.getByRole("button", { name: "Prepare" })).toBeTruthy();
+  });
+
+  it("shows the server's due time and marks overdue samples", () => {
+    const now = Date.now();
+    renderTable([
+      sample({ sampleId: 91, dueAt: new Date(now - 3 * 3600e3).toISOString(), isOverdue: true }),
+      sample({ sampleId: 92, referenceNumber: "FP0926015", dueAt: new Date(now + 5.5 * 3600e3).toISOString(), isOverdue: false })
+    ]);
+    expect(screen.getByRole("columnheader", { name: "Due" })).toBeTruthy();
+    expect(screen.getByText("Overdue by 3 h")).toBeTruthy();
+    expect(screen.getByText("Due in 5 h")).toBeTruthy();
+  });
+
+  it("keeps an older saved column choice but adds the new Due column once", () => {
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["batchControl", "tests"]));
+    renderTable([sample({ dueAt: new Date(Date.now() + 3600e3 * 10).toISOString(), isOverdue: false })]);
+    expect(screen.getByRole("columnheader", { name: "Due" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Assigned To" })).toBeNull();
+  });
+});
+
+describe("dueLabel", () => {
+  const now = Date.parse("2026-10-12T09:00:00Z");
+  it("words the time left or overdue", () => {
+    expect(dueLabel("2026-10-12T09:30:00Z", false, now)).toBe("Due in 30 min");
+    expect(dueLabel("2026-10-14T12:00:00Z", false, now)).toBe("Due in 2 d");
+    expect(dueLabel("2026-10-12T06:00:00Z", true, now)).toBe("Overdue by 3 h");
+    expect(dueLabel(null, false, now)).toBeNull();
   });
 });

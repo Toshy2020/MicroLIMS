@@ -73,6 +73,7 @@ export type RegisterColumnKey =
   | "batchControl"
   | "assignedTo"
   | "sampleStatus"
+  | "due"
   | "tests"
   | "nextAction";
 
@@ -85,18 +86,22 @@ export const REGISTER_COLUMNS: { key: RegisterColumnKey; label: string }[] = [
   { key: "batchControl", label: "Batch / Control No." },
   { key: "assignedTo", label: "Assigned To" },
   { key: "sampleStatus", label: "Sample Status" },
+  { key: "due", label: "Due" },
   { key: "tests", label: "Tests" },
   { key: "nextAction", label: "Next Action" }
 ];
 
-export const DEFAULT_REGISTER_COLUMNS: RegisterColumnKey[] = ["batchControl", "assignedTo", "sampleStatus", "tests", "nextAction"];
+export const DEFAULT_REGISTER_COLUMNS: RegisterColumnKey[] = ["batchControl", "assignedTo", "sampleStatus", "due", "tests", "nextAction"];
 
 function loadColumns(storageKey: string): Set<RegisterColumnKey> {
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
       const valid = new Set(REGISTER_COLUMNS.map((c) => c.key));
-      const parsed = (JSON.parse(raw) as string[]).filter((k): k is RegisterColumnKey => valid.has(k as RegisterColumnKey));
+      const stored = JSON.parse(raw) as string[];
+      const parsed = stored.filter((k): k is RegisterColumnKey => valid.has(k as RegisterColumnKey));
+      // A choice saved before the Due column existed gets it once, by default.
+      if (!stored.includes("due") && !stored.includes("due:off")) parsed.push("due");
       return new Set(parsed);
     }
   } catch {
@@ -107,10 +112,24 @@ function loadColumns(storageKey: string): Set<RegisterColumnKey> {
 
 function saveColumns(storageKey: string, cols: Set<RegisterColumnKey>) {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(Array.from(cols)));
+    const keys: string[] = Array.from(cols);
+    if (!cols.has("due")) keys.push("due:off");
+    localStorage.setItem(storageKey, JSON.stringify(keys));
   } catch {
     // Not persisted; the choice still applies for this visit.
   }
+}
+
+// "Due in 5 h" / "Overdue by 2 d" from the server's due time and flag. The
+// relative wording is display only; whether it is overdue comes from the server.
+export function dueLabel(dueAt: string | null | undefined, isOverdue: boolean | undefined, now = Date.now()): string | null {
+  if (!dueAt) return null;
+  const diffMs = new Date(dueAt).getTime() - now;
+  const abs = Math.abs(diffMs);
+  const span = abs >= 48 * 3600e3 ? `${Math.floor(abs / (24 * 3600e3))} d`
+    : abs >= 3600e3 ? `${Math.floor(abs / 3600e3)} h`
+    : `${Math.max(1, Math.floor(abs / 60e3))} min`;
+  return isOverdue ? `Overdue by ${span}` : diffMs > 0 ? `Due in ${span}` : "Due now";
 }
 
 const CLOSED_STATUSES = new Set(["Rejected", "Voided", "Cancelled", "RetestRequested"]);
@@ -366,7 +385,8 @@ export function SampleRegisterTable({
       !show("category") ? categoryLabel(sample.category) : null,
       !show("cause") ? sample.causeOfTesting : null,
       !show("sampledBy") ? sample.sampledBy : null,
-      !show("receivedAt") ? formatReceivedDate(sample.receivedAt) : null
+      !show("receivedAt") ? formatReceivedDate(sample.receivedAt) : null,
+      !show("due") && sample.isOverdue ? dueLabel(sample.dueAt, sample.isOverdue) : null
     ].filter((v): v is string => Boolean(v));
 
     return (
@@ -397,13 +417,22 @@ export function SampleRegisterTable({
               : isNested
               ? "action.hover"
               : "inherit",
-            borderLeft: isSelected
-              ? `4px solid ${theme.custom.status.purple.border}`
-              : needsPreparation
-              ? `4px solid ${theme.custom.status.inconclusive.border}`
-              : isNested
-              ? `4px solid ${theme.palette.warning.main}`
-              : "4px solid transparent",
+            // A row's state edge: selected, overdue, needs preparation or a
+            // nested retest. Drawn on the first cell - a border on the row
+            // itself does not render in a collapsed-border table.
+            "& > td:first-of-type": {
+              boxShadow: `inset 4px 0 0 ${
+                isSelected
+                  ? theme.custom.status.purple.border
+                  : sample.isOverdue
+                  ? theme.custom.status.detected.text
+                  : needsPreparation
+                  ? theme.custom.status.inconclusive.border
+                  : isNested
+                  ? theme.palette.warning.main
+                  : "transparent"
+              }`
+            },
             "&:last-child td, &:last-child th": { border: 0 },
             "&:hover": {
               bgcolor: isSelected
@@ -580,7 +609,7 @@ export function SampleRegisterTable({
                   <Chip
                     size="small"
                     data-no-row-click="true"
-                    avatar={<Avatar sx={initialsSx}>{initialsOf(assignedAnalystName)}</Avatar>}
+                    avatar={<Avatar>{initialsOf(assignedAnalystName)}</Avatar>}
                     label={assignedAnalystName}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -591,6 +620,7 @@ export function SampleRegisterTable({
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
+                      "& .MuiChip-avatar": initialsSx,
                       color: theme.palette.primary.main,
                       borderColor: theme.palette.primary.main,
                       bgcolor: `${theme.palette.primary.main}0D`,
@@ -646,6 +676,28 @@ export function SampleRegisterTable({
           {show("sampleStatus") && (
             <TableCell>
               <OverallSampleStatusBadge status={sample.status} />
+            </TableCell>
+          )}
+
+          {/* Due */}
+          {show("due") && (
+            <TableCell sx={{ whiteSpace: "nowrap" }}>
+              {sample.dueAt ? (
+                <Tooltip title={`Due ${formatReceivedDate(sample.dueAt)}`}>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: 12,
+                      fontWeight: sample.isOverdue ? 700 : 500,
+                      color: sample.isOverdue ? theme.custom.status.detected.text : "text.secondary"
+                    }}
+                  >
+                    {dueLabel(sample.dueAt, sample.isOverdue)}
+                  </Typography>
+                </Tooltip>
+              ) : (
+                <Typography sx={{ fontSize: 12, color: "text.disabled" }}>—</Typography>
+              )}
             </TableCell>
           )}
 
@@ -776,6 +828,7 @@ export function SampleRegisterTable({
               {show("batchControl") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Batch / Control No.</TableCell>}
               {show("assignedTo") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 130 }}>Assigned To</TableCell>}
               {show("sampleStatus") && <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Sample Status</TableCell>}
+              {show("due") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 110 }}>Due</TableCell>}
               {show("tests") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 170 }}>Tests</TableCell>}
               {show("nextAction") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 130 }}>Next Action</TableCell>}
               <TableCell align="center" sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>

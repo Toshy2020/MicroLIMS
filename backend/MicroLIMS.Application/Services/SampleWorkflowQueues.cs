@@ -73,11 +73,29 @@ public static class SampleWorkflowQueues
                     || i.MinimumDurationOverriddenByUserId != null)));
     }
 
+    /// <summary>
+    /// How long an open sample may stay open after receipt before it is overdue.
+    /// The Overdue tile, the overdue filter and each sample's DueAt all use it.
+    /// </summary>
+    public static readonly TimeSpan OverdueAfter = TimeSpan.FromHours(24);
+
     public static Expression<Func<Sample, bool>> IsOverdue(DateTime now)
     {
-        var overdueCutoff = now.AddHours(-24);
+        var overdueCutoff = now - OverdueAfter;
         return s => !ClosedSampleStatuses.Contains(s.Status) && s.ReceivedAt < overdueCutoff;
     }
+
+    /// <summary>
+    /// When an open sample becomes overdue; null once the sample is closed.
+    /// </summary>
+    public static DateTime? DueAt(SampleStatus status, DateTime receivedAt) =>
+        ClosedSampleStatuses.Contains(status) ? null : receivedAt + OverdueAfter;
+
+    /// <summary>
+    /// The in-memory form of <see cref="IsOverdue"/> for one sample.
+    /// </summary>
+    public static bool IsOverdueAt(SampleStatus status, DateTime receivedAt, DateTime now) =>
+        !ClosedSampleStatuses.Contains(status) && receivedAt < now - OverdueAfter;
 
     public static Expression<Func<Sample, bool>> HasTestAssignedTo(int userId, IReadOnlyCollection<int>? sectionIds = null)
     {

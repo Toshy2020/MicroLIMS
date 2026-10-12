@@ -54,6 +54,10 @@ public class SampleDto
     public string Status { get; set; } = string.Empty;
     public string PreparationStatus { get; set; } = string.Empty;
     public DateTime ReceivedAt { get; set; }
+    // When this open sample becomes overdue (null once closed), and whether it
+    // already is - from SampleWorkflowQueues, the same rule as the Overdue tile.
+    public DateTime? DueAt { get; set; }
+    public bool IsOverdue { get; set; }
 
     public string? SampleQuantity { get; set; }
     public string SampledBy { get; set; } = string.Empty;

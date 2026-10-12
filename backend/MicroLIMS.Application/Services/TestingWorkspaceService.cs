@@ -591,6 +591,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 ? SamplePreparationStatus.Ready
                 : s.PreparationStatus).ToString(),
             ReceivedAt = s.ReceivedAt,
+            DueAt = SampleWorkflowQueues.DueAt(s.Status, s.ReceivedAt),
+            IsOverdue = SampleWorkflowQueues.IsOverdueAt(s.Status, s.ReceivedAt, now),
             SampleQuantity = s.SampleQuantity,
             SampledBy = s.SampledBy,
             MfgDate = s.MfgDate,

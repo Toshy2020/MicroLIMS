@@ -80,11 +80,17 @@ export function SampleTableRow({
         sx={{
           cursor: "pointer",
           bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
-          borderLeft: isSelected
-            ? `4px solid ${theme.custom.status.purple.border}`
-            : needsPreparation
-            ? `4px solid ${theme.custom.status.inconclusive.border}`
-            : "4px solid transparent",
+          // Drawn on the first cell: a row border does not render in a
+          // collapsed-border table.
+          "& > td:first-of-type": {
+            boxShadow: `inset 4px 0 0 ${
+              isSelected
+                ? theme.custom.status.purple.border
+                : needsPreparation
+                ? theme.custom.status.inconclusive.border
+                : "transparent"
+            }`
+          },
           "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover" }
         }}
       >
@@ -149,11 +155,17 @@ export function SampleTableRow({
         sx={{
           cursor: "pointer",
           bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
-          borderLeft: isSelected
-            ? `4px solid ${theme.custom.status.purple.border}`
-            : needsPreparation
-            ? `4px solid ${theme.custom.status.inconclusive.border}`
-            : "4px solid transparent",
+          // Drawn on the first cell: a row border does not render in a
+          // collapsed-border table.
+          "& > td:first-of-type": {
+            boxShadow: `inset 4px 0 0 ${
+              isSelected
+                ? theme.custom.status.purple.border
+                : needsPreparation
+                ? theme.custom.status.inconclusive.border
+                : "transparent"
+            }`
+          },
           "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover" }
         }}
       >

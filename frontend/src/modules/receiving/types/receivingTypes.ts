@@ -37,6 +37,10 @@ export interface SampleRecord {
   status: string;
   preparationStatus: string;
   receivedAt: string;
+  // From the server's overdue rule (same as the Overdue tile): when this open
+  // sample becomes overdue (null once closed) and whether it already is.
+  dueAt?: string | null;
+  isOverdue?: boolean;
   sampleQuantity?: string | null;
   sampledBy: string;
   mfgDate?: string | null;

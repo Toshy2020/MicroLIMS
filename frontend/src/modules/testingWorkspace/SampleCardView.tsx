@@ -1,9 +1,10 @@
-import { Grid, Paper, Box, Typography, Stack, useTheme } from "@mui/material";
+import { Grid, Paper, Box, Typography, Stack, Tooltip, useTheme } from "@mui/material";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { brandColors } from "../../theme";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
+import { dueLabel } from "../receiving/components/SampleRegisterTable";
 
 interface Props {
   samples: SampleCardType[];
@@ -29,6 +30,8 @@ export function SampleCardView({
       {samples.map((sample) => {
         const needsPreparation = sample.preparationStatus === "NeedsPreparation";
         const isSelected = selectedSampleId === sample.sampleId;
+        const due = dueLabel(sample.dueAt, sample.isOverdue);
+        const dueColor = sample.isOverdue ? theme.custom.status.detected.text : theme.palette.text.secondary;
 
         return (
           <Grid
@@ -60,7 +63,10 @@ export function SampleCardView({
                 p: 2,
                 height: "100%",
                 cursor: "pointer",
-                borderLeft: isSelected
+                // Overdue wins even over selection, as in the register table.
+                borderLeft: sample.isOverdue
+                  ? `4px solid ${theme.custom.status.detected.text}`
+                  : isSelected
                   ? `4px solid ${brandColors.sectionTitle}`
                   : needsPreparation
                   ? `4px solid ${theme.custom.status.inconclusive.text}`
@@ -95,9 +101,23 @@ export function SampleCardView({
                 {sample.causeOfTesting} · {formatDate(sample.receivedAt)}
               </Typography>
 
-              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: due ? 1 : 1.5 }}>
                 {sample.batchNumber ? `Batch: ${sample.batchNumber}` : `Control: ${sample.controlNumber}`} · Tests: {sample.assignedTests.length}
               </Typography>
+
+              {due && sample.dueAt && (
+                <Tooltip title={`Due ${new Date(sample.dueAt).toLocaleString()}`}>
+                  <Typography
+                    sx={{
+                      display: "inline-flex", alignItems: "center", gap: 0.75, mb: 1.5,
+                      fontSize: 12, fontWeight: sample.isOverdue ? 700 : 500, color: dueColor,
+                      "&::before": { content: '""', width: 6, height: 6, borderRadius: "50%", bgcolor: dueColor }
+                    }}
+                  >
+                    {due}
+                  </Typography>
+                </Tooltip>
+              )}
 
               <Stack
                 direction="row"

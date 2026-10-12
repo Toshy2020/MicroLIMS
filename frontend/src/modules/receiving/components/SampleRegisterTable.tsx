@@ -417,15 +417,16 @@ export function SampleRegisterTable({
               : isNested
               ? "action.hover"
               : "inherit",
-            // A row's state edge: selected, overdue, needs preparation or a
-            // nested retest. Drawn on the first cell - a border on the row
-            // itself does not render in a collapsed-border table.
+            // A row's state edge: overdue, selected, needs preparation or a
+            // nested retest. Overdue wins even over selection, so a late sample
+            // never looks on time. Drawn on the first cell - a border on the
+            // row itself does not render in a collapsed-border table.
             "& > td:first-of-type": {
               boxShadow: `inset 4px 0 0 ${
-                isSelected
-                  ? theme.custom.status.purple.border
-                  : sample.isOverdue
+                sample.isOverdue
                   ? theme.custom.status.detected.text
+                  : isSelected
+                  ? theme.custom.status.purple.border
                   : needsPreparation
                   ? theme.custom.status.inconclusive.border
                   : isNested

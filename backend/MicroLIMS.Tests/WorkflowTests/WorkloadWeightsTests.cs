@@ -18,52 +18,6 @@ public class WorkloadWeightsTests
     }
 
     [Fact]
-    public async Task UpdateWorkloadWeightAsync_PersistsNewWeightAndCreatesAuditHistory()
-    {
-        await using var db = NewDb();
-        var weight = new WorkloadWeight
-        {
-            TestCode = "TAMC",
-            TestName = "Total Aerobic Microbial Count",
-            Category = SampleCategory.FinishedProduct,
-            Weight = 1.0m,
-            EffectiveDate = DateTime.UtcNow.AddDays(-30),
-            IsActive = true,
-            ReasonForChange = "Initial baseline",
-            ChangedByUserId = 1,
-            ChangedByName = "System Administrator",
-            ChangedAt = DateTime.UtcNow.AddDays(-30)
-        };
-        db.WorkloadWeights.Add(weight);
-        await db.SaveChangesAsync();
-
-        var kpiService = new KpiService(db);
-        var result = await kpiService.UpdateWorkloadWeightAsync(
-            "TAMC",
-            1.5m,
-            "Updated procedure complexity",
-            userId: 2,
-            userName: "Jane SectionHead"
-        );
-
-        Assert.NotNull(result);
-        Assert.Equal(1.5m, result.WorkloadWeight);
-
-        var updated = await db.WorkloadWeights.SingleAsync(w => w.TestCode == "TAMC");
-        Assert.Equal(1.5m, updated.Weight);
-        Assert.Equal("Updated procedure complexity", updated.ReasonForChange);
-        Assert.Equal(2, updated.ChangedByUserId);
-        Assert.Equal("Jane SectionHead", updated.ChangedByName);
-
-        var history = await db.WorkloadWeightHistories.SingleAsync(h => h.WorkloadWeightId == updated.Id);
-        Assert.Equal(1.0m, history.PreviousWeight);
-        Assert.Equal(1.5m, history.NewWeight);
-        Assert.Equal("Updated procedure complexity", history.ReasonForChange);
-        Assert.Equal(2, history.ChangedByUserId);
-        Assert.Equal("Jane SectionHead", history.ChangedByName);
-    }
-
-    [Fact]
     public async Task GetAnalystKpisAsync_CalculatesWorkloadUnitsFromConfiguredWeights()
     {
         await using var db = NewDb();

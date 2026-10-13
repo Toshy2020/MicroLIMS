@@ -37,18 +37,6 @@ public class KpiController : ControllerBase
     public async Task<IActionResult> GetWorkloadWeights() =>
         Ok(ApiResponse<object>.Ok(await _kpiService.GetWorkloadWeightsAsync()));
 
-    [HttpPut("workload-weights/{testCode}")]
-    public async Task<IActionResult> UpdateWorkloadWeight(
-        [FromRoute] string testCode,
-        [FromBody] UpdateWorkloadWeightRequest request)
-    {
-        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-        var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Section Head";
-        var result = await _kpiService.UpdateWorkloadWeightAsync(
-            testCode, request.WorkloadWeight, request.ReasonForChange, userId, userName);
-        return Ok(ApiResponse<object>.Ok(result));
-    }
-
     [HttpGet("completion-stats")]
     public async Task<IActionResult> GetCompletionStats(
         [FromQuery] SampleCategory? category,

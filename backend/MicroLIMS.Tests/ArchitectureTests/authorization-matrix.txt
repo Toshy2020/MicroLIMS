@@ -272,7 +272,6 @@ KpiController.GetStepViolations(Nullable`1, DateTime, DateTime, Nullable`1, Stri
 KpiController.GetTestingTatByMonth(Int32, Nullable`1, String, String): SystemAdministrator,SectionHead
 KpiController.GetWorkflowBottleneckDeltas(Nullable`1, String, String): SystemAdministrator,SectionHead
 KpiController.GetWorkloadWeights(): SystemAdministrator,SectionHead
-KpiController.UpdateWorkloadWeight(String, UpdateWorkloadWeightRequest): SystemAdministrator,SectionHead
 LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst

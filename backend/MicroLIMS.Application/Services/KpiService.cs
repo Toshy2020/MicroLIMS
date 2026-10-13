@@ -30,10 +30,6 @@ public record WorkloadWeightDto(
     string ChangedBy,
     string ChangedAt);
 
-public record UpdateWorkloadWeightRequest(
-    decimal WorkloadWeight,
-    string ReasonForChange);
-
 // Sample-level queue depths for the Review and Approval workflow gates -
 // deliberately Sample.Status counts, not TestOrder.Status like
 // CompletionStatsDto: a sample enters UnderReview/UnderApproval as a
@@ -141,71 +137,6 @@ public class KpiService
             w.ChangedByName,
             w.ChangedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         )).ToList();
-    }
-
-    public async Task<WorkloadWeightDto> UpdateWorkloadWeightAsync(
-        string testCode, decimal weight, string reason, int userId, string userName)
-    {
-        if (weight <= 0)
-            throw new InvalidOperationException("Workload weight must be greater than 0.");
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for change is required to update workload weight configuration.");
-
-        var existing = await _db.WorkloadWeights.FirstOrDefaultAsync(w => w.TestCode == testCode);
-        if (existing is null)
-        {
-            var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode);
-            existing = new MicroLIMS.Domain.Entities.WorkloadWeight
-            {
-                TestCode = testCode,
-                TestName = testDef?.DisplayName ?? testCode,
-                Category = SampleCategory.FinishedProduct,
-                Weight = weight,
-                IsActive = true,
-                EffectiveDate = _time.GetUtcNow().UtcDateTime,
-                ReasonForChange = reason,
-                ChangedByUserId = userId,
-                ChangedByName = userName,
-                ChangedAt = _time.GetUtcNow().UtcDateTime
-            };
-            _db.WorkloadWeights.Add(existing);
-        }
-        else
-        {
-            var history = new MicroLIMS.Domain.Entities.WorkloadWeightHistory
-            {
-                WorkloadWeightId = existing.Id,
-                Action = "Updated",
-                TestCode = existing.TestCode,
-                PreviousWeight = existing.Weight,
-                NewWeight = weight,
-                ReasonForChange = reason,
-                ChangedByUserId = userId,
-                ChangedByName = userName,
-                ChangedAt = _time.GetUtcNow().UtcDateTime
-            };
-            _db.WorkloadWeightHistories.Add(history);
-
-            existing.Weight = weight;
-            existing.ReasonForChange = reason;
-            existing.ChangedByUserId = userId;
-            existing.ChangedByName = userName;
-            existing.ChangedAt = _time.GetUtcNow().UtcDateTime;
-        }
-
-        await _db.SaveChangesAsync();
-
-        return new WorkloadWeightDto(
-            existing.TestCode,
-            existing.TestName,
-            existing.Category,
-            existing.Weight,
-            existing.EffectiveDate.ToString("yyyy-MM-dd"),
-            existing.IsActive ? "Active" : "Inactive",
-            existing.ReasonForChange,
-            existing.ChangedByName,
-            existing.ChangedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-        );
     }
 
     private static double Median(List<double> values)

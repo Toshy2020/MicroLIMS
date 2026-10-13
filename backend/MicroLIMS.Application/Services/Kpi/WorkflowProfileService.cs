@@ -164,6 +164,107 @@ public class WorkflowProfileService
         return (type, code, trimmedReason);
     }
 
+    // ---- Reads -----------------------------------------------------------
+
+    // Every Effective version plus the CURRENT type of every test definition. S2 and S3
+    // resolve any number of tests from the returned object without further queries.
+    public async Task<WorkflowProfileResolver> LoadResolverAsync(CancellationToken ct = default)
+    {
+        var versions = await _db.WorkflowProfileVersions.AsNoTracking()
+            .Where(v => v.Status == WorkflowProfileStatus.Effective).ToListAsync(ct);
+        var types = await _db.TestDefinitions.AsNoTracking().ToDictionaryAsync(t => t.Code, t => t.WorkflowType, ct);
+        return new WorkflowProfileResolver(versions, types);
+    }
+
+    public async Task<List<WorkflowProfileVersionDto>> ListAsync(
+        WorkflowType? workflowType, string? testCode, bool defaultOnly, WorkflowProfileStatus? status, CancellationToken ct = default)
+    {
+        var query = _db.WorkflowProfileVersions.AsNoTracking();
+        if (workflowType.HasValue) query = query.Where(v => v.WorkflowType == workflowType.Value);
+        if (!string.IsNullOrWhiteSpace(testCode))
+        {
+            var code = testCode.Trim();
+            query = query.Where(v => v.TestCode == code);
+        }
+        if (defaultOnly) query = query.Where(v => v.TestCode == null);
+        if (status.HasValue) query = query.Where(v => v.Status == status.Value);
+
+        var rows = await query.OrderByDescending(v => v.Id).ToListAsync(ct);
+        return await MapAsync(rows, ct);
+    }
+
+    public async Task<WorkflowProfileOverviewDto> GetOverviewAsync(CancellationToken ct = default)
+    {
+        var now = _time.GetUtcNow().UtcDateTime;
+        var all = await _db.WorkflowProfileVersions.AsNoTracking().ToListAsync(ct);
+        var effective = all.Where(v => v.Status == WorkflowProfileStatus.Effective).ToList();
+        var tests = await _db.TestDefinitions.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.Code).ToListAsync(ct);
+        var typeByCode = await _db.TestDefinitions.AsNoTracking().ToDictionaryAsync(t => t.Code, t => t.WorkflowType, ct);
+        var resolver = new WorkflowProfileResolver(effective, typeByCode);
+
+        // The latest change per type = the newest Effective type-default row.
+        var lastByType = effective.Where(v => v.TestCode == null)
+            .GroupBy(v => v.WorkflowType)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id).First());
+        var signatures = await LoadSignaturesAsync(lastByType.Values, ct);
+        var creatorIds = lastByType.Values.Select(v => v.CreatedByUserId).Distinct().ToList();
+        var creators = await _db.Users.AsNoTracking().Where(u => creatorIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+
+        var rows = new List<WorkflowProfileTypeRowDto>();
+        foreach (var type in LiveTypes)
+        {
+            var resolved = resolver.ResolveDefault(type, now);
+
+            DateOnly? lastFrom = null;
+            DateTime? lastAt = null;
+            string? lastBy = null;
+            if (lastByType.TryGetValue(type, out var last))
+            {
+                lastFrom = last.EffectiveFrom;
+                lastAt = last.CreatedAt;
+                lastBy = CreatorName(last.CreatedByUserId, creators);
+                if (last.ElectronicSignatureId is int sid && signatures.TryGetValue(sid, out var sig))
+                {
+                    lastAt = sig.SignedAt;      // the signature is the change; the signer is accountable
+                    lastBy = sig.SignerName;
+                }
+            }
+
+            var testRows = tests.Where(t => t.WorkflowType == type).Select(t =>
+            {
+                var p = resolver.Resolve(t.Code, now);
+                return new WorkflowProfileTestRowDto(
+                    t.Code, t.DisplayName, p.WorkUnits, p.TargetAnalystDays,
+                    resolver.HasOverride(t.Code, now), CoverageOf(p.WorkUnits, p.TargetAnalystDays));
+            }).ToList();
+
+            var drafts = all.Count(v => v.Status == WorkflowProfileStatus.Draft && v.WorkflowType == type);
+            rows.Add(new WorkflowProfileTypeRowDto(
+                type, resolved.WorkUnits, resolved.TargetAnalystDays, lastFrom, lastAt, lastBy,
+                CoverageOf(resolved.WorkUnits, resolved.TargetAnalystDays), drafts, testRows));
+        }
+
+        return new WorkflowProfileOverviewDto(rows);
+    }
+
+    public async Task<WorkflowProfileCoverageDto> GetCoverageAsync(CancellationToken ct = default)
+    {
+        var overview = await GetOverviewAsync(ct);
+        return new WorkflowProfileCoverageDto(
+            overview.Types.Where(t => t.EffectiveWorkUnits is null).Select(t => t.WorkflowType).ToList(),
+            overview.Types.Where(t => t.EffectiveTargetAnalystDays is null).Select(t => t.WorkflowType).ToList(),
+            overview.Types.SelectMany(t => t.Tests).Where(t => t.Coverage != ProfileCoverage.Configured).ToList());
+    }
+
+    private static ProfileCoverage CoverageOf(decimal? units, decimal? target) =>
+        (units.HasValue, target.HasValue) switch
+        {
+            (true, true) => ProfileCoverage.Configured,
+            (false, false) => ProfileCoverage.NeedsConfiguration,
+            _ => ProfileCoverage.Partial
+        };
+
     private static void CheckValue(string label, decimal? value, decimal max)
     {
         if (value is null) return;

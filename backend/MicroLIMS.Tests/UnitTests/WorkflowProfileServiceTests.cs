@@ -429,4 +429,182 @@ public class WorkflowProfileServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => NewService(db).SignDraftAsync(draft.Id, Sign(units: 12.345m), user.Id, null));
     }
+
+    // ---- Reads -----------------------------------------------------------
+
+    private static Task<WorkflowProfileVersion> Effective(MicroLimsDbContext db, WorkflowType type, string? code,
+        decimal? units, decimal? target, string from = "2026-01-01", int createdBy = 1) =>
+        SeedRowAsync(db, type, code, units, target, DateOnly.Parse(from), WorkflowProfileStatus.Effective, createdBy);
+
+    [Fact]
+    public async Task LoadResolver_ResolvesFromEffectiveRowsAndCurrentTestTypes()
+    {
+        await using var db = NewDb();
+        await SeedTestAsync(db, "TAMC", WorkflowType.CountTest);
+        await Effective(db, WorkflowType.CountTest, null, 1.5m, 7m);
+        await SeedRowAsync(db, WorkflowType.CountTest, "TAMC", 9m, 9m, Today, WorkflowProfileStatus.Draft);
+
+        var resolver = await NewService(db).LoadResolverAsync();
+        var p = resolver.Resolve("TAMC", Now.UtcDateTime);
+
+        Assert.Equal(1.5m, p.WorkUnits);
+        Assert.Equal(7m, p.TargetAnalystDays);
+    }
+
+    [Fact]
+    public async Task List_FiltersAndOrdersNewestFirst()
+    {
+        await using var db = NewDb();
+        await SeedTestAsync(db, "TAMC", WorkflowType.CountTest);
+        var a = await Effective(db, WorkflowType.CountTest, null, 1m, 7m);
+        var b = await Effective(db, WorkflowType.CountTest, "TAMC", 4m, null);
+        var c = await Effective(db, WorkflowType.Measurement, null, 2m, null);
+        var d = await SeedRowAsync(db, WorkflowType.CountTest, "TAMC", 5m, null, Today, WorkflowProfileStatus.Draft);
+        var service = NewService(db);
+
+        var all = await service.ListAsync(null, null, false, null);
+        Assert.Equal(new[] { d.Id, c.Id, b.Id, a.Id }, all.Select(v => v.Id));
+
+        Assert.Equal(new[] { b.Id, a.Id }.Concat(new[] { d.Id }).OrderByDescending(i => i),
+            (await service.ListAsync(WorkflowType.CountTest, null, false, null)).Select(v => v.Id));
+        Assert.Equal(new[] { d.Id, b.Id }, (await service.ListAsync(null, "TAMC", false, null)).Select(v => v.Id));
+        Assert.Equal(new[] { c.Id, a.Id }, (await service.ListAsync(null, null, true, null)).Select(v => v.Id));
+        Assert.Equal(new[] { d.Id }, (await service.ListAsync(null, null, false, WorkflowProfileStatus.Draft)).Select(v => v.Id));
+        Assert.Equal("TAMC name", (await service.ListAsync(null, "TAMC", false, null)).First().TestName);
+    }
+
+    [Fact]
+    public async Task Overview_ListsEveryLiveTypeInOrder_WithCoverageFromTheTypeDefault()
+    {
+        await using var db = NewDb();
+        await Effective(db, WorkflowType.CountTest, null, 1m, 7m);        // Configured
+        await Effective(db, WorkflowType.Measurement, null, 2m, null);    // Partial
+        // Gravimetric: nothing -> NeedsConfiguration
+
+        var overview = await NewService(db).GetOverviewAsync();
+
+        Assert.Equal(WorkflowProfileService.LiveTypes, overview.Types.Select(t => t.WorkflowType));
+        Assert.Equal(ProfileCoverage.Configured, overview.Types.Single(t => t.WorkflowType == WorkflowType.CountTest).Coverage);
+        var measurement = overview.Types.Single(t => t.WorkflowType == WorkflowType.Measurement);
+        Assert.Equal(ProfileCoverage.Partial, measurement.Coverage);
+        Assert.Equal(2m, measurement.EffectiveWorkUnits);
+        Assert.Null(measurement.EffectiveTargetAnalystDays);
+        Assert.Equal(ProfileCoverage.NeedsConfiguration, overview.Types.Single(t => t.WorkflowType == WorkflowType.Gravimetric).Coverage);
+    }
+
+    [Fact]
+    public async Task Overview_FutureDatedVersion_IsNotEffectiveToday()
+    {
+        await using var db = NewDb();
+        await Effective(db, WorkflowType.CountTest, null, 1m, 7m, "2026-01-01");
+        await Effective(db, WorkflowType.CountTest, null, 9m, 9m, "2026-10-12");
+
+        var row = (await NewService(db).GetOverviewAsync()).Types.Single(t => t.WorkflowType == WorkflowType.CountTest);
+
+        Assert.Equal(1m, row.EffectiveWorkUnits);
+    }
+
+    [Fact]
+    public async Task Overview_CountsDrafts_AndDraftsDoNotChangeEffectiveValues()
+    {
+        await using var db = NewDb();
+        await SeedTestAsync(db, "TAMC", WorkflowType.CountTest);
+        await Effective(db, WorkflowType.CountTest, null, 1m, 7m);
+        await SeedRowAsync(db, WorkflowType.CountTest, "TAMC", 9m, null, Today, WorkflowProfileStatus.Draft);
+        await SeedRowAsync(db, WorkflowType.CountTest, null, 8m, null, Today, WorkflowProfileStatus.Draft);
+
+        var row = (await NewService(db).GetOverviewAsync()).Types.Single(t => t.WorkflowType == WorkflowType.CountTest);
+
+        Assert.Equal(2, row.DraftCount);
+        Assert.Equal(1m, row.EffectiveWorkUnits);
+        Assert.Equal(1m, row.Tests.Single().EffectiveWorkUnits);
+        Assert.False(row.Tests.Single().HasOverride);
+    }
+
+    [Fact]
+    public async Task Overview_TestRowsInheritFromTheTypeDefault_AndFlagOverrides()
+    {
+        await using var db = NewDb();
+        await SeedTestAsync(db, "TAMC", WorkflowType.CountTest);
+        await SeedTestAsync(db, "TYMC", WorkflowType.CountTest);
+        await SeedTestAsync(db, "OLD", WorkflowType.CountTest, active: false);
+        await Effective(db, WorkflowType.CountTest, null, 1m, 7m);
+        await Effective(db, WorkflowType.CountTest, "TAMC", 4m, null);
+
+        var tests = (await NewService(db).GetOverviewAsync()).Types.Single(t => t.WorkflowType == WorkflowType.CountTest).Tests;
+
+        Assert.Equal(new[] { "TAMC", "TYMC" }, tests.Select(t => t.TestCode)); // inactive test excluded
+        var tamc = tests[0];
+        Assert.True(tamc.HasOverride);
+        Assert.Equal(4m, tamc.EffectiveWorkUnits);
+        Assert.Equal(7m, tamc.EffectiveTargetAnalystDays);
+        Assert.Equal(ProfileCoverage.Configured, tamc.Coverage);
+        Assert.False(tests[1].HasOverride);
+        Assert.Equal(1m, tests[1].EffectiveWorkUnits);
+    }
+
+    [Fact]
+    public async Task Overview_FollowsCurrentTestWorkflowType()
+    {
+        await using var db = NewDb();
+        await SeedTestAsync(db, "TAMC", WorkflowType.Measurement); // was CountTest when profiles were set
+        await Effective(db, WorkflowType.CountTest, null, 1m, 7m);
+        await Effective(db, WorkflowType.Measurement, null, 3m, 5m);
+        var types = (await NewService(db).GetOverviewAsync()).Types;
+
+        Assert.Empty(types.Single(t => t.WorkflowType == WorkflowType.CountTest).Tests);
+        var tamc = types.Single(t => t.WorkflowType == WorkflowType.Measurement).Tests.Single();
+        Assert.Equal(3m, tamc.EffectiveWorkUnits);
+    }
+
+    [Fact]
+    public async Task Overview_LastChange_UsesTheSignerForASignedDraft()
+    {
+        await using var db = NewDb();
+        var user = await SeedUserAsync(db, "Sam Signer");
+        var draft = await SeedRowAsync(db, WorkflowType.CountTest, null, 1m, null, Today, WorkflowProfileStatus.Draft);
+        var service = NewService(db);
+        await service.SignDraftAsync(draft.Id, Sign(units: 2m, target: 8m), user.Id, null);
+
+        var row = (await service.GetOverviewAsync()).Types.Single(t => t.WorkflowType == WorkflowType.CountTest);
+
+        Assert.Equal("Sam Signer", row.LastChangeByName);
+        Assert.Equal(Today, row.LastEffectiveFrom);
+        Assert.NotNull(row.LastChangeAt);
+        Assert.Equal(0, row.DraftCount);
+    }
+
+    [Fact]
+    public async Task Overview_TypeWithNoEffectiveVersion_HasNoLastChange()
+    {
+        await using var db = NewDb();
+
+        var row = (await NewService(db).GetOverviewAsync()).Types.First();
+
+        Assert.Null(row.LastEffectiveFrom);
+        Assert.Null(row.LastChangeAt);
+        Assert.Null(row.LastChangeByName);
+    }
+
+    [Fact]
+    public async Task Coverage_ListsTypesWithoutUnitsOrTarget_AndTestsNeedingConfiguration()
+    {
+        await using var db = NewDb();
+        await SeedTestAsync(db, "TAMC", WorkflowType.CountTest);
+        await SeedTestAsync(db, "PH", WorkflowType.Measurement);
+        await Effective(db, WorkflowType.CountTest, null, 1m, 7m);       // fully configured
+        await Effective(db, WorkflowType.Measurement, null, 2m, null);   // units only
+
+        var coverage = await NewService(db).GetCoverageAsync();
+
+        Assert.DoesNotContain(WorkflowType.CountTest, coverage.TypesWithoutUnits);
+        Assert.DoesNotContain(WorkflowType.Measurement, coverage.TypesWithoutUnits);
+        Assert.Contains(WorkflowType.Gravimetric, coverage.TypesWithoutUnits);
+        Assert.Contains(WorkflowType.Measurement, coverage.TypesWithoutTarget);
+        Assert.DoesNotContain(WorkflowType.CountTest, coverage.TypesWithoutTarget);
+        var needing = Assert.Single(coverage.TestsNeedingConfiguration);
+        Assert.Equal("PH", needing.TestCode);
+        Assert.Equal(ProfileCoverage.Partial, needing.Coverage);
+    }
 }
+

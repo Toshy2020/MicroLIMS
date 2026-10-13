@@ -398,8 +398,9 @@ export interface StageTatSummary {
 // tests/steps - a sample can carry several tests).
 export interface SampleSlaSummary {
   totalAssigned: number;
-  onTimePercent: number;
-  overduePercent: number;
+  // null when nothing was assigned in range - there is no rate to report.
+  onTimePercent: number | null;
+  overduePercent: number | null;
 }
 
 // Step-level max-hours violation (CompletedAt vs ExpectedReadingAt + 4h
@@ -408,9 +409,9 @@ export interface SampleSlaSummary {
 // denominator (tests, not samples), never merged into one card.
 export interface StepViolationSummary {
   totalAssignedTests: number;
-  onTimePercent: number;
+  onTimePercent: number | null;
   violationCount: number;
-  violationPercent: number;
+  violationPercent: number | null;
 }
 
 export interface AnalystPerformanceDashboardData {

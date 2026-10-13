@@ -156,9 +156,9 @@ export const AnalystKpiService = {
           testCode: testCodeParam
         }
       }).catch(() => null),
+      // No analystId: the comparison table needs every analyst's count, not just the filtered one.
       apiClient.get<{ success: boolean; data: Record<string, number> }>("/kpi/return-to-analyst-count", {
         params: {
-          analystId: filterAnalystId,
           fromDate,
           toDate
         }
@@ -181,7 +181,7 @@ export const AnalystKpiService = {
     const overallOnTimeByAnalyst: Record<string, OverallOnTimeOutcomeDto> = overallOnTimeByAnalystRes?.data?.data ?? {};
     const returnToAnalystByAnalyst: Record<string, number> | null = returnToAnalystRes?.data?.data ?? null;
 
-    const comparisonRows = buildComparisonRows(realAnalysts, slaByAnalyst, overallOnTimeByAnalyst);
+    const comparisonRows = buildComparisonRows(realAnalysts, slaByAnalyst, overallOnTimeByAnalyst, returnToAnalystByAnalyst);
 
     const targetAnalystId =
       currentUserRole === "Analyst"
@@ -212,31 +212,31 @@ export const AnalystKpiService = {
       testsAssigned: {
         title: "Tests Assigned",
         value: totalAssigned.toLocaleString(),
-        deltaPercent: totalAssigned > 0 ? 100 : 0,
-        deltaDirection: "up",
+        deltaPercent: 0,
+        deltaDirection: "neutral",
         comparisonLabel: "live database test orders"
       },
       testsCompleted: {
         title: "Tests Completed",
         value: totalCompleted.toLocaleString(),
-        deltaPercent: totalAssigned > 0 ? Math.round((totalCompleted / totalAssigned) * 100) : 0,
-        deltaDirection: "up",
+        deltaPercent: 0,
+        deltaDirection: "neutral",
         comparisonLabel: `${totalCompleted} approved results`
       },
       completionRate: {
         title: "Completion Rate",
         value: `${completionRate}%`,
-        deltaPercent: completionRate,
-        deltaDirection: "up",
-        comparisonLabel: "approval rate across orders"
+        deltaPercent: 0,
+        deltaDirection: "neutral",
+        comparisonLabel: "approved of approved + rejected orders"
       },
       onTimeCompletion: {
         title: "On-Time Completion",
         value: overallOnTime && overallOnTime.totalAssigned > 0
           ? `${Number(((overallOnTime.onTimeCount / overallOnTime.totalAssigned) * 100).toFixed(1))}%`
           : "Not Available",
-        deltaPercent: overallOnTime && overallOnTime.totalAssigned > 0 ? Number(((overallOnTime.onTimeCount / overallOnTime.totalAssigned) * 100).toFixed(1)) : 0,
-        deltaDirection: "up",
+        deltaPercent: 0,
+        deltaDirection: "neutral",
         comparisonLabel: overallOnTime && overallOnTime.totalAssigned > 0
           ? `${overallOnTime.onTimeCount} of ${overallOnTime.totalAssigned} samples on time, every stage reached`
           : "No assigned samples in range",
@@ -245,8 +245,8 @@ export const AnalystKpiService = {
       averageTestingTat: {
         title: "Avg Result Turnaround",
         value: testingAvgDays != null ? `${testingAvgDays} Days` : "Not Available",
-        deltaPercent: testingAvgDays ?? 0,
-        deltaDirection: "down",
+        deltaPercent: 0,
+        deltaDirection: "neutral",
         comparisonLabel: testingAvgDays != null
           ? "Testing stage: analyst assignment → submitted for review"
           : "No completed testing-stage samples in range",
@@ -255,8 +255,8 @@ export const AnalystKpiService = {
       pendingOverdue: {
         title: "Pending / Overdue",
         value: `${totalPending} / ${totalOverdue}`,
-        deltaPercent: totalOverdue,
-        deltaDirection: totalOverdue > 0 ? "up" : "down",
+        deltaPercent: 0,
+        deltaDirection: "neutral",
         comparisonLabel: `${totalPending} active queue · ${totalOverdue} delayed (>24h)`,
         variant: totalOverdue > 0 ? "warning" : "default"
       },
@@ -264,7 +264,7 @@ export const AnalystKpiService = {
         title: "Out of Spec (Lab Quality)",
         value: outOfSpecCount,
         deltaPercent: 0,
-        deltaDirection: "down",
+        deltaDirection: "neutral",
         comparisonLabel: "Laboratory Quality Metric: Not an Analyst Performance Penalty",
         variant: "error",
         tooltip: "GMP Principle: An analyst reporting an OOS is executing protocol correctly. Not counted as a penalty."
@@ -273,20 +273,20 @@ export const AnalystKpiService = {
         totalAssigned: sampleSlaData?.totalAssigned ?? 0,
         onTimePercent: sampleSlaData && sampleSlaData.totalAssigned > 0
           ? Number(((sampleSlaData.onTimeCount / sampleSlaData.totalAssigned) * 100).toFixed(1))
-          : 100,
+          : null,
         overduePercent: sampleSlaData && sampleSlaData.totalAssigned > 0
           ? Number(((sampleSlaData.overdueCount / sampleSlaData.totalAssigned) * 100).toFixed(1))
-          : 0
+          : null
       },
       stepViolations: {
         totalAssignedTests: stepViolationsData?.totalAssignedTests ?? 0,
         onTimePercent: stepViolationsData && stepViolationsData.totalAssignedTests > 0
           ? Number((100 - (stepViolationsData.testsWithViolationCount / stepViolationsData.totalAssignedTests) * 100).toFixed(1))
-          : 100,
+          : null,
         violationCount: stepViolationsData?.violationCount ?? 0,
         violationPercent: stepViolationsData && stepViolationsData.totalAssignedTests > 0
           ? Number(((stepViolationsData.testsWithViolationCount / stepViolationsData.totalAssignedTests) * 100).toFixed(1))
-          : 0
+          : null
       },
       dataCoveragePercent: realAnalysts && realAnalysts.length > 0 ? 100 : 0,
       dataCoverageNote: "Verified data coverage across live assigned and completed laboratory test orders.",
@@ -354,7 +354,8 @@ export const AnalystKpiService = {
 function buildComparisonRows(
   backendKpis: AnalystKpiDto[],
   slaByAnalyst?: Record<string, SampleSlaOutcomeDto>,
-  overallOnTimeByAnalyst?: Record<string, OverallOnTimeOutcomeDto>
+  overallOnTimeByAnalyst?: Record<string, OverallOnTimeOutcomeDto>,
+  returnToAnalystByAnalyst?: Record<string, number> | null
 ): AnalystComparisonRow[] {
   if (!Array.isArray(backendKpis) || backendKpis.length === 0) {
     return [];
@@ -366,15 +367,17 @@ function buildComparisonRows(
     const pending = kpi.pendingTests || 0;
     const overdue = slaByAnalyst?.[String(kpi.userId)]?.overdueCount ?? 0;
     const workloadUnits = kpi.workloadUnits != null ? Math.round(kpi.workloadUnits) : completed;
-    const completionRatePercent = assigned > 0 ? Number(((completed / assigned) * 100).toFixed(1)) : 100;
-    const avgTestingTatDays = Number(((kpi.averageTurnaroundHours || 24.0) / 24).toFixed(1));
+    const completionRatePercent = assigned > 0 ? Number(((completed / assigned) * 100).toFixed(1)) : 0;
+    const avgTestingTatDays = Number(((kpi.averageTurnaroundHours || 0) / 24).toFixed(1));
 
     const onTimeAgg = overallOnTimeByAnalyst?.[String(kpi.userId)];
     const onTimePercent = onTimeAgg && onTimeAgg.totalAssigned > 0
       ? Number(((onTimeAgg.onTimeCount / onTimeAgg.totalAssigned) * 100).toFixed(1))
       : null;
 
-    const reviewReturns = kpi.reviewReturns != null ? Number(kpi.reviewReturns) : null;
+    // kpi.reviewReturns is the same audit-edit count as docCorrections; the real
+    // figure is the explicit TestReturnEvent count.
+    const reviewReturns = returnToAnalystByAnalyst != null ? (returnToAnalystByAnalyst[String(kpi.userId)] ?? 0) : null;
     const docCorrections = kpi.docCorrections != null ? Number(kpi.docCorrections) : null;
 
     return {

@@ -5,8 +5,6 @@ import {
   Stack, Chip, Tooltip, useTheme,
   TableContainer
 } from "@mui/material";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import TuneIcon from "@mui/icons-material/Tune";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -39,15 +37,13 @@ function formatDeltaVsPrev(deltaPercent: number): string {
   return `${arrow} ${Math.abs(deltaPercent).toFixed(1)}% vs prev`;
 }
 
+// "—" when a rate has no denominator, instead of a made-up 0% / 100%.
+const formatPercent = (v: number | null) => (v == null ? "—" : `${v}%`);
+
+// No card on this page has a real period-over-period delta, so none is drawn.
 function KpiCard({ data }: { data: OverviewKpiCardData }) {
   const theme = useTheme();
-  const isUp = data.deltaDirection === "up";
   const isError = data.variant === "error";
-  const isWarning = data.variant === "warning";
-
-  let deltaColor = isUp ? theme.custom.status.notDetected.text : theme.custom.status.detected.text;
-  if (isError) deltaColor = theme.custom.status.detected.text;
-  if (isWarning) deltaColor = theme.custom.status.action.text;
 
   const card = (
     <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
@@ -57,15 +53,9 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
       <Typography sx={{ fontSize: 24, fontWeight: 800, color: isError ? theme.custom.status.detected.text : theme.palette.primary.main, my: 0.5 }}>
         {data.value}
       </Typography>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
-        <Box sx={{ display: "flex", alignItems: "center", color: deltaColor, fontSize: 12, fontWeight: 700 }}>
-          {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
-          {Math.abs(data.deltaPercent)}%
-        </Box>
-        <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-          {data.comparisonLabel}
-        </Typography>
-      </Box>
+      <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
+        {data.comparisonLabel}
+      </Typography>
     </Paper>
   );
 
@@ -469,13 +459,13 @@ export function AnalystKpiTab() {
               <Box>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time %</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                  {data.sampleSla.onTimePercent}%
+                  {formatPercent(data.sampleSla.onTimePercent)}
                 </Typography>
               </Box>
               <Box>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Overdue %</Typography>
-                <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.sampleSla.overduePercent > 0 ? theme.custom.status.detected.text : "text.primary" }}>
-                  {data.sampleSla.overduePercent}%
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: (data.sampleSla.overduePercent ?? 0) > 0 ? theme.custom.status.detected.text : "text.primary" }}>
+                  {formatPercent(data.sampleSla.overduePercent)}
                 </Typography>
               </Box>
             </Stack>
@@ -500,7 +490,7 @@ export function AnalystKpiTab() {
               <Box>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time %</Typography>
                 <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                  {data.stepViolations.onTimePercent}%
+                  {formatPercent(data.stepViolations.onTimePercent)}
                 </Typography>
               </Box>
               <Box>
@@ -511,8 +501,8 @@ export function AnalystKpiTab() {
               </Box>
               <Box>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Violation %</Typography>
-                <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.stepViolations.violationPercent > 0 ? theme.custom.status.detected.text : "text.primary" }}>
-                  {data.stepViolations.violationPercent}%
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: (data.stepViolations.violationPercent ?? 0) > 0 ? theme.custom.status.detected.text : "text.primary" }}>
+                  {formatPercent(data.stepViolations.violationPercent)}
                 </Typography>
               </Box>
             </Stack>
@@ -540,8 +530,8 @@ export function AnalystKpiTab() {
                   <YAxis tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip />
                   <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="year2025" name="2025" fill={theme.custom.chartSequential[1]} radius={[3, 3, 0, 0]} barSize={12} />
-                  <Bar dataKey="year2026" name="2026" fill={theme.custom.chartSequential[3]} radius={[3, 3, 0, 0]} barSize={12} />
+                  <Bar dataKey="year2025" name={String(new Date().getFullYear() - 1)} fill={theme.custom.chartSequential[1]} radius={[3, 3, 0, 0]} barSize={12} />
+                  <Bar dataKey="year2026" name={String(new Date().getFullYear())} fill={theme.custom.chartSequential[3]} radius={[3, 3, 0, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
@@ -614,7 +604,7 @@ export function AnalystKpiTab() {
                 <LineChart data={data.tatTrendByMonth} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
                   <CartesianGrid vertical={false} stroke={theme.palette.divider} />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
-                  <YAxis domain={[0, 4]} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
+                  <YAxis domain={[0, "auto"]} tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip formatter={(val: unknown) => [`${val} days`, "Testing TAT"]} />
                   <Line type="monotone" dataKey="tatDays" stroke={theme.custom.status.info.text} strokeWidth={2.5} dot={{ r: 4 }} />
                 </LineChart>
@@ -812,7 +802,7 @@ export function AnalystKpiTab() {
                         </Typography>
                       </Tooltip>
                     </TableCell>
-                    <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
+                    <TableCell align="right">{row.completed > 0 ? `${row.avgTestingTatDays} d` : "—"}</TableCell>
                     <TableCell align="right">
                       <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
                         {row.reviewReturns != null ? row.reviewReturns : "—"}

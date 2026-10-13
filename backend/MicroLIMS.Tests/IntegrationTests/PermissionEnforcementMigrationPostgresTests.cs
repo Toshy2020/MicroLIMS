@@ -29,7 +29,8 @@ public class PermissionEnforcementMigrationPostgresTests
     {
         PermissionConstants.SolutionsPrepare,
         PermissionConstants.HplcOperate,
-        PermissionConstants.WorkingStandardsQualify
+        PermissionConstants.WorkingStandardsQualify,
+        PermissionConstants.KpiConfigureProfiles
     };
 
     private readonly PostgresTestFixture _fixture;

@@ -538,6 +538,11 @@ WaterMasterDataController.GetWaterSamplingPoints(): SystemAdministrator,SectionH
 WaterMasterDataController.UpdateWaterDepartment(Int32, UpdateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingConfiguration(Int32, UpdateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingPoint(Int32, UpdateWaterSamplingPointRequest): SystemAdministrator,SectionHead
+WorkflowProfilesController.Coverage(): SystemAdministrator,SectionHead
+WorkflowProfilesController.Create(CreateWorkflowProfileVersionRequest): SystemAdministrator,SectionHead
+WorkflowProfilesController.List(Nullable`1, String, Boolean, Nullable`1): SystemAdministrator,SectionHead
+WorkflowProfilesController.Overview(): SystemAdministrator,SectionHead
+WorkflowProfilesController.Sign(Int32, SignWorkflowProfileDraftRequest): SystemAdministrator,SectionHead
 WorkingStandardsController.Approve(Int32, WorkingStandardSignRequest): SystemAdministrator,SectionHead
 WorkingStandardsController.Create(CreateQualificationRequest): SystemAdministrator,SectionHead,Analyst
 WorkingStandardsController.DownloadDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

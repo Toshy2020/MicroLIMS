@@ -6,6 +6,7 @@ using Amazon.S3;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
@@ -95,6 +96,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ReceiptLabService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
+        services.AddScoped<WorkflowProfileService>();
         services.AddScoped<CryovialService>();
         services.AddScoped<SamplePreparationService>();
         services.AddScoped<PreparationParameterValidator>();

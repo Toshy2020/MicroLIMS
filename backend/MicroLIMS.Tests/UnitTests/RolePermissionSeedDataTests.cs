@@ -104,7 +104,7 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
             PermissionConstants.DocumentsApprove,
             PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
             // HPLC chain S4 - Solution Preparation area.
             PermissionConstants.SolutionsPrepare,
             // HPLC chain S6 - HPLC Workspace.
@@ -113,7 +113,7 @@ public class RolePermissionSeedDataTests
             PermissionConstants.WorkingStandardsQualify
         };
 
-        Assert.Equal(41, codes.Count);
+        Assert.Equal(42, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -192,10 +192,10 @@ public class RolePermissionSeedDataTests
         // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
         // 110 (SystemAdministrator holds it via PermissionConstants.All).
         // Hplc.Operate (HPLC chain S6) is granted to the same three roles -
-        // another +3, for 116. WorkingStandards.Qualify: +3, for 119.
+        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(119, total);
+        Assert.Equal(121, total);
     }
 
     [Fact]
@@ -205,7 +205,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(119, await db.RolePermissions.CountAsync());
+        Assert.Equal(121, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

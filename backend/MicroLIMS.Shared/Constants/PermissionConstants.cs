@@ -82,6 +82,9 @@ public static class PermissionConstants
     public const string DashboardsLabOverview = "Dashboards.LabOverview";
     public const string DashboardsReview = "Dashboards.Review";
     public const string KpiView = "Kpi.View";
+
+    // KPI remodel S1 - create and sign workflow profile versions (work units, analyst-stage targets).
+    public const string KpiConfigureProfiles = "Kpi.ConfigureProfiles";
     public const string MediaPrepare = "Media.Prepare";
     public const string MediaRelease = "Media.Release";
     public const string OosManage = "Oos.Manage";
@@ -115,7 +118,7 @@ public static class PermissionConstants
         DocumentsRegister, DocumentsDraftEdit, DocumentsRevisionCreate,
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
         DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage,
-        DashboardsLabOverview, DashboardsReview, KpiView,
+        DashboardsLabOverview, DashboardsReview, KpiView, KpiConfigureProfiles,
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify
@@ -128,7 +131,7 @@ public static class PermissionConstants
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
         DiscussionsEditAny, DocumentsConfigManage, DocumentsRegister, DocumentsTrainingAssign,
-        EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView,
+        EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiConfigureProfiles,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,

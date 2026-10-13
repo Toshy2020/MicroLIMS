@@ -22,7 +22,7 @@ import {
 import { AnalystKpiService } from "../services/AnalystKpiService";
 import { ReportingService } from "../services/ReportingService";
 import { CATEGORY_LABELS } from "../services/OverviewService";
-import { WorkloadWeightsDialog } from "./WorkloadWeightsDialog";
+import { WorkflowProfilesDialog } from "../../kpi/components/WorkflowProfilesDialog";
 import { useAuth } from "../../../contexts/AuthContext";
 import { brandColors } from "../../../theme";
 import { UserService, UserRecord } from "../../users/services/UserService";
@@ -86,7 +86,7 @@ export function AnalystKpiTab() {
   const [data, setData] = useState<AnalystPerformanceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedAnalystId, setSelectedAnalystId] = useState<number | null>(null);
-  const [weightsDialogOpen, setWeightsDialogOpen] = useState(false);
+  const [profilesDialogOpen, setProfilesDialogOpen] = useState(false);
 
   // Sorting for comparison table
   const [orderBy, setOrderBy] = useState<keyof AnalystComparisonRow>("completed");
@@ -351,9 +351,9 @@ export function AnalystKpiTab() {
                 size="small"
                 variant="outlined"
                 startIcon={<TuneIcon />}
-                onClick={() => setWeightsDialogOpen(true)}
+                onClick={() => setProfilesDialogOpen(true)}
               >
-                Weights
+                Workflow Profiles
               </Button>
               <Button
                 size="small"
@@ -991,11 +991,10 @@ export function AnalystKpiTab() {
         </Paper>
       )}
 
-      {/* Workload Weights Dialog */}
-      <WorkloadWeightsDialog
-        open={weightsDialogOpen}
-        onClose={() => setWeightsDialogOpen(false)}
-        onUpdated={loadData}
+      {/* Workflow Profiles Dialog */}
+      <WorkflowProfilesDialog
+        open={profilesDialogOpen}
+        onClose={() => setProfilesDialogOpen(false)}
       />
     </Box>
   );

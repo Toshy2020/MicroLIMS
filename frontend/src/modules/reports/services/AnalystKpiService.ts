@@ -337,17 +337,6 @@ export const AnalystKpiService = {
       changedBy: w.changedBy || "System Admin",
       changedAt: w.changedAt || ""
     }));
-  },
-
-  async updateWorkloadWeight(
-    testCode: string,
-    newWeight: number,
-    reason: string
-  ): Promise<void> {
-    await apiClient.put(`/kpi/workload-weights/${testCode}`, {
-      weight: newWeight,
-      reasonForChange: reason
-    });
   }
 };
 

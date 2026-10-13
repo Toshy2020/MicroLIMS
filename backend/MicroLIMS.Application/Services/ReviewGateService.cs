@@ -106,4 +106,5 @@ public static class ReviewEntityTypes
     public const string Cryovial = "Cryovial";
     public const string MediaProduct = "MediaProduct";
     public const string MasterDataImport = "MasterDataImport";
+    public const string WorkflowProfile = "WorkflowProfile";
 }

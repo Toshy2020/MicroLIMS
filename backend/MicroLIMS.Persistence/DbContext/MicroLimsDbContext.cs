@@ -93,6 +93,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // Workload Weights
     public DbSet<WorkloadWeight> WorkloadWeights => Set<WorkloadWeight>();
     public DbSet<WorkloadWeightHistory> WorkloadWeightHistories => Set<WorkloadWeightHistory>();
+    public DbSet<WorkflowProfileVersion> WorkflowProfileVersions => Set<WorkflowProfileVersion>();
 
     // Media Configuration
     public DbSet<MediaProduct> MediaProducts => Set<MediaProduct>();

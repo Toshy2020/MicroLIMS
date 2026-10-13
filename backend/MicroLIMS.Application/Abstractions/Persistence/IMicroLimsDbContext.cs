@@ -93,6 +93,7 @@ public interface IMicroLimsDbContext
     DbSet<Organism> Organisms { get; }
     DbSet<WorkloadWeight> WorkloadWeights { get; }
     DbSet<WorkloadWeightHistory> WorkloadWeightHistories { get; }
+    DbSet<WorkflowProfileVersion> WorkflowProfileVersions { get; }
     DbSet<MediaProduct> MediaProducts { get; }
     DbSet<MediaIncubationCondition> MediaIncubationConditions { get; }
     DbSet<MediaConfiguration> MediaConfigurations { get; }

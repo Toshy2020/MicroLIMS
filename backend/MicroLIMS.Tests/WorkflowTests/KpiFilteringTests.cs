@@ -330,6 +330,31 @@ public class KpiFilteringTests
         Assert.Contains(overdue, o => o.SampleId == 62);
     }
 
+    // S2 decision: DashboardService's overdue list keeps the fixed 7-day rule.
+    // A 14-day profile target (used by the new KPI tiles) must NOT stretch it.
+    [Fact]
+    public async Task GetOverdueAnalystStageSamplesAsync_StaysOnSevenDayRule_EvenWithALongerProfileTarget()
+    {
+        await using var db = NewDb();
+        var now = DateTime.UtcNow;
+        db.Roles.Add(new Role { Id = 1, Type = RoleType.Analyst, Name = "Analyst" });
+        db.Users.Add(new User { Id = 1, FullName = "A", Username = "a", RoleId = 1, PasswordHash = "x" });
+        var sample = new Sample { Id = 1, Category = SampleCategory.FinishedProduct, ControlNumber = "FP-900", Status = SampleStatus.InTesting };
+        sample.TestOrders.Add(new TestOrder { Id = 1, TestCode = "TAMC", AssignedAnalystId = 1, Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running });
+        db.Samples.Add(sample);
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = 1, PreparedAt = now.AddDays(-8), PreparedByUserId = 1 });
+        db.WorkflowProfileVersions.Add(new WorkflowProfileVersion
+        {
+            WorkflowType = WorkflowType.CountTest, TestCode = null, TargetAnalystDays = 14m, WorkUnits = 1m,
+            EffectiveFrom = new DateOnly(2026, 1, 1), Status = WorkflowProfileStatus.Effective, ReasonForChange = "seed", CreatedByUserId = 1
+        });
+        await db.SaveChangesAsync();
+
+        var overdue = await new KpiService(db).GetOverdueAnalystStageSamplesAsync(now.AddDays(-30), now.AddDays(1));
+
+        Assert.Equal(new[] { 1 }, overdue.Select(o => o.SampleId));
+    }
+
     [Fact]
     public async Task GetReturnToAnalystCountAsync_FiltersCorrectlyByDateRangeAndAnalyst()
     {

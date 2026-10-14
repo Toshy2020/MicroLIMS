@@ -517,4 +517,52 @@ public class AnalystWorkloadServiceTests
         Assert.Null(row.WeightedOnTime);                // only 4 judged tests, so below the minimum sample
         Assert.Equal(1, dto.Gaps.Single(g => g.Code == "UNJUDGED_ON_TIME").Count);
     }
+
+    [Fact]
+    public async Task GetTests_ListsDeliveredThenOpenTests_WithTheirInclusion()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        await DeliverAsync(db, 1, "TAMC", Alice, At(8, 12));
+        await DeliverAsync(db, 2, "TAMC", Alice, At(9, 12));
+        await DeliverAsync(db, 3, "NOPROF", Alice, At(7, 12));
+        await OpenAsync(db, 500, "PH", Alice);
+
+        var page = await TestServiceFactory.AnalystWorkload(db, Clock()).GetTestsAsync(Week(analystId: Alice), 1, 50, default);
+
+        Assert.Equal("workload", page.Key);
+        Assert.Equal(4, page.Total);
+        Assert.Equal(new int?[] { 2, 1, 3, 500 }, page.Items.Select(i => i.TestOrderId));        // newest approval first, open last
+        Assert.Equal(new[] { "Numerator", "Numerator", "Excluded", "Denominator" }, page.Items.Select(i => i.Inclusion));
+        Assert.Equal(2m, page.Items[0].Value);
+        Assert.Null(page.Items[2].Value);
+        Assert.Contains("Unweighted", page.Items[2].Note);
+        Assert.Contains("Alice Analyst", page.Items.Select(i => i.AnalystName));
+    }
+
+    [Theory]
+    [InlineData(1000, 200)] // capped
+    [InlineData(0, 50)]     // default
+    public async Task GetTests_CapsAndDefaultsThePageSize(int requested, int expected)
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+
+        var page = await TestServiceFactory.AnalystWorkload(db, Clock()).GetTestsAsync(Week(analystId: Alice), 1, requested, default);
+
+        Assert.Equal(expected, page.PageSize);
+    }
+
+    [Fact]
+    public async Task GetTests_SecondPage_ReturnsTheRemainder()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 4; i++) await DeliverAsync(db, i, "TAMC", Alice, At(8, 12));
+
+        var page = await TestServiceFactory.AnalystWorkload(db, Clock()).GetTestsAsync(Week(analystId: Alice), 2, 3, default);
+
+        Assert.Equal(4, page.Total);
+        Assert.Single(page.Items);
+    }
 }

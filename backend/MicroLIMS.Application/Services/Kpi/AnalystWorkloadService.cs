@@ -261,6 +261,47 @@ public class AnalystWorkloadService
         return new Loaded(delivered, open, resolver, onTime, returned, types);
     }
 
+    // The tests behind the row figures, so any number can be traced to records. Same scope and D8 rules as GetAsync.
+    public async Task<KpiRecordPageDto> GetTestsAsync(KpiQuery q, int page, int pageSize, CancellationToken ct)
+    {
+        page = Math.Max(1, page);
+        pageSize = pageSize <= 0 ? 50 : Math.Min(pageSize, 200);
+        var data = await LoadAsync(q, EffectiveAnalystId(q), ct);
+
+        var ids = data.Delivered.Select(d => d.AnalystId)
+            .Concat(data.Open.Where(o => o.AnalystId != null).Select(o => o.AnalystId!.Value)).Distinct().ToList();
+        var names = await _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+        string? Name(int? id) => id is int i && names.TryGetValue(i, out var n) ? n : null;
+
+        var items = new List<KpiRecordDto>();
+        foreach (var d in data.Delivered.OrderByDescending(d => d.ApprovedAt).ThenBy(d => d.TestOrderId))
+        {
+            var profile = data.Resolver.Resolve(d.TestCode, d.ApprovedAt);
+            var notes = new List<string>();
+            if (profile.WorkUnits is null) notes.Add("Unweighted: no work-unit profile");
+            if (!profile.IsTargetAware) notes.Add($"Default {KpiConstants.DefaultTargetDays}-day target");
+            if (data.Returned.Contains(d.TestOrderId)) notes.Add("Returned to analyst");
+            notes.Add(data.OnTime[(d.SampleId, d.SectionId)] switch
+            {
+                true => "On time",
+                false => "Late",
+                null => "On time not judged: no assignment time"
+            });
+            items.Add(new KpiRecordDto(d.SampleId, d.TestOrderId, d.ControlNumber, d.TestCode, d.Category.ToString(), Name(d.AnalystId),
+                d.ApprovedAt, profile.WorkUnits, "units", profile.WorkUnits is null ? "Excluded" : "Numerator", string.Join("; ", notes)));
+        }
+        foreach (var o in data.Open.OrderBy(o => o.TestOrderId))
+        {
+            var profile = data.Resolver.Resolve(o.TestCode, q.Now);
+            items.Add(new KpiRecordDto(o.SampleId, o.TestOrderId, o.ControlNumber, o.TestCode, o.Category.ToString(), Name(o.AnalystId),
+                null, profile.WorkUnits, "units", profile.WorkUnits is null ? "Excluded" : "Denominator",
+                profile.WorkUnits is null ? "Open and unweighted" : "Open: counts toward forward load"));
+        }
+
+        var pageItems = items.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new KpiRecordPageDto("workload", page, pageSize, items.Count, pageItems);
+    }
+
     // D8: without Kpi.ViewTeam the only analyst a caller may look at is themselves.
     private static int? EffectiveAnalystId(KpiQuery q)
     {

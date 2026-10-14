@@ -275,6 +275,13 @@ KpiController.GetWorkloadWeights(): SystemAdministrator,SectionHead
 KpiDashboardController.GetDashboard(DateOnly, DateOnly, String, String, String, Nullable`1, CancellationToken): SystemAdministrator,SectionHead
 KpiDashboardController.GetDefinitions(DateOnly, DateOnly, CancellationToken): SystemAdministrator,SectionHead
 KpiDashboardController.GetRecords(String, DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead
+KpiWorkloadController.CreateAvailability(SaveAvailabilityRequest): SystemAdministrator,SectionHead
+KpiWorkloadController.GetSettings(Int32): SystemAdministrator,SectionHead
+KpiWorkloadController.GetWorkload(DateOnly, DateOnly, String, String, String, Nullable`1): SystemAdministrator,SectionHead
+KpiWorkloadController.GetWorkloadTests(DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32): SystemAdministrator,SectionHead
+KpiWorkloadController.ListAvailability(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead
+KpiWorkloadController.UpdateAvailability(Int32, SaveAvailabilityRequest): SystemAdministrator,SectionHead
+KpiWorkloadController.UpdateSettings(Int32, UpdateKpiSettingsRequest): SystemAdministrator,SectionHead
 LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst

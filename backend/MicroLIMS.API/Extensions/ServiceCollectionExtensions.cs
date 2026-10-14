@@ -110,6 +110,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IKpi, ReturnsByTestKpi>();
         services.AddScoped<KpiRegistry>();
         services.AddScoped<KpiDashboardService>();
+        services.AddScoped<KpiSettingsService>();
+        services.AddScoped<AnalystAvailabilityService>();
+        services.AddScoped<AnalystWorkloadService>();
         services.AddScoped<CryovialService>();
         services.AddScoped<SamplePreparationService>();
         services.AddScoped<PreparationParameterValidator>();

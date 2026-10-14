@@ -262,7 +262,6 @@ public static class DbSeeder
         }
 
         SeedWorkflowTemplates(db);
-        WorkloadWeightDefaults.Seed(db);
         SeedConfigurationSettings(db);
     }
 

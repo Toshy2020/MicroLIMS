@@ -4,106 +4,17 @@ using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
-public record AnalystKpiDto(
-    int UserId,
-    string Username,
-    string FullName,
-    int CompletedTests,
-    int PendingTests,
-    double AverageTurnaroundHours,
-    double MedianTurnaroundHours,
-    double WorkloadUnits,
-    int ReviewReturns,
-    int DocCorrections);
-
-public record CompletionStatsDto(int TotalTestOrders, int Approved, int Rejected, int Pending, double ApprovalRatePercent);
-public record DelayTrackingDto(int DelayedCount, double AverageDelayHours);
-
-public record WorkloadWeightDto(
-    string TestCode,
-    string TestName,
-    SampleCategory Category,
-    decimal WorkloadWeight,
-    string EffectiveDate,
-    string Status,
-    string? ReasonForChange,
-    string ChangedBy,
-    string ChangedAt);
-
-// Sample-level queue depths for the Review and Approval workflow gates -
-// deliberately Sample.Status counts, not TestOrder.Status like
-// CompletionStatsDto: a sample enters UnderReview/UnderApproval as a
-// whole once all its TestOrders finish testing, so "how many samples are
-// sitting in each gate" is a Sample-level question, not a per-test one.
-public record SampleQueueCountsDto(int ReviewQueueCount, int ApprovalQueueCount);
-
-// Rule #1's 7-day sample-assignment SLA: "assigned" to "submitted for
-// review". OnTimeCount + OverdueCount == TotalAssigned - every assigned
-// sample in the window is in exactly one bucket, including ones still
-// pending (judged against the SLA as of now, not left in limbo).
-public record SampleSlaOutcomeDto(int TotalAssigned, int OnTimeCount, int OverdueCount);
-
-// Step-level max-hours violation (Incubation.CompletedAt vs
-// ExpectedReadingAt + 4h grace). ViolationCount is the raw count of
-// violating incubation windows; TestsWithViolationCount is how many
-// distinct TestOrders had at least one - deliberately different numbers,
-// since one test can carry several incubation steps.
-public record StepViolationOutcomeDto(int TotalAssignedTests, int ViolationCount, int TestsWithViolationCount);
-
-// Rule #1-2's three-stage TAT, in days - Testing (Analyst), Review, and
-// Approval each averaged independently over whichever samples in the
-// window actually completed that stage. Any of the three can be null
-// (no sample in the window has finished that stage yet) - TotalAvgDays
-// then treats the missing stage(s) as 0 rather than propagating null,
-// matching how a "Total Lifecycle" figure reads most naturally.
-public record StageTatSummaryDto(double? TestingAvgDays, double? TestingMedianDays, double? ReviewAvgDays, double? ApprovalAvgDays, double? TotalAvgDays);
-
-// One calendar month's average Testing-stage (Analyst) TAT, bucketed by
-// when that stage concluded (SubmittedForReviewAt) - the same "last N
-// calendar months ending this month" window ReportingQueryService.
-// GetCompletedByMonthAsync already uses, for consistency between the two
-// monthly charts on this page.
-public record MonthlyTatPoint(string Month, double? AvgTestingDays);
-
-// Rule #3's "calendar month vs previous calendar month" delta, applied to
-// each Workflow Bottleneck queue's inflow (new arrivals this month vs
-// last) - the same convention and formula as DashboardService.
-// GetKpiDeltasAsync, just applied to the three queue-entry events instead
-// of samples/tests overall. A queue's live depth isn't itself
-// reconstructable for a past month (no periodic snapshots are stored),
-// so "vs prev" here means arrival rate, matching what GetKpiDeltasAsync
-// already measures for its own samples/tests figures.
-public record WorkflowBottleneckDeltaDto(double TestingQueueDeltaPercent, double ReviewQueueDeltaPercent, double ApprovalQueueDeltaPercent);
-
-// Rule #1's on-time completion, combined across every stage a sample has
-// actually reached (Analyst 7d AND Reviewer 24h AND Section-Head 24h) -
-// distinct from SampleSlaOutcomeDto, which judges the Analyst/testing
-// stage alone. Same TotalAssigned==OnTimeCount+OverdueCount invariant: a
-// sample still sitting in whichever stage it's currently in is judged
-// against that stage's deadline as of now, not left unclassified.
-public record OverallOnTimeOutcomeDto(int TotalAssigned, int OnTimeCount, int OverdueCount);
-
 // One sample that's overdue on Rule #1's 7-day Analyst-stage SLA -
 // backs DashboardService's Section Head "Attention Items" list, which
 // needs to name specific samples, not just a count.
 public record OverdueAnalystStageSampleDto(int SampleId, DateTime AssignedAt);
 
-// Analyst KPIs, delay tracking, completion statistics - gap analysis
-// "Missing Laboratory Modules - KPI".
+// What is left of the pre-remodel KPI service: the 7-day Analyst-stage
+// overdue check that DashboardService's live "Attention Items" list still
+// reads. Every reported KPI now lives in the registry (Services/Kpi), so do
+// not add metrics here.
 public class KpiService
 {
-    // Rule #1's Reviewer/Section-Head SLA (24h) - kept as its own named
-    // constant, separate from AnalystAssignmentSla (7 days), so no code
-    // path can silently apply the wrong stage's threshold. That mix-up
-    // (this 24h number being read for Analyst-stage overdue math even
-    // though it's really the Reviewer/Section-Head figure) is exactly the
-    // gap this batch closes. Only GetDelayTrackingAsync's generic "how
-    // many pending test orders are stuck" signal reads this today - that
-    // metric is TestOrder-level and category-agnostic by design, not a
-    // per-stage SLA breakdown, so it's deliberately left as its own thing
-    // rather than folded into the stage-aware methods below.
-    private static readonly TimeSpan ReviewerApprovalDelayThreshold = TimeSpan.FromHours(24);
-
     // Rule #1's Analyst-stage SLA: assignment -> submitted for review.
     private static readonly TimeSpan AnalystAssignmentSla = TimeSpan.FromDays(7);
 
@@ -116,243 +27,9 @@ public class KpiService
         _db = db;
     }
 
-    public async Task<List<WorkloadWeightDto>> GetWorkloadWeightsAsync()
-    {
-        var weights = await _db.WorkloadWeights.OrderBy(w => w.TestCode).ToListAsync();
-        if (weights.Count == 0)
-        {
-            // Auto-seed if table is empty
-            WorkloadWeightDefaults.Seed(_db);
-            weights = await _db.WorkloadWeights.OrderBy(w => w.TestCode).ToListAsync();
-        }
-
-        return weights.Select(w => new WorkloadWeightDto(
-            w.TestCode,
-            w.TestName,
-            w.Category,
-            w.Weight,
-            w.EffectiveDate.ToString("yyyy-MM-dd"),
-            w.IsActive ? "Active" : "Inactive",
-            w.ReasonForChange,
-            w.ChangedByName,
-            w.ChangedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-        )).ToList();
-    }
-
-    private static double Median(List<double> values)
-    {
-        if (values.Count == 0) return 0;
-        var sorted = values.OrderBy(v => v).ToList();
-        var mid = sorted.Count / 2;
-        return sorted.Count % 2 != 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
-    }
-
-    public async Task<List<AnalystKpiDto>> GetAnalystKpisAsync(
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var analysts = await _db.Users.Include(u => u.Role)
-            .Where(u => u.Role!.Type == RoleType.Analyst)
-            .ToListAsync();
-        if (sectionIds is not null)
-        {
-            // Analysts who belong to one of the viewer's sections, directly or
-            // through their whole department.
-            var departments = await _db.DocumentSections.Where(x => sectionIds.Contains(x.Id)).Select(x => x.DepartmentId).Distinct().ToListAsync();
-            var inScope = (await _db.UserOrgMemberships
-                .Where(m => m.SectionId != null ? sectionIds.Contains(m.SectionId.Value) : departments.Contains(m.DepartmentId))
-                .Select(m => m.UserId).Distinct().ToListAsync()).ToHashSet();
-            analysts = analysts.Where(a => inScope.Contains(a.Id)).ToList();
-        }
-
-        var weights = await _db.WorkloadWeights.ToDictionaryAsync(w => w.TestCode, w => w.Weight);
-
-        var result = new List<AnalystKpiDto>();
-        foreach (var analyst in analysts)
-        {
-            var orderQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds)).Where(t => t.AssignedAnalystId == analyst.Id);
-            if (category.HasValue)
-                orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
-            if (!string.IsNullOrWhiteSpace(location))
-                orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
-            if (!string.IsNullOrWhiteSpace(testCode))
-                orderQuery = orderQuery.Where(t => t.TestCode == testCode);
-
-            var completedOrders = await orderQuery.Where(t => t.Status == ApprovalStatus.Approved).ToListAsync();
-            var completedCount = completedOrders.Count;
-            var pendingCount = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
-
-            // Real workload units = sum of (weight for each test code)
-            var workloadUnits = completedOrders.Sum(o => weights.TryGetValue(o.TestCode, out var w) ? w : 1.0m);
-
-            // Real turnaround calculation (average and statistical median)
-            var completedOrderIds = completedOrders.Select(o => o.Id).ToList();
-            var turnaroundHours = await _db.TestOrders
-                .Where(SectionReviewQueues.OrderIn(sectionIds))
-                .Where(t => completedOrderIds.Contains(t.Id))
-                .Join(_db.Samples, t => t.SampleId, s => s.Id, (t, s) => new { t.Id, s.ReceivedAt })
-                .Join(_db.Results, x => x.Id, r => r.TestOrderId, (x, r) => new { x.ReceivedAt, r.EnteredAt })
-                .Select(x => (x.EnteredAt - x.ReceivedAt).TotalHours)
-                .ToListAsync();
-
-            var avgHours = turnaroundHours.Count > 0 ? turnaroundHours.Average() : 0;
-            var medianHours = turnaroundHours.Count > 0 ? Median(turnaroundHours) : 0;
-
-            // Real review returns and doc corrections = count of edits to results after initial entry
-            var assignedOrderIds = await orderQuery.Select(t => t.Id).ToListAsync();
-            var assignedSampleIds = await orderQuery.Select(t => t.SampleId).Distinct().ToListAsync();
-
-            var editCount = await _db.AuditLogs.CountAsync(a =>
-                a.Action == "Update" &&
-                (a.EntityName == "Result" || a.EntityName == "CountTestReading" ||
-                 a.EntityName == "WorkflowStepResult" || a.EntityName == "SampleLocation" ||
-                 a.EntityName == "ResultRecord") &&
-                ((a.TestOrderId != null && assignedOrderIds.Contains(a.TestOrderId.Value)) ||
-                 (a.SampleId != null && assignedSampleIds.Contains(a.SampleId.Value))));
-
-            result.Add(new AnalystKpiDto(
-                analyst.Id,
-                analyst.Username,
-                analyst.FullName,
-                completedCount,
-                pendingCount,
-                Math.Round(avgHours, 1),
-                Math.Round(medianHours, 1),
-                Math.Round((double)workloadUnits, 1),
-                editCount,
-                editCount));
-        }
-
-        return result;
-    }
-
-    public async Task<CompletionStatsDto> GetCompletionStatsAsync(
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var orderQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
-        if (category.HasValue)
-            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
-        if (!string.IsNullOrWhiteSpace(location))
-            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
-        if (!string.IsNullOrWhiteSpace(testCode))
-            orderQuery = orderQuery.Where(t => t.TestCode == testCode);
-
-        var total = await orderQuery.CountAsync();
-        var approved = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Approved);
-        var rejected = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Rejected);
-        var pending = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
-
-        var decided = approved + rejected;
-        var approvalRate = decided > 0 ? Math.Round(approved * 100.0 / decided, 1) : 0;
-
-        return new CompletionStatsDto(total, approved, rejected, pending, approvalRate);
-    }
-
-    public async Task<DelayTrackingDto> GetDelayTrackingAsync(
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var cutoff = _time.GetUtcNow().UtcDateTime.Subtract(ReviewerApprovalDelayThreshold);
-
-        var orderQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds))
-            .Where(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
-        if (category.HasValue)
-            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
-        if (!string.IsNullOrWhiteSpace(location))
-            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
-        if (!string.IsNullOrWhiteSpace(testCode))
-            orderQuery = orderQuery.Where(t => t.TestCode == testCode);
-
-        var delayed = await orderQuery
-            .Join(_db.Samples, t => t.SampleId, s => s.Id, (t, s) => s.ReceivedAt)
-            .Where(receivedAt => receivedAt < cutoff)
-            .ToListAsync();
-
-        var avgDelayHours = delayed.Count > 0
-            ? delayed.Average(receivedAt => (_time.GetUtcNow().UtcDateTime - receivedAt).TotalHours)
-            : 0;
-
-        return new DelayTrackingDto(delayed.Count, Math.Round(avgDelayHours, 1));
-    }
-
-    public async Task<SampleQueueCountsDto> GetSampleQueueCountsAsync(
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        // testCode is skipped because queue counts are sample-level, not test-order-scoped.
-        var sampleQuery = _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds));
-        if (category.HasValue)
-            sampleQuery = sampleQuery.Where(s => s.Category == category.Value);
-        if (!string.IsNullOrWhiteSpace(location))
-            sampleQuery = sampleQuery.Where(s => s.Item!.Name == location || s.WaterSamplingPoint!.Code == location);
-
-        var reviewQueueCount = await SectionReviewQueues.Candidates(sampleQuery, SectionSignoffStatus.UnderReview, sectionIds).CountAsync();
-        var approvalQueueCount = await SectionReviewQueues.Candidates(sampleQuery, SectionSignoffStatus.UnderApproval, sectionIds).CountAsync();
-        return new SampleQueueCountsDto(reviewQueueCount, approvalQueueCount);
-    }
-
-    // Rule #3: each queue's delta is its arrival count this calendar month
-    // vs last - Testing queue arrivals are new TestOrders whose Sample was
-    // just received (mirrors DashboardService.GetKpiDeltasAsync's own
-    // testsThisMonth/testsLastMonth exactly); Review/Approval queue
-    // arrivals are SubmittedForReview/ReviewCompleted events, the same
-    // entry points BuildSampleStageWindowsAsync reads elsewhere.
-    public async Task<WorkflowBottleneckDeltaDto> GetWorkflowBottleneckDeltasAsync(
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var now = _time.GetUtcNow().UtcDateTime;
-        var thisMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var lastMonthStart = thisMonthStart.AddMonths(-1);
-
-        // testCode applies to the Testing-queue delta only as Review/Approval events are sample-level.
-        var testingQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
-        if (category.HasValue)
-            testingQuery = testingQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
-        if (!string.IsNullOrWhiteSpace(location))
-            testingQuery = testingQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
-        if (!string.IsNullOrWhiteSpace(testCode))
-            testingQuery = testingQuery.Where(t => t.TestCode == testCode);
-
-        var testingThisMonth = await testingQuery.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= thisMonthStart));
-        var testingLastMonth = await testingQuery.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart));
-
-        var reviewEventsQuery = _db.ReviewWorkflowEvents
-            .Where(e => e.EntityType == ReviewEntityTypes.Sample);
-        if (sectionIds is not null)
-            reviewEventsQuery = reviewEventsQuery.Where(e => e.SectionId != null
-                ? sectionIds.Contains(e.SectionId.Value)
-                : _db.Samples.Any(s => s.Id == e.EntityId && s.TestOrders.Any(t => sectionIds.Contains(t.SectionId))));
-        if (category.HasValue)
-            reviewEventsQuery = reviewEventsQuery.Where(e => _db.Samples.Any(s => s.Id == e.EntityId && s.Category == category.Value));
-        if (!string.IsNullOrWhiteSpace(location))
-            reviewEventsQuery = reviewEventsQuery.Where(e => _db.Samples.Any(s => s.Id == e.EntityId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
-
-        var reviewThisMonth = await reviewEventsQuery.CountAsync(e =>
-            e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.Timestamp >= thisMonthStart);
-        var reviewLastMonth = await reviewEventsQuery.CountAsync(e =>
-            e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.Timestamp >= lastMonthStart && e.Timestamp < thisMonthStart);
-
-        var approvalThisMonth = await reviewEventsQuery.CountAsync(e =>
-            e.EventType == ReviewWorkflowEventType.ReviewCompleted && e.Timestamp >= thisMonthStart);
-        var approvalLastMonth = await reviewEventsQuery.CountAsync(e =>
-            e.EventType == ReviewWorkflowEventType.ReviewCompleted && e.Timestamp >= lastMonthStart && e.Timestamp < thisMonthStart);
-
-        static double DeltaPercent(int thisMonth, int lastMonth) => lastMonth == 0 ? 0 : Math.Round((thisMonth - lastMonth) * 100.0 / lastMonth, 1);
-
-        return new WorkflowBottleneckDeltaDto(
-            DeltaPercent(testingThisMonth, testingLastMonth),
-            DeltaPercent(reviewThisMonth, reviewLastMonth),
-            DeltaPercent(approvalThisMonth, approvalLastMonth));
-    }
-
-    // Per-sample stage windows - the single shared calculation every
-    // stage-aware method below (GetSampleAssignmentSlaAsync,
-    // GetSampleAssignmentSlaByAnalystAsync, GetStageTatSummaryAsync,
-    // GetTestingTatByMonthAsync) is built on, so there's one place that
-    // knows how to derive AssignedAt and read the review/approval
-    // timeline - not four independent re-derivations.
+    // Per-sample stage windows - the shared calculation behind the overdue
+    // check below, so there's one place that knows how to derive AssignedAt
+    // and read the review/approval timeline.
     //
     // AssignedAt: there's no single AssignedAt column anywhere.
     // Assignment happens implicitly at Test Preparation
@@ -381,20 +58,10 @@ public class KpiService
         int SampleId, HashSet<int> AssignedAnalystIds, DateTime AssignedAt,
         DateTime? SubmittedForReviewAt, DateTime? ReviewCompletedAt, DateTime? ApprovalDecisionAt);
 
-    private async Task<List<SampleStageWindow>> BuildSampleStageWindowsAsync(
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
+    private async Task<List<SampleStageWindow>> BuildSampleStageWindowsAsync(IReadOnlyCollection<int>? sectionIds)
     {
-        var orderQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds))
-            .Where(t => t.AssignedAnalystId != null);
-        if (category.HasValue)
-            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
-        if (!string.IsNullOrWhiteSpace(location))
-            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
-        if (!string.IsNullOrWhiteSpace(testCode))
-            orderQuery = orderQuery.Where(t => t.TestCode == testCode);
-
-        var assignedOrders = await orderQuery
+        var assignedOrders = await _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds))
+            .Where(t => t.AssignedAnalystId != null)
             .Select(t => new { t.SampleId, AnalystId = t.AssignedAnalystId!.Value })
             .ToListAsync();
 
@@ -451,69 +118,17 @@ public class KpiService
     }
 
     // Rule #1's Analyst-stage overdue check - the one place this
-    // comparison is made, so GetSampleAssignmentSlaAsync,
-    // GetSampleAssignmentSlaByAnalystAsync, and
-    // GetOverdueAnalystStageSamplesAsync below (and DashboardService,
-    // through them) can never drift apart on what "overdue" means.
+    // comparison is made, so GetOverdueAnalystStageSamplesAsync (and
+    // DashboardService through it) can never drift apart on what
+    // "overdue" means.
     private bool IsAnalystStageOverdue(SampleStageWindow w, DateTime now)
     {
         var deadline = w.AssignedAt.Add(AnalystAssignmentSla);
         return w.SubmittedForReviewAt.HasValue ? w.SubmittedForReviewAt.Value > deadline : now > deadline;
     }
 
-    // Rule #1: 7-day SLA from "analyst assigning" to "submit to review".
-    public async Task<SampleSlaOutcomeDto> GetSampleAssignmentSlaAsync(
-        int? analystId, DateTime fromDate, DateTime toDate,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = _time.GetUtcNow().UtcDateTime;
-        int totalAssigned = 0, onTime = 0, overdue = 0;
-
-        foreach (var w in windows)
-        {
-            if (analystId.HasValue && !w.AssignedAnalystIds.Contains(analystId.Value)) continue;
-            if (w.AssignedAt < fromDate || w.AssignedAt > toDate) continue;
-
-            totalAssigned++;
-            if (IsAnalystStageOverdue(w, now)) overdue++; else onTime++;
-        }
-
-        return new SampleSlaOutcomeDto(totalAssigned, onTime, overdue);
-    }
-
-    // Same 7-day Analyst SLA as above, broken out per analyst - what the
-    // Analyst Comparison table's Overdue column needs. A sample with
-    // TestOrders split across two analysts counts toward both - the SLA
-    // is whole-sample, so both analysts share accountability for it.
-    public async Task<Dictionary<int, SampleSlaOutcomeDto>> GetSampleAssignmentSlaByAnalystAsync(
-        DateTime fromDate, DateTime toDate,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = _time.GetUtcNow().UtcDateTime;
-        var byAnalyst = new Dictionary<int, (int Total, int OnTime, int Overdue)>();
-
-        foreach (var w in windows)
-        {
-            if (w.AssignedAt < fromDate || w.AssignedAt > toDate) continue;
-
-            var isOverdue = IsAnalystStageOverdue(w, now);
-
-            foreach (var analystId in w.AssignedAnalystIds)
-            {
-                byAnalyst.TryGetValue(analystId, out var agg);
-                byAnalyst[analystId] = (agg.Total + 1, agg.OnTime + (isOverdue ? 0 : 1), agg.Overdue + (isOverdue ? 1 : 0));
-            }
-        }
-
-        return byAnalyst.ToDictionary(kv => kv.Key, kv => new SampleSlaOutcomeDto(kv.Value.Total, kv.Value.OnTime, kv.Value.Overdue));
-    }
-
-    // The individual samples behind GetSampleAssignmentSlaAsync's overdue
-    // count, oldest-assigned first - what DashboardService's Section Head
+    // The individual samples that are overdue on the 7-day Analyst-stage
+    // SLA, oldest-assigned first - what DashboardService's Section Head
     // "Attention Items" list needs to name specific overdue samples
     // instead of just a count. AssignedAt is returned alongside each
     // SampleId so the caller can report real elapsed time against the
@@ -521,7 +136,7 @@ public class KpiService
     public async Task<List<OverdueAnalystStageSampleDto>> GetOverdueAnalystStageSamplesAsync(DateTime fromDate, DateTime toDate,
         IReadOnlyCollection<int>? sectionIds = null)
     {
-        var windows = await BuildSampleStageWindowsAsync(sectionIds: sectionIds);
+        var windows = await BuildSampleStageWindowsAsync(sectionIds);
         var now = _time.GetUtcNow().UtcDateTime;
 
         return windows
@@ -529,221 +144,5 @@ public class KpiService
             .OrderBy(w => w.AssignedAt)
             .Select(w => new OverdueAnalystStageSampleDto(w.SampleId, w.AssignedAt))
             .ToList();
-    }
-
-    // Rule #1's on-time completion across all three stages a sample has
-    // actually reached: each stage it passed through (or is currently
-    // sitting in) is checked against its own SLA, short-circuiting to
-    // overdue at the first one that fails. A stage the sample hasn't
-    // reached yet doesn't count against it - it's only ever judged on
-    // the stage(s) it has actually been through.
-    private bool IsOverallOnTime(SampleStageWindow w, DateTime now)
-    {
-        var testingDeadline = w.AssignedAt.Add(AnalystAssignmentSla);
-        var testingOnTime = w.SubmittedForReviewAt.HasValue ? w.SubmittedForReviewAt.Value <= testingDeadline : now <= testingDeadline;
-        if (!testingOnTime) return false;
-        if (!w.SubmittedForReviewAt.HasValue) return true;
-
-        var reviewDeadline = w.SubmittedForReviewAt.Value.Add(ReviewerApprovalDelayThreshold);
-        var reviewOnTime = w.ReviewCompletedAt.HasValue ? w.ReviewCompletedAt.Value <= reviewDeadline : now <= reviewDeadline;
-        if (!reviewOnTime) return false;
-        if (!w.ReviewCompletedAt.HasValue) return true;
-
-        var approvalDeadline = w.ReviewCompletedAt.Value.Add(ReviewerApprovalDelayThreshold);
-        return w.ApprovalDecisionAt.HasValue ? w.ApprovalDecisionAt.Value <= approvalDeadline : now <= approvalDeadline;
-    }
-
-    public async Task<OverallOnTimeOutcomeDto> GetOverallOnTimeCompletionAsync(
-        DateTime fromDate, DateTime toDate,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = _time.GetUtcNow().UtcDateTime;
-        int total = 0, onTime = 0, overdue = 0;
-
-        foreach (var w in windows)
-        {
-            if (w.AssignedAt < fromDate || w.AssignedAt > toDate) continue;
-            total++;
-            if (IsOverallOnTime(w, now)) onTime++; else overdue++;
-        }
-
-        return new OverallOnTimeOutcomeDto(total, onTime, overdue);
-    }
-
-    // Same all-stage on-time definition, broken out per analyst - what
-    // the Analyst Comparison table's On-Time % column needs.
-    public async Task<Dictionary<int, OverallOnTimeOutcomeDto>> GetOverallOnTimeCompletionByAnalystAsync(
-        DateTime fromDate, DateTime toDate,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = _time.GetUtcNow().UtcDateTime;
-        var byAnalyst = new Dictionary<int, (int Total, int OnTime, int Overdue)>();
-
-        foreach (var w in windows)
-        {
-            if (w.AssignedAt < fromDate || w.AssignedAt > toDate) continue;
-            var isOnTime = IsOverallOnTime(w, now);
-
-            foreach (var analystId in w.AssignedAnalystIds)
-            {
-                byAnalyst.TryGetValue(analystId, out var agg);
-                byAnalyst[analystId] = (agg.Total + 1, agg.OnTime + (isOnTime ? 1 : 0), agg.Overdue + (isOnTime ? 0 : 1));
-            }
-        }
-
-        return byAnalyst.ToDictionary(kv => kv.Key, kv => new OverallOnTimeOutcomeDto(kv.Value.Total, kv.Value.OnTime, kv.Value.Overdue));
-    }
-
-    // Rule #1-2's three-stage average TAT (days), scoped by assignment
-    // window (same population GetSampleAssignmentSlaAsync uses) and
-    // optionally by analyst. Only samples that have actually finished a
-    // given stage contribute to that stage's average - a sample still
-    // sitting in UnderReview has no Review duration yet to average in.
-    public async Task<StageTatSummaryDto> GetStageTatSummaryAsync(
-        int? analystId, DateTime fromDate, DateTime toDate,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var scoped = windows.Where(w => w.AssignedAt >= fromDate && w.AssignedAt <= toDate
-            && (!analystId.HasValue || w.AssignedAnalystIds.Contains(analystId.Value))).ToList();
-
-        static double? AvgDays(IEnumerable<double> hours)
-        {
-            var list = hours.ToList();
-            return list.Count > 0 ? Math.Round(list.Average() / 24.0, 1) : null;
-        }
-
-        static double? MedianDays(IEnumerable<double> hours)
-        {
-            var list = hours.ToList();
-            return list.Count > 0 ? Math.Round(Median(list) / 24.0, 1) : null;
-        }
-
-        var testingHours = scoped
-            .Where(w => w.SubmittedForReviewAt.HasValue)
-            .Select(w => (w.SubmittedForReviewAt!.Value - w.AssignedAt).TotalHours)
-            .ToList();
-
-        var testingAvg = AvgDays(testingHours);
-        var testingMedian = MedianDays(testingHours);
-
-        var reviewAvg = AvgDays(scoped
-            .Where(w => w.SubmittedForReviewAt.HasValue && w.ReviewCompletedAt.HasValue && w.ReviewCompletedAt > w.SubmittedForReviewAt)
-            .Select(w => (w.ReviewCompletedAt!.Value - w.SubmittedForReviewAt!.Value).TotalHours));
-
-        var approvalAvg = AvgDays(scoped
-            .Where(w => w.ReviewCompletedAt.HasValue && w.ApprovalDecisionAt.HasValue && w.ApprovalDecisionAt > w.ReviewCompletedAt)
-            .Select(w => (w.ApprovalDecisionAt!.Value - w.ReviewCompletedAt!.Value).TotalHours));
-
-        var totalAvg = Math.Round((testingAvg ?? 0) + (reviewAvg ?? 0) + (approvalAvg ?? 0), 1);
-
-        return new StageTatSummaryDto(testingAvg, testingMedian, reviewAvg, approvalAvg, totalAvg);
-    }
-
-    // Historical monthly average Testing-stage (Analyst) TAT, bucketed by
-    // when that stage concluded - mirrors ReportingQueryService.
-    // GetCompletedByMonthAsync's "last N calendar months ending this
-    // month" window exactly.
-    public async Task<List<MonthlyTatPoint>> GetTestingTatByMonthAsync(
-        int months = 6,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var completed = windows
-            .Where(w => w.SubmittedForReviewAt.HasValue)
-            .Select(w => new { SubmittedAt = w.SubmittedForReviewAt!.Value, Hours = (w.SubmittedForReviewAt!.Value - w.AssignedAt).TotalHours })
-            .ToList();
-
-        var now = _time.GetUtcNow().UtcDateTime;
-        var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        var points = new List<MonthlyTatPoint>();
-        for (var i = 0; i < months; i++)
-        {
-            var monthStart = currentMonthStart.AddMonths(-(months - 1) + i);
-            var monthEnd = monthStart.AddMonths(1);
-            var inMonth = completed.Where(c => c.SubmittedAt >= monthStart && c.SubmittedAt < monthEnd).Select(c => c.Hours).ToList();
-            var avgDays = inMonth.Count > 0 ? Math.Round(inMonth.Average() / 24.0, 1) : (double?)null;
-            points.Add(new MonthlyTatPoint(monthStart.ToString("MMM"), avgDays));
-        }
-        return points;
-    }
-
-    // Step-level max-hours violation. Mirrors DashboardService.
-    // GetAnalystMetricsAsync's own on-time-reading-rate calculation
-    // exactly - same attribution (assigned analyst OR whoever physically
-    // started the window) and same 4-hour grace past ExpectedReadingAt -
-    // built as its own query here (not by editing DashboardService)
-    // because the KPI page needs an arbitrary date range and an optional
-    // analyst filter rather than a fixed "today" snapshot for one caller.
-    // "Total Assigned Tests" is scoped by incubation activity in the
-    // window (not the Query 1 assignment-clock concept above) since this
-    // card is about step-reading violations, not the sample SLA.
-    public async Task<StepViolationOutcomeDto> GetStepViolationsAsync(
-        int? analystId, DateTime fromDate, DateTime toDate,
-        SampleCategory? category = null, string? location = null, string? testCode = null,
-        IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var incubationsQuery = _db.Incubations
-            .Where(SectionReviewQueues.IncubationIn(sectionIds))
-            .Where(i => i.CompletedAt != null && i.ExpectedReadingAt != null
-                && i.CompletedAt >= fromDate && i.CompletedAt <= toDate);
-
-        incubationsQuery = analystId.HasValue
-            ? incubationsQuery.Where(i => i.TestOrder!.AssignedAnalystId == analystId.Value || i.StartedByUserId == analystId.Value)
-            : incubationsQuery.Where(i => i.TestOrder!.AssignedAnalystId != null || i.StartedByUserId != null);
-
-        if (category.HasValue)
-            incubationsQuery = incubationsQuery.Where(i => _db.TestOrders.Any(t => t.Id == i.TestOrderId && _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value)));
-        if (!string.IsNullOrWhiteSpace(location))
-            incubationsQuery = incubationsQuery.Where(i => _db.TestOrders.Any(t => t.Id == i.TestOrderId && _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location))));
-        if (!string.IsNullOrWhiteSpace(testCode))
-            incubationsQuery = incubationsQuery.Where(i => _db.TestOrders.Any(t => t.Id == i.TestOrderId && t.TestCode == testCode));
-
-        var incubations = await incubationsQuery
-            .Select(i => new { i.TestOrderId, i.CompletedAt, i.ExpectedReadingAt })
-            .ToListAsync();
-
-        var totalAssignedTests = incubations.Select(i => i.TestOrderId).Distinct().Count();
-
-        var violatingTestOrderIds = incubations
-            .Where(i => i.CompletedAt!.Value > i.ExpectedReadingAt!.Value.AddHours(4))
-            .Select(i => i.TestOrderId)
-            .ToList();
-
-        return new StepViolationOutcomeDto(totalAssignedTests, violatingTestOrderIds.Count, violatingTestOrderIds.Distinct().Count());
-    }
-
-    // Date-range-scoped count of explicit TestReturnEvent rows per analyst.
-    // Distinct from broad editCount in GetAnalystKpisAsync.
-    public async Task<Dictionary<int, int>> GetReturnToAnalystCountAsync(
-        int? analystId, DateTime fromDate, DateTime toDate, IReadOnlyCollection<int>? sectionIds = null)
-    {
-        var query = _db.TestReturnEvents
-            .Where(e => e.ReturnedAt >= fromDate && e.ReturnedAt <= toDate && e.AssignedAnalystId != null)
-            .Where(e => sectionIds == null || sectionIds.Contains(e.TestOrder!.SectionId));
-
-        if (analystId.HasValue)
-        {
-            query = query.Where(e => e.AssignedAnalystId == analystId.Value);
-        }
-
-        var counts = await query
-            .GroupBy(e => e.AssignedAnalystId!.Value)
-            .Select(g => new { AnalystId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.AnalystId, g => g.Count);
-
-        if (analystId.HasValue && !counts.ContainsKey(analystId.Value))
-        {
-            counts[analystId.Value] = 0;
-        }
-
-        return counts;
     }
 }

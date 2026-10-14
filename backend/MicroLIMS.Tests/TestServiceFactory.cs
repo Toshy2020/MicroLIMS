@@ -88,6 +88,9 @@ public static class TestServiceFactory
         new(db, new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)), time);
 
+    public static AnalystWorkloadService AnalystWorkload(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, WorkflowProfile(db, time), new UserSectionScopeService(db), time);
+
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db));
 

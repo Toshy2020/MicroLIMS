@@ -31,12 +31,14 @@ public class AnalystWorkloadService
     private sealed record OpenRow(int TestOrderId, int SampleId, string TestCode, int? AnalystId,
         string ControlNumber, SampleCategory Category);
 
-    private sealed record Loaded(List<DeliveredRow> Delivered, List<OpenRow> Open, WorkflowProfileResolver Resolver);
+    private sealed record Loaded(List<DeliveredRow> Delivered, List<OpenRow> Open, WorkflowProfileResolver Resolver,
+        Dictionary<(int SampleId, int SectionId), bool?> OnTime, HashSet<int> Returned, Dictionary<string, WorkflowType> Types);
 
     private sealed class Acc
     {
-        public int DeliveredTests, UnweightedTests, UnweightedOpenTests;
-        public decimal DeliveredUnits, OpenUnits;
+        public int DeliveredTests, UnweightedTests, UnweightedOpenTests, TestsOnDefaultTarget;
+        public int JudgedTests, UnjudgedTests, RftTests, ObservationTests;
+        public decimal DeliveredUnits, OpenUnits, JudgedUnits, OnTimeUnits, RftUnits, RftDenominator;
     }
 
     // Inclusive calendar dates in, half-open UTC window out: [from 00:00Z, to + 1 day 00:00Z).
@@ -119,16 +121,28 @@ public class AnalystWorkloadService
         decimal? forwardLoad = !filtered && !allOpenUnweighted && forwardCapacity > 0 ? a.OpenUnits / forwardCapacity : null;
         // With no forward capacity at all, any open work is over capacity; a ratio would divide by zero.
         var over = !filtered && !allOpenUnweighted && (forwardCapacity > 0 ? a.OpenUnits / forwardCapacity > 1m : a.OpenUnits > 0);
+        // A rate from fewer than MinSampleForRate tests is noise (and, per person, pressure): hide it.
+        decimal? onTime = a.JudgedTests >= KpiConstants.MinSampleForRate && a.JudgedUnits > 0 ? a.OnTimeUnits / a.JudgedUnits : null;
+        decimal? rft = a.RftTests >= KpiConstants.MinSampleForRate && a.RftDenominator > 0 ? a.RftUnits / a.RftDenominator : null;
         return new AnalystWorkloadRowDto(id, name, capacity, a.DeliveredUnits, utilisation, utilisation > 1m,
-            a.OpenUnits, forwardCapacity, forwardLoad, over, null, null,
-            a.DeliveredTests, a.UnweightedTests, a.UnweightedOpenTests, 0);
+            a.OpenUnits, forwardCapacity, forwardLoad, over, onTime, rft,
+            a.DeliveredTests, a.UnweightedTests, a.UnweightedOpenTests, a.TestsOnDefaultTarget);
     }
 
     private static List<KpiGap> BuildGaps(IReadOnlyCollection<Acc> accs, int unassigned)
     {
         var gaps = new List<KpiGap>();
         var unweighted = accs.Sum(a => a.UnweightedTests + a.UnweightedOpenTests);
+        var defaultTarget = accs.Sum(a => a.TestsOnDefaultTarget);
+        var unjudged = accs.Sum(a => a.UnjudgedTests);
+        var observation = accs.Sum(a => a.ObservationTests);
+        var hidden = accs.Count(a => a.JudgedTests is > 0 and < KpiConstants.MinSampleForRate
+                                     || a.RftTests is > 0 and < KpiConstants.MinSampleForRate);
         if (unweighted > 0) gaps.Add(new KpiGap("UNWEIGHTED_TESTS", $"{unweighted} tests unweighted (no work-unit profile)", unweighted));
+        if (defaultTarget > 0) gaps.Add(new KpiGap("DEFAULT_TARGET", $"{defaultTarget} tests on the default {KpiConstants.DefaultTargetDays}-day target", defaultTarget));
+        if (unjudged > 0) gaps.Add(new KpiGap("UNJUDGED_ON_TIME", $"{unjudged} tests without an assignment time cannot be judged for on time", unjudged));
+        if (observation > 0) gaps.Add(new KpiGap("OBSERVATION_RETURNS_NOT_TRACKED", $"{observation} observation tests not tracked for returns", observation));
+        if (hidden > 0) gaps.Add(new KpiGap("RATES_TOO_FEW_RECORDS", $"Rates hidden for {hidden} analysts with fewer than {KpiConstants.MinSampleForRate} tests", hidden));
         if (unassigned > 0) gaps.Add(new KpiGap("UNASSIGNED_OPEN", $"{unassigned} open tests have no analyst assigned", unassigned));
         return gaps;
     }
@@ -145,9 +159,38 @@ public class AnalystWorkloadService
         foreach (var d in data.Delivered)
         {
             var a = For(d.AnalystId);
+            var profile = data.Resolver.Resolve(d.TestCode, d.ApprovedAt);
             a.DeliveredTests++;
-            if (data.Resolver.Resolve(d.TestCode, d.ApprovedAt).WorkUnits is decimal units) a.DeliveredUnits += units;
-            else a.UnweightedTests++;
+            if (!profile.IsTargetAware) a.TestsOnDefaultTarget++;
+            if (profile.WorkUnits is not decimal units)
+            {
+                a.UnweightedTests++;
+                continue; // unweighted tests leave every numerator and denominator
+            }
+            a.DeliveredUnits += units;
+
+            if (data.OnTime[(d.SampleId, d.SectionId)] is bool onTime)
+            {
+                a.JudgedTests++;
+                a.JudgedUnits += units;
+                if (onTime) a.OnTimeUnits += units;
+            }
+            else
+            {
+                a.UnjudgedTests++;
+            }
+
+            // Observation tests cannot generate a TestReturnEvent, so including them would overstate right-first-time.
+            if (data.Types.TryGetValue(d.TestCode, out var type) && type == WorkflowType.Observation)
+            {
+                a.ObservationTests++;
+            }
+            else
+            {
+                a.RftTests++;
+                a.RftDenominator += units;
+                if (!data.Returned.Contains(d.TestOrderId)) a.RftUnits += units;
+            }
         }
         foreach (var o in data.Open.Where(o => o.AnalystId != null))
         {
@@ -178,7 +221,44 @@ public class AnalystWorkloadService
             .Select(t => new OpenRow(t.Id, t.SampleId, t.TestCode, t.AssignedAnalystId, t.Sample!.ControlNumber, t.Sample.Category))
             .ToListAsync(ct);
 
-        return new Loaded(delivered, open, resolver);
+        var sampleIds = delivered.Select(d => d.SampleId).Distinct().ToList();
+
+        // The analyst-stage clock starts when the sample was prepared (assigned for testing).
+        var prepared = (await _db.SamplePreparations.AsNoTracking()
+                .Where(p => sampleIds.Contains(p.SampleId)).Select(p => new { p.SampleId, p.PreparedAt }).ToListAsync(ct))
+            .GroupBy(p => p.SampleId).ToDictionary(g => g.Key, g => g.Min(p => p.PreparedAt));
+
+        // Every live test of the delivered samples sets the deadline, including tests of other analysts and open ones.
+        var siblings = (await _db.TestOrders.AsNoTracking()
+                .Where(t => sampleIds.Contains(t.SampleId) && !t.IsSuperseded
+                            && t.Status != ApprovalStatus.Voided && t.Status != ApprovalStatus.Cancelled)
+                .Select(t => new { t.SampleId, t.SectionId, t.TestCode }).ToListAsync(ct))
+            .ToLookup(t => (t.SampleId, t.SectionId), t => t.TestCode);
+
+        var onTime = new Dictionary<(int SampleId, int SectionId), bool?>();
+        foreach (var g in delivered.GroupBy(d => (d.SampleId, d.SectionId)))
+        {
+            var first = g.First();
+            if (!prepared.TryGetValue(first.SampleId, out var start) || first.SubmittedAt is not DateTime submitted)
+            {
+                onTime[g.Key] = null; // not judgeable: no assignment time or no submit time
+                continue;
+            }
+            // Deadline = start + the longest target among the section's tests; a test with no resolvable target counts as the
+            // 7-day fallback. One rule for tile 2 (S2) and this table: S2's AnalystStageTarget (empty list -> 7 days).
+            var days = AnalystStageTarget.DaysFor(siblings[g.Key], first.ApprovedAt, resolver).Days;
+            onTime[g.Key] = submitted <= start.AddDays((double)days);
+        }
+
+        var orderIds = delivered.Select(d => d.TestOrderId).ToList();
+        var returned = (await _db.TestReturnEvents.AsNoTracking().Where(r => orderIds.Contains(r.TestOrderId))
+            .Select(r => r.TestOrderId).Distinct().ToListAsync(ct)).ToHashSet();
+
+        var codes = delivered.Select(d => d.TestCode).Distinct().ToList();
+        var types = await _db.TestDefinitions.AsNoTracking().Where(d => codes.Contains(d.Code))
+            .ToDictionaryAsync(d => d.Code, d => d.WorkflowType, ct);
+
+        return new Loaded(delivered, open, resolver, onTime, returned, types);
     }
 
     // D8: without Kpi.ViewTeam the only analyst a caller may look at is themselves.

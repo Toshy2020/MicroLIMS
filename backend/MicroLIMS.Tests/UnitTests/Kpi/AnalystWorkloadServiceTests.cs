@@ -369,4 +369,152 @@ public class AnalystWorkloadServiceTests
         Assert.Equal(1, row.DeliveredTests);
         Assert.Equal(2m, row.DeliveredUnits);
     }
+
+    [Fact]
+    public async Task Rates_AreHidden_BelowTheMinimumSample_AndTheGapSaysSo()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 4; i++) await DeliverAsync(db, i, "TAMC", Alice, At(8, 12)); // 4 < MinSampleForRate (5)
+
+        var dto = await GetAsync(db, Week(analystId: Alice));
+
+        var row = Row(dto, Alice);
+        Assert.Null(row.WeightedOnTime);
+        Assert.Null(row.WeightedRightFirstTime);
+        Assert.Equal(1, dto.Gaps.Single(g => g.Code == "RATES_TOO_FEW_RECORDS").Count);
+    }
+
+    [Fact]
+    public async Task WeightedOnTime_AndRightFirstTime_AreWeightedByUnits_NotByCount()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        // Prepared Mon 5 Oct 09:00. TAMC target 5 days -> deadline Sat 10 Oct 09:00; PH target 10 days.
+        await DeliverAsync(db, 1, "TAMC", Bob, At(9, 12), returned: true); // submitted 9 Oct 10:00: on time, but returned
+        await DeliverAsync(db, 2, "TAMC", Bob, At(9, 12));                  // on time
+        await DeliverAsync(db, 3, "PH", Bob, At(9, 12));                    // on time (4 units)
+        await DeliverAsync(db, 4, "TAMC", Bob, At(11, 12), submittedAt: At(11, 10)); // submitted after the deadline: late
+        await DeliverAsync(db, 5, "TAMC", Bob, At(11, 12), submittedAt: At(11, 10)); // late
+
+        var row = Row(await GetAsync(db, Week(analystId: Bob)), Bob);
+
+        Assert.Equal(12m, row.DeliveredUnits);
+        Assert.Equal(0.6667m, Math.Round(row.WeightedOnTime!.Value, 4));         // 8 of 12 units on time (count-based would be 0.6)
+        Assert.Equal(0.8333m, Math.Round(row.WeightedRightFirstTime!.Value, 4)); // 10 of 12 units not returned (count-based would be 0.8)
+    }
+
+    [Fact]
+    public async Task Observation_TestsAreExcludedFromRightFirstTime_AndReported()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 5; i++) await DeliverAsync(db, i, "TAMC", Bob, At(7, 12));
+        await DeliverAsync(db, 6, "OBS", Bob, At(7, 12), returned: true); // a return event cannot normally exist for Observation
+
+        var dto = await GetAsync(db, Week(analystId: Bob));
+
+        var row = Row(dto, Bob);
+        Assert.Equal(11m, row.DeliveredUnits);                // the observation test still earns its unit
+        Assert.Equal(1m, row.WeightedRightFirstTime);          // 10 of 10 units across the five tracked tests
+        Assert.Equal(1, dto.Gaps.Single(g => g.Code == "OBSERVATION_RETURNS_NOT_TRACKED").Count);
+    }
+
+    [Fact]
+    public async Task OnTime_SampleWithoutAPreparationRow_IsNotJudged_AndReported()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 4; i++) await DeliverAsync(db, i, "TAMC", Alice, At(8, 12));
+        await DeliverAsync(db, 5, "TAMC", Alice, At(8, 12), noPreparation: true);
+
+        var dto = await GetAsync(db, Week(analystId: Alice));
+
+        var row = Row(dto, Alice);
+        Assert.Null(row.WeightedOnTime);                  // only 4 judged tests
+        Assert.Equal(1m, row.WeightedRightFirstTime);     // all 5 tests are tracked for returns
+        Assert.Equal(1, dto.Gaps.Single(g => g.Code == "UNJUDGED_ON_TIME").Count);
+    }
+
+    [Fact] // Review Focus 4
+    public async Task OnTime_SampleWithUnresolvedSiblingTarget_UsesSevenDayFallback()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 5; i++)
+        {
+            // Submitted Sun 11 Oct 10:00: late against TAMC's own 5-day target (Sat 10 Oct 09:00), fine against the 7-day fallback (Mon 12 Oct 09:00).
+            await DeliverAsync(db, i, "TAMC", Alice, At(11, 12), submittedAt: At(11, 10));
+            await OpenAsync(db, 100 + i, "NOPROF", Bob, sampleId: i); // same sample and section, no resolvable target
+        }
+
+        var row = Row(await GetAsync(db, Week(analystId: Alice)), Alice);
+
+        Assert.Equal(1m, row.WeightedOnTime);
+    }
+
+    [Fact]
+    public async Task OnTime_WithoutASlowSibling_UsesTheResolvedFiveDayTarget()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 5; i++)
+            await DeliverAsync(db, i, "TAMC", Alice, At(11, 12), submittedAt: At(11, 10));
+
+        var row = Row(await GetAsync(db, Week(analystId: Alice)), Alice);
+
+        Assert.Equal(0m, row.WeightedOnTime);
+    }
+
+    [Fact]
+    public async Task DefaultTarget_CountsDeliveredTestsWithNoResolvedTarget()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        await DeliverAsync(db, 1, "NOPROF", Alice, At(8, 12));
+        await DeliverAsync(db, 2, "TAMC", Alice, At(8, 12));
+
+        var dto = await GetAsync(db, Week(analystId: Alice));
+
+        Assert.Equal(1, Row(dto, Alice).TestsOnDefaultTarget);
+        Assert.Equal(1, dto.Gaps.Single(g => g.Code == "DEFAULT_TARGET").Count);
+    }
+
+    [Fact] // Review Focus 9
+    public async Task TwoAnalystsOnOneSample_BothInheritTheSampleOnTimeVerdict_AndSiblingTargetUsesBothTests()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 5; i++)
+        {
+            // One sample, one section: Alice's TAMC (5-day target) and Bob's PH (10-day target). Prepared Mon 5 Oct 09:00, submitted
+            // Sun 11 Oct 10:00: late against 5 days (Sat 10 Oct) but inside the sample deadline, the max of its tests' targets (Mon 15 Oct).
+            await DeliverAsync(db, i, "TAMC", Alice, At(11, 12), submittedAt: At(11, 10), sampleId: i);
+            await DeliverAsync(db, 10 + i, "PH", Bob, At(11, 12), submittedAt: At(11, 10), sampleId: i);
+        }
+
+        var dto = await GetAsync(db, Week());
+
+        Assert.Equal(1m, Row(dto, Alice).WeightedOnTime); // would be 0 if Alice were judged on her own 5-day test alone
+        Assert.Equal(1m, Row(dto, Bob).WeightedOnTime);   // same verdict, inherited from the sample
+    }
+
+    [Fact] // Review Focus 10
+    public async Task RetestCloneSample_EarnsUnits_AndIsReportedUnjudged()
+    {
+        await using var db = NewDb();
+        await SeedBaselineAsync(db);
+        for (var i = 1; i <= 4; i++) await DeliverAsync(db, i, "TAMC", Alice, At(8, 12));
+        await DeliverAsync(db, 5, "TAMC", Alice, At(8, 12), noPreparation: true); // a retest clone has no SamplePreparation
+        (await db.Samples.SingleAsync(s => s.Id == 5)).OriginSampleId = 1;
+        await db.SaveChangesAsync();
+
+        var dto = await GetAsync(db, Week(analystId: Alice));
+
+        var row = Row(dto, Alice);
+        Assert.Equal(5, row.DeliveredTests);            // retests earn units like any test (spec 4.2)
+        Assert.Equal(10m, row.DeliveredUnits);
+        Assert.Null(row.WeightedOnTime);                // only 4 judged tests, so below the minimum sample
+        Assert.Equal(1, dto.Gaps.Single(g => g.Code == "UNJUDGED_ON_TIME").Count);
+    }
 }

@@ -166,6 +166,20 @@ public static class TestServiceFactory
 
     public static DashboardService Dashboard(MicroLimsDbContext db) => new(db, Kpi(db));
 
+    public static KpiRegistry BuildKpiRegistry(MicroLimsDbContext db, TimeProvider? time = null)
+    {
+        var profiles = WorkflowProfile(db, time);
+        return new KpiRegistry(new IKpi[]
+        {
+            new SampleTatKpi(db), new OnTimeAllStagesKpi(db, profiles), new RightFirstTimeKpi(db, profiles),
+            new RetestRateKpi(db), new OosRateKpi(db), new WipBacklogKpi(db), new IncubationReadsOnTimeKpi(db),
+            new EmExcursionRateKpi(db), new StageTatKpi(db), new BacklogAgingKpi(db, profiles), new ReturnsByTestKpi(db)
+        });
+    }
+
+    public static KpiDashboardService KpiDashboard(MicroLimsDbContext db, TimeProvider? time = null, IUserSectionScopeService? scope = null) =>
+        new(db, BuildKpiRegistry(db, time), scope ?? new UserSectionScopeService(db), time);
+
     public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db, new UserSectionScopeService(db));
 
     public static TestingWorkspaceService TestingWorkspace(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>

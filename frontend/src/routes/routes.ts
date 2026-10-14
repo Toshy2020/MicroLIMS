@@ -239,6 +239,7 @@ export const PERMISSIONS = {
   DOCUMENTS_REGISTER: "Documents.Register",
   DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
   KPI_VIEW: "Kpi.View",
+  KPI_VIEW_TEAM: "Kpi.ViewTeam",
   KPI_CONFIGURE_PROFILES: "Kpi.ConfigureProfiles",
   MEDIA_PREPARE: "Media.Prepare",
   MEDIA_RELEASE: "Media.Release",

@@ -80,6 +80,10 @@ public static class TestServiceFactory
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
 
+    public static KpiSettingsService KpiSettings(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)), time);
+
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db));
 

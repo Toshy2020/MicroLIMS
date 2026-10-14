@@ -143,3 +143,135 @@ public class SampleTatKpiTests
         Assert.Single((await kpi.GetRecordsAsync(Query(), 3, 2, default)).Items);   // the third page holds the last record
     }
 }
+
+public class OnTimeAllStagesKpiTests
+{
+    private static OnTimeAllStagesKpi Kpi(MicroLimsDbContext db) =>
+        new(db, TestServiceFactory.WorkflowProfile(db, new FixedTimeProvider(new DateTimeOffset(Now))));
+
+    private static void Profiles(MicroLimsDbContext db)
+    {
+        Definition(db, "TAMC", WorkflowType.CountTest);
+        Definition(db, "TYMC", WorkflowType.CountTest);
+        Definition(db, "UNPROFILED", WorkflowType.HplcMethodAssay);
+        Profile(db, WorkflowType.CountTest, null, 2m, 5m, new DateOnly(2026, 1, 1));         // type default: 5 days
+        Profile(db, WorkflowType.CountTest, "TYMC", null, 14m, new DateOnly(2026, 1, 1));    // override: 14 days
+    }
+
+    // With the profiles above: 1, 4, 5, 7 on time; 2, 3 late; 6 cannot be judged (no preparation record).
+    private static void Samples(MicroLimsDbContext db)
+    {
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 6, 8), "TAMC");
+        Timeline(db, 1, Utc(10, 1, 8), Utc(10, 5, 8), Utc(10, 5, 20), Utc(10, 6, 8));        // 4 d, 12 h, 12 h
+        ApprovedSample(db, 2, Utc(10, 1), Utc(10, 7, 12), "TAMC");
+        Timeline(db, 2, Utc(10, 1, 8), Utc(10, 7, 8), Utc(10, 7, 10), Utc(10, 7, 12));       // 6 d > 5 d: late
+        ApprovedSample(db, 3, Utc(10, 1), Utc(10, 13, 10), "TYMC");
+        Timeline(db, 3, Utc(10, 1, 8), Utc(10, 12, 8), Utc(10, 13, 9), Utc(10, 13, 10));     // 11 d <= 14 d, but review 25 h: late
+        ApprovedSample(db, 4, Utc(10, 1), Utc(10, 8, 8), "TAMC");
+        Timeline(db, 4, Utc(10, 1, 8), Utc(10, 6, 8), Utc(10, 7, 8), Utc(10, 8, 8));         // exactly 5 d, 24 h, 24 h: on time
+        var five = ApprovedSample(db, 5, Utc(10, 1), Utc(10, 11, 8), "TAMC");
+        Test(db, five, 51, "TYMC");                                                           // the longest target (14 d) governs
+        Timeline(db, 5, Utc(10, 1, 8), Utc(10, 10, 8), Utc(10, 10, 20), Utc(10, 11, 8));     // 9 d
+        ApprovedSample(db, 6, Utc(10, 1), Utc(10, 9, 8), "TAMC");
+        Signoff(db, 6, 1, Utc(10, 8, 8), Utc(10, 8, 12), Utc(10, 9, 8));                     // no SamplePreparation row
+        ApprovedSample(db, 7, Utc(10, 1), Utc(10, 7, 14), "UNPROFILED");
+        Timeline(db, 7, Utc(10, 1, 8), Utc(10, 7, 8), Utc(10, 7, 12), Utc(10, 7, 14));       // 6 d <= default 7 d
+    }
+
+    [Fact]
+    public async Task OnTime_AllStages_BoundariesAreInclusive_AndMaxTargetRuleApplies()
+    {
+        await using var db = NewDb();
+        Profiles(db);
+        Samples(db);
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(0.6667m, r.Value);
+        Assert.Equal(4m, r.Numerator);
+        Assert.Equal(6m, r.Denominator);
+        Assert.Equal(6, r.N);
+        Assert.False(r.TooFewRecords);
+        Assert.Equal(KpiStatus.Partial, r.Status);
+        Assert.Equal(1, r.Gaps.Single(g => g.Code == "NO_ASSIGNMENT_TIME").Count);
+        Assert.Equal(1, r.Gaps.Single(g => g.Code == "DEFAULT_TARGET").Count);   // only UNPROFILED fell back
+        Assert.Null(r.Prior);
+    }
+
+    [Fact]
+    public async Task OnTime_NoProfiles_UsesSevenDayFallback_AndReportsGap()
+    {
+        await using var db = NewDb();
+        Samples(db);                                   // no definitions, no profiles at all
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        // 7 days for everybody: 1, 2, 4, 7 on time; 3 (review 25 h) and 5 (9 d) late.
+        Assert.Equal(0.6667m, r.Value);
+        var gap = r.Gaps.Single(g => g.Code == "DEFAULT_TARGET");
+        Assert.Equal(7, gap.Count);                    // one per judged test (sample 5 has two)
+        Assert.Equal("7 tests on the default 7-day target", gap.Message);
+        Assert.Equal(KpiStatus.Partial, r.Status);
+    }
+
+    [Fact]
+    public async Task OnTime_SampleWithoutPreparation_IsExcludedAndReported()
+    {
+        await using var db = NewDb();
+        Profiles(db);
+        Samples(db);
+        await db.SaveChangesAsync();
+
+        var page = await Kpi(db).GetRecordsAsync(Query(), 1, 50, default);
+
+        var excluded = Assert.Single(page.Items, i => i.Inclusion == "Excluded");
+        Assert.Equal(6, excluded.SampleId);
+        Assert.Contains("assignment", excluded.Note);
+        Assert.Equal(4, page.Items.Count(i => i.Inclusion == "Numerator"));
+        Assert.Equal(2, page.Items.Count(i => i.Inclusion == "Denominator"));
+    }
+
+    [Fact]
+    public async Task OnTime_NothingApproved_IsNoData()
+    {
+        await using var db = NewDb();
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+        Assert.Equal(KpiStatus.NoData, r.Status);
+        Assert.Null(r.Value);
+    }
+
+    [Fact]
+    public async Task OnTime_OnlyUnjudgeableSamples_IsNoDataWithTheGap()
+    {
+        await using var db = NewDb();
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 6));          // no preparation, no signoff
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(KpiStatus.NoData, r.Status);
+        Assert.Null(r.Value);
+        Assert.Equal(1, r.Gaps.Single(g => g.Code == "NO_ASSIGNMENT_TIME").Count);
+    }
+
+    [Fact]
+    public async Task OnTime_OutOfScopeSection_IsNotJudged()
+    {
+        // Lab 2 was late, but a viewer who only sees lab 1 is judged on lab 1 alone.
+        await using var db = NewDb();
+        Definition(db, "TAMC", WorkflowType.CountTest);
+        Profile(db, WorkflowType.CountTest, null, 2m, 5m, new DateOnly(2026, 1, 1));
+        var sample = ApprovedSample(db, 1, Utc(10, 1), Utc(10, 12, 8), "TAMC");
+        Test(db, sample, 11, "TAMC", sectionId: 2);
+        Prepared(db, 1, Utc(10, 1, 8));
+        Signoff(db, 1, 1, Utc(10, 3, 8), Utc(10, 3, 12), Utc(10, 3, 14));
+        Signoff(db, 1, 2, Utc(10, 11, 8), Utc(10, 11, 12), Utc(10, 12, 8));      // 10 d: late for lab 2
+        await db.SaveChangesAsync();
+
+        Assert.Equal(1m, (await Kpi(db).ComputeAsync(Query(sections: new[] { 1 }), default)).Value);
+        Assert.Equal(0m, (await Kpi(db).ComputeAsync(Query(), default)).Value);
+    }
+}
+

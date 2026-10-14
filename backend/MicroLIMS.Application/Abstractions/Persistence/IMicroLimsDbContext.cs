@@ -94,6 +94,8 @@ public interface IMicroLimsDbContext
     DbSet<WorkloadWeight> WorkloadWeights { get; }
     DbSet<WorkloadWeightHistory> WorkloadWeightHistories { get; }
     DbSet<WorkflowProfileVersion> WorkflowProfileVersions { get; }
+    DbSet<KpiSetting> KpiSettings { get; }
+    DbSet<AnalystAvailability> AnalystAvailabilities { get; }
     DbSet<MediaProduct> MediaProducts { get; }
     DbSet<MediaIncubationCondition> MediaIncubationConditions { get; }
     DbSet<MediaConfiguration> MediaConfigurations { get; }

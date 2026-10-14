@@ -236,5 +236,10 @@ public static class UserReferenceRegistry
 
         // KPI remodel - S1
         new UserReferenceEntry(typeof(WorkflowProfileVersion), nameof(WorkflowProfileVersion.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, author of a workflow profile version (0 = migration)"),
+
+        // KPI remodel - S3
+        new UserReferenceEntry(typeof(KpiSetting), nameof(KpiSetting.UpdatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - KPI capacity settings provenance"),
+        new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.UserId), UserReferenceDisposition.Blocks, "Analyst availability history; DB FK Restrict"),
+        new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - availability entry provenance"),
     };
 }

@@ -40,16 +40,6 @@ export const humanize = (v: string | null | undefined): string => {
     .replace(/\s+(.)/g, (_, c: string) => " " + c.toLowerCase());
 };
 
-// 11.50(b) requires the *meaning* of a signature, not just its type -
-// the enum name alone ("Reviewed") does not state what was attested to.
-const MEANING_TEXT: Record<string, string> = {
-  Reviewed: "I have reviewed the test data and confirm it is complete and accurate.",
-  Approved: "I approve the release of this record for its intended use.",
-  Rejected: "I reject this record; it does not conform to specification.",
-  RetestRequested: "I am ordering a retest of the retained sample.",
-  InvestigationOrdered: "I am ordering an investigation into these results."
-};
-
 export const dt = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "") : "—";
 
@@ -61,6 +51,8 @@ export interface SignatureLike {
   username: string;
   role: string;
   meaning: string;
+  // 11.50(b): the meaning attested to, worded on the server.
+  meaningText: string;
   signedAt: string;
   comment: string | null;
 }
@@ -88,7 +80,7 @@ export function SignatureSection({ signatures }: { signatures: SignatureLike[] }
               </div>
             </div>
             <div className="sig-time">{dt(sig.signedAt)}</div>
-            <div className="sig-meaning">Meaning: {MEANING_TEXT[sig.meaning] ?? humanize(sig.meaning)}</div>
+            <div className="sig-meaning">Meaning: {sig.meaningText}</div>
             {sig.comment && <div className="sig-comment">“{sig.comment}”</div>}
           </div>
         ))}

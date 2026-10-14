@@ -182,7 +182,7 @@ export function ApprovalSignaturesCard({
                 {formatExactTime(sig.signedAt)}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-                "{SIGNATURE_STATEMENTS[sig.meaning] ?? sig.meaning}"
+                "{sig.meaningText}"
               </Typography>
               {sig.comment && (
                 <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>

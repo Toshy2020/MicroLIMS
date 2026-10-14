@@ -8,6 +8,7 @@
   "BatchNumber": "B-100",
   "ControlNumber": "CTRL-1",
   "Status": "Approved",
+  "StatusDisplay": "Approved",
   "ReceivedByName": "Alice Analyst",
   "ReceivedAt": "2026-03-02T09:00:00Z",
   "SampledBy": "Dan Sampler",
@@ -776,7 +777,8 @@
       "Role": "Reviewer",
       "Meaning": "Reviewed",
       "SignedAt": "2026-03-10T09:00:00Z",
-      "Comment": "Looks fine"
+      "Comment": "Looks fine",
+      "MeaningText": "I have reviewed the test data and confirm it is complete and accurate."
     },
     {
       "PrintedName": "Carol Approver",
@@ -784,7 +786,8 @@
       "Role": "Approver",
       "Meaning": "Approved",
       "SignedAt": "2026-03-11T09:00:00Z",
-      "Comment": null
+      "Comment": null,
+      "MeaningText": "I approve the release of this record for its intended use."
     }
   ],
   "Sections": [

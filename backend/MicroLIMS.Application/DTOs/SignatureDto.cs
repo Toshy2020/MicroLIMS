@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Helpers;
+
 namespace MicroLIMS.Application.DTOs;
 
 // What an auditor asks to see: printed name, meaning, date/time, comment -
@@ -9,4 +11,10 @@ namespace MicroLIMS.Application.DTOs;
 // identical names read as one person signing both roles - exactly what
 // segregation of duties forbids - so the signature block needs the
 // username to show they are distinct people.
-public record SignatureDto(string PrintedName, string Username, string Role, string Meaning, DateTime SignedAt, string? Comment);
+public record SignatureDto(string PrintedName, string Username, string Role, string Meaning, DateTime SignedAt, string? Comment)
+{
+    // The sentence the signer attested to, worded once in ReportVocabulary
+    // so every rendering of this signature (PDF, archive, print page)
+    // states the same meaning.
+    public string MeaningText => ReportVocabulary.SignatureMeaning(Meaning);
+}

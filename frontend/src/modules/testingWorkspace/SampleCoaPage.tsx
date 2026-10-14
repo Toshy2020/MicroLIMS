@@ -17,6 +17,7 @@ import {
   SampleSectionSummaryDetail
 } from "./types/sampleSummaryTypes";
 import { reportStyles } from "./reportStyles";
+import { SIGNATURE_STATEMENTS } from "./sampleSummary/summaryFormatting";
 import { dt, d, humanize } from "./SampleReportPage";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 
@@ -47,14 +48,13 @@ const coaPrintStyles = `
 }
 `;
 
-// Duplicated in SampleReportPage.MEANING_TEXT and SampleSummaryDialog.
-// SIGNATURE_STATEMENTS too - same small map, three places, matching how
-// the rest of this module already keeps local copies of one-line rules
-// rather than importing across files for a two-entry lookup.
+// A recorded signature prints its server-worded meaningText; these are
+// the placeholders for a lab that decided without one on the trail, and
+// share SIGNATURE_STATEMENTS so the certificate and the summary report
+// word a decision the same way. "Closed" is a lab closing its testing,
+// which is not a signature meaning and so is only worded here.
 const MEANING_TEXT: Record<string, string> = {
-  Reviewed: "I have reviewed the test data and confirm it is complete and accurate.",
-  Approved: "I approve the release of this sample for its intended use.",
-  Rejected: "I reject the release of this sample; it does not conform to specification.",
+  ...SIGNATURE_STATEMENTS,
   Closed: "I am closing this laboratory's testing; it will not be resumed on this sample."
 };
 
@@ -150,7 +150,7 @@ function SignatureBlock({
     <div className="coa-sig-block">
       <div className="sn">{name ?? "—"}</div>
       <div className="sr">{sig ? humanize(sig.role) : fallbackRole}</div>
-      <div className="sm">"{MEANING_TEXT[meaning] ?? humanize(meaning)}"</div>
+      <div className="sm">"{sig?.meaningText ?? MEANING_TEXT[meaning] ?? humanize(meaning)}"</div>
       <div className="st">{dt(at)}</div>
     </div>
   );

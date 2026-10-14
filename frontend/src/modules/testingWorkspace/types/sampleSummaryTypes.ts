@@ -200,6 +200,9 @@ export interface SignatureTrailItem {
   username: string;
   role: string;
   meaning: string;
+  // The sentence the signer attested to (21 CFR 11.50(b)), worded once on
+  // the server - render this, never a local copy of the wording.
+  meaningText: string;
   signedAt: string;
   comment: string | null;
 }
@@ -225,6 +228,9 @@ export interface SampleSummary {
   batchNumber: string | null;
   controlNumber: string;
   status: string;
+  // Status as the controlled record prints it ("In testing"), worded on
+  // the server (ReportVocabulary) so the PDF and the print page agree.
+  statusDisplay: string;
   receivedByName: string;
   receivedAt: string;
   sampledBy: string;

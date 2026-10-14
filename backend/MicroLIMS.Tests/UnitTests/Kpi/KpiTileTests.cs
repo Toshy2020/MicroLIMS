@@ -275,3 +275,152 @@ public class OnTimeAllStagesKpiTests
     }
 }
 
+public class RightFirstTimeKpiTests
+{
+    private static RightFirstTimeKpi Kpi(MicroLimsDbContext db) =>
+        new(db, TestServiceFactory.WorkflowProfile(db, new FixedTimeProvider(new DateTimeOffset(Now))));
+
+    private static void Definitions(MicroLimsDbContext db)
+    {
+        Definition(db, "TAMC", WorkflowType.CountTest);
+        Definition(db, "HPLC1", WorkflowType.HplcMethodAssay);
+        Definition(db, "PATH", WorkflowType.Observation);
+        Definition(db, "NOPROF", WorkflowType.Titration);
+    }
+
+    private static void Profiles(MicroLimsDbContext db)
+    {
+        Profile(db, WorkflowType.CountTest, null, 2m, null, new DateOnly(2026, 1, 1));
+        Profile(db, WorkflowType.HplcMethodAssay, null, 4m, null, new DateOnly(2026, 1, 1));
+        Profile(db, WorkflowType.Observation, null, 1m, null, new DateOnly(2026, 1, 1));   // configured, still excluded
+    }
+
+    private static void Approve(MicroLimsDbContext db, int sampleId, DateTime at) => Signoff(db, sampleId, 1, null, null, at);
+
+    // Counted: 1 (2 u), 2 (2 u, returned), 3 (4 u), 4 (4 u, returned twice) -> 6 of 12 units.
+    // Reported gaps: 5 (observation), 6 (no profile). Ignored: 7 (superseded), 8 (Rejected).
+    // Prior period: 9 (2 u, never returned).
+    private static void Seed(MicroLimsDbContext db)
+    {
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 3), "TAMC");    Approve(db, 1, Utc(10, 3));
+        ApprovedSample(db, 2, Utc(10, 1), Utc(10, 4), "TAMC");    Approve(db, 2, Utc(10, 4));
+        ApprovedSample(db, 3, Utc(10, 1), Utc(10, 5), "HPLC1");   Approve(db, 3, Utc(10, 5));
+        ApprovedSample(db, 4, Utc(10, 1), Utc(10, 6), "HPLC1");   Approve(db, 4, Utc(10, 6));
+        ApprovedSample(db, 5, Utc(10, 1), Utc(10, 7), "PATH");    Approve(db, 5, Utc(10, 7));
+        ApprovedSample(db, 6, Utc(10, 1), Utc(10, 8), "NOPROF");  Approve(db, 6, Utc(10, 8));
+        ApprovedSample(db, 7, Utc(10, 1), Utc(10, 8), "TAMC", superseded: true);  Approve(db, 7, Utc(10, 8));
+        ApprovedSample(db, 8, Utc(10, 1), Utc(10, 9), "TAMC", decision: ApprovalDecision.Reject, testStatus: ApprovalStatus.Rejected);
+        Signoff(db, 8, 1, null, null, Utc(10, 9), SectionSignoffStatus.Rejected, ApprovalDecision.Reject);   // a Reject also stamps ApprovedAt
+        ApprovedSample(db, 9, Utc(9, 10), Utc(9, 20), "TAMC");    Approve(db, 9, Utc(9, 20));
+        Return(db, 20, Utc(10, 3, 12));
+        Return(db, 40, Utc(10, 4, 12));
+        Return(db, 40, Utc(10, 5, 12));
+    }
+
+    [Fact]
+    public async Task RightFirstTime_WeightsByUnits_ExcludesObservationAndUnweighted()
+    {
+        await using var db = NewDb();
+        Definitions(db);
+        Profiles(db);
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(0.5m, r.Value);
+        Assert.Equal(6m, r.Numerator);
+        Assert.Equal(12m, r.Denominator);
+        Assert.Equal(4, r.N);                      // tests, not units: 4 < 5, so the value is flagged as too few
+        Assert.True(r.TooFewRecords);
+        Assert.Equal(KpiStatus.Partial, r.Status);
+        Assert.Equal(1, r.Gaps.Single(g => g.Code == "OBSERVATION_NOT_TRACKED").Count);
+        Assert.Equal(1, r.Gaps.Single(g => g.Code == "UNWEIGHTED_TESTS").Count);
+        Assert.Equal("2026-10", Assert.Single(r.Series).Label);
+        Assert.Equal(0.5m, r.Series[0].Value);
+        Assert.Equal(1m, r.Prior!.Value);          // September: 2 u of 2 u
+        Assert.Equal(1, r.Prior.N);
+    }
+
+    [Fact]
+    public async Task RightFirstTime_NoProfiles_IsNoData_NotOneHundredPercent()
+    {
+        await using var db = NewDb();
+        Definitions(db);        // definitions, but no profile versions at all
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(KpiStatus.NoData, r.Status);
+        Assert.Null(r.Value);                      // never defaulted to a weight of 1.0
+        Assert.Equal(0, r.N);
+        var gap = r.Gaps.Single(g => g.Code == "UNWEIGHTED_TESTS");
+        Assert.Equal(5, gap.Count);                // samples 1, 2, 3, 4, 6
+        Assert.Equal("5 tests unweighted", gap.Message);
+    }
+
+    [Fact]
+    public async Task RightFirstTime_ProfileAddedAfterApproval_DoesNotRewriteEarlierTests()
+    {
+        await using var db = NewDb();
+        Definitions(db);
+        Profiles(db);
+        Seed(db);
+        Profile(db, WorkflowType.CountTest, null, 8m, null, new DateOnly(2026, 10, 20));   // after every approval above
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(12m, r.Denominator);          // still 2 u per count test, as in force when approved
+        Assert.Equal(0.5m, r.Value);
+    }
+
+    [Fact]
+    public async Task RightFirstTime_TestApprovedAfterANewVersion_UsesTheNewVersion()
+    {
+        await using var db = NewDb();
+        Definitions(db);
+        Profile(db, WorkflowType.CountTest, null, 2m, null, new DateOnly(2026, 1, 1));
+        Profile(db, WorkflowType.CountTest, null, 6m, null, new DateOnly(2026, 10, 5));
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 3), "TAMC"); Approve(db, 1, Utc(10, 3));    // 2 u
+        ApprovedSample(db, 2, Utc(10, 1), Utc(10, 6), "TAMC"); Approve(db, 2, Utc(10, 6));    // 6 u
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(8m, r.Denominator);
+    }
+
+    [Fact]
+    public async Task RightFirstTime_Records_ShowReturnedAndExcludedTests_WithoutOtherAnalystNames()
+    {
+        await using var db = NewDb();
+        Analyst(db, 1, "Ann Analyst");
+        Definitions(db);
+        Profiles(db);
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var all = await Kpi(db).GetRecordsAsync(Query(), 1, 50, default);
+        Assert.Equal(6, all.Total);                                           // 4 counted + observation + unweighted
+        Assert.Equal("Ann Analyst", all.Items.First().AnalystName);
+        Assert.Equal(2, all.Items.Count(i => i.Inclusion == "Excluded"));
+        Assert.Equal(2, all.Items.Count(i => i.Inclusion == "Numerator"));
+        Assert.Equal(2, all.Items.Count(i => i.Inclusion == "Denominator"));
+
+        var other = await Kpi(db).GetRecordsAsync(Query(canViewTeam: false, viewer: 99), 1, 50, default);
+        Assert.All(other.Items, i => Assert.Null(i.AnalystName));             // D8: not mine, not shown
+    }
+
+    [Fact]
+    public async Task RightFirstTime_EmptyPeriod_IsNoData()
+    {
+        await using var db = NewDb();
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+        Assert.Equal(KpiStatus.NoData, r.Status);
+        Assert.Null(r.Value);
+        Assert.Empty(r.Gaps);
+    }
+}
+

@@ -258,20 +258,6 @@ ItemDocumentController.UploadDocument(Int32, IFormFile, ItemDocumentType, String
 ItemPreparationConfigurationController.Approve(Int32): SystemAdministrator,SectionHead
 ItemPreparationConfigurationController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 ItemPreparationConfigurationController.Upsert(Int32, UpsertPreparationConfigurationRequest): SystemAdministrator,SectionHead
-KpiController.GetAnalystKpis(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetCompletionStats(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetDelayTracking(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetOverallOnTimeCompletion(DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetOverallOnTimeCompletionByAnalyst(DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetReturnToAnalystCount(Nullable`1, DateTime, DateTime): SystemAdministrator,SectionHead
-KpiController.GetSampleAssignmentSla(Nullable`1, DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetSampleAssignmentSlaByAnalyst(DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetSampleQueueCounts(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetStageTatSummary(Nullable`1, DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetStepViolations(Nullable`1, DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetTestingTatByMonth(Int32, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetWorkflowBottleneckDeltas(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetWorkloadWeights(): SystemAdministrator,SectionHead
 KpiDashboardController.GetDashboard(DateOnly, DateOnly, String, String, String, Nullable`1, CancellationToken): SystemAdministrator,SectionHead
 KpiDashboardController.GetDefinitions(DateOnly, DateOnly, CancellationToken): SystemAdministrator,SectionHead
 KpiDashboardController.GetRecords(String, DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead

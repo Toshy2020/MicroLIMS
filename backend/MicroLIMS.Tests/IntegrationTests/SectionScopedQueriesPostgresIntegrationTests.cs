@@ -48,19 +48,24 @@ public class SectionScopedQueriesPostgresIntegrationTests
             await SectionReviewQueues.OverdueSampleIdsAsync(db, SectionSignoffStatus.UnderReview, now, TimeSpan.FromHours(24), scope);
             await SectionReviewQueues.OverdueSampleIdsAsync(db, SectionSignoffStatus.UnderApproval, now, TimeSpan.FromHours(24), scope);
 
-            var kpi = TestServiceFactory.Kpi(db);
-            await kpi.GetAnalystKpisAsync(sectionIds: scope);
-            await kpi.GetCompletionStatsAsync(sectionIds: scope);
-            await kpi.GetDelayTrackingAsync(sectionIds: scope);
-            await kpi.GetSampleQueueCountsAsync(sectionIds: scope);
-            await kpi.GetWorkflowBottleneckDeltasAsync(sectionIds: scope);
-            await kpi.GetSampleAssignmentSlaAsync(null, now.AddYears(-1), now, sectionIds: scope);
-            await kpi.GetSampleAssignmentSlaByAnalystAsync(now.AddYears(-1), now, sectionIds: scope);
-            await kpi.GetOverallOnTimeCompletionAsync(now.AddYears(-1), now, sectionIds: scope);
-            await kpi.GetStageTatSummaryAsync(null, now.AddYears(-1), now, sectionIds: scope);
-            await kpi.GetTestingTatByMonthAsync(6, sectionIds: scope);
-            await kpi.GetStepViolationsAsync(null, now.AddYears(-1), now, sectionIds: scope);
-            await kpi.GetReturnToAnalystCountAsync(null, now.AddYears(-1), now, scope);
+            var registry = TestServiceFactory.BuildKpiRegistry(db);
+            var kpiQuery = new MicroLIMS.Application.Services.Kpi.KpiQuery(
+                now.AddYears(-1), now, scope.ToList(), null, null, null, null, now, _fixture.SeededUserId, true);
+            foreach (var kpi in registry.All)
+            {
+                await kpi.ComputeAsync(kpiQuery, default);
+                await kpi.GetRecordsAsync(kpiQuery, 1, 50, default);
+            }
+            await TestServiceFactory.AnalystWorkload(db).GetAsync(kpiQuery, default);
+            await TestServiceFactory.AnalystWorkload(db).GetTestsAsync(kpiQuery, 1, 50, default);
+
+            // The dashboard derives its own scope from the user; it must not report an error entry.
+            var kpiDash = await TestServiceFactory.KpiDashboard(db).GetDashboardAsync(
+                _fixture.SeededUserId, true, DateOnly.FromDateTime(now.AddYears(-1)), DateOnly.FromDateTime(now), null, null, null, null);
+            Assert.All(kpiDash.Kpis, k => Assert.True(k.Error is null, k.Error));
+
+            // The one query DashboardService still reads.
+            await TestServiceFactory.Kpi(db).GetOverdueAnalystStageSamplesAsync(now.AddYears(-1), now, scope);
 
             var reporting = new ReportingQueryService(db);
             var search = new ResultRecordSearchRequest(null, null, null, null, null, null, null, null, null, null);

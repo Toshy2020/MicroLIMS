@@ -422,6 +422,53 @@ public class RightFirstTimeKpiTests
         Assert.Null(r.Value);
         Assert.Empty(r.Gaps);
     }
+
+    // Migrated from the retired GetReturnToAnalystCountAsync date-range test. RightFirstTimeKpi buckets a test by
+    // its section sign-off approval time (inclusive start, exclusive end); a TestReturnEvent is read by TestOrderId
+    // whatever its own date, so the boundary is the approval, not the return.
+    [Fact]
+    public async Task RightFirstTime_PeriodBoundary_IsTheApprovalTime_NotTheReturnTime()
+    {
+        await using var db = NewDb();
+        Definitions(db);
+        Profiles(db);
+        ApprovedSample(db, 1, Utc(9, 25), PeriodFrom, "TAMC"); Approve(db, 1, PeriodFrom);                    // exactly at the start: in
+        ApprovedSample(db, 2, Utc(10, 20), PeriodTo, "TAMC"); Approve(db, 2, PeriodTo);                       // exactly at the exclusive end: out
+        ApprovedSample(db, 3, Utc(9, 25), PeriodFrom.AddTicks(-1), "TAMC"); Approve(db, 3, PeriodFrom.AddTicks(-1)); // just before the start: out
+        Return(db, 10, Utc(9, 28));                                                                           // return before the period still counts against test 10
+        Return(db, 20, Utc(11, 5));                                                                           // return after the period: test 20 is not in the period
+        await db.SaveChangesAsync();
+
+        var r = await Kpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(1, r.N);                       // only test 10
+        Assert.Equal(0m, r.Numerator);              // returned, so not right first time
+        Assert.Equal(2m, r.Denominator);
+        Assert.Equal(0m, r.Value);
+    }
+
+    [Fact]
+    public async Task RightFirstTime_AnalystFilter_ExcludesAnotherAnalystsReturn()
+    {
+        await using var db = NewDb();
+        Definitions(db);
+        Profiles(db);
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 3), "TAMC", analyst: 1); Approve(db, 1, Utc(10, 3));      // analyst 1, returned
+        ApprovedSample(db, 2, Utc(10, 1), Utc(10, 4), "TAMC", analyst: 2); Approve(db, 2, Utc(10, 4));      // analyst 2, clean
+        Return(db, 10, Utc(10, 3, 12));
+        await db.SaveChangesAsync();
+
+        var one = await Kpi(db).ComputeAsync(Query(analystId: 1), default);
+        Assert.Equal(0m, one.Value);
+        Assert.Equal(1, one.N);
+
+        var two = await Kpi(db).ComputeAsync(Query(analystId: 2), default);
+        Assert.Equal(1m, two.Value);                // analyst 1's return does not touch analyst 2
+        Assert.Equal(1, two.N);
+
+        var rows = await Kpi(db).GetRecordsAsync(Query(analystId: 2), 1, 50, default);
+        Assert.DoesNotContain(rows.Items, i => i.TestOrderId == 10);
+    }
 }
 
 public class DecisionRateKpiTests

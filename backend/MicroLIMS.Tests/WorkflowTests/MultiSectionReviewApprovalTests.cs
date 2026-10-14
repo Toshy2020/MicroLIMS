@@ -403,17 +403,43 @@ public class MultiSectionReviewApprovalTests
         var review = TestServiceFactory.SampleReview(db);
         await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
         await db.SaveChangesAsync();
-        var kpi = TestServiceFactory.Kpi(db);
-        var scope = new UserSectionScopeService(db);
-        var micro = await scope.GetAccessibleSectionIdsAsync(w.HeadMicro);
-        var fp = await scope.GetAccessibleSectionIdsAsync(w.HeadFp);
 
-        Assert.Equal(1, (await kpi.GetSampleQueueCountsAsync(sectionIds: micro)).ReviewQueueCount);
-        Assert.Equal(0, (await kpi.GetSampleQueueCountsAsync(sectionIds: fp)).ReviewQueueCount);
+        // The dashboard derives the section scope from the viewing user.
+        var dashboard = TestServiceFactory.KpiDashboard(db);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        async Task<MicroLIMS.Application.Services.Kpi.KpiDashboardDto> DashFor(int userId) =>
+            await dashboard.GetDashboardAsync(userId, true, today.AddDays(-30), today, null, null, null, null);
+
+        var microDash = await DashFor(w.HeadMicro);
+        var fpDash = await DashFor(w.HeadFp);
+        Assert.All(microDash.Kpis.Concat(fpDash.Kpis), k => Assert.True(k.Error is null, k.Error));
+        Assert.Equal(0m, microDash.Kpis.Single(k => k.Key == "wip-backlog").Result!.Value ?? 0m);
+        Assert.Equal(1m, fpDash.Kpis.Single(k => k.Key == "wip-backlog").Result!.Value ?? 0m);
+
+        // Replaces the old ReviewQueueCount check: the section-scoped review gate (SectionReviewQueues.Candidates)
+        // is carried by backlog-aging "In Review". After AutoSubmitForReviewIfReadyAsync the Micro sample waits
+        // for review in the Micro head's section only.
+        static decimal InReview(MicroLIMS.Application.Services.Kpi.KpiDashboardDto d) =>
+            d.Kpis.Single(k => k.Key == "backlog-aging").Result!.Series
+                .Where(p => p.Group == "In Review").Sum(p => p.Value ?? 0m);
+        Assert.Equal(1m, InReview(microDash));
+        Assert.Equal(0m, InReview(fpDash));
 
         // Each Section Head sees only their own section's analysts.
-        Assert.Equal(new[] { 1 }, (await kpi.GetAnalystKpisAsync(sectionIds: micro)).Select(a => a.UserId).ToArray());
-        Assert.Equal(new[] { 2 }, (await kpi.GetAnalystKpisAsync(sectionIds: fp)).Select(a => a.UserId).ToArray());
+        var scope = new UserSectionScopeService(db);
+        var workload = TestServiceFactory.AnalystWorkload(db);
+        async Task<List<int>> AnalystIds(int headUserId)
+        {
+            var now = DateTime.UtcNow;
+            var q = new MicroLIMS.Application.Services.Kpi.KpiQuery(
+                now.AddDays(-30), now.AddDays(1), await scope.GetAccessibleSectionIdsAsync(headUserId),
+                null, null, null, null, now, headUserId, true);
+            return (await workload.GetAsync(q, default)).Rows.Select(r => r.UserId).ToList();
+        }
+        var microAnalysts = await AnalystIds(w.HeadMicro);
+        var fpAnalysts = await AnalystIds(w.HeadFp);
+        Assert.DoesNotContain(2, microAnalysts);
+        Assert.DoesNotContain(1, fpAnalysts);
     }
 
     [Fact]

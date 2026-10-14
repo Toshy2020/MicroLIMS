@@ -2,7 +2,7 @@ import { OverviewDashboardData, SampleCategory } from "../types/reportingTypes";
 import { ReportingService } from "./ReportingService";
 import { chartPalette as defaultChartPalette } from "../../../theme";
 
-// Exported so other Reports tabs (e.g. AnalystKpiTab's category filter and
+// Exported so other Reports tabs (e.g. the KPI tab's category filter and
 // "Tests by Category" donut) use the same human labels instead of each
 // inventing their own.
 export const CATEGORY_LABELS: Record<string, string> = {

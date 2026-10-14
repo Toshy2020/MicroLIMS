@@ -172,4 +172,54 @@ public static class KpiScope
     // D8: another analyst's name is only shown to someone who may see the team.
     public static string? AnalystLabel(KpiQuery q, int? analystId, IReadOnlyDictionary<int, string> names) =>
         analystId is { } id && (q.CanViewTeam || id == q.ViewerUserId) && names.TryGetValue(id, out var name) ? name : null;
+
+    // ---- decision-based rates (tiles 4 and 5) ----
+
+    public sealed record DecidedSample(int SampleId, string ControlNumber, SampleCategory Category, DateTime DecidedAt,
+        bool Retest, bool Oos, string? OosGroupCode);
+
+    // One entry per sample that has at least one decided sign-off in the window and section scope.
+    // The decision time is the decision signature's SignedAt: SampleApprovalService writes it for every
+    // decision, but stamps ApprovedAt only for Approve, Reject and chain resolution (a retest or
+    // new-sample decision leaves it null until the retest resolves). ApprovedAt is the fallback for
+    // signoffs without a signature. A Reject also stamps ApprovedAt, so the decision itself marks "decided".
+    // Retest clones (OriginSampleId set) are excluded: they copy the origin's OosGroupCode, so counting
+    // them would count one OOS event twice and inflate the retest-rate denominator.
+    public static async Task<List<DecidedSample>> LoadDecidedSamplesAsync(IMicroLimsDbContext db, KpiQuery q, CancellationToken ct)
+    {
+        var start = q.From;
+        var end = q.To;
+        var rows = await (
+                from so in db.SampleSectionSignoffs.AsNoTracking().Where(SignoffIn(q.SectionIds))
+                where so.ApprovalDecision != null
+                let decidedAt = so.ApprovalSignature != null ? so.ApprovalSignature.SignedAt : so.ApprovedAt
+                where decidedAt != null && decidedAt >= start && decidedAt < end
+                join s in FilterSamples(db.Samples.AsNoTracking().Where(x => x.OriginSampleId == null), q) on so.SampleId equals s.Id
+                select new { s.Id, s.ControlNumber, s.Category, s.OosGroupCode, Decision = so.ApprovalDecision!.Value, At = decidedAt!.Value })
+            .ToListAsync(ct);
+
+        return rows.GroupBy(r => r.Id)
+            .Select(g =>
+            {
+                var first = g.First();
+                return new DecidedSample(g.Key, first.ControlNumber, first.Category, g.Max(x => x.At),
+                    g.Any(x => x.Decision == ApprovalDecision.RetestRetainedSample), first.OosGroupCode != null, first.OosGroupCode);
+            })
+            .OrderBy(d => d.DecidedAt).ThenBy(d => d.SampleId)
+            .ToList();
+    }
+
+    public static async Task<(KpiCore Core, List<KpiRecordDto> Records)> DecisionRateAsync(IMicroLimsDbContext db, KpiQuery q,
+        Func<DecidedSample, bool> inNumerator, Func<DecidedSample, string?> note, CancellationToken ct)
+    {
+        var decided = await LoadDecidedSamplesAsync(db, q, ct);
+        if (decided.Count == 0) return (KpiCore.Nothing(), new List<KpiRecordDto>());
+
+        var num = decided.Count(inNumerator);
+        var core = new KpiCore(Rate(num, decided.Count), num, decided.Count, decided.Count, KpiCore.NoGaps,
+            MonthlySeries(decided.Select(d => (d.DecidedAt, inNumerator(d) ? 1m : 0m, 1m))), KpiCore.NoExtras, KpiCore.NoFlags);
+        var records = decided.Select(d => new KpiRecordDto(d.SampleId, null, d.ControlNumber, null, d.Category.ToString(), null,
+            d.DecidedAt, null, null, inNumerator(d) ? "Numerator" : "Denominator", note(d))).ToList();
+        return (core, records);
+    }
 }

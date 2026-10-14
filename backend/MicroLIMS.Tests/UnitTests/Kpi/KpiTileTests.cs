@@ -424,3 +424,148 @@ public class RightFirstTimeKpiTests
     }
 }
 
+public class DecisionRateKpiTests
+{
+    // Mirrors SampleApprovalService: every decision writes the signature (SignedAt = decision time);
+    // ApprovedAt is stamped only by Approve and Reject. RetestRetainedSample and NewSampleRequest leave
+    // ApprovedAt null and the signoff in RetestRequested until the retest resolves.
+    private static Sample Decided(MicroLimsDbContext db, int id, ApprovalDecision decision, DateTime at, string? oos = null,
+        int section = 1, int? originSampleId = null)
+    {
+        var sample = ApprovedSample(db, id, Utc(10, 1), at, decision: decision, sectionId: section, originSampleId: originSampleId);
+        sample.OosGroupCode = oos;
+        DecidedSignoff(db, id, section, decision, at);
+        return sample;
+    }
+
+    private static void DecidedSignoff(MicroLimsDbContext db, int sampleId, int section, ApprovalDecision decision, DateTime at)
+    {
+        var stamped = decision is ApprovalDecision.Approve or ApprovalDecision.Reject;
+        Signoff(db, sampleId, section, null, null, stamped ? at : null,
+            decision == ApprovalDecision.Approve ? SectionSignoffStatus.Approved
+                : decision == ApprovalDecision.Reject ? SectionSignoffStatus.Rejected
+                : SectionSignoffStatus.RetestRequested,
+            decision, signedAt: at);
+    }
+
+    // Seven distinct decided samples in October:
+    // 1, 2, 5 Approve | 3 Reject | 4 RetestRetainedSample (OOS-1) | 6 NewSampleRequest (OOS-2)
+    // 7 is a two-lab sample: lab 1 approved, lab 2 asked for a retest (OOS-3).
+    // Not counted: 9 decided exactly at the exclusive period end; 10, the retest clone of 4 (same OOS-1
+    // group, approved in October). Prior period: 8 (Approve).
+    private static void Seed(MicroLimsDbContext db)
+    {
+        Decided(db, 1, ApprovalDecision.Approve, Utc(10, 3));
+        Decided(db, 2, ApprovalDecision.Approve, Utc(10, 4));
+        Decided(db, 3, ApprovalDecision.Reject, Utc(10, 5));
+        Decided(db, 4, ApprovalDecision.RetestRetainedSample, Utc(10, 6), "OOS-1");
+        Decided(db, 5, ApprovalDecision.Approve, Utc(10, 7));
+        Decided(db, 6, ApprovalDecision.NewSampleRequest, Utc(10, 8), "OOS-2");
+        var seven = Decided(db, 7, ApprovalDecision.Approve, Utc(10, 9), "OOS-3");
+        Test(db, seven, 71, "TAMC", sectionId: 2);
+        DecidedSignoff(db, 7, 2, ApprovalDecision.RetestRetainedSample, Utc(10, 9));
+        Decided(db, 10, ApprovalDecision.Approve, Utc(10, 12), "OOS-1", originSampleId: 4);
+        Decided(db, 9, ApprovalDecision.Approve, Utc(11, 1));
+        Decided(db, 8, ApprovalDecision.Approve, Utc(9, 20));
+    }
+
+    [Fact]
+    public async Task Retest_SignatureWithoutApprovedAt_CountsInSignedPeriod()
+    {
+        // Production shape of a retest decision: signature written, ApprovedAt null.
+        await using var db = NewDb();
+        Decided(db, 1, ApprovalDecision.RetestRetainedSample, Utc(10, 6), "OOS-1");
+        Decided(db, 2, ApprovalDecision.RetestRetainedSample, Utc(9, 28), "OOS-2");
+        await db.SaveChangesAsync();
+
+        var r = await new RetestRateKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal((1m, 1m), (r.Numerator!.Value, r.Denominator!.Value));   // sample 1, signed 6 Oct
+        Assert.Equal(1, r.Prior!.N);                                          // sample 2, signed 28 Sep
+        Assert.Equal(1m, r.Prior.Value);
+    }
+
+    [Fact]
+    public async Task OosRate_OriginAndCloneInSameGroup_CountOnce()
+    {
+        await using var db = NewDb();
+        Decided(db, 1, ApprovalDecision.RetestRetainedSample, Utc(10, 6), "OOS-1");
+        Decided(db, 2, ApprovalDecision.Approve, Utc(10, 12), "OOS-1", originSampleId: 1);   // the clone
+        await db.SaveChangesAsync();
+
+        var oos = await new OosRateKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal((1m, 1m), (oos.Numerator!.Value, oos.Denominator!.Value));
+        Assert.Equal(1, oos.N);
+    }
+
+    [Fact]
+    public async Task RetestAndOos_Rates_CountDistinctDecidedSamples()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var retest = await new RetestRateKpi(db).ComputeAsync(Query(), default);
+        Assert.Equal((2m, 7m), (retest.Numerator!.Value, retest.Denominator!.Value));   // samples 4 and 7
+        Assert.Equal(0.2857m, retest.Value);
+        Assert.Equal(7, retest.N);
+        Assert.False(retest.TooFewRecords);
+        Assert.Equal(0m, retest.Prior!.Value);                                           // September: 0 of 1
+        Assert.Equal(1, retest.Prior.N);
+
+        var oos = await new OosRateKpi(db).ComputeAsync(Query(), default);
+        Assert.Equal(3m, oos.Numerator);                                                 // samples 4, 6, 7 carry an OOS group
+        Assert.Equal(0.4286m, oos.Value);
+        Assert.Equal(KpiStatus.Ok, oos.Status);
+    }
+
+    [Fact]
+    public async Task Retest_SectionScope_UsesInScopeSignoffsOnly()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        // A lab-1-only viewer never sees lab 2's retest decision on sample 7.
+        var lab1 = await new RetestRateKpi(db).ComputeAsync(Query(sections: new[] { 1 }), default);
+        Assert.Equal(1m, lab1.Numerator);                 // sample 4 only
+        Assert.Equal(7m, lab1.Denominator);
+
+        var lab2 = await new RetestRateKpi(db).ComputeAsync(Query(sections: new[] { 2 }), default);
+        Assert.Equal(1m, lab2.Value);                     // sample 7, decided by lab 2
+        Assert.Equal(1, lab2.N);
+        Assert.True(lab2.TooFewRecords);
+
+        var none = await new RetestRateKpi(db).ComputeAsync(Query(sections: Array.Empty<int>()), default);
+        Assert.Equal(KpiStatus.NoData, none.Status);
+    }
+
+    [Fact]
+    public async Task DecisionRates_EmptyPeriod_IsNoData()
+    {
+        await using var db = NewDb();
+        foreach (IKpi kpi in new IKpi[] { new RetestRateKpi(db), new OosRateKpi(db) })
+        {
+            var r = await kpi.ComputeAsync(Query(), default);
+            Assert.Equal(KpiStatus.NoData, r.Status);
+            Assert.Null(r.Value);                         // not 0% and not 100%
+            Assert.Equal(0, r.N);
+        }
+    }
+
+    [Fact]
+    public async Task DecisionRates_Records_MarkNumeratorAndDenominator()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var page = await new RetestRateKpi(db).GetRecordsAsync(Query(), 1, 50, default);
+
+        Assert.Equal(7, page.Total);
+        Assert.Equal(new[] { 4, 7 }, page.Items.Where(i => i.Inclusion == "Numerator").Select(i => i.SampleId!.Value));
+        Assert.Equal(5, page.Items.Count(i => i.Inclusion == "Denominator"));
+    }
+}
+

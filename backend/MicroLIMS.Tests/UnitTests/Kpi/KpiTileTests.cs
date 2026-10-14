@@ -920,4 +920,112 @@ public class EmExcursionRateKpiTests
     }
 }
 
+public class SupportingKpiTests
+{
+    private static void Inc(MicroLimsDbContext db, int id, int orderId, DateTime start, DateTime end) =>
+        db.Incubations.Add(new Incubation { Id = id, TestOrderId = orderId, StepNumber = 1, StepName = "Incubation", StartedAt = start, CompletedAt = end });
+
+    [Fact]
+    public async Task StageTat_MedianAndP90_PerStage()
+    {
+        await using var db = NewDb();
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 4, 8));
+        Timeline(db, 1, Utc(10, 1, 8), Utc(10, 3, 8), Utc(10, 3, 20), Utc(10, 4, 8));      // testing 2 d, review 0.5 d, approval 0.5 d
+        Inc(db, 1, 10, Utc(10, 1, 10), Utc(10, 2, 10));                                     // incubation 1 d
+        ApprovedSample(db, 2, Utc(10, 2), Utc(10, 8, 8));
+        Timeline(db, 2, Utc(10, 2, 8), Utc(10, 6, 8), Utc(10, 7, 8), Utc(10, 8, 8));        // testing 4 d, review 1 d, approval 1 d
+        Inc(db, 2, 20, Utc(10, 2, 10), Utc(10, 5, 10));                                     // incubation 3 d
+        await db.SaveChangesAsync();
+
+        var r = await new StageTatKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Null(r.Value);                                  // a breakdown: read the series
+        Assert.Equal(KpiStatus.Ok, r.Status);
+        Assert.Equal(2, r.N);
+        Assert.Equal(new[] { "Testing", "Incubation", "Review", "Approval" }, r.Series.Select(p => p.Label));
+        Assert.Equal(new decimal?[] { 3m, 2m, 0.75m, 0.75m }, r.Series.Select(p => p.Value));
+        Assert.Equal(new decimal?[] { 3.8m, 2.8m, 0.95m, 0.95m }, r.Series.Select(p => p.Secondary));
+        Assert.All(r.Series, p => Assert.Equal(2, p.N));
+        Assert.Null(r.Prior);
+    }
+
+    [Fact]
+    public async Task StageTat_SampleWithoutPreparation_StillContributesReviewAndApproval()
+    {
+        await using var db = NewDb();
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 4, 8));
+        Signoff(db, 1, 1, Utc(10, 3, 8), Utc(10, 3, 20), Utc(10, 4, 8));
+        await db.SaveChangesAsync();
+
+        var r = await new StageTatKpi(db).ComputeAsync(Query(), default);
+
+        var byStage = r.Series.ToDictionary(p => p.Label);
+        Assert.Equal(0, byStage["Testing"].N);                 // no clock start, so no testing time
+        Assert.Null(byStage["Testing"].Value);
+        Assert.Equal(1, byStage["Review"].N);
+        Assert.Equal(1, byStage["Approval"].N);
+    }
+
+    [Fact]
+    public async Task StageTat_EmptyPeriod_IsNoData()
+    {
+        await using var db = NewDb();
+        var r = await new StageTatKpi(db).ComputeAsync(Query(), default);
+        Assert.Equal(KpiStatus.NoData, r.Status);
+        Assert.Empty(r.Series);
+    }
+
+    [Fact]
+    public async Task ReturnsByTest_GroupsByTestCode_NeverByPerson()
+    {
+        await using var db = NewDb();
+        Analyst(db, 1, "Ann Analyst");
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 9), "TAMC");
+        ApprovedSample(db, 2, Utc(10, 1), Utc(10, 9), "TAMC");
+        ApprovedSample(db, 3, Utc(10, 1), Utc(10, 9), "TAMC", analyst: 7);
+        ApprovedSample(db, 4, Utc(10, 1), Utc(10, 9), "HPLC1");
+        Return(db, 10, Utc(10, 3), "wrong dilution factor");
+        Return(db, 20, Utc(10, 4));
+        Return(db, 30, Utc(10, 5));
+        Return(db, 40, Utc(10, 6));
+        Return(db, 10, Utc(11, 1));                              // exactly at the exclusive end
+        Return(db, 10, Utc(9, 30));                              // before the period
+        await db.SaveChangesAsync();
+        var kpi = new ReturnsByTestKpi(db);
+
+        var r = await kpi.ComputeAsync(Query(), default);
+
+        Assert.Equal(4m, r.Value);
+        Assert.Equal(KpiStatus.Ok, r.Status);
+        Assert.Equal(new[] { "HPLC1", "TAMC" }, r.Series.Select(p => p.Label));      // alphabetical, not by count
+        Assert.Equal(new decimal?[] { 1m, 3m }, r.Series.Select(p => p.Value));
+        Assert.All(r.Series, p => Assert.Null(p.Group));
+        Assert.Null(r.Prior);
+
+        var records = await kpi.GetRecordsAsync(Query(), 1, 50, default);
+        Assert.Equal(4, records.Total);
+        Assert.Contains(records.Items, i => i.Note == "wrong dilution factor");     // the reason text lives in records only
+        Assert.Equal("Ann Analyst", records.Items.First(i => i.TestOrderId == 10).AnalystName);
+
+        var hidden = await kpi.GetRecordsAsync(Query(canViewTeam: false, viewer: 99), 1, 50, default);
+        Assert.All(hidden.Items, i => Assert.Null(i.AnalystName));                  // D8
+    }
+
+    [Fact]
+    public async Task ReturnsByTest_NoReturns_IsZeroNotNoData_AndScopeApplies()
+    {
+        await using var db = NewDb();
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 9), "TAMC", sectionId: 1);
+        Return(db, 10, Utc(10, 3));
+        await db.SaveChangesAsync();
+        var kpi = new ReturnsByTestKpi(db);
+
+        var other = await kpi.ComputeAsync(Query(sections: new[] { 2 }), default);
+        Assert.Equal(KpiStatus.Ok, other.Status);
+        Assert.Equal(0m, other.Value);
+        Assert.Empty(other.Series);
+        Assert.Equal(1m, (await kpi.ComputeAsync(Query(sections: new[] { 1 }), default)).Value);
+    }
+}
+
 

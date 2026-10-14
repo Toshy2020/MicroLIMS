@@ -47,6 +47,34 @@ public class HeadingBlock : ReportBlock
 // can't show one location per line with several fields each.
 public record TableColumn(string Header, double WidthFraction);
 
+// A table with an optional caption. Cells wrap rather than truncate, and
+// "\n" inside a cell forces a line break (a date over the person's name).
+public class ReportTable
+{
+    public string? Caption { get; set; }
+    public List<TableColumn> Columns { get; set; } = new();
+    public List<List<string>> Rows { get; set; } = new();
+    // Index into Columns whose cells render as a coloured status word.
+    public int? StatusColumnIndex { get; set; }
+    // Optional per-cell colour, same shape as Rows; a null entry (or a
+    // missing row) is plain text. Used by the results matrix, where every
+    // cell is its own conform/exception call.
+    public List<List<ReportTone?>>? CellTones { get; set; }
+}
+
+// A full-width table outside any card - the results matrix and the
+// analysis readings. Unlike a card it may break across pages, repeating
+// its column header, since a 40-row readings table cannot be kept whole.
+public class TableBlock : ReportBlock
+{
+    public string Label { get; set; } = string.Empty;
+    public string? Summary { get; set; }
+    public string? BadgeText { get; set; }
+    public ReportTone BadgeTone { get; set; } = ReportTone.Positive;
+    public ReportTable Table { get; set; } = new();
+    public string? Legend { get; set; }
+}
+
 // The bordered record card: header with a right-aligned headline value,
 // an optional detail strip, optional stat boxes, free rows, an optional
 // table, and a footer.
@@ -66,6 +94,9 @@ public class CardBlock : ReportBlock
     // Index into TableColumns whose cells should render as a colored
     // status word (WithinLimits/Detected/etc.) instead of plain text.
     public int? TableStatusColumnIndex { get; set; }
+    // Further captioned tables, drawn after the main table - incubation
+    // stages, analysis parameter results.
+    public List<ReportTable> Tables { get; set; } = new();
     public string FooterLeft { get; set; } = string.Empty;
     public string FooterRight { get; set; } = string.Empty;
 }

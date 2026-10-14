@@ -37,16 +37,6 @@ export const humanize = (v: string | null | undefined): string => {
     .replace(/\s+(.)/g, (_, c: string) => " " + c.toLowerCase());
 };
 
-// 11.50(b) requires the *meaning* of a signature, not just its type -
-// the enum name alone ("Reviewed") does not state what was attested to.
-const MEANING_TEXT: Record<string, string> = {
-  Reviewed: "I have reviewed the test data and confirm it is complete and accurate.",
-  Approved: "I approve the release of this sample for its intended use.",
-  Rejected: "I reject this sample; the results do not conform to specification.",
-  RetestRequested: "I am ordering a retest of the retained sample.",
-  InvestigationOrdered: "I am ordering an investigation into these results."
-};
-
 export const dt = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "") : "—";
 export const d = (v: string | null | undefined) =>
@@ -73,11 +63,6 @@ export const LOCATION_STATUS_COLOR: Record<string, string> = {
   OutOfSpecification: "#dc2626",
   Detected: "#dc2626",
   Absent: "#16a34a"
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  Received: "Received", InTesting: "Under testing", UnderReview: "Under review",
-  UnderApproval: "Under approval", Approved: "Approved", Rejected: "Rejected"
 };
 
 // The sample-level lifecycle track. Per-TestOrder step history stays
@@ -152,7 +137,7 @@ export function SampleReportPage() {
           <div className="report-header-right">
             <div className={`status-badge ${statusTone(s.status)}`}>
               {s.status === "Rejected" ? <CrossIcon /> : s.status === "Approved" ? <CheckIcon /> : <DotIcon />}
-              {STATUS_LABEL[s.status] ?? s.status}
+              {s.statusDisplay}
             </div>
             <div className="header-date">Received {dt(s.receivedAt)}</div>
           </div>
@@ -289,7 +274,9 @@ export function SampleReportPage() {
                     </div>
                   </div>
                   <div className="sig-time">{dt(sig.signedAt)}</div>
-                  <div className="sig-meaning">Meaning: {MEANING_TEXT[sig.meaning] ?? humanize(sig.meaning)}</div>
+                  {/* 11.50(b): the meaning attested to, worded on the server so this
+                      page and the exported PDF state the same thing. */}
+                  <div className="sig-meaning">Meaning: {sig.meaningText}</div>
                   {sig.comment && <div className="sig-comment">“{sig.comment}”</div>}
                 </div>
               ))}

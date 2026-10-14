@@ -74,6 +74,10 @@ export const DECISION_OPTIONS: { value: SampleApprovalDecision; label: string }[
   { value: "RetestRetainedSample", label: "Retest Retained Sample: Return to testing" }
 ];
 
+// Only for placeholders shown before a signature record exists (a lab
+// decided but the signature trail has not loaded) - a recorded signature
+// renders its own server-worded meaningText. Must match the server's
+// ReportVocabulary.SignatureMeaning word for word.
 export const SIGNATURE_STATEMENTS: Record<string, string> = {
   Reviewed: "I have reviewed the test data and confirm it is complete and accurate.",
   Approved: "I approve the release of this record for its intended use.",

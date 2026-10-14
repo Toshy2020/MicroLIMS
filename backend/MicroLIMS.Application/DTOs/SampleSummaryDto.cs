@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -18,6 +19,9 @@ public class SampleSummaryDto
     public string? BatchNumber { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    // Status as a controlled record prints it ("In testing", not
+    // "InTesting") - one label for the PDF and the print page alike.
+    public string StatusDisplay => ReportVocabulary.Humanize(Status);
     public string ReceivedByName { get; set; } = string.Empty;
     public DateTime ReceivedAt { get; set; }
     public string SampledBy { get; set; } = string.Empty;

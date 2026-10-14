@@ -18,8 +18,11 @@ vi.mock("../services/kpiWorkloadService", () => ({
 vi.mock("../../reports/services/ReportingService", () => ({
   ReportingService: { getFilterOptions: vi.fn() }
 }));
+const auth = vi.hoisted(() => ({ canConfigureProfiles: true }));
+
 vi.mock("../../../contexts/AuthContext", () => ({
-  useAuth: () => ({ fullName: "Sam Head" })
+  useAuth: () => ({ fullName: "Sam Head" }),
+  useHasPermission: () => auth.canConfigureProfiles
 }));
 vi.mock("./WorkflowProfilesDialog", async () => {
   const { createElement } = await import("react");
@@ -50,6 +53,7 @@ const allEntries = () => [
 ];
 
 beforeEach(() => {
+  auth.canConfigureProfiles = true;
   vi.mocked(kpiDashboardService.dashboard).mockReset().mockResolvedValue(dashboard(allEntries()));
   vi.mocked(kpiDashboardService.records).mockReset().mockResolvedValue(recordsPage);
   vi.mocked(kpiDashboardService.definitions).mockReset().mockResolvedValue({ kpis: [], profilesInForce: [] });
@@ -140,6 +144,13 @@ describe("KpiPerformanceTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close definitions" }));
     await userEvent.click(await screen.findByRole("button", { name: "Workflow Profiles" }));
     expect(await screen.findByText("profiles dialog")).toBeTruthy();
+  });
+
+  it("hides the Workflow Profiles button for users without Kpi.ConfigureProfiles", async () => {
+    auth.canConfigureProfiles = false;
+    renderTab();
+    await screen.findByRole("button", { name: /^Sample TAT: / });
+    expect(screen.queryByRole("button", { name: "Workflow Profiles" })).toBeNull();
   });
 
   it("enables the PDF export only once the figures are loaded, then prints them", async () => {

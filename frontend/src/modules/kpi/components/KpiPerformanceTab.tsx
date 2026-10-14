@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Grid, LinearProgress, Typography } from "@mui/material";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth, useHasPermission } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { kpiDashboardService } from "../services/kpiDashboardService";
 import { kpiWorkloadService } from "../services/kpiWorkloadService";
 import { useKpiDashboard } from "../hooks/useKpiDashboard";
@@ -33,6 +34,7 @@ interface RecordsTarget {
 
 export function KpiPerformanceTab() {
   const { fullName } = useAuth();
+  const canConfigureProfiles = useHasPermission(PERMISSIONS.KPI_CONFIGURE_PROFILES);
   const [filters, setFilters] = useState<KpiFiltersValue>(() => defaultFilters());
   const dash = useKpiDashboard(filters);
   const workload = useKpiWorkload(filters);
@@ -83,7 +85,7 @@ export function KpiPerformanceTab() {
         value={filters}
         onChange={setFilters}
         onOpenDefinitions={() => setDefinitionsOpen(true)}
-        onOpenProfiles={() => setProfilesOpen(true)}
+        onOpenProfiles={canConfigureProfiles ? () => setProfilesOpen(true) : undefined}
         onExport={() => { if (dash.data) exportKpiPdf(dash.data, workload.data, filters, fullName || "Authorized User", workload.error); }}
         exportDisabled={exportDisabled}
       />

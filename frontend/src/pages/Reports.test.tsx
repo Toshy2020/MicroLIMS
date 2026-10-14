@@ -9,10 +9,10 @@ const state = vi.hoisted(() => ({ canViewKpi: true }));
 vi.mock("../contexts/AuthContext", () => ({ useHasPermission: () => state.canViewKpi }));
 vi.mock("../modules/reports/components/OverviewTab", async () => {
   const { createElement } = await import("react");
-  // Mirrors the real prop: the KPI shortcut is only offered when canViewKpi is not false.
+  // Mirrors the real prop: the KPI shortcut is only offered when canViewKpi is true (defaults to false).
   return {
-    OverviewTab: ({ canViewKpi }: { canViewKpi?: boolean }) =>
-      createElement("div", null, "overview tab", canViewKpi === false ? null : createElement("button", null, "KPI shortcut"))
+    OverviewTab: ({ canViewKpi = false }: { canViewKpi?: boolean }) =>
+      createElement("div", null, "overview tab", canViewKpi ? createElement("button", null, "KPI shortcut") : null)
   };
 });
 vi.mock("../modules/reports/RecordSearchTab", async () => {

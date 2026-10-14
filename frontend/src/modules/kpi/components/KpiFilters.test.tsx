@@ -21,11 +21,15 @@ beforeEach(() => {
 
 const value: KpiFiltersValue = { from: "2026-09-12", to: "2026-10-11", category: null, location: null, testCode: null };
 
-function renderFilters(over: { onChange?: (v: KpiFiltersValue) => void; exportDisabled?: boolean } = {}) {
+function renderFilters(over: {
+  onChange?: (v: KpiFiltersValue) => void;
+  exportDisabled?: boolean;
+  onOpenProfiles?: () => void;
+} = {}) {
   const handlers = {
     onChange: over.onChange ?? vi.fn(),
     onOpenDefinitions: vi.fn(),
-    onOpenProfiles: vi.fn(),
+    onOpenProfiles: "onOpenProfiles" in over ? over.onOpenProfiles : vi.fn(),
     onExport: vi.fn()
   };
   render(
@@ -64,6 +68,11 @@ describe("KpiFilters", () => {
     renderFilters();
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText(/could not be loaded/)).toBeTruthy();
+  });
+
+  it("omits the Workflow Profiles button when onOpenProfiles is not provided", () => {
+    renderFilters({ onOpenProfiles: undefined });
+    expect(screen.queryByRole("button", { name: "Workflow Profiles" })).toBeNull();
   });
 
   it("wires the three buttons and disables export on request", async () => {

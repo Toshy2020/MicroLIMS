@@ -12,7 +12,7 @@ interface KpiFiltersProps {
   value: KpiFiltersValue;
   onChange(v: KpiFiltersValue): void;
   onOpenDefinitions(): void;
-  onOpenProfiles(): void;
+  onOpenProfiles?(): void;
   onExport(): void;
   exportDisabled: boolean;
 }
@@ -87,7 +87,9 @@ export function KpiFilters({ value, onChange, onOpenDefinitions, onOpenProfiles,
 
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", ml: { md: "auto" } }}>
           <Button size="small" variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={onOpenDefinitions}>Definitions</Button>
-          <Button size="small" variant="outlined" startIcon={<TuneIcon />} onClick={onOpenProfiles}>Workflow Profiles</Button>
+          {onOpenProfiles && (
+            <Button size="small" variant="outlined" startIcon={<TuneIcon />} onClick={onOpenProfiles}>Workflow Profiles</Button>
+          )}
           <Button size="small" variant="contained" startIcon={<PictureAsPdfIcon />} onClick={onExport} disabled={exportDisabled}>Export PDF</Button>
         </Stack>
       </Stack>

@@ -92,7 +92,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
   );
 }
 
-export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = true }: OverviewTabProps) {
+export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = false }: OverviewTabProps) {
   const theme = useTheme();
   const chartPalette = theme.custom.chartPalette;
   const [data, setData] = useState<OverviewDashboardData | null>(null);

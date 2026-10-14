@@ -707,3 +707,217 @@ public class BacklogKpiTests
     }
 }
 
+public class IncubationReadsOnTimeKpiTests
+{
+    private static void Inc(MicroLimsDbContext db, int id, int? orderId, DateTime? completed, DateTime? expected) =>
+        db.Incubations.Add(new Incubation
+        {
+            Id = id, TestOrderId = orderId, StepNumber = 1, StepName = "Incubation",
+            StartedAt = Utc(10, 1), CompletedAt = completed, ExpectedReadingAt = expected
+        });
+
+    // Tests 10-70 come from the samples; test 70 belongs to lab 2.
+    private static void Seed(MicroLimsDbContext db)
+    {
+        for (var i = 1; i <= 6; i++) ApprovedSample(db, i, Utc(10, 1), Utc(10, 9));
+        ApprovedSample(db, 7, Utc(10, 1), Utc(10, 9), sectionId: 2);
+        Inc(db, 1, 10, Utc(10, 5, 10), Utc(10, 5, 10));                       // exactly on the expected time: on time
+        Inc(db, 2, 20, Utc(10, 5, 14), Utc(10, 5, 10));                       // exactly the 4 h grace: on time
+        Inc(db, 3, 30, Utc(10, 5, 14).AddSeconds(1), Utc(10, 5, 10));        // exactly 1 second past the 4 h grace: late
+        Inc(db, 4, 40, Utc(10, 6), null);                                      // no expected time: reported, not judged
+        Inc(db, 5, null, Utc(10, 6), Utc(10, 6));                              // media-challenge incubation: not an analyst reading
+        Inc(db, 6, 60, null, Utc(10, 6));                                      // still running: not completed yet
+        Inc(db, 7, 70, Utc(10, 7), Utc(10, 7));                                // lab 2, on time
+        Inc(db, 8, 10, Utc(11, 1), Utc(11, 1));                                // completed exactly at the exclusive period end
+    }
+
+    [Fact]
+    public async Task IncubationReads_GraceBoundary_AndExclusions()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var r = await new IncubationReadsOnTimeKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(3m, r.Numerator);
+        Assert.Equal(4m, r.Denominator);
+        Assert.Equal(0.75m, r.Value);
+        Assert.Equal(4, r.N);
+        Assert.True(r.TooFewRecords);
+        Assert.Equal(KpiStatus.Partial, r.Status);
+        Assert.Equal(1, r.Gaps.Single(g => g.Code == "NO_EXPECTED_READING").Count);
+        Assert.Null(r.Prior);
+    }
+
+    [Fact]
+    public async Task IncubationReads_SectionScope_AndEmpty()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+        var kpi = new IncubationReadsOnTimeKpi(db);
+
+        var lab1 = await kpi.ComputeAsync(Query(sections: new[] { 1 }), default);
+        Assert.Equal(0.6667m, lab1.Value);                   // 2 of 3
+        var none = await kpi.ComputeAsync(Query(sections: Array.Empty<int>()), default);
+        Assert.Equal(KpiStatus.NoData, none.Status);
+        Assert.Null(none.Value);
+    }
+
+    [Fact]
+    public async Task IncubationReads_Records_ListEveryJudgedWindow()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var page = await new IncubationReadsOnTimeKpi(db).GetRecordsAsync(Query(), 1, 50, default);
+
+        Assert.Equal(5, page.Total);                          // 4 judged + the one without an expected time
+        Assert.Equal(3, page.Items.Count(i => i.Inclusion == "Numerator"));
+        Assert.Equal(1, page.Items.Count(i => i.Inclusion == "Denominator"));
+        Assert.Equal(1, page.Items.Count(i => i.Inclusion == "Excluded"));
+    }
+}
+
+public class EmExcursionRateKpiTests
+{
+    private static int _recordId;
+
+    private static void Em(MicroLimsDbContext db, ResultLevel level, DateTime at, int sampleId = 1, int orderId = 10,
+        string subject = "Room A", SampleCategory category = SampleCategory.EnvironmentalMonitoring) =>
+        db.ResultRecords.Add(new ResultRecord
+        {
+            SampleId = sampleId, TestOrderId = orderId, Category = category, SubjectName = subject, TestCode = "EM_CP",
+            ResultLevel = level, ResultEnteredAt = at, SourceTable = "SampleLocation", SourceId = Interlocked.Increment(ref _recordId),
+            ReferenceNumber = "R"
+        });
+
+    private static void Many(MicroLimsDbContext db, ResultLevel level, int count, DateTime at)
+    {
+        for (var i = 0; i < count; i++) Em(db, level, at);
+    }
+
+    // Sample 1 (lab 1, original) and sample 2 (a retest clone of sample 1).
+    private static void Samples(MicroLimsDbContext db)
+    {
+        ApprovedSample(db, 1, Utc(10, 1), Utc(10, 9), "EM_CP", category: SampleCategory.EnvironmentalMonitoring);
+        ApprovedSample(db, 2, Utc(10, 1), Utc(10, 9), "EM_CP", category: SampleCategory.EnvironmentalMonitoring, originSampleId: 1);
+    }
+
+    [Fact]
+    public async Task EmExcursion_RatesAndAdverseTrendFlag()
+    {
+        await using var db = NewDb();
+        Samples(db);
+        Many(db, ResultLevel.WithinLimit, 96, Utc(10, 5));
+        Many(db, ResultLevel.AlertLevel, 3, Utc(10, 6));
+        Em(db, ResultLevel.ActionLevel, Utc(10, 7));
+        // Left out of both numerator and denominator:
+        Many(db, ResultLevel.LimitsNotConfigured, 5, Utc(10, 5));
+        Many(db, ResultLevel.NotApplicable, 5, Utc(10, 5));
+        Em(db, ResultLevel.ActionLevel, Utc(10, 8), sampleId: 2, orderId: 20);                          // retest clone re-counts a location
+        Em(db, ResultLevel.AlertLevel, Utc(10, 8), category: SampleCategory.Water);                      // not EM
+        Em(db, ResultLevel.AlertLevel, Utc(11, 1));                                                      // exactly at the exclusive end
+        Many(db, ResultLevel.WithinLimit, 20, Utc(9, 10));                                               // prior period, no excursions
+        await db.SaveChangesAsync();
+
+        var r = await new EmExcursionRateKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(0.04m, r.Value);
+        Assert.Equal(4m, r.Numerator);
+        Assert.Equal(100m, r.Denominator);
+        Assert.Equal(100, r.N);
+        Assert.False(r.TooFewRecords);
+        Assert.Equal(0.03m, r.Extras["alertRate"]);
+        Assert.Equal(0.01m, r.Extras["actionRate"]);
+        Assert.Equal(new[] { "AdverseTrend" }, r.Flags);
+        var month = Assert.Single(r.Series);
+        Assert.Equal(("2026-10", 100), (month.Label, month.N));
+        Assert.Equal(0.04m, month.Value);
+        Assert.Equal(0.01m, month.Secondary);
+        Assert.Equal(0m, r.Prior!.Value);
+        Assert.Equal(20, r.Prior.N);
+    }
+
+    [Fact]
+    public async Task EmExcursion_RateBelowOrExactlyAtThreshold_IsNotAdverse()
+    {
+        await using var db = NewDb();
+        Samples(db);
+        Many(db, ResultLevel.WithinLimit, 195, Utc(10, 5));
+        Many(db, ResultLevel.AlertLevel, 5, Utc(10, 6));          // 5 / 200 = 2.5% exactly: the threshold is "above"
+        await db.SaveChangesAsync();
+
+        var r = await new EmExcursionRateKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(0.025m, r.Extras["alertRate"]);
+        Assert.Empty(r.Flags);
+    }
+
+    [Fact]
+    public async Task EmExcursion_ActionRateBelowOrExactlyAtThreshold_IsNotAdverse()
+    {
+        await using var db = NewDb();
+        Samples(db);
+        Many(db, ResultLevel.WithinLimit, 1997, Utc(10, 5));
+        Many(db, ResultLevel.ActionLevel, 3, Utc(10, 6));         // 3 / 2000 = 0.15% exactly: threshold is "above"
+        await db.SaveChangesAsync();
+
+        var kpi = new EmExcursionRateKpi(db);
+        var r = await kpi.ComputeAsync(Query(), default);
+
+        Assert.Equal(0.0015m, r.Extras["actionRate"]);
+        Assert.Empty(r.Flags);
+
+        Em(db, ResultLevel.ActionLevel, Utc(10, 7));              // 4 / 2001 > 0.15%: adverse
+        await db.SaveChangesAsync();
+        var r2 = await kpi.ComputeAsync(Query(), default);
+        Assert.Contains("AdverseTrend", r2.Flags);
+    }
+
+    [Fact]
+    public async Task EmExcursion_FewerThanFiveResults_DoesNotFlag_AndSaysTooFew()
+    {
+        await using var db = NewDb();
+        Samples(db);
+        Many(db, ResultLevel.WithinLimit, 2, Utc(10, 5));
+        Em(db, ResultLevel.AlertLevel, Utc(10, 6));
+        await db.SaveChangesAsync();
+
+        var r = await new EmExcursionRateKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(0.3333m, r.Value);
+        Assert.True(r.TooFewRecords);
+        Assert.Empty(r.Flags);                                    // one alert in three results is not a trend
+    }
+
+    [Fact]
+    public async Task EmExcursion_Location_FiltersOnSubjectName_AndOtherCategoryIsNoData()
+    {
+        await using var db = NewDb();
+        Samples(db);
+        Many(db, ResultLevel.WithinLimit, 5, Utc(10, 5));
+        Em(db, ResultLevel.AlertLevel, Utc(10, 6), subject: "Room B");
+        await db.SaveChangesAsync();
+        var kpi = new EmExcursionRateKpi(db);
+
+        Assert.Equal(0m, (await kpi.ComputeAsync(Query(location: "Room A"), default)).Value);
+        Assert.Equal(1m, (await kpi.ComputeAsync(Query(location: "Room B"), default)).Value);
+        Assert.Equal(KpiStatus.NoData, (await kpi.ComputeAsync(Query(category: "Water"), default)).Status);
+        Assert.Equal(KpiStatus.NoData, (await kpi.ComputeAsync(Query(sections: Array.Empty<int>()), default)).Status);
+    }
+
+    [Fact]
+    public async Task EmExcursion_EmptyPeriod_IsNoData()
+    {
+        await using var db = NewDb();
+        var r = await new EmExcursionRateKpi(db).ComputeAsync(Query(), default);
+        Assert.Equal(KpiStatus.NoData, r.Status);
+        Assert.Null(r.Value);
+        Assert.Empty(r.Flags);
+    }
+}
+
+

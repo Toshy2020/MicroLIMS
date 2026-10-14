@@ -569,3 +569,141 @@ public class DecisionRateKpiTests
     }
 }
 
+public class BacklogKpiTests
+{
+    private static void Open(MicroLimsDbContext db, int id, string code, ApprovalStatus status, WorkflowStep step,
+        DateTime received, DateTime? prepared, bool superseded = false, int sectionId = 1)
+    {
+        var sample = new Sample
+        {
+            Id = id, ControlNumber = $"CN-{id}", ReferenceNumber = $"REF-{id}", Category = SampleCategory.FinishedProduct,
+            ReceivedAt = received, Status = SampleStatus.InTesting
+        };
+        db.Samples.Add(sample);
+        Test(db, sample, id * 10, code, sectionId, status, step, 1, superseded);
+        if (prepared.HasValue) Prepared(db, id, prepared.Value);
+    }
+
+    private static void Gate(MicroLimsDbContext db, int id, SampleStatus sampleStatus, SectionSignoffStatus signoffStatus,
+        DateTime submitted, DateTime? reviewed)
+    {
+        var sample = new Sample
+        {
+            Id = id, ControlNumber = $"CN-{id}", ReferenceNumber = $"REF-{id}", Category = SampleCategory.FinishedProduct,
+            ReceivedAt = Utc(10, 1), Status = sampleStatus
+        };
+        db.Samples.Add(sample);
+        Test(db, sample, id * 10, "TAMC", 1, ApprovalStatus.ResultEntered, WorkflowStep.Ready);
+        Signoff(db, id, 1, submitted, reviewed, null, signoffStatus, null);
+    }
+
+    // Now = 15 Oct 12:00. TAMC target 4 days (profile); HPLC1 has no target (7-day fallback).
+    // Open: 1 (1 d), 2 (2 d), 3 incubating (4 d), 4 HPLC1 (14 d), 5 unprepared, received 3 d ago.
+    // Ignored: 6 superseded, 7 ResultEntered, 8 Approved.
+    // Gates: 9 under review for 12 h, 10 under approval for 3 days.
+    private static void Seed(MicroLimsDbContext db)
+    {
+        Definition(db, "TAMC", WorkflowType.CountTest);
+        Definition(db, "HPLC1", WorkflowType.HplcMethodAssay);
+        Profile(db, WorkflowType.CountTest, null, 2m, 4m, new DateOnly(2026, 1, 1));
+        Open(db, 1, "TAMC", ApprovalStatus.Pending, WorkflowStep.Waiting, Utc(10, 14), Utc(10, 14, 12));
+        Open(db, 2, "TAMC", ApprovalStatus.InProgress, WorkflowStep.Running, Utc(10, 13), Utc(10, 13, 12));
+        Open(db, 3, "TAMC", ApprovalStatus.InProgress, WorkflowStep.Incubating, Utc(10, 11), Utc(10, 11, 12));
+        Open(db, 4, "HPLC1", ApprovalStatus.Pending, WorkflowStep.Waiting, Utc(10, 1), Utc(10, 1, 12));
+        Open(db, 5, "TAMC", ApprovalStatus.Pending, WorkflowStep.Waiting, Utc(10, 12, 12), null);
+        Open(db, 6, "TAMC", ApprovalStatus.InProgress, WorkflowStep.Running, Utc(10, 1), Utc(10, 1), superseded: true);
+        Open(db, 7, "TAMC", ApprovalStatus.ResultEntered, WorkflowStep.Ready, Utc(10, 1), Utc(10, 1));
+        Open(db, 8, "TAMC", ApprovalStatus.Approved, WorkflowStep.Approved, Utc(10, 1), Utc(10, 1));
+        Gate(db, 9, SampleStatus.UnderReview, SectionSignoffStatus.UnderReview, Utc(10, 15), null);
+        Gate(db, 10, SampleStatus.UnderApproval, SectionSignoffStatus.UnderApproval, Utc(10, 11), Utc(10, 12, 12));
+    }
+
+    private static BacklogAgingKpi Aging(MicroLimsDbContext db) =>
+        new(db, TestServiceFactory.WorkflowProfile(db, new FixedTimeProvider(new DateTimeOffset(Now))));
+
+    [Fact]
+    public async Task WipBacklog_CountsPendingAndInProgress_NotSuperseded()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var r = await new WipBacklogKpi(db).ComputeAsync(Query(), default);
+
+        Assert.Equal(5m, r.Value);
+        Assert.Equal(5, r.N);
+        Assert.Equal(KpiStatus.Ok, r.Status);
+        Assert.False(r.TooFewRecords);
+        Assert.Equal(new[] { "Waiting", "Running", "Incubating" }, r.Series.Select(p => p.Label));
+        Assert.Equal(new decimal?[] { 3m, 1m, 1m }, r.Series.Select(p => p.Value));
+    }
+
+    [Fact]
+    public async Task WipBacklog_HasNoPrior_AndEmptyIsZeroNotNoData()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+        var kpi = new WipBacklogKpi(db);
+
+        Assert.Null((await kpi.ComputeAsync(Query(), default)).Prior);
+
+        var empty = await kpi.ComputeAsync(Query(sections: new[] { 2 }), default);       // a section with no open work
+        Assert.Equal(KpiStatus.Ok, empty.Status);
+        Assert.Equal(0m, empty.Value);
+        Assert.Empty(empty.Series);
+    }
+
+    [Fact]
+    public async Task BacklogAging_BucketsRelativeToOwnTarget_BoundariesInclusive()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var r = await Aging(db).ComputeAsync(Query(), default);
+
+        var cells = r.Series.ToDictionary(p => $"{p.Group}/{p.Label}", p => p.Value);
+        Assert.Equal(12, cells.Count);                                  // every stage x bucket is present, zero included
+        Assert.Equal(2m, cells["Testing/within50"]);                    // 1 d of 4 = 0.25; 2 d of 4 = 0.50 (boundary stays in)
+        Assert.Equal(1m, cells["Testing/50to100"]);                     // unprepared sample: 3 d since receipt, 0.75
+        Assert.Equal(1m, cells["Testing/over100"]);                     // HPLC1: 14 d of the 7-day fallback = 2.0
+        Assert.Equal(1m, cells["Incubation/50to100"]);                  // 4 d of 4 = 1.00 (boundary stays in)
+        Assert.Equal(1m, cells["In Review/within50"]);                  // 12 h of 24 h
+        Assert.Equal(1m, cells["In Approval/over100"]);                 // 3 days of 24 h
+        Assert.Equal(7m, r.Value);
+        Assert.Equal(7, r.N);
+        Assert.Null(r.Prior);
+        Assert.Equal(KpiStatus.Partial, r.Status);
+        var gap = Assert.Single(r.Gaps);
+        Assert.Equal(("DEFAULT_TARGET", 1), (gap.Code, gap.Count));     // only the HPLC1 test had no target
+    }
+
+    [Fact]
+    public async Task BacklogAging_Empty_IsOkWithZeroCells()
+    {
+        await using var db = NewDb();
+        var r = await Aging(db).ComputeAsync(Query(), default);
+        Assert.Equal(KpiStatus.Ok, r.Status);
+        Assert.Equal(0m, r.Value);
+        Assert.Equal(12, r.Series.Count);
+        Assert.All(r.Series, p => Assert.Equal(0m, p.Value));
+    }
+
+    [Fact]
+    public async Task BacklogAging_Records_NameTheBucket()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        await db.SaveChangesAsync();
+
+        var page = await Aging(db).GetRecordsAsync(Query(), 1, 50, default);
+
+        Assert.Equal(7, page.Total);
+        var hplc = Assert.Single(page.Items, i => i.TestCode == "HPLC1");
+        Assert.Equal("Testing: over100", hplc.Note);
+        Assert.Equal(2m, hplc.Value);
+        Assert.Equal("x target", hplc.Unit);
+    }
+}
+

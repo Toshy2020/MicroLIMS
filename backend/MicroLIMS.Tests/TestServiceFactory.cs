@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -78,6 +79,17 @@ public static class TestServiceFactory
         new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender(), new UserSectionScopeService(db));
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
+
+    public static KpiSettingsService KpiSettings(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)), time);
+
+    public static AnalystAvailabilityService AnalystAvailability(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)), time);
+
+    public static AnalystWorkloadService AnalystWorkload(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, WorkflowProfile(db, time), new UserSectionScopeService(db), time);
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db));
@@ -165,6 +177,20 @@ public static class TestServiceFactory
 
     public static DashboardService Dashboard(MicroLimsDbContext db) => new(db, Kpi(db));
 
+    public static KpiRegistry BuildKpiRegistry(MicroLimsDbContext db, TimeProvider? time = null)
+    {
+        var profiles = WorkflowProfile(db, time);
+        return new KpiRegistry(new IKpi[]
+        {
+            new SampleTatKpi(db), new OnTimeAllStagesKpi(db, profiles), new RightFirstTimeKpi(db, profiles),
+            new RetestRateKpi(db), new OosRateKpi(db), new WipBacklogKpi(db), new IncubationReadsOnTimeKpi(db),
+            new EmExcursionRateKpi(db), new StageTatKpi(db), new BacklogAgingKpi(db, profiles), new ReturnsByTestKpi(db)
+        });
+    }
+
+    public static KpiDashboardService KpiDashboard(MicroLimsDbContext db, TimeProvider? time = null, IUserSectionScopeService? scope = null) =>
+        new(db, BuildKpiRegistry(db, time), scope ?? new UserSectionScopeService(db), time);
+
     public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db, new UserSectionScopeService(db));
 
     public static TestingWorkspaceService TestingWorkspace(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
@@ -182,6 +208,10 @@ public static class TestServiceFactory
     public static MediaProductService MediaProduct(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
+    public static WorkflowProfileService WorkflowProfile(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)), time);
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
 

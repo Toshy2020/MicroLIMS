@@ -2,13 +2,15 @@ import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, Tab, Box } from "@mui/material";
 import { PageHeader } from "../components/PageHeader";
+import { useHasPermission } from "../contexts/AuthContext";
+import { PERMISSIONS } from "../routes/routes";
 import { QuickPeriodSelector } from "../modules/reports/components/QuickPeriodSelector";
 import { OverviewTab } from "../modules/reports/components/OverviewTab";
 import { RecordSearchTab } from "../modules/reports/RecordSearchTab";
 import { MediaGptReportTab } from "../modules/reports/MediaGptReportTab";
 import { ReferenceStrainReportTab } from "../modules/reports/ReferenceStrainReportTab";
 import { TrendingTab } from "../modules/reports/components/TrendingTab";
-import { AnalystKpiTab } from "../modules/reports/components/AnalystKpiTab";
+import { KpiPerformanceTab } from "../modules/kpi/components/KpiPerformanceTab";
 import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modules/reports/utils/dateRange";
 
 const TABS = [
@@ -22,35 +24,47 @@ const TABS = [
 
 const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "trending", "performance"] as const;
 
+// The KPI tab is the last entry. It owns its filters, so the page-level period selector is hidden there.
+const PERFORMANCE_TAB = 5;
+
 export function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab")?.toLowerCase();
 
+  // Without Kpi.View the KPI tab is dropped from both lists, so a link to
+  // ?tab=performance falls back to Overview. The server enforces the permission too.
+  const canViewKpi = useHasPermission(PERMISSIONS.KPI_VIEW);
+  const tabs: readonly string[] = canViewKpi ? TABS : TABS.slice(0, PERFORMANCE_TAB);
+  const tabKeys = useMemo<readonly string[]>(
+    () => (canViewKpi ? TAB_KEYS : TAB_KEYS.slice(0, PERFORMANCE_TAB)),
+    [canViewKpi]
+  );
+
   const initialTab = useMemo(() => {
     if (!tabParam) return 0; // Overview active by default
-    const idx = TAB_KEYS.indexOf(tabParam as any);
+    const idx = tabKeys.indexOf(tabParam);
     return idx >= 0 ? idx : 0;
-  }, [tabParam]);
+  }, [tabParam, tabKeys]);
 
   const [tab, setTab] = useState(initialTab);
 
   useEffect(() => {
     if (tabParam) {
-      const idx = TAB_KEYS.indexOf(tabParam as any);
+      const idx = tabKeys.indexOf(tabParam);
       const safeTab = idx >= 0 ? idx : 0;
       if (safeTab !== tab) {
         setTab(safeTab);
       }
       if (idx < 0) {
-        setSearchParams({ tab: TAB_KEYS[0] }, { replace: true });
+        setSearchParams({ tab: tabKeys[0] }, { replace: true });
       }
     }
-  }, [tabParam, tab, setSearchParams]);
+  }, [tabParam, tab, tabKeys, setSearchParams]);
 
   const handleTabChange = (newTab: number) => {
-    const safeTab = Math.max(0, Math.min(newTab, TAB_KEYS.length - 1));
+    const safeTab = Math.max(0, Math.min(newTab, tabKeys.length - 1));
     setTab(safeTab);
-    setSearchParams({ tab: TAB_KEYS[safeTab] });
+    setSearchParams({ tab: tabKeys[safeTab] });
   };
 
   const [period, setPeriod] = useState<QuickPeriod>("30d");
@@ -77,13 +91,15 @@ export function ReportsPage() {
     <>
       <PageHeader title="Reports" subtitle="Search, trend, and export laboratory results." />
 
-      <QuickPeriodSelector
-        period={period}
-        customFrom={customFrom}
-        customTo={customTo}
-        onPeriodChange={setPeriod}
-        onCustomChange={(from, to) => { setCustomFrom(from); setCustomTo(to); }}
-      />
+      {tab !== PERFORMANCE_TAB && (
+        <QuickPeriodSelector
+          period={period}
+          customFrom={customFrom}
+          customTo={customTo}
+          onPeriodChange={setPeriod}
+          onCustomChange={(from, to) => { setCustomFrom(from); setCustomTo(to); }}
+        />
+      )}
 
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
         <Tabs
@@ -93,7 +109,7 @@ export function ReportsPage() {
           scrollButtons="auto"
           sx={{ "& .Mui-selected": { fontWeight: 700 } }}
         >
-          {TABS.map((label) => <Tab key={label} label={label} />)}
+          {tabs.map((label) => <Tab key={label} label={label} />)}
         </Tabs>
       </Box>
 
@@ -102,6 +118,7 @@ export function ReportsPage() {
           fromDate={range.fromDate}
           toDate={range.toDate}
           onNavigateTab={handleTabChange}
+          canViewKpi={canViewKpi}
         />
       )}
 
@@ -132,8 +149,8 @@ export function ReportsPage() {
         />
       )}
 
-      {tab === 5 && (
-        <AnalystKpiTab />
+      {tab === PERFORMANCE_TAB && canViewKpi && (
+        <KpiPerformanceTab />
       )}
     </>
   );

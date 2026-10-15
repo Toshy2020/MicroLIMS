@@ -51,6 +51,7 @@ interface OverviewTabProps {
   fromDate?: string;
   toDate?: string;
   onNavigateTab: (tabIndex: number) => void;
+  canViewKpi?: boolean;
 }
 
 function KpiCard({ data }: { data: OverviewKpiCardData }) {
@@ -91,7 +92,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
   );
 }
 
-export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProps) {
+export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = false }: OverviewTabProps) {
   const theme = useTheme();
   const chartPalette = theme.custom.chartPalette;
   const [data, setData] = useState<OverviewDashboardData | null>(null);
@@ -501,6 +502,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
               >
                 Trending & Analysis
               </Button>
+              {canViewKpi && (
               <Button
                 variant="outlined"
                 fullWidth
@@ -510,6 +512,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
               >
                 KPI / Performance
               </Button>
+              )}
             </Stack>
           </Paper>
         </Grid>

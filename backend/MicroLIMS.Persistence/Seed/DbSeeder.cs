@@ -262,7 +262,6 @@ public static class DbSeeder
         }
 
         SeedWorkflowTemplates(db);
-        WorkloadWeightDefaults.Seed(db);
         SeedConfigurationSettings(db);
     }
 
@@ -487,7 +486,9 @@ public static class DbSeeder
             (PermissionConstants.DocumentsConfigManage, "Manage Document Control configuration (types, departments, sections, numbering, settings)."),
             (PermissionConstants.DashboardsLabOverview, "View the laboratory overview dashboard (section workload, approvals, overdue work)."),
             (PermissionConstants.DashboardsReview, "View the reviewer dashboard."),
-            (PermissionConstants.KpiView, "View laboratory KPIs and manage workload weights."),
+            (PermissionConstants.KpiView, "View laboratory KPIs."),
+            (PermissionConstants.KpiViewTeam, "See the KPI and workload figures of other analysts"),
+            (PermissionConstants.KpiConfigureProfiles, "Create and sign workflow profile versions (work units and analyst-stage targets) used by the KPI page."),
             (PermissionConstants.MediaPrepare, "Prepare media lots and mark them out of stock."),
             (PermissionConstants.MediaRelease, "Release a prepared media lot for use."),
             (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
@@ -540,7 +541,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify
                 }),
                 (RoleType.Reviewer, new[]

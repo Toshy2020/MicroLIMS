@@ -93,6 +93,56 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("AdminPasswordRecoveries");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AnalystAvailability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EnteredByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("FractionAvailable")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("numeric(3,2)");
+
+                    b.Property<DateOnly>("FromDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly>("ToDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "FromDate");
+
+                    b.ToTable("AnalystAvailabilities", t =>
+                        {
+                            t.HasCheckConstraint("CK_AnalystAvailabilities_Fraction", "\"FractionAvailable\" BETWEEN 0 AND 1");
+
+                            t.HasCheckConstraint("CK_AnalystAvailabilities_Range", "\"ToDate\" >= \"FromDate\"");
+                        });
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ArchivedRecord", b =>
                 {
                     b.Property<int>("Id")
@@ -4868,6 +4918,54 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("ItemPreparationConfigurations");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.KpiSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("HoursPerAnalystDay")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("numeric(4,2)");
+
+                    b.Property<int>("LoadHorizonDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("WorkingWeekdays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectionId")
+                        .IsUnique();
+
+                    b.ToTable("KpiSettings", t =>
+                        {
+                            t.HasCheckConstraint("CK_KpiSettings_Horizon", "\"LoadHorizonDays\" BETWEEN 1 AND 30");
+
+                            t.HasCheckConstraint("CK_KpiSettings_Hours", "\"HoursPerAnalystDay\" > 0 AND \"HoursPerAnalystDay\" <= 24");
+
+                            t.HasCheckConstraint("CK_KpiSettings_Weekdays", "\"WorkingWeekdays\" BETWEEN 1 AND 127");
+                        });
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
                 {
                     b.Property<int>("Id")
@@ -9478,6 +9576,72 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("WorkflowHistories");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowProfileVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("ElectronicSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReasonForChange")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("TargetAnalystDays")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<string>("TestCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<decimal?>("WorkUnits")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<int>("WorkflowType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ElectronicSignatureId");
+
+                    b.HasIndex("WorkflowType", "TestCode", "EffectiveFrom")
+                        .HasDatabaseName("IX_WorkflowProfileVersions_WorkflowType_TestCode_EffectiveFrom");
+
+                    b.ToTable("WorkflowProfileVersions", t =>
+                        {
+                            t.HasCheckConstraint("CK_WorkflowProfileVersions_AnyValue", "\"WorkUnits\" IS NOT NULL OR \"TargetAnalystDays\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_WorkflowProfileVersions_TargetPositive", "\"TargetAnalystDays\" IS NULL OR \"TargetAnalystDays\" > 0");
+
+                            t.HasCheckConstraint("CK_WorkflowProfileVersions_UnitsPositive", "\"WorkUnits\" IS NULL OR \"WorkUnits\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowStepResult", b =>
                 {
                     b.Property<int>("Id")
@@ -9929,6 +10093,17 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AnalystAvailability", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -11465,6 +11640,17 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Item");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.KpiSetting", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Section");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.User", "ObservedByUser")
@@ -12843,6 +13029,16 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("TestOrder");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowProfileVersion", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ElectronicSignature")
+                        .WithMany()
+                        .HasForeignKey("ElectronicSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ElectronicSignature");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowStepResult", b =>

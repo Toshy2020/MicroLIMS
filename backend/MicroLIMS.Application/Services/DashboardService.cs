@@ -153,7 +153,7 @@ public class DashboardService
     private static readonly TimeSpan DelayThreshold = TimeSpan.FromHours(24);
 
     // A sample with no lower bound on when it could have been assigned -
-    // used only to call KpiService.GetSampleAssignmentSlaAsync with an
+    // used only to call KpiService.GetOverdueAnalystStageSamplesAsync with an
     // effectively unbounded "since the beginning" range, since this
     // dashboard has no date-range concept of its own (a live snapshot,
     // not a filtered report).

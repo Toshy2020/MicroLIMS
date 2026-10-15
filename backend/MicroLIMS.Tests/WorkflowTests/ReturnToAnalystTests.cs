@@ -653,31 +653,44 @@ public class ReturnToAnalystTests
     }
 
     [Fact]
-    public async Task KpiService_GetReturnToAnalystCountAsync_IncrementsWhenReturnToAnalystExecuted()
+    public async Task RightFirstTimeKpi_ExcludesATestReturnedByTheRealReturnPath()
     {
         await using var db = NewDb();
         var (order, analyst, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
 
-        var fromDate = DateTime.UtcNow.AddDays(-7);
-        var toDate = DateTime.UtcNow.AddDays(1);
-
-        var kpiService = TestServiceFactory.Kpi(db);
-
-        // Initial count for analyst is 0
-        var initialCounts = await kpiService.GetReturnToAnalystCountAsync(analyst.Id, fromDate, toDate);
-        Assert.Equal(0, initialCounts[analyst.Id]);
-
-        // Reviewer returns count test order
         var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount required");
 
-        // Count for analyst increments to 1
-        var countsAfterReturn = await kpiService.GetReturnToAnalystCountAsync(analyst.Id, fromDate, toDate);
-        Assert.Equal(1, countsAfterReturn[analyst.Id]);
+        var rft = TestServiceFactory.BuildKpiRegistry(db).Find("right-first-time")!;
+        var now = DateTime.UtcNow;
+        MicroLIMS.Application.Services.Kpi.KpiQuery Query(int? analystId) =>
+            new(now.AddDays(-7), now.AddDays(1), null, null, null, null, analystId, now, reviewer.Id, true);
 
-        // Other analyst ID returns 0
-        var otherAnalystCounts = await kpiService.GetReturnToAnalystCountAsync(999, fromDate, toDate);
-        Assert.Equal(0, otherAnalystCounts[999]);
+        // Back with the analyst, the test has no approval to count in the period yet.
+        Assert.DoesNotContain((await rft.GetRecordsAsync(Query(analyst.Id), 1, 50, default)).Items, r => r.TestOrderId == order.Id);
+
+        // Resubmitted and approved: the return the real path wrote (matched by TestOrderId) is now read by the KPI.
+        db.WorkflowProfileVersions.Add(new WorkflowProfileVersion
+        {
+            WorkflowType = WorkflowType.CountTest, WorkUnits = 2m, EffectiveFrom = DateOnly.FromDateTime(now.AddYears(-1)),
+            Status = WorkflowProfileStatus.Effective, ReasonForChange = "seed", CreatedByUserId = reviewer.Id
+        });
+        order.Status = ApprovalStatus.Approved;
+        order.CurrentStep = WorkflowStep.Approved;
+        db.SampleSectionSignoffs.Add(new SampleSectionSignoff
+        {
+            SampleId = order.SampleId, SectionId = order.SectionId, Status = SectionSignoffStatus.Approved,
+            ApprovedAt = now, ApprovalDecision = ApprovalDecision.Approve
+        });
+        await db.SaveChangesAsync();
+
+        var forAnalyst = await rft.GetRecordsAsync(Query(analyst.Id), 1, 50, default);
+        var row = Assert.Single(forAnalyst.Items, r => r.TestOrderId == order.Id);
+        Assert.Equal("Denominator", row.Inclusion);          // in the denominator, not the numerator: it was returned
+
+        // Another analyst's filter does not see this analyst's return.
+        var forOther = await rft.GetRecordsAsync(Query(999), 1, 50, default);
+        Assert.DoesNotContain(forOther.Items, r => r.TestOrderId == order.Id);
     }
 
     [Fact]

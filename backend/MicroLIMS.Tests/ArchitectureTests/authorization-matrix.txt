@@ -263,21 +263,16 @@ ItemDocumentController.UploadDocument(Int32, IFormFile, ItemDocumentType, String
 ItemPreparationConfigurationController.Approve(Int32): SystemAdministrator,SectionHead
 ItemPreparationConfigurationController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 ItemPreparationConfigurationController.Upsert(Int32, UpsertPreparationConfigurationRequest): SystemAdministrator,SectionHead
-KpiController.GetAnalystKpis(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetCompletionStats(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetDelayTracking(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetOverallOnTimeCompletion(DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetOverallOnTimeCompletionByAnalyst(DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetReturnToAnalystCount(Nullable`1, DateTime, DateTime): SystemAdministrator,SectionHead
-KpiController.GetSampleAssignmentSla(Nullable`1, DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetSampleAssignmentSlaByAnalyst(DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetSampleQueueCounts(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetStageTatSummary(Nullable`1, DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetStepViolations(Nullable`1, DateTime, DateTime, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetTestingTatByMonth(Int32, Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetWorkflowBottleneckDeltas(Nullable`1, String, String): SystemAdministrator,SectionHead
-KpiController.GetWorkloadWeights(): SystemAdministrator,SectionHead
-KpiController.UpdateWorkloadWeight(String, UpdateWorkloadWeightRequest): SystemAdministrator,SectionHead
+KpiDashboardController.GetDashboard(DateOnly, DateOnly, String, String, String, Nullable`1, CancellationToken): SystemAdministrator,SectionHead
+KpiDashboardController.GetDefinitions(DateOnly, DateOnly, CancellationToken): SystemAdministrator,SectionHead
+KpiDashboardController.GetRecords(String, DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead
+KpiWorkloadController.CreateAvailability(SaveAvailabilityRequest): SystemAdministrator,SectionHead
+KpiWorkloadController.GetSettings(Int32): SystemAdministrator,SectionHead
+KpiWorkloadController.GetWorkload(DateOnly, DateOnly, String, String, String, Nullable`1): SystemAdministrator,SectionHead
+KpiWorkloadController.GetWorkloadTests(DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32): SystemAdministrator,SectionHead
+KpiWorkloadController.ListAvailability(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead
+KpiWorkloadController.UpdateAvailability(Int32, SaveAvailabilityRequest): SystemAdministrator,SectionHead
+KpiWorkloadController.UpdateSettings(Int32, UpdateKpiSettingsRequest): SystemAdministrator,SectionHead
 LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -548,6 +543,11 @@ WaterMasterDataController.GetWaterSamplingPoints(): SystemAdministrator,SectionH
 WaterMasterDataController.UpdateWaterDepartment(Int32, UpdateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingConfiguration(Int32, UpdateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingPoint(Int32, UpdateWaterSamplingPointRequest): SystemAdministrator,SectionHead
+WorkflowProfilesController.Coverage(): SystemAdministrator,SectionHead
+WorkflowProfilesController.Create(CreateWorkflowProfileVersionRequest): SystemAdministrator,SectionHead
+WorkflowProfilesController.List(Nullable`1, String, Boolean, Nullable`1): SystemAdministrator,SectionHead
+WorkflowProfilesController.Overview(): SystemAdministrator,SectionHead
+WorkflowProfilesController.Sign(Int32, SignWorkflowProfileDraftRequest): SystemAdministrator,SectionHead
 WorkingStandardsController.Approve(Int32, WorkingStandardSignRequest): SystemAdministrator,SectionHead
 WorkingStandardsController.Create(CreateQualificationRequest): SystemAdministrator,SectionHead,Analyst
 WorkingStandardsController.DownloadDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

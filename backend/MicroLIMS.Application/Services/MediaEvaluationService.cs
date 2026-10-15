@@ -44,8 +44,9 @@ public class MediaEvaluationService
             .FirstOrDefaultAsync(e => e.Id == id)
         ?? throw new NotFoundException($"Media evaluation {id} not found."));
 
-    // Every vial already thawed out of an approved, unexpired batch of the
-    // challenge's organism in the evaluated lot's section, newest first,
+    // Every vial thawed in the last 24 hours (and not destroyed) out of an
+    // approved, unexpired batch of the challenge's organism in the
+    // evaluated lot's section, newest first,
     // with the media lots each one has already served. Empty means the
     // analyst has to thaw a vial (ThawAndSelectVialAsync) first.
     public async Task<List<ThawedVialOptionResponse>> GetThawedVialOptionsAsync(int challengeId)
@@ -56,7 +57,9 @@ public class MediaEvaluationService
             .FirstOrDefaultAsync()
             ?? throw new NotFoundException($"Challenge {challengeId} not found.");
 
-        var today = _time.GetUtcNow().UtcDateTime.Date;
+        var now = _time.GetUtcNow().UtcDateTime;
+        var today = now.Date;
+        var thawedSince = now - CryovialThaw.UsableFor;
         var thaws = await _db.ThawEvents
             .Include(t => t.Cryovial)
             .Include(t => t.UsedInChallenges).ThenInclude(c => c.MediaEvaluation!).ThenInclude(e => e.Media)
@@ -64,7 +67,9 @@ public class MediaEvaluationService
                 && t.Cryovial.Material!.SectionId == challenge.SectionId
                 && t.Cryovial.ApprovalStatus == ApprovalGateStatus.Approved
                 && !t.Cryovial.IsDestroyed
-                && t.Cryovial.ExpiryDate >= today)
+                && t.Cryovial.ExpiryDate >= today
+                && t.ThawedAt > thawedSince
+                && t.DestructionItem == null)
             .OrderByDescending(t => t.ThawedAt)
             .ToListAsync();
 

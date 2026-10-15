@@ -29,6 +29,10 @@ public class CryovialSummaryDto
     public string? ApprovedByName { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public bool IsDestroyed { get; set; }
+    // Destruction of the vials never thawed, once the withdrawn batch's
+    // remainder went through an autoclave cycle - e.g. "4 vials, BWD-00012
+    // (Autoclave 1, cycle 118, 15-Oct-2026 14:00)".
+    public string? UnthawedVialsDestruction { get; set; }
 
     public List<IdentityConfirmationSummaryDto> IdentityConfirmations { get; set; } = new();
     public List<ThawEventSummaryDto> ThawHistory { get; set; } = new();
@@ -52,4 +56,7 @@ public class ThawEventSummaryDto
     public string? Notes { get; set; }
     // Media lots whose evaluation used this thawed vial.
     public List<string> UsedInMediaLots { get; set; } = new();
+    // e.g. "BWD-00012 (Autoclave 1, cycle 118, 15-Oct-2026 14:00)"; null
+    // while the vial is not yet destroyed.
+    public string? Destruction { get; set; }
 }

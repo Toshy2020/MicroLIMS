@@ -16,6 +16,8 @@ export interface ThawEventSummary {
   notes: string | null;
   // Media lots whose evaluation used this thawed vial.
   usedInMediaLots: string[];
+  // e.g. "BWD-00012 (Autoclave 1, cycle 118, 15-Oct-2026 14:00)"; null until destroyed.
+  destruction: string | null;
 }
 
 export interface CryovialSummary {
@@ -39,6 +41,8 @@ export interface CryovialSummary {
   approvedAt: string | null;
   isDestroyed: boolean;
   identityConfirmations: IdentityConfirmationSummary[];
+  // Destruction of a withdrawn batch's never-thawed vials, once recorded.
+  unthawedVialsDestruction: string | null;
   thawHistory: ThawEventSummary[];
   timeline: SampleWorkflowEvent[];
   signatures: SignatureTrailItem[];

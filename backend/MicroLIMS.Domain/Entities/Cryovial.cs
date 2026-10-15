@@ -64,9 +64,12 @@ public class Cryovial
     public List<ThawEvent> ThawHistory { get; set; } = new();
 }
 
-// One vial thawed out of a batch. Media evaluation challenges link to
-// the thaw event that supplied their organism (MediaEvaluationChallenge.
-// ThawEventId), so every GPT result traces back to the physical vial.
+// One vial thawed out of a batch. It is usable for 24 hours
+// (CryovialThaw.UsableFor), then becomes eligible for destruction as
+// biological waste (BiologicalWasteDestruction). Media evaluation
+// challenges link to the thaw event that supplied their organism
+// (MediaEvaluationChallenge.ThawEventId), so every GPT result traces
+// back to the physical vial.
 // One thawed vial can serve any number of challenges, across any media
 // lots/types, as long as the organism matches - challenges do not
 // consume further vials.
@@ -82,4 +85,9 @@ public class ThawEvent
 
     [JsonIgnore]
     public List<MediaEvaluationChallenge> UsedInChallenges { get; set; } = new();
+
+    // Set once the vial has gone through a biological waste destruction
+    // cycle - null while it is still in use or awaiting destruction.
+    [JsonIgnore]
+    public BiologicalWasteDestructionItem? DestructionItem { get; set; }
 }

@@ -13,6 +13,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
 import MedicationOutlinedIcon from "@mui/icons-material/MedicationOutlined";
+import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
 import AirOutlinedIcon from "@mui/icons-material/AirOutlined";
 import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
@@ -135,6 +136,7 @@ const microArea: MenuItem = {
     { label: "Workspace", path: "/microbiology/workspace", icon: BiotechOutlinedIcon, featured: true, description: "Receive, test, review and approve microbiology samples." },
     { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: ScienceOutlinedIcon, permission: PERMISSIONS.MEDIA_PREPARE, description: "Prepare media lots and record growth promotion and sterility checks." },
     { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Reference strain cryovials: preparation, use and stock." },
+    { label: "Biological Waste Destruction", path: "/laboratory-configuration/biological-waste", icon: DeleteSweepOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Autoclave destruction of used cryovial vials and other biological waste." },
     { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, description: "Receive and track microbiology reagents and consumables." },
     { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Microbiology instruments, calibration and maintenance status." }
   ]

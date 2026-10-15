@@ -154,6 +154,19 @@ export function CryovialReportPage() {
           </div>
         </div>
 
+        {s.unthawedVialsDestruction && (
+          <div style={{ marginBottom: 24 }}>
+            <div className="section-divider">
+              <div className="section-label">unthawed vials destroyed</div>
+              <div className="line" />
+            </div>
+            <div className="observation-item">
+              <span className="obs-step">Biological waste destruction</span>
+              <span>{s.unthawedVialsDestruction}</span>
+            </div>
+          </div>
+        )}
+
         {s.thawHistory.length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <div className="section-divider">
@@ -171,6 +184,7 @@ export function CryovialReportPage() {
                     {t.usedInMediaLots.length > 0 && (
                       <span className="obs-meta"> · Used in: {t.usedInMediaLots.join(", ")}</span>
                     )}
+                    <span className="obs-meta"> · Destroyed: {t.destruction ?? "not yet"}</span>
                   </span>
                 </div>
               ))}

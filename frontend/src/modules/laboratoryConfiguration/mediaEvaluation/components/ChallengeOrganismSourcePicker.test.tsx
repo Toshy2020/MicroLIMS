@@ -72,7 +72,7 @@ describe("ChallengeOrganismSourcePicker", () => {
     service.thawAndSelectVial.mockResolvedValue({});
     const { onAssigned } = renderPicker();
 
-    expect(await screen.findByText(/No thawed vial of E\. coli is available/)).toBeTruthy();
+    expect(await screen.findByText(/No vial of E\. coli thawed in the last 24 hours is available/)).toBeTruthy();
 
     await choose("Cryovial batch to thaw from", /ECO\/01\/26 \(4 of 5 vials left\)/);
     fireEvent.click(screen.getByRole("button", { name: "Thaw & use" }));
@@ -91,6 +91,6 @@ describe("ChallengeOrganismSourcePicker", () => {
 
     await waitFor(() => expect(service.selectThawedVial).toHaveBeenCalledWith(7, 21));
     expect(onAssigned).toHaveBeenCalled();
-    expect(screen.queryByText(/No thawed vial/)).toBeNull();
+    expect(screen.queryByText(/thawed in the last 24 hours/)).toBeNull();
   });
 });

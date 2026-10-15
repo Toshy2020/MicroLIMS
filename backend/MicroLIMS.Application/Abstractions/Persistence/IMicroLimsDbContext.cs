@@ -40,6 +40,8 @@ public interface IMicroLimsDbContext
     DbSet<Cryovial> Cryovials { get; }
     DbSet<IdentityConfirmationEntry> IdentityConfirmationEntries { get; }
     DbSet<ThawEvent> ThawEvents { get; }
+    DbSet<BiologicalWasteDestruction> BiologicalWasteDestructions { get; }
+    DbSet<BiologicalWasteDestructionItem> BiologicalWasteDestructionItems { get; }
     DbSet<NotificationLog> NotificationLogs { get; }
     DbSet<Sample> Samples { get; }
     DbSet<SampleSectionSignoff> SampleSectionSignoffs { get; }

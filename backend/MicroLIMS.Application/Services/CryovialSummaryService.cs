@@ -30,7 +30,7 @@ public class CryovialSummaryService
             .Include(c => c.Organism)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.Media)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.IncubatorEquipment)
-            .Include(c => c.ThawHistory)
+            .Include(c => c.ThawHistory).ThenInclude(t => t.UsedInChallenges).ThenInclude(ch => ch.MediaEvaluation!).ThenInclude(e => e.Media)
             .FirstOrDefaultAsync(c => c.Id == cryovialId);
         if (cryovial is null) return null;
 
@@ -84,7 +84,10 @@ public class CryovialSummaryService
             {
                 ThawedAt = t.ThawedAt,
                 ThawedByName = NameOf(t.ThawedByUserId),
-                Notes = t.Notes
+                Notes = t.Notes,
+                UsedInMediaLots = t.UsedInChallenges
+                    .Select(ch => ch.MediaEvaluation?.Media?.LotNumber)
+                    .OfType<string>().Distinct().OrderBy(l => l).ToList()
             }).ToList(),
             Timeline = timeline.Select(e => new SampleWorkflowEventDto
             {
@@ -171,6 +174,8 @@ public class CryovialSummaryService
             {
                 var notes = string.IsNullOrWhiteSpace(t.Notes) ? "" : $" - {t.Notes}";
                 lines.Add($"{t.ThawedAt:dd-MMM-yyyy HH:mm} - {t.ThawedByName}{notes}");
+                if (t.UsedInMediaLots.Count > 0)
+                    lines.Add($"    Used in media lots: {string.Join(", ", t.UsedInMediaLots)}");
             }
             lines.Add("");
         }

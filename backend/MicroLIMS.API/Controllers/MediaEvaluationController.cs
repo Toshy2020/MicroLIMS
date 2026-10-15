@@ -9,7 +9,8 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record SelectCryovialRequest(int CryovialId);
+public record SelectThawedVialRequest(int ThawEventId);
+public record ThawAndSelectVialRequest(int CryovialId, string? Notes);
 public record SelectLyophilizedDiskRequest(int MaterialId);
 public record RecordIncubationRequest(int IncubatorEquipmentId);
 public record RecordResultHttpRequest(
@@ -21,7 +22,8 @@ public record RecordResultHttpRequest(
 
 // Media preparation auto-assigns a MediaEvaluation (see
 // MediaPreparationService.PrepareAsync) - this controller drives it
-// through cryovial selection, incubation, and result recording. See
+// through organism-source selection (a thawed cryovial vial or a
+// lyophilized disk), incubation, and result recording. See
 // MediaEvaluationEngine.
 [ApiController]
 [Route("api/media-evaluations")]
@@ -50,13 +52,29 @@ public class MediaEvaluationController : ControllerBase
         return Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id)));
     }
 
-    [HttpPost("challenges/{challengeId}/cryovial")]
-    public async Task<IActionResult> SelectCryovial(int challengeId, SelectCryovialRequest r)
+    // Vials already thawed that this challenge can use - empty means the
+    // analyst must thaw one (thaw-vial below) before the challenge can run.
+    [HttpGet("challenges/{challengeId}/thawed-vials")]
+    public async Task<IActionResult> GetThawedVials(int challengeId)
+    {
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
+        return Ok(ApiResponse<object>.Ok(await _service.GetThawedVialOptionsAsync(challengeId)));
+    }
+
+    [HttpPost("challenges/{challengeId}/thawed-vial")]
+    public async Task<IActionResult> SelectThawedVial(int challengeId, SelectThawedVialRequest r)
+    {
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
+        await _service.SelectThawedVialAsync(challengeId, r.ThawEventId, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPost("challenges/{challengeId}/thaw-vial")]
+    public async Task<IActionResult> ThawAndSelectVial(int challengeId, ThawAndSelectVialRequest r)
     {
         await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
         await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, r.CryovialId);
-        await _service.SelectCryovialAsync(challengeId, r.CryovialId, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(new { }));
+        return Ok(ApiResponse<object>.Ok(await _service.ThawAndSelectVialAsync(challengeId, r.CryovialId, CurrentUserId, r.Notes)));
     }
 
     [HttpPost("challenges/{challengeId}/lyophilized-disk")]

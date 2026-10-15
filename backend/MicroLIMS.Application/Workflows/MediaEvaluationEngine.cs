@@ -17,8 +17,9 @@ public record RecordResultRequest(
     string? ObservedDescription, bool? ManualConform, // Indication - manual judgment, no auto string-matching (see below)
     bool? IsTurbid); // EnrichmentCharacteristics
 
-// Media preparation -> auto-assigned MediaEvaluation -> pick cryovial(s)
-// -> record incubation -> record result(s) -> Conform/NonConform. The
+// Media preparation -> auto-assigned MediaEvaluation -> pick a thawed
+// cryovial vial (or thaw one) / lyophilized disk -> record incubation
+// -> record result(s) -> Conform/NonConform. The
 // three mechanics (recovery %, inhibition/indication, turbid/clear) are
 // carried over unchanged from the old GptWorkflowEngine:
 //  - GrowthPromotion: recovery% = new/old*100 vs the MediaType's
@@ -31,7 +32,8 @@ public record RecordResultRequest(
 //  - EnrichmentCharacteristics: Conform if turbid.
 public interface IMediaEvaluationEngine
 {
-    Task SelectCryovialAsync(int challengeId, int cryovialId, int userId);
+    Task SelectThawedVialAsync(int challengeId, int thawEventId, int userId);
+    Task<ThawEvent> ThawAndSelectVialAsync(int challengeId, int cryovialId, int userId, string? notes = null);
     Task SelectLyophilizedDiskAsync(int challengeId, int materialId, int userId);
     Task<Incubation> RecordIncubationAsync(int challengeId, int incubatorEquipmentId, int userId);
     Task<MediaEvaluationChallenge> RecordResultAsync(RecordResultRequest request);
@@ -52,44 +54,79 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         _scope = scope;
     }
 
-    // Validates the cryovial is Approved/not destroyed/not expired AND
-    // that its OrganismId matches the challenge's - does NOT decrement
-    // VialsRemaining, since thawing is a separate explicit action
-    // (CryovialService.ThawVialAsync) and one thawed vial serves
-    // multiple challenges.
-    public async Task SelectCryovialAsync(int challengeId, int cryovialId, int userId)
+    // Links the challenge to a vial already thawed out of an approved,
+    // unexpired batch of the challenge's organism. A thawed vial is not
+    // tied to one media lot or media type - the same ThawEvent can supply
+    // any number of challenges, so nothing is consumed here.
+    public async Task SelectThawedVialAsync(int challengeId, int thawEventId, int userId)
+    {
+        var challenge = await LoadChallengeAsync(challengeId);
+
+        var thaw = await _db.ThawEvents
+            .Include(t => t.Cryovial!).ThenInclude(c => c.Material)
+            .FirstOrDefaultAsync(t => t.Id == thawEventId)
+            ?? throw new NotFoundException($"Thawed vial {thawEventId} not found.");
+
+        await EnsureCryovialFitsChallengeAsync(challenge, thaw.Cryovial!);
+
+        LinkThawedVial(challenge, thaw);
+        await _db.SaveChangesAsync();
+    }
+
+    // For when no suitable thawed vial exists yet: thaws one vial out of
+    // the batch (same gate and VialsRemaining decrement as the stand-alone
+    // CryovialService.ThawVialAsync) and links this challenge to it in one
+    // step. The new vial is then offered to every other challenge for the
+    // same organism, in this evaluation or any other.
+    public Task<ThawEvent> ThawAndSelectVialAsync(int challengeId, int cryovialId, int userId, string? notes = null) =>
+        UnitOfWork.RunAsync(_db, async () =>
+        {
+            var challenge = await LoadChallengeAsync(challengeId);
+
+            var cryovial = await _db.Cryovials.Include(c => c.Material)
+                .FirstOrDefaultAsync(c => c.Id == cryovialId)
+                ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+
+            // Validate the fit before thawing, so a wrong pick never
+            // costs a vial.
+            await EnsureCryovialFitsChallengeAsync(challenge, cryovial);
+
+            var thaw = CryovialThaw.Record(_db, cryovial, userId, notes, _time.GetUtcNow().UtcDateTime);
+            LinkThawedVial(challenge, thaw);
+            await _db.SaveChangesAsync();
+            return thaw;
+        });
+
+    private async Task<MediaEvaluationChallenge> LoadChallengeAsync(int challengeId)
     {
         var challenge = await _db.MediaEvaluationChallenges.Include(c => c.Organism)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
             ?? throw new NotFoundException($"Challenge {challengeId} not found.");
+        if (challenge.Outcome is not null)
+            throw new InvalidOperationException("This challenge already has a recorded result - its organism source can no longer change.");
+        return challenge;
+    }
 
-        var cryovial = await _db.Cryovials.Include(c => c.Organism).Include(c => c.Material)
-            .FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
-
+    // Same section as the evaluated lot, batch usable, organism matches.
+    private async Task EnsureCryovialFitsChallengeAsync(MediaEvaluationChallenge challenge, Cryovial cryovial)
+    {
         if (cryovial.Material!.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} belongs to another laboratory section and cannot challenge this media lot.");
 
-        EnsureCryovialApproved(cryovial);
+        CryovialThaw.EnsureUsable(cryovial, _time.GetUtcNow().UtcDateTime);
 
         if (cryovial.OrganismId != challenge.OrganismId)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is {cryovial.OrganismNameSnapshot}, not {challenge.Organism?.ScientificName}.");
-
-        challenge.CryovialId = cryovialId;
-        challenge.LyophilizedDiskId = null; // mutually exclusive with a disk source
-        await _db.SaveChangesAsync();
     }
 
-    // Same gate as CryovialService.ThawVialAsync's guards.
-    private void EnsureCryovialApproved(Cryovial cryovial)
+    private static void LinkThawedVial(MediaEvaluationChallenge challenge, ThawEvent thaw)
     {
-        if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved || cryovial.IsDestroyed)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved for use.");
-        if (cryovial.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is expired and cannot be used.");
+        challenge.CryovialId = thaw.CryovialId;
+        challenge.ThawEvent = thaw; // EF sets ThawEventId on save - a just-thawed vial has no id yet
+        challenge.LyophilizedDiskId = null; // mutually exclusive with a disk source
     }
 
-    // Alternative to SelectCryovialAsync - uses the raw LyophilizedMicroorganism
+    // Alternative to a thawed cryovial vial - uses the raw LyophilizedMicroorganism
     // Material directly instead of a prepared Cryovial batch. No approval-gate
     // workflow to check (disks don't have one, unlike Cryovials) - organism
     // match, not expired, and quantity remaining are the only requirements.
@@ -119,15 +156,17 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         if (material.QuantityRemaining <= 0)
             throw new InvalidOperationException($"Material {material.MaterialName} (batch {material.BatchNumber}) has no quantity remaining.");
 
-        // Unlike a Cryovial (already prepared/reusable from an earlier
-        // explicit step - see SelectCryovialAsync above, which deliberately
-        // never decrements stock), a raw disk has no separate "prepare"
+        // Unlike a thawed cryovial vial (already taken out of its batch by
+        // an explicit thaw and reusable across challenges - see
+        // SelectThawedVialAsync above), a raw disk has no separate "prepare"
         // step: choosing one here IS the moment of physical consumption,
         // so exactly one disc comes out of Materials Stock right now.
         await _materialService.ConsumeAsync(materialId, MaterialType.LyophilizedMicroorganism, 1m, userId);
 
         challenge.LyophilizedDiskId = materialId;
         challenge.CryovialId = null; // mutually exclusive with a cryovial source
+        challenge.ThawEventId = null;
+        challenge.ThawEvent = null;
         await _db.SaveChangesAsync();
     }
 

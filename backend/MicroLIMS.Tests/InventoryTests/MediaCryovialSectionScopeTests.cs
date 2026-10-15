@@ -144,8 +144,9 @@ public class MediaCryovialSectionScopeTests
         var w = await SeedAsync(db);
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectCryovialAsync(w.MicroChallenge.Id, w.FpVial.Id, w.Admin));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(w.MicroChallenge.Id, w.FpVial.Id, w.Admin));
         Assert.Contains("another laboratory section", ex.Message);
+        Assert.Empty(db.ThawEvents); // the refused pick never cost a vial
 
         var diskEx = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(w.MicroChallenge.Id, w.FpMaterial.Id, w.Admin));
         Assert.Contains("another laboratory section", diskEx.Message);

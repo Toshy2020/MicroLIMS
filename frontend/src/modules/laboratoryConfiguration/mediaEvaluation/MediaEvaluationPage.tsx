@@ -16,11 +16,12 @@ import type { IncubatorEquipmentItem } from "../../../services/lookupCache";
 import type { ChallengeFormState, MediaEvaluationChallenge, MediaEvaluationDetail, RecordResultPayload } from "./types/mediaEvaluationTypes";
 import { masterDataOptions, mediaClassLabel, evaluationTypeLabel } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
+import { ChallengeOrganismSourcePicker } from "./components/ChallengeOrganismSourcePicker";
 
 const STATUSES = ["Assigned", "InProgress", "Completed"];
 
-// Media preparation -> auto-assigned MediaEvaluation -> pick cryovial(s)
-// per challenge -> record incubation -> record result(s) -> Conform/
+// Media preparation -> auto-assigned MediaEvaluation -> pick a thawed
+// cryovial vial (or thaw one) per challenge -> record incubation -> record result(s) -> Conform/
 // NonConform. Completing with Conform is the only thing that releases
 // the Media lot for routine use (see MediaEvaluationEngine).
 export function MediaEvaluationPage() {
@@ -31,6 +32,7 @@ export function MediaEvaluationPage() {
   const [incubators, setIncubators] = useState<IncubatorEquipmentItem[]>([]);
   const [forms, setForms] = useState<Record<number, ChallengeFormState>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [sourceRefreshKey, setSourceRefreshKey] = useState(0);
 
   const loadList = () => MediaEvaluationService.getAll(statusFilter || undefined).then(setEvaluations);
   useEffect(() => { loadList(); }, [statusFilter]);
@@ -63,16 +65,13 @@ export function MediaEvaluationPage() {
       c.organismId === organismId);
   };
 
-  const pickCryovial = async (challenge: MediaEvaluationChallenge) => {
-    const cryovialId = forms[challenge.id]?.cryovialId;
-    if (!cryovialId) return;
-    try {
-      await MediaEvaluationService.selectCryovial(challenge.id, Number(cryovialId));
-      setMessage({ text: "Cryovial selected.", ok: true });
-      await refreshDetail();
-    } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not select cryovial.", ok: false });
-    }
+  // A thaw changes the batch's vials-left count and adds a thawed vial
+  // every other challenge for the organism can now use - reload both.
+  const sourceAssigned = async (text: string) => {
+    setMessage({ text, ok: true });
+    await refreshDetail();
+    CryovialService.getAll().then(setCryovials);
+    setSourceRefreshKey((k) => k + 1);
   };
 
   const recordIncubation = async (challenge: MediaEvaluationChallenge) => {
@@ -191,26 +190,14 @@ export function MediaEvaluationPage() {
 
                       <Typography variant="body2" sx={{ mb: 1 }}>Initial Inoculum: <strong>{c.initialInoculum}</strong></Typography>
 
-                      {/* Cryovial */}
-                      {c.cryovial ? (
-                        <Typography variant="body2" sx={{ mb: 1 }}>Cryovial: <strong>{c.cryovial.code}</strong></Typography>
-                      ) : (
-                        <Box sx={{ mb: 1 }}>
-                          {options.length === 0 ? (
-                            <Alert severity="warning" sx={{ mb: 1 }}>No approved cryovial batches available for {c.organism?.scientificName}.</Alert>
-                          ) : (
-                            <Stack direction="row" spacing={1} sx={{
-                              alignItems: "center"
-                            }}>
-                              <Select size="small" displayEmpty value={form.cryovialId ?? ""} onChange={(e) => setField(c.id, "cryovialId", e.target.value)} sx={{ minWidth: 240 }} inputProps={{ "aria-label": "Cryovial batch" }}>
-                                <MenuItem value=""><em>Cryovial batch</em></MenuItem>
-                                {options.map((o) => <MenuItem key={o.id} value={o.id}>{o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials)</MenuItem>)}
-                              </Select>
-                              <Button size="small" variant="outlined" disabled={!form.cryovialId} onClick={() => pickCryovial(c)}>Select</Button>
-                            </Stack>
-                          )}
-                        </Box>
-                      )}
+                      {/* Organism source - a thawed cryovial vial */}
+                      <ChallengeOrganismSourcePicker
+                        challenge={c}
+                        batches={options}
+                        refreshKey={sourceRefreshKey}
+                        onAssigned={sourceAssigned}
+                        onError={(text) => setMessage({ text, ok: false })}
+                      />
 
                       {/* Incubation */}
                       {c.incubation ? (

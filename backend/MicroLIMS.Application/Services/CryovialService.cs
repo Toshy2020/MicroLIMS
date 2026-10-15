@@ -176,27 +176,18 @@ public class CryovialService
         return cryovial;
     }
 
-    // Vial-level usage tracking only - deliberately NOT tied to GPT.
-    // GptWorkflowEngine.EnsureCryovialApprovedAsync references an
-    // approved batch and consumes nothing, because one thawed vial is
-    // used across multiple media-type GPT runs.
-    public async Task ThawVialAsync(int cryovialId, int userId, string? notes)
+    // Stand-alone thaw (Cryovials pages). A vial can also be thawed from
+    // inside a media evaluation (MediaEvaluationEngine.ThawAndSelectVialAsync);
+    // either way the ThawEvent is what evaluation challenges link to, and
+    // one thawed vial can serve any number of them.
+    public async Task<ThawEventResponse> ThawVialAsync(int cryovialId, int userId, string? notes)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
             ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
-        if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved - cannot thaw a vial.");
-        if (cryovial.IsDestroyed)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} has been destroyed and cannot be used.");
-        if (cryovial.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is expired and cannot be used.");
-        if (cryovial.VialsRemaining <= 0)
-            throw new InvalidOperationException($"No vials remaining in batch {cryovial.Code}.");
-
-        cryovial.VialsRemaining--;
-        _db.ThawEvents.Add(new ThawEvent { CryovialId = cryovialId, ThawedByUserId = userId, Notes = notes });
+        var thaw = CryovialThaw.Record(_db, cryovial, userId, notes, _time.GetUtcNow().UtcDateTime);
         await _db.SaveChangesAsync();
+        return ThawEventResponse.From(thaw);
     }
 
     public async Task DestroyAsync(int cryovialId)

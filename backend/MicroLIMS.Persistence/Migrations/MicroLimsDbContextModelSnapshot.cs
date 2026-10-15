@@ -5663,6 +5663,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("ReferenceMediaLabel")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ThawEventId")
+                        .HasColumnType("integer");
+
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -5682,6 +5685,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("OrganismId");
 
                     b.HasIndex("ReferenceMediaId");
+
+                    b.HasIndex("ThawEventId");
 
                     b.ToTable("MediaEvaluationChallenges");
                 });
@@ -11517,6 +11522,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("ReferenceMediaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ThawEvent", "ThawEvent")
+                        .WithMany("UsedInChallenges")
+                        .HasForeignKey("ThawEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Cryovial");
 
                     b.Navigation("Incubation");
@@ -11528,6 +11538,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Organism");
 
                     b.Navigation("ReferenceMedia");
+
+                    b.Navigation("ThawEvent");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaIncubationCondition", b =>
@@ -13033,6 +13045,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("PhenotypicTests");
 
                     b.Navigation("StepMedia");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ThawEvent", b =>
+                {
+                    b.Navigation("UsedInChallenges");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TitrantStandardization", b =>

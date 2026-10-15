@@ -68,6 +68,10 @@ export interface MediaEvaluationChallenge {
   organism: { id: number; scientificName: string; atccNumber: string | null; commonName: string | null; description: string | null } | null;
   cryovialId: number | null;
   cryovial: CryovialItem | null;
+  // The thawed vial (out of the cryovial batch) that supplied the organism;
+  // null for challenges recorded before vial-level traceability.
+  thawEventId: number | null;
+  thawEvent: { id: number; cryovialId: number; thawedAt: string; thawedByUserId: number; notes: string | null } | null;
   lyophilizedDiskId: number | null;
   lyophilizedDisk: MaterialItem | null;
   challengeRole: ChallengeRole | null;
@@ -87,6 +91,18 @@ export interface MediaEvaluationChallenge {
   outcome: EvaluationOutcome | null;
   readAt: string | null;
   readByUserId: number | null;
+}
+
+// A vial already thawed that a challenge can use (GET .../thawed-vials).
+export interface ThawedVialOption {
+  thawEventId: number;
+  cryovialId: number;
+  cryovialCode: string;
+  thawedAt: string;
+  thawedByUserId: number;
+  thawedByName: string;
+  notes: string | null;
+  usedInMediaLots: string[];
 }
 
 export interface MediaEvaluationDetail {
@@ -116,8 +132,6 @@ export interface RecordResultPayload {
 
 // Per-challenge input state held by the workflow screens (raw select/text values).
 export interface ChallengeFormState {
-  cryovialId?: number | string;
-  sourceSelection?: string;
   incubatorEquipmentId?: number | string;
   oldMediaCount?: string;
   newMediaCount?: string;

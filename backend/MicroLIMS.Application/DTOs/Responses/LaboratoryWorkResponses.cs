@@ -100,6 +100,20 @@ public class ThawEventResponse
     };
 }
 
+// A vial already thawed out of a cryovial batch that a media evaluation
+// challenge can use - see MediaEvaluationService.GetThawedVialOptionsAsync.
+public class ThawedVialOptionResponse
+{
+    public int ThawEventId { get; init; }
+    public int CryovialId { get; init; }
+    public string CryovialCode { get; init; } = null!;
+    public DateTime ThawedAt { get; init; }
+    public int ThawedByUserId { get; init; }
+    public string ThawedByName { get; init; } = null!;
+    public string? Notes { get; init; }
+    public List<string> UsedInMediaLots { get; init; } = new();
+}
+
 public class MediaResponse
 {
     public int Id { get; init; }
@@ -192,6 +206,8 @@ public class MediaEvaluationChallengeResponse
     public OrganismResponse? Organism { get; init; }
     public int? CryovialId { get; init; }
     public CryovialResponse? Cryovial { get; init; }
+    public int? ThawEventId { get; init; }
+    public ThawEventResponse? ThawEvent { get; init; }
     public int? LyophilizedDiskId { get; init; }
     public MaterialResponse? LyophilizedDisk { get; init; }
     public ChallengeRole? ChallengeRole { get; init; }
@@ -220,6 +236,8 @@ public class MediaEvaluationChallengeResponse
         Organism = e.Organism is null ? null : OrganismResponse.From(e.Organism),
         CryovialId = e.CryovialId,
         Cryovial = e.Cryovial is null ? null : CryovialResponse.From(e.Cryovial),
+        ThawEventId = e.ThawEventId,
+        ThawEvent = e.ThawEvent is null ? null : ThawEventResponse.From(e.ThawEvent),
         LyophilizedDiskId = e.LyophilizedDiskId,
         LyophilizedDisk = e.LyophilizedDisk is null ? null : MaterialResponse.From(e.LyophilizedDisk),
         ChallengeRole = e.ChallengeRole,

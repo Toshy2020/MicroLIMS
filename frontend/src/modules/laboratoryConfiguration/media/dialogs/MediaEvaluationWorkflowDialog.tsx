@@ -30,6 +30,7 @@ import { MaterialService } from "../../../inventory/materials/services/MaterialS
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { useLoadFailures } from "../../../../hooks/useLoadFailures";
+import { ChallengeOrganismSourcePicker } from "../../mediaEvaluation/components/ChallengeOrganismSourcePicker";
 
 interface Props {
   open: boolean;
@@ -47,6 +48,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   const [referenceLotOptions, setReferenceLotOptions] = useState<MediaLot[]>([]);
   const [forms, setForms] = useState<Record<number, ChallengeFormState>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [sourceRefreshKey, setSourceRefreshKey] = useState(0);
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
   const loadData = async () => {
@@ -125,23 +127,13 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       d.organismId === organismId && d.quantityRemaining > 0 && (!d.expiryDate || new Date(d.expiryDate) > now));
   };
 
-  // Step 1's picker merges both organism-source types into one Select -
-  // value is "cv:<id>" or "disk:<id>" so a single selection unambiguously
-  // identifies which backend action to call.
-  const pickOrganismSource = async (challenge: MediaEvaluationChallenge) => {
-    const selection = forms[challenge.id]?.sourceSelection as string | undefined;
-    if (!selection) return;
-    try {
-      if (selection.startsWith("cv:")) {
-        await MediaEvaluationService.selectCryovial(challenge.id, Number(selection.slice(3)));
-      } else if (selection.startsWith("disk:")) {
-        await MediaEvaluationService.selectLyophilizedDisk(challenge.id, Number(selection.slice(5)));
-      }
-      setMessage({ text: "Organism source selected.", ok: true });
-      await refreshDetail();
-    } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not select organism source.", ok: false });
-    }
+  // A thaw changes the batch's vials-left count and adds a thawed vial
+  // every other challenge for the organism can now use - reload both.
+  const sourceAssigned = async (text: string) => {
+    setMessage({ text, ok: true });
+    await refreshDetail();
+    CryovialService.getAll().then(setCryovials).catch(fail("reference cryovials", () => setCryovials([])));
+    setSourceRefreshKey((k) => k + 1);
   };
 
   const recordIncubation = async (challenge: MediaEvaluationChallenge) => {
@@ -323,63 +315,15 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       </Box>
                     )}
 
-                    {/* Step 1: Organism Source Selection (Cryovial or Lyophilized Disk) */}
-                    {c.cryovial ? (
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        Cryovial: <strong>{c.cryovial.code}</strong>
-                      </Typography>
-                    ) : c.lyophilizedDisk ? (
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        Source: <strong>{c.lyophilizedDisk.materialName}, batch {c.lyophilizedDisk.batchNumber}</strong>
-                      </Typography>
-                    ) : (
-                      <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-                          STEP 1: SELECT WORKING CRYOVIAL OR LYOPHILIZED DISK
-                        </Typography>
-                        {options.length === 0 && diskOpts.length === 0 ? (
-                          <Alert severity="warning" sx={{ mb: 1 }}>
-                            No approved, unexpired cryovial batches or lyophilized disks available for {c.organism?.scientificName}.
-                          </Alert>
-                        ) : (
-                          <Stack direction="row" spacing={1} sx={{
-                            alignItems: "center"
-                          }}>
-                            <Select
-                              size="small"
-                              displayEmpty
-                              value={form.sourceSelection ?? ""}
-                              onChange={(e) => setField(c.id, "sourceSelection", e.target.value)}
-                              sx={{ minWidth: 320 }}
-                              inputProps={{ "aria-label": "Cryovial or Disk" }}
-                            >
-                              <MenuItem value="">
-                                <em>Select Cryovial or Disk</em>
-                              </MenuItem>
-                              {options.map((o) => (
-                                <MenuItem key={`cv:${o.id}`} value={`cv:${o.id}`}>
-                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left), Cryovial
-                                </MenuItem>
-                              ))}
-                              {diskOpts.map((d) => (
-                                <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
-                                  {d.materialName}, batch {d.batchNumber} ({d.quantityRemaining} left), Lyophilized Disk
-                                </MenuItem>
-                              ))}
-                            </Select>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              disabled={!form.sourceSelection}
-                              onClick={() => pickOrganismSource(c)}
-                              color="primary"
-                            >
-                              Assign
-                            </Button>
-                          </Stack>
-                        )}
-                      </Box>
-                    )}
+                    {/* Step 1: Organism Source Selection (thawed cryovial vial or Lyophilized Disk) */}
+                    <ChallengeOrganismSourcePicker
+                      challenge={c}
+                      batches={options}
+                      disks={diskOpts}
+                      refreshKey={sourceRefreshKey}
+                      onAssigned={sourceAssigned}
+                      onError={(text) => setMessage({ text, ok: false })}
+                    />
 
                     {/* Step 2: Incubation Recording */}
                     {c.incubation ? (

@@ -64,9 +64,12 @@ public class Cryovial
     public List<ThawEvent> ThawHistory { get; set; } = new();
 }
 
-// One vial thawed out of a batch - GPT itself does not consume vials
-// (a single thawed vial is used across multiple media-type GPT runs);
-// this only tracks the lab's own vial-level usage history.
+// One vial thawed out of a batch. Media evaluation challenges link to
+// the thaw event that supplied their organism (MediaEvaluationChallenge.
+// ThawEventId), so every GPT result traces back to the physical vial.
+// One thawed vial can serve any number of challenges, across any media
+// lots/types, as long as the organism matches - challenges do not
+// consume further vials.
 public class ThawEvent
 {
     public int Id { get; set; }
@@ -76,4 +79,7 @@ public class ThawEvent
     public DateTime ThawedAt { get; set; } = DateTime.UtcNow;
     public int ThawedByUserId { get; set; }
     public string? Notes { get; set; }
+
+    [JsonIgnore]
+    public List<MediaEvaluationChallenge> UsedInChallenges { get; set; } = new();
 }

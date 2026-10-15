@@ -14,6 +14,8 @@ export interface ThawEventSummary {
   thawedAt: string;
   thawedByName: string;
   notes: string | null;
+  // Media lots whose evaluation used this thawed vial.
+  usedInMediaLots: string[];
 }
 
 export interface CryovialSummary {

@@ -10,7 +10,7 @@ import { useOrganisms, OrganismOption } from "../../../hooks/useOrganisms";
 // The Organism master list - the canonical ScientificName/AtccNumber
 // referenced everywhere an organism is assigned (Media Challenge Specs,
 // Material, Cryovial, Media Evaluation) via OrganismPicker. This is what
-// fixes MediaEvaluationEngine.SelectCryovialAsync's organism matching:
+// fixes MediaEvaluationEngine.EnsureCryovialFitsChallengeAsync's organism matching:
 // comparing OrganismId (int) instead of free-typed OrganismName strings.
 export function OrganismsPage() {
   const { options, addNew, update, remove } = useOrganisms();

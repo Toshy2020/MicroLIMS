@@ -67,8 +67,7 @@ public class CryovialController : ControllerBase
     public async Task<IActionResult> ThawVial(int id, ThawVialRequest r)
     {
         await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
-        await _service.ThawVialAsync(id, CurrentUserId, r.Notes);
-        return Ok(ApiResponse<object>.Ok(new { }));
+        return Ok(ApiResponse<object>.Ok(await _service.ThawVialAsync(id, CurrentUserId, r.Notes)));
     }
 
     [HttpPost("{id}/move-storage")]

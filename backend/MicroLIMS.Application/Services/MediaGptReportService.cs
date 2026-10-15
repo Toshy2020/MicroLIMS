@@ -93,6 +93,7 @@ public class MediaGptReportService
         var evaluation = await _db.MediaEvaluations
             .Include(e => e.Challenges).ThenInclude(c => c.Organism)
             .Include(e => e.Challenges).ThenInclude(c => c.Cryovial)
+            .Include(e => e.Challenges).ThenInclude(c => c.ThawEvent)
             .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
             .FirstOrDefaultAsync(e => e.MediaId == mediaId);
@@ -125,11 +126,7 @@ public class MediaGptReportService
 
         var challenges = (evaluation?.Challenges ?? new List<MediaEvaluationChallenge>()).Select(c =>
         {
-            var strainSource = c.Cryovial != null
-                ? $"Cryovial {c.Cryovial.Code}"
-                : c.LyophilizedDisk != null
-                    ? $"{c.LyophilizedDisk.MaterialName} (batch {c.LyophilizedDisk.BatchNumber})"
-                    : null;
+            var strainSource = StrainSource(c);
 
             return new MediaGptChallengeDetailDto(
                 Id: c.Id,
@@ -260,6 +257,7 @@ public class MediaGptReportService
             .Where(e => mediaIds.Contains(e.MediaId))
             .Include(e => e.Challenges).ThenInclude(c => c.Organism)
             .Include(e => e.Challenges).ThenInclude(c => c.Cryovial)
+            .Include(e => e.Challenges).ThenInclude(c => c.ThawEvent)
             .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
             .ToListAsync();
@@ -345,11 +343,7 @@ public class MediaGptReportService
             {
                 foreach (var c in challenges)
                 {
-                    var strainSource = c.Cryovial != null
-                        ? $"Cryovial {c.Cryovial.Code}"
-                        : c.LyophilizedDisk != null
-                            ? $"{c.LyophilizedDisk.MaterialName} (batch {c.LyophilizedDisk.BatchNumber})"
-                            : null;
+                    var strainSource = StrainSource(c);
 
                     rows.Add(new MediaGptExportRowDto(
                         LotNumber: m.LotNumber,
@@ -460,6 +454,18 @@ public class MediaGptReportService
 
         return query;
     }
+
+    // Which organism source a challenge used - for a cryovial, the thawed
+    // vial too (challenges recorded before vial-level traceability only
+    // cite the batch).
+    private static string? StrainSource(MediaEvaluationChallenge c) =>
+        c.Cryovial != null
+            ? c.ThawEvent != null
+                ? $"Cryovial {c.Cryovial.Code}, vial thawed {c.ThawEvent.ThawedAt:dd-MMM-yyyy HH:mm}"
+                : $"Cryovial {c.Cryovial.Code}"
+            : c.LyophilizedDisk != null
+                ? $"{c.LyophilizedDisk.MaterialName} (batch {c.LyophilizedDisk.BatchNumber})"
+                : null;
 
     private static IQueryable<Media> ApplySort(IQueryable<Media> query, MediaGptSearchRequest request) =>
         request.SortBy switch

@@ -39,11 +39,19 @@ public class MediaEvaluationChallenge
     public int? CryovialId { get; set; } // analyst-chosen, null until picked
     public Cryovial? Cryovial { get; set; }
 
+    // The thawed vial (out of the CryovialId batch) that supplied this
+    // challenge's organism. Set together with CryovialId by
+    // MediaEvaluationEngine.SelectThawedVialAsync/ThawAndSelectVialAsync.
+    // Null for challenges recorded before vial-level traceability
+    // existed - those only ever cited the batch.
+    public int? ThawEventId { get; set; }
+    public ThawEvent? ThawEvent { get; set; }
+
     // Alternative organism source to a prepared Cryovial - the raw
     // LyophilizedMicroorganism Material itself, used directly (e.g. to
     // keep passage count minimal for a reference organism). Mutually
     // exclusive with CryovialId - selecting one clears the other (see
-    // MediaEvaluationEngine.SelectCryovialAsync/SelectLyophilizedDiskAsync).
+    // MediaEvaluationEngine.SelectThawedVialAsync/SelectLyophilizedDiskAsync).
     // Unlike Cryovial, a disk Material carries no approval-gate workflow
     // of its own - organism match/expiry/quantity-remaining is the only
     // check.

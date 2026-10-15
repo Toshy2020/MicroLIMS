@@ -50,4 +50,6 @@ public class ThawEventSummaryDto
     public DateTime ThawedAt { get; set; }
     public string ThawedByName { get; set; } = string.Empty;
     public string? Notes { get; set; }
+    // Media lots whose evaluation used this thawed vial.
+    public List<string> UsedInMediaLots { get; set; } = new();
 }

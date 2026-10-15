@@ -892,6 +892,7 @@ public static class ReportDocumentMapper
                 Rows = s.ThawHistory.Select(t => (
                     Left: "Vial thawed",
                     Right: $"{t.ThawedByName}  |  {Dt(t.ThawedAt)}" + (string.IsNullOrWhiteSpace(t.Notes) ? "" : $"  |  {t.Notes}")
+                        + (t.UsedInMediaLots.Count == 0 ? "" : $"  |  Used in: {string.Join(", ", t.UsedInMediaLots)}")
                 )).ToList()
             });
         }

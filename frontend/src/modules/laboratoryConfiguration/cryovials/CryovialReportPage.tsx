@@ -168,6 +168,9 @@ export function CryovialReportPage() {
                     <strong>{t.thawedByName}</strong>
                     <span className="obs-meta"> · {dt(t.thawedAt)}</span>
                     {t.notes && <span className="obs-meta"> · {t.notes}</span>}
+                    {t.usedInMediaLots.length > 0 && (
+                      <span className="obs-meta"> · Used in: {t.usedInMediaLots.join(", ")}</span>
+                    )}
                   </span>
                 </div>
               ))}

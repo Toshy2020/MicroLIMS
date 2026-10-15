@@ -173,7 +173,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         var incubation = await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: 1, userId: 1);
         Assert.Equal("30-35", incubation.Temperature);
         Assert.Equal("24-48", incubation.Duration);
@@ -223,7 +223,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var result = await engine.RecordResultAsync(new RecordResultRequest(
@@ -254,7 +254,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
@@ -277,7 +277,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var result = await engine.RecordResultAsync(new RecordResultRequest(
@@ -300,7 +300,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
@@ -323,7 +323,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
@@ -391,8 +391,8 @@ public class MediaEvaluationEngineTests
 
         var cryovial = await SeedApprovedCryovial(db, "Salmonella");
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(inhibChallenge.Id, cryovial.Id, userId: 1);
-        await engine.SelectCryovialAsync(indicChallenge.Id, cryovial.Id, userId: 1);
+        var thaw = await engine.ThawAndSelectVialAsync(inhibChallenge.Id, cryovial.Id, userId: 1);
+        await engine.SelectThawedVialAsync(indicChallenge.Id, thaw.Id, userId: 1); // same thawed vial serves both
         await RecordAndFastForwardIncubation(db, engine, inhibChallenge.Id);
         await RecordAndFastForwardIncubation(db, engine, indicChallenge.Id);
 
@@ -436,7 +436,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "Salmonella");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var result = await engine.RecordResultAsync(new RecordResultRequest(
@@ -460,7 +460,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
         var result = await engine.RecordResultAsync(new RecordResultRequest(
@@ -477,7 +477,7 @@ public class MediaEvaluationEngineTests
     }
 
     [Fact]
-    public async Task SelectCryovialAsync_OrganismMismatch_Throws()
+    public async Task ThawAndSelectVialAsync_OrganismMismatch_Throws()
     {
         await using var db = NewDb();
         var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
@@ -487,11 +487,11 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "Staphylococcus aureus");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
     }
 
     [Fact]
-    public async Task SelectCryovialAsync_UnapprovedCryovial_Throws()
+    public async Task ThawAndSelectVialAsync_UnapprovedCryovial_Throws()
     {
         await using var db = NewDb();
         var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
@@ -503,7 +503,7 @@ public class MediaEvaluationEngineTests
         await db.SaveChangesAsync();
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
     }
 
     private static async Task<Material> SeedLyophilizedDiskMaterial(MicroLimsDbContext db, string organismName, DateTime? expiryDate = null, decimal quantityRemaining = 5)
@@ -553,7 +553,7 @@ public class MediaEvaluationEngineTests
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
 
         var reloaded = await db.MediaEvaluationChallenges.FindAsync(challenge.Id);
@@ -596,8 +596,163 @@ public class MediaEvaluationEngineTests
         Assert.Equal(4m, reloadedMaterial!.QuantityRemaining);
     }
 
+    private static MediaEvaluationEngine NewEngine(MicroLimsDbContext db) =>
+        new(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+
     [Fact]
-    public async Task SelectCryovialAsync_AfterDiskSelected_ClearsDisk()
+    public async Task ThawAndSelectVialAsync_RecordsThawEvent_DecrementsBatch_AndLinksChallenge()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var challenge = evaluation.Challenges[0];
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+
+        var thaw = await NewEngine(db).ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1, notes: "for TSA GPT");
+
+        var reloaded = await db.MediaEvaluationChallenges.AsNoTracking().SingleAsync(c => c.Id == challenge.Id);
+        Assert.Equal(cryovial.Id, reloaded.CryovialId);
+        Assert.Equal(thaw.Id, reloaded.ThawEventId);
+        var stored = await db.ThawEvents.AsNoTracking().SingleAsync();
+        Assert.Equal(cryovial.Id, stored.CryovialId);
+        Assert.Equal(1, stored.ThawedByUserId);
+        Assert.Equal("for TSA GPT", stored.Notes);
+        Assert.Equal(4, (await db.Cryovials.AsNoTracking().SingleAsync(c => c.Id == cryovial.Id)).VialsRemaining);
+    }
+
+    [Fact]
+    public async Task OneThawedVial_ServesChallengesOnDifferentMediaTypes_WithoutConsumingMoreVials()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, tsa) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var (_, broth) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralBroth, "TSB",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        var engine = NewEngine(db);
+
+        var thaw = await engine.ThawAndSelectVialAsync(tsa.Challenges[0].Id, cryovial.Id, userId: 1);
+        await engine.SelectThawedVialAsync(broth.Challenges[0].Id, thaw.Id, userId: 1);
+
+        var linked = await db.MediaEvaluationChallenges.AsNoTracking().Where(c => c.ThawEventId == thaw.Id).ToListAsync();
+        Assert.Equal(2, linked.Count);
+        Assert.All(linked, c => Assert.Equal(cryovial.Id, c.CryovialId));
+        Assert.Single(db.ThawEvents);
+        Assert.Equal(4, (await db.Cryovials.AsNoTracking().SingleAsync(c => c.Id == cryovial.Id)).VialsRemaining);
+    }
+
+    [Fact]
+    public async Task ThawAndSelectVialAsync_OrganismMismatch_DoesNotThawAVial()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var cryovial = await SeedApprovedCryovial(db, "Staphylococcus aureus");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => NewEngine(db).ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1));
+
+        Assert.Empty(db.ThawEvents);
+        Assert.Equal(5, (await db.Cryovials.AsNoTracking().SingleAsync(c => c.Id == cryovial.Id)).VialsRemaining);
+    }
+
+    [Fact]
+    public async Task ThawAndSelectVialAsync_NoVialsRemaining_Throws()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        cryovial.VialsRemaining = 0;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => NewEngine(db).ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1));
+        Assert.Contains("No vials remaining", ex.Message);
+    }
+
+    [Fact]
+    public async Task SelectThawedVialAsync_OrganismMismatch_Throws()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var saureusId = await GetOrCreateOrganismIdAsync(db, "Staphylococcus aureus");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId }, new() { OrganismId = saureusId } });
+        var ecoliChallenge = evaluation.Challenges.Single(c => c.OrganismId == ecoliId);
+        var saureusChallenge = evaluation.Challenges.Single(c => c.OrganismId == saureusId);
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        var engine = NewEngine(db);
+        var thaw = await engine.ThawAndSelectVialAsync(ecoliChallenge.Id, cryovial.Id, userId: 1);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(saureusChallenge.Id, thaw.Id, userId: 1));
+    }
+
+    [Fact]
+    public async Task SelectThawedVialAsync_BatchExpiredSinceThaw_Throws()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId }, new() { OrganismId = ecoliId, InitialInoculum = "10^3" } });
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        var engine = NewEngine(db);
+        var thaw = await engine.ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1);
+        cryovial.ExpiryDate = DateTime.UtcNow.AddDays(-1);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
+        Assert.Contains("expired", ex.Message);
+    }
+
+    [Fact]
+    public async Task SelectLyophilizedDiskAsync_AfterThawedVial_ClearsVialLink()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var challenge = evaluation.Challenges[0];
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        var disk = await SeedLyophilizedDiskMaterial(db, "E. coli");
+        var engine = NewEngine(db);
+
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
+
+        var reloaded = await db.MediaEvaluationChallenges.AsNoTracking().SingleAsync(c => c.Id == challenge.Id);
+        Assert.Equal(disk.Id, reloaded.LyophilizedDiskId);
+        Assert.Null(reloaded.CryovialId);
+        Assert.Null(reloaded.ThawEventId);
+    }
+
+    [Fact]
+    public async Task GetThawedVialOptionsAsync_ListsMatchingThawedVials_WithTheLotsTheyServed()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (tsaLot, tsa) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var (_, broth) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralBroth, "TSB",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
+        var ecoliVials = await SeedApprovedCryovial(db, "E. coli");
+        var engine = NewEngine(db);
+        var service = new MediaEvaluationService(db, engine);
+
+        Assert.Empty(await service.GetThawedVialOptionsAsync(broth.Challenges[0].Id)); // nothing thawed yet
+
+        var thaw = await engine.ThawAndSelectVialAsync(tsa.Challenges[0].Id, ecoliVials.Id, userId: 1);
+
+        var option = Assert.Single(await service.GetThawedVialOptionsAsync(broth.Challenges[0].Id));
+        Assert.Equal(thaw.Id, option.ThawEventId);
+        Assert.Equal(ecoliVials.Code, option.CryovialCode);
+        Assert.Equal(new[] { tsaLot.LotNumber }, option.UsedInMediaLots);
+    }
+
+    [Fact]
+    public async Task ThawAndSelectVialAsync_AfterDiskSelected_ClearsDisk()
     {
         await using var db = NewDb();
         var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
@@ -609,7 +764,7 @@ public class MediaEvaluationEngineTests
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
-        await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, userId: 1);
+        await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
 
         var reloaded = await db.MediaEvaluationChallenges.FindAsync(challenge.Id);
         Assert.Equal(cryovial.Id, reloaded!.CryovialId);

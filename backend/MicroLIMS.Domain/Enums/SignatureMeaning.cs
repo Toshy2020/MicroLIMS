@@ -20,6 +20,7 @@ public enum SignatureMeaning
     TestingClosed,
     LaboratoryAdded,
     TitrantStandardized,
-    TitrantDueAcknowledged
+    TitrantDueAcknowledged,
+    BiologicalWasteDestroyed
 }
 

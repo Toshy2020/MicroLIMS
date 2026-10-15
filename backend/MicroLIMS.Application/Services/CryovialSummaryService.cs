@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Abstractions.Pdf;
@@ -31,8 +32,13 @@ public class CryovialSummaryService
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.Media)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.IncubatorEquipment)
             .Include(c => c.ThawHistory).ThenInclude(t => t.UsedInChallenges).ThenInclude(ch => ch.MediaEvaluation!).ThenInclude(e => e.Media)
+            .Include(c => c.ThawHistory).ThenInclude(t => t.DestructionItem!).ThenInclude(i => i.BiologicalWasteDestruction!).ThenInclude(d => d.AutoclaveEquipment)
             .FirstOrDefaultAsync(c => c.Id == cryovialId);
         if (cryovial is null) return null;
+
+        var unthawedDestruction = await _db.BiologicalWasteDestructionItems
+            .Include(i => i.BiologicalWasteDestruction!).ThenInclude(d => d.AutoclaveEquipment)
+            .FirstOrDefaultAsync(i => i.CryovialId == cryovialId);
 
         var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Cryovial, cryovialId);
 
@@ -72,6 +78,8 @@ public class CryovialSummaryService
             ApprovedByName = cryovial.ApprovedByUserId is not null ? NameOf(cryovial.ApprovedByUserId.Value) : null,
             ApprovedAt = cryovial.ApprovedAt,
             IsDestroyed = cryovial.IsDestroyed,
+            UnthawedVialsDestruction = unthawedDestruction is null ? null
+                : $"{unthawedDestruction.Quantity:0} vials, {DestructionText(unthawedDestruction.BiologicalWasteDestruction!)}",
             IdentityConfirmations = cryovial.IdentityConfirmations.Select(i => new IdentityConfirmationSummaryDto
             {
                 MediaLotNumber = i.Media?.LotNumber,
@@ -87,7 +95,8 @@ public class CryovialSummaryService
                 Notes = t.Notes,
                 UsedInMediaLots = t.UsedInChallenges
                     .Select(ch => ch.MediaEvaluation?.Media?.LotNumber)
-                    .OfType<string>().Distinct().OrderBy(l => l).ToList()
+                    .OfType<string>().Distinct().OrderBy(l => l).ToList(),
+                Destruction = t.DestructionItem?.BiologicalWasteDestruction is { } d ? DestructionText(d) : null
             }).ToList(),
             Timeline = timeline.Select(e => new SampleWorkflowEventDto
             {
@@ -120,6 +129,9 @@ public class CryovialSummaryService
         var summary = await GetSummaryAsync(cryovialId);
         return summary is null ? null : ReportDocumentMapper.ForCryovial(summary);
     }
+
+    private static string DestructionText(BiologicalWasteDestruction d) =>
+        $"{BiologicalWasteDestructionService.ReferenceOf(d.Id)} ({d.AutoclaveEquipment?.Name ?? "autoclave"}, cycle {d.CycleNumber}, {d.CycleStartedAt:dd-MMM-yyyy HH:mm})";
 
     private static string TitleFor(CryovialSummaryDto s) => $"Cryovial Batch Record - {s.Code}";
     private static string FileStemFor(CryovialSummaryDto s) =>
@@ -167,6 +179,12 @@ public class CryovialSummaryService
         if (s.IdentityConfirmations.Count == 0) lines.Add("(no panel rows)");
         lines.Add("");
 
+        if (s.UnthawedVialsDestruction is not null)
+        {
+            lines.Add($"Unthawed vials destroyed: {s.UnthawedVialsDestruction}");
+            lines.Add("");
+        }
+
         if (s.ThawHistory.Count > 0)
         {
             lines.Add("THAW HISTORY");
@@ -176,6 +194,7 @@ public class CryovialSummaryService
                 lines.Add($"{t.ThawedAt:dd-MMM-yyyy HH:mm} - {t.ThawedByName}{notes}");
                 if (t.UsedInMediaLots.Count > 0)
                     lines.Add($"    Used in media lots: {string.Join(", ", t.UsedInMediaLots)}");
+                lines.Add($"    Destroyed: {t.Destruction ?? "not yet"}");
             }
             lines.Add("");
         }

@@ -452,6 +452,138 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("AutoclaveProgramHistories");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.BiologicalWasteDestruction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AutoclaveEquipmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AutoclaveProgramId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CycleNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CycleStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CycleTimeMinutesSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LoadTypeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ProgramCodeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProgramNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TemperatureSnapshot")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AutoclaveEquipmentId");
+
+                    b.HasIndex("AutoclaveProgramId");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("SignatureId");
+
+                    b.ToTable("BiologicalWasteDestructions");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.BiologicalWasteDestructionItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BiologicalWasteDestructionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CryovialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("ItemType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<int?>("ThawEventId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BiologicalWasteDestructionId");
+
+                    b.HasIndex("CryovialId")
+                        .IsUnique();
+
+                    b.HasIndex("ThawEventId")
+                        .IsUnique();
+
+                    b.ToTable("BiologicalWasteDestructionItems");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.CauseOfTesting", b =>
                 {
                     b.Property<int>("Id")
@@ -9834,6 +9966,64 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("AutoclaveProgram");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.BiologicalWasteDestruction", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Equipment", "AutoclaveEquipment")
+                        .WithMany()
+                        .HasForeignKey("AutoclaveEquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.AutoclaveProgram", "AutoclaveProgram")
+                        .WithMany()
+                        .HasForeignKey("AutoclaveProgramId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", null)
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "Signature")
+                        .WithMany()
+                        .HasForeignKey("SignatureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AutoclaveEquipment");
+
+                    b.Navigation("AutoclaveProgram");
+
+                    b.Navigation("Signature");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.BiologicalWasteDestructionItem", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.BiologicalWasteDestruction", "BiologicalWasteDestruction")
+                        .WithMany("Items")
+                        .HasForeignKey("BiologicalWasteDestructionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Cryovial", "Cryovial")
+                        .WithMany()
+                        .HasForeignKey("CryovialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ThawEvent", "ThawEvent")
+                        .WithOne("DestructionItem")
+                        .HasForeignKey("MicroLIMS.Domain.Entities.BiologicalWasteDestructionItem", "ThawEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BiologicalWasteDestruction");
+
+                    b.Navigation("Cryovial");
+
+                    b.Navigation("ThawEvent");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ChromatographyColumn", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
@@ -12772,6 +12962,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("History");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.BiologicalWasteDestruction", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Conversation", b =>
                 {
                     b.Navigation("Messages");
@@ -13049,6 +13244,8 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ThawEvent", b =>
                 {
+                    b.Navigation("DestructionItem");
+
                     b.Navigation("UsedInChallenges");
                 });
 

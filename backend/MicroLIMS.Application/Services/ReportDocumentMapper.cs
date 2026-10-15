@@ -883,6 +883,16 @@ public static class ReportDocumentMapper
             panel.Rows.Add(("No panel rows recorded", "-"));
         doc.Blocks.Add(panel);
 
+        if (s.UnthawedVialsDestruction is not null)
+        {
+            doc.Blocks.Add(new HeadingBlock { Text = "unthawed vials destroyed" });
+            doc.Blocks.Add(new ListBlock
+            {
+                Label = "unthawed vials destroyed",
+                Rows = new() { (Left: "Biological waste destruction", Right: s.UnthawedVialsDestruction) }
+            });
+        }
+
         if (s.ThawHistory.Count > 0)
         {
             doc.Blocks.Add(new HeadingBlock { Text = "thaw history" });
@@ -893,6 +903,7 @@ public static class ReportDocumentMapper
                     Left: "Vial thawed",
                     Right: $"{t.ThawedByName}  |  {Dt(t.ThawedAt)}" + (string.IsNullOrWhiteSpace(t.Notes) ? "" : $"  |  {t.Notes}")
                         + (t.UsedInMediaLots.Count == 0 ? "" : $"  |  Used in: {string.Join(", ", t.UsedInMediaLots)}")
+                        + $"  |  Destroyed: {t.Destruction ?? "not yet"}"
                 )).ToList()
             });
         }

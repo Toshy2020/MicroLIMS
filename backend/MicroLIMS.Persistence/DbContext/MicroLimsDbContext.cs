@@ -36,6 +36,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<Cryovial> Cryovials => Set<Cryovial>();
     public DbSet<IdentityConfirmationEntry> IdentityConfirmationEntries => Set<IdentityConfirmationEntry>();
     public DbSet<ThawEvent> ThawEvents => Set<ThawEvent>();
+    public DbSet<BiologicalWasteDestruction> BiologicalWasteDestructions => Set<BiologicalWasteDestruction>();
+    public DbSet<BiologicalWasteDestructionItem> BiologicalWasteDestructionItems => Set<BiologicalWasteDestructionItem>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
     public DbSet<Sample> Samples => Set<Sample>();
     public DbSet<SampleSectionSignoff> SampleSectionSignoffs => Set<SampleSectionSignoff>();

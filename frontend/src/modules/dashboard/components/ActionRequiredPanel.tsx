@@ -17,7 +17,9 @@ const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
 };
 
 function getTaskRoute(task: MyTask, lab: DashboardLab): string {
-  if (task.mediaId) {
+  if (task.taskType === "VialDestruction") {
+    return "/laboratory-configuration/biological-waste";
+  } else if (task.mediaId) {
     return "/laboratory-configuration/media";
   } else if (task.sampleId && task.testOrderId) {
     return lab.workspace(`?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`);

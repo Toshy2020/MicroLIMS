@@ -707,6 +707,51 @@ public class MediaEvaluationEngineTests
         Assert.Contains("expired", ex.Message);
     }
 
+    private sealed class MovableClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    [Fact]
+    public async Task ThawedVial_OlderThan24Hours_IsNoLongerOfferedOrSelectable()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId }, new() { OrganismId = ecoliId, InitialInoculum = "10^3" } });
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        var clock = new MovableClock();
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db), clock);
+        var service = new MediaEvaluationService(db, engine, clock);
+        var thaw = await engine.ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1);
+
+        clock.Now = clock.Now.AddHours(23);
+        Assert.Single(await service.GetThawedVialOptionsAsync(evaluation.Challenges[1].Id));
+
+        clock.Now = clock.Now.AddHours(2);
+        Assert.Empty(await service.GetThawedVialOptionsAsync(evaluation.Challenges[1].Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
+        Assert.Contains("due for destruction", ex.Message);
+    }
+
+    [Fact]
+    public async Task ThawedVial_OfAWithdrawnBatch_CannotBeUsed()
+    {
+        await using var db = NewDb();
+        var ecoliId = await GetOrCreateOrganismIdAsync(db, "E. coli");
+        var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA",
+            new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId }, new() { OrganismId = ecoliId, InitialInoculum = "10^3" } });
+        var cryovial = await SeedApprovedCryovial(db, "E. coli");
+        var engine = NewEngine(db);
+        var thaw = await engine.ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1);
+        await TestServiceFactory.Cryovial(db).DestroyAsync(cryovial.Id);
+
+        Assert.Empty(await new MediaEvaluationService(db, engine).GetThawedVialOptionsAsync(evaluation.Challenges[1].Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
+        Assert.Contains("withdrawn", ex.Message);
+    }
+
     [Fact]
     public async Task SelectLyophilizedDiskAsync_AfterThawedVial_ClearsVialLink()
     {

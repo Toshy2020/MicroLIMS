@@ -95,7 +95,9 @@ export function DestroyCryovialDialog({
           {error && <Alert severity="error">{error}</Alert>}
 
           <Alert severity="warning" icon={<WarningAmberIcon />}>
-            Destroying this cryovial batch will decommission it permanently. It will no longer be available for thawing, Media Evaluation, or GPT testing.
+            Destroying this cryovial batch withdraws it permanently: no more vials can be thawed from it, and its already-thawed
+            vials can no longer be used in Media Evaluation or GPT. All of its vials (thawed and unthawed) become eligible for
+            destruction straight away; record the autoclave cycle on the Biological Waste Destruction page.
           </Alert>
 
           <Paper

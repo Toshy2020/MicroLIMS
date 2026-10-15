@@ -55,7 +55,8 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     }
 
     // Links the challenge to a vial already thawed out of an approved,
-    // unexpired batch of the challenge's organism. A thawed vial is not
+    // unexpired batch of the challenge's organism, within 24 hours of its
+    // thaw and not yet destroyed. A thawed vial is not
     // tied to one media lot or media type - the same ThawEvent can supply
     // any number of challenges, so nothing is consumed here.
     public async Task SelectThawedVialAsync(int challengeId, int thawEventId, int userId)
@@ -64,10 +65,12 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
         var thaw = await _db.ThawEvents
             .Include(t => t.Cryovial!).ThenInclude(c => c.Material)
+            .Include(t => t.DestructionItem)
             .FirstOrDefaultAsync(t => t.Id == thawEventId)
             ?? throw new NotFoundException($"Thawed vial {thawEventId} not found.");
 
         await EnsureCryovialFitsChallengeAsync(challenge, thaw.Cryovial!);
+        CryovialThaw.EnsureThawedVialUsable(thaw, _time.GetUtcNow().UtcDateTime);
 
         LinkThawedVial(challenge, thaw);
         await _db.SaveChangesAsync();

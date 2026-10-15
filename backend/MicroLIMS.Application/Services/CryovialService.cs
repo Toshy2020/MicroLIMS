@@ -190,6 +190,12 @@ public class CryovialService
         return ThawEventResponse.From(thaw);
     }
 
+    // Withdraws the whole batch: nothing more can be thawed from it, its
+    // thawed vials can no longer be used, and every one of its vials -
+    // thawed ones at once, regardless of the 24-hour window, and the ones
+    // never thawed - becomes eligible for biological waste destruction
+    // (BiologicalWasteDestructionService), which is where the physical
+    // destruction is recorded and signed.
     public async Task DestroyAsync(int cryovialId)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)

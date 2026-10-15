@@ -163,6 +163,31 @@ public class MyTasksService
                 MediaId: media.Id));
         }
 
+        // Thawed vials this analyst thawed that are still not destroyed
+        // 48 hours later (CryovialThaw.DestructionReminderAfter).
+        var reminderCutoff = now - CryovialThaw.DestructionReminderAfter;
+        var undestroyedQuery = _db.ThawEvents
+            .Where(t => t.ThawedByUserId == userId && t.DestructionItem == null && t.ThawedAt <= reminderCutoff);
+        if (lab?.LabCode != null && scope != null)
+        {
+            undestroyedQuery = undestroyedQuery.Where(t => scope.Contains(t.Cryovial!.Material!.SectionId));
+        }
+        var undestroyed = await undestroyedQuery.Include(t => t.Cryovial).ToListAsync();
+        foreach (var t in undestroyed)
+        {
+            var dueAt = t.ThawedAt.Add(CryovialThaw.DestructionReminderAfter);
+            tasks.Add(new MyTaskDto(
+                TaskType: "VialDestruction",
+                Title: $"Destroy thawed vial: {t.Cryovial!.Code}",
+                Subtitle: $"{t.Cryovial.OrganismNameSnapshot} · thawed {t.ThawedAt:dd-MMM-yyyy HH:mm}",
+                ReferenceId: t.Cryovial.Code,
+                DueAt: dueAt,
+                Urgency: ComputeUrgency(dueAt, now),
+                SampleId: null,
+                TestOrderId: null,
+                MediaId: null));
+        }
+
         return tasks.OrderBy(x => x.DueAt).ToList();
     }
 

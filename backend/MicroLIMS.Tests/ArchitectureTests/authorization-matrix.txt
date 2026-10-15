@@ -26,6 +26,10 @@ AuthenticationController.Logout(LogoutRequest): SystemAdministrator,SectionHead,
 AuthenticationController.Me(): SystemAdministrator,SectionHead,Reviewer,Analyst
 AuthenticationController.Refresh(RefreshRequest): anonymous
 AuthenticationController.RequestPasswordReset(RequestPasswordResetRequest): anonymous
+BiologicalWasteDestructionController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
+BiologicalWasteDestructionController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+BiologicalWasteDestructionController.GetEligible(): SystemAdministrator,SectionHead,Reviewer,Analyst
+BiologicalWasteDestructionController.Record(RecordBiologicalWasteDestructionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.Approve(Int32, ApproveRequest): SystemAdministrator,SectionHead
 CryovialController.Destroy(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst

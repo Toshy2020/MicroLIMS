@@ -26,7 +26,8 @@ const dt = (v: string) => new Date(v).toLocaleString();
 // Step 1 of a media evaluation challenge: the organism source. A cryovial
 // source is always a specific thawed vial, so every result traces back to
 // the vial used. One thawed vial can serve any media that needs the
-// organism; when none is thawed yet the analyst thaws one here.
+// organism for 24 hours after thawing; when none is available the
+// analyst thaws one here.
 export function ChallengeOrganismSourcePicker({ challenge, batches, disks = [], refreshKey, onAssigned, onError }: Props) {
   const [thawedVials, setThawedVials] = useState<ThawedVialOption[] | null>(null);
   const [selection, setSelection] = useState("");
@@ -113,7 +114,7 @@ export function ChallengeOrganismSourcePicker({ challenge, batches, disks = [], 
 
       {noThawedVials && (
         <Alert severity="info" sx={{ mb: 1 }}>
-          No thawed vial of {organism} is available.
+          No vial of {organism} thawed in the last 24 hours is available.
           {thawableBatches.length > 0 ? " Thaw a vial below to use it." : ""}
         </Alert>
       )}

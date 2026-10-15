@@ -140,6 +140,7 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(Cryovial), nameof(Cryovial.PreparedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(Cryovial), nameof(Cryovial.ApprovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(ThawEvent), nameof(ThawEvent.ThawedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(BiologicalWasteDestruction), nameof(BiologicalWasteDestruction.RecordedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance (signed destruction record)"),
         new UserReferenceEntry(typeof(EquipmentDocument), nameof(EquipmentDocument.SupersededByUserId), UserReferenceDisposition.Blocks, "No DB FK - document lifecycle provenance"),
         new UserReferenceEntry(typeof(EquipmentDocument), nameof(EquipmentDocument.VoidedByUserId), UserReferenceDisposition.Blocks, "No DB FK - document lifecycle provenance"),
         new UserReferenceEntry(typeof(EquipmentInventory), nameof(EquipmentInventory.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),

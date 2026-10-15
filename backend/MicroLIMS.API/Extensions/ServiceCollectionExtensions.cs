@@ -96,6 +96,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();
+        services.AddScoped<BiologicalWasteDestructionService>();
         services.AddScoped<SamplePreparationService>();
         services.AddScoped<PreparationParameterValidator>();
         services.AddScoped<ItemPreparationConfigurationService>();

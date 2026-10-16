@@ -223,6 +223,8 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.ApprovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, approver signature"),
         new UserReferenceEntry(typeof(WorkingStandardQualification), nameof(WorkingStandardQualification.RejectedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, rejection signature"),
         new UserReferenceEntry(typeof(WorkingStandardDocument), nameof(WorkingStandardDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, uploader of the attachment"),
+        new UserReferenceEntry(typeof(InstrumentAgent), nameof(InstrumentAgent.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, who registered the instrument agent"),
+        new UserReferenceEntry(typeof(InstrumentAgent), nameof(InstrumentAgent.RevokedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, who revoked the instrument agent"),
         new UserReferenceEntry(typeof(HplcEvidence), nameof(HplcEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
         new UserReferenceEntry(typeof(IcpRun), nameof(IcpRun.AnalystUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the run"),
         new UserReferenceEntry(typeof(IcpCalibration), nameof(IcpCalibration.ConfirmedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the calibration confirmation"),

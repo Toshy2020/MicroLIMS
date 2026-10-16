@@ -12,6 +12,11 @@ For every assigned section file (edit IN PLACE; also its `_ss/NN.md`; modify not
 5. Format per WRITING_BRIEF (heading levels, `[SCREENSHOT SS-NNN]` numbering matching the section, `_ss` rows match placeholders).
 6. Keep it readable for laboratory users; do not shorten correct content for its own sake.
 
+Known patterns found by a scan of the drafts (fix wherever they occur in your sections):
+- Module/screen ids in prose (`MOD-…`, `SCR-…`), endpoint paths (`GET /api/…`), component names (e.g. `SharedTsbEnrichmentPanel`), raw enum values (e.g. `InService` → use the UI label), "service"/"backend"/"database" wording → rewrite in user terms or remove.
+- Screen text that itself claims compliance (sign-in footer "…Part 11 & EU Annex 11 Compliant", messages mentioning "ALCOA+"): do not present it as fact; if it must be mentioned, say the screen shows this text and add a reviewer note citing the existing DISCREPANCY gap for the sign-in claim (find it in DOCUMENTATION_GAPS.md).
+- Permission codes (e.g. `Documents.Approve`) are acceptable only in §4 and §39 (administrator content), with a plain-language name next to each.
+
 Append to the end of each section file an HTML comment block:
 ```
 <!-- Review log (Sonnet): N corrections; invented items removed: …; callouts added: … -->

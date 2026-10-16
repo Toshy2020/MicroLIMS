@@ -1,0 +1,235 @@
+## 5. Login, Session and Password
+
+<!-- WF-AUTH-001 -->
+### 5.1 Sign In
+#### Purpose
+Authenticate a user with valid credentials, establish an encrypted session token, and route the user to their laboratory dashboard.
+
+#### Who can use it
+Any active user account provisioned by a system administrator. Laboratory membership is not required to sign in.
+
+#### Before you start
+You must have an active username and password provided by your system administrator.
+
+#### What you see
+- Page route: `/login`.
+- Heading **MicroLIMS** and document title "Sign in · MicroLIMS".
+- Input fields:
+  - **Username** (required, with autofocus).
+  - **Password** (required, with a visibility toggle button labeled **Show password** / **Hide password**).
+- Action buttons:
+  - **Sign In** (displays **Signing in…** while the authentication request is processing).
+  - Text link: **Forgot password?**
+  - Action button: **Admin-Assisted Password Recovery** (navigates to `/admin-recovery`).
+- Footer text: "MicroLIMS v0.1 · FDA 21 CFR Part 11 & EU Annex 11 Compliant".
+
+[SCREENSHOT SS-051]
+
+#### How to use it
+1. Open the MicroLIMS web application URL in your browser.
+2. In the **Username** field, enter your assigned username.
+3. In the **Password** field, enter your password.
+4. Click **Sign In** (or press Enter).
+5. If authentication succeeds, the system stores your session tokens and opens your role-based **Dashboard** (`/dashboard`).
+6. If the administrator has marked your account to require a password change, the application redirects you immediately to the **Change Password** screen (see Section 5.4).
+
+#### System behavior
+- Upon successful authentication, the server generates an access token (default validity: 15 minutes) and a refresh token (validity: 7 days).
+- Every sign-in attempt (successful, failed password, unknown user, locked account, or inactive user) is recorded in the internal login history with the client IP address.
+- If five consecutive failed sign-in attempts occur, the system automatically locks the account for 15 minutes (`LockedUntil = now + 15 min`) and revokes all active refresh tokens.
+- Request rate limiting: the sign-in endpoint permits a maximum of 20 authentication requests per 60 seconds per IP address.
+
+> **Note for reviewers:** Sign-in page footer claims compliance; this is text only and is not a validation statement. (GAP-023)
+
+> **Note for reviewers:** After 5 wrong passwords the account locks 15 min; the counter is not reset when the lock ends, so one further wrong password locks again. (GAP-012)
+
+#### Validation
+- Both **Username** and **Password** are required.
+
+#### Errors
+- If incorrect credentials are submitted, the system displays: `"Invalid username or password."`
+- If an account is locked, the system displays the same generic message: `"Invalid username or password."`
+- If the server encounters an internal error, the client displays: `"Laboratory authentication service error. Please try again later."`
+- If network communication fails, the client displays: `"Unable to reach the laboratory server. Check network connection."`
+- General fallback error: `"Login failed. Please check credentials."`
+
+---
+
+<!-- WF-AUTH-002 -->
+### 5.2 Request Password Reset
+#### Purpose
+Request an automated password reset notification via email.
+
+#### Who can use it
+Any user holding a registered account.
+
+#### Before you start
+You must know your registered username. An email address must be configured on your account profile, and the system must have an active SMTP connection.
+
+#### What you see
+- On the sign-in card (`/login`), clicking **Forgot password?** toggles the card to the reset request view.
+- Guidance text: "Enter your username and we'll generate a password reset request."
+- Field: **Username**.
+- Action buttons:
+  - **Send Reset Link** (displays **Submitting...** while processing).
+  - Links: **Back to login** and **Have a recovery code from your admin?** (links to `/admin-recovery`).
+
+#### How to use it
+1. On the `/login` screen, click **Forgot password?**.
+2. Enter your **Username**.
+3. Click **Send Reset Link**.
+4. The system presents the confirmation message: `"If that account exists, a reset link has been generated."`
+
+#### System behavior
+- The server generates a single-use token valid for 1 hour. If an email address is associated with the account, an email is dispatched containing the token.
+- To prevent username enumeration, the system returns the exact same confirmation text regardless of whether the username exists or has an email configured.
+
+> **Note for reviewers:** "Forgot password?" cannot be completed in the application; ask an administrator for an admin-assisted recovery code. The on-screen text mentions a reset link, but none is sent. (GAP-100)
+
+---
+
+<!-- WF-AUTH-003 -->
+### 5.3 Administrator-Assisted Password Recovery
+#### Purpose
+Recover access to a user account using a temporary 12-character one-time recovery code generated by a system administrator.
+
+#### Who can use it
+Any user who has received an administrator-generated one-time recovery code. The administrator must hold the *User account management* permission (`Users.Manage`) to generate the code.
+
+#### Before you start
+Contact your system administrator to request an administrator-assisted recovery code. The administrator generates a 12-character code that remains valid for exactly 15 minutes.
+
+#### What you see
+- Page route: `/admin-recovery`.
+- Heading **Password Recovery** with subtitle "Administrator-Assisted Account Access Recovery".
+- Input fields:
+  - **Username**
+  - **One-Time Recovery Code** (placeholder `XXXX-XXXX-XXXX`, helper text "Format: 12 alphanumeric characters provided by your admin").
+  - **New Password** (helper text "Min 8 chars (upper, lower, digit, symbol)").
+  - **Confirm New Password**
+- Action buttons:
+  - **Submit Password Recovery** (displays **Resetting Password...** while processing).
+  - Link: **Return to Login**.
+
+[SCREENSHOT SS-052]
+
+#### How to use it
+1. From the sign-in screen, click **Admin-Assisted Password Recovery** (or navigate directly to `/admin-recovery`).
+2. Enter your **Username**.
+3. In the **One-Time Recovery Code** field, type or paste the 12-character code provided by your administrator. Dashes, spaces, and character casing are ignored automatically.
+4. Enter your desired new password in **New Password**, adhering to the security policy (minimum 8 characters, including uppercase, lowercase, digit, and special character).
+5. Re-enter the new password in **Confirm New Password**.
+6. Click **Submit Password Recovery**.
+7. Upon successful reset, the screen displays: `"Your password has been successfully reset! You can now log in using your new password."`
+8. Click **Go to Login Page** and sign in with your new credentials.
+
+#### System behavior
+- When the administrator generates the code from the **Users** module, an administrative justification reason is mandatory (`"A reason is required for admin-assisted password recovery."`).
+- Any previous pending recovery code for that account is marked Expired.
+- When the user submits the code, the server verifies that the code matches the stored hash, has not expired, and has not exceeded 5 failed attempts.
+- Upon successful reset, the system clears any account lockout, resets the failed login attempt counter, revokes all existing refresh tokens, marks the recovery code as Used, and turns off the forced password change flag.
+
+> **Note for reviewers:** The physical or out-of-band hand-over procedure for the one-time administrator recovery code requires confirmation. (GAP-012)
+
+#### Validation
+- Client checks:
+  - All fields are required: `"All fields are required."`
+  - Password match: `"New password and confirm password do not match."`
+- Password policy and history:
+  - The new password must not match any of the user's previous 5 stored passwords: `"New password must not match any of your last 5 passwords."`
+
+#### Errors
+- If an invalid username, disabled account, or expired code is supplied: `"Invalid or expired recovery code."`
+- If the 15-minute validity window has lapsed: `"Recovery code has expired. Please request a new recovery code."`
+- On failed attempts 1 through 4: `"Invalid recovery code."`
+- On the 5th consecutive failed attempt: `"Maximum failed recovery attempts exceeded. Recovery code invalidated."`
+- Fallback error: `"Could not perform password recovery. Please verify your recovery code."`
+
+---
+
+<!-- WF-AUTH-004 -->
+### 5.4 Change Password and Forced Password Change
+#### Purpose
+Update your user account password, either voluntarily from your profile or mandatorily when flagged by an administrator or upon initial login.
+
+#### Who can use it
+Any authenticated user. No specific permission code is required.
+
+#### Before you start
+You must know your existing current password.
+
+#### What you see
+- Page route: `/change-password`.
+- Heading **Change Password** with subtitle "Update your laboratory credentials in compliance with periodic security policy."
+- Fields:
+  - **Current Password** (autofocus).
+  - **New Password**
+  - **Confirm New Password** (helper text: "Passwords do not match." when inputs differ).
+- Live requirements checklist header **Password must contain:** showing five rules:
+  - At least 8 characters
+  - At least one uppercase letter (A-Z)
+  - At least one lowercase letter (a-z)
+  - At least one number (0-9)
+  - At least one special character (!@#$%^&*...)
+- Action button: **Change Password** (displays **Updating Credentials...** while processing).
+
+[SCREENSHOT SS-053]
+
+#### How to use it
+1. Open the user account menu in the top-right header and select **Change Password** (or arrive via mandatory redirect).
+2. Enter your current password in **Current Password**.
+3. Enter your new password in **New Password**. As you type, the checklist verifies each of the five requirements.
+4. Re-enter the new password in **Confirm New Password**.
+5. Click **Change Password**.
+6. The system displays: `"Password changed successfully. Returning to your profile..."` and navigates to `/profile` after 1.5 seconds.
+
+#### System behavior
+- **Forced Password Change**: If an administrator created your account with the initial password flag, or triggered **Force Password Change at Next Login**, the system redirects all navigation to `/change-password`. While this flag is active, the server rejects all other authenticated API calls with HTTP 403: `"Your password must be changed before you can use MicroLIMS."`
+- Successful password updates revoke all active refresh tokens across all devices, update the Password Last Changed timestamp, and clear the forced password change flag.
+- Rate limiting: maximum 5 password change requests per 900 seconds (15 minutes) per user.
+
+> **Note for reviewers:** Passwords do not expire; the Change Password subtitle mentions a periodic policy that does not exist in the code. (GAP-023)
+
+#### Validation
+- If the current password is incorrect, the server returns: `"Current password is incorrect."`
+- If policy checks fail: `"New password does not meet the policy requirements below."`
+- If confirmation does not match: `"New password and confirmation do not match."`
+- Password history restriction: `"New password must not match any of your last 5 passwords."`
+
+#### Errors
+- Fallback error: `"Could not change password."`
+
+---
+
+<!-- WF-AUTH-005 -->
+### 5.5 Session Timeout and Sign Out
+#### Purpose
+Maintain session security through automatic browser inactivity timeouts and controlled manual sign-out.
+
+#### Who can use it
+All authenticated users across all modules.
+
+#### What you see
+- **Session Timeout Warning Dialog**: Appears automatically over any page when inactivity is detected.
+  - Dialog Title: **Session Timeout Warning**.
+  - Message text: "You will be signed out due to inactivity in {n} second(s)." with an active 60-second countdown.
+  - Single button: **Stay signed in** (autofocused).
+  - The dialog cannot be dismissed by pressing Escape or clicking outside the modal backdrop.
+
+[SCREENSHOT SS-054]
+
+#### How to use it
+- **Responding to Inactivity**:
+  1. When the **Session Timeout Warning** appears, click **Stay signed in** or move your mouse / press any key.
+  2. The countdown cancels immediately, the dialog closes, and the 20-minute inactivity timer resets.
+  3. If no activity occurs before the 60-second countdown reaches zero, MicroLIMS automatically signs you out and redirects the browser to `/login`.
+- **Manual Sign Out**:
+  1. Click your user account avatar in the top-right header.
+  2. Select **Sign Out**.
+  3. The system immediately revokes your active refresh token, clears local storage tokens, and redirects to `/login` without a confirmation prompt.
+
+#### System behavior
+- **Inactivity Detection**: Monitored strictly in the browser. After 20 minutes with no mouse movements, keyboard presses, clicks, or scrolling, the 60-second warning modal appears.
+- While the user remains actively interacting with the application, the client automatically renews the 15-minute access token in the background using the 7-day refresh token.
+
+> **Note for reviewers:** Idle sign-out happens in the browser only; the server does not time out inactive sessions. (GAP-053)

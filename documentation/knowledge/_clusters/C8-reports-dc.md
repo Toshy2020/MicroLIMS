@@ -12,14 +12,14 @@
 
 ### MOD-KPI-001 KPI and Workflow Profiles
 - Purpose: Operational performance monitoring dashboard and workflow profile management; renders 8 headline performance tiles (Sample turnaround time, On time all stages, Right first time, Retest rate, OOS rate, WIP backlog, Incubation reads on time, EM excursion rate), 3 category breakdown sections (Flow, Quality, Micro), an interactive analyst workload table with capacity planning metrics (1 unit = 1 standard analyst-hour), definitions drawer, and signed workflow profile versioning (append-only, electronic signature with `SignatureMeaning.MasterDataChanged`). [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L1-L22; frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L21-L127; backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L10-L44; backend/MicroLIMS.API/Controllers/WorkflowProfilesController.cs:L10-L51; backend/MicroLIMS.Application/Services/Kpi/KpiRegistry.cs:L3-L18; backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L12-L91]
-- Sub-features: SCR-KPI-001 (KPI / Performance tab), SCR-KPI-002 (Workflow Profiles dialog/panel). Status: IMPLEMENTED. Lab scope: Scoped to caller's accessible laboratory sections (`IUserSectionScopeService.GetAccessibleSectionIdsAsync`). Analysts without `Kpi.ViewTeam` are restricted to their own individual figures (D8). [src: backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L14, L22; backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L105-L107]
+- Sub-features: SCR-KPI-001 (KPI / Performance tab), SCR-KPI-002 (Workflow Profiles dialog/panel). Status: IMPLEMENTED. Lab scope: Scoped to caller's accessible laboratory sections (`IUserSectionScopeService.GetAccessibleSectionIdsAsync`). Users without `Kpi.ViewTeam` are restricted to their own individual figures (D8) in the workload table and the analyst filter only; the headline tiles stay laboratory-level for every `Kpi.View` holder (verified). [src: backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L14, L22; backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L105-L107]
 
 ### MOD-KPI-002 Analyst availability and KPI section settings
 - Purpose: Backend data model and REST endpoints for configuring per-section capacity parameters (working weekdays bitmask, standard hours per analyst-day, and forward load horizon) and recording individual analyst availability adjustments (leave, training, secondments reducing capacity fractions from 0.0 to 1.0); non-overlapping date windows with reason audit. [src: backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L10-L74; backend/MicroLIMS.Application/Services/Kpi/KpiSettingsService.cs:L12-L85; backend/MicroLIMS.Application/Services/Kpi/AnalystAvailabilityService.cs:L12-L117; frontend/src/modules/kpi/services/kpiWorkloadService.ts:L44-L67]
 - Sub-features: None (service exists in frontend `kpiWorkloadService.ts`, but no UI screen, form, or dialog caller exists in the client application; see GAP-802). Status: NOT-EXPOSED-IN-UI. Lab scope: Scoped per laboratory section (`DocumentSections`); editing requires `Kpi.ConfigureProfiles` and section access. [src: backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L56, L65, L70]
 
 ### MOD-DC-001 Document Control: library and document lifecycle
-- Purpose: Enterprise Document Management System (EDMS) for laboratory controlled documents (SOPs, test methods, specifications, policies, forms); provides document master registration, metadata governance, versioned draft authoring, change rationale itemization, multi-category impact assessment, multi-cycle technical review with finding resolution ladder, formal approval governed by 21 CFR Part 11 electronic signature, dual-PDF side-by-side comparison, automated effective date transitions, periodic review workspace, voiding, and draft cancellation. [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L57-L611; frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L82-L1414; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentControlController.cs:L17-L120; backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L12-L35; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L13-L55; backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L15-L65; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L20-L75; backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L20-L55]
+- Purpose: Enterprise Document Management System (EDMS) for laboratory controlled documents (SOPs, test methods, specifications, policies, forms); provides document master registration, metadata governance, versioned draft authoring, change rationale itemization, multi-category impact assessment, multi-cycle technical review with finding resolution ladder, formal approval with a password-confirmed electronic signature, dual-PDF side-by-side comparison, automated effective date transitions, periodic review workspace, voiding, and draft cancellation. [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L57-L611; frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L82-L1414; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentControlController.cs:L17-L120; backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L12-L35; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L13-L55; backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L15-L65; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L20-L75; backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L20-L55]
 - Sub-features: SCR-DC-001 (Document Control Dashboard), SCR-DC-005 (Document Library), SCR-DC-006 (Document detail, revisions, workflow, and lifecycle dialogs). Status: IMPLEMENTED. Lab scope: Cross-laboratory / Enterprise-wide (organized by DocumentDepartment and DocumentSection taxonomies). [src: backend/MicroLIMS.Domain/Entities/DocumentMaster.cs:L1-L40]
 
 ### MOD-DC-002 Document Control: reading and training
@@ -27,16 +27,16 @@
 - Sub-features: SCR-DC-002 (My Reading List), SCR-DC-003 (Training Matrix), SCR-DC-004 (Training Compliance Dashboard). Status: IMPLEMENTED. Lab scope: Cross-laboratory / Enterprise-wide. [src: backend/MicroLIMS.Domain/Entities/DocumentTrainingAssignment.cs:L1-L35]
 
 ### MOD-DC-003 Document Control: audit trail
-- Purpose: Append-only, chronological audit trail and specialized query interface across all document control events, revision lifecycle transitions, file uploads/replacements, controlled PDF and source Word views/downloads, cryptographic integrity check failures, technical review findings, approval ceremonies, periodic reviews, reading acknowledgements, configuration updates, and security violations; provides multi-criteria filtering and CSV export up to 5,000 records with logged export events. [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L36-L319; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentAuditController.cs:L15-L85; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L12-L120]
-- Sub-features: SCR-DC-007 (Document Control Audit Trail). Status: IMPLEMENTED. Lab scope: Global / system-wide. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L33-L35]
+- Purpose: Append-only, chronological audit trail and specialized query interface across all document control events, revision lifecycle transitions, file uploads/replacements, controlled PDF and source Word views/downloads, cryptographic integrity check failures, technical review findings, approval ceremonies, periodic reviews, reading acknowledgements, configuration updates, and security violations; provides multi-criteria filtering and CSV export up to 5,000 records with logged export events. [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L36-L319; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentAuditController.cs:L15-L52; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L12-L120]
+- Sub-features: SCR-DC-007 (Document Control Audit Trail). Status: IMPLEMENTED. Lab scope: not laboratory-scoped; the screen shows Document Control rows only and answers only users whose role type is Reviewer, Section Head or System Administrator (verified) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L33-L35, L141-L152].
 
 ### MOD-DC-004 Document Control: configuration
 - Purpose: Administrative configuration of Document Types (with default review cycles), Departments, Sections, document numbering sequence configuration (prefix, digit format, sequence counter), and global module settings (e.g. controlled copy download permissions). [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L46-L684; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentConfigurationController.cs:L15-L150; backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L12-L100]
-- Sub-features: SCR-DC-008 (Document Control Configuration). Status: IMPLEMENTED. Lab scope: Global system configuration; gated strictly to SystemAdministrator via `Documents.ConfigManage`. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L231-L233]
+- Sub-features: SCR-DC-008 (Document Control Configuration). Status: IMPLEMENTED. Lab scope: global system configuration. Writes need the permission `Documents.ConfigManage` AND the System Administrator role type; reading the lists needs only sign-in (verified) [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentConfigurationController.cs:L37; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L229-L233].
 
 ### MOD-DC-005 Document escalations (backend)
 - Purpose: Automated and manual evaluation of document training assignments nearing due dates or overdue; manages three-tiered escalation triggers (Level 1: ApproachingDue, Level 2: Due, Level 3: Overdue) with recipient routing (AssignedUser, Manager, QACompliance), automatic status transitions to Overdue, escalation history retrieval, and manager resolution with regulatory audit. [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L16-L91; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L18-L180]
-- Sub-features: None (backend REST API endpoints and background worker `DocumentEffectiveDateWorker` only; see GAP-807). Status: NOT-EXPOSED-IN-UI. Lab scope: System-wide. [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L18, L51-L87]
+- Sub-features: None (backend REST API endpoints and the background worker `DocumentEffectiveDateWorker` only; the same worker, every 60 minutes by default, also activates FutureEffective revisions, creates periodic review tasks and raises these escalations; see GAP-807). Status: NOT-EXPOSED-IN-UI. Lab scope: System-wide. [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L18, L51-L87; backend/MicroLIMS.API/BackgroundServices/DocumentEffectiveDateWorker.cs:L17, L103-L143].
 
 ## screens
 
@@ -44,8 +44,8 @@
 - SCR-REPORTS-001 Reports — Overview tab. Route `/reports` (or `/reports?tab=overview`) [src: frontend/src/routes/AppRoutes.tsx:L115; frontend/src/pages/Reports.tsx:L25, L116-L123].
   - Who can open: Any authenticated user (no specific permission guard beyond route authentication) [src: frontend/src/routes/AppRoutes.tsx:L114-L116; backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
   - Page header: Title "Reports", Subtitle "Search, trend, and export laboratory results." [src: frontend/src/pages/Reports.tsx:L92].
-  - Quick period selector: Rendered above tabs for all tabs except tab 5 (KPI tab); options: "30d" (default, 30 days back), "90d" (90 days back), "1y" (365 days back), "custom" (with HTML5 date inputs "From date" and "To date") [src: frontend/src/pages/Reports.tsx:L70-L83, L94-L102; frontend/src/modules/reports/components/QuickPeriodSelector.tsx:L16-L70].
-  - Live data indicator: Header text "Operational Metrics: Aggregated directly from live laboratory ResultRecords" with VerifiedUserIcon and static Chip label "Live Database Data" [src: frontend/src/modules/reports/components/OverviewTab.tsx:L113-L125].
+  - Quick period selector: Rendered above tabs for all tabs except tab 5 (KPI tab); options: "30d" (default, 30 days back), "90d" (90 days back), "1y" (365 days back), "custom" (with HTML5 date inputs "From date" and "To date") [src: frontend/src/pages/Reports.tsx:L72-L98; frontend/src/modules/reports/components/QuickPeriodSelector.tsx:L6-L52].
+  - Live data indicator: Header text "Operational Metrics: Aggregated directly from live laboratory ResultRecords" with VerifiedUserIcon and static Chip label "Live Database Data" [src: frontend/src/modules/reports/components/OverviewTab.tsx:L117-L122].
   - 6 Top KPI Cards (`KpiCard`):
     - "Total Tests": value (total tests formatted), delta percent (100% if >0, else 0%), delta direction "up", comparison label "live database records" [src: frontend/src/modules/reports/services/OverviewService.ts:L133-L139; frontend/src/modules/reports/components/OverviewTab.tsx:L129-L136].
     - "Approved Results": value, delta percent (`Math.round((approvedCount / totalCount) * 100)`), delta direction "up", comparison label `{approvedCount} of {totalCount} approved` [src: frontend/src/modules/reports/services/OverviewService.ts:L140-L146; frontend/src/modules/reports/components/OverviewTab.tsx:L137-L144].
@@ -54,126 +54,126 @@
     - "Out of Spec": value, delta percent (outOfSpecCount), delta direction ("up" if >0, else "down"), comparison label "quality signal (independent of analyst)", variant ("error" if >0, else "default"), tooltip "Laboratory Quality Metric: Evaluated independently of analyst performance" [src: frontend/src/modules/reports/services/OverviewService.ts:L161-L169; frontend/src/modules/reports/components/OverviewTab.tsx:L161-L168].
     - "Alert / Action Level": value, delta percent (alertActionCount), delta direction ("up" if >0, else "down"), comparison label "exceeded alert or action thresholds", variant ("warning" if >0, else "default") [src: frontend/src/modules/reports/services/OverviewService.ts:L170-L177; frontend/src/modules/reports/components/OverviewTab.tsx:L169-L176].
   - Middle row visualizations:
-    - "Results by Category" (Donut/Pie chart): outerRadius 80, innerRadius 55, center label showing total tests count and "TOTAL"; right legend list with percentage and color dot [src: frontend/src/modules/reports/components/OverviewTab.tsx:L182-L252]. Empty state: "No matching records found" [src: L193].
-    - "Results by Test" (Horizontal Bar chart): Top 10 tests by volume; y-axis width 156px, truncated with ellipsis, hover tooltip; bar label list on right with test count [src: frontend/src/modules/reports/components/OverviewTab.tsx:L254-L300; backend/MicroLIMS.Application/Services/ReportingQueryService.cs:L314-L320].
-    - "Results by Location / Point" (Donut/Pie chart): Top 7 locations by volume; center text showing total location count and "Total"; right legend list with percentage and count [src: frontend/src/modules/reports/components/OverviewTab.tsx:L303-L359; backend/MicroLIMS.Application/Services/ReportingQueryService.cs:L325-L331].
+    - "Results by Category" (Donut/Pie chart): outerRadius 80, innerRadius 55, center label showing total tests count and "TOTAL"; right legend list with percentage and color dot [src: frontend/src/modules/reports/components/OverviewTab.tsx:L181-L228]. Empty state: "No matching records found" [src: frontend/src/modules/reports/components/OverviewTab.tsx:L181-L228].
+    - "Results by Test" (Horizontal Bar chart): Top 10 tests by volume; y-axis width 156px, truncated with ellipsis, hover tooltip; bar label list on right with test count [src: frontend/src/modules/reports/components/OverviewTab.tsx:L254-L262; backend/MicroLIMS.Application/Services/ReportingQueryService.cs:L314-L320].
+    - "Results by Location / Point" (Donut/Pie chart): Top 7 locations by volume; center text showing total location count and "Total"; right legend list with percentage and count [src: frontend/src/modules/reports/components/OverviewTab.tsx:L302-L338; backend/MicroLIMS.Application/Services/ReportingQueryService.cs:L325-L331].
   - Bottom row panels:
-    - "Recent Results" table: Header button "View in Search" (navigates to tab 1); columns: "Subject / Ref" (subjectName, referenceNumber underneath), "Test" (testDisplayName), "Date Entered" (dd MMM yyyy HH:mm), "Entered By" (resultEnteredByName), "Status" (Chip: Approved=success, Rejected=error, other=warning); rows clickable to navigate to tab 1 [src: frontend/src/modules/reports/components/OverviewTab.tsx:L365-L420].
-    - "Quality Signals" card: Out of Spec (count, red error styling), Alert / Action Level (count, amber warning styling), Pending Review (count, purple styling), Pending Approval (count, green styling) [src: frontend/src/modules/reports/components/OverviewTab.tsx:L423-L474].
-    - "Quick Actions" card: Action buttons: "Search Records" (startIcon `<SearchIcon />`, navigates to tab 1), "Trending & Analysis" (startIcon `<ShowChartIcon />`, navigates to tab 4), "KPI / Performance" (startIcon `<AssessmentIcon />`, navigates to tab 5; rendered only when `canViewKpi` is true) [src: frontend/src/modules/reports/components/OverviewTab.tsx:L477-L518].
+    - "Recent Results" table: Header button "View in Search" (navigates to tab 1); columns: "Subject / Ref" (subjectName, referenceNumber underneath), "Test" (testDisplayName), "Date Entered" (dd MMM yyyy HH:mm), "Entered By" (resultEnteredByName), "Status" (Chip: Approved=success, Rejected=error, other=warning); rows clickable to navigate to tab 1 [src: frontend/src/modules/reports/components/OverviewTab.tsx:L362-L407].
+    - "Quality Signals" card: Out of Spec (count, red error styling), Alert / Action Level (count, amber warning styling), Pending Review (count, purple styling), Pending Approval (count, green styling) [src: frontend/src/modules/reports/components/OverviewTab.tsx:L362-L430].
+    - "Quick Actions" card: Action buttons: "Search Records" (startIcon `<SearchIcon />`, navigates to tab 1), "Trending & Analysis" (startIcon `<ShowChartIcon />`, navigates to tab 4), "KPI / Performance" (startIcon `<AssessmentIcon />`, navigates to tab 5; rendered only when `canViewKpi` is true) [src: frontend/src/modules/reports/components/OverviewTab.tsx:L476-L513].
 
 - SCR-REPORTS-002 Reports — Record Search tab. Route `/reports?tab=search` [src: frontend/src/pages/Reports.tsx:L25, L125-L133].
   - Who can open: Any authenticated user [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
   - Layout: Two-column grid (Left: 300px filter panel + quick reports tiles; Right: results table) [src: frontend/src/modules/reports/RecordSearchTab.tsx:L84-L115].
   - Filter panel (`ReportFilterPanel`):
-    - Header: "Filters", Link button "Reset" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L40-L45].
-    - "Search" (text input): placeholder "Search Sample ID, Batch No., Item, Test, Location..." [src: L48-L54].
-    - "Result Type" (select): options "All", "Quantitative", "Qualitative" [src: L56-L67].
-    - "Category" (select): options "All" plus categories from backend `filter-options` [src: L69-L81].
-    - "Test" (select): options "All" plus tests from backend `filter-options` (label: `{testCode} - {testDisplayName}`) [src: L83-L95].
-    - "Result Level" (segmented button row): "All", "Within Limit", "Alert Level", "Action Level", "Out of Spec" [src: L97-L120].
-    - "Status" (select): options "All", "Received", "InTesting", "UnderReview", "UnderApproval", "Approved", "Rejected", "RetestRequested" [src: L122-L132].
-    - "Approval Status" (select): options "All", "Approved", "Pending", "Rejected" [src: L134-L144].
-    - "Date Range" (two date inputs): "From date" and "To date" [src: L146-L164].
-    - "Location / Point" (select): options "All" plus distinct subject names from backend `filter-options` [src: L166-L176].
-    - Primary button: "Search Records" (triggers API query) [src: L178].
+    - Header: "Filters", Link button "Reset" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L29-L43].
+    - "Search" (text input): placeholder "Search Sample ID, Batch No., Item, Test, Location..." [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L6-L138].
+    - "Result Type" (select): options "All", "Quantitative", "Qualitative" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L57-L65].
+    - "Category" (select): options "All" plus categories from backend `filter-options` [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L70-L74].
+    - "Test" (select): options "All" plus tests from backend `filter-options` (label: `{testCode} - {testDisplayName}`) [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L83-L95].
+    - "Result Level" (segmented button row): "All", "Within Limit", "Alert Level", "Action Level", "Out of Spec" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L98].
+    - "Status" (select): options "All", "Received", "InTesting", "UnderReview", "UnderApproval", "Approved", "Rejected", "RetestRequested" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L123-L139].
+    - "Approval Status" (select): options "All", "Approved", "Pending", "Rejected" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L135-L139].
+    - "Date Range" (two date inputs): "From date" and "To date" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L147-L159].
+    - "Location / Point" (select): options "All" plus distinct subject names from backend `filter-options` [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L167-L171].
+    - Primary button: "Search Records" (triggers API query) [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L178].
   - Quick Reports Tiles (`QuickReportsTiles`):
     - Header: "Quick Reports" [src: frontend/src/modules/reports/components/QuickReportsTiles.tsx:L52].
-    - 8 clickable tiles: "Product", "Raw Material", "Water", "Environmental Monitoring", "After Cleaning", "Media/GPT" (switches to tab 2), "Reference Strains" (switches to tab 3), "Custom Report" (resets filters and focuses Search field) [src: L12-L21, L38-L48].
+    - 8 clickable tiles: "Product", "Raw Material", "Water", "Environmental Monitoring", "After Cleaning", "Media/GPT" (switches to tab 2), "Reference Strains" (switches to tab 3), "Custom Report" (resets filters and focuses Search field) [src: frontend/src/modules/reports/components/QuickReportsTiles.tsx:L13-L20].
   - Results Table (`ReportResultsTable`):
-    - Header: "Search Results", Chip `"{totalCount} Records Found"` [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L305-L308].
+    - Header: "Search Results", Chip `"{totalCount} Records Found"` [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L306].
     - Action buttons (top right):
-      - "Columns" (startIcon `<ViewColumnIcon />`) -> dropdown menu with checkboxes to toggle visible columns [src: L310-L312, L334-L341].
-      - "Export PDF" (startIcon `<PictureAsPdfIcon />`, disabled when totalCount === 0) -> generates client-side printable PDF of current page [src: L313-L321, L164-L171].
-      - "Export CSV" (startIcon `<FileDownloadIcon />`, disabled when exporting or totalCount === 0) -> opens ConfirmationDialog [src: L322-L330].
-    - Confirmation Dialog: Message `This will export {totalCount} row(s) matching your current filters as a CSV file. This export will be logged.` Buttons: Cancel, Confirm [src: L484-L489].
+      - "Columns" (startIcon `<ViewColumnIcon />`) -> dropdown menu with checkboxes to toggle visible columns [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L245-L337].
+      - "Export PDF" (startIcon `<PictureAsPdfIcon />`, disabled when totalCount === 0) -> generates client-side printable PDF of current page [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L320].
+      - "Export CSV" (startIcon `<FileDownloadIcon />`, disabled when exporting or totalCount === 0) -> opens ConfirmationDialog [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L329].
+    - Confirmation Dialog: Message `This will export {totalCount} row(s) matching your current filters as a CSV file. This export will be logged.` Buttons: Cancel, Confirm [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L484-L489].
     - Multi-selection bar (active when rows selected or select all clicked):
-      - Link "Select All {totalCount} Matching Records" (selects every Approved result matching filters) [src: L348-L352].
-      - Counter text: `All {totalCount} selected` or `{selectionCount} selected`, Link "Clear" [src: L354-L362].
-      - Button "Export Selected PDF" [src: L367-L374].
-      - Button "Export Selected CSV" [src: L375-L382].
-      - Button "Analyze Selected" (navigates to Trending tab with first selected record's testCode and subjectName) [src: L383-L395].
+      - Link "Select All {totalCount} Matching Records" (selects every Approved result matching filters) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L348-L352].
+      - Counter text: `All {totalCount} selected` or `{selectionCount} selected`, Link "Clear" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L359-L408].
+      - Button "Export Selected PDF" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L373].
+      - Button "Export Selected CSV" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L381].
+      - Button "Analyze Selected" (navigates to Trending tab with first selected record's testCode and subjectName) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L393].
     - Columns available (11 total):
-      1. "Date/Time" (`dateTime`): date on top, time underneath (`dd MMM yyyy`, `HH:mm`) [src: L31, L250-L256].
-      2. "Sample/Reference" (`reference`): clickable link opening `RecordDetailDialog` [src: L32, L258-L268].
-      3. "Item/Location" (`subject`): subject name, with subjectDetail underneath if present [src: L33, L269-L274].
-      4. "Type" (`type`): `CategoryBadge` [src: L34, L275].
-      5. "Test" (`test`): testCode [src: L35, L276].
-      6. "Result" (`result`): reportedValue (bold) [src: L36, L277].
-      7. "Unit" (`unit`): unit string or "—" [src: L37, L278].
-      8. "Result Level" (`resultLevel`): "—" if NotApplicable, else `StatusBadge` [src: L38, L279-L281].
-      9. "Status" (`status`): `StatusBadge` (approval status) [src: L39, L282].
-      10. "Approved By" (`approvedBy`): approvedByName or "—" [src: L40, L283].
-      11. "Approval Date" (`approvalDate`): formatted date (`dd MMM yyyy`) or "—" [src: L41, L284].
-      12. Row action menu button (icon `<MoreVertIcon />`): "View Record Details", "Analyze Trend", "Copy Reference Number" [src: L289-L298, L430-L460].
-    - Pagination: Rows per page select (`[10, 25, 50, 100]`), page counter `{pageStart} - {pageEnd} of {totalCount}`, Previous page button, Next page button [src: L24, L462-L480].
-    - Empty state: Title "No results found", subtitle "Try widening the date range or clearing some filters.", Button "Clear Filters" [src: L403-L410].
+      1. "Date/Time" (`dateTime`): date on top, time underneath (`dd MMM yyyy`, `HH:mm`) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L31].
+      2. "Sample/Reference" (`reference`): clickable link opening `RecordDetailDialog` [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L32].
+      3. "Item/Location" (`subject`): subject name, with subjectDetail underneath if present [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L33].
+      4. "Type" (`type`): `CategoryBadge` [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L34, L275].
+      5. "Test" (`test`): testCode [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L35, L276].
+      6. "Result" (`result`): reportedValue (bold) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L19-L121].
+      7. "Unit" (`unit`): unit string or "—" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L37, L278].
+      8. "Result Level" (`resultLevel`): "—" if NotApplicable, else `StatusBadge` [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L38].
+      9. "Status" (`status`): `StatusBadge` (approval status) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L15-L122].
+      10. "Approved By" (`approvedBy`): approvedByName or "—" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L40].
+      11. "Approval Date" (`approvalDate`): formatted date (`dd MMM yyyy`) or "—" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L41].
+      12. Row action menu button (icon `<MoreVertIcon />`): "View Record Details", "Analyze Trend", "Copy Reference Number" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L438-L458].
+    - Pagination: Rows per page select (`[10, 25, 50, 100]`), page counter `{pageStart} - {pageEnd} of {totalCount}`, Previous page button, Next page button [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L24, L462-L480].
+    - Empty state: Title "No results found", subtitle "Try widening the date range or clearing some filters.", Button "Clear Filters" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L404-L408].
 
 - SCR-REPORTS-003 Reports — Media / GPT tab. Route `/reports?tab=media-gpt` [src: frontend/src/pages/Reports.tsx:L25, L135-L140].
   - Who can open: Any authenticated user [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
-  - Filter panel (`MediaGptFilterPanel`): Search input, Media Type (select), Evaluation Type (select: default "GrowthPromotion"), Evaluation Outcome (select: "Conform", "NonConform"), Approval Status (select), Date Range; buttons Reset, Search [src: frontend/src/modules/reports/components/MediaGptFilterPanel.tsx:L1-L150; frontend/src/modules/reports/MediaGptReportTab.tsx:L26].
+  - Filter panel (`MediaGptFilterPanel`): Search input, Media Type (select), Evaluation Type (select: default "GrowthPromotion"), Evaluation Outcome (select: "Conform", "NonConform"), Approval Status (select), Date Range; buttons Reset, Search [src: frontend/src/modules/reports/components/MediaGptFilterPanel.tsx:L58-L89; frontend/src/modules/reports/MediaGptReportTab.tsx:L26].
   - Top summary card (`MediaGptSummaryCard`): Total Media Lots, Growth Promotion Passed, GPT Failed, Pending Evaluation, Overall Pass Rate (%) [src: frontend/src/modules/reports/components/MediaGptSummaryCard.tsx:L1-L100].
   - Results table (`MediaGptResultsTable`):
-    - Header: "Media Preparation & GPT Records", subtitle `Showing {from}–{to} of {totalCount} lots` [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L193-L199].
-    - Action buttons: "Export CSV (Flattened)" / "Exporting..." (downloads flattened challenge CSV), "Print / PDF View" (opens printable report window) [src: L204-L225].
+    - Header: "Media Preparation & GPT Records", subtitle `Showing {from}–{to} of {totalCount} lots` [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L194].
+    - Action buttons: "Export CSV (Flattened)" / "Exporting..." (downloads flattened challenge CSV), "Print / PDF View" (opens printable report window) [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L212-L223].
     - Columns:
-      1. "Lot Number": lotNumber (bold primary color) [src: L119-L121].
-      2. "Media Type": mediaType [src: L122].
-      3. "Prep Date": preparedAt formatted (`dd MMM yyyy`) [src: L123].
-      4. "Expiry Date": expiryDate formatted (`dd MMM yyyy`) [src: L124].
-      5. "Evaluation": Chip ("GPT" for GrowthPromotion) [src: L125-L131].
-      6. "Outcome": Chip (Conform=success, NonConform=error, other=warning), challenge count caption `{conformed}/{total} Challenges` [src: L132-L150].
-      7. "Approval Status": Chip (Approved=success, Rejected=error), "Released" green text if released for use [src: L151-L165].
-      8. "Prepared By": preparedByName [src: L166].
-      9. "Approved By": approvedByName, approvedAt formatted underneath [src: L167-L176].
-      10. "Actions": Tooltip "View Traceability Details", IconButton `<VisibilityIcon />` opens `MediaGptDetailDialog` (shows autoclave cycle, load type, temperature, pH, challenge organism ATCC, recovery %, reference media lot, incubation results) [src: L177-L186; frontend/src/modules/reports/components/MediaGptDetailDialog.tsx:L1-L200].
+      1. "Lot Number": lotNumber (bold primary color) [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L119].
+      2. "Media Type": mediaType [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L112-L122].
+      3. "Prep Date": preparedAt formatted (`dd MMM yyyy`) [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L123].
+      4. "Expiry Date": expiryDate formatted (`dd MMM yyyy`) [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L124].
+      5. "Evaluation": Chip ("GPT" for GrowthPromotion) [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L112-L125].
+      6. "Outcome": Chip (Conform=success, NonConform=error, other=warning), challenge count caption `{conformed}/{total} Challenges` [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L132-L139].
+      7. "Approval Status": Chip (Approved=success, Rejected=error), "Released" green text if released for use [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L151-L161].
+      8. "Prepared By": preparedByName [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L166].
+      9. "Approved By": approvedByName, approvedAt formatted underneath [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L167].
+      10. "Actions": Tooltip "View Traceability Details", IconButton `<VisibilityIcon />` opens `MediaGptDetailDialog` (shows autoclave cycle, load type, temperature, pH, challenge organism ATCC, recovery %, reference media lot, incubation results) [src: frontend/src/modules/reports/components/MediaGptResultsTable.tsx:L177-L179; frontend/src/modules/reports/components/MediaGptDetailDialog.tsx:L1-L200].
 
 - SCR-REPORTS-004 Reports — Reference Strains tab. Route `/reports?tab=reference-strains` [src: frontend/src/pages/Reports.tsx:L25, L141-L143].
   - Who can open: Any authenticated user [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
   - Filter panel (`ReferenceStrainFilterPanel`): Search input, Organism (select), Approval Status (select), Active / Destroyed status, Receipt date range, Usage date range; buttons Reset, Search [src: frontend/src/modules/reports/components/ReferenceStrainFilterPanel.tsx:L1-L120].
   - Results table (`ReferenceStrainResultsTable`):
-    - Header: "Reference Strains & Working Culture Batches", subtitle `Showing {from}–{to} of {totalCount} batches` [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L203-L209].
-    - Action buttons: "Export CSV" / "Exporting..." (downloads cryovial batch CSV), "Print / PDF View" (generates printable PDF report) [src: L214-L235].
+    - Header: "Reference Strains & Working Culture Batches", subtitle `Showing {from}–{to} of {totalCount} batches` [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L204].
+    - Action buttons: "Export CSV" / "Exporting..." (downloads cryovial batch CSV), "Print / PDF View" (generates printable PDF report) [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L222-L233].
     - Columns:
-      1. "Strain / ATCC": strainName, ATCC number caption [src: L119-L130].
-      2. "Cryovial Code": cryovialCode (bold) [src: L131].
-      3. "Manufacturer": manufacturerName, batch number caption [src: L132-L140].
-      4. "Receipt Date": receiptDate formatted [src: L142].
-      5. "Prep Date": preparedAt formatted [src: L143].
-      6. "Expiry Date": expiryDate formatted [src: L144].
-      7. "Vials Remaining": Chip `{vialsRemaining} / {numberOfVialsPrepared}` [src: L145-L152].
-      8. "Storage": storageCondition [src: L153].
-      9. "Approval Status": Chip (Approved=success, Rejected=error), "Destroyed" red caption if isDestroyed [src: L154-L168].
-      10. "Prepared By": preparedByName [src: L169].
-      11. "Approved By": approvedByName, approvedAt formatted underneath [src: L170-L179].
-      12. "GPT Usage": Chip `{directUsageCount} GPT` [src: L180-L186].
-      13. "Actions": Tooltip "View Batch Traceability", IconButton `<VisibilityIcon />` opens `ReferenceStrainDetailDialog` (shows thaw history, purity confirmations, direct GPT challenges, and indirect sample test order qualifications) [src: L187-L195; frontend/src/modules/reports/components/ReferenceStrainDetailDialog.tsx:L1-L220].
+      1. "Strain / ATCC": strainName, ATCC number caption [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L119].
+      2. "Cryovial Code": cryovialCode (bold) [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L131].
+      3. "Manufacturer": manufacturerName, batch number caption [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L132].
+      4. "Receipt Date": receiptDate formatted [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L142].
+      5. "Prep Date": preparedAt formatted [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L143].
+      6. "Expiry Date": expiryDate formatted [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L144].
+      7. "Vials Remaining": Chip `{vialsRemaining} / {numberOfVialsPrepared}` [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L145].
+      8. "Storage": storageCondition [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L153].
+      9. "Approval Status": Chip (Approved=success, Rejected=error), "Destroyed" red caption if isDestroyed [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L154-L164].
+      10. "Prepared By": preparedByName [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L169].
+      11. "Approved By": approvedByName, approvedAt formatted underneath [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L170].
+      12. "GPT Usage": Chip `{directUsageCount} GPT` [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L180].
+      13. "Actions": Tooltip "View Batch Traceability", IconButton `<VisibilityIcon />` opens `ReferenceStrainDetailDialog` (shows thaw history, purity confirmations, direct GPT challenges, and indirect sample test order qualifications) [src: frontend/src/modules/reports/components/ReferenceStrainResultsTable.tsx:L187-L189; frontend/src/modules/reports/components/ReferenceStrainDetailDialog.tsx:L1-L220].
 
 - SCR-REPORTS-005 Reports — Trending & Analysis tab. Route `/reports?tab=trending` [src: frontend/src/pages/Reports.tsx:L25, L145-L150].
   - Who can open: Any authenticated user [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
   - Layout: Three-column layout (Left: Analysis Criteria; Center: Trend Chart & Statistics; Right: Analysis Actions & Compare) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L189].
   - Left column ("Analysis Criteria"):
-    - Parameter / Test (select): populated from backend filter options; fallback to hardcoded tests ("TAMC", "TYMC", "WATER_TAMC", "PATHOGEN_ECOLI") when empty [src: L202-L225].
-    - Product / Item (select) or Location cascade: for Water/EM/AfterCleaning, renders `LocationCascadeFilter`; for flat categories, renders select populated from backend filter options; fallback to hardcoded product/item names (including a hardcoded product name) when empty [src: L227-L260].
-    - Category (select): FinishedProduct, RawMaterial, Water, EnvironmentalMonitoring [src: L261-L285].
-    - Date Range (select): "Last 30 Days" (`30d`), "Last 3 Months" (`3m`), "Last 6 Months" (`6m`), "Last 12 Months" (`12m`, default) [src: L286-L300].
-    - Compare With (select): "None" (default), "Previous Period", "Product Comparison" (opens CompareDialog in products mode), "Location Comparison" (opens CompareDialog in locations mode) [src: L301-L327].
-    - Button: "Apply Criteria" [src: L329-L331].
+    - Parameter / Test (select): populated from backend filter options; fallback to hardcoded tests ("TAMC", "TYMC", "WATER_TAMC", "PATHOGEN_ECOLI") when empty [src: frontend/src/modules/reports/components/TrendingTab.tsx:L220-L221].
+    - Product / Item (select) or Location cascade: for Water/EM/AfterCleaning, renders `LocationCascadeFilter`; for flat categories, renders select populated from backend filter options; fallback to hardcoded product/item names (including a hardcoded product name) when empty [src: frontend/src/modules/reports/components/TrendingTab.tsx:L227-L260].
+    - Category (select): FinishedProduct, RawMaterial, Water, EnvironmentalMonitoring [src: frontend/src/modules/reports/components/TrendingTab.tsx:L261-L285].
+    - Date Range (select): "Last 30 Days" (`30d`), "Last 3 Months" (`3m`), "Last 6 Months" (`6m`), "Last 12 Months" (`12m`, default) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L294-L345].
+    - Compare With (select): "None" (default), "Previous Period", "Product Comparison" (opens CompareDialog in products mode), "Location Comparison" (opens CompareDialog in locations mode) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L309-L325].
+    - Button: "Apply Criteria" [src: frontend/src/modules/reports/components/TrendingTab.tsx:L330].
   - Center column:
-    - Trend Chart Card: Header with test name, subject name, period, Chip ("Live Numeric Trend ({unit})" or "Qualitative Detection Event Log") [src: L338-L362].
-    - For numeric results: ComposedChart with solid horizontal gridline, Results line (colored dots: green/blue normal, amber Alert, orange Action, red OOS; clickable to open `RecordDetailDialog`), Upper Limit (USL, red dashed "5 5"), Action Level (orange dashed "3 3"), Alert Level (amber dashed "2 2"), Mean line (purple dashed "4 4") [src: L376-L450].
-    - For qualitative results: Pathogen Detection Event table (Reference, Item/Location, Pathogen, Result, Date Entered, Entered By, Status); empty state: "No Pathogen Detection Events — Zero detections recorded... All samples conformed (Absent / Negative)" [src: L452-L519].
+    - Trend Chart Card: Header with test name, subject name, period, Chip ("Live Numeric Trend ({unit})" or "Qualitative Detection Event Log") [src: frontend/src/modules/reports/components/TrendingTab.tsx:L353].
+    - For numeric results: ComposedChart with solid horizontal gridline, Results line (colored dots: green/blue normal, amber Alert, orange Action, red OOS; clickable to open `RecordDetailDialog`), Upper Limit (USL, red dashed "5 5"), Action Level (orange dashed "3 3"), Alert Level (amber dashed "2 2"), Mean line (purple dashed "4 4") [src: frontend/src/modules/reports/components/TrendingTab.tsx:L376-L450].
+    - For qualitative results: Pathogen Detection Event table (Reference, Item/Location, Pathogen, Result, Date Entered, Entered By, Status); empty state: "No Pathogen Detection Events — Zero detections recorded... All samples conformed (Absent / Negative)" [src: frontend/src/modules/reports/components/TrendingTab.tsx:L452-L519].
     - Statistics Summary:
-      - For numeric (10 metric cards): "No. of Results", "Minimum", "Maximum", "Mean", "Median", "Std. Deviation", "% Within Spec", "% Alert Level", "% Action Level", "Out of Spec" [src: L528-L669].
-      - For qualitative (4 metric cards): "Detection Events", "Pathogen Parameter", "Surveillance Result" ("Conformant / Negative" or "Action Required"), "Period Range" [src: L671-L721].
+      - For numeric (10 metric cards): "No. of Results", "Minimum", "Maximum", "Mean", "Median", "Std. Deviation", "% Within Spec", "% Alert Level", "% Action Level", "Out of Spec" [src: frontend/src/modules/reports/components/TrendingTab.tsx:L537-L663].
+      - For qualitative (4 metric cards): "Detection Events", "Pathogen Parameter", "Surveillance Result" ("Conformant / Negative" or "Action Required"), "Period Range" [src: frontend/src/modules/reports/components/TrendingTab.tsx:L678-L714].
   - Right column:
-    - "Analysis Actions": Button "View Data Table" (opens `TrendingDataDialog`), Button "Export" (opens Menu: "CSV (Data Table)", "PDF (Data Table)", "PDF (Data Table + Chart)") [src: L727-L755].
-    - "Quick Compare": Button "Compare Products" (startIcon `<CompareArrowsIcon />`, opens `CompareDialog` in products mode), Button "Compare Locations" (startIcon `<LocationOnIcon />`, opens `CompareDialog` in locations mode) [src: L757-L785].
-    - "Drill Down" info card: "Click on any individual data point in the chart to inspect its underlying laboratory record in read-only mode." [src: L787-L794].
+    - "Analysis Actions": Button "View Data Table" (opens `TrendingDataDialog`), Button "Export" (opens Menu: "CSV (Data Table)", "PDF (Data Table)", "PDF (Data Table + Chart)") [src: frontend/src/modules/reports/components/TrendingTab.tsx:L725-L751].
+    - "Quick Compare": Button "Compare Products" (startIcon `<CompareArrowsIcon />`, opens `CompareDialog` in products mode), Button "Compare Locations" (startIcon `<LocationOnIcon />`, opens `CompareDialog` in locations mode) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L759-L782].
+    - "Drill Down" info card: "Click on any individual data point in the chart to inspect its underlying laboratory record in read-only mode." [src: frontend/src/modules/reports/components/TrendingTab.tsx:L789].
   - Compare Dialog (`CompareDialog`):
-    - Title: "Multi-Series Trend Comparison", subtitle `{testDisplayName}: every subject with results in the selected date range` [src: frontend/src/modules/reports/components/CompareDialog.tsx:L55-L61].
-    - Tabs: "Compare Products / Items" (`products`), "Compare Sampling Locations / Points" (`locations`) [src: L62-L69].
-    - Table columns: Product / Item (or Location / Point), Tests Evaluated, Mean Result (numeric) or % Detected (qualitative), Alert / Action, OOS Count, % Within Spec (numeric) or % Not Detected (qualitative) [src: L85-L100].
+    - Title: "Multi-Series Trend Comparison", subtitle `{testDisplayName}: every subject with results in the selected date range` [src: frontend/src/modules/reports/components/CompareDialog.tsx:L57].
+    - Tabs: "Compare Products / Items" (`products`), "Compare Sampling Locations / Points" (`locations`) [src: frontend/src/modules/reports/components/CompareDialog.tsx:L67-L68].
+    - Table columns: Product / Item (or Location / Point), Tests Evaluated, Mean Result (numeric) or % Detected (qualitative), Alert / Action, OOS Count, % Within Spec (numeric) or % Not Detected (qualitative) [src: frontend/src/modules/reports/components/CompareDialog.tsx:L85-L100].
 
 ### MOD-REPORTS-002 Reporting backfill
 - None. Backend endpoint only (`POST /api/admin/reporting/backfill`). Status: NOT-EXPOSED-IN-UI (see GAP-803).
@@ -183,13 +183,13 @@
   - Who can open: Users holding `Kpi.View` (`PERMISSIONS.KPI_VIEW`); tab is completely hidden from the tab bar for users without this permission [src: frontend/src/pages/Reports.tsx:L36-L41; backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L14].
   - Filters bar (`KpiFilters`):
     - "From" (date input), "To" (date input); validated: required, From <= To [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L56-L65; backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L93-L99].
-    - "Category" (select, default "All categories") [src: L67-L72].
-    - "Location / subject" (select, default "All locations") [src: L73-L79].
-    - "Test" (select, default "All tests") [src: L80-L86].
+    - "Category" (select, default "All categories") [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L67-L70].
+    - "Location / subject" (select, default "All locations") [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L74-L77].
+    - "Test" (select, default "All tests") [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L84].
     - Action buttons (right-aligned):
-      - "Definitions" (startIcon `<InfoOutlinedIcon />`) -> opens `DefinitionsDrawer` [src: L89].
-      - "Workflow Profiles" (startIcon `<TuneIcon />`, visible only if user holds `Kpi.ConfigureProfiles`) -> opens `WorkflowProfilesDialog` [src: L90-L92].
-      - "Export PDF" (startIcon `<PictureAsPdfIcon />`, disabled while loading) -> generates printable A4 landscape report containing Headline measures, supporting series tables, and Workload table [src: L93, L80; frontend/src/modules/kpi/utils/exportKpiPdf.ts:L86-L167].
+      - "Definitions" (startIcon `<InfoOutlinedIcon />`) -> opens `DefinitionsDrawer` [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L89].
+      - "Workflow Profiles" (startIcon `<TuneIcon />`, visible only if user holds `Kpi.ConfigureProfiles`) -> opens `WorkflowProfilesDialog` [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L91].
+      - "Export PDF" (startIcon `<PictureAsPdfIcon />`, disabled while loading) -> generates printable A4 landscape report containing Headline measures, supporting series tables, and Workload table [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L93; frontend/src/modules/kpi/utils/exportKpiPdf.ts:L86-L167].
   - Metadata caption: `Calculated {timestamp} for your laboratory sections. Click any figure to see the records behind it.` [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L102-L104].
   - 8 Headline KPI Tiles (`KpiTile`):
     1. Sample turnaround time (`sample-tat`): unit "days", lower is better; median value, P90 extra, prior comparison. [src: backend/MicroLIMS.Application/Services/Kpi/SampleTatKpi.cs:L13-L20].
@@ -203,207 +203,154 @@
     - Clicking any tile calls `openRecords(key)`, opening `KpiRecordsDrawer` with paginated underlying record rows [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L64-L70, L125].
   - Section breakdowns (`KpiSection`):
     - "Flow": `stage-tat` (Time in each stage: Testing, Incubation, Review, Approval bar charts), `backlog-aging` (Backlog aging: testing/incubation vs review/approval in buckets <=50%, 50-100%, >100% of target). [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L23, L114].
-    - "Quality": `right-first-time`, `retest-rate`, `oos-rate`, `returns-by-test` (Returns by test: bar chart by test code). [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L24, L115].
-    - "Micro": `em-excursion-rate`, `incubation-reads-on-time`. [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L25, L116].
+    - "Quality": `right-first-time`, `retest-rate`, `oos-rate`, `returns-by-test` (Returns by test: bar chart by test code). [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L115].
+    - "Micro": `em-excursion-rate`, `incubation-reads-on-time`. [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L116].
   - Workload Table (`WorkloadTable`):
-    - Section header: "Workload", subtitle: `Listed alphabetically. Click a column heading to sort; the choice is not saved. Units are a planning estimate, not a performance score (1 unit = 1 standard analyst-hour).` [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L99-L103].
+    - Section header: "Workload", subtitle: `Listed alphabetically. Click a column heading to sort; the choice is not saved. Units are a planning estimate, not a performance score (1 unit = 1 standard analyst-hour).` [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L6-L99].
     - Informational alerts:
-      - If `data.onlyOwnRow`: "Showing your own numbers only." (D8 restriction for users without `Kpi.ViewTeam`) [src: L110].
-      - If `data.capacityUsesDefaults`: "Capacity assumes full availability and the default hours." [src: L111-L113].
-      - Warning chips: `{unassignedOpenTests} open tests have no analyst`, gap messages [src: L114-L119].
+      - If `data.onlyOwnRow`: "Showing your own numbers only." (D8 restriction for users without `Kpi.ViewTeam`) [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L110].
+      - If `data.capacityUsesDefaults`: "Capacity assumes full availability and the default hours." [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L112].
+      - Warning chips: `{unassignedOpenTests} open tests have no analyst`, gap messages [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L114-L119].
     - Table Columns:
-      1. "Analyst": analyst fullName as button, opens tests drawer [src: L128, L147-L155].
-      2. "Capacity (units)": capacityUnits formatted [src: L14, L67].
-      3. "Delivered units": deliveredUnits formatted + `{deliveredTests} tests` caption [src: L15, L69-L76].
-      4. "Utilisation": formatted ratio (e.g. 85.0%), chip "check profile" if `utilisationCheckProfile` (>100%) [src: L16, L78-L84].
-      5. "Open units": openUnits formatted [src: L17, L68].
-      6. "Forward load": formatted ratio, chip "Over capacity" if `forwardLoadOverCapacity` (>100% or open units with zero capacity) [src: L18, L85-L91].
-      7. "Weighted on time": formatted ratio (null if <5 tests) [src: L19, L92].
-      8. "Weighted right first time": formatted ratio (null if <5 tests) [src: L20, L93].
-      9. "Gaps": warning chips for `{unweightedTests} delivered tests unweighted`, `{unweightedOpenTests} open tests unweighted`, `{testsOnDefaultTarget} tests on the default target` [src: L140, L158-L163].
+      1. "Analyst": analyst fullName as button, opens tests drawer [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L128].
+      2. "Capacity (units)": capacityUnits formatted [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L14].
+      3. "Delivered units": deliveredUnits formatted + `{deliveredTests} tests` caption [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L15].
+      4. "Utilisation": formatted ratio (e.g. 85.0%), chip "check profile" if `utilisationCheckProfile` (>100%) [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L16].
+      5. "Open units": openUnits formatted [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L17].
+      6. "Forward load": formatted ratio, chip "Over capacity" if `forwardLoadOverCapacity` (>100% or open units with zero capacity) [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L18].
+      7. "Weighted on time": formatted ratio (null if <5 tests) [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L19].
+      8. "Weighted right first time": formatted ratio (null if <5 tests) [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L20].
+      9. "Gaps": warning chips for `{unweightedTests} delivered tests unweighted`, `{unweightedOpenTests} open tests unweighted`, `{testsOnDefaultTarget} tests on the default target` [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L140, L158-L163].
     - Clicking analyst name calls `openTests(userId)`, opening `KpiRecordsDrawer` listing the analyst's test orders [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L72-L78].
 
-- SCR-KPI-002 Workflow Profiles panel / dialog. Mounted from button "Workflow Profiles" on KPI tab [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L91; frontend/src/modules/kpi/components/WorkflowProfilesDialog.tsx:L1-L25].
+- SCR-KPI-002 Workflow Profiles panel / dialog. Mounted from button "Workflow Profiles" on KPI tab [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L91; frontend/src/modules/kpi/components/WorkflowProfilesDialog.tsx:L15].
   - Who can open: Users holding `Kpi.ConfigureProfiles` (`PERMISSIONS.KPI_CONFIGURE_PROFILES`) and `Kpi.View` [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L37; backend/MicroLIMS.API/Controllers/WorkflowProfilesController.cs:L16, L42].
   - Content:
     - Explanatory text: `Work units: 1 unit = 1 standard analyst-hour of hands-on work. Target: analyst-stage days. A version takes effect on its effective date and is never edited; correct a mistake by adding a new version. Tests without a profile stay unweighted - they are never counted as 1.0.` [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L94-L98].
-    - Gaps warning alert: `{N} workflow types without work units, {N} without a target, {N} tests need configuration` with switch "Needs configuration only" [src: L108-L120].
+    - Gaps warning alert: `{N} workflow types without work units, {N} without a target, {N} tests need configuration` with switch "Needs configuration only" [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L114].
     - Master table columns:
-      1. Expand chevron (`KeyboardArrowDownIcon` / `KeyboardArrowRightIcon`): expands test-level overrides [src: L142-L146].
-      2. "Workflow type": human label for live workflow types (e.g. "Count test (microbiology)", "Pathogen observation", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "Weight variation", "HPLC method assay", "Titration", "ICP-OES method assay") [src: L147; frontend/src/modules/kpi/types/workflowProfileTypes.ts:L3-L20].
-      3. "Work units": effective type default work units or "Not set" [src: L148].
-      4. "Target (days)": effective type default target days or "Not set" [src: L149].
-      5. "Last change": effectiveFrom date and signer/creator name [src: L150-L161].
-      6. "Status": Chip "Configured" (success), "Partial" (warning), or "Needs configuration" (default), plus Chip `"{N} draft(s)"` if drafts exist [src: L162-L169].
-      7. Actions: Button "History" (opens `ProfileHistoryDrawer`), Button "Add version" (opens `AddProfileVersionDialog`) [src: L170-L179].
+      1. Expand chevron (`KeyboardArrowDownIcon` / `KeyboardArrowRightIcon`): expands test-level overrides [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L142-L146].
+      2. "Workflow type": the type name with spaces inserted before each capital letter, so the screen reads "Count Test", "Observation", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "Weight Variation", "Hplc Method Assay", "Titration", "Icp Method Assay" (verified) [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L127; frontend/src/modules/kpi/types/workflowProfileTypes.ts:L6-L14].
+      3. "Work units": effective type default work units or "Not set" [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L128].
+      4. "Target (days)": effective type default target days or "Not set" [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L129].
+      5. "Last change": effectiveFrom date and signer/creator name [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L130].
+      6. "Status": Chip "Configured" (success), "Partial" (warning), or "Needs configuration" (default), plus chip "{n} draft" or "{n} drafts" if drafts exist [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L131, L165-L166].
+      7. Actions: Button "History" (opens `ProfileHistoryDrawer`), Button "Add version" (opens `AddProfileVersionDialog`) [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L171-L176].
     - Expanded test override table columns:
-      1. "Test": testCode [src: L198].
-      2. "Name": testName [src: L199].
-      3. "Work units": effective units [src: L200].
-      4. "Target (days)": effective target days [src: L201].
-      5. "Status": coverage chip + Chip "Override" if test-specific version exists [src: L202-L207].
-      6. Actions: Button "History", Button "Add version" / "Add override" [src: L208-L223].
+      1. "Test": testCode [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L187].
+      2. "Name": testName [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L188].
+      3. "Work units": effective units [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L189].
+      4. "Target (days)": effective target days [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L190].
+      5. "Status": coverage chip + Chip "Override" if test-specific version exists [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L191, L205].
+      6. Actions: Button "History", Button "Add version" / "Add override" [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L211-L220].
   - Add / Review Version Dialog (`AddProfileVersionDialog`):
     - Title: `Add version: {scope}` or `Review and sign: {scope}` [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L85].
-    - Helper note: `Leave a field empty to inherit it from the workflow type default.` (for tests) or `Applies to every test of this workflow type that has no override.` (for workflow types) [src: L99-L102].
+    - Helper note: `Leave a field empty to inherit it from the workflow type default.` (for tests) or `Applies to every test of this workflow type that has no override.` (for workflow types) [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L99-L102].
     - Fields:
-      - "Work units" (number input, min 0, step 0.01; helper text "1 unit = 1 standard analyst-hour of hands-on work") [src: L103-L112].
-      - "Target analyst days" (number input, min 0, step 0.01; helper text "Analyst-stage deadline, from assignment to submission for review") [src: L113-L121].
-      - "Effective from" (date input, shrink label; helper text "Cannot be in the past, except for the first version of this profile") [src: L122-L130].
-      - "Reason for change" (text input, required, multiline 3 rows; placeholder "e.g. SOP time study 2026") [src: L131-L140].
-    - Primary button: "Continue to sign" (disabled until valid units/target, reason non-empty, valid date) -> opens `SignatureDialog` [src: L91-L93, L144-L149].
-    - Electronic signature meaning statement: `I am adding a workflow profile version for {scope}: {u} work units (1 unit = 1 standard analyst-hour), {t} target analyst days, effective {effectiveFrom}. Reason: {reason}` with meaning `MasterDataChanged` [src: L51-L55; backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L81].
+      - "Work units" (number input, min 0, step 0.01; helper text "1 unit = 1 standard analyst-hour of hands-on work") [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L104-L109].
+      - "Target analyst days" (number input, min 0, step 0.01; helper text "Analyst-stage deadline, from assignment to submission for review") [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L114-L119].
+      - "Effective from" (date input, shrink label; helper text "Cannot be in the past, except for the first version of this profile") [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L123-L128].
+      - "Reason for change" (text input, required, multiline 3 rows; placeholder "e.g. SOP time study 2026") [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L132-L139].
+    - Primary button: "Continue to sign" (disabled until valid units/target, reason non-empty, valid date) -> opens `SignatureDialog` [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L92].
+    - Electronic signature meaning statement: `I am adding a workflow profile version for {scope}: {u} work units (1 unit = 1 standard analyst-hour), {t} target analyst days, effective {effectiveFrom}. Reason: {reason}` with meaning `MasterDataChanged` [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L51-L55; backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L81].
 
 ### MOD-KPI-002 Analyst availability and KPI section settings
 - None. Backend endpoints and services exist (`/api/kpi/settings/{sectionId}`, `/api/kpi/availability`), but no client screen or dialog is implemented. Status: NOT-EXPOSED-IN-UI (see GAP-802).
 
 ### MOD-DC-001 Document Control: library and document lifecycle
-- SCR-DC-001 Document Control Dashboard. Route `/document-control` [src: frontend/src/routes/AppRoutes.tsx:L246; frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L47-L476].
-  - Who can open: Any authenticated user (no specific route guard beyond authentication) [src: frontend/src/routes/AppRoutes.tsx:L245-L247].
-  - Page header: Title "Document Control Dashboard", Subtitle "Governance overview, quick status metrics, and recent activity." [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L150-L152].
-  - Header actions: Button "Register Document" (startIcon `<AddIcon />`, enabled if user holds `Documents.Register` permission; opens `RegisterDocumentDialog`) [src: L53, L158-L168].
-  - 6 KPI Summary Cards:
-    1. "Total Documents": count of active document masters, comparison caption "active registered masters" [src: L175-L184].
-    2. "Effective": count of active masters with an effective revision, comparison caption "released & current" [src: L190-L199].
-    3. "In Draft": count of active masters with current revision in Draft, comparison caption "authoring / in-progress" [src: L205-L214].
-    4. "Void / Retired": count of voided masters, comparison caption "registered in error" [src: L220-L229].
-    5. "Pending Approval": count of revisions in AwaitingApproval, comparison caption "awaiting sign-off" [src: L235-L244].
-    6. "Periodic Review Due": count of active effective revisions overdue or due within 30 days for periodic review [src: L250-L259].
-  - Recent Documents Table: Top 5 active masters; columns: Company Code (bold), MicroLIMS ID, Title, Rev, Status (StatusBadge), Actions (IconButton `<VisibilityOutlinedIcon />` navigating to detail) [src: L275-L330].
-  - Recent Audit Events Table: Top 5 audit logs; columns: Timestamp (UTC), Action, Target, Actor, Reason [src: L345-L400].
+(Re-verified against the page code on 2026-10-16. Labels below are quoted from the .tsx files; the application was not run.)
+- SCR-DC-001 Document Control Dashboard. Route `/document-control` [src: frontend/src/routes/AppRoutes.tsx:L246; frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L47-L110].
+  - Who can open: any signed-in user; the route has no permission guard [src: frontend/src/routes/AppRoutes.tsx:L246]. The page loads two things at once: the first 100 library masters (voided included) and the 5 newest audit rows [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L76-L79]. The audit query is refused by the server for users who are not System Administrator, Section Head or Reviewer ("You do not have permission to query the global audit trail.") [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L33-L35]. Because both requests share one `Promise.all`, the page shows its single error alert instead of the figures for such a user. This is read from code and has not been observed in the running application (REQUIRES CONFIRMATION, GAP-811).
+  - Header: title "Document Control Dashboard"; subtitle "Document governance overview, lifecycle metrics, and quality records status" [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L117-L118].
+  - Header buttons: "My Reading List", "Document Library", and "Register Document" (shown only when the user holds `Documents.Register`) [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L127-L142].
+  - 6 count cards, each computed in the browser from the 100 loaded masters except the first (verified):
+    1. "Total Documents" (caption "In system catalog"): the server total count of the library query, voided masters included [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L152-L174].
+    2. "Effective Records" ("Active & released"): active masters that have a current effective revision [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L192-L202].
+    3. "Review Overdue" (caption "Action Required" when above zero, otherwise "All current"): active masters with an effective revision whose next review date is in the past [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L214-L222].
+    4. "Draft Revisions" ("Pending publication"): active masters whose current revision status is Draft [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L228-L250].
+    5. "File Pending" ("No PDF attached"): active masters with no controlled PDF [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L268-L278].
+    6. "Voided Masters" ("Retired records"): masters with record status Void [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L296-L306].
+  - Table "Recently Registered Documents" with button "View Full Library": up to 5 active masters; columns "Company Code", "Title", "Type", "Status", "Files" (chip "PDF" or the text "None"), "Date" (created date). Empty state "No documents registered yet." Clicking a row opens the document [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L319-L383].
+  - Panel "Recent Audit Trail Events" with button "All Events": up to 5 rows showing the action code, time, "By: {user or System}", a category chip and the reason. Empty state "No recent audit events." [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L398-L458].
+  - Counts above are limited to the 100 loaded masters; the page code does not page further (GAP-812).
 
-- SCR-DC-005 Document Library. Route `/document-control/library` [src: frontend/src/routes/AppRoutes.tsx:L250; frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L57-L611].
-  - Who can open: Any authenticated user [src: frontend/src/routes/AppRoutes.tsx:L245-L250].
-  - Page header: Title "Document Library", Subtitle "Search, view, and manage controlled laboratory documents and SOPs." [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L230-L232].
-  - Header action: Button "Register Document" (startIcon `<AddIcon />`, visible/operable if holding `Documents.Register`) [src: L66, L235-L245].
-  - Filter panel:
-    - Search text input: placeholder "Search code, title, MicroLIMS ID, keywords..." [src: L260-L270].
-    - "Type" (select): "All Types" plus active document types [src: L275-L285].
-    - "Department" (select): "All Departments" plus active departments [src: L290-L300].
-    - "Status" (select): "All Statuses", Draft, InReview, AwaitingApproval, FutureEffective, Effective, Superseded, Obsolete, Cancelled [src: L305-L320].
-    - Switch "Include Cancelled / Voided" (default false; visible and operable for SectionHead / SysAdmin) [src: L325-L335].
-    - Switch "Overdue Review Only" (default false) [src: L340-L350].
-    - Link "Clear Filters" [src: L355-L360].
-  - Results Table columns (11):
-    1. "Company Code": companyDocumentCode (bold monospace, primary color) [src: L367, L415-L417].
-    2. "MicroLIMS ID": microLimsDocumentId (monospace) [src: L368, L420].
-    3. "Title": title [src: L369, L423].
-    4. "Type": documentTypeName [src: L370, L426].
-    5. "Dept / Section": departmentName / sectionName [src: L371, L429].
-    6. "Owner": documentOwnerName [src: L372, L432].
-    7. "Rev": currentRevisionNumber or "—" [src: L373, L435].
-    8. "Status": `StatusBadge` mapped via `documentMasterStatusLabel` [src: L374, L438].
-    9. "Files": Chip icons for Controlled PDF and Source Word document [src: L375, L441-L450].
-    10. "Effective Date": formatted UTC date or "—" [src: L376, L453].
-    11. "Actions": Tooltip "View Details" (IconButton `<VisibilityOutlinedIcon />`), Tooltip "View Controlled PDF" (IconButton `<PictureAsPdfOutlinedIcon />`), Tooltip "Void Document Master" (IconButton `<BlockOutlinedIcon />`, SectionHead only) [src: L377, L456-L475].
-  - Pagination: 10, 25, 50, 100 rows per page [src: L580-L595].
+- SCR-DC-005 Document Library. Route `/document-control/library` [src: frontend/src/routes/AppRoutes.tsx:L250; frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L56-L75].
+  - Who can open: any signed-in user (no route guard) [src: frontend/src/routes/AppRoutes.tsx:L250].
+  - Header: title "Document Library"; subtitle "Authoritative repository of controlled documents, Standard Operating Procedures, and quality records"; button "Register New Document" (shown only when the user holds `Documents.Register`) [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L204-L217].
+  - Error alert if the type and department lists fail to load: "The document types and departments could not be loaded, so those filters are empty. Reload the page to try again." [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L222-L224].
+  - Filters: search box (placeholder "Search code, title, or keywords..."); "Document Type" ("All Types", then "{code}: {name}"); "Department" ("All Departments", then "{code}: {name}"); "Status" ("All Statuses", "Draft", "In Review", "Awaiting Approval", "Future Effective", "Effective", "Superseded", "Obsolete", "Cancelled"); switch "Show Voided"; switch "Review Overdue Only"; button "Reset" (disabled while no filter is set) [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L78-L416].
+  - Table columns (11): "Company Code", "MicroLIMS ID", "Title", "Type", "Dept / Section", "Owner", "Rev", "Status", "Files", "Effective Date", "Actions" [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L297-L521]. Row details: a "VOID" badge for voided masters; a "REVIEW OVERDUE" chip; the effective date column reads "Pending" when the master has no effective date; the Files column shows icons with the tooltip "Source File Attached (.docx)" and a controlled PDF icon [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L297-L606].
+  - Row action icons (tooltips): "View Controlled PDF"; "View Document Details"; "Void Document Master" (shown only when the user's role type is Section Head, the master is Active and it has no current effective revision) [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L494-L537].
+  - Empty state: "No controlled documents match the selected filters". Rows per page: 5, 10, 25, 50 [src: frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L400].
+  - Whether voided masters appear in the list for every role when "Show Voided" is switched on is not decided by this page; the server rule for opening a voided master is System Administrator or Section Head (see roles). REQUIRES CONFIRMATION for the list view.
 
-- SCR-DC-006 Document Detail. Route `/document-control/documents/:id` [src: frontend/src/routes/AppRoutes.tsx:L251; frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L82-L1414].
-  - Who can open: Any authenticated user; Void documents restricted to SectionHead and SystemAdministrator [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L98-L101].
-  - Page header: Button "Library" (`<ArrowBackIcon />`), Company Document Code, Document Title, MicroLIMS ID, StatusBadge [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L330-L360].
-  - Lifecycle strip: `RevisionLifecycleStrip` displaying stage bubbles (Draft -> Technical Review -> Formal Approval -> Effective / Superseded / Obsolete) [src: L380-L420].
-  - Action buttons (top right):
-    - Button "View Controlled PDF" (startIcon `<PictureAsPdfOutlinedIcon />`, enabled if active controlled PDF exists; opens `ControlledPdfViewer`) [src: L440-L450].
-    - Button "Compare Revisions" (startIcon `<CompareArrowsIcon />`, enabled if draft revision and effective revision both exist; opens `DualPdfComparisonViewer`) [src: L455-L465].
-    - Menu button "Document Actions" (startIcon `<MoreVertIcon />`):
-      - "Edit Draft Metadata" (startIcon `<EditOutlinedIcon />`, opens `DraftMetadataDialog`) [src: L480-L490].
-      - "Create New Revision" (startIcon `<AutorenewOutlinedIcon />`, opens `CreateRevisionDialog`) [src: L495-L505].
-      - "Submit for Technical Review" (startIcon `<RateReviewOutlinedIcon />`, opens `SubmitForReviewDialog`) [src: L510-L520].
-      - "Assign Approver" (startIcon `<PersonAddOutlinedIcon />`, opens `AssignApproverDialog`) [src: L525-L535].
-      - "Approval Workspace" (startIcon `<FactCheckOutlinedIcon />`, opens `ApprovalWorkspaceDialog`) [src: L540-L550].
-      - "Cancel Draft Revision" (startIcon `<CancelOutlinedIcon />`, opens `CancelDraftDialog`) [src: L555-L565].
-      - "Void Document Master" (startIcon `<BlockOutlinedIcon />`, SectionHead only, opens `VoidDocumentDialog`) [src: L570-L575].
-  - Tabs (4):
-    1. "Document":
-       - Document Metadata card: Company Code, MicroLIMS ID, Title, Type, Department, Section, Document Owner, Confidentiality, Category, Created Date, Keywords (chips) [src: L590-L670].
-       - Active Files card: Controlled PDF row (file version, filename, size, SHA-256 hash, uploaded date/user, Actions: View, Download), Source Word row (file version, filename, size, SHA-256 hash, uploaded date/user, Actions: Download), Button "Upload / Replace File" (opens `FileUploadDialog`) [src: L680-L750].
-    2. `Revisions (${document.revisions.length})`: Table of all revisions; columns: Rev, Type, Status, Reason for Revision, Effective Date, Review Cycle, Next Review Date, Actions (View PDF, Edit Change Items opening `RevisionChangeItemsDialog`, Edit Impact Assessment opening `RevisionImpactAssessmentDialog`) [src: L760-L880].
-    3. `Workflow (${document.assignments.length + reviewTasks.length + periodicReviewTasks.length})`:
-       - Personnel Assignments panel: Assigned Author, Technical Reviewer, Approver roles; Button "Add Assignment" (opens `AssignmentDialog`), Button "Remove" [src: L900-L980].
-       - Technical Review Tasks panel: Cycle #, Assigned Reviewer, Due Date, Status, Open Mandatory Findings count, Button "Open Review Drawer" (opens `TechnicalReviewDrawer`) [src: L990-L1070].
-       - Formal Approval Tasks panel: Assigned Approver, Target Effective Date, Due Date, Status, Decision, Decision Notes, Button "Open Approval Workspace" (opens `ApprovalWorkspaceDialog`) [src: L1080-L1150].
-       - Periodic Review Tasks panel: Scheduled Due Date, Assigned Reviewer, Status, Outcome, Summary, Button "Open Review Workspace" (opens `PeriodicReviewWorkspaceDialog`) [src: L1160-L1240].
-    4. `Audit trail (${auditLogs.length})`: Record-specific chronological audit log; columns: Timestamp (UTC), Action, Actor, Category, Reason, Changes Summary [src: L1250-L1350].
+- SCR-DC-006 Document Detail. Route `/document-control/documents/:id` [src: frontend/src/routes/AppRoutes.tsx:L251; frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L204-L260].
+  - Who can open: any signed-in user. For a voided master the server only returns it to a System Administrator or a Section Head [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L89-L104].
+  - Header card: button "Document Library" (back); the company document code; a type chip; a status badge ("Void" for a voided master, otherwise the status of the current revision); chip "MIGRATED RECORD" for records migrated into the system; the title; captions "MicroLIMS ID", "Department: {name} ({section})", "Current Revision", "Owner" [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L415-L451].
+  - "Current revision" shown on the page = the revision in Draft, InReview or AwaitingApproval if one exists, otherwise the effective revision, otherwise the first listed revision [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L212-L222].
+  - Lifecycle strip under the header (`RevisionLifecycleStrip`). Banner for a revision in FutureEffective: "Revision {n} Scheduled for Automatic Activation (Future Effective)" [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L559-L560]. Banner for a voided master: "RECORD VOIDED:" and "Mandatory Justification:" [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L559-L560].
+  - Actions: the page shows ONE prominent button (the action the lifecycle is waiting on) and the rest behind a menu button "More actions" [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L255-L478]. The conditions below are copied from the page code. "Can manage" = the user is System Administrator, Section Head, the document owner or an active assigned Author, and the master is Active. "Can edit draft" = can manage AND the current revision is Draft [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L255]. The server repeats these checks (see roles).
+    - "Upload controlled file": can edit draft, revision Draft, no active controlled PDF yet. Prominent.
+    - "Submit for technical review": can edit draft, revision Draft, an active controlled PDF exists. Prominent.
+    - "Open technical review ({status})": shown when the revision has a review task; prominent while the revision is InReview.
+    - "Assign approver": revision AwaitingApproval, no pending approval task, can manage. Prominent.
+    - "Open approval workspace ({status})": revision AwaitingApproval and an approval task exists. Prominent.
+    - "Create revision": the master has an effective revision, no revision is in Draft/InReview/AwaitingApproval, master Active, and the user is System Administrator, Section Head, owner or assigned Author. Prominent.
+    - Menu only: "Edit metadata" (can edit draft), "Replace controlled file" (can edit draft, Draft, active PDF exists), "Change items" (can edit draft, Draft), "Impact assessment" (can edit draft, Draft), "Cancel draft revision" (can edit draft, Draft; red), "Void document master" (role type Section Head, master Active, no current effective revision; red) [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L325-L357].
+    - If no action applies, the page shows one of: "Waiting on the assigned approver. Only they can record the approval decision.", "Waiting for an approver to be assigned. The document owner, an assigned author or the Document Controller can route it for approval.", "Waiting on the assigned technical reviewer.", or "No actions are available to you on this document in its current state." [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L515-L519].
+  - Tabs (4): "Document", "Revisions ({n})", "Workflow ({n})", "Audit trail ({n})" [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L516-L602].
+    1. "Document": card "Document Governance Properties" (Document Classification, Confidentiality Level, Department & Section, Category, Review Cycle in months, Record Origin); "Keywords & Search Tags" (empty text "No keywords assigned."); "Life-Cycle Timestamps & Traceability" (Created By, Last Modified By); card "Controlled Files on Revision {n}" with button "Upload or Replace File" (can edit draft, revision Draft) and a file table with columns "File Role", "File Name", "Size", "SHA-256 Checksum", "Status" (chips ACTIVE or SUPERSEDED), "Uploaded By", "Date", "Action" (view and download icons); empty text "No files currently uploaded for this revision." [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L459-L870].
+    2. "Revisions": table "Revision History Register" with columns "Revision", "Seq", "Type", "Status", "Effective Date", "Next Review", "Reason for Revision", "Files", "Created By" [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L661-L810].
+    3. "Workflow": (a) "Document Workflow Role Assignments" with button "Add Assignment" (can edit draft), columns "Role", "Assigned Personnel", "Username", "Assigned At", "Assigned By", "Actions" (remove icon with confirmation titled "Remove Role Assignment"; success text "Role assignment removed"), the document owner shown as "Document Owner" / "Primary System Owner"; (b) "Technical Review History & Tasks" with button "Submit for Review" (revision Draft, active controlled PDF, can edit draft), columns "Task ID", "Revision", "Assigned Reviewer", "Status", "Assigned Date", "Due Date", "Findings" (chips "{n} Total", "{n} Open Mandatory"), "Actions" (buttons "Dual PDF" when a draft PDF differs from the effective PDF, and "Open Review"); empty text "No technical review tasks initiated for this revision."; (c) "Independent Periodic Review History" with columns "Task ID", "Revision", "Due Date", "Status", "Outcome", "Assigned / Completed By", "Findings", "Actions" (button "Workspace", chip "OVERDUE"); empty text "No periodic review tasks recorded for this document master." [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L709-L1362].
+    4. "Audit trail": columns "Timestamp (UTC)", "Action Code", "Category", "Actor", "Reason / Justification", "Field Changes"; empty text "No audit events recorded for this record." [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L928-L1013].
+  - Dialogs opened from this page: Register (library/dashboard), Edit metadata, File upload, Create revision, Change items, Impact assessment, Submit for technical review, Technical review drawer, Assign approver, Approval workspace, Electronic signature, Cancel draft, Void, Assignment, Periodic review workspace, Controlled PDF viewer, Dual PDF comparison. Their field labels are listed under the workflows section where used. The change-items and impact-assessment dialog fields are not extracted (GAP-043 work list remains open for them).
 
 ### MOD-DC-002 Document Control: reading and training
-- SCR-DC-002 My Reading List. Route `/document-control/my-reading-list` [src: frontend/src/routes/AppRoutes.tsx:L247; frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L86-L758].
-  - Who can open: Any authenticated user [src: frontend/src/routes/AppRoutes.tsx:L245-L247].
-  - Page header: Title "My Reading List", Subtitle "Review and acknowledge your assigned controlled documents." [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L240-L242].
-  - Tabs (5): "To read" (`PENDING`), "Overdue" (`OVERDUE`), "Completed" (`COMPLETED`), "Superseded" (`SUPERSEDED`), "All" (`ALL`) [src: L78-L84, L270-L280].
-  - Filters: Search input ("Search by document code, title, or revision..."), Button "Refresh" [src: L290-L310].
-  - Table columns:
-    1. "Document": Company Document Code (bold), Title underneath [src: L330-L340].
-    2. "Rev": RevisionNumber [src: L342].
-    3. "Effective Date": formatted UTC date [src: L345].
-    4. "Due Date": formatted UTC date, with amber/red Chip "Overdue" if `DueDateUtc < UtcNow` [src: L350-L360].
-    5. "Status": `StatusBadge` (Assigned, Reading, Overdue, Acknowledged, SupersededIncomplete) [src: L365].
-    6. "Reading Progress": LinearProgress bar with percentage, and caption "Informational Only. Formal Acknowledgement Required" [src: L370-L390].
-    7. "Actions": Button "Read & Acknowledge" (startIcon `<MenuBookIcon />`, opens `ControlledPdfViewer`), Button "Acknowledge" (startIcon `<VerifiedUserIcon />`, opens `DocumentAcknowledgementDialog`) [src: L395-L430].
+- SCR-DC-002 My Reading List. Route `/document-control/my-reading-list` [src: frontend/src/routes/AppRoutes.tsx:L247; frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L265-L266].
+  - Who can open: any signed-in user; the list holds the user's own assignments [src: frontend/src/routes/AppRoutes.tsx:L247; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingAssignmentController.cs:L33-L45].
+  - Header: title "My Reading List"; subtitle "Active document training and standard operating procedures assigned to {your name}." [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L265].
+  - 4 summary cards: "TOTAL ASSIGNMENTS", "PENDING READING / ACKNOWLEDGEMENT", "OVERDUE ASSIGNMENTS", "COMPLETED & ACKNOWLEDGED" [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L291-L375].
+  - Search box placeholder "Search document title, code, MicroLIMS ID..."; button "Refresh List" [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L409-L440].
+  - Tabs with counts (accessibility label "Reading list views"): "To read", "Overdue", "Completed", "Superseded", "All" [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L57-L82].
+  - Table columns: "Company Document Code & Title", "Revision", "Assignment Type", "Status", "Due Date (UTC)", "Reading Progress", "Actions" [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L456-L488]. Chips: "MicroLIMS: {id}", "Rev {n}", "Overdue by {n}d", "Superseded Revision" [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L595-L610]. The progress cell carries the caption "Informational Only. Formal Acknowledgement Required" (see the dialog) [src: frontend/src/modules/documentControl/components/DocumentAcknowledgementDialog.tsx:L94-L180].
+  - Row buttons: "Read" (tooltip "Open Controlled Revision in PDF Viewer"; opens the controlled PDF viewer); "Acknowledge" (tooltip "Record Legal Read-and-Understand Acknowledgement"; shown only when the assignment is not acknowledged, not superseded and not cancelled) [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L524-L533].
+  - Empty state: "No Training Assignments Found" with "No assignments matched your selected filter criteria." or "You have no active or completed document reading assignments." [src: frontend/src/modules/documentControl/pages/MyReadingListPage.tsx:L510-L517].
 
-- SCR-DC-003 Training Matrix. Route `/document-control/training-matrix` [src: frontend/src/routes/AppRoutes.tsx:L248; frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L59-L816].
-  - Who can open: Any authenticated user holding `Documents.TrainingViewMatrix` (or viewing own department/role) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L39-L52; backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingMatrixController.cs:L20-L40].
-  - Page header: Title "Training Matrix", Subtitle "Organizational reading & qualification matrix mapped by role, department, and document." [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L175-L177].
-  - Header actions: Button "Refresh", Button "Compliance Dashboard" (navigates to `/document-control/compliance-dashboard`) [src: L180-L195].
-  - Filters:
-    - Department (Select: "ALL" or specific department) [src: L205-L220].
-    - Compliance Status (Select: "ALL", "Qualified", "Pending", "Overdue", "TrainedOnSupersededOnly") [src: L225-L240].
-    - Search input (User or Document) [src: L245-L255].
-  - Matrix Grid:
-    - Sticky left columns: User Full Name, Username, Role, Department [src: L280-L300].
-    - Column headers: Active Document Masters with effective revisions (Company Document Code, Title, Rev) [src: L305-L325].
-    - Cells: Status badge:
-      - "Qualified" (green Chip): current revision acknowledged [src: L335].
-      - "Pending" (blue Chip): assignment active and within due date [src: L345].
-      - "Overdue" (red Chip): assignment past due date [src: L355].
-      - "Superseded Gap" (amber Chip): qualified on previous revision, not current [src: L365].
-      - "—" (grey dash): not required/assigned [src: L375].
-    - Clicking any cell opens the Cell Detail Drawer (showing assignment history, exact due date, acknowledged timestamp, and controlled PDF hash) [src: L420-L490].
-    - Clicking a user name opens the User Compliance Drawer [src: L500-L580].
-    - Clicking a document header opens the Document Compliance Drawer [src: L590-L670].
+- SCR-DC-003 Training Matrix. Route `/document-control/training-matrix` [src: frontend/src/routes/AppRoutes.tsx:L248; frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L246-L247].
+  - Who can open: any signed-in user. The server returns the whole matrix only to users who hold `Documents.TrainingAssign`; every other user gets only their own row [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingMatrixController.cs:L29-L45]. `Documents.TrainingViewMatrix` is not checked anywhere in the code (see roles).
+  - Header: title "Training Matrix"; subtitle "Multi-axis qualification matrix mapping personnel to controlled document training requirements."; buttons "Compliance Dashboard" and "Refresh Matrix" [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L246].
+  - 5 count cards: "PERSONNEL TRACKED", "QUALIFIED CELLS", "PENDING CELLS", "OVERDUE CELLS", "SUPERSEDED GAPS" [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L281-L381].
+  - Filters: search box placeholder "Search personnel name, username, or role..."; "Department" ("All Departments"); "Qualification Status" ("All States", "Qualified", "Pending", "Overdue", "Trained on Superseded Only") [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L340-L470].
+  - Grid: first column "Personnel / Role"; one column per effective document, header chip "Rev {n}" (tooltip "{code}: {title} (Current Rev: {n})"). Cell chips: "Qualified", "Pending", "Overdue", "Trained on Superseded Only"; a not-assigned cell shows a dash with the tooltip "Not Assigned / Not in Curriculum" [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L169-L222].
+  - Empty and loading texts: "Computing real-time training qualification matrix..."; "No personnel records matched your filter criteria." [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L540-L550].
+  - Click a person to open the drawer "User Compliance Profile" (shows "COMPLIANCE SCORE" and "Document Training Breakdown"); click a document header to open "Document Compliance Profile" (shows "Personnel Training Statuses") [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L630-L785].
 
-- SCR-DC-004 Training Compliance Dashboard. Route `/document-control/compliance-dashboard` [src: frontend/src/routes/AppRoutes.tsx:L249; frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L37-L442].
-  - Who can open: Any authenticated user [src: frontend/src/routes/AppRoutes.tsx:L245-L249].
-  - Page header: Title "Training Compliance Dashboard", Subtitle "Executive & operational compliance metrics, departmental ranking, and overdue exceptions." [src: frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L64-L67].
-  - Header actions: Button "Refresh", Button "View Full Matrix" (navigates to `/document-control/training-matrix`) [src: L69-L85].
-  - 6 Metric KPI Cards:
-    1. "Overall Compliance Rate": percentage (>=95% green, >=85% amber, <85% red), comparison caption "qualified / required assignments" [src: L120-L140].
-    2. "Required Assignments": total count of tracked assignments across effective documents [src: L145-L155].
-    3. "Qualified": total acknowledged / completed assignments [src: L160-L170].
-    4. "Pending Action": open assignments within grace period [src: L175-L185].
-    5. "Overdue Exceptions": open assignments past due date [src: L190-L200].
-    6. "Superseded Knowledge Gap": count of users qualified only on older revisions [src: L205-L215].
-  - Departmental Compliance Table: columns Department Name, Required, Completed, Overdue, Compliance Rate (visual progress bar + percentage); sorted ascending by compliance rate (lowest first) [src: L240-L310].
-  - Top Overdue Documents Table: Top 10 documents by overdue count; columns Document Code, Title, Overdue Count [src: L320-L380].
+- SCR-DC-004 Training Compliance Dashboard. Route `/document-control/compliance-dashboard` [src: frontend/src/routes/AppRoutes.tsx:L249; frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L65-L83].
+  - Who can open: any signed-in user. The compliance-figures endpoint has no permission check beyond sign-in, so the organisation-wide figures are returned to every user [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingMatrixController.cs:L47-L55].
+  - Header: title "Training Compliance Dashboard"; subtitle "Executive & operational compliance metrics, departmental ranking, and overdue exceptions."; button "View Full Matrix" [src: frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L65-L83].
+  - 4 cards: "OVERALL COMPLIANCE RATE" (percentage, text "{completed} / {total} required training assignments", progress bar green at 90 percent or more, otherwise warning); "QUALIFIED & COMPLETED" ("Across {n} personnel & {n} effective documents"); "OVERDUE EXCEPTIONS" ("Action required. Click to filter matrix"); "SUPERSEDED GAPS" ("Qualified on prior revision only") [src: frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L121-L264].
+  - Panel "Departmental Compliance Ranking" ("Organizational compliance breakdown categorized by department."): columns "Department", "Required", "Qualified", "Overdue", "Compliance Rate"; empty "No department training data recorded." [src: frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L264-L422].
+  - Panel "Top Overdue Documents" (link "View All"; "Controlled documents with the highest volume of overdue reading assignments."): columns "Document Code & Title", "Overdue"; chip "{n} Overdue"; empty "Zero overdue documents! All assignments are on schedule." [src: frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L271-L422].
 
 ### MOD-DC-003 Document Control: audit trail
-- SCR-DC-007 Document Control Audit Trail. Route `/document-control/audit` [src: frontend/src/routes/AppRoutes.tsx:L252; frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L36-L319].
-  - Who can open: Users holding role Reviewer, SectionHead, or SystemAdministrator [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L240-L242].
-  - Page header: Title "Document Control Audit Trail", Subtitle "Append-only GxP audit log of all document actions, revisions, approvals, and security events." [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L110-L115].
-  - Action button: "Export CSV" (startIcon `<FileDownloadOutlinedIcon />`, disabled while exporting or totalCount === 0) -> exports up to 5,000 audit rows as CSV and records `AuditTrailExported` audit event [src: L86-L105, L180-L195; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L95-L98].
-  - Filter panel:
-    - Search input (searches action code, reason, user, entity ID) [src: L120-L130].
-    - "Action Category" (select): "All Categories", Document, Review, Approval, PeriodicReview, Configuration, Security [src: L135-L145].
-    - "Date From" and "Date To" (date inputs) [src: L150-L160].
-    - Buttons: "Filter", "Clear" [src: L165-L175].
-  - Table columns:
-    1. "Timestamp (UTC)": ISO UTC timestamp formatted (`dd MMM yyyy HH:mm:ss`) [src: L210].
-    2. "Action Code": actionCode chip [src: L212].
-    3. "Category": actionCategory chip [src: L215].
-    4. "Target Entity": recordType / entityId [src: L218].
-    5. "Actor": user FullName or SystemProcessName [src: L220].
-    6. "Reason / Notes": regulatory reason string [src: L222].
-    7. "Changes Summary": formatted diff of previous vs new values [src: L225].
-  - Pagination: 10, 20, 50, 100 rows per page [src: L280-L295].
+- SCR-DC-007 Document Control Audit Trail. Route `/document-control/audit` [src: frontend/src/routes/AppRoutes.tsx:L252; frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L109-L110].
+  - Who can open: the route has no guard. The server only answers users whose role type is Reviewer, Section Head or System Administrator ("You do not have permission to query the global audit trail.") [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L235-L242; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L33-L35].
+  - Header: title "Document Control Audit Trail"; subtitle "Chronological, append-only regulatory audit log of document life-cycle actions and configuration changes"; button "Export Audit Trail (CSV)" (text "Exporting CSV..." while running) [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L109-L118].
+  - Filters: search box (placeholder "Search Event UID, Action, Reason, Entity..."); "Action Category" ("All Categories", "Document", "Workflow", "Security", "Configuration", "System"); "Date From"; "Date To"; button "Reset" [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L109-L265].
+  - DISCREPANCY (code vs code): the backend category values are Document, Review, Approval, Training, Kaf, Configuration, Security, ImportExport, Other. The two dropdown entries "Workflow" and "System" are not backend values, and Review, Approval, Training and Other cannot be picked [src: backend/MicroLIMS.Domain/Enums/AuditActionCategory.cs:L5-L13; frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L153-L156]. How the server answers the two unknown values was not tested (GAP-813).
+  - Table columns: "Timestamp (UTC)", "Event UID", "Actor", "Action Code", "Category", "Record Type", "Reason / Description", "Field Changes"; loading text "Loading audit trail records..."; empty text "No audit records match the selected criteria" [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L33-L265]. Rows per page: 10, 20, 50, 100 [src: frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L144-L265].
+  - The query only returns Document Control rows (rows carrying a document master id, rows of Document Control entity types, and the export event) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L141-L152].
 
 ### MOD-DC-004 Document Control: configuration
-- SCR-DC-008 Document Control Configuration. Route `/document-control/configuration` [src: frontend/src/routes/AppRoutes.tsx:L268-L269; frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L46-L684].
-  - Who can open: SystemAdministrator only (`Documents.ConfigManage` permission, verified server-side) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L231-L233; frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L49, L112-L120].
-  - Page header: Title "Document Control Configuration", Subtitle "Manage document types, department taxonomies, numbering schemas, and module settings." [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L130-L135].
-  - Tabs (4):
-    1. "Document Types": Table of types (Code, Name, Default Review Cycle Months, Status: Active/Inactive switch, Actions: Edit button; Button "Add Document Type" opening dialog) [src: L145-L230].
-    2. "Departments & Sections": Table of departments with nested section list (Department Code, Name, Status switch, Actions: Edit Dept, Add Section dialog, Section Status switches) [src: L240-L360].
-    3. "Numbering Configuration": Form for sequence formatting (Prefix input e.g. "DOC-", Number Format input e.g. "0000000", Enabled switch, Button "Save Configuration") [src: L370-L450].
-    4. "Module Settings": Table of configurable module keys (e.g. `DocumentControl.ControlledCopy.DownloadPermitted`), current value, description, Button "Edit" opening value dialog [src: L460-L550].
+- SCR-DC-008 Document Control Configuration. Route `/document-control/configuration` [src: frontend/src/routes/AppRoutes.tsx:L268-L269; frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L224-L225].
+  - Who can open: users holding `Documents.ConfigManage` (route wrapped in `PermissionRoute`; the page also shows "Access Denied: Only System Administrators can access and modify Document Control module configuration." without the permission) [src: frontend/src/routes/AppRoutes.tsx:L268; frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L48-L50, L112-L120]. Default holder: System Administrator only (verified baseline). Write calls additionally require the role type System Administrator (see roles).
+  - Header: title "Document Control Configuration"; subtitle "System Master Data, Numbering Schemes, Governance Rules, and Module Settings" [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L224-L225].
+  - Tabs (4): "Document Types ({n})", "Departments & Sections ({n})", "Numbering Configuration", "Module Settings ({n})" [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L240].
+    1. Document Types: heading "Document Types Master", button "Add Document Type", columns "Code", "Name", "Default Review Cycle", "Status" (chips ACTIVE or DEACTIVATED), "Actions" (edit icon "Edit Type"). Dialog fields: "Type Code *" (placeholder "e.g. SOP, POL, VAL"), "Type Name *" (placeholder "e.g. Standard Operating Procedure"), "Default Review Cycle (Months) *", switch "Active Status"; buttons "Cancel", "Save" [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L255-L296].
+    2. Departments & Sections: heading "Departments and Laboratory Sections", buttons "Add Department" and "Add Section", section table columns "Section Name", "Status", "Action"; empty "No sections registered under this department." Dialog fields: "Department Code *" (placeholder "e.g. QC, QA, PROD"), "Department Name *" (placeholder "e.g. Quality Control"), "Section Name *" (placeholder "e.g. Sterility Testing Lab"), switch "Active Status" [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L278-L419].
+    3. Numbering Configuration: heading "MicroLIMS Document ID Numbering Scheme", preview "Sample Generated Document ID", fields "Prefix *" (helper "E.g. DOC-, SOP-, QA-"), "Number Format (Zero-Padded Pattern) *" (helper "E.g. 0000000 (7 digits), 00000 (5 digits)"), switch "Enable Automated Sequence Numbering" (caption "Active numbering profile"), button "Save Numbering Configuration" ("Updating Scheme..." while saving) [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L436-L495].
+    4. Module Settings: heading "Document Control Module Governance Settings", columns "Group", "Setting Key", "Value", "Data Type", "Modified By", "Action" (edit icon); dialog "Edit Configuration Setting" with "Setting Value *" and buttons "Cancel", "Save Setting" [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L505-L679].
+  - Success texts: "Document Type saved successfully.", "Department saved successfully.", "Section saved successfully.", "Numbering configuration updated successfully.", "Setting updated successfully." [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L140-L215].
 
 ### MOD-DC-005 Document escalations (backend)
 - None. Backend REST endpoints and background worker only. Status: NOT-EXPOSED-IN-UI (see GAP-807).
@@ -411,77 +358,230 @@
 ## roles
 
 ### MOD-REPORTS-001 Reports
-- Route `/reports` is available to all authenticated users [src: frontend/src/routes/AppRoutes.tsx:L114-L116].
-- Backend endpoints under `/api/reporting/*` are decorated with `[Authorize]` requiring any valid authenticated user [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
-- Scoping: Laboratory section scope is enforced server-side on every request via `IUserSectionScopeService.GetAccessibleSectionIdsAsync(userId)`. Users only see results, media lots, and cryovials belonging to their assigned sections; SystemAdministrator has null scope and sees all [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L36-L38, L210, L300].
+- Route `/reports` is available to all signed-in users (verified) [src: frontend/src/routes/AppRoutes.tsx:L115].
+- Backend endpoints under `/api/reporting/*` carry a plain `[Authorize]`, so any valid signed-in user may call them (verified) [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23].
+- Scoping: the laboratory section scope is applied on every request through `IUserSectionScopeService.GetAccessibleSectionIdsAsync(userId)`. A user sees results, media lots and cryovials of the assigned sections only; the System Administrator role type has no restriction (verified) [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L36-L38; backend/MicroLIMS.Application/Services/UserSectionScopeService.cs:L26-L40]. A user with no lab membership sees no data (baseline section 7).
 
 ### MOD-REPORTS-002 Reporting backfill
-- Backend endpoint `POST /api/admin/reporting/backfill` is decorated with `[Authorize(Policy = PermissionConstants.ReportingAdmin)]` ("Reporting.Admin") [src: backend/MicroLIMS.API/Controllers/ReportingAdminController.cs:L15, L25].
-- Default roles holding `Reporting.Admin`: `SystemAdministrator` only [src: documentation/knowledge/_raw/verified-roles-permissions.md:L81; backend/MicroLIMS.Shared/Constants/PermissionConstants.cs:L13].
+- `POST /api/admin/reporting/backfill` is decorated with `[Authorize(Policy = PermissionConstants.ReportingAdmin)]` ("Reporting.Admin") (verified) [src: backend/MicroLIMS.API/Controllers/ReportingAdminController.cs:L15, L25].
+- Default holder of `Reporting.Admin`: System Administrator only; Section Head does not hold it (verified) [src: documentation/knowledge/_raw/verified-roles-permissions.md:L81]. Default grants can be edited on the Roles screen.
 
 ### MOD-KPI-001 KPI and Workflow Profiles
-- `Kpi.View` (`PERMISSIONS.KPI_VIEW` / `PermissionConstants.KpiView`):
-  - Backend gate: `[Authorize(Policy = PermissionConstants.KpiView)]` on `KpiDashboardController`, `KpiWorkloadController`, and `WorkflowProfilesController` [src: backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L14; backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L15; backend/MicroLIMS.API/Controllers/WorkflowProfilesController.cs:L16].
-  - UI gate: `useHasPermission(PERMISSIONS.KPI_VIEW)` controls visibility of the "KPI / Performance" tab in `ReportsPage` and the "KPI / Performance" quick action button in `OverviewTab`. If absent, the tab is omitted and attempting to navigate to `?tab=performance` falls back to tab 0 (Overview) [src: frontend/src/pages/Reports.tsx:L36-L41, L152-L154; frontend/src/modules/reports/components/OverviewTab.tsx:L505-L515].
-  - Default roles holding `Kpi.View`: `SystemAdministrator`, `SectionHead` [src: backend/MicroLIMS.Shared/Constants/PermissionConstants.cs:L124, L137; backend/MicroLIMS.Persistence/Seed/DbSeeder.cs:L544].
-- `Kpi.ViewTeam` (`PermissionConstants.KpiViewTeam`):
-  - Backend gate: Checked as a user claim in `KpiDashboardController.cs:L22` and `KpiWorkloadController.cs:L30` (`User.HasClaim("permission", PermissionConstants.KpiViewTeam)`). Enforced in `KpiDashboardService.BuildQueryAsync` and `AnalystWorkloadService.GetAsync`. If a user lacks `Kpi.ViewTeam` and queries an analystId other than their own, the server throws `UnauthorizedAccessException("You can only view your own analyst figures.")` or returns their own row only (D8) [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L106-L107; backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L9-L11, L60-L72].
-  - Default roles holding `Kpi.ViewTeam`: `SystemAdministrator`, `SectionHead` [src: backend/MicroLIMS.Shared/Constants/PermissionConstants.cs:L124, L137].
-- `Kpi.ConfigureProfiles` (`PERMISSIONS.KPI_CONFIGURE_PROFILES` / `PermissionConstants.KpiConfigureProfiles`):
-  - Backend gate: `[Authorize(Policy = PermissionConstants.KpiConfigureProfiles)]` on `WorkflowProfilesController` (`POST /api/kpi/workflow-profiles`, `POST /api/kpi/workflow-profiles/{id}/sign`) [src: backend/MicroLIMS.API/Controllers/WorkflowProfilesController.cs:L42, L47].
-  - UI gate: Gated in `KpiFilters.tsx` (button "Workflow Profiles" rendered only when `onOpenProfiles` is provided) and in `WorkflowProfilesPanel.tsx` (buttons "Add version" and "Add override" shown only when `canConfigure` is true) [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L90-L92; frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L58, L174-L178, L215-L222].
-  - Default roles holding `Kpi.ConfigureProfiles`: `SystemAdministrator`, `SectionHead` [src: backend/MicroLIMS.Shared/Constants/PermissionConstants.cs:L124, L137].
-- Segregation of Duties:
-  - Profile version electronic signing enforces re-authentication via password. A user cannot sign an already Effective version (`InvalidOperationException: "This version is already Effective and cannot be signed again."`) [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L102-L103].
+- `Kpi.View`:
+  - Backend: `[Authorize(Policy = Kpi.View)]` on `KpiDashboardController`, `KpiWorkloadController` and `WorkflowProfilesController` (verified) [src: backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L14; backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L15; backend/MicroLIMS.API/Controllers/WorkflowProfilesController.cs:L16].
+  - UI: the "KPI / Performance" tab and the quick action on the Overview tab are hidden without it; a link to `?tab=performance` falls back to the first tab (verified) [src: frontend/src/pages/Reports.tsx:L36-L41; frontend/src/modules/reports/components/OverviewTab.tsx:L505-L515].
+  - Default holders: System Administrator, Section Head (verified) [src: documentation/knowledge/_raw/verified-roles-permissions.md:L86].
+- `Kpi.ViewTeam`:
+  - Checked as a token claim, not as a policy: `User.HasClaim("permission", Kpi.ViewTeam)` (verified) [src: backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L22; backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L30].
+  - Dashboard and records: without it, asking for any analyst other than yourself throws `UnauthorizedAccessException("You can only view your own analyst figures.")`. When no analyst is named, the headline tiles are NOT restricted: they stay laboratory-level for every holder of `Kpi.View` (verified; plan deviation 14) [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L104-L107; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L81].
+  - Workload table and test drawer: without it the server forces the analyst to the caller (only the caller's own row is returned). Asking for another analyst throws `"You may only view your own workload figures."` (verified) [src: backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L305-L311].
+  - Default holders: System Administrator, Section Head; because the same two roles are the only default holders of `Kpi.View`, the own-row rule only matters when an administrator grants `Kpi.View` to another role (verified) [src: documentation/knowledge/_raw/verified-roles-permissions.md:L86; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L81].
+- `Kpi.ConfigureProfiles`:
+  - Backend: policy on `POST /api/kpi/workflow-profiles` and `POST /api/kpi/workflow-profiles/{id}/sign`; also on the three write routes of `KpiWorkloadController` (settings PUT, availability POST and PUT) (verified) [src: backend/MicroLIMS.API/Controllers/WorkflowProfilesController.cs:L42, L47; backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L56, L65, L70].
+  - UI: button "Workflow Profiles" appears only with the permission; "Add version" and "Add override" in the panel appear only when `canConfigure` is true (verified) [src: frontend/src/modules/kpi/components/KpiPerformanceTab.tsx:L37, L88; frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L58].
+  - Default holders: System Administrator, Section Head (verified) [src: documentation/knowledge/_raw/verified-roles-permissions.md:L86].
+- Segregation of duties in KPI profiles: NONE FOUND. The same user who adds a version signs it in the same request, and no second-person check exists (git grep for "segregation" in the Kpi service folder returns nothing). Signing requires the user's own password through the shared signature service (5 failed attempts in 15 minutes block further attempts) [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L80-L82; documentation/knowledge/_raw/verified-roles-permissions.md:L143]. A draft that is already Effective is refused: `"This version is already Effective and cannot be signed again."` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L102-L103].
 
 ### MOD-KPI-002 Analyst availability and KPI section settings
-- Reads (`GET /api/kpi/settings/{sectionId}`, `GET /api/kpi/availability`) require `Kpi.View`. Users without `Kpi.ViewTeam` receive only their own availability rows [src: backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L15, L52, L61; backend/MicroLIMS.Application/Services/Kpi/AnalystAvailabilityService.cs:L37-L38].
-- Writes (`PUT /api/kpi/settings/{sectionId}`, `POST /api/kpi/availability`, `PUT /api/kpi/availability/{id}`) require `Kpi.ConfigureProfiles` and section membership [src: backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L56, L65, L70; backend/MicroLIMS.Application/Services/Kpi/KpiSettingsService.cs:L87-L94; backend/MicroLIMS.Application/Services/Kpi/AnalystAvailabilityService.cs:L130-L137].
+- Reads (`GET /api/kpi/settings/{sectionId}`, `GET /api/kpi/availability`) need `Kpi.View`; without `Kpi.ViewTeam` only the caller's own availability rows are returned (verified) [src: backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L15, L52, L61; backend/MicroLIMS.Application/Services/Kpi/AnalystAvailabilityService.cs:L37-L38].
+- Writes (`PUT settings/{sectionId}`, `POST availability`, `PUT availability/{id}`) need `Kpi.ConfigureProfiles` plus access to the section (verified) [src: backend/MicroLIMS.API/Controllers/KpiWorkloadController.cs:L56, L65, L70; backend/MicroLIMS.Application/Services/Kpi/KpiSettingsService.cs:L87-L94; backend/MicroLIMS.Application/Services/Kpi/AnalystAvailabilityService.cs:L130-L137].
 
 ### MOD-DC-001 Document Control: library and document lifecycle
-- Document Control Authority Rules (`DocumentAuthorizationService.cs`):
-  - Document Master Registration: Gated by permission `Documents.Register`. Seeded to `SystemAdministrator`, `SectionHead` (Document Controller), and `Analyst` (covers Document Authors) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L84-L87; backend/MicroLIMS.Persistence/Seed/DbSeeder.cs:L524-L576].
-  - Draft Metadata Editing & File Replacement: Permitted for `SystemAdministrator`, `SectionHead`, or the designated `DocumentOwnerUserId` / assigned `Author` for that specific document [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L106-L130].
-  - Cancel Draft Revision: Permitted for `SystemAdministrator`, `SectionHead`, or the designated Document Owner / assigned Author [src: L132-L145].
-  - Void Document Master: Strictly restricted to role type `SectionHead` (Document Controller). Even `SystemAdministrator` is refused (`role == RoleType.SectionHead`) [src: L147-L154].
-  - Source Word Document Access (`CanAccessSourceFileAsync`): Read access restricted to `SystemAdministrator`, `SectionHead`, Document Owner / assigned Author, or an active assigned Technical Reviewer or Approver on an open task for that specific revision [src: L156-L204].
-  - Controlled PDF Access (`CanAccessControlledPdfAsync`): For Effective revisions, open to all active users. For Draft/non-effective states, restricted to Admin, SectionHead, Reviewer, or Owner/Author [src: L206-L227].
-  - Revision Number Override: Gated strictly to role type `SectionHead` (Document Controller) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L109-L112].
-- Strict Segregation of Duties (SoD) Rules (No Administrative Exemption) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs; backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs]:
-  - Author != Technical Reviewer:
-    - `"Segregation of Duties Violation: The author of a document revision cannot be assigned as its technical reviewer."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L107].
-    - `"Segregation of Duties Violation: The author cannot assign themselves as technical reviewer."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L110].
-    - `"Segregation of Duties Violation: The author cannot perform technical review of their own revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L555].
-  - Author != Finding Resolver:
-    - `"Segregation of Duties Violation: The author cannot verify reviewer findings."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L420].
-    - `"Segregation of Duties Violation: The author cannot close or resolve a reviewer-mandated finding without reviewer verification."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L480].
-  - Author != Approver:
-    - `"Segregation of Duties Violation: The author of a document revision cannot be assigned as its approver."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L651].
-    - `"Segregation of Duties Violation: The author of a document revision cannot approve or decide upon their own revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L672].
-  - Technical Reviewer != Approver:
-    - `"Segregation of Duties Violation: A technical reviewer for this revision cannot be assigned as its approver."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L663].
-    - `"Segregation of Duties Violation: A technical reviewer for this revision cannot approve or decide upon this revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L683].
-  - Author != Periodic Reviewer:
-    - `"Segregation of Duties Violation: The author cannot perform or complete the periodic review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L554].
+Document Control authority is mostly a fixed set of role types plus per-document ownership. The permission codes `Documents.DraftEdit`, `Documents.RevisionCreate`, `Documents.Review`, `Documents.Approve` and `Documents.PeriodicReview` are NOT read by any code, so granting or revoking them changes nothing (verified baseline section 1) [src: documentation/knowledge/_raw/verified-roles-permissions.md:L33-L37]. "Author" for every segregation rule below means the user who created the revision (`CreatedByUserId`), not only the Author assignment.
+- Register a document master (verified): permission `Documents.Register`, read from the role's database grants inside `CanRegisterDocumentMasterAsync` (no controller policy). Default holders: System Administrator, Section Head, Analyst; Reviewer does not hold it. The refusal text says "Only the Document Controller or a System Administrator can register a Document Master." although Analyst holds the permission by default [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L84-L87; backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L39-L42; documentation/knowledge/_raw/verified-roles-permissions.md:L86-L88].
+- Open a master (verified): any active user; a voided master only for System Administrator or Section Head role type [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L89-L104].
+- Edit metadata, create revision, change items, impact assessment, add/remove assignments, assign approver, submit for review (verified): System Administrator, Section Head, the document owner, or an active assigned Author [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L106-L115; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L59; backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L628, L709].
+- Upload or replace a file, cancel a draft revision (verified): the same people, and only while the revision is Draft [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L117-L145].
+- Void a document master (verified): role type Section Head ONLY. System Administrator is refused. INTENDED: "Document Master voiding is strictly reserved for the Document Controller and excluded from System Administrator" [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L147-L154; docs/ML-DC-FRS-1A-001.md:L91].
+- Revision number override (verified): Section Head only; others get "Only Document Controllers are authorized to override the proposed revision number." [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L109-L112].
+- Open the editable Word source file (verified): System Administrator, Section Head, owner or assigned Author, the assigned technical reviewer while the review task is Pending or InProgress, or the assigned approver while the approval task is Pending [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L156-L204].
+- Open the controlled PDF (verified): any active user when the revision is Effective; for every other status (Draft, InReview, AwaitingApproval, FutureEffective, Superseded, Obsolete, Cancelled) only System Administrator, Section Head, Reviewer, owner or assigned Author [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L206-L227].
+- Controlled-copy download (verified): when the setting `DocumentControl.ControlledCopy.DownloadPermitted` is "false", downloads are refused for everyone except System Administrator and Section Head [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L316-L333].
+- Technical review actions (verified): add findings is open to the assigned reviewer, Section Head or System Administrator ("Only the assigned technical reviewer or document controller may add review findings."); complete or return the review is open to the assigned reviewer or Section Head only, System Administrator is not accepted ("Only the assigned technical reviewer or document controller may complete this technical review."). Review decisions are not electronically signed [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L292-L293, L561-L563].
+- Approval (verified): the approval task may only be assigned to a Reviewer, Section Head or System Administrator role type; the decision may be taken by the assigned approver, a Section Head or a System Administrator ("Only the assigned approver or Document Controller may execute an approval decision."), and the segregation checks below always apply. Approving needs the user's password (electronic signature, meaning Approved) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L104-L111, L413-L415, L528-L531].
+- Segregation of duties, no administrator exemption (verified): the author is the revision's creator; a technical reviewer is any user assigned to or deciding a review task of that revision.
+  - Author != technical reviewer: `"Segregation of Duties Violation: The author of a document revision cannot be assigned as its technical reviewer."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L107]; `"Segregation of Duties Violation: The author cannot assign themselves as technical reviewer."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L110]; `"Segregation of Duties Violation: The author cannot perform technical review of their own revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L555].
+  - Author != finding actor: `"Segregation of Duties Violation: The author cannot create reviewer findings."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L285]; `"Segregation of Duties Violation: The author cannot verify reviewer findings."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L420]; `"Segregation of Duties Violation: The author cannot close or resolve a reviewer-mandated finding without reviewer verification."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L480].
+  - Author != approver: `"Segregation of Duties Violation: The author of a document revision cannot be assigned as its approver."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L651]; `"Segregation of Duties Violation: The author of a document revision cannot approve or decide upon their own revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L672].
+  - Technical reviewer != approver: `"Segregation of Duties Violation: A technical reviewer for this revision cannot be assigned as its approver."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L663]; `"Segregation of Duties Violation: A technical reviewer for this revision cannot approve or decide upon this revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L684]. The approval readiness checklist repeats both rules with the texts "Segregation of Duties Violation: You are the author of this revision and cannot approve it." and "Segregation of Duties Violation: You participated in technical review and cannot approve this revision." [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L743, L755].
+  - Author != periodic reviewer: `"Segregation of Duties Violation: The author cannot perform or complete the periodic review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L554]; also `"Segregation of Duties Violation: The author of the revision under review cannot add review notes or perform the review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L388] and `"Segregation of Duties Violation: The author of the document revision cannot be assigned as its periodic reviewer."` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L501].
+  - Not checked: the reviewer-versus-periodic-reviewer pairing and the pairing of the person who registered the master with later steps. Periodic review completion also lets any Section Head or System Administrator complete a review assigned to someone else: `"Only the assigned reviewer or Document Controller can complete this review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L556-L561].
 
 ### MOD-DC-002 Document Control: reading and training
-- Reading Lists (`MyReadingListPage`): Open to all authenticated users for their own reading assignments [src: frontend/src/routes/AppRoutes.tsx:L247; backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L20-L45].
-- Reading Acknowledgement: Restricted strictly to the assigned user (`actingUserId == assignment.AssignedUserId`). If another user attempts acknowledgement, rejected with audit security violation: `"You are not authorized to acknowledge an assignment assigned to another user."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L154-L168].
-- Training Matrix Viewing: Gated by `Documents.TrainingViewMatrix`. Seeded to `SystemAdministrator`, `SectionHead`, and `Reviewer` [src: backend/MicroLIMS.Persistence/Seed/DbSeeder.cs:L524-L559].
-- Training Assignment & Curricula Management: Gated by `Documents.TrainingAssign`. Seeded to `SystemAdministrator` and `SectionHead` [src: backend/MicroLIMS.Persistence/Seed/DbSeeder.cs:L524-L546].
+- My Reading List (verified): every signed-in user sees only their own assignments unless they hold `Documents.TrainingAssign` (the controller narrows the filter to the caller) [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingAssignmentController.cs:L31-L45].
+- Acknowledgement (verified): only the assigned user. Another user is refused and a security audit event is written: `"You are not authorized to acknowledge an assignment assigned to another user."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L154-L168].
+- Training Matrix and training assignments (CORRECTED): the controllers decide between "everyone" and "own row only" with the token claim `Documents.TrainingAssign` (default holders: System Administrator, Section Head). `Documents.TrainingViewMatrix` is declared and granted (System Administrator, Section Head, Reviewer) but no code reads it, so Reviewers do NOT see the whole matrix by default [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingMatrixController.cs:L29-L45; documentation/knowledge/_raw/verified-roles-permissions.md:L38, L86-L87].
+- Compliance figures (`GET .../kpis` of the matrix controller): no permission check beyond sign-in [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentTrainingMatrixController.cs:L47-L55].
 
 ### MOD-DC-003 Document Control: audit trail
-- Audit Trail Viewing (`CanQueryGlobalAuditAsync` / `CanViewRecordAuditAsync`): Restricted to role types `SystemAdministrator`, `SectionHead` (Document Controller), or `Reviewer` (QA Auditor), plus Document Owner/Author for record-level audit [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L235-L253].
+- Global audit query and CSV export (verified): role types System Administrator, Section Head or Reviewer [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L235-L242].
+- Audit history of one document (verified): the same three role types, plus the owner and assigned Authors of that document [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L244-L253].
 
 ### MOD-DC-004 Document Control: configuration
-- Module Configuration Management (`CanManageConfigurationAsync`): Restricted strictly to role type `SystemAdministrator` (`isActive && role == RoleType.SystemAdministrator`). SectionHead, Reviewer, and Analyst are refused (`"Only System Administrators can manage module configuration."`) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L229-L233; backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L33-L36].
+- Reads (types, departments, sections, numbering, settings) need only sign-in; the lists feed the library filters (verified) [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentConfigurationController.cs:L29, L72, L113, L156, L180].
+- Writes (verified): each write route carries `[Authorize(Policy = Documents.ConfigManage)]` AND the service then requires the role type System Administrator (`"Only System Administrators can manage module configuration."`, DocumentConfigurationService.cs:L33-L36). A custom role granted the permission but built on another role type is refused by the service [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentConfigurationController.cs:L37, L56, L80, L99, L121, L140, L164, L188; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuthorizationService.cs:L229-L233; backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L33-L36].
+- UI: the route and the page both require the permission (verified) [src: frontend/src/routes/AppRoutes.tsx:L268; frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L48-L50].
 
 ### MOD-DC-005 Document escalations (backend)
-- Escalation Execution and Resolution: Gated to `Documents.TrainingAssign` (`User.HasClaim("permission", PermissionConstants.DocumentsTrainingAssign)`), held by `SectionHead` and `SystemAdministrator`. Non-managers receive 403 Forbidden [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L32-L34, L51-L86].
+- The escalation controller checks the token claim `Documents.TrainingAssign` (default holders: System Administrator, Section Head). Others receive HTTP 403 with the texts listed under validations (verified) [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L32-L34, L51-L86].
 
 ## workflows
 
-Pending Phase 4.
+All steps below are reconstructed from the code (the application was not run). Spec names: "FRS-1a/1b/1c/1d" = docs/ML-DC-FRS-1A-001.md, ML-DC-FRS-1B-001.md, ML-DC-FRS-1C-001.md, Release_1d_Delta_FRS.md. No electronic signature exists in Reports; the only signatures in this cluster are KPI profile versions and the document approval.
+
+### WF-REPORTS-001 Search, trend and export results
+- Start / trigger: any signed-in user opens Reports (menu entry for `/reports`) [src: frontend/src/routes/AppRoutes.tsx:L115].
+- Prerequisites: signed in; membership of at least one laboratory section, otherwise the server returns no data (System Administrator is unrestricted) [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L36-L38]. Result rows exist only after tests are recorded (the report reads the flattened result table).
+- Steps:
+  1. Open Reports. System response: the Overview tab opens with the period selector on "30d" [src: frontend/src/pages/Reports.tsx:L25, L70-L83]. Status change: none. Next action: choose a period or a tab.
+  2. Optional: pick "30d", "90d", "1y" or "custom" (two date fields "From date" and "To date"). The selector is shown above every tab except the KPI tab [src: frontend/src/pages/Reports.tsx:L72-L98]. Validation: the two date fields carry min/max limits so that From is not after To and neither is after today [src: frontend/src/modules/reports/components/QuickPeriodSelector.tsx:L42, L52].
+  3. Open the tab "Record Search". Set any of: "Search", "Result Type", "Category", "Test", "Result Level", "Status", "Approval Status", "Date Range", "Location / Point"; press "Search Records". System response: a table "Search Results" with the chip "{n} Records Found" [src: frontend/src/modules/reports/components/ReportFilterPanel.tsx:L5-L178; frontend/src/modules/reports/components/ReportResultsTable.tsx:L275-L306]. Empty result: "No results found" with the button "Clear Filters". Required data: none; every filter is optional.
+  4. Optional: switch columns on and off with "Columns"; page with the rows-per-page choices 10, 25, 50, 100.
+  5. Open a record: click the reference link or the row menu "View Record Details". System response: a read-only record dialog (sample, test order, reading, approval) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L438]. Nothing can be edited.
+  6. Export, whole result set as CSV: press "Export CSV"; a confirmation dialog reads "This will export {n} row(s) matching your current filters as a CSV file. This export will be logged."; press "Confirm". System response: the server builds the file, writes an export audit entry and the browser downloads `microlims-results-{yyyyMMdd-HHmmss}.csv` [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L329; backend/MicroLIMS.API/Controllers/ReportingController.cs:L139-L177]. Validation: more than 10,000 matching rows is refused with "This filter matches {n} rows, which exceeds the 10,000-row export limit. Narrow your filters (e.g. a shorter date range) and try again." The confirmation dialog does not warn beforehand (GAP-804).
+  7. Export, current page as PDF: press "Export PDF". System response: the browser builds a printable A4 landscape report; no server call, no export audit entry found (REQUIRES CONFIRMATION) [src: frontend/src/modules/reports/utils/exportPdf.ts:L57-L276].
+  8. Export a selection: tick rows (only Approved results can be selected) or press "Select All {n} Matching Records" (tooltip: selects every Approved result matching the filters). Buttons "Export Selected PDF", "Export Selected CSV", "Analyze Selected", "Clear" appear [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L90].
+  9. Trend: open the tab "Trending & Analysis" (or press "Analyze Selected" / the row menu "Analyze Trend"). Choose "Parameter / Test", "Product / Item" (or the location cascade), "Category", "Date Range", "Compare With", press "Apply Criteria". System response: for a numeric count test a chart with results, limits and mean plus 10 statistics cards; for a qualitative test a table of detection events plus 4 cards [src: frontend/src/modules/reports/components/TrendingTab.tsx:L203-L330]. Validation: the server refuses trending of a test that is not a count test with "Trending is only available for numeric results. {testCode} produces qualitative results." and of an unknown code with "Test code \"{testCode}\" is not configured in Test Master." [src: backend/MicroLIMS.Application/Services/ReportingQueryService.cs:L242-L248]. How the screen decides between the numeric and the qualitative display for each test is not decided on this page alone (REQUIRES CONFIRMATION).
+  10. Drill down: click a point on the chart or a row of the event table. System response: the same read-only record dialog. If the record cannot be loaded the page builds a record from the chart point itself instead of showing an error (GAP-817) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L104-L121].
+  11. Compare: press "Compare Products" or "Compare Locations" (or choose the entry in "Compare With"). System response: the dialog "Multi-Series Trend Comparison" [src: frontend/src/modules/reports/components/CompareDialog.tsx:L57-L67].
+  12. Export a trend: "Export" gives "CSV (Data Table)", "PDF (Data Table)", "PDF (Data Table + Chart)"; "View Data Table" opens the table [src: frontend/src/modules/reports/components/TrendingTab.tsx:L738-L751].
+  13. Media / GPT and Reference Strains tabs follow the same pattern (filter, "Search", results table, row eye icon for traceability, "Export CSV" / "Export CSV (Flattened)", "Print / PDF View"); their CSV exports are capped at 10,000 rows and write an export audit entry [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L234-L265, L314-L347].
+- Permissions per step: all steps need sign-in only (route and `/api/reporting/*` use plain authorize) [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L23]. The KPI tab needs `Kpi.View` (see WF-KPI-001).
+- Blocking conditions: 10,000-row cap; lab-section scope; trending only for count tests. No time gates.
+- Error conditions (exact): export cap texts (three variants, see validations); "Export failed." when the file request fails; "The filter options could not be loaded, so the filter lists are empty. Reload the page to try again."
+- Signature points: none. Review / approval: none (read-only; only Approved results can be bulk-selected). Final state: results shown or a file downloaded; nothing stored except the export audit entry for server-built CSV files [src: backend/MicroLIMS.API/Controllers/ReportingController.cs:L170-L175].
+- INTENDED source: none found for the Reports module (no URS/FRS; GAP-001 family). Intended behaviour is REQUIRES CONFIRMATION. Business-rule text in documents/DesignSpecification/BusinessRules.md covers only the out-of-trend rule for room monitoring [src: documents/DesignSpecification/BusinessRules.md:L114].
+- DISCREPANCY: none between spec and code (no spec). Known screen defects: GAP-800, GAP-801, GAP-804, GAP-817.
+
+### WF-KPI-001 View KPIs and workload
+- Start / trigger: a user holding `Kpi.View` opens Reports and selects the tab "KPI / Performance" (`/reports?tab=performance`) or the quick action "KPI / Performance" on Overview [src: frontend/src/pages/Reports.tsx:L22; frontend/src/modules/reports/components/OverviewTab.tsx:L513].
+- Prerequisites: `Kpi.View` (default System Administrator, Section Head); membership of a laboratory section for scoping. Tiles are only meaningful after workflow profiles are configured (WF-KPI-002): unweighted tests are left out and shown as gaps.
+- Steps:
+  1. Open the tab. System response: the page loads tiles, sections and the workload table for the last 30 days including today [src: frontend/src/modules/kpi/utils/kpiFilters.ts:L11-L12] [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L56-L65]. Message under the filters: "Calculated {timestamp} for your laboratory sections. Click any figure to see the records behind it."
+  2. Set the filters "From", "To", "Category", "Location / subject", "Test". Validation: the browser shows `"Choose both dates."` or `"The start date must not be after the end date."`; the server repeats the check with `"A start date and an end date are required."` and `"The start date must not be after the end date."`. If the filter lists fail to load: "The category, location and test lists could not be loaded. Reload the page to try again."
+  3. Read the 8 headline tiles. The period is the half-open window [From 00:00 UTC, To+1 day 00:00 UTC); percentages travel as fractions and are shown by the page [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L110-L115]. A tile that cannot be calculated shows "This figure could not be calculated. The error has been logged." (the other tiles still show) [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L13, L51].
+  4. Click any tile or section chart. System response: the drawer of underlying records (paged, 50 per page) with the inclusion mark Numerator / Denominator / Excluded and a note [src: backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L30-L36].
+  5. Optional: press "Definitions" to read the formula, clock events, population and source of each KPI and the profiles in force.
+  6. Read the "Workload" table. Click an analyst name to open that analyst's tests. A user without `Kpi.ViewTeam` only receives their own row ("Showing your own numbers only.") [src: frontend/src/modules/kpi/components/WorkloadTable.tsx:L44-L110].
+  7. Optional: press "Export PDF". System response: an A4 landscape printable report of the same figures [src: frontend/src/modules/kpi/utils/exportKpiPdf.ts:L86-L167].
+- Required vs optional data: all filters optional except the two dates. Permissions: `Kpi.View` for every step; `Kpi.ViewTeam` for other analysts' rows; the headline tiles are laboratory-level for every holder of `Kpi.View`.
+- Blocking conditions: missing dates; unauthorised analyst request ("You can only view your own analyst figures." / "You may only view your own workload figures."); filters category, location or test make utilisation and forward load blank with gap CAPACITY_NOT_FILTERED.
+- Signature points: none. Status changes: none (read-only). Review / approval: none. Final state: figures on screen or a PDF file.
+- Formulas as coded: see business-rules BR-KPI-005 to BR-KPI-016.
+- INTENDED source: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md (spec deviations list) and the design file docs/superpowers/specs/2026-10-11-kpi-performance-remodel-design.md, whose first lines still say "Status: draft for review (no code written)" [src: docs/superpowers/specs/2026-10-11-kpi-performance-remodel-design.md:L3]. DISCREPANCY GAP-045 confirmed (stale status). The approved definitions remain REQUIRES CONFIRMATION.
+
+### WF-KPI-002 Workflow profile version (create, sign)
+- Start / trigger: a user holding `Kpi.ConfigureProfiles` presses "Workflow Profiles" on the KPI tab [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L91].
+- Prerequisites: `Kpi.View` and `Kpi.ConfigureProfiles`; the test must exist in the test master; the workflow type must not be retired. The user's own password is needed.
+- Steps:
+  1. Open the dialog. System response: explanatory text ("Work units: 1 unit = 1 standard analyst-hour of hands-on work. Target: analyst-stage days. A version takes effect on its effective date and is never edited; correct a mistake by adding a new version. Tests without a profile stay unweighted - they are never counted as 1.0."), a warning with counts of workflow types and tests that need configuration, the switch "Needs configuration only", and the table of workflow types [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L94-L120].
+  2. Optional: expand a type (chevron) to see its tests; press "History" to open the version history.
+  3. Press "Add version" on a type (default for the type), or "Add version" / "Add override" on a test. For a draft version (created by the old weight import) the dialog is titled "Review and sign: {scope}"; otherwise "Add version: {scope}" [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L85].
+  4. Enter "Work units" (above 0, at most 2 decimals, at most 999999.99), "Target analyst days" (same, at most 9999.99), "Effective from" (not in the past unless this is the first version of the scope), and "Reason for change" (required, at most 500 characters). A test override may leave a field empty to inherit it from the type default. At least one of units and target is required [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L29-L30, L142-L148, L271-L291].
+  5. Press "Continue to sign" (enabled once units/target, reason and date are valid). System response: a signature dialog showing the statement "I am adding a workflow profile version for {scope}: {u} work units (1 unit = 1 standard analyst-hour), {t} target analyst days, effective {date}. Reason: {reason}" with meaning MasterDataChanged [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L92].
+  6. Enter the account password and confirm. System response (server, one transaction): the version is inserted as Draft, the electronic signature is recorded (meaning MasterDataChanged), the version becomes Effective, and the audit entry `WorkflowProfileVersionAdded` is written. A wrong password rolls everything back [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L56-L90]. Status change: (new) -> Draft -> Effective, irreversible.
+  7. Signing an existing draft uses the same dialog and the endpoint `POST /api/kpi/workflow-profiles/{id}/sign`; the audit entry is `WorkflowProfileDraftSigned` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L96-L131].
+- Required data: units or target (one at least), effective date, reason, password. Optional: the other of units/target (inherit).
+- Permissions: `Kpi.ConfigureProfiles` for both write endpoints. No second person is involved (see roles: no segregation of duties).
+- Blocking conditions: back-dating of anything but the first version of a scope; retired workflow type; unknown test; value out of range.
+- Error conditions (exact): "A reason for the change is required."; "The reason must be 500 characters or fewer."; "Enter work units, a target, or both."; "{label} must be greater than 0."; "{label} must not exceed {max}."; "{label} allows at most 2 decimal places."; "Test '{code}' does not exist in the test master."; "Workflow type {type} is retired and cannot carry a profile."; the back-dating text; "This version is already Effective and cannot be signed again."; the password failures "Password verification failed. The signature was not applied." and "Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied." [src: documentation/knowledge/_raw/verified-roles-permissions.md:L142-L143].
+- Signature point: step 6 (password re-entry). Review / approval: none. Final state: an Effective version in force from its effective date; KPI calculations pick the version in force on each sample's approval date.
+- INTENDED source: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md (S1 and deviation 11); spec status is draft (GAP-045).
+
+### WF-DC-001 Register a controlled document
+- Start / trigger: a user holding `Documents.Register` presses "Register Document" (dashboard) or "Register New Document" (library) [src: frontend/src/modules/documentControl/pages/DocumentControlDashboardPage.tsx:L142; frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx:L217].
+- Prerequisites: `Documents.Register` (default System Administrator, Section Head, Analyst); active document types, departments and sections exist (WF-DC-006); the owner is an active user.
+- Steps:
+  1. Open the dialog "Register New Document Master". Text: the MicroLIMS Document ID "is automatically generated by the database sequence upon registration and cannot be modified. Initial status will be Draft" [src: frontend/src/modules/documentControl/components/RegisterDocumentDialog.tsx:L181].
+  2. Fill "Company Document Code *" (helper "Must be unique among active documents"), "Document Title *", "Document Type *", "Confidentiality *" (Public, Internal, Restricted, Confidential), "Department *", "Section *", "Initial Revision Number", "Review Cycle (Months)" (helper "Inherited from Document Type"), "Category", "Document Owner User ID *" (a number field, helper "Assigned primary owner"), and keywords ("Add Keyword") [src: frontend/src/modules/documentControl/components/RegisterDocumentDialog.tsx:L205-L330].
+  3. Press "Register Document Master" ("Registering..." while saving). Client validation: "Company Document Code and Title are required."; "Please complete all mandatory selection fields." [src: frontend/src/modules/documentControl/components/RegisterDocumentDialog.tsx:L138-L142].
+  4. System response (server, one transaction): checks the permission, the required fields, that type, department and section are active, that the section belongs to the department, that the owner is active, and that no ACTIVE master has the same code (case-insensitive). It draws the next number of the sequence `document_number_seq` and builds the MicroLIMS ID from the enabled numbering configuration (default "DOC-" and "0000000"), creates the master (origin Native) and Revision "01" (or the typed number) as Draft, type Major, reason "Initial Document Registration", and the audit entry `DocumentMasterRegistered` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L36-L200]. Status change: (none) -> Draft. The page opens the new document.
+- Required: code, title, type, department, section, owner. Optional: confidentiality default, initial revision number, review cycle, category, keywords.
+- Blocking conditions / errors (exact): "Only the Document Controller or a System Administrator can register a Document Master."; "Company Document Code is required."; "Document Title is required."; "A valid Document Type is required."; "A valid Department is required."; "A valid Section is required."; "A valid Document Owner is required."; "Section '{section}' does not belong to department '{department}'."; "A document with Company Document Code '{code}' already exists and is active."; deactivated type, department, section or inactive owner each have their own text (see validations).
+- Signature: none. Review / approval: none at this step. Final state: master Active with Draft Revision 01. Next: WF-DC-002 (upload file, submit).
+- INTENDED source: FS-1a-100, FS-1a-120, FS-1a-121, FS-1a-128 [src: docs/ML-DC-FRS-1A-001.md:L101-L110]. DISCREPANCY (message vs rule): the refusal text names only Document Controller and System Administrator but Analyst holds the permission by default.
+
+### WF-DC-002 Revision, technical review and approval
+- Start / trigger: the document owner, an assigned Author, a Section Head or a System Administrator works on a Draft revision (new from WF-DC-001, or "Create revision" from an Effective document).
+- Prerequisites: for a new revision the master must be Active, hold an effective revision, and have no revision in Draft, InReview or AwaitingApproval. A technical reviewer and an approver who are different from the author and from each other must exist (reviewer: any active user; approver: Reviewer, Section Head or System Administrator role type).
+- Steps:
+  A. Create a revision (only from an Effective document): press "Create revision". Dialog fields: "Revision Classification" (Major or Minor with the proposed number shown), "Override Revision Number (Document Controller Only)" with "Custom Revision Number" (1 to 20 letters, digits, dot, hyphen, underscore), "Reason for Revision *" (at least 10 characters), "Summary of Changes" (if given, at least 10 characters), "Change Reference / Ticket #". Button "Create Draft Revision". System response: new Draft revision, audit `DocumentRevisionCreated` (and `RevisionNumberOverridden` when overridden) [src: frontend/src/modules/documentControl/components/CreateRevisionDialog.tsx:L131-L236; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L59-L193].
+  B. Prepare the draft: "Upload controlled file" / "Upload or Replace File" (dialog title "Upload Draft File" or "Replace Draft File"; choose "File Role": "Controlled Document (PDF)" or "Editable Source (Word .docx)"; button "Upload & Compute SHA-256"). Rules: only while Draft; at most 50 MB; PDF must start with the PDF signature, Word must be .docx or .doc by signature; the previous active file is kept but marked inactive and the file version is increased [src: frontend/src/modules/documentControl/components/FileUploadDialog.tsx:L111-L150; backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L56-L133]. Optional: "Change items" and "Impact assessment" dialogs (fields not extracted: REQUIRES CONFIRMATION), "Edit metadata", assignments ("Add Assignment").
+  C. Submit for technical review: press "Submit for technical review" (or "Submit for Review"). Dialog: "Technical Reviewer" (all active users except the author and the current user), "Review Due Date", "Submission Notes"; button "Submit for Review". Server checks: revision is Draft; an active Word source file exists (or, as a fallback, an active controlled PDF); the impact assessment is complete when the revision sequence is above 1 or an assessment exists; originating review findings are addressed; the caller may edit the draft; reviewer is not the author; no active review task. System response: review task Pending with cycle number = previous maximum + 1, revision Draft -> InReview, audit `RevisionSubmittedForReview` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L55-L160]. Signature: none.
+  D. Technical review (assigned reviewer, or Section Head): open the review ("Open technical review" / "Open Review"). The drawer "Technical Review" offers "Add Finding" (fields "Page #", "Section #", "Comment / Finding Details", switch "Mandatory (blocks review completion until resolved)"); the author presses "Respond" (field "Author Response Notes", button "Submit Response"); the reviewer presses "Verify" (field "Verification Notes"); then "Resolve". Finding status ladder: Open -> AuthorResponded -> ReviewerVerified -> Resolved; the server refuses any other jump with the ladder text (see validations) [src: frontend/src/modules/documentControl/components/TechnicalReviewDrawer.tsx:L326-L595; backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L497-L509]. The reviewer then chooses "Complete Review" (disabled while open mandatory findings exist; server also refuses: "Cannot complete technical review while {n} mandatory review finding(s) remain unresolved.") -> revision InReview -> AwaitingApproval, audit `TechnicalReviewCompleted`; or "Return" -> review task ReturnedForCorrection, revision -> Draft, audit `TechnicalReviewReturned`. Both dialogs have a "Summary Review Notes" field (optional) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L565-L649]. After a return the author edits and repeats C (a new cycle starts). Signature: none. SoD: author cannot act as reviewer.
+  E. Assign the approver (owner, Author, Section Head or System Administrator): press "Assign approver". Dialog fields "Designated Approver", "Target Effective Date (Optional)" (helper: a future date makes the approved revision Future Effective), "Approval Due Date (Optional)", "Submission Notes for Approver (Optional)"; button "Assign & Route for Approval". Server checks: revision AwaitingApproval, technical review completed, no pending approval task, approver role type Reviewer, Section Head or System Administrator, approver is neither the author nor any technical reviewer of the revision. System response: approval task Pending, audit `ApprovalTaskCreated` [src: frontend/src/modules/documentControl/components/AssignApproverDialog.tsx:L150-L214; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L50-L150].
+  F. Decide (assigned approver, Section Head or System Administrator, never the author or a technical reviewer): press "Open approval workspace". Tabs "Inspection Dossier" and "Decision Controls"; a readiness checklist (revision AwaitingApproval, active controlled PDF, technical review completed, mandatory findings resolved, impact assessment complete, change items addressed, segregation of duties). Choose one decision:
+     - "Approve": the button is disabled until the checklist is ready. Optional "Effective Date" (blank or today = immediate; future = deferred) and "Approval Notes (Optional)". Then the signature dialog: "Re-enter Your Password to Authenticate", button "Sign & Approve" (error "Password re-authentication is required to apply electronic signature."). Server: re-checks readiness, refuses a second approval signature, signs (meaning Approved), then in one transaction sets the task Approved and the revision to Effective (effective date today or earlier; next review date = effective date + review cycle months, default 24; every prior Effective revision becomes Superseded; the master points to this revision) or to FutureEffective (date later than today). Audit: `ElectronicSignatureApplied`, `DocumentRevisionApproved` [src: frontend/src/modules/documentControl/components/ApprovalWorkspaceDialog.tsx:L715-L842; frontend/src/modules/documentControl/components/ElectronicSignatureDialog.tsx:L193-L232; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L520-L640].
+     - "Return for Correction": mandatory reason of at least 10 characters; task ReturnedForCorrection, revision -> Draft, audit `RevisionReturnedByApprover`. No password.
+     - "Decline / Cancel": mandatory reason of at least 10 characters; task Declined, revision -> Cancelled (terminal), audit `RevisionDeclinedByApprover`. No password [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L433-L518].
+  G. After approval: Effective -> the controlled PDF becomes readable by all active users; FutureEffective -> the worker activates it later (WF-DC-005 covers training). The worker (interval 60 minutes by default) sets FutureEffective -> Effective on the date, supersedes the previous Effective revision, audits `RevisionAutomaticallyActivated` and starts the training cascade [src: backend/MicroLIMS.API/BackgroundServices/DocumentEffectiveDateWorker.cs:L17; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs:L46-L50, L221-L310].
+- Required vs optional data: see each step; mandatory texts have a 10-character minimum.
+- Permissions per step: C and E need edit-draft authority (System Administrator, Section Head, owner, assigned Author); D needs the assigned reviewer or Section Head (findings: reviewer, Section Head or System Administrator); F needs the assigned approver, Section Head or System Administrator.
+- Blocking conditions: Draft-only edits; one active workflow revision per master; mandatory findings; incomplete impact assessment; unaddressed originating findings; segregation of duties; missing active controlled PDF at approval ("An active Controlled PDF file is required." in the checklist); approval task already pending.
+- Error conditions (exact): see validations MOD-DC-001 (e.g. "Cannot create a new revision while another revision is currently in draft or review/approval workflow."; "Cannot create an approval task: Revision has not completed technical review."; "Cannot approve document revision: Prerequisites not met. Errors: ..."; the segregation texts listed under roles).
+- Signature points: F "Approve" only. Review / approval: steps D and F. Final state: Effective (or FutureEffective), previous revision Superseded, or Draft/Cancelled after return/decline.
+- INTENDED source: FS-1b-055 to FS-1b-079 [src: docs/ML-DC-FRS-1B-001.md:L163-L343] and FS-1d-001 to FS-1d-016 [src: docs/Release_1d_Delta_FRS.md:L70-L356]. DISCREPANCIES: (1) FS-1d-013/014 describe server-side Word-to-PDF conversion at approval; no conversion service exists in the code, the controlled PDF is uploaded by hand and required at approval (GAP-815). (2) FS-1d-003 says a Controlled PDF is no longer required for review submission; the UI still offers "Submit" only when a controlled PDF is active, and the server accepts a PDF when no Word file exists (GAP-815). (3) Immediate-effective approval does not call the training cascade (GAP-816).
+
+### WF-DC-003 Periodic review
+- Start / trigger: the background worker generates the review task; a reviewer opens "Workspace" in the Workflow tab of the document [src: frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx:L1200-L1220].
+- Prerequisites: an Active master with an Effective revision whose next review date has been reached; no Pending or InProgress review task for that revision.
+- Steps:
+  1. Task creation (system, every worker cycle): for each such master the worker creates a task Pending, due on the next review date, assigned to the Technical Reviewer assignment or else the document owner (left unassigned if that person is the revision's author); audit `PeriodicReviewTaskCreated` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L56-L145].
+  2. Open the "Periodic Review Workspace". It shows MicroLIMS ID, Effective Revision, Review Due Date (chip OVERDUE), Review Cycle, Assigned Reviewer, Status, the controlled effective PDF ("Inspect Controlled PDF") and three tabs: "Review Notes & Findings ({n})", "Independent Review History ({n})", "Outcome & Decision" [src: frontend/src/modules/documentControl/components/PeriodicReviewWorkspaceDialog.tsx:L182-L318].
+  3. Add notes: "Page #", "Section #", "Review Note / Observation *"; button "Add Note"; "Mark Resolved" on a note. The author of the revision cannot add notes (segregation text).
+  4. Choose the outcome in "Decision Outcome *": "Remains Valid", "Revision Required" or "Obsolescence Recommended"; enter "Review Summary & Conclusion *" (at least 10 characters); press "Submit & Complete Review".
+  5. System response by outcome: Remains Valid -> task Completed, next review date = now + review cycle months, audit `PeriodicReviewRemainsValid`; Revision Required -> task Completed, findings kept, a new revision may then be created referencing the task, audit `PeriodicReviewRevisionRequired`; Obsolescence Recommended -> task Completed and an approval task (due in 14 days) is created for the assigned Approver, or the owner, or another Section Head if that person is the reviewer or author, audit `PeriodicReviewObsolescenceRecommended` [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L538-L700].
+- Required data: summary (10 characters), outcome. Permissions: the assigned reviewer; a Section Head or System Administrator for another person's task. If the task has no assigned reviewer, the code applies no role check at all (GAP-814).
+- Blocking conditions: task already Completed or Cancelled; author of the revision. Errors (exact): "This periodic review task is already completed and cannot be altered."; "Cannot complete a cancelled periodic review task."; "A comprehensive review summary of at least 10 characters is mandatory."; "Only the assigned reviewer or Document Controller can complete this review."; the three segregation texts.
+- Signature: none. Final state: task Completed with outcome. The Obsolescence Recommended path cannot finish: approving the resulting task is refused by the approval readiness check (revision is Effective, not AwaitingApproval) and no code sets a revision to Obsolete (GAP-818).
+- INTENDED source: FS-1b-044 to FS-1b-054 [src: docs/ML-DC-FRS-1B-001.md:L54-L160]. DISCREPANCIES: FS-1b-052 says the document becomes Obsolete only after the obsolescence approval is executed and signed; the code has no such transition (GAP-818). Spec step "task status set to ObsolescenceProposed" differs from the code status Completed. Whether this workflow involves a signature is REQUIRES CONFIRMATION in the application map; code shows none.
+
+### WF-DC-004 Reading acknowledgement
+- Start / trigger: a reading assignment exists for the user (created by the training cascade or manually) and the user opens "My Reading List".
+- Prerequisites: assignment status Assigned, Reading or Overdue; the revision is Effective and the master Active.
+- Steps:
+  1. Open the list, tab "To read" or "Overdue". Press "Read". System response: the controlled PDF viewer opens, marked as the official copy; scroll progress is recorded and shown as "Reading Progress {n}%. Informational Only. Formal Acknowledgement Required"; assignment status Assigned -> Reading may be set by the progress call [src: frontend/src/modules/documentControl/components/ControlledPdfViewer.tsx:L140-L200; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L405-L430].
+  2. Press "Acknowledge". Dialog "Controlled Document Training Acknowledgement" shows document code and revision, status, assigned user, due date, controlled file, progress and the evidentiary statement (default text "I confirm that I have read, understood, and agree to adhere to the contents of this controlled document revision."), a checkbox "I confirm the evidentiary statement above.", and "Acknowledgement Remarks (Optional)" [src: frontend/src/modules/documentControl/components/DocumentAcknowledgementDialog.tsx:L23-L276].
+  3. Tick the checkbox and press "Submit acknowledgement". Client validation: "You must explicitly verify and accept the legal acknowledgement statement." Server validation: confirmation flag, same user, same revision, Active master, Effective revision, assignment not terminally closed. System response: an immutable acknowledgement record (statement text, controlled-file SHA-256, time, IP address, user agent) is stored, assignment -> Acknowledged, audit `ReadingAssignmentAcknowledged` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L120-L320].
+- Required: the checkbox. Optional: remarks. No password and no signature (checkbox only).
+- Reading 100 percent is not required before the button works (GAP-810). Errors (exact): see validations MOD-DC-002.
+- Review / approval: none. Final state: Acknowledged (counts as Qualified in the matrix).
+- INTENDED source: FS-1c-005, FS-1c-006 [src: docs/ML-DC-FRS-1C-001.md:L103-L143].
+
+### WF-DC-005 Training matrix and compliance review
+- Start / trigger: a manager opens "Training Matrix" or "Training Compliance Dashboard". Reading assignments come from the training cascade, which runs when a FutureEffective revision is activated by the worker.
+- Prerequisites: `Documents.TrainingAssign` to see everyone; any other user sees only their own row. Reading assignments exist: they are produced for users with a curriculum role (the curriculum department is read but not applied), or for earlier completers when retraining is on, or for the document's assigned personnel when neither exists; due date = effective date + grace period (curriculum item, then document or type configuration, then 14 days) [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L36-L260, L509-L549].
+- Steps:
+  1. Open "Training Matrix". System response: count cards, filters and the grid (see screens). Filter by "Department" and "Qualification Status", or search.
+  2. Click a cell to see the assignment history; click a person for "User Compliance Profile"; click a document header for "Document Compliance Profile".
+  3. Press "Compliance Dashboard" to see the compliance rate, department ranking and top overdue documents; press "View Full Matrix" to go back.
+  4. System (worker, every cycle): for open assignments computes the escalation levels ApproachingDue (3 days before due by default), Due (at due date; assignment set to Overdue) and Overdue (1 day after due, recipient text "Manager;QACompliance"); each is stored once as a Raised escalation record with an audit entry. No message is sent by this code; there is no screen to view or resolve escalations (GAP-807) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L100-L262].
+  5. Resolution (API only): a holder of `Documents.TrainingAssign` posts a resolution reason (any non-blank text) -> escalation Resolved, audit `TrainingEscalationResolved` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L352-L410].
+- Read-only for the user; no signature; no review/approval. Final state: figures on screen.
+- Blocking / gaps: immediate-effective approvals do not create assignments (GAP-816); curriculum department ignored (GAP-819); per-document training settings have no screen (GAP-809).
+- INTENDED source: FS-1c-001 to FS-1c-011 [src: docs/ML-DC-FRS-1C-001.md:L28-L226].
+
+### WF-DC-006 Configure Document Control
+- Start / trigger: a System Administrator opens `/document-control/configuration` (permission `Documents.ConfigManage`).
+- Prerequisites: permission and role type System Administrator.
+- Steps:
+  1. Tab "Document Types": "Add Document Type" or the edit icon. Fields "Type Code *", "Type Name *", "Default Review Cycle (Months) *" (1 to 120), switch "Active Status"; "Save". Audit `DocumentTypeCreated` / `DocumentTypeUpdated`. Success "Document Type saved successfully."
+  2. Tab "Departments & Sections": "Add Department", "Add Section", edit icons; fields "Department Code *", "Department Name *", "Section Name *", "Active Status"; audit `DocumentDepartmentCreated/Updated`, `DocumentSectionCreated/Updated`.
+  3. Tab "Numbering Configuration": "Prefix *", "Number Format (Zero-Padded Pattern) *", switch; "Save Numbering Configuration"; audit `DocumentNumberingConfigUpdated`. The preview "Sample Generated Document ID" shows the effect. Only future registrations are affected.
+  4. Tab "Module Settings": edit icon -> "Edit Configuration Setting" -> "Setting Value *" -> "Save Setting"; audit `ConfigurationSettingUpdated`. Known key: `DocumentControl.ControlledCopy.DownloadPermitted`.
+  [src: frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx:L120-L218; backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L56-L570]
+- Errors (exact): see validations MOD-DC-004. No signature, no review or approval, and no reason field. Final state: master data saved and audited.
+- INTENDED source: FS-1a-123, FS-1a-124, FS-1a-135 [src: docs/ML-DC-FRS-1A-001.md:L105-L106, L122]. Training settings, escalation days and the curriculum have no screen (GAP-809).
+
+### WF-DC-007 Void document / cancel draft
+- Start / trigger: (a) Void: a Section Head presses the red icon "Void Document Master" in the library or "Void document master" in the detail menu. (b) Cancel draft: an editor presses "Cancel draft revision" in the detail menu.
+- Prerequisites: (a) role type Section Head, master Active, no current effective revision and no Effective or Superseded revision. (b) the revision is Draft and the user is System Administrator, Section Head, owner or assigned Author.
+- Steps (a): dialog "VOID DOCUMENT MASTER" explains that voiding removes the master from the active register and releases the Company Code; enter the reason (placeholder "State the regulatory / administrative justification for voiding this document...", at least 10 characters); press "Confirm Void Record" ("Voiding Record..."). System response: master RecordStatus -> Void, void date/user/reason stored, audit `DocumentMasterVoided`; the company code can be used again [src: frontend/src/modules/documentControl/components/VoidDocumentDialog.tsx:L72-L122; backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L510-L565].
+- Steps (b): dialog "CANCEL DRAFT REVISION"; enter the reason (at least 10 characters); press "Confirm Cancel Draft" ("Cancelling..."), or "Close". System response: revision Draft -> Cancelled, active files set inactive, audit `DraftRevisionCancelled` [src: frontend/src/modules/documentControl/components/CancelDraftDialog.tsx:L19-L113; backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L566-L620].
+- Errors (exact): "Only the Document Controller can void a Document Master."; "A mandatory void reason of at least 10 characters is required."; "Document Master is already voided."; "A Document Master that has held an effective revision cannot be voided. It must be retired through obsolescence."; "You do not have permission to cancel this draft revision."; "A mandatory cancellation reason of at least 10 characters is required."; "Only revisions in Draft state can be cancelled. Current status is {status}."
+- Signature: none (no password found in either dialog). Review / approval: none. Final state: Void master or Cancelled revision; neither can be deleted (no delete function).
+- Note: a master whose only revision is cancelled stays Active with no usable revision; no way to retire it other than void (when no effective revision ever existed) - REQUIRES CONFIRMATION.
+- INTENDED source: FS-1a-171, FS-1a-172, FS-1a-111 [src: docs/ML-DC-FRS-1A-001.md:L91, L116-L117].
 
 ## business-rules
 
@@ -499,25 +599,25 @@ Pending Phase 4.
 
 ### MOD-KPI-001 KPI and Workflow Profiles
 - BR-KPI-001 Standard Work Unit Definition. IMPLEMENTED (verified). Exactly 1 work unit represents 1 standard analyst-hour of hands-on work. Work units are a planning and capacity estimation metric, not an analyst performance score [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L7-L10; frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L94-L96; frontend/src/modules/kpi/components/WorkloadTable.tsx:L101-L102].
-- BR-KPI-002 Profile Resolution Precedence and Effective Dating. IMPLEMENTED (verified). To resolve a test's profile on date `t`:
-  1. Check for test-specific override: `WorkflowProfileVersion` with `TestCode == testCode`, `Status == Effective`, and `EffectiveFrom <= t`, ordered by `EffectiveFrom` descending, then `Id` descending.
-  2. Fall back to workflow type default: `WorkflowProfileVersion` with `WorkflowType == type`, `TestCode == null`, `Status == Effective`, and `EffectiveFrom <= t`, ordered by `EffectiveFrom` descending, then `Id` descending.
-  3. If neither defines work units, `WorkUnits` is null (unweighted). If neither defines target analyst days, `TargetAnalystDays` is null (falls back to 7 days in SLA calculations). Unweighted tests are never given a default weight of 1.0 [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileResolver.cs:L1-L60; backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L171-L177].
-- BR-KPI-003 Profile Version Immutability and Draft Mutation. IMPLEMENTED (verified). `WorkflowProfileVersions` table is append-only, enforced by database trigger `TR_WorkflowProfileVersions_Immutability`. An Effective version cannot be modified or deleted. The only permitted state transition is `Draft` to `Effective`, which occurs upon electronic signature (`SignatureMeaning.MasterDataChanged`). Creating a new effective version inserts as Draft and flips to Effective in the same transaction [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L78; backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L70-L84, L102-L127].
+- BR-KPI-002 Profile Resolution Precedence and Effective Dating. IMPLEMENTED (verified). Work units and target days are resolved SEPARATELY, per field, for a test on date `t` (the sample's approval date):
+  1. Among Effective versions with `EffectiveFrom <= t`, take the newest (by `EffectiveFrom`, then `Id`) test-specific version (`TestCode == testCode`) that has the field set; if none, take the newest type-default version (same workflow type, `TestCode == null`) that has the field set.
+  2. If no version defines work units, `WorkUnits` is null (the test is unweighted and is never given 1.0). If none defines the target, `TargetAnalystDays` is null and the 7-day constant is used (`DefaultTargetDays = 7`) with a "default target" gap.
+  3. The workflow type is the test definition's CURRENT type, so re-typing a test moves its history to the new type's default [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileResolver.cs:L12-L69; backend/MicroLIMS.Application/Services/Kpi/KpiTypes.cs:L41-L42; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L79]. INTENDED: plan deviation 18 (the type default also needs `EffectiveFrom <= t`) [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L85].
+- BR-KPI-003 Profile Version Immutability and Draft Mutation. IMPLEMENTED (verified). The table is append-only, enforced by the database trigger `trg_workflowprofileversions_immutable` (function `prevent_workflowprofileversion_modification`): DELETE is refused and any UPDATE of a row whose status is Effective is refused ("WorkflowProfileVersions is append-only"). The only permitted change is a Draft row turning Effective when the electronic signature (meaning MasterDataChanged) is attached. A new version is inserted as Draft and flipped to Effective in the same transaction [src: backend/MicroLIMS.Persistence/Migrations/20261013204200_AddWorkflowProfileVersions.cs:L94-L112; backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L56-L84, L96-L127; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L78].
 - BR-KPI-004 Baseline Back-Dating Exception. IMPLEMENTED (verified). Effective dates cannot be in the past (`effectiveFrom < today`), except for the baseline version: the very first Effective version of a scope (`WorkflowType` + `TestCode`) is permitted to have an effective date in the past to establish initial historical weighting. All subsequent versions must be effective today or in the future [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L277-L291].
-- BR-KPI-005 Turnaround Time (TAT) Calculation (Tile 1). IMPLEMENTED (verified). Measures calendar days from `Sample.ReceivedAt` to `Sample.ApprovedAt` (where decision is Approve). Population: distinct non-retest samples approved in period within accessible sections. Discrepancy from spec: spec called for `ReviewWorkflowEvent`; implemented using `Sample.ApprovedAt` to avoid polymorphic event collision and time-provider detachment. Value is median calendar days; 90th percentile (P90) is calculated alongside via linear interpolation [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L68; backend/MicroLIMS.Application/Services/Kpi/SampleTatKpi.cs:L13-L44].
-- BR-KPI-006 On-Time All Stages SLA Calculation (Tile 2). IMPLEMENTED (verified). Evaluates samples approved in period. A sample is on time only if all stages for all visible sections meet their SLAs:
-  - Analyst stage: `SamplePreparation.PreparedAt` to `SampleSectionSignoff.SubmittedForReviewAt` <= target days resolved via `AnalystStageTarget.DaysFor(codes, ApprovedAt, resolver)` (uses profile in force on approval date; defaults to 7 days if unconfigured).
-  - Review stage: `SubmittedForReviewAt` to `ReviewedAt` <= 24 calendar hours (`StageLimit = TimeSpan.FromHours(24)`).
-  - Approval stage: `ReviewedAt` to `ApprovedAt` <= 24 calendar hours (`StageLimit = TimeSpan.FromHours(24)`).
-  - Samples without `SamplePreparation` (FP physicochemical, EM, retest clones) cannot be evaluated and are excluded with gap `NO_ASSIGNMENT_TIME` [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L70; backend/MicroLIMS.Application/Services/Kpi/OnTimeAllStagesKpi.cs:L9-L30, L84-L101].
+- BR-KPI-005 Turnaround Time (TAT) Calculation (Tile 1). IMPLEMENTED (verified). Calendar days from `Sample.ReceivedAt` to `Sample.ApprovedAt` (rounded to 2 decimals) for samples approved in the period within the user's sections, excluding retest samples created from an earlier sample. The tile value is the median and the 90th percentile is shown alongside; percentiles use linear interpolation between closest ranks (Excel PERCENTILE.INC) [src: backend/MicroLIMS.Application/Services/Kpi/SampleTatKpi.cs:L13-L44; backend/MicroLIMS.Application/Services/Kpi/KpiScope.cs:L109-L123]. DISCREPANCY (spec vs code): the design file names the end event as `ReviewWorkflowEvent` `ApprovalDecisionMade`; the code uses `Sample.ApprovedAt`, recorded in the plan as a deliberate deviation [src: docs/superpowers/specs/2026-10-11-kpi-performance-remodel-design.md:L127; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L68]. The design file is a draft (GAP-045), so the intended definition stays REQUIRES CONFIRMATION.
+- BR-KPI-006 On-Time All Stages SLA Calculation (Tile 2). IMPLEMENTED (verified). Population: the same approved samples as tile 1. A sample is judged on time only if EVERY visible section sign-off meets its limits (all limits inclusive):
+  - Analyst stage: the section's submit-for-review time must be at or before `SamplePreparation.PreparedAt` plus the LONGEST target (in days) among the sample's non-superseded, assigned tests, resolved with the profiles in force on the approval date; a test with no target counts 7 days and increases the "default target" gap.
+  - Review stage: when the review time exists, `ReviewedAt - SubmittedForReviewAt <= 24 hours` (`StageLimit`); when it does not exist the stage is not judged.
+  - Approval stage: when both times exist, `ApprovedAt - ReviewedAt <= 24 hours`.
+  - Samples without a preparation record (finished-product physicochemical, environmental monitoring, retest clones) are excluded with gap `NO_ASSIGNMENT_TIME`; samples with no sign-off row that has a submit time are excluded with `INCOMPLETE_TIMELINE` [src: backend/MicroLIMS.Application/Services/Kpi/OnTimeAllStagesKpi.cs:L9-L30, L84-L109; backend/MicroLIMS.Application/Services/Kpi/AnalystStageTarget.cs:L8-L24; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L70].
 - BR-KPI-007 Right First Time (RFT) Calculation (Tile 3). IMPLEMENTED (verified). Measures `(work units of approved tests never returned to analyst) / (work units of all approved tests)` in period. Counted in period when the section sign-off was approved. Tests without a work-unit profile are excluded and listed under gap `UNWEIGHTED_TESTS`. Pathogen observation tests (`WorkflowType.Observation`) cannot record return events and are excluded under gap `OBSERVATION_NOT_TRACKED` [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L71-L72; backend/MicroLIMS.Application/Services/Kpi/RightFirstTimeKpi.cs:L20-L30, L75-L101].
-- BR-KPI-008 Retest Rate Calculation (Tile 4). IMPLEMENTED (verified). Measures `(distinct samples with a RetestRetainedSample decision in period) / (distinct samples with at least one decided section sign-off in period)`. Retest clones created from earlier samples are excluded. Stated in UI and definitions as a laboratory quality signal, not an analyst measure [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L69; backend/MicroLIMS.Application/Services/Kpi/RetestRateKpi.cs:L11-L30].
-- BR-KPI-009 OOS Rate Calculation (Tile 5). IMPLEMENTED (verified). Measures `(distinct samples with an OosGroupCode in period) / (distinct samples with at least one decided section sign-off in period)`. Discrepancy from spec: spec called for `OOSInvestigation` decision, but code never writes `OOSInvestigation`; implemented using `Sample.OosGroupCode != null`. Retest rate is a mathematical subset of OOS rate [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L69; backend/MicroLIMS.Application/Services/Kpi/OosRateKpi.cs:L5-L31].
-- BR-KPI-010 WIP Backlog Snapshot (Tile 6). IMPLEMENTED (verified). Measures test orders with status `Pending` or `InProgress` that are not superseded at query time (`q.Now`). Filter period does not apply and no historical prior is calculated. Series breakdown shows count by `CurrentStep` (e.g. Preparation, Inoculation, Incubating, Reading). Tests waiting for review or approval appear in Backlog Aging, not WIP Backlog [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L74; backend/MicroLIMS.Application/Services/Kpi/WipBacklogKpi.cs:L7-L46].
+- BR-KPI-008 Retest Rate Calculation (Tile 4). IMPLEMENTED (verified). `distinct samples with a RetestRetainedSample decision in the period / distinct samples with at least one decided section sign-off in the period`. The decision time is the signature time of the sign-off, falling back to `ApprovedAt`; the latest decision time per sample places it in a month. Retest clones (samples with an origin sample) are excluded. Described on screen as a laboratory quality signal, not an analyst measure [src: backend/MicroLIMS.Application/Services/Kpi/KpiScope.cs:L186-L224; backend/MicroLIMS.Application/Services/Kpi/RetestRateKpi.cs:L11-L30].
+- BR-KPI-009 OOS Rate Calculation (Tile 5). IMPLEMENTED (verified). `distinct decided samples whose OosGroupCode is not empty / distinct decided samples` (same population and decision time as the retest rate). The retest rate is a subset of the OOS rate. The out-of-spec group is a sample-level field, so a single-laboratory viewer also sees an OOS that arose in another laboratory [src: backend/MicroLIMS.Application/Services/Kpi/OosRateKpi.cs:L5-L31]. DISCREPANCY (spec vs code): the design file counts a decision `OOSInvestigation`; the code never writes that decision, so the sample field is used instead [src: docs/superpowers/specs/2026-10-11-kpi-performance-remodel-design.md:L131; docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L69].
+- BR-KPI-010 WIP Backlog Snapshot (Tile 6). IMPLEMENTED (verified). Measures test orders with status `Pending` or `InProgress` that are not superseded, at the moment of the request. Filter period does not apply and no historical prior is calculated. Series breakdown shows count by `CurrentStep` (e.g. Preparation, Inoculation, Incubating, Reading). Tests waiting for review or approval appear in Backlog Aging, not WIP Backlog [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L74; backend/MicroLIMS.Application/Services/Kpi/WipBacklogKpi.cs:L7-L46].
 - BR-KPI-011 Incubation Reads On-Time SLA (Tile 7). IMPLEMENTED (verified). Measures `(completed incubation windows where CompletedAt <= ExpectedReadingAt + 4 hours) / (total completed incubation windows in period)`. Windows with no expected reading time are excluded under gap `NO_EXPECTED_READING`. Media-challenge incubations are excluded (`TestOrderId != null`). Note: stage-1 to stage-2 transfers complete a window and count as reads (known documented limitation) [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L75; backend/MicroLIMS.Application/Services/Kpi/IncubationReadsOnTimeKpi.cs:L12-L21, L59-L68].
-- BR-KPI-012 Environmental Monitoring Excursion Rate (Tile 8). IMPLEMENTED (verified). Measures `(EM ResultRecord rows with AlertLevel or ActionLevel) / (EM ResultRecord rows with WithinLimit, AlertLevel, or ActionLevel)`. Results without levels (e.g. qualitative detected/absent) are excluded. Adverse trend flag (`AdverseTrend`) triggers when total results >= 5 (`MinSampleForRate = 5`) and `alertRate > 2.5%` (`EmAlertRateAdverse = 0.025`) or `actionRate > 0.15%` (`EmActionRateAdverse = 0.0015`) [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L76; backend/MicroLIMS.Application/Services/Kpi/EmExcursionRateKpi.cs:L17-L25, L61-L71; backend/MicroLIMS.Application/Services/Kpi/KpiTypes.cs:L42-L46].
-- BR-KPI-013 Backlog Aging Target Usage Buckets. IMPLEMENTED (verified). Open work is grouped by ratio of age to workflow target: `within50` (<= 0.5x target), `50to100` (0.5x to 1.0x target), and `over100` (> 1.0x target). For testing and incubation, target is `resolver.Resolve(testCode).TargetAnalystDays` (default 7 days). For review and approval gates, target is 24 hours (`GateTargetDays = 1m`) [src: backend/MicroLIMS.Application/Services/Kpi/BacklogAgingKpi.cs:L10-L15, L42-L45, L64-L71, L108-L115].
+- BR-KPI-012 Environmental Monitoring Excursion Rate (Tile 8). IMPLEMENTED (verified). Measures `(EM ResultRecord rows with AlertLevel or ActionLevel) / (EM ResultRecord rows with WithinLimit, AlertLevel, or ActionLevel)`. Results without levels (e.g. qualitative detected/absent) are excluded. Retest clones (samples with an origin sample) are excluded. Adverse trend flag (`AdverseTrend`) triggers when total results >= 5 (`MinSampleForRate = 5`) and `alertRate > 2.5%` (`EmAlertRateAdverse = 0.025`) or `actionRate > 0.15%` (`EmActionRateAdverse = 0.0015`) [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L76; backend/MicroLIMS.Application/Services/Kpi/EmExcursionRateKpi.cs:L17-L25, L61-L71; backend/MicroLIMS.Application/Services/Kpi/KpiTypes.cs:L40-L46].
+- BR-KPI-013 Backlog Aging Target Usage Buckets. IMPLEMENTED (verified). Open work is grouped by ratio of age to workflow target: `within50` (<= 0.5x target), `50to100` (0.5x to 1.0x target), and `over100` (> 1.0x target). For testing and incubation, the age starts at the preparation time (the sample receipt time if there is none) and the target is `resolver.Resolve(testCode, now).TargetAnalystDays` (7 days where none, with a gap chip). For review and approval gates, target is 24 hours (`GateTargetDays = 1m`) [src: backend/MicroLIMS.Application/Services/Kpi/BacklogAgingKpi.cs:L10-L15, L42-L45, L64-L71, L108-L115].
 - BR-KPI-014 Returns by Test Aggregation. IMPLEMENTED (verified). Counts occurrences of `TestReturnEvent` in period, grouped alphabetically by `TestCode`. Process signal grouped strictly by test code, never by individual person [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L73; backend/MicroLIMS.Application/Services/Kpi/ReturnsByTestKpi.cs:L6-L22, L45-L47].
 - BR-KPI-015 Workload Capacity and Filtering Rule. IMPLEMENTED (verified). Capacity is capped at today (`capacityEnd = min(periodEnd, today)`): days in the future add zero capacity. When category, location, or test filters are set, analyst utilisation and forward load are set to null with gap `CAPACITY_NOT_FILTERED`, because capacity applies to an analyst's entire availability and dividing narrowed work by full capacity would misleadingly read as under-load [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L87; backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L76-L80, L110-L121].
 - BR-KPI-016 Minimum Sample Threshold for Individual Rates. IMPLEMENTED (verified). On an analyst workload row, weighted on-time and weighted right-first-time rates are suppressed (returned as null) if the analyst has fewer than 5 evaluated tests (`MinSampleForRate = 5`), to prevent statistical noise and unfair per-person pressure. Suppressed rows are reported under gap `RATES_TOO_FEW_RECORDS` [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L87; backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L124-L126, L139-L145].
@@ -537,21 +637,22 @@ Pending Phase 4.
 - BR-DC-005 File Attachment and Mutability Rules. IMPLEMENTED (verified). Files (Controlled PDF or Source Word document) can only be uploaded or replaced while the revision is in `Draft` status. Uploading a replacement file deactivates the previous file (`IsActive = false`), increments `FileVersion`, and sets `SupersededByFileId`. File sizes are capped at 50 MB (`MaxFileSizeBytes = 50 * 1024 * 1024`). Formats are validated against magic bytes: PDF must start with `%PDF-` (`0x25, 0x50, 0x44, 0x46, 0x2D`); Word must match `.docx` (PK ZIP header `0x50, 0x4B, 0x03, 0x04`) or `.doc` (OLE Compound header `0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1`) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L22, L56-L96, L129-L133, L148-L177, L425-L450].
 - BR-DC-006 Cryptographic File Integrity Verification. IMPLEMENTED (verified). Every uploaded file is hashed using SHA-256 upon storage. On every retrieval, view, or download, the SHA-256 hash of the stored bytes is recalculated and compared with `ContentSha256`. If hashes do not match, delivery is blocked, security audit event `FileIntegrityVerificationFailed` is recorded, and `InvalidOperationException` is thrown [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L369-L389].
 - BR-DC-007 Controlled Copy Policy. IMPLEMENTED (verified). If administrative setting `DocumentControl.ControlledCopy.DownloadPermitted` is set to "false", file download is blocked for non-privileged users; SystemAdministrator and SectionHead bypass this restriction [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L316-L333].
-- BR-DC-008 Technical Review Submission Preconditions. IMPLEMENTED (verified). Submitting a revision for technical review requires: an active Source Word file, completed multi-category Revision Impact Assessment (`IsComplete == true`), all originating review findings from prior cycles addressed (`Status == Addressed`), and no active review tasks in flight. Submission assigns a sequential review cycle number and transitions revision status to `InReview` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L70-L140].
+- BR-DC-008 Technical Review Submission Preconditions. IMPLEMENTED (verified). The revision must be Draft. It needs an active editable Word source file (.docx or .doc); when no Word file exists an active controlled PDF is accepted as a backward-compatibility fallback, and only when neither exists the request is refused. A completed multi-category impact assessment is required when the revision sequence is above 1 or an assessment record already exists (a first revision with no assessment passes). Originating review findings listed as change items must be Addressed. The caller must be able to edit the draft, the reviewer must be an active user other than the author, and no Pending or InProgress review task may exist. A new task gets cycle number = previous maximum + 1 and the revision moves to `InReview` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L55-L140]. INTENDED: FS-1d-003 (Word source required; impact assessment if sequence above 1) [src: docs/Release_1d_Delta_FRS.md:L109-L127]. DISCREPANCY (spec vs code): FS-1d-003 says a controlled PDF is no longer required and gives the refusal text "Cannot submit revision for technical review without an active Word source document (.docx/.doc)."; the code accepts a PDF alone and words the refusal differently (GAP-815).
 - BR-DC-009 Finding Resolution Ladder. IMPLEMENTED (verified). Review findings must follow a 4-step ladder: `Open` -> `AuthorResponded` -> `ReviewerVerified` -> `Resolved`. The author cannot close or resolve a finding without reviewer verification. Mandatory findings must reach `Resolved` across all review cycles before technical review can be completed [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L477-L509, L567-L580].
 - BR-DC-010 Technical Review Decisions. IMPLEMENTED (verified).
   - `CompleteReview`: advances revision status from `InReview` to `AwaitingApproval`. Blocked if any unresolved mandatory findings remain across any cycle.
   - `ReturnForCorrection`: reverts revision status from `InReview` to `Draft` so author can make corrections and upload replacement files [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L565-L649].
-- BR-DC-011 21 CFR Part 11 Electronic Signature Approval Ceremony. IMPLEMENTED (verified). Approving a document revision strictly requires authenticated password re-entry verified via BCrypt with 5-attempt/15-minute throttle. Signature records immutable snapshot of signer full name, username, role, meaning (`SignatureMeaning.Approved`), UTC timestamp, IP address, and comments. Atomically:
-  - If effective date is today or past: revision status transitions to `Effective`, prior effective revision transitions to `Superseded`, and master `CurrentEffectiveRevisionId` updates.
-  - If effective date is in the future: revision status transitions to `FutureEffective` (activated automatically on target date by background sweep) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L526-L602; backend/MicroLIMS.Application/Services/ElectronicSignatureService.cs:L40-L97].
-- BR-DC-012 Void vs Obsolescence Rules. IMPLEMENTED (verified).
-  - Void Document Master: Permitted ONLY if the master has never held an effective revision. Voiding marks master as `Void`, preserves audit trail, releases Company Document Code for reuse, and is restricted strictly to SectionHead.
-  - Obsolescence: Once a master has held an effective revision, it cannot be voided; it must be retired through obsolescence via formal approval.
-  - Cancel Draft Revision: Permitted only while revision is in `Draft` status. Cancelling deactivates active draft files and marks revision `Cancelled` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L528-L534, L584-L599].
+- BR-DC-011 Electronic Signature on Approval. IMPLEMENTED (verified). Approving a revision requires the approver's password (checked against the stored hash; after 5 failed signature attempts in 15 minutes further attempts are refused; signature failures never lock the sign-in account). The signature row stores the signer's full name, user name and role at signing time, the meaning (`Approved`), the time, the IP address and the comment (the decision notes, or "Approved document revision {n}"). A second approval signature for the same revision is refused. In one save: the task becomes Approved and the revision becomes:
+  - `Effective` when the effective date (request, else the task's target date, else the revision's date, else now) is today or earlier: next review date = effective date + the revision's review cycle months (24 if none), every other Effective revision of the master becomes `Superseded`, and the master's current effective revision points to this revision;
+  - `FutureEffective` when the date is after today: the revision keeps its date; the worker activates it later (`RevisionAutomaticallyActivated`) and supersedes the older revision then [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L520-L602; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs:L46-L50, L182-L230; documentation/knowledge/_raw/verified-roles-permissions.md:L143].
+  INTENDED: FS-1b-075 to FS-1b-077 [src: docs/ML-DC-FRS-1B-001.md:L284-L308]. The wording "21 CFR Part 11" appears in the dialog text and in code comments; the guide describes the function and does not repeat the claim (GAP-023).
+- BR-DC-012 Void, Cancel and Obsolescence Rules. IMPLEMENTED for void and cancel (verified); NOT IMPLEMENTED for obsolescence (DISCREPANCY).
+  - Void a master: only role type Section Head; allowed only when the master never held an Effective or Superseded revision; reason of at least 10 characters; sets the master to `Void`; the Company Document Code is unique only among ACTIVE masters, so a voided code can be registered again; the MicroLIMS ID is never reissued. Not electronically signed. INTENDED: FS-1a-111, FS-1a-172 [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L510-L565, L89-L95; docs/ML-DC-FRS-1A-001.md:L91, L117].
+  - Cancel a draft revision: only while Draft; reason of at least 10 characters; active files become inactive. INTENDED: FS-1a-171 [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L566-L620; docs/ML-DC-FRS-1A-001.md:L116].
+  - Obsolescence: the error text for voiding tells the user to "retire through obsolescence", and the periodic review outcome "Obsolescence Recommended" creates an approval task. But no code sets a revision to `Obsolete`: approving that task fails the readiness check (the revision is Effective, not AwaitingApproval), and the training closure routine for obsolescence is never called. INTENDED: FS-1b-052 "A recommendation for obsolescence shall require formal approval before the document can transition to Obsolete." [src: docs/ML-DC-FRS-1B-001.md:L134-L143; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L688-L700; backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L638-L700]. See GAP-818.
 
 ### MOD-DC-002 Document Control: reading and training
-- BR-DC-013 Automated Training Cascade. IMPLEMENTED (verified). Activation of an effective revision triggers `ProcessEffectiveRevisionCascadeAsync`. Open assignments on superseded revisions are closed as `SupersededIncomplete`. New assignments (`AssignmentType.Reading`) are generated for all active users mapped to the document via active `DocumentRoleCurriculum` items (or prior completers if retraining is configured). Due date is calculated from `EffectiveDate + GracePeriodDays` (default 14 days) [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L51-L134, L198-L245].
+- BR-DC-013 Automated Training Cascade. IMPLEMENTED (verified). The routine `ProcessEffectiveRevisionCascadeAsync` runs ONLY when the background worker activates a FutureEffective revision; an approval whose effective date is today or earlier does not call it (GAP-816). When it runs: open assignments on the superseded revision (Assigned, Reading, Overdue, KafPending) become `SupersededIncomplete`; new reading assignments go to prior completers (when retraining is on, the default), to all active users whose role matches an active curriculum item of the document (the curriculum department is read but not applied, GAP-819), and, only if that gives nobody, to the document's assigned personnel. Due date = effective date + grace days (curriculum item, else document or type configuration, else 14 days) [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L51-L245, L509-L549; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs:L296-L310].
 - BR-DC-014 Conscious Legal Reading Acknowledgement. IMPLEMENTED (verified). Legal acknowledgement requires conscious, explicit verification of the configured legal statement ("I confirm that I have read, understood, and agree to adhere to the contents of this controlled document revision.") via checkbox confirmation. Reading or scrolling alone does NOT constitute legal acknowledgement; scroll progress is informational only. Acknowledgement freezes statement text and controlled PDF SHA-256 hash onto an immutable `DocumentAcknowledgementRecord` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L126-L131, L265-L298].
 - BR-DC-015 Training Matrix Qualification States. IMPLEMENTED (verified). Training matrix cross-references active users with active effective documents:
   - `Qualified`: user acknowledged current effective revision.
@@ -561,18 +662,15 @@ Pending Phase 4.
   - `NotAssigned`: not required by curriculum [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L122-L188].
 
 ### MOD-DC-003 Document Control: audit trail
-- BR-DC-016 Audit Trail Retention and Export Cap. IMPLEMENTED (verified). All document actions, file events, reviews, approvals, and security violations are recorded in append-only table `AuditLogs` with child `AuditFieldChanges`. CSV exports via `DocumentAuditService` are capped at 5,000 records (`Take(5000)`). The export operation itself is logged as an attributable audit event `AuditTrailExported` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L88-L120].
+- BR-DC-016 Audit Trail Retention and Export Cap. IMPLEMENTED (verified). All document actions, file events, reviews, approvals, and security violations are recorded in append-only table `AuditLogs` with child `AuditFieldChanges`. CSV exports via `DocumentAuditService` are capped at 5,000 records (`Take(5000)`, newest first, no warning when more exist). The export itself is logged as the audit event `AuditTrailExported` with category `Security` (not `Document`) and the exported row count [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L88-L120].
 
 ### MOD-DC-004 Document Control: configuration
 - BR-DC-017 Document Numbering Scheme. IMPLEMENTED (verified). Document numbering uses sequence `document_number_seq` formatted with prefix (default "DOC-") and format mask (default "0000000"). Editing numbering configuration requires SystemAdministrator and records an audit event [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L400-L460].
 - BR-DC-018 Document Type Review Cycle Range. IMPLEMENTED (verified). Default review cycle for a document type must be between 1 and 120 months [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L65-L66].
 
 ### MOD-DC-005 Document escalations (backend)
-- BR-DC-019 Three-Tiered Escalation Policy. IMPLEMENTED (verified). Background job evaluates open assignments against thresholds (default: 3 days before due, due date, 1 day after due):
-  - Level 1 (`ApproachingDue`): notification sent to assigned user.
-  - Level 2 (`Due`): notification sent to assigned user; assignment status automatically advances to `Overdue`.
-  - Level 3 (`Overdue`): escalation alert routed to user's manager and QA compliance [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L118-L168].
-- BR-DC-020 Escalation Resolution Attributability. IMPLEMENTED (verified). Resolving an open escalation requires `Documents.TrainingAssign` permission and a mandatory regulatory reason (minimum 10 characters), recorded in `DocumentEscalationRecords` and the audit log [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L80-L90; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L260-L310].
+- BR-DC-019 Three-Tiered Escalation Policy. IMPLEMENTED (verified); no message is sent. The worker evaluates open assignments (skipping documents whose training configuration says reading is not required). Thresholds come from the document or type training configuration, default 3 days before the due date and 1 day after it. Level 1 `ApproachingDue` when now is between (due - 3 days) and the due time; Level 2 `Due` at or after the due time, which also sets the assignment status to `Overdue`; Level 3 `Overdue` at or after (due + 1 day). Each level is stored once per assignment as an escalation record (status `Raised`, recipient text "AssignedUser" for levels 1 and 2 and "Manager;QACompliance" for level 3, reason text, process name) together with a system audit entry `TrainingEscalationRaised_{level}`. No notification, e-mail or screen reads these records (GAP-807). A fourth level `CriticalOverdue` exists in the enum and is counted with Overdue, but the evaluation code creates no such record [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L100-L262; backend/MicroLIMS.Domain/Enums/DocumentEscalationLevel.cs:L5-L8].
+- BR-DC-020 Escalation Resolution Attributability. IMPLEMENTED (CORRECTED). Resolving an escalation needs the claim `Documents.TrainingAssign` (HTTP 403 otherwise) and a non-blank resolution reason; the code applies NO minimum length. The record becomes `Resolved` with the resolving user and time, and the audit entry `TrainingEscalationResolved` (category Training) is written. Resolving an already resolved record returns it unchanged [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L76-L90; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L352-L410].
 
 ## validations
 
@@ -599,9 +697,10 @@ Pending Phase 4.
 ### MOD-KPI-001 KPI and Workflow Profiles
 - Server validations (KpiDashboardService / WorkflowProfileService / AnalystWorkloadService):
   - Date range validation: `"A start date and an end date are required."` [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L96].
-  - Start date after end date: `"The start date must not be after the end date."` [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L98; backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L48].
+  - Start date after end date: `"The start date must not be after the end date."` [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L98]. The workload endpoints word it `"The end date must not be before the start date."` [src: backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L48].
   - Unknown KPI key: `"Unknown KPI '{key}'."` [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L62].
-  - D8 own-figures restriction: `"You can only view your own analyst figures."` [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L107].
+  - D8 own-figures restriction: `"You can only view your own analyst figures."` (dashboard and records) [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L107]; `"You may only view your own workload figures."` (workload) [src: backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L310].
+  - Signature failures (shared signature service): `"Password verification failed. The signature was not applied."` and `"Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied."` [src: documentation/knowledge/_raw/verified-roles-permissions.md:L142-L143].
   - Workflow profile version not found: `"Workflow profile version {id} was not found."` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L101].
   - Double signing rejection: `"This version is already Effective and cannot be signed again."` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L103].
   - Missing reason for change: `"A reason for the change is required."` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L142].
@@ -614,6 +713,7 @@ Pending Phase 4.
   - Retired workflow type: `"Workflow type {type} is retired and cannot carry a profile."` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L162].
   - Past effective date rejection: `"The effective date cannot be in the past ({effectiveFrom:yyyy-MM-dd}). Only the first version of a profile may be back-dated; add this version with an effective date of {today:yyyy-MM-dd} or later."` [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L289-L290].
 - Client validations:
+  - Filter bar date check (browser): `"Choose both dates."` and `"The start date must not be after the end date."` [src: frontend/src/modules/kpi/utils/kpiFilters.ts:L19-L22].
   - Calculation failure alert: `"This figure could not be calculated. The error has been logged."` [src: backend/MicroLIMS.Application/Services/Kpi/KpiDashboardService.cs:L13, L51].
   - Date format check: regex `/^\d{4}-\d{2}-\d{2}$/` [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L48].
   - Filter options load failure: `"The category, location and test lists could not be loaded. Reload the page to try again."` [src: frontend/src/modules/kpi/components/KpiFilters.tsx:L98].
@@ -673,6 +773,11 @@ Pending Phase 4.
   - File upload unauthorized: `"You do not have permission to upload or replace files for this revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L121].
   - Controlled copy policy: `"Controlled copy download is currently disabled by administrative policy."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L331].
   - Integrity hash mismatch: `"Document integrity check failed. The file may have been altered or corrupted. Delivery has been blocked."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L388].
+  - Review without a source file: `"Cannot submit revision for technical review without an active editable Word source file (.docx or .doc)."` (only when no Word file and no controlled PDF exist) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L70-L74].
+  - Review not Draft: `"Cannot submit revision for technical review in status {status}. Status must be Draft."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L62-L63].
+  - Review submit unauthorised: `"User is not authorized to submit this document revision for technical review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L102-L104].
+  - Review decision unauthorised: `"Only the assigned technical reviewer or document controller may complete this technical review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L561-L563]; findings: `"Only the assigned technical reviewer or document controller may add review findings."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L292-L293].
+  - Approval decision unauthorised: `"Only the assigned approver or Document Controller may execute an approval decision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L413-L415]. Approval prerequisites: `"Cannot approve document revision: Prerequisites not met. Errors: {list}"` with items such as "An active Controlled PDF file is required." and "Technical review has not been completed." [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L534-L540, L688-L735].
   - Review missing impact assessment: `"A multi-category Revision Impact Assessment must be completed before submitting for technical review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L83].
   - Review unaddressed originating findings: `"Cannot submit revision for review: {unaddressedOriginatingItems.Count} originating review finding(s) remain unaddressed."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L96].
   - Review active task exists: `"A technical review task is already active for this revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L120].
@@ -681,6 +786,7 @@ Pending Phase 4.
   - Approval task technical review incomplete: `"Cannot create an approval task: Revision has not completed technical review."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L81].
   - Approval task already pending: `"An active approval task (ID: {existingPending.Id}) is already pending for this revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L89].
   - Approver role eligibility: `"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L111].
+  - Segregation of Duties texts: see roles (MOD-DC-001).
   - Return justification length: `"A mandatory justification of at least 10 characters is required when returning a revision for correction."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L441].
   - Decline justification length: `"A mandatory justification of at least 10 characters is required when declining a revision."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L483].
   - Approval missing password: `"Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11)."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L530].
@@ -724,10 +830,11 @@ Pending Phase 4.
   - Duplicate dept code: `"Department Code '{trimmedCode}' already exists."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L137].
   - Missing section name: `"Section Name is required."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L226].
   - Missing prefix: `"Prefix is required."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L415].
-  - Missing number format: `"Number format is required."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L418].
+  - Missing number format: `"Number Format is required (e.g. 0000000)."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L419-L420].
 
 ### MOD-DC-005 Document escalations (backend)
-- Server validations (DocumentEscalationController):
+- Server validations (DocumentEscalationController / DocumentEscalationService): `"A resolution reason is mandatory to resolve an escalation record."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L365]; `"Escalation record {id} not found."` [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L376].
+- Controller refusals (HTTP 403):
   - View summary unauthorized: `"Only Section Heads and System Administrators can view the overdue training summary."` [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L53].
   - Trigger evaluation unauthorized: `"Only Section Heads and System Administrators can manually trigger escalation processing."` [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L68].
   - Resolve escalation unauthorized: `"Only Section Heads and System Administrators can resolve escalation records."` [src: backend/MicroLIMS.API/Controllers/DocumentControl/DocumentEscalationController.cs:L85].
@@ -754,13 +861,13 @@ Pending Phase 4.
 
 ### MOD-KPI-001 KPI and Workflow Profiles
 - Workflow Profile Status (`WorkflowProfileStatus`):
-  - `Draft`: Unsigned draft version (e.g. from legacy migration import or staged insert). Shown as Chip `"{N} draft(s)"` in profile panel [src: backend/MicroLIMS.Domain/Enums/WorkflowProfileStatus.cs:L3; frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L166].
+  - `Draft`: Unsigned draft version (e.g. from legacy migration import or staged insert). Shown as the chip "{n} draft" / "{n} drafts" in the profile panel [src: backend/MicroLIMS.Domain/Enums/WorkflowProfileStatus.cs:L3; frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L166].
   - `Effective`: Active, electronically signed version currently or future effective. Read by resolver during KPI calculations [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L83, L125].
   - Transition: `Draft` -> `Effective`, triggered by electronic signature with `SignatureMeaning.MasterDataChanged`. Irreversible. [src: backend/MicroLIMS.Application/Services/Kpi/WorkflowProfileService.cs:L80-L84, L116-L126].
 - Profile Coverage (`ProfileCoverage`):
   - `Configured` (green Chip: both work units and target days configured) [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L41, L46].
-  - `Partial` (amber Chip: either work units or target days configured, but not both) [src: L42, L47].
-  - `NeedsConfiguration` (grey/default Chip: neither work units nor target days configured) [src: L43, L48].
+  - `Partial` (amber Chip: either work units or target days configured, but not both) [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L42, L47].
+  - `NeedsConfiguration` (grey/default Chip: neither work units nor target days configured) [src: frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L43, L48].
 - KPI Direction (`KpiDirection`):
   - `HigherIsBetter` (green when higher) [src: backend/MicroLIMS.Application/Services/Kpi/KpiTypes.cs:L5].
   - `LowerIsBetter` (green when lower) [src: backend/MicroLIMS.Application/Services/Kpi/KpiTypes.cs:L5].
@@ -776,69 +883,67 @@ Pending Phase 4.
 ### MOD-DC-001 Document Control: library and document lifecycle
 - Document Master Record Status (`DocumentRecordStatus`):
   - `Active` (1): Master record is active and valid [src: backend/MicroLIMS.Domain/Enums/DocumentRecordStatus.cs:L5].
-  - `Void` (2): Master record was registered in error and voided prior to having an effective revision [src: L6].
+  - `Void` (2): Master record was registered in error and voided prior to having an effective revision [src: backend/MicroLIMS.Domain/Enums/DocumentRecordStatus.cs:L6].
 - Document Revision Status (`DocumentRevisionStatus`):
   - `Draft` (1): Initial draft or revision returned for corrections; files and metadata editable [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L5].
-  - `Cancelled` (2): Draft revision cancelled by author/controller or declined by approver; terminal inactive state [src: L6].
-  - `InReview` (3): Submitted for technical review; open review task active, files locked [src: L7].
-  - `AwaitingApproval` (4): Technical review completed; awaiting formal approver evaluation [src: L8].
-  - `FutureEffective` (5): Formally approved with future target effective date; awaits automated activation sweep [src: L9].
-  - `Effective` (6): Active, legally approved, current version; reading training active, controlled PDF accessible to all readers [src: L10].
-  - `Superseded` (7): Historical revision replaced by a newly activated effective revision [src: L11].
-  - `Obsolete` (8): Formally decommissioned document; retired via approved obsolescence task [src: L12].
+  - `Cancelled` (2): Draft revision cancelled by author/controller or declined by approver; terminal inactive state [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L6].
+  - `InReview` (3): Submitted for technical review; open review task active, files locked [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L7].
+  - `AwaitingApproval` (4): Technical review completed; awaiting formal approver evaluation [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L8].
+  - `FutureEffective` (5): Formally approved with future target effective date; awaits automated activation sweep [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L9].
+  - `Effective` (6): Active, legally approved, current version; reading training active, controlled PDF accessible to all readers [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L10].
+  - `Superseded` (7): Historical revision replaced by a newly activated effective revision [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L11].
+  - `Obsolete` (8): Formally decommissioned document; retired via approved obsolescence task [src: backend/MicroLIMS.Domain/Enums/DocumentRevisionStatus.cs:L12].
+- Review Task Status (`ReviewTaskStatus`): `Pending` (1, set when the task is created), `InProgress` (2, declared; no code sets it), `Completed` (3, review completed), `ReturnedForCorrection` (4, review returned), `Cancelled` (5, declared; no code sets it) (verified) [src: backend/MicroLIMS.Domain/Enums/ReviewTaskStatus.cs:L5-L9; backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L140-L150, L576-L649].
+- Change Item Status (`RevisionChangeItemStatus`, stored as text): `Draft`, `Addressed`, `Deferred` [src: backend/MicroLIMS.Domain/Enums/RevisionChangeItemStatus.cs:L5-L8].
 - Review Finding Status (`ReviewFindingStatus`):
   - `Open` (1): Logged by technical reviewer [src: backend/MicroLIMS.Domain/Enums/ReviewFindingStatus.cs:L5].
-  - `AuthorResponded` (2): Author submitted formal response to comment [src: L6].
-  - `ReviewerVerified` (3): Reviewer verified author's response [src: L7].
-  - `Resolved` (4): Closed finding; required state for mandatory findings before review completion [src: L8].
+  - `AuthorResponded` (2): Author submitted formal response to comment [src: backend/MicroLIMS.Domain/Enums/ReviewFindingStatus.cs:L6].
+  - `ReviewerVerified` (3): Reviewer verified author's response [src: backend/MicroLIMS.Domain/Enums/ReviewFindingStatus.cs:L7].
+  - `Resolved` (4): Closed finding; required state for mandatory findings before review completion [src: backend/MicroLIMS.Domain/Enums/ReviewFindingStatus.cs:L8].
 - Document Approval Task Status (`DocumentApprovalTaskStatus`):
   - `Pending` (1): Awaiting designated approver evaluation and signature [src: backend/MicroLIMS.Domain/Enums/DocumentApprovalTaskStatus.cs:L5].
-  - `Approved` (2): Formally approved via electronic signature [src: L6].
-  - `ReturnedForCorrection` (3): Returned by approver; revision reverts to Draft [src: L7].
-  - `Declined` (4): Rejected by approver; revision transitions to Cancelled [src: L8].
-  - `Cancelled` (5): Cancelled administratively [src: L9].
+  - `Approved` (2): Formally approved via electronic signature [src: backend/MicroLIMS.Domain/Enums/DocumentApprovalTaskStatus.cs:L6].
+  - `ReturnedForCorrection` (3): Returned by approver; revision reverts to Draft [src: backend/MicroLIMS.Domain/Enums/DocumentApprovalTaskStatus.cs:L7].
+  - `Declined` (4): Declined by the approver; revision transitions to Cancelled [src: backend/MicroLIMS.Domain/Enums/DocumentApprovalTaskStatus.cs:L8].
+  - `Cancelled` (5): declared; no code sets it [src: backend/MicroLIMS.Domain/Enums/DocumentApprovalTaskStatus.cs:L9].
 - Periodic Review Task Status (`PeriodicReviewTaskStatus`):
   - `Pending` (1): Scheduled or triggered, awaiting reviewer evaluation [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewTaskStatus.cs:L5].
-  - `InProgress` (2): Reviewer active on task [src: L6].
-  - `Completed` (3): Review finalized with formal outcome [src: L7].
-  - `Cancelled` (4): Cancelled administratively [src: L8].
+  - `InProgress` (2): Reviewer active on task [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewTaskStatus.cs:L6].
+  - `Completed` (3): Review finalized with formal outcome [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewTaskStatus.cs:L7].
+  - `Cancelled` (4): Cancelled administratively [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewTaskStatus.cs:L8].
 - Periodic Review Outcome (`PeriodicReviewOutcome`):
   - `RemainsValid` (1): Document is current; advances `NextReviewDate` [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewOutcome.cs:L5].
-  - `RevisionRequired` (2): Document needs updates; findings transferred to next revision draft [src: L6].
-  - `ObsolescenceRecommended` (3): Decommissioning recommended; creates obsolescence approval task [src: L7].
+  - `RevisionRequired` (2): Document needs updates; findings transferred to next revision draft [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewOutcome.cs:L6].
+  - `ObsolescenceRecommended` (3): Decommissioning recommended; creates obsolescence approval task [src: backend/MicroLIMS.Domain/Enums/PeriodicReviewOutcome.cs:L7].
 
-Document Revision Lifecycle State Transitions:
-| From | To | Action / Trigger | Actor | Signed? |
+Document Revision Lifecycle State Transitions (re-verified from the services; UI status labels in the library filter read "In Review", "Awaiting Approval", "Future Effective"):
+| From | To | Action / trigger | Who | Signed? |
 |---|---|---|---|---|
-| None | Draft | Register Document Master | Documents.Register (SysAdmin/SectionHead/Analyst) | No |
-| Draft | InReview | Submit for Technical Review | Owner / Author / SectionHead / SysAdmin | No |
-| InReview | Draft | Return for Correction | Assigned Reviewer or SectionHead | No |
-| InReview | AwaitingApproval | Complete Technical Review | Assigned Reviewer or SectionHead | No |
-| AwaitingApproval | Draft | Return for Correction | Assigned Approver or SectionHead | No |
-| AwaitingApproval | Cancelled | Decline Revision | Assigned Approver or SectionHead | No |
-| AwaitingApproval | FutureEffective | Approve Revision (future date) | Assigned Approver or SectionHead | Yes (`SignatureMeaning.Approved`, password) |
-| AwaitingApproval | Effective | Approve Revision (today/past date) | Assigned Approver or SectionHead | Yes (`SignatureMeaning.Approved`, password) |
-| FutureEffective | Effective | DocumentEffectiveDateWorker sweep | System Process | No |
-| Effective | Superseded | Newer revision approved & effective | System / Transaction | No |
-| Effective | Obsolete | Obsolescence approval task approved | Approver or SectionHead | Yes (`SignatureMeaning.Approved`, password) |
-| Active (Master) | Void | Void Document Master | SectionHead only (Document Controller) | No (reason >= 10 chars) |
-| Draft | Cancelled | Cancel Draft Revision | Owner / Author / SectionHead / SysAdmin | No (reason >= 10 chars) |
-| Effective | Draft (next rev) | Create Revision from Effective | Owner / Author / SectionHead / SysAdmin | No |
+| (none) | Draft | Register document master (Revision 01) | holder of `Documents.Register` (default System Administrator, Section Head, Analyst) | No |
+| Effective | new Draft revision | "Create revision" | System Administrator, Section Head, owner, assigned Author | No (reason of at least 10 characters) |
+| Draft | InReview | Submit for technical review | same editors | No |
+| InReview | Draft | Technical review "Return" | assigned reviewer or Section Head | No (notes optional) |
+| InReview | AwaitingApproval | "Complete Review" (all mandatory findings Resolved) | assigned reviewer or Section Head | No |
+| AwaitingApproval | Draft | "Return for Correction" | assigned approver, Section Head or System Administrator (never author or technical reviewer) | No (reason of at least 10 characters) |
+| AwaitingApproval | Cancelled | "Decline / Cancel" | same | No (reason of at least 10 characters) |
+| AwaitingApproval | Effective | "Approve", effective date today or earlier; the previous Effective revision becomes Superseded in the same save | same | Yes: password, meaning Approved |
+| AwaitingApproval | FutureEffective | "Approve", effective date after today | same | Yes: password, meaning Approved |
+| FutureEffective | Effective | Worker activation on the date (60-minute cycle by default); previous Effective -> Superseded; training cascade | system process | No |
+| Draft | Cancelled | "Cancel draft revision" | System Administrator, Section Head, owner, assigned Author | No (reason of at least 10 characters) |
+| Effective | Obsolete | NOT IMPLEMENTED: no code sets Obsolete (DISCREPANCY, GAP-818) | n/a | n/a |
+| master Active | master Void | "Void document master" (never had an Effective or Superseded revision) | Section Head only | No (reason of at least 10 characters) |
+[src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L124-L175, L510-L620; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L59-L193; backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L55-L160, L565-L649; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L433-L602; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs:L46-L230]
 
 ### MOD-DC-002 Document Control: reading and training
-- Training Assignment Status (`TrainingAssignmentStatus`):
-  - `Assigned` (1): Created upon revision activation or role curriculum assignment [src: backend/MicroLIMS.Domain/Enums/TrainingAssignmentStatus.cs:L5].
-  - `Reading` (2): User opened controlled PDF viewer [src: L6].
-  - `Acknowledged` (3): User completed conscious legal reading acknowledgement [src: L7].
-  - `Overdue` (4): Past UTC due date without acknowledgement [src: L8].
-  - `SupersededIncomplete` (5): Closed terminally when a newer revision became effective before completion [src: L9].
-  - `Cancelled` (6): Cancelled due to document obsolescence [src: L10].
+- Training Assignment Status (`TrainingAssignmentStatus`, 11 declared values) [src: backend/MicroLIMS.Domain/Enums/TrainingAssignmentStatus.cs:L5-L15]:
+  - Set by code (verified): `Assigned` (2, created by the cascade), `Reading` (3, set by the first reading-progress call), `Acknowledged` (4, set by the acknowledgement), `Overdue` (8, set by the escalation evaluation at the due time), `SupersededIncomplete` (9, set when a newer revision is activated), `Cancelled` (11, set by the obsolescence closure routine that is never called, GAP-818) [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L106-L112, L462; backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L405-L430; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L151-L158].
+  - Declared but no code path found that sets them: `NotAssigned` (1), `KafPending` (5), `CompletedPassed` (6), `Failed` (7), `TrainedOnSupersededOnly` (10, used only as a matrix cell state). The matrix counts Acknowledged and CompletedPassed as completed. The Reading List tabs "To read", "Overdue", "Completed", "Superseded", "All" group these states (the exact grouping was not extracted).
 - Training Matrix Cell Status:
   - `Qualified`: current revision acknowledged [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L149].
-  - `Pending`: assignment open and within due date [src: L165].
-  - `Overdue`: assignment open and past due date [src: L159].
-  - `TrainedOnSupersededOnly`: user qualified on earlier revision, not current [src: L154, L174].
-  - `NotAssigned`: not required by curriculum [src: L123].
+  - `Pending`: assignment open and within due date [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L165].
+  - `Overdue`: assignment open and past due date [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L159].
+  - `TrainedOnSupersededOnly`: user qualified on earlier revision, not current [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L154, L174].
+  - `NotAssigned`: not required by curriculum [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L123].
 
 ### MOD-DC-003 Document Control: audit trail
 - Audit Action Categories (`AuditActionCategory`): Document, Review, Approval, PeriodicReview, Configuration, Security [src: backend/MicroLIMS.Domain/Entities/AuditLog.cs:L1-L30; frontend/src/modules/documentControl/types/documentControlTypes.ts:L15-L25].
@@ -847,13 +952,8 @@ Document Revision Lifecycle State Transitions:
 - Statuses: `IsActive` boolean on DocumentType, DocumentDepartment, DocumentSection; `IsEnabled` boolean on DocumentNumberingConfiguration [src: backend/MicroLIMS.Domain/Entities/DocumentType.cs; backend/MicroLIMS.Domain/Entities/DocumentNumberingConfiguration.cs].
 
 ### MOD-DC-005 Document escalations (backend)
-- Document Escalation Levels (`DocumentEscalationLevel`):
-  - `ApproachingDue` (1): T - daysBefore due date [src: backend/MicroLIMS.Domain/Enums/DocumentEscalationLevel.cs:L5].
-  - `Due` (2): On due date [src: L6].
-  - `Overdue` (3): T + daysAfter due date [src: L7].
-- Document Escalation Status (`DocumentEscalationStatus`):
-  - `Open` (1): Active escalation requiring supervisory attention [src: backend/MicroLIMS.Domain/Enums/DocumentEscalationStatus.cs:L5].
-  - `Resolved` (2): Resolved with attributable regulatory justification [src: L6].
+- Document Escalation Levels (`DocumentEscalationLevel`): `ApproachingDue` (1), `Due` (2), `Overdue` (3), `CriticalOverdue` (4, declared; the evaluation creates no record at this level) [src: backend/MicroLIMS.Domain/Enums/DocumentEscalationLevel.cs:L5-L8; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L240-L244].
+- Document Escalation Status (`DocumentEscalationStatus`): `Raised` (1, created by the worker), `Resolved` (2, set by a manager's resolution), `Cancelled` (3) and `Superseded` (4) are declared; no code sets them [src: backend/MicroLIMS.Domain/Enums/DocumentEscalationStatus.cs:L5-L8; backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L191, L387].
 
 ## terminology
 
@@ -870,7 +970,7 @@ Document Revision Lifecycle State Transitions:
 - Work Unit: Standardized measure of analyst effort where 1 work unit = 1 standard analyst-hour of hands-on work. Used for capacity planning and right-first-time weighting, not performance scoring. [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L7-L10; frontend/src/modules/kpi/components/WorkflowProfilesPanel.tsx:L94-L96].
 - Target Analyst Days: Maximum allotted calendar time from sample preparation/assignment to submission for review. [src: frontend/src/modules/kpi/components/AddProfileVersionDialog.tsx:L119].
 - Workflow Profile Version: Immutably recorded, electronically signed set of work units and target days for a workflow type default or test-specific override. [src: backend/MicroLIMS.Domain/Entities/WorkflowProfileVersion.cs:L1-L35].
-- Adverse Trend: Flag raised on Environmental Monitoring excursion rate when at least 5 results exist and alert rate > 2.5% or action rate > 0.15%. [src: backend/MicroLIMS.Application/Services/Kpi/KpiConstants.cs:L44-L45; backend/MicroLIMS.Application/Services/Kpi/EmExcursionRateKpi.cs:L68-L70].
+- Adverse Trend: Flag raised on Environmental Monitoring excursion rate when at least 5 results exist and alert rate > 2.5% or action rate > 0.15%. [src: backend/MicroLIMS.Application/Services/Kpi/KpiTypes.cs:L40-L46; backend/MicroLIMS.Application/Services/Kpi/EmExcursionRateKpi.cs:L68-L70].
 - Forward Load: Ratio of open work units assigned to an analyst divided by their forward capacity across the load horizon window. [src: backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L121].
 - Utilisation: Ratio of delivered work units in period divided by total available capacity units up to today. [src: backend/MicroLIMS.Application/Services/Kpi/AnalystWorkloadService.cs:L120].
 - D8 (Own-row restriction): Principle that analysts without `Kpi.ViewTeam` permission can only view their own individual metrics, while Section Heads and Admins see team-wide figures. [src: docs/superpowers/plans/2026-10-11-kpi-remodel-index.md:L81; backend/MicroLIMS.API/Controllers/KpiDashboardController.cs:L22].
@@ -884,23 +984,24 @@ Document Revision Lifecycle State Transitions:
 - Company Document Code: The human-readable corporate identifier (e.g. "SOP-MIC-001") defined by quality policy. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L44-L45].
 - MicroLIMS Document ID: The permanent immutable system sequence ID (e.g. "DOC-0000042") allocated on registration. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L96-L100].
 - Document Revision: A versioned instance of a document master (e.g., Rev 01, Rev 01.1) holding files, change rationales, and lifecycle records. [src: backend/MicroLIMS.Domain/Entities/DocumentRevision.cs:L1-L45].
-- Controlled PDF: The official released document file in PDF format (`.pdf`), presented in the controlled viewer with security watermarks. [src: frontend/src/modules/documentControl/components/ControlledPdfViewer.tsx:L150-L153].
+- Controlled PDF: The official released document file in PDF format (`.pdf`), presented in the controlled viewer with an "OFFICIAL COPY" chip (no watermark code was found). [src: frontend/src/modules/documentControl/components/ControlledPdfViewer.tsx:L150-L153].
 - Source File: The editable authoring document in Microsoft Word format (`.docx` or `.doc`), restricted to authors, reviewers, and approvers during workflow. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L84-L96].
 - Technical Review: Peer review phase where assigned subject matter experts verify content accuracy and log findings across numbered cycles. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L15-L65].
 - Finding Resolution Ladder: Mandatory progressive workflow (`Open` -> `AuthorResponded` -> `ReviewerVerified` -> `Resolved`) governing reviewer comments. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L497-L508].
-- 21 CFR Part 11 Electronic Signature: Digital signing ceremony requiring user password re-authentication with BCrypt verification to execute formal release. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L526-L565].
+- Electronic signature (approval): the signing step of the approval workspace, button "Sign & Approve": the user re-enters the account password, which is checked against the stored hash, before a revision becomes Effective or FutureEffective. The dialog text itself cites 21 CFR Part 11; the guide describes the function only (GAP-023). [src: frontend/src/modules/documentControl/components/ElectronicSignatureDialog.tsx:L119-L122, L193-L232; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L526-L565].
 - Periodic Review: Formal recurring review (e.g. every 24 months) to ensure an effective SOP remains scientifically and operationally valid. [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L20-L55].
 - Void: Permanent invalidation of a Document Master registered in error that never reached effective release, releasing its code for reuse. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L528-L534].
 
 ### MOD-DC-002 Document Control: reading and training
 - Evidentiary Statement: The legally binding statement displayed at reading acknowledgement ("I confirm that I have read, understood, and agree to adhere to the contents of this controlled document revision.") frozen into the compliance record. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L23-L25].
 - Reading Progress: Informational client-side viewport scroll percentage, explicitly marked "Informational Only. Formal Acknowledgement Required". [src: frontend/src/modules/documentControl/components/ControlledPdfViewer.tsx:L194; frontend/src/modules/documentControl/components/DocumentAcknowledgementDialog.tsx:L180].
+- Author (in segregation rules): the user who created the revision (`CreatedByUserId`); technical reviewer: any user assigned to, or deciding, a review task of that revision. [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L643-L686]
 - Training Matrix: A two-dimensional grid cross-referencing organizational personnel against active controlled documents with color-coded compliance states. [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L59-L816].
 - Superseded Incomplete: Terminal status for a training assignment that was not completed before a newer revision became effective. [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L106-L108].
-- Superseded Knowledge Gap: A training status where a user was qualified on an earlier revision of a document but has not yet acknowledged the currently effective revision. [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L154, L174].
+- Trained on Superseded Only (matrix chip) / SUPERSEDED GAPS (dashboard card): a person who acknowledged an earlier revision but not the currently effective one. [src: frontend/src/modules/documentControl/pages/TrainingMatrixPage.tsx:L219-L222; backend/MicroLIMS.Application/Services/DocumentControl/TrainingMatrixService.cs:L154, L174].
 
 ### MOD-DC-003 Document Control: audit trail
-- Audit Field Change: Granular capture of previous value and new value for every modified property in a document control entity. [src: backend/MicroLIMS.Domain/Entities/AuditFieldChange.cs].
+- Audit Field Change: Granular capture of previous value and new value for every modified property in a document control entity. [src: backend/MicroLIMS.Application/Interfaces/IAuditEventService.cs:L6].
 
 ### MOD-DC-004 Document Control: configuration
 - Review Cycle Months: Configurable periodic review frequency in months defined per Document Type (1 to 120 months). [src: backend/MicroLIMS.Domain/Entities/DocumentType.cs].
@@ -929,7 +1030,7 @@ Document Revision Lifecycle State Transitions:
   - Headline measures table: Measure, Value, n, Prior period, Notes.
   - Supporting breakdown tables: series breakdown for Flow (`stage-tat`, `backlog-aging`), Quality (`right-first-time`, `retest-rate`, `oos-rate`, `returns-by-test`), and Micro (`em-excursion-rate`, `incubation-reads-on-time`).
   - Workload table: Analyst, Capacity (units), Delivered units, Utilisation, Open units, Forward load, Weighted on time, Weighted right first time, with planning notes and gap warnings.
-  - Footer: "Figures are as shown on screen for the same period and filters. GMP audit trail and data-integrity standard. MicroLIMS verified report." [src: frontend/src/modules/kpi/utils/exportKpiPdf.ts:L86-L167].
+  - Footer: "Figures are as shown on screen for the same period and filters. GMP audit trail and data-integrity standard. MicroLIMS verified report." (this printed wording is not evidence of validation and the guide does not repeat it, GAP-023). [src: frontend/src/modules/kpi/utils/exportKpiPdf.ts:L86-L167].
 
 ### MOD-KPI-002 Analyst availability and KPI section settings
 - None directly.
@@ -943,7 +1044,7 @@ Document Revision Lifecycle State Transitions:
 - Training Compliance Summary Report: Dashboard report aggregating organizational compliance rate, completed vs overdue assignments, departmental compliance rankings, and top 10 overdue documents [src: frontend/src/modules/documentControl/pages/ComplianceDashboardPage.tsx:L120-L380].
 
 ### MOD-DC-003 Document Control: audit trail
-- Document Control Audit Trail CSV Export: Downloaded from Document Audit page (`GET /api/document-control/audit/export`); exports up to 5,000 records (`Take(5000)`). Headers: `EventUid,TimestampUTC,ActorType,User,SystemProcess,ActionCode,ActionCategory,RecordType,EntityId,DocumentMasterId,DocumentRevisionId,Reason,Changes`. The export operation itself is logged in the audit trail [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L88-L120; frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L86-L105].
+- Document Control Audit Trail CSV Export: Downloaded from Document Audit page (`GET /api/document-control/audit/export`) as `audit_trail_{yyyyMMdd_HHmmss}.csv`; exports up to 5,000 records (`Take(5000)`). Headers: `EventUid,TimestampUTC,ActorType,User,SystemProcess,ActionCode,ActionCategory,RecordType,EntityId,DocumentMasterId,DocumentRevisionId,Reason,Changes`. The export operation itself is logged in the audit trail [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L88-L120; frontend/src/modules/documentControl/pages/DocumentAuditPage.tsx:L86-L105].
 
 ### MOD-DC-004 Document Control: configuration
 - None directly (configuration forms only).
@@ -972,60 +1073,37 @@ Document Revision Lifecycle State Transitions:
 - Analyst availability changed: Action code `AnalystAvailabilityChanged`, category `Configuration`, record type `AnalystAvailability`, recording previous and new values for `UserId`, `FromDate`, `ToDate`, and `FractionAvailable`, along with entered by user ID and mandatory reason [src: backend/MicroLIMS.Application/Services/Kpi/AnalystAvailabilityService.cs:L77-L85, L114-L115].
 
 ### MOD-DC-001 Document Control: library and document lifecycle
-- Document actions writing audit entries [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs; backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs; backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs; backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs; backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs]:
-  - `DocumentMasterRegistered`: Master registration with code, title, type, department, owner, initial revision number [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L192-L200].
-  - `DocumentMasterVoided`: Master voiding with mandatory justification (>= 10 chars) [src: L553-L560].
-  - `DraftRevisionCancelled`: Draft cancellation with mandatory justification [src: L610-L618].
-  - `DocumentRevisionCreated`: New revision creation with revision number, type, reason [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L158-L175].
-  - `RevisionNumberOverridden`: SectionHead manual override of proposed revision number [src: L179-L193].
-  - `RevisionFileUploaded`: Upload of initial controlled PDF or source Word file [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L230-L239].
-  - `RevisionFileReplaced`: Replacement of active draft file, incrementing FileVersion [src: L207-L216].
-  - `ControlledFileViewed` / `ControlledFileDownloaded`: Logged upon viewing/downloading controlled PDF [src: L392-L402].
-  - `SourceFileViewed` / `SourceFileDownloaded`: Logged upon viewing/downloading source Word document [src: L392-L402].
-  - `StoredFileMissing`: Security audit log for missing file bytes in physical storage [src: L346-L360].
-  - `FileIntegrityVerificationFailed`: Security audit log for SHA-256 cryptographic mismatch [src: L373-L387].
-  - `UnauthorizedFileAccessAttempted`: Security audit log for unauthorized file access or upload [src: L107-L119, L297-L310].
-  - `TechnicalReviewSubmitted`: Submitting draft to assigned reviewer with due date and cycle number [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L142-L155].
-  - `ReviewFindingAdded`: Review finding logged with page, section, text, mandatory flag [src: L220-L235].
-  - `ReviewFindingResponseSubmitted`: Author responding to reviewer finding [src: L370-L385].
-  - `ReviewFindingVerified`: Reviewer verifying author response [src: L451-L460].
-  - `ReviewFindingResolved`: Review finding marked as resolved [src: L523-L532].
-  - `TechnicalReviewCompleted`: Review completed with all mandatory findings resolved, advancing to `AwaitingApproval` [src: L605-L614].
-  - `TechnicalReviewReturned`: Review returned to author for correction, reverting to `Draft` [src: L640-L649].
-  - `ApprovalTaskCreated`: Assigning designated approver with target effective date [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L136-L150].
-  - `ApprovalDossierViewed`: Approver opening inspection dossier [src: L320-L328].
-  - `ElectronicSignatureApplied`: 21 CFR Part 11 signature applied with BCrypt verification, recording full name, username, role, meaning (`SignatureMeaning.Approved`), and UTC timestamp [src: L605-L622].
-  - `DocumentRevisionApproved`: Revision approved, setting effective and review dates [src: L624-L639].
-  - `RevisionReturnedByApprover`: Approver returning revision to Draft with notes [src: L456-L470].
-  - `RevisionDeclinedByApprover`: Approver declining revision to Cancelled [src: L501-L516].
-  - `PeriodicReviewCreated`: Automated or manual periodic review task generation [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L140-L150].
-  - `PeriodicReviewRemainsValid`: Periodic review completed with document remaining valid, advancing next review date [src: L598-L612].
-  - `PeriodicReviewRevisionRequired`: Periodic review completed requiring revision, transferring findings to next draft [src: L624-L637].
-  - `PeriodicReviewObsolescenceRecommended`: Periodic review recommending document obsolescence, creating approval task [src: L680-L695].
+Action codes below were re-checked with `git grep` in the services; the first extraction listed twelve codes that do not exist, corrected here. Categories shown only where read in the code.
+- Master and revision [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentMasterService.cs:L193, L500, L554, L611, L683, L730; backend/MicroLIMS.Application/Services/DocumentControl/DocumentRevisionService.cs:L159, L180, L255, L305, L355, L420, L514]:
+  - `DocumentMasterRegistered` (category Document): registration with code, title, type, department, owner, initial revision number.
+  - `DocumentMasterMetadataUpdated`: draft metadata edit.
+  - `DocumentMasterVoided` (Document): previous and new record status plus the void reason.
+  - `DraftRevisionCancelled` (Document): previous and new revision status plus the cancel reason.
+  - `WorkflowAssignmentAdded`, `WorkflowAssignmentRemoved`: personnel assignments.
+  - `DocumentRevisionCreated`, `RevisionNumberOverridden` (Section Head override), `RevisionChangeItemAdded`, `RevisionChangeItemUpdated`, `RevisionChangeItemDeactivated`, `ReviewFindingConvertedToChangeItem`, `RevisionImpactAssessmentSaved`.
+- Files [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentFileService.cs:L108, L208, L231, L275, L298, L347, L374, L393-L394]: `RevisionFileUploaded`, `RevisionFileReplaced`, `ControlledFileViewed`, `ControlledFileDownloaded`, `SourceFileViewed`, `SourceFileDownloaded`, `UnauthorizedFileAccessAttempted` (security), `StoredFileMissing` (security), `FileIntegrityVerificationFailed` (security).
+- Technical review [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentReviewService.cs:L159, L344, L393, L452, L524, L606, L641] (category Review where read): `RevisionSubmittedForReview`, `ReviewFindingCreated`, `ReviewFindingAuthorResponded`, `ReviewFindingVerified`, `ReviewFindingResolved`, `TechnicalReviewCompleted`, `TechnicalReviewReturned` (each with previous and new status values).
+- Approval [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs:L137, L321, L457, L502, L606, L625] (category Approval): `ApprovalTaskCreated`, `ApprovalDossierViewed`, `RevisionReturnedByApprover`, `RevisionDeclinedByApprover`, `ElectronicSignatureApplied` (signature id, signer user name, full name, role, meaning, time), `DocumentRevisionApproved` (task status, revision status, effective date, next review date). Return and decline store the typed reason.
+- Automatic activation [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs:L221, L239, L335]: `RevisionAutomaticallyActivated`, `RevisionAutomaticallySuperseded`, `SystemProcessError` (system process, no user).
+- Periodic review [src: backend/MicroLIMS.Application/Services/DocumentControl/PeriodicReviewService.cs:L143, L180, L417, L465, L511, L589, L619, L645] : `PeriodicReviewTaskCreated`, `PeriodicReviewNoteCreated`, `PeriodicReviewFindingResolved`, `PeriodicReviewAssigned`, `PeriodicReviewRemainsValid`, `PeriodicReviewRevisionRequired`, `PeriodicReviewObsolescenceRecommended` (category Review).
+- Not found in code (listed by the first extraction): `TechnicalReviewSubmitted`, `ReviewFindingAdded`, `ReviewFindingResponseSubmitted`, `PeriodicReviewCreated`, `AcknowledgementRecorded`, `DepartmentCreated`, `DepartmentUpdated`, `SectionCreated`, `SectionUpdated`, `NumberingConfigurationUpdated`, `EscalationCreated`, `EscalationResolved`.
 
 ### MOD-DC-002 Document Control: reading and training
-- Training and reading audit actions [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs; backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs]:
-  - `AcknowledgementRecorded`: Attributable conscious reading acknowledgement recording assignment ID, user ID, client IP address, user agent, frozen legal statement, and controlled file SHA-256 hash [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L302-L320].
-  - `AcknowledgementRejected`: Security audit event logged for unauthorized or mismatched acknowledgement attempts [src: L158-L166, L175-L183].
-  - `AcknowledgementAlreadyRecorded`: Idempotent repeat acknowledgement submission handled [src: L214-L223].
-  - `SupersededAssignmentsClosed`: Automated closing of open training assignments upon newer revision activation [src: backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L118-L133].
+- Training and reading audit actions [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L158, L175, L215, L302; backend/MicroLIMS.Application/Services/DocumentControl/TrainingAssignmentService.cs:L120, L260, L369, L475, L492]:
+  - `ReadingAssignmentAcknowledged`: the conscious acknowledgement (assignment id, user, client IP address, user agent, frozen legal statement, controlled file SHA-256) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAcknowledgementService.cs:L265-L320].
+  - `AcknowledgementRejected`: security event for another user's assignment or a mismatch.
+  - `AcknowledgementAlreadyRecorded`: repeat submission handled without a second record.
+  - `SupersededAssignmentsClosed` (Document, system attributed), `TrainingCascadeAssignmentsCreated`, `ManualTrainingAssignmentsCreated`, `TrainingAssignmentsCancelledDueToObsolescence` (never reached, GAP-818).
 
 ### MOD-DC-003 Document Control: audit trail
-- Audit export event: Action code `AuditTrailExported`, category `Document`, recording user ID, exported row count, and applied filter criteria [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L122-L130].
+- Audit export event: action code `AuditTrailExported`, category `Security`, record type AuditLog, reason "Exported {n} audit records to CSV.", with the exported record count [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentAuditService.cs:L122-L130].
+- The audit trail table of the database is append-only for Document Control by design (FS-1a-182); the immutability mechanism was not re-read here.
 
 ### MOD-DC-004 Document Control: configuration
-- Configuration audit actions [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs]:
-  - `DocumentTypeCreated` / `DocumentTypeUpdated`: Creation/update of document types [src: L91-L97, L180-L190].
-  - `DepartmentCreated` / `DepartmentUpdated`: Creation/update of departments [src: L155-L165, L270-L280].
-  - `SectionCreated` / `SectionUpdated`: Creation/update of sections [src: L250-L260, L350-L360].
-  - `NumberingConfigurationUpdated`: Changes to numbering prefix or format [src: L440-L450].
-  - `ConfigurationSettingUpdated`: Administrative changes to module settings [src: L520-L530].
+- Configuration audit actions [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs:L92, L144, L213, L258, L326, L371, L441, L479, L569]: `DocumentTypeCreated`, `DocumentTypeUpdated`, `DocumentDepartmentCreated`, `DocumentDepartmentUpdated`, `DocumentSectionCreated`, `DocumentSectionUpdated`, `DocumentNumberingConfigUpdated` (previous and new prefix, format, enabled), `ConfigurationSettingUpdated`.
 
 ### MOD-DC-005 Document escalations (backend)
-- Escalation audit actions [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs]:
-  - `EscalationCreated`: System-attributed generation of training escalation record [src: L200-L215].
-  - `EscalationResolved`: Privileged manager resolution of escalation with mandatory regulatory justification [src: L290-L305].
-
+- Escalation audit actions: `TrainingEscalationRaised_{ApproachingDue|Due|Overdue}` (system process, category Training; level, recipient, due date, trigger time) and `TrainingEscalationResolved` (user, category Training, reason) [src: backend/MicroLIMS.Application/Services/DocumentControl/DocumentEscalationService.cs:L208-L222, L395-L410].
 ## traceability
 
 ### MOD-REPORTS-001 Reports
@@ -1043,8 +1121,8 @@ Document Revision Lifecycle State Transitions:
 - Profile version linking: Each `WorkflowProfileVersion` links to `TestDefinition` (via `TestCode`), `ElectronicSignature` (`ElectronicSignatureId`), and `CreatedByUserId` [src: backend/MicroLIMS.Domain/Entities/WorkflowProfileVersion.cs:L10-L33].
 
 ### MOD-KPI-002 Analyst availability and KPI section settings
-- `KpiSetting` links to `DocumentSection` (`SectionId`) and `UpdatedByUserId` [src: backend/MicroLIMS.Domain/Entities/KpiSetting.cs:L1-L25].
-- `AnalystAvailability` links to `User` (`UserId`), `EnteredByUserId`, and records audit field changes [src: backend/MicroLIMS.Domain/Entities/AnalystAvailability.cs:L1-L25].
+- `KpiSetting` links to `DocumentSection` (`SectionId`) and `UpdatedByUserId` [src: backend/MicroLIMS.Domain/Entities/KpiSetting.cs:L1-L22].
+- `AnalystAvailability` links to `User` (`UserId`), `EnteredByUserId`, and records audit field changes [src: backend/MicroLIMS.Domain/Entities/AnalystAvailability.cs:L1-L17].
 
 ### MOD-DC-001 Document Control: library and document lifecycle
 - Document Master links to `DocumentType`, `DocumentDepartment`, `DocumentSection`, `DocumentOwnerUser` (`DocumentOwnerUserId`), `CurrentEffectiveRevision` (`CurrentEffectiveRevisionId`), child `DocumentRevision` collections, `DocumentKeyword` tags, and `DocumentMasterAssignment` personnel roles [src: backend/MicroLIMS.Domain/Entities/DocumentMaster.cs:L1-L40].
@@ -1073,7 +1151,7 @@ Document Revision Lifecycle State Transitions:
 - Question: Why does `TrendingTab.tsx` contain hardcoded test codes, products, categories, and initial search criteria that appear in the UI when backend options fail to load or are empty?
 - Affected: SCR-REPORTS-005 (`TrendingTab.tsx:L44-L51, L217-L223, L249-L256, L276-L282`).
 - Facts: In `TrendingTab.tsx`, initial state defaults `testCode` to "TAMC" and `subjectName` to a hardcoded product name. When `filterOptions.testCodes` is empty, fallback items (TAMC, TYMC, WATER_TAMC, PATHOGEN_ECOLI) are rendered. When `filterOptions.subjectNames` is empty, five fallback subjects (including two hardcoded product names, a raw material, purified water, and a sampling point) are rendered. When `filterOptions.categories` is empty, four fallback categories are rendered.
-- Why it matters: If backend filter options fail to load or the database is freshly initialized, users see misleading mock product names and tests. Selecting these hardcoded options triggers API calls that fail with 400 errors ("test code is not configured in Test Master").
+- Why it matters: If backend filter options fail to load or the database is freshly initialized, users see misleading mock product names and tests. Selecting a hardcoded test code that is not in the Test Master makes the server answer `Test code "{code}" is not configured in Test Master.`; whether the four codes exist depends on the data (REQUIRES CONFIRMATION). The same page also keeps two other fallbacks: a point click that cannot load its record builds a record from the chart point, and a failed qualitative row click does nothing (see GAP-817).
 - Needs confirmation: Whether to replace all hardcoded fallbacks with empty state pickers disabled until valid filter options are fetched from the server.
 - Who could confirm: Frontend Lead / Product Owner.
 
@@ -1081,7 +1159,7 @@ Document Revision Lifecycle State Transitions:
 - Question: Should the "Live Database Data" chip reflect actual connection status, and should KPI card deltas show real historical comparisons instead of static 100% / ratio figures?
 - Affected: SCR-REPORTS-001 (`OverviewTab.tsx:L120-L124`, `OverviewService.ts:L133-L177`).
 - Facts: In `OverviewTab.tsx`, `<Chip size="small" label="Live Database Data" ... />` is hardcoded static JSX rendered on every load. In `OverviewService.ts`, the `deltaPercent` and arrow indicators on KPI cards do not compare with prior periods; instead, `totalTests`, `pendingReview`, and `pendingApproval` hardcode `deltaPercent: 100` (or `0`), `approvedResults` displays the within-period approval percentage as a delta, and `outOfSpec` displays the raw count as a delta percentage.
-- Why it matters: Users interpret the green/red arrows and percentages as month-over-month or period-over-period trend deltas, which misrepresents laboratory operational metrics.
+- Why it matters: Users interpret the green/red arrows and percentages as month-over-month or period-over-period trend deltas, which misrepresents laboratory operational metrics. When the overview request fails, the service also returns zeros with the caption "no data" and no error message, so an outage looks like an empty laboratory (GAP-817) [src: frontend/src/modules/reports/services/OverviewService.ts:L188-L205].
 - Needs confirmation: Whether to implement true prior-period comparison query in `ReportingQueryService.GetOverviewAggregateAsync` or remove the delta arrows from `OverviewTab`.
 - Who could confirm: Product Owner / Backend Lead.
 
@@ -1128,7 +1206,7 @@ Document Revision Lifecycle State Transitions:
 ### GAP-807 MOD-DC-005 training escalation management not exposed in UI
 - Question: Should a dedicated escalation management panel or action buttons be added to the frontend Document Control interface for reviewing overdue summaries and manually triggering escalation sweeps?
 - Affected: MOD-DC-005 (`DocumentEscalationController.cs:L38-L91`, `DocumentEscalationService.cs:L39-L80`).
-- Facts: `DocumentEscalationController` exposes 4 endpoints (`assignments/{id}/history`, `summary/overdue`, `process-due`, `resolve`) gated by `Documents.TrainingAssign`. They evaluate assignments against 3 escalation tiers (ApproachingDue, Due, Overdue) and record resolutions with regulatory reasons. However, no UI screen, dashboard tile, or dialog in `frontend/src/modules/documentControl` calls these endpoints.
+- Facts: `DocumentEscalationController` exposes 4 endpoints (`assignments/{id}/history`, `summary/overdue`, `process-due`, `resolve`) gated by `Documents.TrainingAssign`. They evaluate assignments against 3 escalation tiers (ApproachingDue, Due, Overdue) and record resolutions with regulatory reasons. However, no UI screen, dashboard tile, or dialog in `frontend/src/modules/documentControl` calls these endpoints. The escalation code also sends no message: it stores a record with a recipient text and an audit entry only (BR-DC-019).
 - Why it matters: Section Heads and QA Compliance managers cannot view overdue training escalation summaries or resolve open escalation records through the web interface, relying entirely on background workers or direct API calls.
 - Needs confirmation: Whether to add an "Overdue Escalations" tab or drawer to `ComplianceDashboardPage` or `TrainingMatrixPage`.
 - Who could confirm: Product Owner / UX Lead.
@@ -1144,7 +1222,7 @@ Document Revision Lifecycle State Transitions:
 ### GAP-809 Document training configuration lacks dedicated UI management interface
 - Question: Where should administrators manage per-document and per-type training settings (`RequiresReading`, `RequiresRetrainingOnRevision`, `EscalationDaysBeforeDue`, `EscalationDaysAfterDue`)?
 - Affected: MOD-DC-004, MOD-DC-002 (`TrainingAssignmentService.cs:L73-L82`, `DocumentConfigurationPage.tsx:L46-L100`).
-- Facts: Backend services evaluate `DocumentTrainingConfigurations` hierarchy (Master-specific > Type-specific > System defaults). However, `DocumentConfigurationPage.tsx` manages Document Types, Departments, Sections, and Numbering, but has no tab or form for configuring training parameters or escalation threshold days.
+- Facts: Backend services evaluate `DocumentTrainingConfigurations` hierarchy (Master-specific > Type-specific > System defaults); the same table also holds the configurable acknowledgement statement text, grace period and retraining switch, and nothing in the application writes to it. However, `DocumentConfigurationPage.tsx` manages Document Types, Departments, Sections, and Numbering, but has no tab or form for configuring training parameters or escalation threshold days.
 - Why it matters: Laboratory training administrators cannot toggle whether a document requires reading upon revision or adjust the 3-day approaching / 1-day overdue escalation thresholds without direct database changes.
 - Needs confirmation: Whether to add a "Training Policies" tab to `DocumentConfigurationPage` or embed training settings into `DocumentType` dialog.
 - Who could confirm: UX Lead / Training Manager.
@@ -1156,3 +1234,96 @@ Document Revision Lifecycle State Transitions:
 - Why it matters: Users can open the acknowledgement dialog and attest to having read the document without actually scrolling through the entire controlled PDF.
 - Needs confirmation: Whether regulatory policy requires blocking acknowledgement until the user has scrolled through 100% of the document pages.
 - Who could confirm: Quality Assurance Lead / Compliance Officer.
+
+### GAP-811 Document Control dashboard may fail for users who cannot query the global audit trail
+- Question: Is it intended that the dashboard (open to every signed-in user) depends on the global audit query, which only Reviewer, Section Head and System Administrator role types may call?
+- Affected: SCR-DC-001 (`DocumentControlDashboardPage.tsx:L76-L110`), `DocumentAuditService.cs:L33-L35`.
+- Facts: the page requests the library and the 5 newest audit rows together in one `Promise.all`; the audit request is refused with "You do not have permission to query the global audit trail." for an Analyst (verified in code). The `catch` shows one error alert. Not seen in the running application.
+- Why it matters: an Analyst holding `Documents.Register` is offered the "Register Document" button on a page that may show only an error.
+- Needs confirmation: what an Analyst sees on opening `/document-control`.
+- Who could confirm: developer; Document Control owner.
+
+### GAP-812 Dashboard counts use only the first 100 masters
+- Question: Should the six dashboard counts come from server-side totals?
+- Affected: SCR-DC-001 (`DocumentControlDashboardPage.tsx:L76-L102`).
+- Facts: the page loads 100 library rows (`pageSize: 100`, voided included) and counts Effective, Draft, File Pending, Review Overdue and Voided from those rows; only "Total Documents" uses the server total.
+- Why it matters: with more than 100 masters the five counts under-state the real figures while the total is correct.
+- Needs confirmation: the expected number of masters and whether server counts are required.
+- Who could confirm: Document Control owner; developer.
+
+### GAP-813 Audit trail category filter offers values the server does not have
+- Question: Which category values should the filter offer?
+- Affected: SCR-DC-007 (`DocumentAuditPage.tsx:L151-L156`), `AuditActionCategory.cs:L5-L13`.
+- Facts: the dropdown lists Document, Workflow, Security, Configuration, System; the server enum has Document, Review, Approval, Training, Kaf, Configuration, Security, ImportExport, Other. Review, Approval and Training entries (most of the workflow rows) cannot be selected. Behaviour of the server for "Workflow" or "System" was not tested.
+- Why it matters: an auditor cannot filter to review or approval events and may get an error or an empty list for two entries.
+- Needs confirmation: result of selecting "Workflow" and "System" in the running application.
+- Who could confirm: developer; QA.
+
+### GAP-814 Periodic review completion has no role check when no reviewer is assigned
+- Question: Who may complete a periodic review task that has no assigned reviewer?
+- Affected: WF-DC-003 (`PeriodicReviewService.cs:L554-L561`), `PeriodicReviewService.cs:L103-L112`.
+- Facts: the worker leaves the assigned reviewer empty when the default person is the revision's author. The completion check only compares roles when a reviewer is assigned; with none assigned any signed-in user except the author passes it (the controller has a plain authorize). Verified in code, not run.
+- Why it matters: a periodic review with an outcome (including an obsolescence recommendation) could be completed by anyone.
+- Needs confirmation: whether this state occurs and the intended rule.
+- Who could confirm: Document Control owner; developer.
+
+### GAP-815 Word-to-PDF conversion at approval is specified but not in the code; PDF-only submission is accepted
+- Question: Which release baseline applies to how the controlled PDF is produced and what submission requires?
+- Affected: WF-DC-002 (`Release_1d_Delta_FRS.md:L109-L127, L299-L335`, `DocumentReviewService.cs:L64-L74`, `DocumentDetailPage.tsx:L271-L284`, `DocumentApprovalService.cs:L688-L700`).
+- Facts: FS-1d-013 and FS-1d-014 describe a server-side converter (Gotenberg) producing the controlled PDF from the approved Word file; no converter exists in the code (git grep). The approval checklist requires an active controlled PDF that a person uploads. FS-1d-003 says submission no longer needs a PDF; the page offers "Submit for technical review" only when a controlled PDF is active, and the server accepts a PDF when no Word file exists. The Release 1d RTM marks the items PLANNED (GAP-024).
+- Why it matters: the guide must describe manual PDF upload, not automatic conversion.
+- Needs confirmation: whether conversion is planned or dropped.
+- Who could confirm: Document Control owner; QA.
+
+### GAP-816 Approval with an immediate effective date does not start the training cascade
+- Question: Should every activation of an Effective revision create reading assignments and close old ones?
+- Affected: WF-DC-002, WF-DC-005 (`DocumentApprovalService.cs:L576-L600`, `DocumentEffectiveDateService.cs:L296-L310`).
+- Facts: `ProcessEffectiveRevisionCascadeAsync` is called only after the worker activates a FutureEffective revision. The approval step sets Effective directly (effective date today or earlier) and does not call it. No other caller exists (git grep). Manual assignment has an API but no screen (git grep in the frontend).
+- Why it matters: documents approved with an immediate date may produce no reading assignments and leave old ones open as Assigned or Overdue.
+- Needs confirmation: observe a test approval with today's date and check My Reading List and the matrix.
+- Who could confirm: developer; Document Control owner.
+
+### GAP-817 Reports show substitute data instead of an error in two places
+- Question: Should a failed load show an error?
+- Affected: SCR-REPORTS-001, SCR-REPORTS-005 (`OverviewService.ts:L188-L205`, `TrendingTab.tsx:L104-L121, L490-L497`).
+- Facts: if the overview request fails, the six cards show 0 with the caption "no data" and the page does not show an error. If a chart point's record cannot be loaded, the dialog is filled from the chart point itself (round 1, no sample id, no test order id). If a qualitative row's record cannot be loaded, nothing happens.
+- Why it matters: a failed load can be read as zero activity or as a complete record.
+- Needs confirmation: whether the dialog marks such a record as partial.
+- Who could confirm: developer; Product Owner.
+
+### GAP-818 No transition to Obsolete exists although the interface and specification promise it
+- Question: How is an effective document retired?
+- Affected: WF-DC-003, MOD-DC-001 (`PeriodicReviewService.cs:L638-L700`, `DocumentApprovalService.cs:L688-L700`, `TrainingAssignmentService.cs:L425-L500`, `ApprovalWorkspaceDialog.tsx:L275-L278`).
+- Facts: the periodic review outcome "Obsolescence Recommended" creates an approval task for an Effective revision. The approval workspace tells the approver that approving "will decommission the document". The approval readiness check requires status AwaitingApproval, so approving that task is refused, and no code assigns the status Obsolete (git grep). The routine that cancels training on obsolescence is never called. FS-1b-052 requires the transition after a signed approval. The void rule tells users to retire documents "through obsolescence".
+- Why it matters: effective documents cannot be retired in the application; the guide must not describe obsolescence as available.
+- Needs confirmation: the intended retirement route and whether it is planned.
+- Who could confirm: Document Control owner; QA.
+
+### GAP-819 Training curriculum cannot be edited in the application and its department filter is not applied
+- Question: Where are role curricula managed, and should the department be applied?
+- Affected: WF-DC-005 (`TrainingAssignmentService.cs:L160-L190`).
+- Facts: the cascade reads each curriculum item's role and department but queries users by role only (department ignored). No screen or controller found for creating curricula or manual assignments in the frontend. The same finding appears in the multi-department recon memory note.
+- Why it matters: staff in other departments with the same role may receive assignments; administrators cannot see or change who is targeted.
+- Needs confirmation: how curricula are loaded today (database script, API tool).
+- Who could confirm: Document Control owner; developer.
+
+### GAP-820 KPI profile versions can be created and signed by the same person
+- Question: Is a second-person check wanted for changes that alter weighted KPI figures?
+- Affected: WF-KPI-002 (`WorkflowProfileService.cs:L56-L90`).
+- Facts: one user adds a version and signs it in the same request; no segregation rule exists in the Kpi service folder (git grep). The signature records the user, the meaning MasterDataChanged and the reason.
+- Why it matters: the person whose workload is measured could also set the weights if they hold `Kpi.ConfigureProfiles`.
+- Needs confirmation: intended approval model for profile versions.
+- Who could confirm: Laboratory owner; QA.
+
+### GAP-821 Register dialog asks for the owner as a user number
+- Question: Should the owner be picked from a list of people?
+- Affected: WF-DC-001 (`RegisterDocumentDialog.tsx:L302-L307`).
+- Facts: the dialog field is "Document Owner User ID *" with the helper "Assigned primary owner". The reviewer picker in the submit dialog, by contrast, lists people by name.
+- Why it matters: users must know an internal id; a wrong id gives the server error "Owner user {id} not found." or assigns the wrong owner.
+- Needs confirmation: whether the field is a number box in the running application.
+- Who could confirm: developer; UX Lead.
+
+### Confirmation of existing DISCREPANCY gaps (no new ids)
+- GAP-023 CONFIRMED: the sign-in footer wording is outside this cluster; inside it, the approval signature dialog states "you certify under 21 CFR Part 11" and cites "21 CFR §11.200", the approval workspace says "Approval Governed by 21 CFR Part 11 Electronic Signature", the acknowledgement dialog heading says "(GMP / 21 CFR Part 11)" and the KPI PDF footer says "MicroLIMS verified report" [src: frontend/src/modules/documentControl/components/ElectronicSignatureDialog.tsx:L119-L122, L202; frontend/src/modules/documentControl/components/ApprovalWorkspaceDialog.tsx:L253; frontend/src/modules/documentControl/components/DocumentAcknowledgementDialog.tsx:L212; frontend/src/modules/kpi/utils/exportKpiPdf.ts:L143]. The guide does not repeat these claims.
+- GAP-024 CONFIRMED with an update: the code contains the Training Matrix, My Reading List, acknowledgement, periodic review, the effective-date worker and the approval signature that older release records list as not implemented. It does not contain the Release 1d server-side conversion (GAP-815) or the obsolescence transition (GAP-818), which the newer records plan.
+- GAP-045 CONFIRMED (not downgraded): the KPI design file still reads "Status: draft for review (no code written)" while the code and the plan index (with 21 listed deviations from it) are in use. The KPI definitions in BR-KPI-005 to BR-KPI-016 are therefore described as implemented behaviour and marked DISCREPANCY only where the plan or design text differs (BR-KPI-005, BR-KPI-009) [src: docs/superpowers/specs/2026-10-11-kpi-performance-remodel-design.md:L3].

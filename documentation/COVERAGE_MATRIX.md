@@ -106,3 +106,21 @@ These candidates from the prompt's checklist were NOT FOUND, so they have no row
 | Local AI assistant | NOT FOUND | GAP-033 |
 | Live instrument data feed | NOT FOUND | GAP-031 |
 | Reception and QA roles (seeded) | NOT FOUND | GAP-050 |
+
+## Workflows added in Phase 4
+
+Phase 4 reconstructed 81 workflow sections (`knowledge/workflows.md`). These IDs are new since the Phase 2 map; add them to the Workflows column of the listed module:
+
+| Workflow | Module |
+|---|---|
+| WF-SAMPLE-006 Environmental Monitoring sample, end to end | MOD-SAMPLE-001, MOD-EM-001 |
+| WF-SAMPLE-007 Water sample, end to end | MOD-SAMPLE-001, MOD-WATER-001 |
+| WF-SAMPLE-008 After Cleaning sample, end to end | MOD-SAMPLE-001, MOD-AC-001 |
+| WF-EM-001 Configure Environmental Monitoring | MOD-EM-001 |
+| WF-WATER-001 Configure water systems and sampling points | MOD-WATER-001 |
+| WF-AC-001 Configure After Cleaning machines, parts and tests | MOD-AC-001 |
+| WF-ORG-001 Maintain the organism list | MOD-ORG-001 |
+| WF-ITEM-003 Review item preparation configuration | MOD-ITEM-001, MOD-PREP-001 |
+| WF-RECVCFG-001 Maintain receiving lists | MOD-RECVCFG-001 |
+
+WF-TESTMASTER-001 is split into a microbiology part (C4) and a physicochemical part (C7). The EM, Water and After Cleaning rows now have workflows (they read "none" in Phase 2).

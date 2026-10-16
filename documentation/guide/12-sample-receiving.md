@@ -43,7 +43,7 @@ Register incoming samples of Finished Product, Raw Material, or Packaging Materi
 2. Click **Receive** (or **+ New Sample**).
 3. In the **New Sample** dialog, click the tile for **Product**, **Raw Material**, or **Packaging Material**, then click **Next**.
 4. In the multi-sample entry grid, select the **Item** from the dropdown menu.
-5. In the laboratory selector, choose one or more target laboratory sections (Microbiology, Physicochemical).
+5. In the laboratory selector, choose one or more target laboratories (for example Microbiology Laboratory or Physicochemical Laboratory).
 6. If receiving a Finished Product sample, select the applicable **Stage** (Production Stage).
 7. Select the **Cause of Testing** and the sampler's name in **Sampled By**.
 8. Enter the **Batch No.** and **Control No.**.
@@ -56,8 +56,8 @@ Register incoming samples of Finished Product, Raw Material, or Packaging Materi
 - The system generates a category-specific reference number for each sample.
 - The initial status of the sample is set to **Received**.
 - Preparation status is established:
-  - Samples that include Microbiology tests are assigned the preparation status **Needs Preparation**.
-  - Samples whose tests belong exclusively to the Physicochemical section are assigned the preparation status **Ready** (Finished Product physicochemical tests do not require sample preparation).
+  - Samples are assigned the preparation status **Needs Preparation**.
+  - A sample whose tests all belong to the FP section is assigned **Ready** instead, because FP tests have no preparation stage. A sample with a mix of tests needs preparation only for its non-FP tests.
 - The system automatically generates exactly one test order for each configured test associated with the selected laboratory sections. Each generated test order is created with the status **Pending** and workflow step **Waiting**.
 - Sample receiving is recorded without requiring an electronic signature.
 
@@ -84,7 +84,6 @@ The system evaluates the following client-side and server-side validation rules:
   - "One or more selected laboratories do not exist."
   - "You can receive samples only for your own laboratory."
   - "Item '{name}' has no tests for {lab name}."
-  - "The expiry date cannot be before the manufacturing date."
 
 > **Note for reviewers:** Receiving, correcting, voiding, and assigning samples have no approved intended-workflow specification document; this procedure describes observed screen behavior only. (GAP-200, GAP-201, GAP-203, GAP-213)
 
@@ -92,11 +91,11 @@ The system evaluates the following client-side and server-side validation rules:
 
 #### Status
 - Sample status is initialized to **Received**.
-- Preparation status is initialized to **Needs Preparation** (or **Ready** if all tests belong to the Physicochemical section).
+- Preparation status is initialized to **Needs Preparation** (or **Ready** if all tests belong to the FP section).
 - Test orders are initialized to **Pending** with step **Waiting**.
 
 #### What happens next
-For samples requiring preparation, the assigned analyst completes sample preparation before testing can begin. For samples whose tests do not require preparation, test incubation and testing workflows may be initiated immediately.
+For samples requiring preparation, preparation must be confirmed before incubation can start (see Section 13). For samples whose tests do not require preparation, testing can begin immediately.
 
 
 ### 12.2 Receiving Environmental Monitoring Samples
@@ -148,7 +147,7 @@ Environmental monitoring departments, rooms, and room test configurations must b
 - Preparation status is initialized to **Needs Preparation**.
 
 #### What happens next
-The sample appears in the register with the banner **Sample Needs Preparation**. An analyst must open the preparation dialog to select rooms and generate the required test orders.
+The sample appears in the register. When it is selected in the laboratory workspace, the banner **Sample Needs Preparation** is shown; an analyst opens **Prepare Sample** to select rooms, which generates the required test orders.
 
 
 ### 12.3 Receiving Water Samples
@@ -260,5 +259,9 @@ Machines and machine part test configurations must be configured in master data.
 - Sample status is initialized to **Received**.
 - Preparation status is initialized to **Needs Preparation**.
 
+> **Note for reviewers:** For After Cleaning samples the specification calls for one collective pathogen test order plus one TAMC test order per machine part; the system instead creates one test order per distinct test code. (GAP-225)
+
 #### What happens next
-The sample appears in the register. An analyst opens sample preparation to select the swabbing or rinsing machine parts and create the associated test orders.
+The sample appears in the register. An analyst opens **Prepare Sample** to select the machine parts, which creates the associated test orders.
+
+<!-- Review log (Sonnet): 7 corrections; invented items removed: expiry-date server message on receive, Physicochemical-section Ready rule (now FP section), register banner claim, swab/rinse wording; callouts added: After Cleaning order mismatch (GAP-225) -->

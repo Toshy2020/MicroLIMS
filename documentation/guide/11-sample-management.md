@@ -5,14 +5,14 @@
 View, search, filter, and monitor incoming and in-progress laboratory samples across table, card, and kanban views, inspect workload summary indicators, and access sample-level actions.
 
 #### Who can use it
-Requires the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) or *Global sample receiving* permission (by default: Section Head, System Administrator). Users must have an active laboratory section membership (System Administrator accounts have unrestricted global access by default).
+Requires the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) or *Global sample receiving* permission (by default: Section Head, System Administrator). Holders of the own-lab permission work with the laboratory sections they belong to; holders of the global permission can receive for any laboratory. Row actions have their own permissions: **Assign Analyst** (*Assign responsible analyst* permission; by default Section Head, System Administrator), **Add Laboratory** (global sample receiving permission) and the edit icon and **Void Sample** (*Sample correction & voiding* permission; by default Section Head, Reviewer, System Administrator).
 
 #### Before you start
-You must be signed in with an active user account assigned to at least one laboratory section.
+You must be signed in with an account that holds one of the receiving permissions above.
 
 #### What you see
 - Page header: title **Receive Sample** and subtitle "Register incoming Finished Product, Raw Material, and Packaging Material samples, and choose which laboratories they go to."
-- Action buttons: **Refresh** and **Receive** (visible when authorized for global receiving).
+- Action buttons: **Refresh** and **Receive** (shown when you are allowed to receive samples; see Section 12).
 - Key performance indicator cards:
   - **Needs Preparation** ("Preparation not yet signed off")
   - **Ready to Read** ("Incubation complete, awaiting result entry")
@@ -70,7 +70,7 @@ You must be signed in with an active user account assigned to at least one labor
 6. Open the **Actions** menu on any sample row to perform sample-level operations, view audit history, or generate reports.
 
 #### System behavior
-- The system determines overall sample status through a roll-up of individual laboratory section sign-off statuses. The least advanced open section governs the overall status (testing before review before approval). If any section is rejected, the sample reflects rejected status; otherwise, if retest is requested, it reflects retest requested; once all sections complete authorization, the sample reaches approved status.
+- The overall sample status is a roll-up of each laboratory's own sign-off status. The least advanced open laboratory decides (testing, then review, then approval). If no laboratory is still open, a rejected laboratory makes the sample Rejected; otherwise a retest request makes it Retest Requested; otherwise the sample is Approved.
 - The sample register displays consolidated status labels:
   - Samples in received status display as **Received**.
   - Samples undergoing testing display as **Under Testing**.
@@ -78,9 +78,11 @@ You must be signed in with an active user account assigned to at least one labor
   - Samples awaiting release approval display as **Pending Approval**.
   - Samples approved display as **Approved**.
   - Samples rejected display as **Rejected**.
-  - Samples with retest requested, cancelled sections, or voided status display as **Cancelled / Voided**.
+  - Samples with a retest requested, a cancelled status, or a voided status all display as **Cancelled / Voided**.
 
-> **Note for reviewers:** The sample register displays the single label "Cancelled / Voided" for three distinct underlying statuses: RetestRequested, Cancelled, and Voided. (GAP-204)
+> **Note for reviewers:** The sample register displays the single label "Cancelled / Voided" for three different statuses: retest requested, cancelled, and voided. (GAP-204)
+
+> **Note for reviewers:** Receiving, correcting, voiding, adding a laboratory and assigning an analyst have no approved intended-workflow document; this section describes observed screen behavior only. Any active user of any role can be chosen as the responsible analyst, and the reason for the assignment is optional. (GAP-200, GAP-213)
 
 #### Errors
 - If the register cannot load data, the system displays the notification: "Failed to load the sample register."
@@ -130,7 +132,7 @@ Samples must be registered in the system with at least one test order created.
 2. Review the cross-laboratory status of all samples.
 3. Filter the board by selecting a specific laboratory, overall status, product/item, or received date range.
 4. Compare progress between the **Microbiology** and **Physicochemical** columns to identify whether testing, review, or approval is pending in either department.
-5. Click any sample row to open the sample summary dialog.
+5. Click a sample row to open the sample summary dialog.
 
 #### System behavior
 - The tracking board displays all received samples that have at least one test order generated, including samples where initial test orders were superseded by retest orders.
@@ -174,7 +176,7 @@ Requires the *Sample correction & voiding* permission (by default: Section Head,
   - **Storage Condition** (options: "Room Temperature", "Refrigerator")
   - **Storage Time (hours)** (required when storage condition is "Refrigerator")
   - **Reason for Correction** (mandatory; helper text: "Recorded with your electronic signature and in the sample's audit trail.")
-- Action buttons: **Cancel** and **Sign & Save** (disabled when details are locked, when required values are blank, or when no fields have changed).
+- Action buttons: **Cancel** and **Sign & Save** (disabled when details are locked or a required value, including the reason, is blank).
 
 [SCREENSHOT SS-113]
 
@@ -185,11 +187,11 @@ Requires the *Sample correction & voiding* permission (by default: Section Head,
 4. Enter a detailed justification in the **Reason for Correction** field.
 5. Click **Sign & Save**.
 6. In the electronic signature prompt, enter your user password to confirm the signature meaning for sample correction.
-7. Confirm that the notification banner displays: "Sample details corrected and signed."
+7. Confirm that the notification displays: "Sample details corrected and signed."
 
 #### System behavior
 - The system verifies that at least one field has been modified; if no data changed, the submission is rejected.
-- The system applies an electronic signature record capturing the signer's identity, role, timestamp, meaning, and reason.
+- The system records the electronic signature with the signer, role, meaning and reason.
 - An audit trail record is created storing the old and new values for each modified field.
 - If the batch number or control number is changed, the system automatically propagates the updated identifiers to associated result records.
 - If the item or location is changed prior to the start of testing, the system removes any recorded preparation data, removes test orders that do not belong to the newly selected item, generates test orders required by the new item, and returns the sample preparation status to **Needs Preparation** (or **Ready** if the new item requires only Finished Product tests with no preparation).
@@ -223,13 +225,13 @@ The system enforces the following exact validation rules:
 - "Storage time is required when a water sample was refrigerated."
 - "Storage time cannot be negative."
 
-> **Note for reviewers:** Receiving, correcting, voiding, and assigning samples have no approved intended-workflow specification document; this procedure describes observed screen behavior only. (GAP-201)
+> **Note for reviewers:** Correcting and voiding samples have no approved intended-workflow document, and nothing prevents the user who received or tested a sample from correcting or voiding it. (GAP-201)
 
 
 ### 11.4 Voiding a Sample
 <!-- WF-SAMPLE-005 -->
 #### Purpose
-Permanently strike an erroneously created or invalid sample and all of its open tests from active laboratory workflows under electronic signature and audit trail tracking.
+Strike an erroneously created or invalid sample and all of its open tests from active laboratory workflows under electronic signature and audit trail tracking.
 
 #### Who can use it
 Requires the *Sample correction & voiding* permission (by default: Section Head, Reviewer, System Administrator).
@@ -255,14 +257,14 @@ The sample must not already be in Voided status.
 6. Verify the confirmation message: "Sample voided." (in the laboratory workspace: "Sample #{id} ({name}) has been marked as Voided.").
 
 #### System behavior
-- The system applies an electronic signature record capturing the signer's identity, role, timestamp, meaning, and reason.
+- The system records the electronic signature with the signer, role, meaning and reason.
 - The sample status is set to **Voided**.
 - All non-superseded test orders associated with the sample are set to **Voided**.
 - All laboratory section sign-off records are set to **Voided**.
-- Result projection records are marked as **Voided**.
+- The sample's result records are marked as **Voided**.
 - The certificate remarks field on the sample is populated with "Voided: {reason}".
 - An audit trail entry is created recording the previous status, the new voided status, and the list of voided test orders.
-- Voided is a terminal status; a voided sample cannot be reopened, edited, or reset.
+- Voided is a terminal status.
 - In the sample register, the sample displays under the status label **Cancelled / Voided**. In the Tracking Board, it displays under **Voided**.
 
 #### Validation
@@ -271,3 +273,5 @@ The system enforces the following exact validation rules:
 - "Sample is already voided."
 
 > **Note for reviewers:** A sample can be voided at any status except already Voided, including after approval or rejection, with no warning if an archived certificate of analysis exists. (GAP-203)
+
+<!-- Review log (Sonnet): 14 corrections; invented items removed: Sign & Save disabled-when-unchanged, signature timestamp, 'reopened/edited/reset' claim, section-membership and System Administrator unrestricted-access claim, enum names; callouts added: workflow-spec/analyst assignment note in 11.1 (GAP-200, GAP-213) -->

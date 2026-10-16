@@ -251,7 +251,7 @@ Storage form: Plates, AgarBottles, BrothBottles, Tubes [src: MediaStorageService
 ### MOD-MATERIAL-001 Materials Stock
 - Stock status (`StockStatus`, computed, not stored): InStock, Depleted (remaining zero or less), Expired (expiry before today). [src: backend/MicroLIMS.Domain/Enums/StockStatus.cs:L6-L10; backend/MicroLIMS.Domain/Entities/Material.cs:L84-L87]
 - Document status (`MaterialDocumentStatus`): Current (0), Superseded (1), Voided (2). [src: documentation/knowledge/_raw/backend-enums.md:L350-L357]
-- Transitions: upload -> Current; supersede -> old Superseded, new Current (signed reason, DocumentControl); void -> Voided with reason (DocumentControl; any non-voided document) [src: MaterialDocumentService.cs:L256-L257, L282-L289, L343-L349].
+- Transitions: upload -> Current; supersede -> old Superseded, new Current (reason, DocumentControl, no password; "signed reason" corrected in Phase 5); void -> Voided with reason (DocumentControl; any non-voided document) [src: MaterialDocumentService.cs:L256-L257, L282-L289, L343-L349].
 - Material type (`MaterialType`): DehydratedMedia, LyophilizedMicroorganism, Supplement, AntibioticDisc, IdentificationKit, IdentificationReagent, Chemical, Indicator, ReferenceBuffer, DisposableTool, Other, ReferenceStandard, WorkingStandard, PrimaryStandard [src: documentation/knowledge/_raw/backend-enums.md:L370-L388].
 - Document type (`MaterialDocumentType`): COA, SupplierCertificate, Specification, SDS, Other [src: backend-enums.md:L359-L368].
 

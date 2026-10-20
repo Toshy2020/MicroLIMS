@@ -51,7 +51,19 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         };
 
         _db.Samples.Add(sample);
-        await _db.SaveChangesAsync();
+
+        // Two receipts at the same moment both pick the same next number.
+        // The unique index rejects the second save, which then takes the
+        // number after the one that won. A second clash in a row is
+        // reported rather than retried again.
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+        {
+            sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.EnvironmentalMonitoring);
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+                throw new InvalidOperationException(
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+        }
+
         return sample;
     }
 

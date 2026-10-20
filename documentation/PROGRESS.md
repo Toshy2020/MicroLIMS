@@ -10,9 +10,9 @@ Prompt: `user_guide_prompt_v2.md` (Master User Guide Generation Agent v2).
 | App run locally | Not yet — screen behaviour currently from code only (lower confidence) |
 
 ## Current phase
-**Phase 9 complete — USER_GUIDE.md drafted and reviewed. STOPPED, awaiting user direction** for Phases 10–12 (screenshot plan, independent Opus review, reconciliation → mandatory stop).
+**Phase 12 complete — reconciliation written. STOPPED, awaiting user approval** before Phase 13 (apply corrections).
 
-Decisions in force: Phases 2 and 4 approved by the user. App NOT run (code only). Memory notes are not INTENDED sources. Model routing (user, 2026-10-16): agy (Gemini) does the bulk writing, Sonnet reviews and corrects.
+Decisions in force: Phases 2, 4 and 5–9 approved by the user. App NOT run (code only). Memory notes are not INTENDED sources. Model routing: agy (Gemini) writes, Sonnet reviews; Phases 11–12 Opus as the prompt requires.
 
 ## Phase log
 - 2026-10-15 — Phase 0: branch created, `documentation/` + `knowledge/` + `screenshots/` folders created.
@@ -30,6 +30,10 @@ Decisions in force: Phases 2 and 4 approved by the user. App NOT run (code only)
 COVERED 18, PARTIAL 38, REQUIRES CONFIRMATION 1, NOT-EXPOSED-IN-UI 8, LEGACY/RETIRED 1 (total 66).
 
 - 2026-10-16/20 — Phases 5–9: Sonnet domain + GMP reviews per cluster (`knowledge/_clusters/R1..R8-review.md`, ~180 guide callouts); Phase 7 `knowledge/role-guide.md` (agy draft, Sonnet-reviewed, 11 fixes); Phase 8 `USER_GUIDE_STRUCTURE.md` (44 sections, 3 new); Phase 9: 44 section files in `guide/` drafted by agy per `guide/WRITING_BRIEF.md`, every one reviewed by Sonnet per `guide/REVIEW_GUIDE_BRIEF.md` (review log at the end of each file; hundreds of corrections, many invented labels/messages removed); assembled by `E:/MicroLIMS/rls-tmp/assemble_guide.py` into `USER_GUIDE.md`. C6 gap headings normalised to `### GAP-6NN`.
+
+- 2026-10-20 — Phase 10: `SCREENSHOT_PLAN.md` (123 screenshots, 102 P1) from `guide/_ss/*.md`.
+- 2026-10-20 — Phase 11: three fresh-context Opus reviewers (§1–16, §17–29, §30–44) → `_review/review-A/B/C.md`, merged into `USER_GUIDE_REVIEW.md` (43 findings: 0 critical, 8 high, 16 medium, 19 low).
+- 2026-10-20 — Phase 12: Opus reconciliation → `RECONCILIATION.md` (38 confirmed, 4 partly, 1 rejected, 2 new; final 10 high / 13 medium / 21 low; no CRITICAL). Proposes GAP-901..910 and updates to GAP-214/221/227/300 and clusters C2, C3, C5, C8, R3.
 
 ## Files created (Phases 5–9)
 - `USER_GUIDE.md` — DRAFT 0.1, 44 sections, ~10,500 lines, 275 reviewer notes, 123 screenshot placeholders; every cited GAP id exists in `DOCUMENTATION_GAPS.md` (216 gaps).
@@ -56,6 +60,6 @@ See `DOCUMENTATION_GAPS.md` (GAP-001..055, then cluster ranges GAP-100..821). Hi
 - GAP-040: the application has not been run; permission is needed for a local test instance with fake data.
 
 ## Next step
-1. User reads `USER_GUIDE.md` (start with §2 scope and the reviewer notes) and decides on Phases 10–12.
-2. Phase 10: `SCREENSHOT_PLAN.md` from `guide/_ss/_all.md` (remove the template `SS-NNN` row).
-3. Phase 11: fresh-context Opus review → `USER_GUIDE_REVIEW.md`. Phase 12: Opus reconciliation → STOP for approval.
+1. User approves `RECONCILIATION.md` (or amends decisions).
+2. Phase 13: apply the confirmed corrections to `guide/NN-*.md` and the named cluster files (agy writes, Sonnet reviews), add GAP-901..910 and the gap updates to `DOCUMENTATION_GAPS.md`, re-run `E:/MicroLIMS/rls-tmp/merge_clusters.py` and `assemble_guide.py`.
+3. Phase 14: final guide check against `COVERAGE_MATRIX.md`. Phase 15: `DOCUMENTATION_INDEX.md` + `.csv`. Final report.

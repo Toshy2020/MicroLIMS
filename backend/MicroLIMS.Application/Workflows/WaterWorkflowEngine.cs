@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -39,11 +40,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 {
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
+    private readonly IUserSectionScopeService? _scope;
 
-    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
     {
         _db = db;
         _refNumbers = refNumbers;
+        _scope = scope;
     }
 
     public async Task<Sample> ReceiveAsync(WaterReceiveRequest request)
@@ -128,6 +131,8 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         // the whole batch shares a single workflow per test type, same as
         // EMWorkflowEngine.PrepareAsync.
         var testSections = await TestSectionLookup.ResolveAsync(_db, allCodes);
+        if (_scope is not null)
+            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
         {

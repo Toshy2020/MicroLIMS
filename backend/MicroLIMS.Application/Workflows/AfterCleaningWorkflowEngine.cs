@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -31,11 +32,13 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
 {
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
+    private readonly IUserSectionScopeService? _scope;
 
-    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
     {
         _db = db;
         _refNumbers = refNumbers;
+        _scope = scope;
     }
 
     public async Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request)
@@ -115,6 +118,8 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         // One TestOrder per distinct TestCode across every selected part -
         // the whole batch shares a single incubation setup per test type.
         var testSections = await TestSectionLookup.ResolveAsync(_db, configs.Select(c => c.TestCode));
+        if (_scope is not null)
+            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
         {

@@ -2,9 +2,15 @@
 
 ### 41.1 External Systems and Instrument Interfaces
 
-#### Status of External Integrations
-MicroLIMS operates as a self-contained laboratory information management system. External system integrations and automated electronic instrument feeds are not available in the user interface:
-- **Instrument Report Import**: Automated reading, text extraction, and parsing of electronic instrument reports (such as chromatography data system reports or spectrometer exports) are not available in the user interface. All analytical instrument results, system suitability parameters, and calibration values are entered directly by analysts into the appropriate testing workspaces.
-- **Enterprise Resource Planning (ERP)**: MicroLIMS does not integrate with SAP or external enterprise resource planning (ERP) systems. Material lot receiving, production batch tracking, and item release workflows are maintained directly within the application.
-- **AI Assistant**: MicroLIMS does not include an AI assistant or automated analytical narrative generator.
-- **Live Instrument Feeds**: Live instrument data feeds and direct bidirectional instrument controller interfaces are not available in MicroLIMS.
+#### Status of external integrations
+MicroLIMS works on its own. The following are not available in the application:
+- **Instrument report import**: there is no screen that reads electronic instrument reports (for example chromatography or ICP reports) into MicroLIMS. Instrument results, system suitability values and calibration values are entered by the analyst in the testing workspaces.
+- **ERP / SAP**: MicroLIMS has no connection to SAP or other enterprise resource planning systems.
+- **Live instrument data feed**: instruments do not send data to MicroLIMS directly.
+- **AI assistant**: MicroLIMS has no AI assistant.
+
+> **Note for reviewers:** Report-reading code exists in the system but nothing in the application uses it. (GAP-031)
+
+> **Note for reviewers:** No SAP or ERP integration was found. (GAP-032)
+
+<!-- Review log (Sonnet): 3 corrections; invented items removed: "item release workflows / material receiving maintained in application" claim, "text extraction/parsing" wording, "bidirectional controller interfaces"; callouts added: GAP-031, GAP-032 -->

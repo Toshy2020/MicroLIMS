@@ -219,34 +219,33 @@ Requires the System Administrator or Section Head role type, or being the assign
 
 #### Before you start
 - To create a new revision, the document master must currently have an active Effective revision.
-- Ensure no other revision for this document is currently in `Draft`, `InReview`, or `AwaitingApproval` status.
+- Ensure no other revision of this document is currently in Draft, In Review or Awaiting Approval status.
 - Prepare the source Word document (`.docx` or `.doc`) and controlled PDF file (maximum 50 MB each).
 
 #### How to use it
 1. Creating a new revision:
    a. On an effective document detail page, click the prominent **Create revision** button.
    b. In the **Create Draft Revision** dialog, select the **Revision Classification**:
-      - **Major**: increments the integer number (e.g. `01` becomes `02`, `02.1` becomes `03`).
-      - **Minor**: increments or adds a decimal suffix (e.g. `01` becomes `01.1`, `01.1` becomes `01.2`).
+      - **Major** or **Minor**. The dialog shows the revision number that the system proposes for the chosen classification.
    c. If authorized as Section Head (Document Controller), you may enable **Override Revision Number (Document Controller Only)** and enter a **Custom Revision Number** (1 to 20 alphanumeric characters, dots, hyphens, or underscores).
    d. Enter the mandatory **Reason for Revision \*** (minimum 10 characters).
    e. Optionally enter a **Summary of Changes** (minimum 10 characters if provided) and **Change Reference / Ticket #**.
-   f. Click **Create Draft Revision**. The new revision is created in `Draft` status and audited under `DocumentRevisionCreated` (and `RevisionNumberOverridden` if overridden).
+   f. Click **Create Draft Revision**. The new revision is created in Draft status and recorded in the audit trail (action codes DocumentRevisionCreated, and RevisionNumberOverridden if the number was overridden).
 2. Uploading or replacing draft files:
    a. In the **Document** tab under **Controlled Files on Revision {n}**, click **Upload or Replace File** (or the prominent **Upload controlled file** button).
    b. In the dialog (**Upload Draft File** or **Replace Draft File**), select the **File Role**:
       - **Controlled Document (PDF)**
       - **Editable Source (Word .docx)**
    c. Select the file from your computer and click **Upload & Compute SHA-256**.
-   d. The system verifies file format magic bytes, computes the cryptographic SHA-256 hash, and marks the file as **ACTIVE**. If a previous file of that role existed on the revision, it is deactivated and marked **SUPERSEDED**.
+   d. The system checks that the file really is a PDF or Word document, computes its SHA-256 checksum, and marks the file as **ACTIVE**. If a previous file of that role existed on the revision, it is kept but marked **SUPERSEDED**.
 3. Completing draft prerequisites:
-   a. Under **More actions**, open **Change items** to record specific modified sections.
-   b. Open **Impact assessment** to evaluate multi-category organizational, validation, and training impacts.
+   a. Under **More actions**, open **Change items** to record the changes made in this revision.
+   b. Open **Impact assessment** and complete the revision impact assessment. It must be complete before a revision after the first can be submitted for review.
 
 #### System behavior
-- **Single Active Workflow Invariant**: A document master cannot have more than one revision in an active lifecycle state (`Draft`, `InReview`, `AwaitingApproval`) simultaneously.
-- **Draft-Only File Modification**: Files can only be uploaded, replaced, or deleted while the revision is in `Draft` status. Once submitted for review or approved, file attachments are permanently locked.
-- **Cryptographic Integrity Verification**: Every file is hashed using SHA-256 upon storage. On every download or view request, the system recalculates the SHA-256 hash against the stored byte content. If a mismatch is detected, delivery is immediately blocked, a security audit event `FileIntegrityVerificationFailed` is recorded, and the system reports: "Document integrity check failed. The file may have been altered or corrupted. Delivery has been blocked."
+- **One revision at a time**: A document master cannot have more than one revision in Draft, In Review or Awaiting Approval at the same time.
+- **Files only while Draft**: Files can only be uploaded or replaced while the revision is in Draft status. Once the revision is submitted for review, the files are locked.
+- **Checksum verification**: Every file is given a SHA-256 checksum when it is stored. When a file is opened or downloaded, the system checks it against the stored checksum. If it does not match, delivery is blocked, a security event is recorded in the audit trail (action code FileIntegrityVerificationFailed) and the system reports: "Document integrity check failed. The file may have been altered or corrupted. Delivery has been blocked."
 - **Controlled Copy Download Policy**: If the administrative setting `DocumentControl.ControlledCopy.DownloadPermitted` is set to "false", file download is blocked for general users ("Controlled copy download is currently disabled by administrative policy."); only System Administrators and Section Heads may download copies.
 
 #### Validation
@@ -255,7 +254,7 @@ Requires the System Administrator or Section Head role type, or being the assign
 - "Cannot create a new revision while another revision is currently in draft or review/approval workflow."
 - "Reason for Revision is mandatory and must contain at least 10 characters."
 - "Change Summary, if provided, must contain at least 10 characters."
-- "Revision number '{finalRevisionNumber}' already exists for this document."
+- "Revision number '{number}' already exists for this document."
 - "Custom revision number must be 1-20 alphanumeric characters, dots, hyphens, or underscores."
 - "Only Document Controllers are authorized to override the proposed revision number."
 - "File content cannot be empty."
@@ -264,10 +263,12 @@ Requires the System Administrator or Section Head role type, or being the assign
 - "Invalid file format. The uploaded file is not a valid PDF document."
 - "Source document file must be a Word document (.docx or .doc)."
 - "Invalid file format. The uploaded file is not a valid Word document."
-- "Files can only be added or replaced on revisions in Draft state. Current status is {revision.RevisionStatus}."
+- "Files can only be added or replaced on revisions in Draft state. Current status is {status}."
 - "You do not have permission to upload or replace files for this revision."
 
-> **Note for reviewers:** The controlled PDF must be uploaded manually by the user; MicroLIMS does not provide automated server-side Word-to-PDF conversion at approval. (GAP-815)
+> **Note for reviewers:** The controlled PDF must be uploaded by hand; MicroLIMS does not convert a Word file to PDF at approval, and a revision cannot be approved without an active controlled PDF. (GAP-815)
+
+> **Note for reviewers:** The fields of the **Change items** and **Impact assessment** dialogs have not been documented yet. (GAP-043)
 
 ---
 
@@ -281,13 +282,13 @@ Conduct formal secondary technical review of draft document revisions, document 
 - **Submitting for review**: System Administrator, Section Head, document owner, or assigned Author.
 - **Conducting review**: The assigned technical reviewer, or a Section Head. System Administrators cannot complete or return reviews.
 - **Recording review findings**: The assigned technical reviewer, Section Head, or System Administrator.
-- **Responding to findings**: The author or document editor.
+- **Responding to findings**: The author of the revision.
 
 #### Before you start
-- The revision must be in `Draft` status.
+- The revision must be in Draft status.
 - An active editable Word source file (`.docx` or `.doc`) must be attached (a controlled PDF is accepted as fallback).
-- The multi-category Revision Impact Assessment must be completed if the revision sequence is greater than 1.
-- All originating review findings from prior cycles must be marked Addressed.
+- The Revision Impact Assessment must be complete (required for every revision after the first).
+- Any findings that originated this revision (for example from a periodic review) must be addressed.
 - The designated technical reviewer cannot be the revision's author.
 
 #### What you see
@@ -305,27 +306,27 @@ Once submitted, opening the review launches the **Technical Review** drawer:
 - Action buttons:
   - Author actions: button **Respond** (field: **Author Response Notes**, button **Submit Response**).
   - Reviewer actions: button **Verify** (field: **Verification Notes**), button **Resolve**.
-  - Decision buttons: **Complete Review** and **Return for Correction**.
+  - Decision buttons: **Complete Review** (disabled while open mandatory findings exist) and **Return**.
   - Review comparison: button **Dual PDF** (opens side-by-side comparison of the draft PDF against the currently effective PDF).
 
 #### How to use it
 1. Submitting for technical review:
    a. On the draft document detail page, click **Submit for technical review**.
    b. Select the **Technical Reviewer**, set a **Review Due Date**, and add submission notes.
-   c. Click **Submit for Review**. The revision transitions from `Draft` to `InReview` and a review task is created with an incremented cycle number (audited under `RevisionSubmittedForReview`).
+   c. Click **Submit for Review**. The revision moves from Draft to In Review and a review task is created with an incremented cycle number (audit action code RevisionSubmittedForReview).
 2. Logging findings (Reviewer):
    a. In the **Workflow** tab, click **Open Review** (or prominent **Open technical review**).
    b. Click **Add Finding**.
    c. Specify the page, section, finding comments, and whether the finding is **Mandatory**. Click save.
 3. Responding to findings (Author):
-   a. On any finding with status `Open`, click **Respond**.
-   b. Enter your response in **Author Response Notes** and click **Submit Response**. Finding status becomes `AuthorResponded`.
+   a. On any finding with status Open, click **Respond**.
+   b. Enter your response in **Author Response Notes** and click **Submit Response**. Finding status becomes AuthorResponded.
 4. Verifying and resolving findings (Reviewer):
-   a. On a finding in `AuthorResponded` status, click **Verify** to review corrections. Finding status becomes `ReviewerVerified`.
-   b. Click **Resolve**. Finding status becomes `Resolved`.
+   a. On a finding in AuthorResponded status, click **Verify** and enter **Verification Notes**. Finding status becomes ReviewerVerified.
+   b. Click **Resolve**. Finding status becomes Resolved.
 5. Completing or returning the review (Reviewer):
-   a. If corrections are required in the source file, click **Return for Correction**. Enter summary notes and confirm. The review task becomes `ReturnedForCorrection`, the revision status reverts to `Draft`, and the author can upload updated files.
-   b. If all technical aspects are verified and all mandatory findings are resolved, click **Complete Review**. Enter optional summary notes and confirm. The review task becomes `Completed` and the revision status advances to `AwaitingApproval` (audited under `TechnicalReviewCompleted`).
+   a. If corrections are required, click **Return**. Enter the optional **Summary Review Notes** and confirm. The review task is marked as returned for correction, the revision goes back to Draft, and the author can upload updated files (audit action code TechnicalReviewReturned). After a return, the author submits again and a new review cycle starts.
+   b. If all technical aspects are verified and all mandatory findings are resolved, click **Complete Review**. Enter the optional **Summary Review Notes** and confirm. The review task is marked as completed and the revision moves to Awaiting Approval (audit action code TechnicalReviewCompleted).
 
 #### System behavior
 - **Segregation of Duties Enforcement**:
@@ -333,14 +334,16 @@ Once submitted, opening the review launches the **Technical Review** drawer:
   - The author cannot assign themselves as technical reviewer.
   - The author cannot perform technical review of their own revision.
   - The author cannot create reviewer findings, verify findings, or resolve reviewer-mandated findings without reviewer verification.
-- **Finding Resolution Ladder**: Findings must strictly traverse the four-stage sequence: `Open` -> `AuthorResponded` -> `ReviewerVerified` -> `Resolved`. Any out-of-order transition is rejected.
-- **Mandatory Finding Gate**: Technical review completion is strictly blocked while any unresolved mandatory findings remain across any review cycle.
+- **Finding Resolution Ladder**: Findings must follow the sequence Open, then AuthorResponded, then ReviewerVerified, then Resolved. Any other jump is refused.
+- **Mandatory Finding Gate**: The review cannot be completed while mandatory findings remain unresolved.
+- Technical review decisions are not electronically signed.
 
 #### Validation
 - "Cannot submit revision for technical review in status {status}. Status must be Draft."
 - "Cannot submit revision for technical review without an active editable Word source file (.docx or .doc)."
 - "A multi-category Revision Impact Assessment must be completed before submitting for technical review."
-- "Cannot submit revision for review: {unaddressedOriginatingItems.Count} originating review finding(s) remain unaddressed."
+- "Cannot submit revision for review: {n} originating review finding(s) remain unaddressed."
+- "A technical review task is already active for this revision."
 - "User is not authorized to submit this document revision for technical review."
 - "Segregation of Duties Violation: The author of a document revision cannot be assigned as its technical reviewer."
 - "Segregation of Duties Violation: The author cannot assign themselves as technical reviewer."
@@ -349,6 +352,7 @@ Once submitted, opening the review launches the **Technical Review** drawer:
 - "Segregation of Duties Violation: The author cannot verify reviewer findings."
 - "Segregation of Duties Violation: The author cannot close or resolve a reviewer-mandated finding without reviewer verification."
 - "Cannot complete technical review while {n} mandatory review finding(s) remain unresolved."
+- "A review finding can only be resolved once it has been verified by the reviewer. Current status is {status}; it must be ReviewerVerified (the author responds, the reviewer verifies, then the finding is resolved)."
 - "Only the assigned technical reviewer or document controller may complete this technical review."
 - "Only the assigned technical reviewer or document controller may add review findings."
 
@@ -367,10 +371,10 @@ Route technically verified revisions to authorized approvers, conduct final doss
 - **Executing approval**: Designated approver, Section Head, or System Administrator. The approver must have a base role type of Reviewer, Section Head, or System Administrator, and cannot be the author or any technical reviewer of the revision.
 
 #### Before you start
-- The revision must be in `AwaitingApproval` status.
+- The revision must be in Awaiting Approval status.
 - Technical review must be completed.
 - An active controlled PDF file must be attached.
-- All mandatory findings, impact assessments, and change items must be completed.
+- All mandatory findings must be resolved, the impact assessment must be complete and the change items addressed.
 - Have your account password ready to sign the approval record.
 
 #### What you see
@@ -383,21 +387,21 @@ Clicking **Assign approver** opens the **Assign Approver & Route for Approval** 
 - Button: **Assign & Route for Approval**.
 
 Clicking **Open approval workspace** launches the **Approval Workspace** dialog:
-- Tabs: **Inspection Dossier** (displays document metadata, effective revision history, files, review findings, and impact assessment) and **Decision Controls**.
+- Tabs: **Inspection Dossier** (the document and review material to inspect) and **Decision Controls**.
 - Pre-approval readiness checklist verifying:
-  - Revision is in `AwaitingApproval` status.
+  - Revision is in Awaiting Approval status.
   - Active controlled PDF is attached.
   - Technical review is completed.
   - Mandatory findings are resolved.
   - Impact assessment is completed.
+  - Change items are addressed.
   - Segregation of duties criteria are satisfied.
 - Decision options:
   - **Approve**: enabled only when all checklist items pass. Includes fields for **Effective Date** and **Approval Notes (Optional)**.
   - **Return for Correction**: requires mandatory return notes (minimum 10 characters).
   - **Decline / Cancel**: requires mandatory decline justification (minimum 10 characters).
 - Clicking **Approve** opens the **Electronic Signature** dialog:
-  - Statement of approval meaning: `Approved`
-  - Warning banner regarding electronic signature authenticity
+  - The signature meaning (Approved) and the signature statement text shown on screen (see the note below)
   - Password input field: "Re-enter Your Password to Authenticate"
   - Button: **Sign & Approve**
 
@@ -406,7 +410,7 @@ Clicking **Open approval workspace** launches the **Approval Workspace** dialog:
    a. Click the prominent **Assign approver** button.
    b. Select the designated approver from the dropdown.
    c. Optionally set a **Target Effective Date**, approval due date, and notes.
-   d. Click **Assign & Route for Approval**. An approval task is created in `Pending` status (audited under `ApprovalTaskCreated`).
+   d. Click **Assign & Route for Approval**. An approval task is created in pending status (audit action code ApprovalTaskCreated).
 2. Executing the approval decision (Approver):
    a. Click the prominent **Open approval workspace** button.
    b. In the **Inspection Dossier** tab, inspect the controlled PDF, review findings, and impact assessment.
@@ -419,11 +423,11 @@ Clicking **Open approval workspace** launches the **Approval Workspace** dialog:
    e. If returning for corrections:
       - Select **Return for Correction**.
       - Enter a mandatory explanation (minimum 10 characters).
-      - Click confirm. The revision reverts to `Draft` status and the task is marked `ReturnedForCorrection` (audited under `RevisionReturnedByApprover`). No password is required.
+      - Click confirm. The revision goes back to Draft and the task is marked as returned for correction (audit action code RevisionReturnedByApprover). No password is required.
    f. If declining:
       - Select **Decline / Cancel**.
       - Enter a mandatory cancellation justification (minimum 10 characters).
-      - Click confirm. The revision transitions to terminal `Cancelled` status and active files are deactivated (audited under `RevisionDeclinedByApprover`). No password is required.
+      - Click confirm. The revision becomes Cancelled, which is final (audit action code RevisionDeclinedByApprover). No password is required.
 
 #### System behavior
 - **Segregation of Duties Enforcement**:
@@ -431,12 +435,12 @@ Clicking **Open approval workspace** launches the **Approval Workspace** dialog:
   - A user who participated in technical review for the revision cannot be assigned as its approver, cannot approve, and cannot decide upon the revision.
   - System Administrators possess no exemption from these rules.
 - **Electronic Signature Immutability**:
-  - Approving applies an electronic signature with meaning `Approved`, recording the signer's full name, username, role at signing time, UTC timestamp, client IP address, and comments.
+  - Approving applies an electronic signature with the meaning Approved. The audit trail records the signer's user name, full name, role, the signature meaning and the time.
   - Password verification is strictly enforced. Five failed signature attempts within 15 minutes throttle further attempts for 15 minutes.
 - **Immediate versus Future Activation**:
-  - If the effective date is today or earlier: in a single transaction, the approval task becomes `Approved`, the revision becomes `Effective`, the master's current effective revision pointer updates to this revision, its next periodic review date is set to `EffectiveDate + ReviewCycleMonths` (default 24 months), and any prior effective revision transitions to `Superseded`.
-  - If the effective date is in the future: the revision transitions to `FutureEffective`. It remains in this status until the automated background worker activates it on the target date.
-- **Auditing**: Records audit events `ElectronicSignatureApplied` and `DocumentRevisionApproved`.
+  - If the effective date is today or earlier: in one save, the approval task becomes Approved, the revision becomes Effective, the document points to this revision, its next periodic review date is set to the effective date plus the review cycle (default 24 months), and any earlier Effective revision becomes Superseded.
+  - If the effective date is in the future: the revision becomes Future Effective. It stays in this status until an automatic process activates it on the target date (the check runs every 60 minutes by default).
+- **Auditing**: The audit trail records the action codes ElectronicSignatureApplied and DocumentRevisionApproved.
 
 #### Validation
 - "Cannot create an approval task: Revision has not completed technical review."
@@ -451,12 +455,15 @@ Clicking **Open approval workspace** launches the **Approval Workspace** dialog:
 - "Segregation of Duties Violation: You participated in technical review and cannot approve this revision."
 - "Only the assigned approver or Document Controller may execute an approval decision."
 - "Password re-authentication is required to apply electronic signature."
+- "A mandatory justification of at least 10 characters is required for return or decline."
+- "An electronic signature for approval has already been applied to revision {number}."
+- "User '{name}' with role '{role}' is not eligible to be assigned as an approver."
 - "Password verification failed. The signature was not applied."
 - "Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied."
 
 > **Note for reviewers:** The automated training assignment cascade is triggered only when the background worker activates a Future Effective revision; approving a revision with an immediate effective date does not automatically create training assignments. (GAP-816)
 
-> **Note for reviewers:** Approval and signature dialogs present legal and regulatory acknowledgements as screen text rather than representing an independent validation certificate. (GAP-023)
+> **Note for reviewers:** The approval and signature screens contain regulatory wording (for example references to 21 CFR Part 11). This is screen text only, not a validation statement; it is the same kind of claim as on the sign-in page. (GAP-023)
 
 ---
 
@@ -504,11 +511,12 @@ Opening a periodic review task from the document detail page launches the **Peri
    c. Click **Submit & Complete Review**.
 
 #### System behavior
-- **Remains Valid**: The review task status becomes `Completed`, the document's Next Review Date is advanced to `CurrentDate + ReviewCycleMonths`, and the event is audited under `PeriodicReviewRemainsValid`.
-- **Revision Required**: The review task status becomes `Completed`, recorded findings are preserved, a new draft revision can be initiated referencing this review task, and the event is audited under `PeriodicReviewRevisionRequired`.
-- **Obsolescence Recommended**: The review task status becomes `Completed`, an obsolescence approval task (due in 14 days) is created for routing, and the event is audited under `PeriodicReviewObsolescenceRecommended`.
+- **Remains Valid**: The review task is marked Completed, the document's Next Review date moves forward by the review cycle (counted from today), and the audit trail records PeriodicReviewRemainsValid.
+- **Revision Required**: The review task is marked Completed, the recorded findings are kept, a new draft revision can then be created that refers to this review, and the audit trail records PeriodicReviewRevisionRequired.
+- **Obsolescence Recommended**: The review task is marked Completed and an approval task (due in 14 days) is created for the assigned approver, the document owner, or another Section Head. The audit trail records PeriodicReviewObsolescenceRecommended. The document is not retired by this step (see the note below).
+- A new review task is created automatically for each Active document whose Effective revision has reached its next review date, and is assigned to the Technical Reviewer assignment or else the document owner.
 - **Segregation of Duties**: The author of the revision cannot perform the periodic review, cannot add review notes, and cannot be assigned as its periodic reviewer.
-- Periodic review decisions do not require an electronic signature or password re-entry.
+- The periodic review workspace does not ask for a password or signature.
 
 #### Validation
 - "This periodic review task is already completed and cannot be altered."
@@ -519,9 +527,9 @@ Opening a periodic review task from the document detail page launches the **Peri
 - "Segregation of Duties Violation: The author of the revision under review cannot add review notes or perform the review."
 - "Segregation of Duties Violation: The author of the document revision cannot be assigned as its periodic reviewer."
 
-> **Note for reviewers:** Selecting "Obsolescence Recommended" creates an approval task, but MicroLIMS has no implemented mechanism to transition a document to Obsolete status, and the approval readiness check blocks approving the resulting task. Effective documents cannot be retired through obsolescence in the application. (GAP-818)
+> **Note for reviewers:** **Obsolescence Recommended** creates an approval task, but MicroLIMS has no step that sets a document to Obsolete, and the approval check refuses to approve that task. Effective documents cannot be retired in the application, although the screens (such as the **Obsolete** status filter) and some wording suggest it. (GAP-818)
 
-> **Note for reviewers:** If a periodic review task is generated without an assigned reviewer, the completion endpoint does not enforce a role-type check, allowing any signed-in user to complete it. (GAP-814)
+> **Note for reviewers:** If a periodic review task has no assigned reviewer, the system applies no role check when the review is completed. (GAP-814)
 
 ---
 
@@ -532,11 +540,11 @@ Opening a periodic review task from the document detail page launches the **Peri
 Track personal controlled document reading and training assignments, access released PDF documents in the controlled viewer, and record conscious legal read-and-understand acknowledgements.
 
 #### Who can use it
-Open to all signed-in users. Each user sees their own personal training assignments. Users holding the *Document Training Assignment* permission (`Documents.TrainingAssign`, held by default by Section Head and System Administrator) can view assignments across personnel.
+Open to all signed-in users. Each user sees their own personal training assignments. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view assignments across personnel.
 
 #### What you see
 [SCREENSHOT SS-387]
-The **My Reading List** page (`/document-control/my-reading-list`) presents:
+The **My Reading List** page presents:
 - Header title **My Reading List** with subtitle "Active document training and standard operating procedures assigned to {your name}."
 - Four summary counter cards:
   - **TOTAL ASSIGNMENTS**
@@ -575,23 +583,28 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 6. Select the checkbox: **I confirm the evidentiary statement above.**
 7. Optionally enter any remarks.
 8. Click **Submit acknowledgement**.
-9. The assignment status immediately changes to **Acknowledged** (audited under `ReadingAssignmentAcknowledged`), and your qualification status in the organizational Training Matrix updates to **Qualified**.
+9. The assignment status immediately changes to **Acknowledged** (audit action code ReadingAssignmentAcknowledged), and your cell in the Training Matrix counts as **Qualified**.
 
 #### System behavior
 - **Conscious Legal Acknowledgement**: Reading progress and scroll tracking are informational only. Legal acknowledgement strictly requires the explicit selection of the confirmation checkbox.
-- **Evidentiary Record Freezing**: Submitting an acknowledgement creates an immutable evidentiary record storing the frozen statement text, the SHA-256 hash of the specific controlled PDF reviewed, the exact UTC timestamp, client IP address, and browser user agent.
+- **Acknowledgement record**: Submitting an acknowledgement stores the statement text as shown, the SHA-256 checksum of the controlled PDF, the time, the client IP address and the browser user agent.
 - **Assignment Ownership**: Users can only acknowledge assignments assigned to their own account. Attempting to submit an acknowledgement for another user is blocked and records a security audit event.
 - No password re-entry or electronic signature is required for reading acknowledgement.
 
 #### Validation
 - If the checkbox is not checked: "You must explicitly verify and accept the legal acknowledgement statement."
+- "Explicit confirmation of the legal acknowledgement statement is required. Reading or viewing alone does not constitute legal acknowledgement."
 - "You are not authorized to acknowledge an assignment assigned to another user."
-- "Cannot acknowledge a reading assignment for a document master that is not Active."
-- "Cannot acknowledge a reading assignment for a revision that is not currently Effective."
-- "This reading assignment has already been acknowledged."
-- "Cannot acknowledge an assignment that has been superseded or cancelled."
+- "Cannot acknowledge assignment because Document {code} is in {status} status."
+- "Cannot acknowledge assignment because Revision {number} is in {status} state (must be Effective)."
+- "Cannot acknowledge an assignment that has been terminally closed as SupersededIncomplete."
+- "Cannot acknowledge an assignment that has been terminally closed as Cancelled due to document obsolescence."
 
 > **Note for reviewers:** The system permits users to submit the legal acknowledgement without enforcing complete scrolling or a minimum reading duration in the PDF viewer; scroll progress is informational. (GAP-810)
+
+> **Note for reviewers:** The acknowledgement dialog heading contains regulatory wording ("GMP / 21 CFR Part 11"). This is screen text only, not a validation statement. (GAP-023)
+
+> **Note for reviewers:** Reading assignments are not created when a revision is approved with an effective date of today or earlier; check the Training Matrix for missing assignments. (GAP-816)
 
 ---
 
@@ -602,15 +615,15 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 Track, verify, and cross-reference personnel qualifications against active controlled documents across departments, and identify training compliance gaps or superseded qualifications.
 
 #### Who can use it
-Open to all signed-in users. Users holding the *Document Training Assignment* permission (`Documents.TrainingAssign`, held by default by Section Head and System Administrator) can view the entire organizational matrix; users without this permission see only their own row.
+Open to all signed-in users. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view the entire matrix; the *Training Matrix Viewing* permission has no effect, so Reviewers do not see the whole matrix by default; users without this permission see only their own row.
 
 #### What you see
 [SCREENSHOT SS-388]
-The **Training Matrix** page (`/document-control/training-matrix`) presents:
+The **Training Matrix** page presents:
 - Header title **Training Matrix** with subtitle "Multi-axis qualification matrix mapping personnel to controlled document training requirements."
 - Action buttons: **Compliance Dashboard** and **Refresh Matrix**.
 - Five summary metric cards:
-  - **PERSONNEL TRACKED**: total users included in curriculum
+  - **PERSONNEL TRACKED**
   - **QUALIFIED CELLS**: assignments acknowledged on current effective revision
   - **PENDING CELLS**: open assignments within due date
   - **OVERDUE CELLS**: open assignments past due date
@@ -639,8 +652,15 @@ The **Training Matrix** page (`/document-control/training-matrix`) presents:
 4. Drill down into profiles:
    - Click any personnel name to open the **User Compliance Profile** drawer, displaying their overall **COMPLIANCE SCORE** and detailed document training breakdown.
    - Click any document column header to open the **Document Compliance Profile** drawer, displaying qualification statuses for all assigned personnel on that document.
-   - Click any individual cell to inspect assignment history, due dates, and acknowledgement timestamps.
-5. Click **Compliance Dashboard** to view executive departmental rankings and overdue trends.
+   - Click any individual cell to see the assignment history.
+5. Click **Compliance Dashboard** to view the compliance rate, departmental ranking and top overdue documents.
+
+#### System behavior
+- Reading assignments come from the automatic training process that runs when a Future Effective revision is activated, for users with a curriculum role (the curriculum's department is read but not applied), for earlier completers when retraining is on, or for the document's assigned personnel when neither exists. The due date is the effective date plus a grace period (14 days if none is configured).
+
+> **Note for reviewers:** Role curricula, per-document training settings and training escalations have no screen, and the curriculum department is not applied. (GAP-807, GAP-809, GAP-819)
+
+> **Note for reviewers:** Reading assignments are not created when a revision is approved with an effective date of today or earlier. (GAP-816)
 
 ---
 
@@ -650,10 +670,10 @@ The **Training Matrix** page (`/document-control/training-matrix`) presents:
 Provide operational and executive oversight of organizational training compliance rates, departmental performance rankings, and top overdue training exceptions.
 
 #### Who can use it
-Open to all signed-in users. Compliance summary figures are visible across all laboratory sections.
+Open to all signed-in users. The organisation-wide figures are shown to every signed-in user.
 
 #### What you see
-The **Training Compliance Dashboard** (`/document-control/compliance-dashboard`) presents:
+The **Training Compliance Dashboard** presents:
 - Header title **Training Compliance Dashboard** with subtitle "Executive & operational compliance metrics, departmental ranking, and overdue exceptions."
 - Header button: **View Full Matrix** (returns to the Training Matrix).
 - Four summary KPI cards:
@@ -675,7 +695,7 @@ The **Training Compliance Dashboard** (`/document-control/compliance-dashboard`)
 1. Navigate to **Document Control** and select **Compliance Dashboard**.
 2. Review the organization-wide **OVERALL COMPLIANCE RATE**.
 3. Inspect the **Departmental Compliance Ranking** table to identify departments requiring training follow-up.
-4. Click **OVERDUE EXCEPTIONS** or any row in **Top Overdue Documents** to navigate directly to the filtered Training Matrix view.
+4. Click **OVERDUE EXCEPTIONS** (caption "Action required. Click to filter matrix") to open the Training Matrix, or **View Full Matrix** to see all personnel.
 
 ---
 
@@ -683,14 +703,14 @@ The **Training Compliance Dashboard** (`/document-control/compliance-dashboard`)
 
 <!-- MOD-DC-003 -->
 #### Purpose
-Search, trace, and export the immutable regulatory audit log of all document control lifecycle actions, file modifications, technical reviews, approval decisions, periodic reviews, and configuration updates.
+Search, trace, and export the audit log of all document control lifecycle actions, file modifications, technical reviews, approval decisions, periodic reviews, and configuration updates.
 
 #### Who can use it
 Restricted by the server to users whose base role type is Reviewer, Section Head, or System Administrator. Users with other role types receive the refusal: "You do not have permission to query the global audit trail."
 
 #### What you see
 [SCREENSHOT SS-389]
-The **Document Control Audit Trail** page (`/document-control/audit`) presents:
+The **Document Control Audit Trail** page presents:
 - Header title **Document Control Audit Trail** with subtitle "Chronological, append-only regulatory audit log of document life-cycle actions and configuration changes".
 - Header button: **Export Audit Trail (CSV)** (displays "Exporting CSV..." during file generation).
 - Filter bar:
@@ -715,15 +735,15 @@ The **Document Control Audit Trail** page (`/document-control/audit`) presents:
 #### How to use it
 1. Navigate to **Document Control** and select **Audit Trail**.
 2. Filter by search keyword, action category, or date range.
-3. Inspect chronological event rows and expand field changes to view modified values.
+3. Read the event rows; the **Field Changes** column shows what was modified.
 4. To export audit records:
    a. Click **Export Audit Trail (CSV)**.
    b. The browser downloads a CSV file containing up to the 5,000 most recent matching audit records.
-   c. The system records the export event itself in the audit trail under action code `AuditTrailExported` with category `Security`.
+   c. The system records the export itself in the audit trail (action code AuditTrailExported, category Security).
 
 #### System behavior
 - **Domain Scoping**: The Document Control audit query returns only events associated with Document Control entities, document master IDs, and export operations.
-- **Export Retention Cap**: CSV exports are capped at a maximum of 5,000 records (`Take(5000)`), ordered newest first, without truncation warning if more records exist.
+- **Export Retention Cap**: CSV exports are capped at 5,000 records, newest first, with no warning if more records exist.
 
 > **Note for reviewers:** The audit filter dropdown provides category choices "Workflow" and "System" which do not correspond to backend database category values, while omitting backend categories Review, Approval, and Training. (GAP-813)
 
@@ -736,10 +756,10 @@ The **Document Control Audit Trail** page (`/document-control/audit`) presents:
 Configure document types, default review cycles, departments, laboratory sections, automated sequence numbering schemes, and global document control governance parameters.
 
 #### Who can use it
-Requires the *Document Control Configuration* permission (`Documents.ConfigManage`) AND the System Administrator base role type. The route is hidden and blocked for other users ("Access Denied: Only System Administrators can access and modify Document Control module configuration."). Reading configuration lists requires only sign-in.
+Requires the *Document Control Configuration* permission (by default: System Administrator only) AND the System Administrator role type. The route is hidden and blocked for other users ("Access Denied: Only System Administrators can access and modify Document Control module configuration."). Reading configuration lists requires only sign-in.
 
 #### What you see
-The **Document Control Configuration** page (`/document-control/configuration`) presents:
+The **Document Control Configuration** page presents:
 - Header title **Document Control Configuration** with subtitle "System Master Data, Numbering Schemes, Governance Rules, and Module Settings".
 - Four configuration tabs:
   1. **Document Types ({n})**:
@@ -752,7 +772,7 @@ The **Document Control Configuration** page (`/document-control/configuration`) 
      - Dialog fields: **Department Code \***, **Department Name \***, **Section Name \***, and switch **Active Status**.
   3. **Numbering Configuration**:
      - Header: "MicroLIMS Document ID Numbering Scheme".
-     - Live preview: **Sample Generated Document ID** (e.g. `DOC-0000001`).
+     - Live preview: **Sample Generated Document ID** (for example "DOC-0000001").
      - Entry fields: **Prefix \*** (helper text: "E.g. DOC-, SOP-, QA-"), **Number Format (Zero-Padded Pattern) \*** (helper text: "E.g. 0000000 (7 digits), 00000 (5 digits)"), switch **Enable Automated Sequence Numbering** (caption: "Active numbering profile").
      - Button: **Save Numbering Configuration** (displays "Updating Scheme..." while saving).
   4. **Module Settings ({n})**:
@@ -779,7 +799,14 @@ The **Document Control Configuration** page (`/document-control/configuration`) 
 
 #### Validation
 - "Only System Administrators can manage module configuration."
-- Default review cycle for a document type must be between 1 and 120 months.
+- "Document Type Code is required." and "Document Type Name is required."
+- "Default review cycle must be between 1 and 120 months."
+- "Document Type Code '{code}' already exists."
+- "Department Code is required.", "Department Name is required." and "Department Code '{code}' already exists."
+- "Section Name is required."
+- "Prefix is required." and "Number Format is required (e.g. 0000000)."
+
+> **Note for reviewers:** Training settings, escalation days and role curricula have no configuration screen; only the four tabs above exist. (GAP-809)
 
 ---
 
@@ -795,24 +822,24 @@ Remove errant, unreleased document masters from the active register, or cancel a
 
 #### Before you start
 - **To void a master**: The document master must be Active and must **never have held an Effective or Superseded revision**. Documents that have ever been released cannot be voided.
-- **To cancel a draft**: The revision must currently be in `Draft` status.
+- **To cancel a draft**: The revision must currently be in Draft status.
 
 #### How to use it
 1. Voiding a document master:
    a. In the Document Library or on the Document Detail page under **More actions**, click the red action **Void Document Master** (or **Void document master**).
-   b. In the dialog (**VOID DOCUMENT MASTER**), review the regulatory warning.
+   b. In the dialog (**VOID DOCUMENT MASTER**), read the explanation that voiding removes the master from the active register and releases its Company Code.
    c. Enter a mandatory justification in the reason field (minimum 10 characters, placeholder "State the regulatory / administrative justification for voiding this document...").
    d. Click **Confirm Void Record** (displays "Voiding Record...").
-   e. The master's record status transitions to `Void`, the void timestamp, user, and reason are permanently recorded, and the action is audited under `DocumentMasterVoided`.
+   e. The master's record status becomes Void, the void date, user and reason are recorded, and the audit trail records the action (action code DocumentMasterVoided).
 2. Cancelling a draft revision:
    a. On the Document Detail page under **More actions**, click **Cancel draft revision**.
    b. In the dialog (**CANCEL DRAFT REVISION**), enter a mandatory cancellation justification (minimum 10 characters).
    c. Click **Confirm Cancel Draft** (displays "Cancelling...").
-   d. The revision status transitions to `Cancelled`, associated active files are deactivated, and the action is audited under `DraftRevisionCancelled`.
+   d. The revision status becomes Cancelled, its active files are set inactive, and the audit trail records the action (action code DraftRevisionCancelled).
 
 #### System behavior
 - **Company Code Release on Void**: Company Document Codes are enforced as unique only among *active* documents. When a document master is voided, its Company Document Code is released and may be reused for a future document. The permanent MicroLIMS ID sequence is never reused.
-- Neither voiding nor cancelling permanently deletes database records; both preserve immutable historical audit trail entries. No electronic signature or password re-entry is required.
+- Neither voiding nor cancelling deletes anything; MicroLIMS has no delete function for documents. Neither asks for a password or signature.
 
 #### Validation
 - "Only the Document Controller can void a Document Master."
@@ -823,19 +850,19 @@ Remove errant, unreleased document masters from the active register, or cancel a
 - "A mandatory cancellation reason of at least 10 characters is required."
 - "Only revisions in Draft state can be cancelled. Current status is {status}."
 
+> **Note for reviewers:** The refusal message about a master that has held an effective revision says it "must be retired through obsolescence", but MicroLIMS has no step that sets a document to Obsolete. (GAP-818)
+
 ---
 
 ### 38.15 Document Escalations, Background Automation, and Not-Implemented Features
 
-MicroLIMS includes automated background services and governance rules that operate without dedicated user interface screens:
-- **Automated Effective Date and Activation Worker**: A background worker (`DocumentEffectiveDateWorker`) runs automatically (every 60 minutes by default) to evaluate scheduled transitions:
-  1. Revisions in `FutureEffective` status whose target effective date has arrived are automatically activated to `Effective`, the previous effective revision is set to `Superseded`, the transition is audited under `RevisionAutomaticallyActivated`, and the automated training cascade is initiated.
-  2. Active effective documents that have reached their Next Review Date automatically receive a generated periodic review task in `Pending` status assigned to the designated reviewer or owner (audited under `PeriodicReviewTaskCreated`).
-- **Three-Tiered Training Escalation Engine**: The background worker evaluates open training assignments against three escalation thresholds:
-  - **Level 1 (ApproachingDue)**: triggered 3 days before the due date (recipient: AssignedUser).
-  - **Level 2 (Due)**: triggered at the due date; transitions the assignment status to `Overdue` (recipient: AssignedUser).
-  - **Level 3 (Overdue)**: triggered 1 day after the due date (recipient: Manager;QACompliance).
-  Each escalation creates a raised escalation record and system audit entry. MicroLIMS does not provide a user interface screen for viewing or resolving training escalations, and no automated email notifications are dispatched. (GAP-807)
-- **Document Retirement / Obsolescence**: MicroLIMS does not provide a functional path to transition an effective document to Obsolete status. While periodic review allows selecting "Obsolescence Recommended", the resulting approval task cannot be completed through the approval workspace. (GAP-818)
+Some Document Control functions run automatically or have no screen:
+- **Automatic activation and review scheduling**: An automatic process runs every 60 minutes by default:
+  1. Revisions in Future Effective status whose target effective date has arrived become Effective, the previous Effective revision becomes Superseded, the audit trail records RevisionAutomaticallyActivated, and the reading assignments for the new revision are created.
+  2. Active documents whose Effective revision has reached its next review date receive a periodic review task in pending status, assigned to the Technical Reviewer assignment or else the document owner (audit action code PeriodicReviewTaskCreated).
+- **Training escalations**: The same process checks open reading assignments at three points: 3 days before the due date, at the due date (the assignment then shows as overdue), and 1 day after the due date. Each is recorded once as an escalation entry with an audit trail entry. MicroLIMS has no screen for viewing or resolving escalations and sends no message for them. (GAP-807)
+- **Document retirement**: MicroLIMS cannot retire an Effective document; there is no Obsolete step. Periodic review allows selecting "Obsolescence Recommended", but the resulting approval task cannot be completed. (GAP-818)
 - **Role Curriculum Management**: MicroLIMS does not provide a user interface screen for defining or maintaining role-to-document training curricula or per-document grace periods. (GAP-809, GAP-819)
-- **Unenforced Permission Codes**: The Document Control permission codes `Documents.DraftEdit`, `Documents.RevisionCreate`, `Documents.Review`, `Documents.Approve`, `Documents.PeriodicReview`, and `Documents.TrainingViewMatrix` are not enforced by system authorization logic; operational authority is governed strictly by the user's base role type and per-document workflow assignments. (GAP-015)
+- **Permissions that have no effect**: The permissions *Document Draft Editing*, *Document Revision Creation*, *Document Technical Review*, *Document Revision Approval*, *Document Periodic Review* and *Training Matrix Viewing* do not change what anyone can do. Authority follows the user's role type and the per-document assignments; voiding is for Section Heads only. (GAP-015)
+
+<!-- Review log (Sonnet): ~85 corrections; invented items removed: route paths, permission codes (outside admin), enum/class/worker/database names, unverified acknowledgement messages, unsupported example revision numbers, unverified signature-record fields, Inspection Dossier contents, Return for Correction label in technical review; callouts added: GAP-043, GAP-807, GAP-809, GAP-816, GAP-818 (Obsolete filter, void message), GAP-023 (approval and acknowledgement wording), GAP-814 reworded; no Obsolete/retire procedure described -->

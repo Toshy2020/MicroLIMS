@@ -124,3 +124,7 @@ Phase 4 reconstructed 81 workflow sections (`knowledge/workflows.md`). These IDs
 | WF-RECVCFG-001 Maintain receiving lists | MOD-RECVCFG-001 |
 
 WF-TESTMASTER-001 is split into a microbiology part (C4) and a physicochemical part (C7). The EM, Water and After Cleaning rows now have workflows (they read "none" in Phase 2).
+
+## Final guide section numbers (Phase 8–9)
+
+The "Guide section" column above uses the prompt's original Phase 8 numbering. The guide was renumbered to add three sections (Notifications/Messages/Discussions, OOS Tracking, archived records); the authoritative module → § mapping is the table in `USER_GUIDE_STRUCTURE.md`. Screenshot IDs per section are in `guide/_ss/_all.md` (123 placeholders, all with a plan row). Every module row now has guide text except the backend-only modules listed in `USER_GUIDE_STRUCTURE.md` ("Not given a user section").

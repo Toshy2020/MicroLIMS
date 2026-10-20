@@ -1,99 +1,102 @@
 ## 43. Frequently Asked Questions
 
-This section answers common user questions regarding roles, permissions, laboratory workflows, segregation of duties, and system boundaries in MicroLIMS.
+This section answers common questions about access, accounts, testing, review and approval, and what MicroLIMS does not do. Details are in the sections named in each answer.
 
-### 43.1 Access, Accounts, and Navigation
+### 43.1 Access, Accounts and Navigation
 
 #### 1. Why don't I see the Microbiology Laboratory menu?
-Sidebar navigation menus are governed by your account's assigned laboratory memberships. If your user account is not assigned to the Microbiology Laboratory section (`MICRO`) or its parent department, the Microbiology menus remain hidden. Only System Administrators bypass laboratory scope and see all menus by default. To gain access, ask a System Administrator to open **Administration > Users**, select **Laboratory Sections** for your account, and assign membership in the Microbiology section.
+The menus you see follow your laboratory memberships. If your account is not assigned to the Microbiology section (or to its whole department), the Microbiology menus stay hidden. System Administrator accounts are not limited by laboratory and see all menus. Ask a System Administrator to open **Users**, choose **Laboratory Sections** on your row and assign the section (see §33).
 
-#### 2. Why can't I see both the Finished Product and Raw Material & Packaging Material workspaces?
-For users assigned to the Physicochemical Laboratory (`FP`), workspace visibility is controlled by an organizational area setting:
-- **FP**: Displays only the Finished Product Workspace (`/physicochemical/workspace`).
-- **RM & PM**: Displays only the Raw Material & Packaging Material Workspace (`/physicochemical/rm-pm-workspace`).
-- **Both**: Displays both workspaces.
+#### 2. Why can't I see both the Finished Product and the Raw Material & Packaging Material workspaces?
+For the Physicochemical Laboratory a membership can carry an area:
+- **FP**: only the Finished Product workspace.
+- **RM & PM**: only the Raw Material and Packaging Material workspace.
+- **Both**: both workspaces.
 
-If an administrator restricted your membership to one area, only that workspace appears in your sidebar. If your responsibilities require both, request that an administrator update your area assignment to **Both**.
+If you need the other workspace, ask an administrator to change your area to **Both** (see §33).
 
-#### 3. When do newly granted roles or permissions take effect for a signed-in user?
-Functional permissions are embedded in the access token issued during authentication. When an administrator updates a role's permissions, those changes take effect when your next access token is issued (which occurs automatically every 15 minutes), or immediately if you sign out and sign back in. In contrast, account locking, account deactivation, password changes, and base role type changes are checked on every request and take effect immediately.
+#### 3. When does a new role or permission take effect for a signed-in user?
+Permission changes reach a signed-in user within about 15 minutes, or earlier if the user signs out and signs in again. If a user's role is changed to a different role type, the open session is refused at the next request. Changing a password signs the user out of other sessions. Existing sessions are not ended by a role change itself.
 
 #### 4. Why am I locked out of my account?
-Entering an incorrect password five consecutive times triggers an automated security lock on your account for 15 minutes. During this period, all sign-in attempts fail with the message `"Invalid username or password."` The account unlocks automatically after 15 minutes. Alternatively, a System Administrator can unlock the account immediately on the **Users** screen using the **Unlock Account** action.
+After 5 wrong passwords the account is locked for 15 minutes, and sign-in then fails with "Invalid username or password." The lock ends by itself after 15 minutes, or a System Administrator can use **Unlock Account** on the **Users** screen (see §39).
+
+> **Note for reviewers:** After a lock ends the failed-attempt counter is not reset, so one further wrong password locks the account again. (GAP-012)
 
 #### 5. How do I recover my password if I cannot sign in?
-If you cannot sign in and cannot use email reset, request administrator-assisted password recovery:
-1. Contact a System Administrator, who opens **Users**, selects **Admin-Assisted Password Recovery**, enters a mandatory reason, and generates a 12-character one-time recovery code valid for 15 minutes.
-2. On the sign-in page, click **Admin-Assisted Password Recovery** (or navigate to `/admin-recovery`).
-3. Enter your **Username**, the **One-Time Recovery Code** (in the format `XXXX-XXXX-XXXX`), your **New Password**, and **Confirm New Password**.
-4. Click **Submit Password Recovery**. Once completed, sign in with your new password.
+The e-mail reset ("Forgot password?") cannot be completed in the application. Use administrator-assisted recovery:
+1. Ask a System Administrator to open **Users**, choose **Admin-Assisted Password Recovery**, enter a reason and generate the one-time code (12 characters, valid for 15 minutes).
+2. On the sign-in page click **Admin-Assisted Password Recovery**.
+3. Enter your **Username**, the **One-Time Recovery Code**, your **New Password** and **Confirm New Password**.
+4. Click **Submit Password Recovery**, then sign in with the new password.
 
-#### 6. Can a user account with historical activity be permanently deleted?
-No. To preserve data integrity and complete audit trail history, any user account that has logged in or participated in laboratory workflows cannot be permanently deleted. The system blocks the deletion with the message: `"This user has activity history and cannot be permanently deleted. Deactivate instead."` Administrators must disable the account instead, which revokes all active sessions and prevents further logins.
+> **Note for reviewers:** "Forgot password?" cannot be completed in the application; ask an administrator for an admin-assisted recovery code. The on-screen text mentions a reset link, but none is sent. (GAP-100)
 
-#### 7. Can a user modify their own role, disable their own account, or delete their own account?
-No. MicroLIMS prohibits self-modification of administrative accounts. The system refuses these actions with explicit messages:
-- `"System Administrators cannot modify their own role."`
-- `"System Administrators cannot disable their own account."`
-- `"You cannot permanently delete your own account."`
+#### 6. Can a user account with activity be permanently deleted?
+No. An account that has signed in or has any activity cannot be permanently deleted: "This user has activity history and cannot be permanently deleted. Deactivate instead." Disable the account instead; this signs the user out and prevents sign-in.
 
-Another System Administrator must perform these actions.
+#### 7. Can an administrator change, disable or delete their own account?
+No. The system refuses with "System Administrators cannot modify their own role.", "System Administrators cannot disable their own account." and "You cannot permanently delete your own account." Another System Administrator must do these.
 
-#### 8. Why did I receive a warning that my session will time out?
-MicroLIMS monitors user activity in the browser. If no keyboard, mouse, or touch input is detected for 20 minutes, a dialog appears with a 60-second countdown: `"You will be signed out due to inactivity in {n} second(s)."` Clicking **Stay signed in** resets the timer. If the countdown reaches zero, you are automatically signed out, redirected to the sign-in screen, and any unsaved form inputs are lost.
+#### 8. Why did I get a warning that I will be signed out?
+The browser watches for activity. After 20 minutes without keyboard, mouse or touch input a countdown of 60 seconds appears: "You will be signed out due to inactivity in {n} second(s)." Click **Stay signed in** to continue. If it reaches zero you are signed out and unsaved entries are lost.
+
+> **Note for reviewers:** Idle sign-out happens in the browser only; the server does not time out inactive sessions. (GAP-053)
 
 ---
 
-### 43.2 Testing, Incubation, and Workflow Execution
+### 43.2 Testing, Incubation and Workflow
 
-#### 9. Why can't I enter results for an ongoing incubation test?
-MicroLIMS enforces incubation time gates based on the minimum incubation hours defined in the Test Master or Media Configuration. Before the minimum duration has elapsed, result entry is locked, and the system displays the earliest completion time (for example: `"This incubation window needs at least {h} hours - not ready until {utc} UTC."` or `"Stage 1 incubation for step \"{step}\" requires at least {h} hours of incubation - not ready until {utc} UTC."`). Results can only be recorded once the status advances to **Ready to Read**. If an urgent supervisor intervention is required, an authorized supervisor with the *Supervise testing workflows* permission (by default: System Administrator) can use **Skip Wait** to bypass the gate.
+#### 9. Why can't I enter results for a test that is incubating?
+Each incubation has a minimum time set in the Test Master or media configuration. Until it has passed, result entry is locked and the message shows the earliest time, for example "This incubation window needs at least {h} hours - not ready until {utc} UTC." The test changes to **Ready to Read** when the time has passed. A user with the *Supervise testing workflows* permission (by default: Section Head, System Administrator) can use **Skip Wait** (see §42.6).
 
-#### 10. Why does my electronic signature fail when I enter my password?
-Electronic signatures require password re-authentication for every signed action. You must enter your current login password in the **Electronic Signature** dialog. If the password is typed incorrectly, the system displays: `"Password verification failed. The signature was not applied."` If five consecutive incorrect attempts occur, electronic signatures are locked for 15 minutes with the message: `"Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied."`
+#### 10. Why does my electronic signature fail?
+You must type your own current sign-in password in the **Electronic Signature** dialog. A wrong password gives "Password verification failed. The signature was not applied." After 5 wrong attempts within 15 minutes signing is refused for 15 minutes: "Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied." Your sign-in account is not locked by this (see §37).
 
 #### 11. Why was my test returned to me by the reviewer?
-During technical review of a sample, a reviewer can return a count test order to the analyst using the **Return to Analyst** action. When returned, the test order moves back to the **Under Testing** state and the assigned analyst must correct and re-submit the count results. The **Return to Analyst** action is available only while the sample is under review and before the review is signed off. After a sample has been reviewed, corrections cannot be returned; any rework must be handled through retest or rejection decisions at approval.
+During review a reviewer can use **Return to Analyst** on a count test. The count readings are set aside, the incubation step is reopened and the test goes back to the assigned analyst. This is possible only before the review of the laboratory section is signed. After that the system refuses: "Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead." (see §18).
 
 #### 12. What is the difference between "Retest Retained Sample" and "New Sample Required"?
-When non-conforming or out-of-specification results occur, a Section Head can order a retest during approval:
-- **Retest Retained Sample**: Generates one new sample record linked to the original sample for the selected tests. It uses the retained sample material already in the laboratory and keeps the original analyst assignment.
-- **New Sample Required**: Indicates that fresh physical sample material must be drawn from the manufacturing area. The system generates two new sample records for the selected tests and mandates assigning them to two different eligible analysts.
+Both are release-decision options chosen by the Section Head at approval (see §18 and §19):
+- **Retest Retained Sample: Return to testing** creates one new sample linked to the original, holding new copies of the selected tests.
+- **New Sample Required: Close and request new sample** creates two new samples holding copies of the selected tests; two different analysts must be chosen for them.
 
 ---
 
-### 43.3 Review, Approval, and Segregation of Duties
+### 43.3 Review, Approval and Segregation of Duties
 
 #### 13. Why can't I review a test I entered?
-MicroLIMS enforces segregation of duties between testing and review. An analyst who entered or signed test results cannot act as the technical reviewer for that sample. The system blocks the review with the message: `"You cannot review a sample you tested."` An independent Reviewer, Section Head, or System Administrator who did not enter test results on that sample must perform the technical review.
+The person who performed the testing cannot review it: "You cannot review a sample you tested." Another user with the review permission must review it (see §42.4).
 
 #### 14. Why can't I approve a sample I reviewed?
-Segregation of duties requires independent verification between technical review and final release. A user who signed the technical review cannot submit the release decision for the same sample. The system rejects the attempt with: `"You cannot approve a sample you reviewed."` Another Section Head or System Administrator who did not perform the review must submit the approval decision.
+The reviewer cannot also give the release decision: "You cannot approve a sample you reviewed." A different user with the *Sample Release Approval* permission must approve. A person who tested the sample cannot approve it either: "You cannot approve a sample you tested."
 
-#### 15. Can a System Administrator override segregation-of-duties rules to approve their own testing?
-No. System Administrators possess no administrative exemption from segregation-of-duties rules. A System Administrator who entered results, prepared a sample, evaluated a media lot, or prepared a cryovial batch cannot review or approve that record.
+#### 15. Can a System Administrator override these rules?
+No. The rules compare user accounts only and System Administrators are not exempt. A System Administrator who prepared or tested a record cannot review or approve it.
 
-#### 16. Why can't I verify a Master Data Workbook that I imported?
-Master Data Workbook uploads enforce dual-control verification. The user who uploaded the workbook and performed the import cannot execute the second-person verification. The system displays: `"The person who loaded the workbook cannot verify it. Ask a second person."` A second qualified Section Head or System Administrator must inspect the staged changes and sign to complete verification.
+#### 16. Why can't I verify a Master Data Workbook that I loaded?
+The person who loaded the workbook cannot verify it: "The person who loaded the workbook cannot verify it. Ask a second person." A second authorised user must verify it (see §32).
 
 ---
 
-### 43.4 System Capabilities and Unimplemented Features
+### 43.4 What MicroLIMS Does Not Do
 
-#### 17. Is there a separate Final Release step or permission in MicroLIMS?
-No. MicroLIMS does not have a separate Final Release step or permission. The release decision submitted by the Section Head (or authorized System Administrator) during the sample approval workflow (**Submit Release Decision**) serves as the final release decision. Approving the release decision closes testing for that section and makes the Certificate of Analysis (CoA) viewable and exportable.
+#### 17. Is there a separate Final Release step?
+No. MicroLIMS does not have a separate Final Release step or permission. The Section Head's signed release decision on a laboratory section is the last approval step and **Approved** is the final status (see §19).
 
-#### 18. Does MicroLIMS include separate Reception or QA roles?
-No. MicroLIMS does not include separate Reception or Quality Assurance (QA) role types. System roles are built upon four underlying base role types: System Administrator, Section Head, Reviewer, and Analyst. Sample receiving is performed by users holding the sample receiving permissions (by default: Analyst, Reviewer, Section Head, System Administrator), and release decisions are made by Section Heads or System Administrators.
+#### 18. Does MicroLIMS have separate Reception or QA roles?
+No. The four system roles are System Administrator, Section Head, Reviewer and Analyst. Sample receiving is done by users who hold a receiving permission, and release decisions by users who hold the *Sample Release Approval* permission, as set by the administrator.
 
-#### 19. Does MicroLIMS support live instrument data feeds or ERP integrations?
-No. Live instrument data feeds and SAP / ERP integrations are not implemented. Instrumental data (such as HPLC system suitability results, ICP-OES Syngistix calibration reports, and moisture/purity data) are entered manually or imported via structured report files.
+#### 19. Does MicroLIMS take data directly from instruments or connect to an ERP system?
+No. There is no live instrument feed, no screen for importing instrument reports, no SAP or ERP connection and no AI assistant. Instrument results are entered in the testing workspaces (see §41).
 
-#### 20. Does MicroLIMS provide annual Environmental Monitoring schedules, water sampling plans, or reference strain passage tracking?
-No. The following capabilities are not implemented in MicroLIMS:
-- Sterility testing as a dedicated testing workflow.
-- Annual Environmental Monitoring plans and automated schedules.
-- Water sampling frequencies and scheduled sampling plans.
-- Reference strain passage tracking (MicroLIMS tracks reference cryovial lots, storage locations, expiry, and thaw events, but does not track serial passage numbers).
-- Equipment qualification records (IQ/OQ/PQ).
-- Dedicated incident, deviation, or CAPA modules.
+#### 20. Which functions are not available?
+The following are not implemented:
+- Sterility testing as a separate workflow.
+- Annual Environmental Monitoring plans and schedules.
+- Water sampling frequencies and sampling plans.
+- Reference strain passage tracking (reference cryovial lots, storage, expiry and thaw events are tracked, but not passage numbers).
+- Equipment qualification records.
+- Incident, deviation or CAPA modules (Error Monitoring is a technical log only, see §40).
+
+<!-- Review log (Sonnet): 18 corrections; invented items removed: routes, "MICRO"/"FP" codes, menu paths, token wording, "imported via structured report files" and instrument-specific names, retained-sample material claims, CoA export claim, "Under Testing" state, IQ/OQ/PQ, Skip Wait default holders; answers aligned with §18, §19, §33, §37, §39, §42; callouts added: GAP-012, GAP-100, GAP-053 -->

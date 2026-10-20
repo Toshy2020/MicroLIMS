@@ -175,7 +175,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 #### How to use it
 1. Navigate to **General Laboratory Configuration** > **Master Data Workbook**.
 2. Click **Download workbook**. The system generates and downloads `MicroLIMS-master-data-{yyyy-MM-dd}.xlsx` containing 12 data sheets populated with the records already in MicroLIMS, an Instructions sheet, and data validation dropdowns.
-3. Open the workbook in Excel and append new records beneath existing rows on sheets 1 through 10. Do not edit existing rows.
+3. Open the workbook in Excel and append new records beneath existing rows on sheets 1 through 10. Do not edit existing rows. The Specifications sheets (11 and 12) are filled in a second round, after the test definitions and methods they refer to have been created in their own screens.
 4. Return to MicroLIMS, click **Choose file**, and select the updated `.xlsx` file.
 5. Click **Check file**.
 6. Review the validation report table:
@@ -222,10 +222,10 @@ Load checked master data workbooks using an electronic signature, enforce mandat
   - Empty state: "No workbook loads yet — Check a workbook above, then load and sign it."
 - **Electronic Signature** dialog for loading:
   - Statement: "I am loading this master data workbook into MicroLIMS."
-  - Inputs: **Comment (optional)**, **Password \***, buttons **Cancel**, **Sign**.
+  - Inputs: **Comment (optional)**, **Password***, buttons **Cancel**, **Sign**.
 - **Electronic Signature** dialog for verification:
   - Statement: "I verified this load against the approved source documents." (If loaded items lack specifications, the dialog appends: "Note: these items have no specifications yet and will become usable: {itemCodes}.").
-  - Inputs: **Comment (optional)**, **Password \***, buttons **Cancel**, **Sign**.
+  - Inputs: **Comment (optional)**, **Password***, buttons **Cancel**, **Sign**.
 
 [SCREENSHOT SS-324]
 
@@ -258,9 +258,9 @@ Load checked master data workbooks using an electronic signature, enforce mandat
 - **Verifier laboratory scope**: If the load created Material Master entries, the verifier must be assigned to those laboratory sections (or be a System Administrator).
 - **No rejection action**: The application does not provide a "Reject Load" button; an erroneous load remains in status **Waiting for verification** while records are corrected or retired in individual configuration screens.
 
-> **Note for reviewers:** Only items and material master entries wait for second-person verification; organisms, equipment, production stages, and media products are active immediately after the initial load. (BR-WORKBOOK-005)
+> **Note for reviewers:** Only items and material master entries wait for second-person verification; other records are active immediately after the load. Verification cannot reject a load, and the draft workbook SOP asks for a signed reason when correcting records, which the individual screens do not require. (GAP-705)
 
-> **Note for reviewers:** Second-person verification checks section membership only for material master entries; items, equipment, and specifications are not scope-checked at verification. (BR-WORKBOOK-006)
+> **Note for reviewers:** Second-person verification checks section membership only for material master entries; items, equipment and specifications are not scope-checked at verification. (GAP-705)
 
 #### Validation
 - Loading validations:
@@ -278,3 +278,5 @@ Load checked master data workbooks using an electronic signature, enforce mandat
 
 #### Status
 - Workbook load: **Waiting for verification** (after the signed load) and **Verified by {name}** (after the second person signs). There is no way back from verified and no rejected status.
+
+<!-- Review log (Sonnet): 24 corrections; invented items removed: real person name in placeholder, component/table/database/transaction wording, signature meaning codes, "Password *" label, internal transaction message, raw status names; callouts added: GAP-705 on workbook verification, second-round specification sheets -->

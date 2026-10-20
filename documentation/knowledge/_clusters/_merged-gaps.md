@@ -892,7 +892,7 @@ Existing gaps referenced, not repeated: GAP-013 (media product code role), GAP-0
 
 <!-- from C6-physchem.md -->
 
-GAP-600 Failed HPLC system suitability has no re-run path (narrowed by verification)
+### GAP-600 Failed HPLC system suitability has no re-run path (narrowed by verification)
 - Question: Is abandon-and-restart the only intended recovery from a Failed SST, and may the same instrument start a new run immediately?
 - Affected: MOD-HPLC-001, MOD-GC-001 (SCR-HPLC-002).
 - Facts: A failed SST is stored as Failed and the run stays Open; no code path returns it to Pending; the only exit is Abandon Run. [src: backend/MicroLIMS.Application/Services/HplcRunService.cs:L364, L396, L472, L543]. The spec states the same: "A failed SST keeps the run locked; the analyst abandons the run (with a reason) and starts a new one." [src: docs/superpowers/specs/2026-09-29-hplc-chain-design.md:L83]. Code and spec agree, so the three-way DISCREPANCY flagged by the extractor is downgraded: the behaviour is intended. A new run needs a fresh SST and a new standard weighing; the failed confirmation already deducted the standard from the lot (BR-HPLC-010).
@@ -900,7 +900,7 @@ GAP-600 Failed HPLC system suitability has no re-run path (narrowed by verificat
 - Needs confirmation: only whether the site SOP wants anything extra (for example an investigation record). Nothing in code requires one.
 - Who could confirm: FP Section Head / QC lead.
 
-GAP-601 ICP run when no element passes calibration (narrowed by verification)
+### GAP-601 ICP run when no element passes calibration (narrowed by verification)
 - Question: What should the analyst do when the calibration is confirmed but no element is valid?
 - Affected: MOD-ICP-001 (SCR-ICP-002a).
 - Facts: Confirmation is not blocked by failing elements; sample assignment is blocked until at least one element is valid ("No element is valid on this run."). This matches the spec rule "The run continues if >= 1 element passed" [docs/superpowers/specs/2026-10-03-icp-gc-workspaces-design.md:L105-L106; backend/MicroLIMS.Application/Services/IcpRunService.Samples.cs:L85-L96]. No recalibration path exists after confirmation ("The calibration has already been confirmed."); the exit in code is Abandon Run.
@@ -908,7 +908,7 @@ GAP-601 ICP run when no element passes calibration (narrowed by verification)
 - Needs confirmation: that abandon-and-restart is the intended recovery.
 - Who could confirm: FP Section Head.
 
-GAP-602 Segregation of duties for physchem run decisions
+### GAP-602 Segregation of duties for physchem run decisions
 - Question: Must the person who ran or entered an HPLC or ICP SST, calibration, or sample be barred from reviewing it?
 - Affected: MOD-HPLC-001, MOD-ICP-001, MOD-WS-001 (partly covered).
 - Facts: The shared SoD guard (sample review and approval, owned by C3) counts a user who entered a physchem TestAnalysis as having performed the test, so that user cannot review or approve the sample [backend/MicroLIMS.Application/Services/SegregationOfDutiesGuard.cs:L24-L45]. No SoD check exists between starting a run, confirming the SST or ICP calibration, entering CCV and submitting samples in the same run. Working standard sign-off has its own SoD (roles section). [src: verified-roles-permissions.md:L138; WorkingStandardService.SignOff.cs:L22-L88]
@@ -916,7 +916,7 @@ GAP-602 Segregation of duties for physchem run decisions
 - Needs confirmation: intended SoD for physchem run review.
 - Who could confirm: QA.
 
-GAP-603 Critical CCV lock scope
+### GAP-603 Critical CCV lock scope
 - Question: Should a failed ICP CCV stop submission of samples already submitted in the run, or only pending samples?
 - Affected: MOD-ICP-001.
 - Facts: Lock applies to samples not yet submitted; submitted samples are not pulled back ("ponytail" ceiling); reviewer sees the failed CCV on the run. [src: docs/superpowers/specs/2026-10-03-icp-gc-workspaces-design.md sec. 4.2; IcpElementAvailability.cs:L41-L44]
@@ -924,12 +924,12 @@ GAP-603 Critical CCV lock scope
 - Needs confirmation: accepted behaviour.
 - Who could confirm: QA.
 
-GAP-604 Measurement and Qualitative panels (RESOLVED by verification)
+### GAP-604 Measurement and Qualitative panels (RESOLVED by verification)
 - Question: What are the rules for Measurement and Qualitative results?
 - Facts: Read and recorded in BR-PHYSRESULT-002 (replicate count and basis from the Test Master; Mean, Min, Max or EachValue; Complies / Does not comply with a mandatory observation when not complying). GAP-044 field-label work list for these two panels is filled there. No open question remains except the Test Master configuration of a given test, which is C7.
 - Who could confirm: not needed.
 
-GAP-605 Solution expiry clock (DISCREPANCY confirmed, effect limited)
+### GAP-605 Solution expiry clock (DISCREPANCY confirmed, effect limited)
 - Question: Should shelf-life expiry use the lab-local clock (spec) or UTC (code)?
 - Affected: MOD-SOLN-001.
 - Facts: Spec: "expiresAt = preparedAt + shelf life (lab-local clock via ILabClock)" [docs/superpowers/specs/2026-09-29-hplc-chain-design.md:L69]. Code: ExpiresAt = PreparedAt (UTC) plus hours or days, compared with UTC now [backend/MicroLIMS.Application/Services/SolutionPreparationService.cs:L293-L298, L435-L436; SolutionPreparationResponse.cs:L49-L52]. Both are absolute instants, so an hours-based shelf life is identical; a days-based shelf life can differ only across a daylight-saving change of the lab time zone (derived from the code, not tested). The lab time zone is configurable [backend/MicroLIMS.Application/Services/LabClock.cs:L41-L56].
@@ -937,13 +937,13 @@ GAP-605 Solution expiry clock (DISCREPANCY confirmed, effect limited)
 - Needs confirmation: whether the spec's "lab-local clock" meant wall-clock expiry.
 - Who could confirm: developer and QA.
 
-GAP-606 Equation types page is read-only (RESOLVED by verification)
+### GAP-606 Equation types page is read-only (RESOLVED by verification)
 - Facts: Read-only is intended: "Equation Types" = hardcoded read-only list endpoint [docs/FP_HPLC_Phase3_Build_Spec.md:L71, L127]. The hard-coded list shows six entries only (None, System Suitability, Numeric Measurement, Gravimetric % Loss, Gravimetric % Residue, Qualitative / Identification), not the newer equation types. [src: backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs:L815-L857]
 - Why it matters: the guide must not describe editing equations or imply the list covers dissolution, titration or chromatography tests.
 - Needs confirmation: only whether the short list is acceptable to the site (informational).
 - Who could confirm: developer.
 
-GAP-607 Column master permission mismatch (confirmed)
+### GAP-607 Column master permission mismatch (confirmed)
 - Question: Should column writes require MasterData.Manage (page) or Equipment.Manage (API)?
 - Affected: MOD-COLUMN-001.
 - Facts: Page guard MasterData.Manage [frontend/src/routes/AppRoutes.tsx]; API POST/PUT/deactivate Equipment.Manage [backend/MicroLIMS.API/Controllers/EquipmentMasterDataController.cs:L137-L147]. Default roles: SectionHead holds both; Analyst holds Equipment.Manage only (cannot open the page). [src: documentation/knowledge/_raw/verified-roles-permissions.md:L86, L88]
@@ -951,7 +951,7 @@ GAP-607 Column master permission mismatch (confirmed)
 - Needs confirmation: intended permission.
 - Who could confirm: system administrator / developer.
 
-GAP-608 Working standard rounding
+### GAP-608 Working standard rounding
 - Question: Is the RSD limit (2.0 %) to be compared after rounding to 2 decimals, and is potency stored at 3 decimals?
 - Affected: MOD-WS-001.
 - Facts: PassesRsd rounds to 2 decimals before comparing. Potency = mean x 100 / (100 - MC) rounded to 3 decimals. [src: backend/MicroLIMS.Application/Helpers/WorkingStandardCalculator.cs:L22-L40]
@@ -959,13 +959,13 @@ GAP-608 Working standard rounding
 - Needs confirmation: site SOP wording.
 - Who could confirm: QC lead.
 
-GAP-609 Titration types offered (UI exposure resolved)
+### GAP-609 Titration types offered (UI exposure resolved)
 - Facts: The Test Master offers all five types (Acid-base, Redox, Complexometric, Precipitation, Karl Fischer (volumetric)), both modes, both calculation methods and both endpoints. [src: frontend/src/modules/laboratoryConfiguration/masterDataSimple/titrationConfig.ts:L5-L27]. Karl Fischer is limited to the USP factor calculation in direct mode (TitrationDefinitionRules.cs:L49-L54, L72; UI message "Karl Fischer cannot be a residual titration."). The titration spec lists all five (section 1).
 - Why it matters: the guide may list the five types; which ones the site actually uses stays a configuration matter.
 - Needs confirmation: which types the site uses.
 - Who could confirm: Physicochemical Section Head.
 
-GAP-610 Weight variation band defaults versus configured bands (DISCREPANCY confirmed, minor)
+### GAP-610 Weight variation band defaults versus configured bands (DISCREPANCY confirmed, minor)
 - Question: Which band thresholds and percentages apply to each tablet product?
 - Affected: MOD-PHYSRESULT-001.
 - Facts: Evaluator defaults are 130 mg / 324 mg with 10 / 7.5 / 5 %. Spec example is tablets >= 250 mg +/-5 %. Bands are per-test fields, so configured values may differ. [src: backend/MicroLIMS.Application/Helpers/WeightVariationEvaluator.cs:L5-L19; docs/FP_Other_Equation_Types_Build_Spec.md:L160-L162; TestDefinitionMasterDataService.cs:L191-L204]
@@ -973,7 +973,7 @@ GAP-610 Weight variation band defaults versus configured bands (DISCREPANCY conf
 - Needs confirmation: product configuration and intended EP 2.9.5 table.
 - Who could confirm: Physicochemical Section Head.
 
-GAP-611 Dissolution and disintegration stage parameters
+### GAP-611 Dissolution and disintegration stage parameters
 - Question: Are stage offsets (5/15/25/2), the always-continue rule, and the disintegration counts (6/12, 16 of 18) fixed or set per product?
 - Affected: MOD-PHYSRESULT-001.
 - Facts: Per-test offsets exist on TestDefinition (DissolutionS1Offset etc.). Defaults in the evaluator match the spec. Source of the always-continue rule: lab decision 2026-09-19 (spec). [src: FP_Other_Equation_Types_Build_Spec.md:L188-L197, L210-L213; DissolutionStageEvaluator.cs:L48-L52; DisintegrationStageEvaluator.cs:L38-L40]
@@ -981,7 +981,7 @@ GAP-611 Dissolution and disintegration stage parameters
 - Needs confirmation: per-product values and the USP edition used.
 - Who could confirm: QC lead.
 
-GAP-612 Column usage recording
+### GAP-612 Column usage recording
 - Question: Is per-column usage (number of runs, injections) required?
 - Affected: MOD-COLUMN-001.
 - Facts: Run stores the column id only. No usage counter, column-use log or column history screen found. [src: backend/MicroLIMS.Domain/Entities/HplcRun.cs:L19]
@@ -989,7 +989,7 @@ GAP-612 Column usage recording
 - Needs confirmation: requirement.
 - Who could confirm: QC lead.
 
-GAP-613 Instrument report import
+### GAP-613 Instrument report import
 - Question: Is any user-facing import of Empower or ICP reports intended?
 - Affected: MOD-INSTIMPORT-001.
 - Facts: Parsers and OCR reader exist; no caller in controllers, services or frontend. Evidence upload is manual. [src: documentation/01_APPLICATION_MAP.md:L109; ServiceCollectionExtensions.cs:L297-L301]
@@ -997,7 +997,7 @@ GAP-613 Instrument report import
 - Needs confirmation: product intent.
 - Who could confirm: product owner.
 
-GAP-614 Working standard sign-off roles
+### GAP-614 Working standard sign-off roles
 - Question: Which roles are the reviewer and "QC head" for working standard sign-off?
 - Affected: MOD-WS-001.
 - Facts: Review uses Samples.Review and approval uses Samples.Approve (policies). Section Head holds Samples.Approve; Reviewer holds Samples.Review. [src: backend/MicroLIMS.API/Controllers/WorkingStandardsController.cs:L82-L103; verified-roles-permissions.md:L86-L87]
@@ -1005,15 +1005,15 @@ GAP-614 Working standard sign-off roles
 - Needs confirmation: roles used at the site.
 - Who could confirm: system administrator.
 
-GAP-615 Signature on master reason dialogs (RESOLVED by verification)
+### GAP-615 Signature on master reason dialogs (RESOLVED by verification)
 - Facts: The Solution master, ICP method and HPLC method "reason" dialogs record an audit event with the reason and before/after values; no electronic signature is taken. [src: backend/MicroLIMS.Application/Services/SolutionMasterService.cs:L28, L171-L180; IcpMethodService.cs:L118, L185, L215; HplcMethodService.cs:L243-L265]. Spec D7 asks for "edit in place with a required reason and audit trail", with no signature. No question remains.
 - Who could confirm: not needed.
 
-GAP-616 Signature point for HPLC qualification submit (RESOLVED by verification)
+### GAP-616 Signature point for HPLC qualification submit (RESOLVED by verification)
 - Facts: The qualification entry page button "Send for Review" opens SendForReviewDialog (title "Submit Qualification for Review", button "Proceed to Sign"), then the "Electronic Signature" dialog, which posts the password to qualification-samples/{id}/submit. [src: frontend/src/modules/hplcWorkspace/entry/QualificationEntryPage.tsx:L145-L146, L233; SendForReviewDialog.tsx:L62-L94; backend/MicroLIMS.API/Controllers/HplcWorkspaceController.cs:L141-L145]
 - Who could confirm: not needed.
 
-GAP-617 Working standard stock deduction at SST (spec vs code)
+### GAP-617 Working standard stock deduction at SST (spec vs code)
 - Question: Should a working standard lot be deducted when it is used as an HPLC SST standard?
 - Affected: MOD-WS-001, MOD-HPLC-001.
 - Facts: Working-standard spec D8 says stock is "not deducted by SST use, same as primary RS lots today" [docs/superpowers/specs/2026-10-03-working-standard-qualification-design.md:L27]. Code deducts the weighed standard (mg to g or kg) from the lot at SST confirmation, working standard lots included, and also from primary standards in titrant standardization and relative titration [backend/MicroLIMS.Application/Services/HplcRunService.cs:L460-L464, L553-L583; commit 890c3382, same day as the spec]. The spec statement appears stale.
@@ -1021,7 +1021,7 @@ GAP-617 Working standard stock deduction at SST (spec vs code)
 - Needs confirmation: the intended stock rule.
 - Who could confirm: FP Section Head / QC lead.
 
-GAP-619 Working standard moisture edit in the interface
+### GAP-619 Working standard moisture edit in the interface
 - Question: Can the analyst correct the moisture value of a Draft qualification after creating it?
 - Affected: MOD-WS-001 (SCR-WS-001, WF-WS-001).
 - Facts: The server accepts edits of a draft (PUT /api/working-standards/qualifications/{id}; "Only a draft qualification can be edited."); the frontend service has an update call, but no screen that uses it was found, and the detail drawer shows "Moisture Content" as read-only text. Moisture is required before the qualification can be assigned to a run ("Enter the moisture content first."). [src: backend/MicroLIMS.API/Controllers/WorkingStandardsController.cs:L52-L55; backend/MicroLIMS.Application/Services/WorkingStandardService.cs:L236-L262, L316-L328; frontend/src/modules/workingStandards/services/WorkingStandardService.ts:L55; qualifications/drawer/QualificationSourceSection.tsx:L73-L75]

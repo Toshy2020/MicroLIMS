@@ -1,62 +1,66 @@
 ## 36. Traceability
 
-### 36.1 End-to-End Traceability Architecture
+### 36.1 The Traceability Chain
 
 #### Purpose
-MicroLIMS establishes comprehensive, multi-directional traceability across all laboratory operations, linking sample records, preparation parameters, reagent lots, equipment configurations, test executions, secondary reviews, and final electronic authorizations.
+The traceability chain shows the records linked to an audited record. It is part of the audit event drawer of the Audit Trail (see §35). There is no separate traceability page or menu item.
 
-#### Traceability Chain Viewer
-Traceability relationships are visualized through the interactive **Traceability Chain** embedded within the Audit Event Details drawer (accessible via the **Inspect Event & Traceability Chain** action in the Audit Trail):
-- **Dynamic Chain Resolution**: When inspecting an event, the system identifies the target entity and constructs a contextual relationship graph:
-  - **Sample Records**: Resolves the complete testing and review chain: Sample -> Sample Preparation -> Test Orders -> Results -> Reviews -> Electronic Signatures ("Signed").
-  - **Media Records**: Resolves the media lifecycle: Media Lot -> Material Stock -> Autoclave Equipment -> Media Evaluation Challenges -> Reference Media.
-  - **Material Stock Records**: Resolves inventory usage: Material -> Stock Lots -> Consumed Solution Preparations -> Standard Qualifications.
-  - **Reference Cryovials**: Resolves microbiological origin: Cryovial Batch -> Organism Master -> Identity Confirmations -> Storage Location.
-  - **Equipment Records**: Resolves instrument qualification: Equipment Inventory -> Calibration Documents -> Operational Status History.
-  - **Item Records**: Resolves product configuration: Item -> Specifications -> Assigned Tests -> Item Preparation Configurations -> Controlled Documents.
-  - **Other Entities**: Any entity outside these primary categories displays a single **General** node indicating the entity type and record identifier.
+#### Who can use it
+Requires the *View audit trail* permission (by default: Section Head, System Administrator).
 
-#### Visualized Node Types
-The chain visualizes nineteen distinct operational node types, including: **Item**, **PreparationConfiguration**, **Sample**, **SamplingPoint**, **Department**, **SamplePreparation**, **TestOrder**, **Result**, **Review**, **ElectronicSignature** (displayed with status **Signed**), **Material**, **Media**, **MediaEvaluation**, **MaterialDocument**, **Organism** (**Master Strain**), **Cryovial**, **Equipment**, **EquipmentDocument**, and **EquipmentStatusHistory**.
+#### How to open it
+1. Search the Audit Trail (see §35.2).
+2. Click **Inspect Event & Traceability Chain** on a row.
+3. The chain for the record of that row is shown in the drawer.
+
+#### What the chain shows
+The chain is built from the type of record that was audited:
+
+| Audited record | Linked records shown |
+|---|---|
+| Sample | Item, sampling point and department (when present), the sample, its preparation, test orders, results, reviews and electronic signatures (shown with the status **Signed**) |
+| Media lot | The dehydrated material used, the media lot and its evaluations |
+| Material stock | The material and its documents |
+| Reference cryovial | The organism (shown as **Master Strain**) and the cryovial |
+| Equipment inventory | The equipment, its documents and its status history |
+| Item | The item, its preparation configuration and the samples received for it |
+| Any other record | One **General** node showing the record type and number |
+
+Each node shows its type, a title and a status. The node types that can appear are: Item, Preparation Configuration, Sample, Sampling Point, Department, Sample Preparation, Test Order, Result, Review, Electronic Signature, Material, Media, Media Evaluation, Material Document, Organism, Cryovial, Equipment, Equipment Document and Equipment Status History.
+
+> **Note for reviewers:** Records other than sample, media, material, cryovial, equipment and item show a single "General" node; no stand-alone traceability page exists. (GAP-108)
 
 ---
 
-### 36.2 Sample and Testing Workflow Traceability
+### 36.2 Tracing a Sample
 
+<!-- WF-AUDIT-001 -->
 #### What you see
 [SCREENSHOT SS-361]
-When tracing a sample record, the traceability chain displays a structured sequential pipeline:
-1. **Sample Node**: Displays the unique Sample Reference (e.g., "SMP-0001"), product category, receiving timestamp, and overall sample lifecycle status.
-2. **Sample Preparation Node**: Links the sample to its confirmed preparation record, documenting diluents, neutralizers, preparation technique, preparer identity, and confirmation timestamp.
-3. **Test Order Nodes**: Displays individual test orders instantiated for each assigned test code, detailing the assigned analyst (**ASSIGNED TO**), test method, and test execution status.
-4. **Result and Reading Nodes**: Links test orders to raw plate counts, qualitative observation logs, or instrumental chromatographic and spectroscopic readings.
-5. **Review Nodes**: Displays secondary technical verification events, recording reviewer identity, sign-off status, and scientific comments.
-6. **Electronic Signature Nodes**: Confirms cryptographic authentication with signer name, role, timestamp, IP address, and signed meaning.
+When you open the chain for a sample, the nodes follow the testing and review path:
+1. **Sample**: the sample reference (for example "SMP-0001"), category, receiving time and status.
+2. **Sample Preparation**: the confirmed preparation record.
+3. **Test Order**: one node per test, with the assigned analyst (**ASSIGNED TO**), method and status.
+4. **Result**: the result recorded for each test.
+5. **Review**: the review of the sample, with reviewer and status.
+6. **Electronic Signature**: the signature with the status **Signed**.
 
-#### Out-of-Specification and Retest Traceability
-When analytical results initiate an investigation or retest:
-- **Origin Sample Linkage**: Retest samples record the original sample identifier (`OriginSampleId`), establishing bidirectional navigation between original non-conforming testing and investigation retests.
-- **Investigation Grouping**: All related samples, retests, and new sampling events share a common Investigation Group Code (`OosGroupCode`).
-- **Controlled Investigation Documents**: Investigation reports, root-cause analyses, and CAPA references attach directly to the investigation group, tracking version supersession and document history.
+#### Retests and investigations
+Related samples are linked in other screens, not in the chain itself: a retest sample is linked to the original sample, and all samples of the same investigation share one investigation group. Investigation documents are attached to that group and keep their replacement history (see §20).
+
+#### How to use it
+1. Open the chain from an audit row of the sample.
+2. Read the nodes in order to follow who tested, reviewed and signed.
+3. To see every audit entry for the sample, click **View Complete History for {entityName} #{entityId}** in the drawer (see §35.3).
 
 ---
 
-### 36.3 Reagent, Instrument and Standard Traceability
+### 36.3 Where Other Links Are Shown
 
-#### Physicochemical Analytical Chain
-In analytical chemistry workspaces (HPLC, GC, ICP-OES), each test result links to an unbroken chain of physical inputs:
-- **Instrument Qualification**: Results record the specific instrument asset identifier, verifying active operational status and calibration validity.
-- **Chromatography Columns**: HPLC and GC runs store the unique chromatography column identifier, matching the USP column designation specified in the method master.
-- **Volumetric Solutions**: Instrumental runs record mobile phase and diluent solution preparation codes (e.g., `MP-METH 01/10/2026`). Each solution preparation links back to its master recipe, measured pH, preparer, and specific chemical stock lots consumed.
-- **Reference and Working Standards**: System suitability tests and sample calculations link to primary reference standard lots or in-house working standard qualification records (`WSQ-nn/MM/yyyy`).
+The Audit Trail chain does not show reagent, solution, standard, column or instrument links of physicochemical runs, or the media lot and incubator of an incubation. These links are shown on the screens of the modules concerned:
+- Test incubations show the media lot and incubator (see §15 and §16).
+- Media lots show the dehydrated material, autoclave data and evaluations (see §22).
+- Reference cryovials show the material, organism, identity confirmations and thaw events (see §26).
+- Physicochemical runs, solutions and standards show their instruments, columns, solutions and standard lots (see §27 and §28).
 
-#### Volumetric Titrant Traceability
-- Titration results record the specific volumetric titrant preparation code (e.g., `VS-01/10/2026`), standardization factor, standardization timestamp, and standardization temperature.
-- Titrant standardization records capture primary standard lot deductions, standardization replicates, and relative standard deviation calculations.
-
-#### Microbiological Media and Reference Strain Chain
-- Test incubations record the specific media lot number, incubator equipment identifier, incubation start time, and reading time.
-- Prepared media lots link to the dehydrated media manufacturer batch, autoclave cycle parameters (load, temperature, cycle duration), and growth promotion test evaluation results.
-- Growth promotion challenges record the reference cryovial batch, source lyophilized microorganism lot, and master organism catalog entry.
-
-> **Note for reviewers:** Non-sample/media/material/cryovial/equipment/item entities display a single "General" node; no stand-alone traceability page exists. (GAP-108)
+<!-- Review log (Sonnet): 14 corrections; invented items removed: chains claimed for media/material/equipment/item (autoclave, reference media, stock lots, solution preparations, standard qualifications, calibration documents, specifications, assigned tests, controlled documents), class/field names (OriginSampleId, OosGroupCode), physicochemical and titrant chain claimed as part of the chain, code format examples, "cryptographic" wording; node list rewritten from the verified list; callouts added: none new (GAP-108 kept) -->

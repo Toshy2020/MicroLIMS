@@ -10,9 +10,9 @@ Prompt: `user_guide_prompt_v2.md` (Master User Guide Generation Agent v2).
 | App run locally | Not yet — screen behaviour currently from code only (lower confidence) |
 
 ## Current phase
-**Phase 4 complete — knowledge base and workflows written. STOPPED, awaiting user approval.** Do not start Phase 5 until approved.
+**Phase 9 complete — USER_GUIDE.md drafted and reviewed. STOPPED, awaiting user direction** for Phases 10–12 (screenshot plan, independent Opus review, reconciliation → mandatory stop).
 
-Decisions in force: Phase 2 approved by the user 2026-10-15. The app was NOT run (user did not answer; default = code only). Memory notes of earlier user decisions are NOT used as INTENDED sources (prompt does not list them).
+Decisions in force: Phases 2 and 4 approved by the user. App NOT run (code only). Memory notes are not INTENDED sources. Model routing (user, 2026-10-16): agy (Gemini) does the bulk writing, Sonnet reviews and corrects.
 
 ## Phase log
 - 2026-10-15 — Phase 0: branch created, `documentation/` + `knowledge/` + `screenshots/` folders created.
@@ -28,6 +28,12 @@ Decisions in force: Phase 2 approved by the user 2026-10-15. The app was NOT run
 
 ## Module status counts (from the application map)
 COVERED 18, PARTIAL 38, REQUIRES CONFIRMATION 1, NOT-EXPOSED-IN-UI 8, LEGACY/RETIRED 1 (total 66).
+
+- 2026-10-16/20 — Phases 5–9: Sonnet domain + GMP reviews per cluster (`knowledge/_clusters/R1..R8-review.md`, ~180 guide callouts); Phase 7 `knowledge/role-guide.md` (agy draft, Sonnet-reviewed, 11 fixes); Phase 8 `USER_GUIDE_STRUCTURE.md` (44 sections, 3 new); Phase 9: 44 section files in `guide/` drafted by agy per `guide/WRITING_BRIEF.md`, every one reviewed by Sonnet per `guide/REVIEW_GUIDE_BRIEF.md` (review log at the end of each file; hundreds of corrections, many invented labels/messages removed); assembled by `E:/MicroLIMS/rls-tmp/assemble_guide.py` into `USER_GUIDE.md`. C6 gap headings normalised to `### GAP-6NN`.
+
+## Files created (Phases 5–9)
+- `USER_GUIDE.md` — DRAFT 0.1, 44 sections, ~10,500 lines, 275 reviewer notes, 123 screenshot placeholders; every cited GAP id exists in `DOCUMENTATION_GAPS.md` (216 gaps).
+- `USER_GUIDE_STRUCTURE.md`, `guide/NN-*.md` (edit these, then re-run the assemble script), `guide/_ss/*.md` + `_ss/_all.md` (screenshot rows for Phase 10), `knowledge/role-guide.md`, `knowledge/_clusters/R*-review.md`.
 
 ## Files created (Phases 3–4)
 - `knowledge/` — `modules.md`, `screens.md`, `roles.md`, `workflows.md` (81 workflow sections), `business-rules.md` (566 BR ids), `validations.md`, `statuses.md`, `terminology.md` (with standard glossary preamble), `reports.md`, `audit-trail.md`, `traceability.md`.
@@ -50,5 +56,6 @@ See `DOCUMENTATION_GAPS.md` (GAP-001..055, then cluster ranges GAP-100..821). Hi
 - GAP-040: the application has not been run; permission is needed for a local test instance with fake data.
 
 ## Next step
-1. User reviews `knowledge/workflows.md` and the new gaps, and approves Phase 4.
-2. Then Phase 5 (domain review, per module) and Phase 6 (GMP / data-integrity review), then Phases 7–9 (roles, structure, writing the guide one module at a time).
+1. User reads `USER_GUIDE.md` (start with §2 scope and the reviewer notes) and decides on Phases 10–12.
+2. Phase 10: `SCREENSHOT_PLAN.md` from `guide/_ss/_all.md` (remove the template `SS-NNN` row).
+3. Phase 11: fresh-context Opus review → `USER_GUIDE_REVIEW.md`. Phase 12: Opus reconciliation → STOP for approval.

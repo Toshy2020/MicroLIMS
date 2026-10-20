@@ -1,31 +1,33 @@
 ## 35. Audit Trail
 
-### 35.1 Audit Trail Architecture and Immutability
+### 35.1 What the Audit Trail Records
 
 #### Purpose
-MicroLIMS maintains an immutable, comprehensive record of all critical database transactions, master data adjustments, testing modifications, and administrative events across the laboratory.
+The audit trail keeps a record of changes made to laboratory data, master data, testing records and administrative settings, so that a change can be traced back to who made it and when.
 
-#### Scope of Automatic Audit Capture
-The system automatically captures every database addition, modification, and deletion at the moment changes are saved:
-- **Action Type**: Records whether an entity was created (**Create**), modified (**Update**), or deleted (**Delete**).
-- **Previous and New Values**: Stores complete JSON serialized representations of property values before and after each change.
-- **Actor and Time**: Records the acting user's identifier and the precise UTC timestamp of the transaction.
-- **Laboratory Identifiers**: Automatically indexes associated sample references, batch numbers, control numbers, media lot numbers, sample identifiers, and test order identifiers whenever present on the record.
+#### What is recorded automatically
+Whenever a tracked record is saved, the system writes an audit entry containing:
+- **Action**: **Create**, **Update** or **Delete**.
+- **Previous and new values** of the record (previous values are kept for updates and deletes).
+- **User and time**: the user who made the change and the time of the change (UTC).
+- **Laboratory identifiers** such as sample reference, batch number, control number, media lot number or cryovial code, when the record has them.
 
-#### Excluded Entity Types
-To prevent circular logging and preserve system performance, nine technical entity types are excluded from the primary audit trail:
-- Audit log tables (`AuditLog`, `AuditEventChange`)
-- Document access logs (`MaterialDocumentAccessLog`, `EquipmentDocumentAccessLog`)
-- Technical telemetry (`Incident`, `ErrorLog`)
-- Session management artifacts (`RefreshToken`, `NotificationLog`, `SecurityAuditEvent`)
+Some administrative actions write an entry under their own action name instead, for example when a user's role is changed, a user is disabled, a role's permissions are updated or an administrator-assisted password recovery code is used. A failed or refused electronic signature attempt is also recorded (without the password), and a successful signature appears as a **Create** entry.
 
-#### Immutability Controls
-Audit records are protected against tampering or alteration. Database triggers enforce immutability by refusing all database `UPDATE` and `DELETE` operations on audit log and electronic signature tables.
+#### Records that are not audited
+Nine kinds of technical records are not written to the audit trail: the audit records themselves, document access logs for material and equipment documents, technical incidents and error log entries, sign-in refresh tokens, notification state, and security events. Resolving, reopening or changing the severity of an incident (see §40) also writes no audit entry.
 
-#### Backend-Only Audit Logs
-- **Login History**: Records all user authentication attempts (successful sign-in, unknown username, locked account, wrong password, inactive account) with client IP addresses. This endpoint is not exposed in the user interface.
-- **Security Audit Events**: Captures 19 distinct security event codes covering session management, token lifecycles, and account modifications. This log is not exposed in the user interface.
-- **Export Control**: The Audit Trail user interface does not provide an export or print function.
+> **Note for reviewers:** Some records are not audited (incidents, error log entries, refresh tokens, notification state). (GAP-111)
+
+#### Protection of audit records
+The Audit Trail screen is read-only. The system is also set up to refuse changes to and deletion of audit entries and electronic signature records at database level; whether this protection is present in the live database has not been checked.
+
+#### Recorded but not visible on any screen
+- **Login history**: every sign-in attempt (success, unknown user, locked account, wrong password, inactive account) is recorded with the IP address.
+- **Security events**: sign-in, session, password and account events are recorded.
+- The Audit Trail screen has no export or print function.
+
+> **Note for reviewers:** Audit Trail shows 300 events at most, has no export, cannot filter on user/role actions, and does not show login history or security events. (GAP-030, GAP-101)
 
 ---
 
@@ -33,23 +35,23 @@ Audit records are protected against tampering or alteration. Database triggers e
 
 <!-- WF-AUDIT-001 -->
 #### Purpose
-Search and review historical audit records using date ranges, action categories, entity types, or laboratory identifiers.
+Search and review historical audit records using date ranges, action, entity category, or laboratory identifiers.
 
 #### Who can use it
-Requires the *View audit trail* permission (`Audit.View`, by default: Section Head, System Administrator).
+Requires the *View audit trail* permission (by default: Section Head, System Administrator).
 
 #### Before you start
-- Ensure you have the relevant record identifiers (such as a Sample Reference or Batch Number) if searching for specific laboratory events.
+- Have the relevant record identifiers (such as a Sample Reference or Batch Number) ready if you are searching for a specific laboratory event.
 
 #### What you see
 [SCREENSHOT SS-351]
-The **Audit Trail** screen (`/audit-search`) presents:
+The **Audit Trail** screen presents:
 - Heading: **Audit Trail**
 - Subtitle: "Search and trace immutable change events, actor identities, and laboratory records across MicroLIMS."
 - Filter bar:
   - **From Date** and **To Date**
   - **Action** dropdown with options: **All Actions**, **Create**, **Update**, **Delete**
-  - **Entity Category** dropdown listing all tracked domain entities
+  - **Entity Category** dropdown listing the tracked record types
   - Collapsible toggle: **More Laboratory Identifiers (Batch, Sample, Media...)** / **Hide Laboratory Identifiers** containing:
     - **Sample Reference**
     - **Batch Number**
@@ -57,79 +59,76 @@ The **Audit Trail** screen (`/audit-search`) presents:
     - **Media Lot Number**
     - **Cryovial / RS Code**
     - **User ID**
-  - Action buttons: **Reset** and **Search Audit Trail**
+  - Buttons: **Reset** and **Search Audit Trail**
 - Results table:
-  - Header: **Audit Events (N)** (displays `", capped at 300 latest"` when 300 or more records match)
+  - Header: **Audit Events (N)** (shows ", capped at 300 latest" when 300 or more records match)
   - Columns: **Date / Time**, **User**, **Entity**, **Action**, **Changed Fields (Diff)**, **Record Ref**, and **Details**
-  - Row action button: **Inspect Event & Traceability Chain**
+  - Row button: **Inspect Event & Traceability Chain**
 
 #### How to use it
-1. Navigate to **Audit & Compliance** > **Audit Search**.
-2. Select desired search filters:
-   - Enter **From Date** and **To Date** to specify a time window.
-   - Choose an **Action** or **Entity Category** to narrow by transaction type.
-   - Click **More Laboratory Identifiers (Batch, Sample, Media...)** to enter specific tracking numbers such as **Sample Reference** (e.g., "SMP-0001") or **Batch Number** (e.g., "Lot L-0001").
+1. Open the **AUDIT & COMPLIANCE** menu group and select **Audit Search**.
+2. Select the search filters:
+   - Enter **From Date** and **To Date** to set a time window.
+   - Choose an **Action** or **Entity Category** to narrow by type of change.
+   - Click **More Laboratory Identifiers (Batch, Sample, Media...)** to enter a **Sample Reference** (e.g. "SMP-0001") or **Batch Number** (e.g. "Lot L-0001").
 3. Click **Search Audit Trail** (or press Enter).
-4. Review matching records in the results table.
-5. Click **Reset** to clear all filter criteria.
+4. Review the matching records in the results table.
+5. Click **Reset** to clear all filters.
 
 #### System behavior
-- The server retrieves matching audit events ordered with the newest records first.
-- Search queries return up to 300 results. If more than 300 events match, the results header displays `", capped at 300 latest"`.
-
-#### Validation
-- Date filters validate that the entered dates represent valid calendar values.
+- Matching audit events are listed with the newest first.
+- Searches return up to 300 results. If 300 or more events match, the results header adds ", capped at 300 latest".
 
 #### Status
-- The audit search interface is strictly read-only.
+- The audit search screen is read-only.
 
 #### Important rules
-- The **Action** filter offers only **Create**, **Update**, and **Delete**. Platform action codes written by system services (such as `USER_ROLE_CHANGED`, `USER_DISABLED`, `ROLE_PERMISSIONS_UPDATED`, or `ADMIN_PASSWORD_RECOVERY_USED`) cannot be selected directly in the Action filter dropdown.
+- The **Action** filter offers only **Create**, **Update** and **Delete**. Platform actions written by the system (such as a user role change, a user being disabled, a role permission update, or use of an administrator-assisted password recovery code) cannot be selected in the **Action** filter.
 
 #### Errors
-- If retrieving audit events fails: `"Failed to fetch audit records from the server."`
-- If no records match: `"No audit events found"`
+- If retrieving audit events fails: "Failed to fetch audit records from the server."
+- If no records match: "No audit events found"
 
 #### What happens next
-Users can inspect any event in detail to examine modified fields or trace linked records.
+Inspect any event to see the modified fields or the linked records.
 
 ---
 
 ### 35.3 Inspecting Event Details and Entity History
 
 #### Purpose
-Examine property-level before-and-after differences, view raw event payloads, and access complete un-capped lifecycles for a selected entity.
+Examine field-level before-and-after differences, view the raw before and after data, and open the complete history of a record without the search cap.
 
 #### Who can use it
-Requires the *View audit trail* permission (`Audit.View`, by default: Section Head, System Administrator).
+Requires the *View audit trail* permission (by default: Section Head, System Administrator).
 
 #### Before you start
-- Perform an audit search as described in §35.2 and locate the target event row.
+- Run an audit search as described in §35.2 and find the event row.
 
 #### What you see
 [SCREENSHOT SS-352]
-Clicking **Inspect Event & Traceability Chain** opens the audit event details drawer containing:
-- Event action chip (**CREATE**, **UPDATE**, or **DELETE**)
-- Formatted diff viewer highlighting changed field names, previous values, and new values
-- Raw JSON viewer displaying complete before-and-after payloads
-- The traceability chain associated with the record (see §36)
-- Action button: **View Complete History for {entityName} #{entityId}**
+Clicking **Inspect Event & Traceability Chain** opens a details drawer containing:
+- The action (**CREATE**, **UPDATE** or **DELETE**)
+- A difference viewer showing changed field names, previous values and new values
+- A raw viewer with the complete before and after data
+- The traceability chain for the record (see §36)
+- Button: **View Complete History for {entityName} #{entityId}**
 
 #### How to use it
-1. In the audit results table, click **Inspect Event & Traceability Chain** on the desired row.
-2. Review the diff viewer to verify which specific fields were modified during the transaction.
-3. To inspect the entity across its entire lifecycle without the 300-row search cap, click **View Complete History for {entityName} #{entityId}**.
-4. Close the drawer using the close button.
+1. In the results table, click **Inspect Event & Traceability Chain** on the row.
+2. Review the difference viewer to see which fields changed.
+3. To see every audit entry of the record without the 300-row cap, click **View Complete History for {entityName} #{entityId}**.
+4. Close the drawer with the close button.
 
 #### System behavior
-- The drawer loads property diffs and raw event payloads for the selected event.
-- Clicking **View Complete History** initiates a dedicated entity history query that retrieves all audit rows for that specific entity identifier without search limits.
+- The drawer shows the changed fields and the raw before and after data for the selected event.
+- **View Complete History** lists every audit entry for that record, newest first, without the 300-row limit.
 
 #### Important rules
-- Audit records cannot be deleted, cleared, or archived from the user interface.
-
-> **Note for reviewers:** Audit Trail shows 300 events at most, has no export, cannot filter on user/role actions, and does not show login history or security events. (GAP-030, GAP-101)
-
-> **Note for reviewers:** Some records are not audited (incidents, error log entries, refresh tokens, notification state). (GAP-111)
+- Audit entries cannot be deleted or changed from the user interface.
 
 > **Note for reviewers:** The role-change audit entry shows the new role id as the previous value. (GAP-112)
+
+> **Note for reviewers:** Role and user changes are audited but not signed and need no second person. (GAP-009)
+
+<!-- Review log (Sonnet): 14 corrections; invented items removed: entity/table class names, route, JSON/endpoint/server wording, date-validation line, "immutable record" framing in prose; callouts added: GAP-009 (GAP-111/030/101/112 kept, moved) -->

@@ -1,177 +1,153 @@
 ## 9. Notifications, Messages and Discussions
 
 <!-- WF-NOTIF-001 -->
-### 9.1 In-App Notifications
+### 9.1 Notifications
 #### Purpose
-Alert laboratory personnel to time-sensitive operational conditions, completed incubations ready for observation, expiring media lots, samples awaiting review or release, and tests returned for revision.
+Tell you about conditions that need attention: media lots that are expiring, incubations that are ready, samples waiting for review or approval, and tests returned to you for revision.
 
 #### Who can use it
-Any authenticated user. The items delivered depend on your assigned base role type and laboratory section memberships:
-- **ApprovalWaiting** and **PendingPreparationConfigApproval**: Delivered to users with role type `SectionHead` or `SystemAdministrator`.
-- **ReviewWaiting**: Delivered to users with role type `Reviewer`, `SectionHead`, or `SystemAdministrator`.
-- **TestReturnedForRevision**: Delivered directly to the analyst assigned to the returned test order.
-- **MediaExpiry** and **IncubationReady**: Delivered to all users who have active membership in the relevant laboratory section.
+Every signed-in user. You only receive the notifications that apply to you:
+
+| Notification | Who receives it |
+|---|---|
+| Review waiting ("{n} sample(s) awaiting review.") | Users with the Reviewer, Section Head, or System Administrator base role type |
+| Approval waiting ("{n} sample(s) awaiting approval.") | Users with the Section Head or System Administrator base role type |
+| Preparation configurations waiting ("{n} preparation configuration(s) awaiting approval.") | Users with the Section Head or System Administrator base role type |
+| Test returned for revision ("Test {code} for sample {ref} was returned for revision.", followed by ": {reason}" when a reason was given) | The analyst assigned to the test |
+| Media expiry ("{material} (Lot {lot}) has expired." or "... expires {dd-MMM-yyyy}.") and incubation ready ("{test} ({step}) for {sample or test order} is ready.") | Users who are assigned to the laboratory section concerned |
 
 #### What you see
-- In the global header, the **Notifications** bell icon displays an unread counter badge.
-- Clicking the bell opens the notifications panel:
-  - Header showing unread count and an action button or link to **read all**.
-  - A scrollable list of the 30 newest notifications. Each item includes a severity icon (info, warning, error), notification message, relative timestamp, and an unread indicator dot.
-  - Items linked to specific sample records, test orders, or media lots display an indicator to open the underlying record directly.
-  - Empty state: `"No notifications"` with subtitle `"You are up to date - nothing needs your attention."`
+- The **Notifications** bell in the header, with a number badge for unread notifications.
+- Clicking the bell opens a list of your 30 newest notifications. Each item shows the message and the date and time. Unread items are in bold.
+- The button **Mark all as read** at the top of the list (disabled when nothing is unread).
+- When there is nothing to show: "No notifications" and "You are up to date - nothing needs your attention."
+- When the list cannot be loaded: "Notifications could not be loaded". The list is then retried automatically.
+- The Analyst dashboard and the laboratory dashboards show some of the same notifications (see Section 8).
 
 [SCREENSHOT SS-091]
 
 #### How to use it
-1. Click the **Notifications** bell icon in the header.
-2. Review the list of notifications.
-3. Click an individual notification to navigate directly to the affected record (e.g. clicking an incubation notification opens that sample's test workflow). Clicking marks the notification as read.
-4. To dismiss all pending unread indicators at once, click **read all**.
+1. Click the **Notifications** bell in the header.
+2. Read the list.
+3. Click a notification. It is marked as read, and if it belongs to a sample or test, the matching record opens.
+4. To mark everything as read at once, click **Mark all as read**.
 
 #### System behavior
-- **Dynamic Notification Evaluation**: The notification service computes current conditions from active database records:
-  - **Media Expiry**: Identifies active media lots expiring within 7 days ("... expires {dd-MMM-yyyy}.") or already expired ("{material} (Lot {lot}) has expired." with error severity).
-  - **Incubation Complete**: Identifies test orders whose incubation time window has elapsed ("{testCode} ({step}) for {sample or test order} is ready.").
-  - **Review Queue**: Samples whose tests are complete and await technical verification.
-  - **Approval Queue**: Samples that have passed technical review and await Section Head release authorization.
-  - **Returned Tests**: Tests returned by a reviewer for revision within the past 12 hours.
-- **De-Duplication**: If a notification with the exact same text was generated for that user within the preceding 12 hours, the system suppresses duplicate creation.
+- The system works out the notifications from the current data: media lots that expire within 7 days or are already expired, completed incubations ready to read, samples waiting for review or approval, preparation configurations waiting for approval, and tests returned to the analyst in the last 12 hours.
+- A new condition can take up to 5 minutes to show up in the list.
+- If the same text was already stored for you within the last 12 hours, it is not stored again. Because a waiting count is part of the text, a changed count creates a new notification.
+- An expired media lot also produces an e-mail alert when the system is set up to send e-mail.
+- A read notification cannot be marked unread again.
 
-> **Note for reviewers:** Alert e-mails go to `{username}@microlims.local`, not the e-mail on the profile, and are marked sent even if no mail server is set up. (GAP-104)
+> **Note for reviewers:** Alert e-mails are sent to an address built from the username, not to the e-mail address on the user profile, and the alert is marked as sent even when no mail server is set up. (GAP-104)
 
-> **Note for reviewers:** Review/approval waiting notifications use section sign-off status, not the status described in the specification. (GAP-103)
-
-#### Errors
-- If notifications fail to load from the server, the popover displays: `"Notifications could not be loaded"`.
+> **Note for reviewers:** The review-waiting and approval-waiting notifications are based on the review and approval status of each section, which differs from the statuses described in the specification. (GAP-103)
 
 ---
 
 <!-- WF-MSG-001 -->
 ### 9.2 Direct and Group Messages
 #### Purpose
-Enable real-time communication between laboratory colleagues, allowing analysts, reviewers, and Section Heads to coordinate testing activities and resolve bench-level questions.
+Exchange messages with colleagues, one to one or in groups.
 
 #### Who can use it
-Any authenticated user. The *Messaging use* permission (`Messages.Use`) is declared in the system catalog but is not enforced in code.
+Every signed-in user. The *Messaging Use* permission has no effect.
 
 #### Before you start
-Colleagues must have an active user account in the system directory to be selected as recipients.
+Recipients must be active users. Only active users appear in the recipient list.
 
 #### What you see
-- Page route: `/messages` (accessible from the user account menu).
-- Two-pane layout:
-  - **Left Pane (Conversations)**:
-    - Search field: **Filter conversations...**.
-    - Action button: **New Message**.
-    - List of existing direct and group threads displaying participant names, last message snippet, timestamp, and unread badges.
-    - Empty states: `"No conversations yet. Start a new message!"` or `"No matching conversations found."`
-  - **Right Pane (Chat Window)**:
-    - Thread header displaying participant names or group title.
-    - Message history feed.
-    - Message input box: **Write a message... (Press Enter to send)** with send action icon.
-    - Empty state when no conversation is selected: `"Select a conversation"` with subtitle `"Choose a conversation from the list or start a new message."`
-    - Empty state in an open conversation: `"No messages in this conversation yet."` with subtitle `"Say hello to start the conversation!"`
+Open **Messages** from the account menu in the header (it shows **Messages ({n} unread)** when messages are unread). The screen is titled **Direct & Group Messages** and has two areas:
+- **Conversation list** (left): the field **Filter conversations...**, the button **New Message**, and your conversations, each with the participant name, the last message, the time, and an unread badge. Empty: "No conversations yet. Start a new message!" or "No matching conversations found."
+- **Chat window** (right): the messages and the box "Write a message... (Press Enter to send)". Before you choose a conversation: "Select a conversation" and "Choose a conversation from the list or start a new message." In an empty conversation: "No messages in this conversation yet." and "Say hello to start the conversation!"
 
 [SCREENSHOT SS-092]
 
 #### How to use it
-- **Starting a New Conversation**:
-  1. Click **New Message** to open the dialog.
-  2. Choose the conversation type: **Direct Message (1-on-1)** or **Group Conversation**.
-  3. If creating a group, enter a **Group Title** (placeholder: "e.g. Microbiology Team, Water Testing Group...").
-  4. In the recipient field (**Select Recipient** or **Select Participants**), type to search colleagues by name.
-  5. In **Initial Message**, enter your message text.
-  6. Click **Send Message** (displays **Sending...**).
-- **Replying in an Existing Conversation**:
-  1. Select a conversation from the left pane list.
-  2. Type your reply in the text area at the bottom of the chat window.
-  3. Press Enter (or click the send icon).
+To start a conversation:
+1. Click **New Message**.
+2. Choose **Direct Message (1-on-1)** or **Group Conversation**.
+3. For a group, type a **Group Title** (for example "e.g. Microbiology Team, Water Testing Group...").
+4. In **Select Recipient** (or **Select Participants** for a group), search for colleagues by name ("Search colleagues by name...").
+5. Type the **Initial Message**.
+6. Click **Send Message** (**Sending...** while processing).
+
+To reply: choose the conversation, type in the message box, and press Enter.
 
 #### System behavior
-- If you start a direct message with a user with whom you already share a 1-on-1 conversation, the system reuses the existing conversation thread.
-- When a new message is posted, each other participant receives an in-app notification: `New message from {sender}: "{first 80 characters}..."`.
-- Opening a conversation automatically marks all unread messages in that thread as read. The unread message count in the top header is polled every 60 seconds while the application tab remains visible.
-
-> **Note for reviewers:** Messages are not audited and are not part of the official laboratory record. (GAP-009)
+- If you start a direct message with someone you already have a direct conversation with, the existing conversation is used.
+- Every other participant receives a notification: New message from {sender}: "{first 80 characters}...".
+- A conversation is marked as read each time its messages are shown in the chat window. The unread count in the account menu is refreshed every 60 seconds while the browser tab is visible.
+- Only the participants of a conversation can read it or write in it.
+- Sending a message does not need an electronic signature. Messages are not recorded in the audit trail.
 
 #### Validation
-- If no recipient is chosen: `"Please select at least one recipient."`
-- If group title is omitted: `"Group conversation title is required."`
-- If initial message is blank: `"Initial message cannot be empty."` or `"Initial message is required."`
-- If a message text area is submitted empty: `"Message content cannot be empty."`
+- "Please select at least one recipient."
+- "Group conversation title is required."
+- "Initial message cannot be empty." and "Initial message is required."
+- "Message content cannot be empty."
 
 #### Errors
-- If sending fails: `"Failed to send message."`
-- If thread creation fails: `"Failed to create conversation."`
-- If an unauthorized user attempts to query a conversation: `"You are not a participant in this conversation."`
-- If user directory loading fails: `"The user directory could not be loaded, so no recipients can be listed. Close and reopen this dialog to try again."`
+- "Failed to send message."
+- "Failed to create conversation."
+- "You are not a participant in this conversation."
+- "The user directory could not be loaded, so no recipients can be listed. Close and reopen this dialog to try again."
 
 ---
 
 <!-- WF-DISC-001 -->
-### 9.3 Discussions and Knowledge Sharing
+### 9.3 Discussions
 #### Purpose
-Maintain an open, searchable forum for laboratory teams to discuss analytical methods, equipment issues, technical decisions, safety practices, and operational procedures.
+Share questions, decisions, and knowledge with colleagues in posts and comments, sorted into categories.
 
 #### Who can use it
-Any authenticated user. The *Discussions viewing* (`Discussions.View`) and *Discussions creation* (`Discussions.Create`) permissions are not enforced in code. Moderation actions (marking important, editing or deleting any user's post) require the *Discussions moderation* permission (`Discussions.EditAny`), held by default by Section Head and System Administrator. Authors may always edit or delete their own posts and comments.
+Every signed-in user. The *Discussions Viewing* and *Discussions Creation* permissions have no effect. Authors can always edit and delete their own posts and comments. Marking a post important, editing or deleting other people's posts, and editing other people's comments needs the *Discussions Moderation* permission (by default: System Administrator, Section Head).
 
 #### What you see
-- Page route: `/discussions` (accessible from the user account menu).
-- Header: **Discussions & Knowledge Sharing** and action button **New Discussion**.
-- Filter Controls:
-  - Search field: **Search discussions by title or content...**.
-  - Toggle switch: **Important Only** (filters to pinned posts).
-  - Category chips: **All Categories** plus 11 functional categories:
-    - General
-    - Testing Methods
-    - Equipment & Instruments
-    - Media & Reagents
-    - Quality & Compliance
-    - Safety
-    - Troubleshooting
-    - Training & SOPs
-    - Internal Decisions
-    - Management Requirements
-    - GMP / Regulatory
-- Post Cards:
-  - Display author, post title, category chip, creation timestamp, comment count, and attachment count.
-  - Indicator chips: **Important** (pinned posts) and **v{n} Edited** (showing version number).
-  - Post action menu (**Post actions**): **View / Edit**, **Mark Important** / **Unmark Important**, and **Delete Discussion**.
-- Discussion Detail Page (`/discussions/:id`):
-  - Full post content and downloadable attachment list.
-  - Revision history: clicking **v{n} Edited** displays full previous versions.
-  - Comments thread with response input: **Write a comment or response to this discussion...** and button **Post Comment**.
+- The screen **Discussions & Knowledge Sharing** (open **Discussions** from the account menu) with the button **New Discussion**.
+- Filters: the search field "Search discussions by title or content...", the switch **Important Only**, and the category buttons **All Categories**, **Water**, **Equipment**, **Environmental Monitoring (EM)**, **Products**, **Media / Materials**, **Internal Decisions**, **Management Requirements**, **EDA Requirements**, **ISO 17025**, **GMP / Regulatory**, and **Other**.
+- Each post shows the author, role, date, category, the number of comments, and the number of attachments. The labels **Important** and **v{n} Edited** can appear. The **Post actions** menu (for the author and for users with the moderation permission) offers **View / Edit**, **Mark Important** / **Unmark Important**, and **Delete Discussion**.
+- When nothing is found: "No discussions found" with "Try adjusting your search query or category filters." (or "Be the first to start a conversation in this category.") and the button **Start a Discussion**.
+- The post page, with **Back to Discussions**, the full text, the attachments (downloadable), **Edit Post**, and the comments section.
 
 [SCREENSHOT SS-093]
 
 #### How to use it
-- **Creating a Discussion Post**:
-  1. Click **New Discussion** to open the modal.
-  2. Enter a descriptive **Title** (required).
-  3. Select a **Category** from the dropdown.
-  4. If you have moderation authority and want to pin the topic to the top of the feed, check **Mark as Important (Pinned at top)**.
-  5. In **Content / Details**, type the body of your post (required).
-  6. To include reference files, click **Choose Files** under **Attachments (Documents, Images, Worksheets)**. You may attach up to 5 files (maximum 10 MB each; supported formats include `.pdf`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.pptx`, `.txt`, `.csv`).
-  7. Click **Publish Discussion** (displays **Publishing...**).
-- **Commenting on a Discussion**:
-  1. Click on a discussion card to open its detail page.
-  2. Scroll to the comments section and enter your feedback in the text box.
-  3. Click **Post Comment**.
+To create a post:
+1. Click **New Discussion**.
+2. Enter a **Title** (required).
+3. Choose a **Category**.
+4. Optionally tick **Mark as Important (Pinned at top)**.
+5. Enter the text in **Content / Details** (required).
+6. Optionally click **Choose Files** under **Attachments (Documents, Images, Worksheets)**. You can attach up to 5 files of up to 10 MB each. The allowed types are .pdf, .png, .jpg, .jpeg, .gif, .doc, .docx, .xls, .xlsx, .pptx, .txt, and .csv.
+7. Click **Publish Discussion** (**Publishing...** while processing).
+
+To comment: open a post, write in "Write a comment or response to this discussion...", and click **Post Comment**. You can **Edit comment** or **Delete comment** on your own comments.
+
+To edit a post: open it, click **Edit Post**, change the fields, and click **Save Changes**.
+
+To delete a post or a comment: use **Delete Discussion** or **Delete comment** and confirm with **Delete Post** or **Delete Comment**.
 
 #### System behavior
-- **Version Tracking**: Whenever a post is edited, the system preserves the previous text and increments the displayed version badge (`v{n} Edited`).
-- **Soft Deletion**: Deleting a post or comment marks it as deleted in the database; it is removed from the view but retained in storage.
+- Each saved edit raises the version shown as **v{n} Edited**. Clicking it shows the revision history. If someone else changed the post in the meantime, your edit is refused.
+- A deleted post or comment disappears from the screen but is not erased.
+- The system checks the content of attached files against their file type.
+- Discussions are not part of a sample or test record.
 
-> **Note for reviewers:** Whether discussions may be cited as official GMP decisions requires confirmation; the code does not link discussions to GxP records. (GAP-009)
+> **Note for reviewers:** Some categories (Internal Decisions, Management Requirements, GMP / Regulatory) suggest that discussions may record decisions. Whether a discussion may be cited as a quality decision has not been confirmed.
 
 #### Validation
-- Title is mandatory: `"Discussion title is required."` or `"Title is required."`
-- Content is mandatory: `"Discussion content is required."` or `"Content is required."`
-- Comments cannot be blank: `"Comment content cannot be empty."`
+- "Discussion title is required." / "Title is required."
+- "Discussion content is required." / "Content is required."
+- "Comment content cannot be empty."
+- Attachment problems (too many files, empty file, too large, wrong type, damaged file) are refused with a message that names the problem.
 
 #### Errors
-- If editing an unauthorized post: `"You are not authorized to edit this discussion post."` or `"You are not authorized to modify this discussion post."`
-- If deleting an unauthorized post: `"You are not authorized to delete this discussion post."`
-- If editing an unauthorized comment: `"You are not authorized to edit this comment."`
-- Toast confirmations and errors: `"Marked as important"`, `"Unmarked as important"`, `"Discussion post deleted."`, `"Failed to toggle important status."`, `"Failed to delete discussion post."`, `"Comment added"`, `"Comment updated"`, `"Comment deleted"`.
+- "You are not authorized to edit this discussion post." / "You are not authorized to modify this discussion post."
+- "You are not authorized to delete this discussion post."
+- "You are not authorized to edit this comment."
+- "Failed to create discussion." / "Failed to update discussion."
+- "Failed to toggle important status." / "Failed to delete discussion post." / "Failed to post comment." / "Failed to save comment." / "Failed to delete comment."
+- Confirmations: "Marked as important", "Unmarked as important", "Discussion post deleted.", "Comment added", "Comment updated", "Comment deleted".
+
+<!-- Review log (Sonnet): 18 corrections; invented items removed: the eleven discussion categories (replaced by the real list), "read all" button label (is "Mark all as read"), severity icon and unread dot, "supported formats include", wrong GAP-009 citations (messages/discussions), "moderation authority needed to pin" claim, "real-time" claim, raw notification type names; callouts added: GAP-103, GAP-104, discussion-decision note -->

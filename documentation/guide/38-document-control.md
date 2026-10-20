@@ -10,9 +10,9 @@ Open to all signed-in users. However, because the page queries both document mas
 
 #### What you see
 [SCREENSHOT SS-381]
-The **Document Control Dashboard** (`/document-control`) presents:
+The **Document Control Dashboard** presents:
 - Header title **Document Control Dashboard** with subtitle "Document governance overview, lifecycle metrics, and quality records status".
-- Navigation buttons in the header: **My Reading List**, **Document Library**, and **Register Document** (visible only to users holding the *Document Master Registration* permission, `Documents.Register`).
+- Navigation buttons in the header: **My Reading List**, **Document Library**, and **Register Document** (visible only to users holding the *Document Master Registration* permission; by default: System Administrator, Section Head, Analyst).
 - Six summary metric cards:
   1. **Total Documents**: count of all documents registered in the system catalog, including voided records, with caption "In system catalog".
   2. **Effective Records**: count of active document masters with an active, effective revision, with caption "Active & released".
@@ -29,7 +29,7 @@ The **Document Control Dashboard** (`/document-control`) presents:
   - Empty state displays: "No recent audit events."
   - Header button: **All Events** (navigates to the Document Control Audit Trail).
 
-> **Note for reviewers:** The Document Control Dashboard loads summary counts from the first 100 documents in the catalog and executes a shared query for recent audit trail records; users whose role type cannot access the audit trail (such as Analysts) may see an error alert instead of summary metrics. (GAP-811, GAP-812)
+> **Note for reviewers:** The six counts cover only the first 100 documents in the catalog. The page also asks for recent audit trail events in the same request, so users whose role type cannot query the audit trail (for example Analysts) may see an error message instead of the figures; this was read from the code and has not been observed in the running application. (GAP-811, GAP-812)
 
 ---
 
@@ -43,9 +43,9 @@ Open to all signed-in users. Viewing voided document masters is restricted by th
 
 #### What you see
 [SCREENSHOT SS-382]
-The **Document Library** page (`/document-control/library`) presents:
+The **Document Library** page presents:
 - Header title **Document Library** with subtitle "Authoritative repository of controlled documents, Standard Operating Procedures, and quality records".
-- Header button: **Register New Document** (visible only to users holding `Documents.Register`).
+- Header button: **Register New Document** (visible only to users holding the *Document Master Registration* permission).
 - Filter bar:
   - **Search** box (placeholder "Search code, title, or keywords...")
   - **Document Type** dropdown ("All Types", followed by active types formatted as `{code}: {name}`)
@@ -82,7 +82,7 @@ The **Document Library** page (`/document-control/library`) presents:
 #### Validation
 - If master data lists fail to load, the page displays: "The document types and departments could not be loaded, so those filters are empty. Reload the page to try again."
 
-> **Note for reviewers:** Whether voided document masters appear in the library list for all users when "Show Voided" is enabled requires confirmation; opening a voided master from the list is restricted by server authorization to System Administrators and Section Heads. (GAP-811)
+> **Note for reviewers:** Whether voided document masters appear in the library list for every user when **Show Voided** is switched on has not been confirmed; opening a voided master is allowed only for System Administrators and Section Heads.
 
 ---
 
@@ -96,7 +96,7 @@ Open to all signed-in users. Opening a voided document master requires the Syste
 
 #### What you see
 [SCREENSHOT SS-383]
-The **Document Detail** page (`/document-control/documents/:id`) presents:
+The **Document Detail** page presents:
 - Header card:
   - Navigation button: **Document Library** (returns to catalog)
   - Document identifiers: Company Document Code, document type chip, current status badge (displays "Void" for voided masters, otherwise current revision status), and chip **MIGRATED RECORD** for imported legacy records.
@@ -108,10 +108,10 @@ The **Document Detail** page (`/document-control/documents/:id`) presents:
   - The page displays one prominent button representing the next lifecycle stage:
     - **Upload controlled file**: displayed when the revision is Draft and lacks an active controlled PDF.
     - **Submit for technical review**: displayed when the revision is Draft and has an active controlled PDF.
-    - **Open technical review ({status})**: displayed when a technical review task exists; prominent while status is InReview.
-    - **Assign approver**: displayed when status is AwaitingApproval and no approval task is assigned.
-    - **Open approval workspace ({status})**: displayed when status is AwaitingApproval and an approval task exists.
-    - **Create revision**: displayed when the master has an effective revision and no active draft or workflow revision exists.
+    - **Open technical review ({status})**: displayed when a technical review task exists; prominent while the revision is In Review.
+    - **Assign approver**: displayed when the revision is Awaiting Approval and no approval task is assigned.
+    - **Open approval workspace ({status})**: displayed when the revision is Awaiting Approval and an approval task exists.
+    - **Create revision**: displayed when the master is Active, has an effective revision, no revision is in Draft, In Review or Awaiting Approval, and you are a System Administrator, Section Head, the document owner or an assigned Author.
   - Menu button **More actions** containing contextual actions:
     - **Edit metadata** (editable while in draft)
     - **Replace controlled file** (available in draft when an active PDF exists)
@@ -148,12 +148,12 @@ The **Document Detail** page (`/document-control/documents/:id`) presents:
 Register a new controlled document master record in the catalog, allocate a permanent system sequence number, establish metadata ownership, and create initial Draft Revision 01.
 
 #### Who can use it
-Requires the *Document Master Registration* permission (`Documents.Register`, held by default by System Administrator, Section Head, and Analyst).
+Requires the *Document Master Registration* permission (by default: System Administrator, Section Head, Analyst).
 
 #### Before you start
 - Verify that active Document Types, Departments, and Sections are configured in system master data.
 - Ensure the proposed Company Document Code is unique among all active documents.
-- Identify the Document Owner's system user identifier.
+- Know the Document Owner's user number (the dialog asks for a number, not a name).
 
 #### What you see
 [SCREENSHOT SS-384]
@@ -184,10 +184,10 @@ Clicking **Register Document** on the dashboard or **Register New Document** in 
 7. Upon successful registration, the dialog closes and the system opens the Document Detail workspace for the new record.
 
 #### System behavior
-- The system allocates the next permanent sequence value from `document_number_seq` and formats the MicroLIMS ID using the active numbering configuration (by default, prefix `DOC-` with a 7-digit zero-padded number, e.g. `DOC-0000001`). Once assigned, this ID is permanent and never reissued, even if the master is subsequently voided.
-- The system creates initial Revision 1 in status `Draft`, with revision type `Major`, reason "Initial Document Registration", and initial revision number "01".
-- Initial personnel assignments and keywords are linked atomically in a single database transaction.
-- The action is recorded in the audit trail as `DocumentMasterRegistered`.
+- The system allocates the next permanent sequence number and builds the MicroLIMS ID from the active numbering configuration (by default the prefix "DOC-" followed by a 7-digit zero-padded number, for example "DOC-0000001"). Once assigned, this ID is permanent and never reissued, even if the master is subsequently voided.
+- The system creates the initial revision in status Draft, as a Major revision, with reason "Initial Document Registration", and initial revision number "01".
+- The master, its first revision, any initial personnel assignments and keywords are saved together or not at all.
+- The action is recorded in the audit trail (action code DocumentMasterRegistered).
 
 #### Validation
 - If mandatory fields are omitted in the client: "Company Document Code and Title are required." or "Please complete all mandatory selection fields."

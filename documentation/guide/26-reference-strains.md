@@ -1,134 +1,103 @@
 ## 26. Reference Strains (Reference Cryovials)
 
-MicroLIMS manages laboratory reference strains and working cryovial collections, governing the preparation of working cryovial batches from lyophilized stock materials, physical reference verification, purity and identity confirmation against released culture media, electronic signature authorization, vial thawing tracking, storage relocation, and decommissioning.
+MicroLIMS manages working reference strain cryovial batches. A batch is prepared from a lyophilized microorganism lot in Materials Stock, checked physically against the organism's reference description, confirmed against released media, approved or rejected with a signature, and then used for thawing, storage moves and media evaluation challenges.
 
-MicroLIMS does not track reference-strain passage numbers or generation counts.
+MicroLIMS does not record a passage number or generation count for reference strains.
+
+> **Note for reviewers:** No passage or generation number is recorded for reference strains, and the way a cryovial expiry date is set is not defined. (GAP-037)
 
 ---
 
-### 26.1 Reference Cryovials Overview and Inventory
+### 26.1 Reference Cryovials Overview
 <!-- WF-CRYO-001 -->
 #### Purpose
-Track working reference strain cryovials in the microbiology laboratory, monitor remaining vial counts, review identity confirmation results, and inspect batch lifecycles.
+See the working cryovial batches, their approval status, remaining vials and expiry, and start the actions on a batch.
 
 #### Who can use it
-Requires the *Manage cryovials* permission (`Cryovials.Manage`, by default: Section Head, Reviewer, Analyst, System Administrator).
+Requires the *Cryovial Management* permission (by default: Section Head, Reviewer, Analyst, System Administrator).
 
 #### Before you start
-- Verify that reference organisms are defined in the canonical Organisms master list (§32).
-
-> **Note for reviewers:** No passage or generation number is recorded for reference strains in the application. (GAP-037)
-
-> **Note for reviewers:** Cryovial approval does not check batch expiry or identity-confirmation results. (BR-CRYO-015)
+Make sure the reference organisms exist in the Organisms list (§32).
 
 #### What you see
-- On the navigation sidebar, under **LABORATORIES — Microbiology Laboratory**, click **Reference Cryovials** (`/laboratory-configuration/cryovials`).
-- Page header:
-  - Title: **Cryovials**
-  - Subtitle: "Prepare working cryovial batches from an approved lyophilized microorganism material."
-  - Action button: **Prepare New Batch**.
-- Tabs:
-  - **Cryovials**: operational management table of active, pending, and decommissioned batches.
-  - **Approved Cryovials**: dedicated inventory register of approved, non-destroyed reference strain batches.
-- Table columns:
-  - **Batch Code**: unique reference strain batch identifier.
-  - **Organism**: scientific name and ATCC number.
-  - **Source Material**: source lyophilized stock lot and manufacturer.
-  - **Prepared On**: preparation timestamp and preparer.
-  - **Vials Remaining**: current vial balance versus initial prepared count.
-  - **Storage Location**: cold storage equipment or storage condition text.
-  - **Expiry Date**: lot expiration date.
-  - **Status**: approval status badge (**Pending Review**, **Approved**, or **Rejected**) and destroyed indicator.
-  - **Actions**: row actions (**Approve batch**, **Reject batch**, **Thaw vial**, **Change storage location**, **Destroy (decommission batch)**, and **View laboratory report record**).
+- In the menu, open **LABORATORIES**, then **Microbiology Laboratory**, then **Reference Cryovials**. The page title is **Cryovials** and the subtitle is "Prepare working cryovial batches from an approved lyophilized microorganism material."
+- The button **Prepare Cryovial Batch**, summary tiles, and a filter bar (Organism, Status, Expiry).
+- Tabs **Cryovials** and **Approved Cryovials**.
+- The **Cryovials** table has the columns **Code** (with the storage place), **Organism & Source** (organism, ATCC number, source material and batch), **Status**, **Vials Stock** (for example "9 of 10 vials", with **Depleted** at zero), **Prepared** (date and preparer) and **Expiry** (with **Expired** or **Expiring soon**), and a row action menu.
+- The status shows **Pending Review**, **Approved** or **Rejected**; a destroyed batch shows **Destroyed**.
+- The **Approved Cryovials** tab lists approved, not destroyed batches with the columns **Cryovial Code**, **Organism**, **ATCC No.**, **Manufacturer**, **Storage**, **Vials Remaining**, **Expiry** and **Status**.
 
 [SCREENSHOT SS-261]
 
 #### How to use it
-1. In **Reference Cryovials**, review the list of working strain batches across the **Cryovials** and **Approved Cryovials** tabs.
-2. Use the search and filter controls to locate specific organisms or batch codes.
-3. To view comprehensive analytical details, click the report icon to open the **Cryovial Report** (§26.4).
-4. Perform operational lifecycle tasks using row actions: prepare new batches (§26.2), approve/reject (§26.3), thaw vials, move storage, or decommission (§26.4).
+1. Open **Reference Cryovials** and use the filters to find a batch.
+2. Use the row action menu for the task you need. The actions that appear depend on the batch:
+
+| Action | Shown when |
+|---|---|
+| **Approve batch**, **Reject batch** | The batch is **Pending Review** and not destroyed |
+| **Thaw vial** | The batch is **Approved**, not destroyed, not expired, and has vials left |
+| **Change storage location** | The batch is **Approved** and not destroyed |
+| **Destroy (decommission batch)** | The batch is not destroyed |
+| **View laboratory report record** | Always |
 
 #### System behavior
-- Displays active and historical cryovial batches for the Microbiology Laboratory section.
-- Batches whose expiry date has passed are computed as expired dynamically in the user interface.
-- Action availability rules:
-  - **Approve batch** and **Reject batch** appear while approval status is **Pending Review** and the batch is not destroyed.
-  - **Thaw vial** is available only when the batch is **Approved**, not destroyed, unexpired, and has remaining vials (`> 0`).
-  - **Change storage location** is available when the batch is **Approved** and not destroyed.
-  - **Destroy (decommission batch)** is available for any non-destroyed batch.
+- Expiry is worked out from the expiry date; it is not stored as a status. On the expiry date itself the screen already hides **Thaw vial**, although the system would still accept a thaw on that day.
+- **Approve batch** and **Reject batch** are shown to every user who can manage cryovials. The system refuses the signature if the user does not hold the approval permission (§26.3).
 
 #### Status
-- Approval status: **PendingReview**, **Approved**, or **Rejected**.
-- Decommissioned flag: **Destroyed** (sets `IsDestroyed = true`).
+The approval status is **Pending Review**, **Approved** or **Rejected**. A batch can also be **Destroyed**.
 
 ---
 
-### 26.2 Preparing Working Cryovial Batches
+### 26.2 Preparing a Working Cryovial Batch
 <!-- WF-CRYO-001 -->
 #### Purpose
-Prepare a working cryovial batch from an approved lyophilized microorganism inventory material, log physical identity checks, select storage freezers, and record purity/identity confirmation against released media.
+Prepare a working cryovial batch from a lyophilized microorganism stock lot, record the physical check, the storage freezer and the identity confirmation on released media.
 
 #### Who can use it
-Requires the *Manage cryovials* permission (`Cryovials.Manage`, by default: Section Head, Reviewer, Analyst, System Administrator). Populating inventory stock and equipment pickers requires *Manage materials stock* (`Materials.Manage`) and *Manage equipment inventory* (`Equipment.Manage`).
+Requires the *Cryovial Management* permission (by default: Section Head, Reviewer, Analyst, System Administrator). The stock and freezer lists in the dialog also need *Material Stock Management* and *Equipment Inventory Management* (by default: Section Head, Analyst, System Administrator).
 
 #### Before you start
-- A lyophilized microorganism stock lot must exist in Materials Stock with status **InStock**, linked to a canonical organism, with an active Certificate of Analysis (COA).
-- Released, unexpired culture media lots must be available for identity confirmation.
-- Microbiology cold storage equipment (freezers or deep freezers) with status **InService** must be operational.
+- A lyophilized microorganism stock lot must be in stock in Materials Stock, with an organism set, a current Certificate of Analysis (COA), no expiry in the past and enough discs.
+- At least one released, active, unexpired media lot of your laboratory section must exist for the identity confirmation.
+- An incubator must exist, and an in-service freezer must be registered in Equipment Inventory. Without a freezer the **Save Batch** button stays disabled.
 
-> **Note for reviewers:** Reviewers may be unable to load stock and freezer equipment in the preparation dialog because the pickers require inventory permissions not held by Reviewers by default. (GAP-514)
+> **Note for reviewers:** A Reviewer may be unable to load the stock and freezer lists in this dialog, because by default the Reviewer role does not hold the stock and equipment inventory permissions. (GAP-514)
 
-> **Note for reviewers:** At cryovial preparation, storage equipment is stored as free text and is not validated by the server. (GAP-503)
+> **Note for reviewers:** The freezer is saved only as text, and the system does not check at preparation that it is a freezer, in service, or in the right section. The incubator, start and end dates of the identity rows are also not checked. (GAP-503)
 
-> **Note for reviewers:** Cryovial expiry dates and preparation counts are typed by the user and are not range-checked. (GAP-509)
+> **Note for reviewers:** The expiry date and the vial and disc counts are typed by the user; the system does not derive or range-check them. (GAP-509, GAP-037)
 
 #### What you see
-- In **Reference Cryovials**, click **Prepare New Batch**.
-- Dialog: **Prepare Cryovial Batch**:
-  - **Lyophilized Microorganism Stock (Inventory) \*** dropdown (lists in-stock lyophilized organism lots).
-  - **Vials Prepared \*** (number greater than zero).
-  - **Discs Used \*** (number zero or greater).
-  - **Expiry Date \***.
-  - **Storage Equipment \*** (dropdown of in-service cold storage freezers).
-  - **Physical Check Notes / Discrepancies (optional)**.
-  - Checkbox: **Physical check confirmation against the organism reference description is required. \***
-  - Section: **Identity Confirmation (Released Media)** (table requiring at least one row):
-    - **GPT-released media \*** dropdown.
-    - **Incubator \*** dropdown.
-    - **Incubation start date \*** and **Incubation end date \***.
-    - **Observation notes / description**.
-    - Button **Add Media Row**.
-  - Buttons: **Cancel** and **Save Batch**.
+- Click **Prepare Cryovial Batch**. The dialog **Prepare Cryovial Batch** has two sections.
+- **Section 1: Source & Batch Information**:
+  - **Lyophilized Microorganism Stock (Inventory) \***, with the organism, ATCC number, manufacturer and the **Reference Description (Organism Master Data)**. If the organism has no description, the dialog warns "No reference description configured for this organism. Add one under Laboratory Configuration → Organisms before confirming the physical check."
+  - **Vials Prepared \***, **Discs Used \***, **Expiry Date \***, **Storage Equipment \***;
+  - the checkbox "I confirm the physical characteristics match the reference description above. \*" and **Physical Check Notes / Discrepancies (optional)**.
+- **Section 2: Identity Confirmation Panel** (a table; at least one row): **Media (GPT-released) \***, **Incubator \***, **Start \***, **End \***, **Observation**, and the button **Add Media Row**.
+- Buttons **Cancel** and **Save Batch**.
 
 [SCREENSHOT SS-262]
 
 #### How to use it
-1. Click **Prepare New Batch**.
-2. Select the **Lyophilized Microorganism Stock (Inventory) \***.
-3. Enter the number of **Vials Prepared \*** and **Discs Used \***.
-4. Enter the batch **Expiry Date \***.
-5. Select the **Storage Equipment \*** freezer.
-6. Perform the physical check against the reference morphological description and select the confirmation checkbox.
-7. Under **Identity Confirmation (Released Media)**:
-   - Select a released media lot (**GPT-released media \***).
-   - Select the **Incubator \***.
-   - Enter the **Incubation start date \*** and **Incubation end date \***.
-   - Enter morphological observation notes.
-   - Click **Add Media Row** if confirming across multiple media formulations.
-8. Click **Save Batch**.
-9. The system validates all inputs, consumes the used discs from inventory stock, creates the batch, and displays: `Cryovial batch prepared successfully ({code}).`
+1. Click **Prepare Cryovial Batch**.
+2. Select the lyophilized stock lot and read the reference description.
+3. Enter **Vials Prepared**, **Discs Used** (zero is allowed) and **Expiry Date**, and choose the **Storage Equipment** freezer.
+4. Do the physical check and tick the confirmation checkbox. Add notes about any discrepancy.
+5. In the identity confirmation panel, choose a released media lot, an incubator, the start and end of incubation, and an observation. Click **Add Media Row** for more rows.
+6. Click **Save Batch**.
+7. The system shows "Cryovial batch prepared successfully. Awaiting Section Head approval."
 
 #### System behavior
-- Generates a batch code based on the source material code.
-- Instantiates the batch with approval status **PendingReview** and sets `VialsRemaining` equal to `VialsPrepared`.
-- Deducts the specified `DiscsUsed` from the inventory stock lot.
-- Records the preparing user identity. The preparing user is permanently barred by segregation of duties from later approving the batch.
-- Stores storage equipment as formatted text (`"{instrument type}, {manufacturer} ({code})"`) in the batch record.
-- Cryovial preparation does not prompt for an electronic signature or password.
+- The batch code is the material code, a sequence and the two-digit year, in the same way as media lot numbers.
+- The discs used are deducted from the stock lot in the same save, with the same checks as for media (expiry, current COA, enough stock).
+- The batch starts as **Pending Review** with all prepared vials remaining. It cannot be used until it is approved.
+- The system records who prepared the batch. That person can never approve it.
+- No password or signature is asked at preparation.
 
 #### Validation
-The system validates required entries and biological prerequisites:
+In the dialog:
 - "Please select a Lyophilized Microorganism material."
 - "Please enter a valid number of vials prepared (> 0)."
 - "Please enter the number of discs used (0 or more)."
@@ -140,177 +109,143 @@ The system validates required entries and biological prerequisites:
 - "Row {n}: Please select an incubator."
 - "Row {n}: Please specify the incubation start date."
 - "Row {n}: Please specify the incubation end date."
+
+From the system on saving:
 - "Physical check confirmation against the organism reference description is required."
-- `Material {id} not found.`
-- `Material {name} is not a Lyophilized Microorganism item.`
-- `Set an Organism on material \"{name}\" (Inventory > Materials Stock) before preparing cryovials from it.`
-- `Media {id} not found.`
-- `Media lot {lot} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.`
-- `At least one identity confirmation row is required.`
+- "Material {name} is not a Lyophilized Microorganism item."
+- "Set an Organism on material \"{name}\" (Inventory > Materials Stock) before preparing cryovials from it."
+- "Media lot {lot} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation."
+- "At least one identity confirmation row is required."
 - "Cryovial code {code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again."
+- The stock checks: "Material {name} (batch {batch}) is expired and cannot be used.", the COA message and the "Insufficient stock" message (as in §22.2).
 
 #### Status
-- Approval Status: **PendingReview** (0).
-- Destruction flag: `IsDestroyed = false`.
+A new batch is **Pending Review**.
 
 #### Important rules
-- At least one identity confirmation row on released media is mandatory.
-- The source lyophilized microorganism must have an organism assigned in Materials Stock.
-- Prepared batches remain unusable for testing or thawing until formally approved by an independent Section Head.
+- The identity confirmation media must be released and in your laboratory section. The system does not check whether a media lot has expired; the dialog offers only unexpired lots.
+- Destroyed or rejected batches cannot be used.
 
 #### Errors
 - "Could not prepare cryovial batch."
 
 #### What happens next
-- An authorized Section Head reviews the preparation and identity confirmation data to approve or reject the batch (§26.3).
+A user with the approval permission, other than the preparer, approves or rejects the batch (§26.3).
 
 ---
 
-### 26.3 Cryovial Batch Approval and Rejection
+### 26.3 Approving or Rejecting a Cryovial Batch
 <!-- WF-CRYO-002 -->
 #### Purpose
-Authorize a prepared working cryovial batch for laboratory use through a signed electronic decision, or reject and permanently decommission an unacceptable batch.
+Release a prepared batch for use with a signature, or reject it.
 
 #### Who can use it
-Requires the *Approve cryovial batches* permission (`Cryovials.Approve`, by default: Section Head, System Administrator).
+Requires the *Cryovial Batch Approval* permission (by default: Section Head, System Administrator).
 
 #### Before you start
-- The batch must have approval status **PendingReview** and must not be destroyed.
-- The signing user must satisfy segregation of duties: they cannot be the user who prepared the batch.
+- The batch must be **Pending Review** and not destroyed.
+- You must not be the person who prepared it.
 
-> **Note for reviewers:** Cryovial approval does not verify batch expiry dates or identity-confirmation results on the server. (BR-CRYO-015)
+> **Note for reviewers:** Approval does not check the batch expiry date or the identity confirmation results. Whether the approver must check them is unconfirmed. (GAP-037)
 
 #### What you see
-- In **Reference Cryovials**, locate the batch with status **Pending Review**.
-- In the **Actions** column, click **Approve batch** or **Reject batch**.
-- Dialog: **Electronic Signature**:
-  - Displays signer identity, role, and legal signing statement.
-  - Text area: **Comment (optional)**.
-  - Password field and buttons: **Cancel** and **Sign**.
+- On the **Cryovials** table, the row menu of a **Pending Review** batch has **Approve batch** and **Reject batch**.
+- A signature dialog shows the statement, an optional comment box, a password field, and **Cancel** and **Sign**.
 
 #### How to use it
-To approve a batch:
-1. On the pending batch row, click **Approve batch**.
-2. Review the signature statement: `I am approving Cryovial Batch {code} for laboratory testing and media evaluation.`
-3. Optionally enter a comment.
-4. Enter your password and click **Sign**.
-5. The system validates credentials, marks the batch **Approved**, archives an immutable PDF record, and updates the status badge to **Approved**.
+To approve:
+1. Choose **Approve batch**.
+2. Read the statement: `I am approving Cryovial Batch {code} for laboratory testing and media evaluation.`
+3. Optionally enter a comment. Enter your password and click **Sign**.
+4. The system shows "Cryovial batch {code} has been Approved."
 
-To reject a batch:
-1. On the pending batch row, click **Reject batch**.
-2. Review the signature statement: `I am rejecting and decommissioning Cryovial Batch {code}.`
+To reject:
+1. Choose **Reject batch**.
+2. Read the statement: `I am rejecting and decommissioning Cryovial Batch {code}.`
 3. Enter your password and click **Sign**.
-4. The system marks the batch **Rejected**, sets `IsDestroyed = true`, and archives an immutable PDF record.
+4. The system shows "Cryovial batch {code} has been Rejected."
 
 #### System behavior
-- Verifies that the batch has not already been decided.
-- Enforces segregation of duties: the user who prepared the batch is rejected with: `"You cannot approve a cryovial batch you prepared."`
-- On approval: sets approval status to **Approved** (1).
-- On rejection: sets approval status to **Rejected** (2) and sets `IsDestroyed = true`. Rejection permanently decommissions the batch.
-- Archives an immutable PDF copy of the batch summary in the audit records.
-- Records an electronic signature entry with meaning **Approved** or **Rejected**.
+- The system checks that the batch is still pending and that you are not the preparer, checks your password, and records the electronic signature (approved or rejected) with the comment.
+- It saves a PDF copy of the batch record as an archived record.
+- A rejection also marks the batch as destroyed.
+- The decision is final.
 
 #### Validation
-- `Cryovial batch {code} has already been decided ({status}).`
+- "Cryovial batch {code} has already been decided ({status})."
 - "You cannot approve a cryovial batch you prepared."
 
 #### Status
-- On approval: Approval status changes to **Approved** (1).
-- On rejection: Approval status changes to **Rejected** (2), and `IsDestroyed` becomes true.
+**Pending Review** becomes **Approved**, or **Rejected** with **Destroyed**.
 
 #### Important rules
-- The preparing user can never approve their own cryovial batch.
-- Approved batches become immediately available for thawing and media evaluation challenges.
-- Rejection is final and permanently decommissions the batch.
+- Any other holder of the approval permission can approve, including someone who thawed or moved the batch.
+- An approved batch can be thawed, moved, destroyed, and chosen as the working source in a media evaluation (§22.3).
 
 #### What happens next
-- Approved batches are ready for routine laboratory use, thawing, and storage management (§26.4).
+Thaw, move or destroy as needed (§26.4).
 
 ---
 
-### 26.4 Vial Thawing, Storage Movements, and Decommissioning
+### 26.4 Thawing, Moving and Destroying
 <!-- WF-CRYO-003 -->
 #### Purpose
-Log the controlled thawing of individual reference strain cryovials with an audit reason, relocate batches to different cold storage equipment, or permanently decommission batches.
+Record the use of a vial, change the storage place of a batch, or decommission a batch.
 
 #### Who can use it
-Requires the *Manage cryovials* permission (`Cryovials.Manage`, by default: Section Head, Reviewer, Analyst, System Administrator).
+Requires the *Cryovial Management* permission (by default: Section Head, Reviewer, Analyst, System Administrator).
 
 #### Before you start
-- To thaw: the batch must be **Approved**, unexpired, not destroyed, and have remaining vials (`> 0`).
-- To move storage: the batch must be **Approved** and not destroyed; destination storage must be in-service cold storage.
-- To destroy: the batch must not already be destroyed.
+- Thaw: the batch must be **Approved**, not destroyed, not expired and have vials left.
+- Move: the batch must be **Approved** and not destroyed, and the new place must be in service.
 
-> **Note for reviewers:** The reason for a vial thaw is enforced on the screen only (5 to 500 characters) and the server accepts an empty note. (BR-CRYO-009)
-
-> **Note for reviewers:** Cryovial destruction requires no reason or password and cannot be undone. (GAP-507)
+> **Note for reviewers:** Destroying a batch needs no reason and no password, writes no entry in the review trail, and cannot be undone. (GAP-507)
 
 #### What you see
-- In **Reference Cryovials**, locate the approved batch.
-- Row action icons:
-  - **Thaw vial**: opens `ThawVialReasonDialog`. Displays batch code, organism name, remaining vial count, text area **Reason for thawing this cryovial... \***, and button **Confirm Thaw** (disabled until reason is 5 to 500 characters).
-  - **Change storage location**: opens `MoveCryovialStorageDialog`. Displays destination storage picker, text area **Reason for move \*** (minimum 5 characters), and button **Save**.
-  - **Destroy (decommission batch)**: opens `DestroyCryovialDialog`. Displays warning: "Destroying this cryovial batch will decommission it permanently. It will no longer be available for thawing, Media Evaluation, or GPT testing.", and button **Confirm Destruction**.
+- **Thaw vial** opens **Thaw Vial: Provide Reason**, which shows the batch code, organism and vials left, a text box (hint "Enter reason for thawing this cryovial..."), and **Cancel** and **Confirm Thaw**.
+- **Change storage location** opens **Change Storage Location**, which shows the batch and its current place, a choice of **Storage equipment \*** (cold storage in service, Microbiology section) or **Storage area \***, the box **Reason for move \*** (helper "Recorded in the audit trail."), and **Cancel** and **Move**.
+- **Destroy (decommission batch)** opens **Confirm Batch Destruction** with the warning "Destroying this cryovial batch will decommission it permanently. It will no longer be available for thawing, Media Evaluation, or GPT testing." and the button **Confirm Destruction**.
 
 [SCREENSHOT SS-263]
+
 [SCREENSHOT SS-264]
 
 #### How to use it
-To thaw an individual vial:
-1. In the batch row, click **Thaw vial**.
-2. In the dialog, review the current vial balance.
-3. In the text area, enter the mandatory reason for thawing (e.g., "Inoculation of Media Evaluation SDA Lot SDA/01/26", 5 to 500 characters).
-4. Click **Confirm Thaw**.
-5. The system decrements the remaining vial count by 1, logs the thaw event, and displays: `Vial from {code} successfully thawed and logged.`
+To thaw a vial:
+1. Choose **Thaw vial**.
+2. Enter the reason (5 to 500 characters). **Confirm Thaw** stays disabled until the reason is long enough.
+3. Click **Confirm Thaw**. The system shows "Vial from {code} successfully thawed and logged."
 
-To change storage location:
-1. In the batch row, click **Change storage location**.
-2. Select the new destination freezer from the in-service cold storage list.
-3. Enter the mandatory **Reason for move \*** (minimum 5 characters).
-4. Click **Save**.
-5. The system updates the location, writes a review-trail event with previous and new locations, and displays: `Storage location of cryovial batch {code} changed.`
+To move a batch:
+1. Choose **Change storage location**.
+2. Choose the new place and enter the reason (5 to 500 characters).
+3. Click **Move**. The system shows "Storage location of cryovial batch {code} changed."
 
-To destroy/decommission a batch:
-1. In the batch row, click **Destroy (decommission batch)**.
-2. Review the decommissioning warning.
-3. Click **Confirm Destruction**.
-4. The system decommissions the batch and displays: `Batch {code} has been decommissioned and destroyed.`
+To destroy a batch:
+1. Choose **Destroy (decommission batch)**.
+2. Read the warning and click **Confirm Destruction**.
+3. The system shows "Batch {code} has been decommissioned and destroyed."
 
 #### System behavior
-- Thawing:
-  - Decrements `VialsRemaining` by exactly 1.
-  - Records a `ThawEvent` entry capturing user identity, timestamp, and the reason text.
-  - Does not change the approval status of the batch.
-  - When remaining vials reach zero, further thawing is blocked, but historical traceability remains.
-- Storage relocation:
-  - Verifies the destination equipment is in service.
-  - Records a `StorageLocationChanged` review-trail event documenting acting user, old location, new location, and reason.
-- Destruction:
-  - Sets `IsDestroyed = true`.
-  - Immediately withdraws the batch from thawing, Media Evaluation challenge selection, and active lists.
-  - Destruction requires no password or electronic signature, and cannot be reversed.
+- A thaw reduces the vials remaining by one and records who thawed it and when, with your reason as the note. No password is asked. The 5-character minimum reason is enforced by the dialog; the system itself accepts an empty note.
+- One thawed vial may serve several challenges. Choosing a cryovial batch as a source in a media evaluation does not reduce the vial count.
+- A move saves the old place, the new place and your reason in the review trail.
+- Destruction withdraws the batch from thawing, media evaluation and the approved list.
 
 #### Validation
-The system validates operational conditions:
-- "Please enter a reason for thawing (at least 5 characters)."
-- "Reason must be at least 5 characters."
-- `Cryovial batch {code} is not approved - cannot thaw a vial.`
-- `Cryovial batch {code} has been destroyed and cannot be used.`
-- `Cryovial batch {code} is expired and cannot be used.`
-- `No vials remaining in batch {code}.`
-- `A reason is required to move cryovial storage.`
-- `Exactly one of EquipmentId or LocationText must be provided.`
-- `Cryovial batch {code} is not approved - cannot move storage.`
-- `Cryovial batch {code} has been destroyed and cannot be moved.`
-- `Equipment {code} is not currently in service.`
+- "Cryovial batch {code} is not approved - cannot thaw a vial."
+- "Cryovial batch {code} has been destroyed and cannot be used."
+- "Cryovial batch {code} is expired and cannot be used."
+- "No vials remaining in batch {code}."
+- "A reason is required to move cryovial storage."
+- "Exactly one of EquipmentId or LocationText must be provided."
+- "Cryovial batch {code} is not approved - cannot move storage."
+- "Cryovial batch {code} has been destroyed and cannot be moved."
+- "Equipment {code} is not currently in service."
+- In the dialogs: "Reason must be at least 5 characters."
 
 #### Status
-- Thawing and storage moves do not alter approval status.
-- Decommissioned batches display as **Destroyed**.
-
-#### Important rules
-- Selecting a cryovial as an organism source in Media Evaluation challenges does not decrement the remaining vials count; only the explicit **Thaw vial** procedure logs a vial consumption.
-- Decommissioning a batch is irreversible.
+Thawing and moving do not change the approval status. Destroying sets **Destroyed**. When no vials remain, thawing is refused, but the batch status does not change.
 
 #### Errors
 - "Failed to thaw cryovial."
@@ -318,28 +253,23 @@ The system validates operational conditions:
 - "Failed to destroy cryovial batch."
 
 #### What happens next
-- The cryovial summary report records all historical thaw events, storage relocations, and lifecycle events for audit inspection (§26.5).
+All thaw events and moves appear in the batch record (§26.5).
 
 ---
 
-### 26.5 Cryovial Summary Report
+### 26.5 Cryovial Batch Record
 #### Purpose
-Inspect and print the complete historical dossier of a working reference strain batch, including source lyophilized material details, preparation parameters, purity and identity confirmation results, thaw logs, and electronic signature authorizations.
+Review or print the history of one batch.
 
 #### Who can use it
-Requires the *Manage cryovials* permission (`Cryovials.Manage`, by default: Section Head, Reviewer, Analyst, System Administrator) to view data.
+Requires the *Cryovial Management* permission (by default: Section Head, Reviewer, Analyst, System Administrator) to load the data.
 
 #### What you see
-- Navigated via direct URL (`/cryovials/:id/report`) or clicking **View laboratory report record** in the batch table.
-- Printable summary record displaying:
-  - Batch header: Cryovial code, organism scientific name, ATCC number, preparation date, and preparer name.
-  - Source inventory: Lyophilized material name, stock batch number, manufacturer, and initial disc consumption count.
-  - Vials summary: Total vials prepared, current vials remaining, expiry date, and current storage equipment.
-  - Identity confirmation table: Culture media lots tested, incubators, incubation intervals, and observed morphological characteristics.
-  - Thaw event history: Log of each thawed vial with timestamp, user name, and recorded thaw reason.
-  - Authorization section: Electronic signature details (Approved or Rejected), signer name, role, timestamp, and comments.
+- Choose **View laboratory report record** in the row menu. The record opens in a new tab.
+- It shows: batch identity (code, organism, source material, material batch, manufacturer, expiry), stock and approval (vials prepared and remaining, storage, approval, prepared by, decided by and when), the physical check, the identity confirmation panel, the thaw history (who and when, with the reason), an event timeline, the signatures, the archived copies, and a **Print** button.
 
 #### How to use it
-1. In the **Reference Cryovials** table, click the action icon **View laboratory report record**.
-2. Review the historical record, identity confirmation results, and thaw logs.
-3. Use the browser print dialog to print a physical copy or export to PDF/Word.
+1. Choose **View laboratory report record** for the batch.
+2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
+
+<!-- Review log (Sonnet): 31 corrections; invented items removed: route paths, permission/enum codes and numeric codes, "Prepare New Batch" button name, invented table columns and dialog names, invented "legal signing statement", "Save" button on the move dialog, "Please enter a reason for thawing" message, unsupported report content; callouts added: GAP-037 (approval without expiry check), GAP-503, GAP-509, GAP-514, GAP-507 -->

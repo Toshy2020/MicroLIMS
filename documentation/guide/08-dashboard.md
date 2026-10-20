@@ -1,150 +1,142 @@
 ## 8. Dashboard
 
-### 8.1 Dashboard Variants and Role Routing
-The primary operational overview at `/dashboard` serves as the user's home screen. The system automatically selects which dashboard variant to render based on the user's underlying **base role type** (stored in the JWT claims token):
-- Base role type `SystemAdministrator` opens the **Administrator Command Center**.
-- Base role type `Analyst` opens the **Analyst Dashboard**.
-- Base role type `Reviewer` opens the **Reviewer Command Center**.
-- Base role type `SectionHead` (and any other role type) opens the **Section Head Command Center**.
+### 8.1 Dashboard Variants
+The Dashboard is the home screen after sign-in. MicroLIMS shows one of four dashboards, chosen by the **base role type** of your role (see Section 4):
+- System Administrator: the **Administrator Command Center**.
+- Analyst: the **Analyst Dashboard**.
+- Reviewer: the **Reviewer Command Center**.
+- Section Head, and any other role type: the **Section Head Command Center**.
 
-> **Note for reviewers:** The dashboard variant follows the user's base role type, while underlying data access follows granted permissions and laboratory membership. (GAP-055)
+The data on a dashboard follows your permissions and your laboratory assignment. The Reviewer dashboard needs the *Reviewer Dashboard* permission (by default: System Administrator, Section Head, Reviewer), and the Section Head dashboard needs the *Lab Overview Dashboard* permission (by default: System Administrator, Section Head). The Analyst dashboard is available to users with the Analyst base role type only.
 
-> **Note for reviewers:** "Overdue" has three different meanings on the dashboards; read each tile's rule. (GAP-102)
+Dashboards cannot be exported.
+
+> **Note for reviewers:** The dashboard variant follows the base role type, while the data follows the permissions and laboratory assignment, so a custom role can see a dashboard that does not match its permissions. (GAP-055)
 
 #### Laboratory Tabs
-If you hold active membership in more than one laboratory section (e.g. both `MICRO` and `FP`), the dashboard displays laboratory tabs at the top of the screen (labeled **Microbiology Laboratory** and **Physicochemical Laboratory**). Switching tabs appends the `?lab=` query parameter and filters all dashboard metrics to the selected laboratory. Users assigned to a single laboratory do not see these tabs.
+If you are assigned to more than one laboratory, tabs named **Microbiology Laboratory** and **Physicochemical Laboratory** appear at the top. Each tab limits the figures to that laboratory. Users assigned to one laboratory do not see the tabs.
 
-#### Common Error and Empty States
-- If dashboard data cannot be retrieved from the server, the interface presents: `"Dashboard could not be loaded"`.
-- If no data has been generated yet for the laboratory, the screen displays: `"No dashboard data is available yet."`
+#### Clicking a Tile
+Clicking a tile opens the laboratory workspace already filtered to the samples or tests that the tile counts (the Prep configs pending tile opens the Items configuration).
+
+#### Empty and Error States
+- "Dashboard could not be loaded" when the data cannot be retrieved.
+- "No dashboard data is available yet." when there is nothing to show.
 
 ---
 
 <!-- SCR-DASH-001 -->
 ### 8.2 Administrator Command Center
 #### Purpose
-Provide system administrators with global operational metrics, queue volumes, pending configuration approvals, and system-level turnaround indicators.
+Show system administrators the totals and queues across the laboratories in their scope.
 
 #### Who can use it
-Users whose base role type is `SystemAdministrator`.
+Users with the System Administrator base role type.
 
 #### What you see
-- Heading: **Administrator Command Center**.
-- Action button: **Refresh**.
-- Operational Metric Tiles (in order):
-  1. **Total samples**: All-time total count of samples registered in the database.
-  2. **Total tests**: All-time total count of test orders created across all samples.
-  3. **Pending tests**: Number of active test orders currently undergoing preparation or testing (clicking links to `?status=Active`).
-  4. **Review queue** (caption "samples"): Number of samples currently awaiting technical review (clicking links to `?status=UnderReview`).
-  5. **Approval queue** (caption "samples"): Number of samples currently awaiting release approval (clicking links to `?status=UnderApproval`).
-  6. **Prep configs pending**: Number of item preparation configurations awaiting Section Head authorization. This tile appears only when the count is greater than zero, linking to `/laboratory-configuration/items`.
-  7. **Overdue (>24h)**: Number of active tests open more than 24 hours after sample receipt (clicking links to `?urgency=overdue`).
+The heading **Administrator Command Center** and the button **Refresh**. The tiles, in order:
+1. **Total samples**: all samples ever registered (not only today's).
+2. **Total tests**: all test orders ever created (not only today's).
+3. **Pending tests**: open test orders (not yet completed).
+4. **Review queue** (caption "samples"): sections waiting for technical review.
+5. **Approval queue** (caption "samples"): sections waiting for the release decision.
+6. **Prep configs pending**: item preparation configurations waiting for approval. This tile appears only when the count is above zero, and opens the Items configuration.
+7. **Overdue (>24h)**: open test orders on samples that were received more than 24 hours ago.
 
 [SCREENSHOT SS-081]
 
-> **Note for reviewers:** Administrator "Total samples/tests" are all-time counts; Reviewer "Due today" counts submissions made today. (GAP-105, GAP-106)
+> **Note for reviewers:** "Total samples" and "Total tests" are all-time counts, not counts for today. (GAP-106)
+
+> **Note for reviewers:** "Overdue" has three different meanings on the dashboards. Here it counts from sample receipt; on the Section Head dashboard it uses the 7-day analyst deadline; on the Reviewer dashboard it counts time in review. Read each tile's rule. (GAP-102)
 
 #### System behavior
-- Tiles display live database counts loaded via `/api/dashboard` and `/api/dashboard/kpi-deltas`. Clicking any tile navigates directly to the workspace filtered by that workload or status parameter.
+The tiles show current counts. Samples with several sections can be counted once per section in the queue tiles.
 
 #### Errors
-- If the service fails to respond, the screen displays: `"The dashboard service did not respond. Your data has not been changed."`
+- "The dashboard service did not respond. Your data has not been changed."
 
 ---
 
 <!-- SCR-DASH-002 -->
 ### 8.3 Analyst Dashboard
 #### Purpose
-Guide laboratory analysts through their daily work priorities, assigned tests, upcoming incubation readings, and critical attention items.
+Show analysts their work for the day, their recent performance, and items that need attention.
 
 #### Who can use it
-Users whose base role type is `Analyst`.
+Users with the Analyst base role type.
 
 #### What you see
-- Welcome banner: **Welcome back, {name}**.
-- Subtitle: "Your prioritized work in the {lab name} for today." (or "Your prioritized work for today.").
-- Action buttons: **Refresh** and a direct link button to open the laboratory workspace.
-- **My Operational Performance** panel:
-  - **On-Time Reading Rate**: Percentage of incubation readings taken within the validated grace window (Microbiology tab only; defaults to 100% when no data exists).
-  - **7-Day Completed Volume**: Number of test orders completed by you in the last 7 days.
-  - **Active Assigned Orders**: Number of open test orders currently assigned to you.
-- **Completed Today** panel:
-  - **Tests Completed**: Total tests finished by you today.
-  - **Media Lots Prepared**: Total media lots prepared by you today.
-- **Attention Required** panel:
-  - Lists up to 5 media lots expiring within 5 days (Microbiology tab only), displayed as "{media type} · Lot {lot}", "Expires in {n} day(s)", with chip **Expiring**, linking to `/laboratory-configuration/media`.
-  - Lists up to 5 personal attention notifications (excluding general review/approval queues) with relative timestamps ("just now", "{n} min ago", "{n} hr(s) ago", "{n}d ago").
-  - Empty state: `"No active attention alerts. All conditions normal."`
-- **Today's Laboratory Work** table:
-  - Columns: **Sample / Reference**, **Category**, **Tests**, **Received At**, **Status**, and **Next Action**.
-  - Includes a quick filter and a **View all** link. Empty state: `"No work matches this filter."`
-- **Incubation Observation Panel** (Microbiology only):
-  - Displays currently running incubations and expected completion times. Empty state: `"No active incubations running."`
+- The banner **Welcome back, {name}** and the subtitle "Your prioritized work in the {lab name} for today." (or "Your prioritized work for today."), the button **Refresh**, and a link to the laboratory workspace. If part of the data cannot be loaded, an alert with a **Retry** button appears.
+- **My Operational Performance**:
+  - **On-Time Reading Rate** (Microbiology only): the share of your completed incubations that were read within 4 hours after the expected reading time. It shows 100 when you have no completed incubations.
+  - **7-Day Completed Volume**: results and readings you entered in the last 7 days.
+  - **Active Assigned Orders**: orders assigned to you that are pending, in progress, or marked for retest.
+- **Completed Today**: **Tests Completed** (results and readings you entered today) and **Media Lots Prepared** (lots you prepared today).
+- **Attention Required**: up to 5 media lots that expire within 5 days (Microbiology only), each shown as "{media type} · Lot {lot}" with "Expires in {n} day(s)" and the label **Expiring**, then up to 5 of your notifications (not including the review and approval waiting notices), each with its age ("just now", "{n} min ago", "{n} hr(s) ago", "{n}d ago"). When there is nothing: "No active attention alerts. All conditions normal."
+- **Today's Laboratory Work**: a table with the columns **Sample / Reference**, **Category**, **Tests**, **Received At**, **Status**, and **Next Action**, a filter, and a **View all** link. When the filter finds nothing: "No work matches this filter."
+- An incubation panel (Microbiology only). When none is running: "No active incubations running."
 
 [SCREENSHOT SS-082]
 
-> **Note for reviewers:** Analyst "On-Time Reading Rate" shows 100 when there is no data. (BR-DASH-010)
+> **Note for reviewers:** The "On-Time Reading Rate" shows 100 when there is no data, so it cannot be told apart from a real 100.
 
 #### System behavior
-- The dashboard loads your specific assignments via `/api/dashboard/my-tasks` and `/api/dashboard/analyst-metrics`. Attempting to access these endpoints from a non-Analyst role type returns HTTP 403 Forbid.
+Only users with the Analyst base role type can load the Analyst dashboard figures.
 
 ---
 
 <!-- SCR-DASH-003 -->
 ### 8.4 Reviewer Command Center
 #### Purpose
-Provide technical reviewers with queue visibility for submitted results requiring scientific review, delayed reviews, and in-progress retests.
+Show reviewers the samples waiting for technical review, reviews that have waited too long, and retests in progress.
 
 #### Who can use it
-Users whose base role type is `Reviewer` (or holding `Dashboards.Review`).
+Users with the Reviewer base role type. The figures need the *Reviewer Dashboard* permission.
 
 #### What you see
-- Header with review queue summary metrics.
-- Queue Tiles:
-  1. **Pending review** (caption "samples"): Number of sample sections ready for secondary technical verification (links to `?status=UnderReview`).
-  2. **Overdue review** (caption "in review >24 hours"): Samples that have remained in review status for longer than 24 hours without sign-off (links to `?status=UnderReview&workload=reviewOverdue`).
-  3. **Due today** (caption "submitted today"): Samples submitted for review during the current calendar day (links to `?status=UnderReview`).
-  4. **Retests in progress**: Samples where retesting was initiated following an out-of-specification or investigative finding (links to `?workload=retestInProgress`).
-  5. **Completed today** (caption "by you"): Number of sample reviews completed and signed by you today.
-- Empty states:
-  - If no reviews are waiting: `"No samples are currently waiting for scientific review."`
-  - If no recent completions exist: `"No recent review history."`
+Five tiles:
+1. **Pending review** (caption "samples"): sections waiting for technical review.
+2. **Overdue review** (caption "in review >24 hours"): reviews waiting for more than 24 hours.
+3. **Due today** (caption "submitted today"): reviews that were submitted today.
+4. **Retests in progress**: samples with a retest in progress.
+5. **Completed today** (caption "by you"): reviews you completed today.
+
+Empty states: "No samples are currently waiting for scientific review." and "No recent review history."
 
 [SCREENSHOT SS-083]
 
+> **Note for reviewers:** "Due today" counts the reviews submitted today. It does not show the reviews that are due today. (GAP-105)
+
 #### System behavior
-- Clicking any tile navigates directly to the laboratory workspace with the matching status and workload filters applied.
+Clicking a tile opens the laboratory workspace with the matching filter.
 
 ---
 
 <!-- SCR-DASH-004 -->
 ### 8.5 Section Head Command Center
 #### Purpose
-Enable Section Heads to monitor full laboratory throughput, pipeline bottlenecks, overdue testing, final release authorizations, and overall team volume.
+Show Section Heads the laboratory workload, the stages of the pipeline, overdue work, and the analysts' status.
 
 #### Who can use it
-Users whose base role type is `SectionHead` (or holding `Dashboards.LabOverview`).
+Users with the Section Head base role type, and any other base role type that has no dashboard of its own. The figures need the *Lab Overview Dashboard* permission.
 
 #### What you see
-- Operational Overview Tiles (Row 1):
-  - **Active tests**: Total test orders currently open (links to `?status=Active`).
-  - **Incubating**: Tests currently in incubation (links to `?view=kanban`).
-  - **Ready to read**: Tests that have completed incubation and await plate reading (links to `?testStatus=ReadyToRead`).
-  - **Pending review**: Samples awaiting technical review (links to `?status=UnderReview`).
-  - **Pending approval**: Samples awaiting final release authorization (links to `?status=UnderApproval`).
-  - **Overdue**: Tests delayed beyond 24 hours from sample receipt (links to `?urgency=overdue`).
-  - **Attention items**: Urgent alerts requiring supervisor intervention.
-- Pipeline Progress Strip:
-  - Visual stage sequence: **Incubation** > **Ready to Read** > **Scientific Review** > **Final Approval**.
-- Lists and Queues:
-  - Samples awaiting technical review. Empty: `"No results awaiting scientific review."`
-  - Samples awaiting final release authorization. Empty: `"No samples awaiting final authorization."`
-  - Analyst status list. Empty: `"No active laboratory analysts found."`
-- Charts:
-  - **Samples Received Trend**: Historical volume chart.
-  - **Test Order Status**: Donut chart displaying proportion of tests across lifecycle stages (empty state: `"No data yet."`).
+- Tiles:
+  - **Active tests**: open tests that are not superseded.
+  - **Incubating**: open incubations that are not yet ready to read.
+  - **Ready to read**: open incubations whose reading time has come.
+  - **Pending review** and **Pending approval**: sections waiting for the technical review or the release decision.
+  - **Overdue**: samples still with the analyst after the 7-day analyst deadline.
+  - **Attention items**: overdue samples, retests in progress, and review or approval waits of 24 hours or more, added together.
+- A pipeline strip with the stages **Incubation**, **Ready to Read**, **Scientific Review**, and **Final Approval**.
+- Lists: samples awaiting scientific review ("No results awaiting scientific review."), samples awaiting final authorization ("No samples awaiting final authorization."), and laboratory analysts ("No active laboratory analysts found.").
+- Charts: **Samples Received Trend** and **Test Order Status** (a donut chart; empty: "No data yet.").
 
 [SCREENSHOT SS-084]
 
+> **Note for reviewers:** "Overdue" on this dashboard uses the 7-day analyst deadline and differs from the "Overdue" tiles on the other dashboards. (GAP-102)
+
 #### Errors
-- If the service fails to respond, the screen displays: `"The dashboard service did not respond. No laboratory data has been changed."`
+- "The dashboard service did not respond. No laboratory data has been changed."
+
+<!-- Review log (Sonnet): 20 corrections; invented items removed: JWT/endpoint/query-parameter wording, "validated grace window", Overdue tile meaning for Section Head (was 24 h from receipt; actual is 7-day analyst deadline), retest cause "out-of-specification or investigative finding", "Dashboards.Review/LabOverview" as role selectors, "Section Head authorization" for prep configs, unsupported incubation panel details; callouts added: GAP-055, GAP-102 (x2), GAP-105, GAP-106, on-time rate default -->

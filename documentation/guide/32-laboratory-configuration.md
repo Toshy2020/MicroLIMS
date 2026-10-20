@@ -1,6 +1,6 @@
 ## 32. Laboratory Configuration (Organisms, Receiving Configuration, Master Data Workbook)
 
-MicroLIMS provides shared master data configuration interfaces that support laboratory-wide operations across Microbiology and Physicochemical sections. These include the canonical **Organisms** catalog referenced across challenge testing, stock materials, and test steps; **Receiving Configuration** reference lists governing sample intake metadata; and the **Master Data Workbook** onboarding engine for bulk data import, dry-run checking, electronically signed loading, and independent second-person verification.
+MicroLIMS provides shared master data configuration interfaces that support laboratory-wide operations across Microbiology and Physicochemical sections. These include the canonical **Organisms** catalog referenced across challenge testing, stock materials, and test steps; **Receiving Configuration** reference lists governing sample intake metadata; and the **Master Data Workbook** for adding many master records at once, with a check before loading, a signed load and verification by a second person.
 
 ---
 
@@ -48,11 +48,11 @@ Maintain the canonical microorganism repository (scientific name, ATCC catalog n
 
 #### System behavior
 - Scientific names are unique, compared case-insensitively across the catalog.
-- Updating an organism checks the record version to prevent concurrent overwrite collisions.
+- If another user changed the organism while you were editing it, your save is refused (see Validation).
 - Deleting an organism is refused if it is referenced by Media Configuration Challenges, Media Evaluation Challenges, Reference Cryovials, or Materials Stock lots.
-- Organism creation, update, and deletion are audited in the general record-change log; no electronic signature password or change reason is required.
+- Organism creation, change and deletion are recorded in the audit trail; no electronic signature or reason is required.
 
-> **Note for reviewers:** Deleting an organism that is targeted by a Test Master workflow step is refused by a database constraint with the generic error message "An unexpected error occurred." (GAP-420)
+> **Note for reviewers:** Deleting an organism that is the target of a Test Master workflow step is refused, but the screen shows only the generic message "An unexpected error occurred." (GAP-420)
 
 #### Validation
 - Client validations:
@@ -85,7 +85,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - Three configuration cards:
   1. **Samplers**:
      - Caption: "Offered as suggestions in the “Sampled By” field. Analysts can still type a name that isn’t listed."
-     - Input field: **Sampler name** (placeholder "e.g. Ahmed Reda"), button **Add** (or **Save** / **Cancel** during renaming).
+     - Input field: **Sampler name**, button **Add** (or **Save** / **Cancel** during renaming).
      - Row actions: **Rename**, **Delete**.
      - Delete confirmation: "Delete \"{name}\" from Samplers? Samples already recorded with this name keep it; only the suggestion list changes."
   2. **Cause of Testing**:
@@ -125,7 +125,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - The sampler list operates as a suggestion picklist on receiving forms; analysts can still enter unlisted sampler names manually.
 - Cause of testing is mandatory on every received sample. Deleting a cause referenced by any sample is strictly blocked.
 - Production stages appear exclusively when receiving Finished Product samples.
-- Changes to receiving lists are recorded in the general audit log; no electronic signature password or change reason is required.
+- Changes to receiving lists are recorded in the audit trail; no electronic signature or reason is required.
 
 > **Note for reviewers:** Deleting a production stage removes the stage link from existing samples and can change which stage-specific specification rows and replicate counts apply to them. (GAP-709)
 
@@ -138,8 +138,8 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - "Production Stage \"{name}\" already exists."
 - "Cannot delete '{name}' - it is referenced by {n} sample(s)."
 - "Sampler {id} not found."
-- "Cause of testing {id} not found."
-- "Production stage {id} not found."
+- "Cause of Testing {id} not found."
+- "Production Stage {id} not found."
 
 #### Status
 - All active reference list entries are offered on sample intake forms.
@@ -166,7 +166,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - Button **Choose file** (accepts `.xlsx`), file status label (`{file.name}` or "No file chosen").
   - Button **Check file** / **Checking...** (executes non-committing dry run).
   - Button **Load and sign** (disabled until a clean check report exists).
-- Validation Report tables (**WorkbookReportTable**):
+- Validation report tables:
   - Table 1 (**Rows per sheet**): Columns **Sheet**, **New**, **Unchanged**, **Errors**.
   - Table 2 (**Problems to fix**): Header "{N} problem(s) to fix in the workbook", Columns **Sheet**, **Row**, **Column**, **Problem**.
 
@@ -174,7 +174,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 
 #### How to use it
 1. Navigate to **General Laboratory Configuration** > **Master Data Workbook**.
-2. Click **Download workbook**. The system generates and downloads `MicroLIMS-master-data-{yyyy-MM-dd}.xlsx` containing 12 data sheets populated with existing active master data, an Instructions sheet, and data validation dropdowns.
+2. Click **Download workbook**. The system generates and downloads `MicroLIMS-master-data-{yyyy-MM-dd}.xlsx` containing 12 data sheets populated with the records already in MicroLIMS, an Instructions sheet, and data validation dropdowns.
 3. Open the workbook in Excel and append new records beneath existing rows on sheets 1 through 10. Do not edit existing rows.
 4. Return to MicroLIMS, click **Choose file**, and select the updated `.xlsx` file.
 5. Click **Check file**.
@@ -187,7 +187,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - The workbook engine is strictly add-only: attempting to alter values on existing records triggers conflict errors ("Already in MicroLIMS with different values in: {columns}. The workbook only adds records - change it in its screen.").
 - Maximum allowed file size is 10 MB.
 - Maximum number of newly added rows across the entire workbook is 5,000.
-- The dry-run validation executes inside a database transaction with per-row savepoints and rolls back completely; no records are altered or saved during a check.
+- A check goes through every row as if loading it, then undoes everything: no records are created or changed by a check.
 - The downloaded workbook filters Material Master rows to the laboratory sections accessible to the user; other sheets export global records.
 
 #### Validation
@@ -204,7 +204,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 ### 32.4 Master Data Workbook: Signed Load and Second-Person Verification
 <!-- WF-WORKBOOK-001, WF-WORKBOOK-002 -->
 #### Purpose
-Commit validated master data workbooks into the database using an electronic signature, enforce mandatory second-person verification, and activate newly imported catalog items and materials.
+Load checked master data workbooks using an electronic signature, enforce mandatory second-person verification, and activate newly imported catalog items and materials.
 
 #### Who can use it
 - **Loading and signing a workbook**: Requires the *Manage master data* permission (by default: Section Head, System Administrator).
@@ -215,15 +215,15 @@ Commit validated master data workbooks into the database using an electronic sig
 - The second-person verifier must have access to approved source documentation to inspect uploaded records offline.
 
 #### What you see
-- Button: **Load and sign** (color "success"; enabled when check report has zero errors).
+- Button: **Load and sign** (enabled only when the last check of the chosen file had no errors).
 - Section 2: **2. Loads and verification**:
   - Register table displaying previous loads:
     - Columns: **Loaded** (timestamp), **Loaded by** (full name), **File** (button to re-download stored file), **New records** (total created count), **Status** (**Waiting for verification** or **Verified by {name}**), **Actions** (**Verify** button).
   - Empty state: "No workbook loads yet — Check a workbook above, then load and sign it."
-- **Electronic Signature** dialog for Loading:
+- **Electronic Signature** dialog for loading:
   - Statement: "I am loading this master data workbook into MicroLIMS."
   - Inputs: **Comment (optional)**, **Password \***, buttons **Cancel**, **Sign**.
-- **Electronic Signature** dialog for Verification:
+- **Electronic Signature** dialog for verification:
   - Statement: "I verified this load against the approved source documents." (If loaded items lack specifications, the dialog appends: "Note: these items have no specifications yet and will become usable: {itemCodes}.").
   - Inputs: **Comment (optional)**, **Password \***, buttons **Cancel**, **Sign**.
 
@@ -235,7 +235,7 @@ Commit validated master data workbooks into the database using an electronic sig
 2. In the Electronic Signature dialog, review the statement "I am loading this master data workbook into MicroLIMS."
 3. Optionally enter an audit comment (e.g., change control authorization or protocol number).
 4. Enter your system password and click **Sign**.
-5. The system records the signature `MasterDataChanged`, executes the import, and sets the load status to **Waiting for verification**.
+5. The system records your electronic signature (meaning: master data changed), loads the workbook, and sets the load status to **Waiting for verification**.
 6. The screen confirms: "Workbook loaded. A second person must now verify it."
 
 ##### Verifying Master Data (Second Person):
@@ -246,11 +246,11 @@ Commit validated master data workbooks into the database using an electronic sig
 5. If the load is verified, click **Verify** on the register row.
 6. In the Electronic Signature dialog, review the verification statement.
 7. Enter an optional comment and your system password, then click **Sign**.
-8. The system records the signature `Reviewed`, changes the status to **Verified**, and activates newly imported items and materials. The screen confirms: "Load of {fileName} verified. Its items are now active."
+8. The system records your electronic signature (meaning: reviewed), changes the status to **Verified**, and activates newly imported items and materials. The screen confirms: "Load of {fileName} verified. Its items are now active."
 
 #### System behavior
-- **Pre-execution signature**: The electronic signature (`MasterDataChanged`) is verified and captured before row processing begins; an incorrect password stops execution immediately.
-- **Atomic rollback**: If any error occurs while committing rows during a signed load, the entire transaction rolls back completely; no partial master data is saved.
+- **Signature first**: your password is checked before any row is loaded; a wrong password stops the load.
+- **All or nothing**: if any row fails during a signed load, nothing is loaded.
 - **Activation states**:
   - Organisms, departments, rooms, water points, equipment, media products, and production stages become active immediately upon load completion.
   - Items and Material Master entries are created in status **Inactive** (frozen / unavailable for sample receipt or testing) until second-person verification is completed.
@@ -269,7 +269,6 @@ Commit validated master data workbooks into the database using an electronic sig
   - "Password verification failed. The signature was not applied."
   - "Too many failed signature attempts. Wait {n} minutes, then try again. The signature was not applied."
   - "Nothing was loaded: the workbook has problems to fix."
-  - "The workbook load must run inside a transaction."
 - Verification validations:
   - "Master data import {id} not found."
   - "This load has already been verified."
@@ -278,4 +277,4 @@ Commit validated master data workbooks into the database using an electronic sig
   - "Password verification failed. The signature was not applied."
 
 #### Status
-- Master data import status: **Waiting for verification** (`Loaded`), **Verified** (`Verified by {name}`).
+- Workbook load: **Waiting for verification** (after the signed load) and **Verified by {name}** (after the second person signs). There is no way back from verified and no rejected status.

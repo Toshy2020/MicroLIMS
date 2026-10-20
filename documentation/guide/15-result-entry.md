@@ -3,224 +3,176 @@
 ### 15.1 Single-Test Incubation and Media Selection
 <!-- WF-COUNT-001 -->
 #### Purpose
-Select an approved media lot and an eligible incubator to initiate plate incubation for a single microbiological count test after sample preparation has been confirmed.
+Choose a released media lot and a suitable incubator to start the plate incubation of one microbiological count test after preparation is confirmed.
 
 #### Who can use it
-Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head).
+Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
 
 #### Before you start
-- The sample must be prepared (preparation status **Ready**). FP-section tests are exempt from preparation.
-- An item specification for the test must exist, defining reporting units and limits.
-- Step medium incubation hours and temperatures must be configured in the Test Master.
-- A released media lot belonging to the active laboratory section's material stock must be available.
-- An operational incubator with an active calibration and set point temperature matching the medium's temperature range must be available.
+- The sample is prepared. Tests of the FP section need no preparation.
+- The item's specification for the test has a reporting unit and (for Product, Raw Material and Packaging Material) a dilution factor; limits are needed to get a limit status.
+- The incubation hours and temperatures of the step medium are configured in the Test Master.
+- A released media lot of your laboratory section's material is available.
+- An incubator with a calibrated set point inside the medium's temperature range and a current calibration is available.
 
 #### What you see
-- Dialog title: **{testCode} Workflow** (subtitle: "{ref} · {sample name} · TO #{testOrderId}").
-- Step phase: **select-media**
-  - Informational requirement: "Requires {names or 'an approved'} media."
-  - Incubation specification: "Required Temperature (Stage 1): {min}-{max} °C, Incubation Period: {h}-{h} hours"
-  - Media selection dropdown: aria "Media batch" (placeholder: "Media Batch ({names} lots only)"; options formatted as "{lotNumber}, expires {date}").
-  - Incubator selection dropdown: aria "Stage 1 Incubator" (placeholder: "Stage 1 Incubator ({min}-{max} °C)"; options formatted as "{name} ({code}), {setPoint}°C").
-  - Warning banner (if no incubator matches): "No incubator is set to {min}-{max} °C for this step."
-  - Action button: **Start Incubation** (disabled until both media batch and incubator are selected).
+Dialog **{testCode} Workflow** with the subtitle "{ref} · {sample name} · TO #{testOrderId}", at the media selection step:
+- "Requires {names or 'an approved'} media."
+- "Required Temperature (Stage 1): {min}-{max} °C, Incubation Period: {h}-{h} hours"
+- Media dropdown, placeholder "Media Batch ({names} lots only)"; entries read "{lotNumber}, expires {date}".
+- Incubator dropdown, placeholder "Stage 1 Incubator ({min}-{max} °C)"; entries read "{name} ({code}), {setPoint}°C".
+- If no incubator fits: "No incubator is set to {min}-{max} °C for this step."
+- Button **Start Incubation**, enabled once both are chosen.
 
 [SCREENSHOT SS-151]
 
 #### How to use it
-1. In the workspace, select the sample and locate the test order in the **Assigned Tests** section.
-2. Click **Open Workflow** on the test order card to open the **{testCode} Workflow** dialog.
-3. In the **Media batch** dropdown, select an approved, released media lot.
-4. In the **Stage 1 Incubator** dropdown, select an incubator whose calibrated set point falls within the required temperature range.
+1. Select the sample and find the test under **Assigned Tests**.
+2. Click **Open Workflow** on the test card.
+3. Choose the media lot.
+4. Choose an incubator whose set point is inside the required range.
 5. Click **Start Incubation**.
-6. Verify that the dialog transitions to the **awaiting-result** phase displaying: "Incubation in progress".
+6. Check that the dialog shows "Incubation in progress".
 
 #### System behavior
-- Workflow state progression:
-  - Test order workflow step advances from **Waiting** to **Incubating**, and test order status changes from **Pending** to **InProgress**.
-  - If the sample was in **Received** status, its overall status advances to **Under Testing**.
-- Incubation record creation:
-  - The system creates an incubation audit record logging the start time, expected reading time (`StartedAt + MinHours`), media lot identifier, incubator equipment code, stage number (Stage 1), and operating user.
-- Electronic signature:
-  - Selecting media and starting incubation does not require an electronic signature.
+- The test changes from waiting to **Incubating** (In Progress). If the sample was **Received**, it becomes **Under Testing**.
+- The system records the incubation: start time, expected reading time (start plus the minimum incubation hours), media lot, incubator, stage (Stage 1) and the user.
+- No electronic signature is needed.
 
 #### Validation
-The system enforces the following exact validation rules:
-- Preparation gate:
-  - "Test Preparation must be completed and confirmed for sample {ref} before incubation can be started for step \"{step}\"."
-- Media checks:
-  - "Media lot \"{lot}\" is not released for use, out of stock, or rejected."
-  - "This step requires a different medium. The selected lot is {name}."
-  - "Step \"{step}\" has no media configured in Test Master."
-  - "Media lot \"{lot}\" was prepared from another laboratory section's material and cannot be used for this test."
-- Incubator checks:
-  - "The selected incubator's set point is outside this medium's temperature range."
-  - "Incubator \"{code}\" has no calibrated set point temperature."
-  - "Incubator \"{code}\" calibration expired on {date}."
-- Window configuration:
-  - "The incubation window for {medium} on step {step} is not configured - set its incubation hours and temperature in Test Master."
-- Workflow sequence:
-  - "Workflow order violation: step \"{a}\" must be completed before \"{b}\"."
-  - "Media has already been selected for step \"{step}\" - awaiting its result."
+- "Test Preparation must be completed and confirmed for sample {ref} before incubation can be started for step \"{step}\"."
+- "Media lot \"{lot}\" is not released for use, out of stock, or rejected."
+- "This step requires a different medium. The selected lot is {name}."
+- "Step \"{step}\" has no media configured in Test Master."
+- "Media lot \"{lot}\" was prepared from another laboratory section's material and cannot be used for this test."
+- "The selected incubator's set point is outside this medium's temperature range."
+- "Incubator \"{code}\" has no calibrated set point temperature."
+- "Incubator \"{code}\" calibration expired on {date}."
+- "The incubation window for {medium} on step {step} is not configured - set its incubation hours and temperature in Test Master."
+- "Workflow order violation: step \"{a}\" must be completed before \"{b}\"."
+- "Media has already been selected for step \"{step}\" - awaiting its result."
 
-> **Note for reviewers:** The single-test media selection path verifies that the lot is released for use, not out of stock, and not rejected, but does not enforce a server-side check of the media lot expiry date. (GAP-220)
+> **Note for reviewers:** When one test is started, the system checks that the lot is released but not the lot's expiry date; the grouped action checks both. (GAP-220)
 
 #### Status
-- Test order workflow step transitions to **Incubating**.
-- Test order status updates to **InProgress**.
-- Sample status moves from **Received** to **Under Testing**.
+The test is **Incubating** (In Progress); the sample is **Under Testing**.
 
 #### Errors
 - "Could not start incubation for this step."
 - "Could not load this test's workflow."
 
 #### What happens next
-Plates remain in the incubator. The test dialog enters the awaiting-result phase, displaying the temperature range, duration, and expected reading date and time.
+The plates stay in the incubator. The dialog shows the temperature range, duration and expected reading time.
 
 
 ### 15.2 Two-Stage Incubation Transfer
 <!-- WF-COUNT-001 -->
 #### Purpose
-Transfer incubating plates from Stage 1 incubation to a second incubator for Stage 2 incubation when performing two-stage count test workflows.
+Move the plates of a two-stage count test from the first incubator to a second one for the Stage 2 incubation.
 
 #### Who can use it
-Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head).
+Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
 
 #### Before you start
-- Stage 1 incubation must have elapsed its configured minimum incubation duration (or a supervisor must have executed **Skip Wait**).
-- The test template in the Test Master must have an active Stage 2 configuration specifying Stage 2 incubation hours and temperature range.
-- An eligible Stage 2 incubator must be available.
+- Stage 1 has reached its minimum incubation time, or a supervisor used **Skip Wait**.
+- The test has a Stage 2 configuration in the Test Master (hours and temperature range).
+- A suitable Stage 2 incubator is available.
 
 #### What you see
-- In the **{testCode} Workflow** dialog (awaiting-result phase):
-  - Status display: "Incubation in progress (Stage 1 of 2)"
-  - Action button: **Transfer to Stage 2 Incubation** (enabled once Stage 1 minimum duration has elapsed, or after supervisor override).
-- Step phase: **transfer-stage-2**
-  - Instructional text: "Stage 1 incubation is complete. Transfer plates to Stage 2 incubator ({min}-{max} °C) to start the second stage."
-  - Inherited media label: "Media Lot (inherited): {lot}"
-  - Incubator dropdown: aria "Stage 2 incubator" (placeholder: "Select Stage 2 Incubator ({min}-{max} °C)").
-  - Action buttons: **Back** and **Start Stage 2 Incubation**.
+- While incubating: "Incubation in progress" with "(Stage 1 of 2)" and the button **Transfer to Stage 2 Incubation**.
+- Transfer step: "Stage 1 incubation is complete. Transfer plates to Stage 2 incubator ({min}-{max} °C) to start the second stage.", "Media Lot (inherited): {lot}", an incubator dropdown with the placeholder "Select Stage 2 Incubator ({min}-{max} °C)", and the buttons **Back** and **Start Stage 2 Incubation**.
 
 #### How to use it
-1. When Stage 1 incubation is complete, open the **{testCode} Workflow** dialog.
+1. When Stage 1 is complete, open the **{testCode} Workflow** dialog.
 2. Click **Transfer to Stage 2 Incubation**.
-3. In the **Select Stage 2 Incubator** dropdown, select an available incubator matching the Stage 2 temperature range.
+3. Select a Stage 2 incubator in the required temperature range.
 4. Click **Start Stage 2 Incubation**.
-5. Physically transfer the test plates to the selected Stage 2 incubator.
+5. Place the plates in the selected incubator.
 
 #### System behavior
-- Minimum duration validation:
-  - The system verifies that Stage 1 incubation has reached its minimum duration before permitting the transfer.
-- Incubation record lifecycle:
-  - Stage 1 incubation record is closed with outcome text: "Transferred to stage 2 incubation."
-  - Stage 2 incubation record is opened, inheriting the media lot from Stage 1 and recording the Stage 2 start time, incubator, and stage number (Stage 2).
-- Electronic signature:
-  - Two-stage transfer does not require an electronic signature.
+- The system checks that Stage 1 has reached its minimum time (unless Skip Wait was used).
+- Stage 1 is closed with the outcome "Transferred to stage 2 incubation." Stage 2 is opened with the same media lot, the new incubator and the Stage 2 start time.
+- No electronic signature is needed.
 
 #### Validation
-The system enforces the following exact validation rules:
 - "Stage 1 incubation for step \"{step}\" requires at least {h} hours of incubation - not ready until {utc} UTC."
 - "Stage 2 start time ({t}) cannot precede Stage 1 start time ({t}) UTC."
 - "Step \"{step}\" has no stage 2 configuration."
 
-> **Note for reviewers:** The server-side stage-2 transfer implementation does not re-validate the incubator set point against the medium temperature range during transfer; it relies on client filtering of in-range incubators. (GAP-220)
+> **Note for reviewers:** Starting Stage 2 does not re-check the incubator set point against the medium's temperature range; the screen only lists incubators in range. (GAP-220)
 
 #### Status
-- The test order remains in workflow step **Incubating** and status **InProgress** with the incubation stage updated to Stage 2 of 2.
+The test stays **Incubating** (In Progress), now at Stage 2 of 2.
 
 #### Errors
-- "Could not start stage 2 incubation."
+"Could not start stage 2 incubation."
 
 #### What happens next
-Plates remain in Stage 2 incubation until the Stage 2 incubation period completes, after which result entry becomes available.
+Result entry opens when the Stage 2 incubation period has ended.
 
 
 ### 15.3 Plate Count Result Entry and Automatic Calculations
 <!-- WF-COUNT-001 -->
 #### Purpose
-Record raw plate counts (CFU) or non-numeric uncountable observations for an incubated test, calculate colony concentration based on dilution factors and plate averages, and evaluate compliance against configured specification limits.
+Record plate counts (CFU) or the observations TNTC and Uncountable, let the system calculate the result using the dilution factor and the average of the plates, and compare it with the limits.
 
 #### Who can use it
-Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head).
+Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
 
 #### Before you start
-- Incubation must be complete:
-  - For single-stage count tests, the incubation window must be elapsed on the client (or skipped by supervisor).
-  - For two-stage count tests, the Stage 2 incubation window end must have elapsed on the server.
-- The item specification must define a Dilution Factor, a reporting Unit, and Alert, Action, or Specification limits.
+- Incubation is complete. For a single-stage test the screen enables **Calculate** only when it considers the incubation ready (or after **Skip Wait**). For a two-stage test the end of the Stage 2 window must have passed.
+- For Product, Raw Material and Packaging Material samples, the item's specification defines the **Dilution Factor** and the reporting unit. Limits (Alert, Action, Specification) are needed for a limit status.
 
 #### What you see
-- In the **{testCode} Workflow** dialog, phase **enter-result**:
-  - **Dilution Factor** numeric input field (helper text: "Configured value from Specifications (N)", or "Direct count: dilution factor fixed at 1", or "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100").
-  - Dilution factor override controls: icon button aria "Override dilution factor" and button **Cancel Override**.
-  - **Justification for override** text input field (displayed and mandatory whenever the entered dilution factor differs from the configured specification value; helper text: "Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail.").
-  - Plate reading rows:
-    - Input fields labeled **Plate {i}** (placeholder: "Colony count or TNTC").
-    - Individual plate removal button: aria "Remove reading {i}".
-  - Button: **Add Plate** (adds an additional plate reading input).
-  - Dynamic result calculation display: "Calculated result: {display}".
-  - Non-numeric informational note (when TNTC or Uncountable is typed): "Non-numeric result: reviewer will decide accept or retest".
-  - Action button: **Calculate** (disabled until at least one plate reading is entered; no electronic signature required).
-- Phase **step-complete**:
-  - Outcome banner: "Step recorded: {outcome}" with details: ": Average X, Calculated Y, Status Z".
-  - For non-definitive steps: "{outcome} - this step must be repeated with a fresh media lot." with buttons **Proceed to Next Step** and **Retry This Step**.
-  - For final steps: "Final result: {outcome}" and button **Done / Close**.
+In the **{testCode} Workflow** dialog at result entry:
+- **Dilution Factor** with helper text "Configured value from Specifications (N)", "Direct count: dilution factor fixed at 1" or "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100".
+- An override icon ("Override dilution factor") and the button **Cancel Override**.
+- **Justification for override**, required whenever the entered factor differs from the configured one; helper text "Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
+- One field **Plate 1**, **Plate 2** ... with the placeholder "Colony count or TNTC", a remove icon ("Remove reading {i}") and the button **Add Plate**.
+- The live text "Calculated result: {display}".
+- When TNTC or Uncountable is typed: "Non-numeric result: reviewer will decide accept or retest".
+- Button **Calculate**.
+- After calculating: "Step recorded: {outcome}" with ": Average X, Calculated Y, Status Z". For a result that is not definitive: "{outcome} - this step must be repeated with a fresh media lot." with **Proceed to Next Step** and **Retry This Step**. For the final step: "Final result: {outcome}" and **Done / Close**.
 
 [SCREENSHOT SS-152]
 
 #### How to use it
-1. In the workspace, open the **{testCode} Workflow** dialog for the test order whose incubation is complete.
+1. Open the **{testCode} Workflow** dialog of the test whose incubation is complete.
 2. Click **Record Result**.
-3. In the **Dilution Factor** field:
-   - For direct-count categories (Water, Environmental Monitoring, After Cleaning), the dilution factor is fixed at 1.
-   - For Product, Raw Material, and Packaging Material samples, verify the pre-populated configured dilution factor.
-   - If an override is required, click the override icon, enter the new dilution factor, and enter a mandatory explanation in the **Justification for override** field.
-4. In the **Plate 1** field, enter the colony count (e.g. `25`), or enter `TNTC` or `Uncountable` if colonies are too numerous to count.
-5. If replicate plates were incubated, click **Add Plate** and enter the colony count for each additional plate (e.g. **Plate 2**).
-6. Verify the live calculated result displayed on screen.
+3. Check the **Dilution Factor**:
+   - Water, Environmental Monitoring and After Cleaning use a fixed factor of 1.
+   - For Product, Raw Material and Packaging Material, the configured factor is filled in. To use a different factor, click the override icon, enter the new factor and write the **Justification for override**.
+4. In **Plate 1**, enter the colony count (for example 25), or enter TNTC or Uncountable if the colonies cannot be counted.
+5. If more plates were read, click **Add Plate** and enter each count.
+6. Check the **Calculated result** shown.
 7. Click **Calculate**.
-8. In the step completion view, review the recorded average, calculated result, and compliance status. Click **Done / Close**.
+8. Review the average, the calculated result and the status, then click **Done / Close** (or **Proceed to Next Step** / **Retry This Step**).
 
 #### System behavior
-- Dilution factor governance:
-  - For direct-count sample categories (Water, Environmental Monitoring, After Cleaning), the dilution factor is forced to `1` regardless of user input.
-  - For item-based samples, if no dilution factor is configured on the item specification, the server refuses result entry: "No Dilution Factor is configured for \"{code}\" on this item's Specifications. Configure it before recording a result."
-  - If the entered dilution factor differs from the configured value without an explanation, the server refuses entry: "The entered Dilution Factor ({x}) differs from the configured value ({y}). A justification note is required."
-  - The system stores the entered dilution factor, the configured dilution factor, an override flag, and the justification note in the database.
-- Reporting unit:
-  - The reporting unit must be configured on the item specification, else the server refuses entry: "No reporting Unit is configured for \"{code}\" on this item's Specifications. Configure it before recording a result."
-  - The unit displayed is prefixed with "CFU/" if it does not already start with it. Fallback unit is "CFU/unit".
-- Non-numeric calculations (TNTC / Uncountable):
-  - If any plate reading equals `TNTC` or `Uncountable` (case-insensitive):
-    - No average or calculated result is computed.
-    - No limit comparison is performed.
-    - Status is set to **RequiresReview**, with `HasNonNumericReading = true` and `RequiresReview = true`.
-    - If the first non-numeric reading is `TNTC`, the reported result is set to `"TNTC"`. Otherwise, it is set to `"Uncountable"`.
-    - The step completes, the test order moves to **Ready**, and the decision to accept or retest is escalated to the technical reviewer.
-- Numeric calculations:
-  - **Average**: arithmetic mean of all entered plate readings (no readings are excluded).
-  - **CalculatedResult**: `Average × DilutionFactor` (stored with full precision).
-  - **ReportedResult**:
-    - If `CalculatedResult < DilutionFactor`, reports `"<{DF} {unit}"` (with DF rounded away from zero; a dilution factor of 1 reports `"<1 {unit}"`).
-    - If `CalculatedResult >= DilutionFactor`, reports `Math.Round(CalculatedResult, MidpointRounding.AwayFromZero) + " " + unit` (rounded to a whole number).
-- Specification limit comparison:
-  - Evaluates `CalculatedResult` against configured limits in hierarchical priority order:
-    1. **OutOfSpecification**: if the value exceeds the Spec limit.
-    2. **ActionLimitExceeded**: if the value exceeds the Action limit.
-    3. **AlertLimitExceeded**: if the value exceeds the Alert limit.
-    4. **WithinLimits**: if none of the configured limits are exceeded (equal to a limit is not considered exceeded).
-    5. **LimitsNotConfigured**: if none of the three limits parse to a valid numeric threshold.
-  - Limit text conventions: plain numbers or `"NMT x"` represent upper bounds; `"NLT x"` represents lower bounds; `"a-b"` represents a range; `"t ± d"`, `"t +/- d"`, or `"t ± d%"` represents a tolerance range around a target. Unparseable text is treated as no limit without raising an error.
-- Record creation and closure:
-  - Writes a `CountTestReading` entity and a `Result` record with `RawValue` (comma-joined readings) and `InterpretedValue` ("{reported} ({status})").
-  - Closes the active incubation record with outcome details.
-  - Advances the test order step to **Ready** and status to **ResultEntered**.
-  - Automatic review submission: when all non-superseded test orders of the laboratory section reach **Ready**, the section automatically advances to **Pending Review** with review event log: "All tests completed - automatically submitted for review".
-- Electronic signature:
-  - Microbiological count test result entry does not require an electronic signature.
+- Dilution factor:
+  - Water, Environmental Monitoring and After Cleaning: the factor is forced to 1 whatever is entered.
+  - Product, Raw Material, Packaging Material: if no factor is configured on the item's specification, entry is refused.
+  - If the entered factor differs from the configured one, a justification is required. The entered factor, the configured factor, the override and the justification are stored with the reading.
+  - The system does not check that the factor is greater than zero.
+- Reporting unit: must be configured on the specification. The unit shown starts with "CFU/"; the system adds the prefix if the configured unit does not have it.
+- TNTC or Uncountable (not case-sensitive): if any plate reading is TNTC or Uncountable, no average or calculated result is produced and no limits are compared. The result is flagged **Requires Review**. The reported result is "TNTC" if the first reading that is not a number is TNTC, otherwise "Uncountable". The step still completes, the test goes to **Ready**, and the reviewer decides to accept or retest. The dilution factor, justification and unit checks run first.
+- Numeric result:
+  - Average = the arithmetic mean of all plate readings entered (none is left out).
+  - Calculated result = Average × Dilution Factor (stored with full precision).
+  - Reported result: if the calculated result is smaller than the entered dilution factor, "<{dilution factor} {unit}" (the factor rounded away from zero; factor 1 gives "<1 {unit}"). Otherwise the calculated result rounded to a whole number, half away from zero, followed by the unit.
+  - Example (fake data): plates 25 and 27 with factor 10 give average 26, calculated result 260, reported "260 CFU/g". Plates 0 and 1 with factor 10 give average 0.5, calculated result 5, which is below 10, so "<10 CFU/g" is reported.
+- Limit status, using the item's primary specification: the calculated result is compared in this order: Specification, then Action, then Alert.
+  1. **Out of Specification** if the Specification limit is exceeded.
+  2. **Action Limit Exceeded** if the Action limit is exceeded.
+  3. **Alert Limit Exceeded** if the Alert limit is exceeded.
+  4. **Within Limits** if none is exceeded (equal to a limit is not exceeded).
+  5. **Limits Not Configured** if none of the three limits can be read as a limit.
+- Limit text: a plain number or "NMT x" is an upper limit; "NLT x" is a lower limit; "a-b" is a range; "t ± d", "t +/- d" or "t ± d%" is a range around a target. Limit text that cannot be read is treated as no limit without any message, so a mistyped limit can show **Limits Not Configured**.
+- The system stores the plate readings, dilution factor details, average, calculated result, reported result, limit values and status with the entering user and time, and closes the incubation.
+- The test goes to **Ready** (Result Entered). When every current test of the laboratory section is **Ready**, the section moves to **Pending Review** automatically (review log "All tests completed - automatically submitted for review").
+- No electronic signature is needed.
 
 #### Validation
-The system enforces the following exact validation rules:
 - "At least one plate reading is required to calculate an average."
 - "Plate readings are required."
 - "No Dilution Factor is configured for \"{code}\" on this item's Specifications. Configure it before recording a result."
@@ -231,20 +183,19 @@ The system enforces the following exact validation rules:
 - "Step \"{step}\" requires stage 2 incubation to be started before a count can be recorded."
 - "This step's incubation period has not finished yet."
 
-> **Note for reviewers:** The single-stage count result endpoint has no server-side elapsed-time check; the screen gates the calculation button only on the client. (GAP-202)
+> **Note for reviewers:** For a single-stage count test the system itself does not check that the incubation time has passed; only the screen holds back **Calculate**. (GAP-202)
 
-> **Note for reviewers:** Count test results and plate readings are not electronically signed at entry. (GAP-218)
+> **Note for reviewers:** Count results and plate readings are not electronically signed at entry. (GAP-218)
 
-> **Note for reviewers:** Non-numeric text other than TNTC or Uncountable is parsed on the server using standard decimal conversion with no custom validation message, and the server does not enforce that the entered dilution factor is greater than zero. (GAP-209, GAP-228)
+> **Note for reviewers:** Text that is neither a number, TNTC nor Uncountable has no specific validation message, and negative numbers are accepted. The system also does not check that the dilution factor is above zero. (GAP-209, GAP-228)
 
 #### Status
-- Test order workflow step transitions from **Incubating** to **Ready**.
-- Test order status updates from **InProgress** to **ResultEntered**.
-- Result status is assigned one of: **WithinLimits**, **AlertLimitExceeded**, **ActionLimitExceeded**, **OutOfSpecification**, **LimitsNotConfigured**, or **RequiresReview**.
-- When all tests of the section reach **Ready**, the laboratory section advances to **UnderReview** (displayed in the register as **Pending Review**).
+- The test changes from **Incubating** to **Ready** (Result Entered).
+- The result status is one of **Within Limits**, **Alert Limit Exceeded**, **Action Limit Exceeded**, **Out of Specification**, **Limits Not Configured** or **Requires Review**.
+- When all tests of the section are **Ready**, the section shows **Pending Review**.
 
 #### Important rules
-- Once a test order reaches **Ready**, its workflow cannot be resubmitted. There is no endpoint to modify or overwrite stored count results in place. Adjustments require the test to be returned by a reviewer or reset by a supervisor.
+- A stored count result cannot be edited in place. Before the test reaches **Ready**, a result that is not definitive can be repeated with **Retry This Step**. After **Ready**, a result changes only if the reviewer returns the test to the analyst or the sample is voided.
 
 #### Errors
 - "Could not record this result."
@@ -252,209 +203,157 @@ The system enforces the following exact validation rules:
 - "A justification note is required when the entered Dilution Factor differs from the configured value."
 
 #### What happens next
-The completed test order displays its calculated result and status badge in the workspace, and the sample advances to technical review once all companion tests are completed.
+The test shows its result and status in the workspace. When all tests of the section are complete, the sample goes to technical review.
 
 
-### 15.4 Batch Location Count Results (Environmental Monitoring, Water, and After Cleaning)
+### 15.4 Batch Location Count Results (Environmental Monitoring, Water, After Cleaning)
 <!-- WF-COUNT-002 -->
 #### Purpose
-Enter raw colony plate counts across all monitored rooms, sampling points, or machine parts in a single batch grid, automatically calculating averages, compliance statuses, and worst-case batch summaries.
+Enter plate counts for all rooms, sampling points or machine parts of a test in one grid. The system calculates the averages and statuses and a summary of the worst result.
 
 #### Who can use it
-Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head).
+Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
 
 #### Before you start
-- Incubation must be complete for the test order. For templates with multiple incubation windows, all intermediate windows must have been completed.
-- Incubation elapsed time must reach the configured minimum duration (or have been overridden via **Skip Wait**).
+- Incubation is started for the test. If the template has several incubation windows, all earlier windows must be closed.
+- The minimum incubation time of the final window has passed, or a supervisor used **Skip Wait**.
 
 #### What you see
-- For Environmental Monitoring and After Cleaning count batches (`LocationResultGridDialog`):
-  - Dialog title: **{testCode} Results: {displayName}**
-  - Table columns:
-    - **Location** (room name or machine part)
-    - **Limits (Alert / Action / Spec)**
-    - **Plate Readings** (numeric inputs labeled with location name and plate index, with **Add Plate** button)
-    - **Calculated Result**
-    - **Status** (compliance badge per location)
-  - Batch summary text: "{conform}/{total} locations within spec; worst status: {badge}"
-  - Timing warning (before minimum duration elapses): "Results cannot be submitted before {datetime}."
-  - Action button: **Submit Results** (displays "Submitting…" while processing).
-- For Water count batches (`WaterLocationResultGridDialog`):
-  - Table columns: **Sampling Point**, **Limits (Alert / Action / Spec)**, **Plate Readings**, **Average**, and **Status**.
-  - Action button: **Submit Results**.
+- Environmental Monitoring and After Cleaning grid: title **{testCode} Results: {displayName}**; columns **Location**, **Limits (Alert / Action / Spec)**, **Plate Readings** (with **Add Plate**), **Calculated Result**, **Status**; summary "{conform}/{total} locations within spec; worst status: {badge}"; before the minimum time, "Results cannot be submitted before {datetime}."; button **Submit Results** ("Submitting…").
+- Water grid: columns **Sampling Point**, **Limits (Alert / Action / Spec)**, **Plate Readings**, **Average**, **Status**; button **Submit Results**.
+- In the workflow dialog: **Advance to Next Incubation Window** (non-final window) and **Record Results**.
 
 [SCREENSHOT SS-153]
 
 #### How to use it
-1. In the workspace, open the test order whose final incubation window has completed.
-2. If intermediate incubation windows remain open, click **Advance to Next Incubation Window** after the minimum duration, select fresh media for the subsequent window, and allow it to incubate.
-3. On the final incubation window, click **Record Results** to open the batch result grid.
-4. For each location row, enter the plate counts in the plate reading fields.
-5. If replicate plates were incubated for a location, click **Add Plate** and enter the additional count.
-6. Verify that every location has at least one plate reading entered.
-7. Click **Submit Results**.
+1. Open the test whose final incubation window is complete.
+2. If an earlier window is still open, click **Advance to Next Incubation Window** after its minimum time, choose fresh media for the next window and let it incubate.
+3. On the final window click **Record Results**.
+4. Enter the plate counts for each location; use **Add Plate** for additional plates.
+5. Check that every location has at least one reading.
+6. Click **Submit Results**.
 
 #### System behavior
-- Window progression and final window gate:
-  - Batch submission is accepted only during the final incubation window (`IsFinalStep`).
-  - Attempting to submit results on an intermediate window is refused: "\"{step}\" is not the final incubation window yet - close it and start the next window first."
-  - Attempting to advance when on the final window displays: "This is the final incubation window - record results instead of advancing."
-- Minimum duration check:
-  - The server verifies that the elapsed time from incubation start exceeds the medium's minimum incubation hours: "This incubation window needs at least {h} hours - not ready until {utc} UTC."
-- Completeness check:
-  - The batch is all-or-nothing: every configured sample location must have at least one plate count reading, else the entire batch is rejected.
-- Calculations for Environmental Monitoring and After Cleaning:
-  - Dilution factor is fixed at `1`.
-  - Calculated result equals the arithmetic average of plate readings for that location.
-  - Reported result: if average `< 1`, reports `"<1"`. Otherwise reports the whole number rounded away from zero (`Math.Round(average, AwayFromZero)`).
-  - Units derived from configuration or test type: passive air ("CFU/plate/4 hours"), surface/air ("CFU/25 cm2"), swab ("CFU/25 cm2"), rinse ("CFU/mL").
-- Calculations for Water:
-  - Reported result: `Math.Round(average, AwayFromZero)` rounded to a whole number. Water does not apply a `"<1"` rule; an average below 0.5 reports `"0"`.
-  - Dilution factor is not stored.
-- Batch summary roll-up:
-  - Evaluates each location against Alert, Action, and Spec limits (Spec > Action > Alert).
-  - Produces a collective batch summary: "{n} locations: {conform} conform, {rest} alert/action/spec (worst: {status})", where only WithinLimits is considered conforming.
-- Workflow progression:
-  - Closes the active incubation record.
-  - Sets the test order workflow step to **Ready** and status to **ResultEntered**.
-  - Automatically advances the laboratory section to **UnderReview** when all section tests are Ready.
-- Electronic signature:
-  - Batch location count submission does not require an electronic signature.
+- Results are accepted only on the final incubation window, and only after its minimum time (measured from the recorded incubation start).
+- All-or-nothing: every location needs at least one reading, otherwise the whole batch is refused.
+- Environmental Monitoring and After Cleaning: factor 1; calculated result = average of the readings; reported "<1" if the average is below 1, otherwise the average rounded to a whole number, half away from zero. Limits come from the room or machine part configuration. Units come from the configuration, otherwise from the test type: passive air "CFU/plate/4 hours", surface or air "CFU/25 cm2", swab "CFU/25 cm2", rinse "CFU/mL".
+- Water: reported result = average rounded to a whole number, half away from zero; there is no "<1" rule. Limits come from the sampling configuration. No dilution factor is stored.
+- Each location is compared in the order Specification, Action, Alert. The summary reads "{n} locations: {conform} conform, {rest} alert/action/spec (worst: {status})"; only **Within Limits** counts as conforming, and **Limits Not Configured** counts in the second figure.
+- The incubation is closed, the test goes to **Ready** (Result Entered), and the section moves to **Pending Review** when all its tests are **Ready**.
+- No electronic signature is needed.
 
 #### Validation
-The system enforces the following exact validation rules:
 - "No locations are assigned to this test order."
 - "Results are missing for: {names}."
 - "At least one plate reading is required for: {names}."
 - "\"{step}\" is not the final incubation window yet - close it and start the next window first."
+- "This is the final incubation window - record results instead of advancing."
 - "This incubation window needs at least {h} hours - not ready until {utc} UTC."
 - "Media must be selected for this test before batch results can be recorded."
 
-> **Note for reviewers:** The Environmental Monitoring out-of-trend rule from earlier design specifications ((Step 1 Count + Step 2 Count) > Action Limit) is not implemented in the application code. (GAP-211)
-
-> **Note for reviewers:** Water batch results do not apply a less-than-one rule; an average count below 0.5 reports "0". (BR-COUNT-013)
+> **Note for reviewers:** The Environmental Monitoring out-of-trend rule in the earlier specification (step 1 count plus step 2 count above the Action limit) is not applied by the system. (GAP-211)
 
 #### Status
-- Test order workflow step advances to **Ready**.
-- Test order status advances to **ResultEntered**.
-- Laboratory section advances to **UnderReview** (register label **Pending Review**) upon completion of all tests.
+The test goes to **Ready** (Result Entered); the section to **Pending Review** when all its tests are complete.
+
+#### Important rules
+- For Water, an average below 0.5 is reported as "0".
 
 #### Errors
 - "Could not record batch results."
 - "Could not record batch readings."
 
 #### What happens next
-Individual location results and the overall batch summary are stored, and the test order is queued for technical review.
+The location results and the batch summary are stored and the test waits for technical review.
 
 
 ### 15.5 Batch Location Pathogen Results (Environmental Monitoring and After Cleaning)
 <!-- WF-COUNT-002 -->
 #### Purpose
-Record qualitative presence/absence pathogen observations ("Growth Observed?" Yes or No) across all monitored locations for Environmental Monitoring and After Cleaning pathogen test orders.
+Record, for every monitored location, whether pathogen growth was observed.
 
 #### Who can use it
-Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head).
+Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
 
 #### Before you start
-The test order must be on its final incubation window with the minimum incubation duration satisfied.
+The test is on its final incubation window and the minimum incubation time has passed (or **Skip Wait** was used).
 
 #### What you see
-- Dialog title: **{testCode} Results: {displayName}** (`PathogenLocationResultGridDialog`)
-- Table columns:
-  - **Location**
-  - **Growth Observed?** (radio buttons: **Yes** and **No**)
-  - **Status** (live badge: **Detected** when Yes; **Absent** when No)
-- Summary display: "{detected}/{total} locations detected; overall: {Detected|Absent}"
-- Action button: **Submit Results** (no electronic signature required).
+Dialog **{testCode} Results: {displayName}** with the columns **Location**, **Growth Observed?** (**Yes** or **No**) and **Status** (**Detected** when Yes, **Absent** when No), the summary "{detected}/{total} locations detected; overall: {Detected|Absent}", and the button **Submit Results**.
 
 #### How to use it
-1. In the workspace, open the batch pathogen test order on its final incubation window.
-2. For each location row, select **Yes** if characteristic pathogen growth was observed, or **No** if no growth was observed.
-3. Verify that every location has a selection made.
-4. Review the overall summary: if any location is marked Yes, the overall result is **Detected**; if all are No, the overall result is **Absent**.
+1. Open the pathogen test on its final window.
+2. For each location choose **Yes** (growth observed) or **No**.
+3. Check that every location has an answer.
+4. Check the overall result: **Detected** if any location is Yes, otherwise **Absent**.
 5. Click **Submit Results**.
 
 #### System behavior
-- Mandatory completeness:
-  - A selection (Yes or No) is required for every location. If any location is unselected, the server rejects submission: "A growth observation is required for every location."
-- Result determination:
-  - Location status is set to **Detected** if growth was observed, or **Absent** if no growth was observed.
-  - Overall test result is set to **Detected** if at least one location has growth observed, else **Absent**.
-  - Creates a summary record: "{n} locations: {absent} absent, {detected} detected (overall: {Detected|Absent})".
-- Workflow progression:
-  - Closes the incubation, sets test order workflow step to **Ready**, and updates status to **ResultEntered**.
-- Electronic signature:
-  - Batch pathogen observation submission does not require an electronic signature.
+- Every location needs an answer.
+- A location is **Detected** if growth was observed, otherwise **Absent**; the overall result is **Detected** if any location is Detected.
+- The summary result reads "{n} locations: {absent} absent, {detected} detected (overall: {Detected|Absent})".
+- The incubation closes and the test goes to **Ready** (Result Entered).
+- No electronic signature is needed.
 
 #### Validation
-The system enforces the following exact validation rules:
 - "A growth observation is required for every location."
 - "Step \"{step}\" requires a growth observation for every location."
 - "Results are missing for: {names}."
 - "\"{step}\" is not the final incubation window yet - close it and start the next window first."
 - "This incubation window needs at least {h} hours - not ready until {utc} UTC."
 
+> **Note for reviewers:** Pathogen results entered at location level are not electronically signed. (GAP-218)
+
 #### Status
-- Test order workflow step advances to **Ready**.
-- Test order status advances to **ResultEntered**.
-- Overall result status is set to **Detected** or **Absent**.
+The test goes to **Ready** (Result Entered); the result is **Detected** or **Absent**.
 
 #### Errors
-- "Could not record batch pathogen results."
+"Could not record batch pathogen results."
 
 #### What happens next
-The test order is finalized and moves to **Ready**, enabling sample technical review once companion tests conclude.
+The test waits for technical review once the other tests of the section are complete.
 
 
 ### 15.6 Qualitative Observation Results (Physicochemical)
 <!-- WF-OBS-001 -->
 #### Purpose
-Record qualitative compliance observations ("Complies" or "Does not comply") for physicochemical test orders under mandatory electronic signature control.
+Record "Complies" or "Does not comply" for each parameter of a qualitative physicochemical test, with an electronic signature.
 
 #### Who can use it
-Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head).
+Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator). Details of the other physicochemical panels are in the physicochemical sections of this guide.
 
 #### Before you start
-- The sample must have configured qualitative or presence/absence specifications for the test in the Physicochemical Test Master.
-- The test order must not be in **Ready** step.
-- No active qualitative entry may already exist for the test order.
+- The sample's item has specifications of the qualitative or presence/absence kind for the test.
+- The test is not yet **Ready**.
+- No active qualitative entry already exists for the test.
 
 #### What you see
-- Panel fields (`QualitativePanel`):
-  - **Analysis time** datetime picker (cannot be in the future).
-  - **Equipment (Physicochemical)** dropdown (optional; includes option "None (no instrument linked)").
-  - **Comment (optional)** text field.
-  - Parameter evaluation rows:
-    - Parameter name and specification limits.
-    - Radio choices: **Complies** and **Does not comply**.
-    - Observation field: **Observation (optional)** when compliant; dynamically changes to **Observation (required) \*** with helper text "Observation is required when non-compliant" when non-compliant is selected.
-  - Action button: **Sign and record result**.
+- **Analysis time** (cannot be in the future).
+- **Equipment (Physicochemical)**, optional; includes "None (no instrument linked)".
+- **Comment (optional)**.
+- For each parameter: its name and limits, the choices **Complies** and **Does not comply**, and the field **Observation (optional)**, which becomes **Observation (required) \*** with the helper "Observation is required when non-compliant" when **Does not comply** is chosen.
+- Button **Sign and record result**.
 
 [SCREENSHOT SS-154]
 
 #### How to use it
-1. In the FP or RM & PM workspace, open the assigned qualitative test order.
-2. Select the **Analysis time**.
-3. Optionally select the instrument from the **Equipment (Physicochemical)** dropdown.
-4. For each parameter row, select **Complies** or **Does not comply**.
-5. If **Does not comply** is selected, enter an explanation in the **Observation (required) \*** field (up to 500 characters).
+1. In the FP or RM & PM workspace, open the qualitative test.
+2. Set the **Analysis time**.
+3. Optionally choose the instrument in **Equipment (Physicochemical)**.
+4. For each parameter choose **Complies** or **Does not comply**.
+5. For **Does not comply**, enter the explanation in **Observation (required) \*** (up to 500 characters).
 6. Click **Sign and record result**.
-7. In the electronic signature prompt, review the signature meaning: "I entered these qualitative observations and am recording this test result."
-8. Enter your user password and confirm the signature.
+7. Read the signature meaning: "I entered these qualitative observations and am recording this test result."
+8. Enter your password and confirm.
 
 #### System behavior
-- Validation and compliance:
-  - Every parameter specification configured for the test must be evaluated exactly once.
-  - If any parameter does not comply, an observation description is strictly mandatory.
-  - Analysis time cannot be set in the future (server checks not later than 5 minutes ahead).
-- Test analysis and electronic signature:
-  - The system applies an electronic signature record (`ResultRecorded`) capturing the user identity, timestamp, meaning, and password verification.
-  - Stores a `TestAnalysis` record with parameter results: **Complies** is stored as `WithinLimits`; **Does not comply** is stored as `OutOfSpecification`.
-- Workflow progression:
-  - Test order workflow step advances to **Ready**, status advances to **ResultEntered**, and the laboratory section is automatically submitted for technical review when all tests reach **Ready**.
+- Every specification of the test must be answered exactly once.
+- An observation is mandatory if any parameter does not comply.
+- The analysis time may not be more than 5 minutes ahead.
+- The system records an electronic signature with the user, time and meaning, and stores one result per parameter: **Complies** counts as within limits, **Does not comply** as out of specification.
+- The test goes to **Ready** (Result Entered); the section is submitted for review when all its tests are **Ready**.
 
 #### Validation
-The system enforces the following exact validation rules:
 - "Password is required to sign the result."
 - "At least one parameter result is required."
 - "Analysis time cannot be in the future."
@@ -464,12 +363,10 @@ The system enforces the following exact validation rules:
 - "No specifications configured for this test and item."
 - "Every specification for this test must be supplied exactly once."
 
-> **Note for reviewers:** Qualitative physicochemical test results require an electronic signature with password verification at entry, whereas microbiological plate count and pathogen results do not require an electronic signature. (GAP-218)
+> **Note for reviewers:** Qualitative physicochemical results are signed with a password at entry, whereas microbiological count, location and pathogen results are not. (GAP-218)
 
 #### Status
-- Test order workflow step advances to **Ready**.
-- Test order status updates to **ResultEntered**.
-- Result compliance status is set to **WithinLimits** or **OutOfSpecification**.
+The test goes to **Ready** (Result Entered); the result is **Within Limits** or **Out of Specification**.
 
 #### Errors
 - "Password verification failed. The signature was not applied."
@@ -477,4 +374,6 @@ The system enforces the following exact validation rules:
 - "An observation is required when result does not conform."
 
 #### What happens next
-The qualitative result is locked and committed to the audit trail, and the test order is ready for technical review.
+The test waits for technical review.
+
+<!-- Review log (Sonnet): 48 corrections; invented items removed: phase names, class/entity/enum names, stored-field names, code fragments, unsupported "Calculate disabled until a reading is entered", wrong "reset by supervisor" rework path, unsupported unit fallback, "result is locked" claim, BR id in a reviewer note (moved to Important rules); callouts added: none missing (GAP-202, 209, 211, 218, 220, 228 present); dilution/rounding/limit rules checked against verified rules, worked examples added -->

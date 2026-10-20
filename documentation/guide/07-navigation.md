@@ -1,89 +1,78 @@
 ## 7. Navigation
 
-### 7.1 Sidebar Navigation Structure
-The MicroLIMS navigation menu organizes the application into distinct operational groups. The items visible to any given user are dynamically determined by their granted permissions, laboratory section memberships, and assigned physicochemical areas:
+### 7.1 Sidebar Menu
+The sidebar groups the application into headings. You only see the items you are allowed to use. What you see depends on your permissions, your laboratory assignment, and (for the Physicochemical Laboratory) your assigned area. Permission names are explained in Section 4.
 
-| Group Heading | Menu Item (UI Label) | Route Path | Access Requirements |
-|---|---|---|---|
-| **OVERVIEW** | Dashboard | `/dashboard` | Any authenticated user |
-| **RECEIVING** | Receive Sample | `/receiving` | Requires *Global sample receiving* (`Samples.Receive`) or *Own-lab sample receiving* (`Samples.ReceiveOwnLab`) |
-| | Tracking Board | `/receiving/tracking` | Requires *Cross-lab sample tracking* (`Samples.TrackAll`) |
-| **LABORATORIES** | **Microbiology Laboratory** | `/sections/microbiology-laboratory` | Requires active membership in `MICRO` |
-| | – Workspace | `/microbiology/workspace` | `MICRO` membership |
-| | – Media Preparation & Evaluation | `/laboratory-configuration/media` | Requires *Media lot preparation* (`Media.Prepare`) |
-| | – Reference Cryovials | `/laboratory-configuration/cryovials` | Requires *Cryovial management* (`Cryovials.Manage`) |
-| | – Materials Stock | `/inventory/materials?lab=MICRO` | Requires *Material stock management* (`Materials.Manage`) |
-| | – Equipment Inventory | `/inventory/equipment?lab=MICRO` | Requires *Equipment inventory management* (`Equipment.Manage`) |
-| **LABORATORIES** | **Microbiology Configuration** | `/sections/microbiology-configuration` | Requires `MICRO` membership AND *Master data management* (`MasterData.Manage`) |
-| | – Test Master | `/laboratory-configuration/test-master` | `MICRO` membership AND `MasterData.Manage` |
-| | – Organisms | `/laboratory-configuration/organisms` | `MICRO` membership AND `MasterData.Manage` |
-| | – Media Configurations | `/laboratory-configuration/media-configurations` | `MICRO` membership AND `MasterData.Manage` |
-| | – Water | `/laboratory-configuration/water` | `MICRO` membership AND `MasterData.Manage` |
-| | – Environmental Monitoring | `/laboratory-configuration/environmental-monitoring` | `MICRO` membership AND `MasterData.Manage` |
-| | – After Cleaning | `/laboratory-configuration/after-cleaning` | `MICRO` membership AND `MasterData.Manage` |
-| | – Equipment | `/laboratory-configuration/equipment` | `MICRO` membership AND `MasterData.Manage` |
-| **LABORATORIES** | **Physicochemical Laboratory** | `/sections/physicochemical-laboratory` | Requires active membership in `FP` |
-| | – FP Workspace | `/physicochemical/workspace` | `FP` membership with assigned area `fp` |
-| | – RM & PM Workspace | `/physicochemical/rm-pm-workspace` | `FP` membership with assigned area `rmpm` |
-| | – Solution Preparation | `/preparation` | Requires *Solution preparation* (`Solutions.Prepare`) |
-| | – Working Standards | `/working-standards` | `FP` membership |
-| | – HPLC Workspace | `/hplc-workspace` | `FP` membership |
-| | – GC Workspace | `/gc-workspace` | `FP` membership |
-| | – ICP Workspace | `/icp-workspace` | `FP` membership |
-| | – Materials Stock | `/inventory/materials?lab=FP` | Requires *Material stock management* (`Materials.Manage`) |
-| | – Equipment Inventory | `/inventory/equipment?lab=FP` | Requires *Equipment inventory management* (`Equipment.Manage`) |
-| **LABORATORIES** | **Physicochemical Configuration** | `/sections/physicochemical-configuration` | Requires `FP` membership AND *Master data management* (`MasterData.Manage`) |
-| | – FP Test Master | `/laboratory-configuration/fp-test-master` | `FP` membership AND `MasterData.Manage` |
-| | – RM & PM Test Master | `/laboratory-configuration/rm-pm-test-master` | `FP` membership AND `MasterData.Manage` |
-| | – Equation Types | `/laboratory-configuration/equation-types` | `FP` membership AND `MasterData.Manage` |
-| | – Physicochemical Instruments | `/laboratory-configuration/fp-instruments` | `FP` membership AND `MasterData.Manage` |
-| | – Chromatography Columns | `/laboratory-configuration/columns` | `FP` membership AND `MasterData.Manage` |
-| | – Reagents & Standards | `/laboratory-configuration/material-master` | `FP` membership AND `MasterData.Manage` |
-| | – Solutions | `/laboratory-configuration/solution-master` | `FP` membership AND `MasterData.Manage` |
-| | – HPLC Methods | `/laboratory-configuration/hplc-methods` | `FP` membership AND `MasterData.Manage` |
-| | – ICP Methods | `/laboratory-configuration/icp-methods` | `FP` membership AND `MasterData.Manage` |
-| **GENERAL LABORATORY CONFIGURATION** | Items | `/laboratory-configuration/items` | Requires *Items master management* (`Items.Manage`) |
-| | Receiving Configuration | `/laboratory-configuration/receiving-configuration` | Requires *Master data management* (`MasterData.Manage`) |
-| | Master Data Workbook | `/laboratory-configuration/master-data-workbook` | Requires *Master data management* (`MasterData.Manage`) |
-| **DOCUMENT CONTROL** | Document Control (Landing) | `/sections/document-control` | Any authenticated user |
-| | – Dashboard | `/document-control` | Any authenticated user |
-| | – My Reading List | `/document-control/my-reading-list` | Any authenticated user |
-| | – Training Matrix | `/document-control/training-matrix` | Any authenticated user (full matrix needs `Documents.TrainingAssign`) |
-| | – Compliance Dashboard | `/document-control/compliance-dashboard` | Any authenticated user |
-| | – Document Library | `/document-control/library` | Any authenticated user |
-| | – Audit Trail | `/document-control/audit` | Role type `Reviewer`, `SectionHead`, or `SystemAdministrator` |
-| | – Configuration | `/document-control/configuration` | Requires *Document Control configuration* (`Documents.ConfigManage`) |
-| **ADMINISTRATION** | Users | `/users` | Requires *User account management* (`Users.Manage`) |
-| | Roles | `/roles` | Requires *Role & permission management* (`Roles.Manage`) |
-| **REPORTS** | Reports | `/reports` | Any authenticated user (KPI/Performance tab needs `Kpi.View`) |
-| **AUDIT & COMPLIANCE** | Audit Search | `/audit-search` | Requires *Audit trail viewing* (`Audit.View`) |
-| | OOS Tracking | `/oos-tracking` | Requires *OOS tracking management* (`Oos.Manage`) |
-| **SYSTEM** | Error Monitoring | `/error-monitoring` | Requires *Error log monitoring* (`System.ViewErrorLog`) |
+| Heading | Menu item | What you need to see it |
+|---|---|---|
+| **OVERVIEW** | Dashboard | Any signed-in user |
+| **RECEIVING** | Receive Sample | *Global Sample Receiving* or *Own-Lab Sample Receiving* |
+| | Tracking Board | *Cross-Lab Sample Tracking* |
+| **LABORATORIES** | **Microbiology Laboratory** (group) | Assignment to the Microbiology Laboratory |
+| | – Workspace | Assignment to the Microbiology Laboratory |
+| | – Media Preparation & Evaluation | *Media Lot Preparation* |
+| | – Reference Cryovials | *Cryovial Management* |
+| | – Materials Stock | *Material Stock Management* |
+| | – Equipment Inventory | *Equipment Inventory Management* |
+| **LABORATORIES** | **Microbiology Configuration** (group) | Assignment to the Microbiology Laboratory and *Master Data Management* |
+| | – Test Master, Organisms, Media Configurations, Water, Environmental Monitoring, After Cleaning, Equipment | Same as the group |
+| **LABORATORIES** | **Physicochemical Laboratory** (group) | Assignment to the Physicochemical Laboratory |
+| | – FP Workspace | Area **FP** (or no area restriction) |
+| | – RM & PM Workspace | Area **RM & PM** (or no area restriction) |
+| | – Solution Preparation | *Solution Preparation* |
+| | – Working Standards, HPLC Workspace, GC Workspace, ICP Workspace | Assignment to the Physicochemical Laboratory |
+| | – Materials Stock | *Material Stock Management* |
+| | – Equipment Inventory | *Equipment Inventory Management* |
+| **LABORATORIES** | **Physicochemical Configuration** (group) | Assignment to the Physicochemical Laboratory and *Master Data Management* |
+| | – FP Test Master, RM & PM Test Master, Equation Types, Physicochemical Instruments, Chromatography Columns, Reagents & Standards, Solutions, HPLC Methods, ICP Methods | Same as the group |
+| **GENERAL LABORATORY CONFIGURATION** | Items | *Items Master Management* |
+| | Receiving Configuration | *Master Data Management* |
+| | Master Data Workbook | *Master Data Management* |
+| **DOCUMENT CONTROL** | Dashboard, My Reading List, Training Matrix, Compliance Dashboard, Document Library | Any signed-in user |
+| | Audit Trail | Base role type Reviewer, Section Head, or System Administrator |
+| | Configuration | *Document Control Configuration* |
+| **ADMINISTRATION** | Users | *User Account Management* |
+| | Roles | *Role & Permission Management* |
+| **REPORTS** | Reports | Any signed-in user (the KPI / Performance tab needs *KPI Dashboard Viewing*) |
+| **AUDIT & COMPLIANCE** | Audit Search | *Audit Trail Viewing* |
+| | OOS Tracking | *OOS Tracking Management* |
+| **SYSTEM** | Error Monitoring | *Error Log Monitoring* |
 
 [SCREENSHOT SS-071]
 
----
+> **Note for reviewers:** Whether the Training Matrix and Compliance Dashboard pages should be restricted is not established; they are offered to every signed-in user in the menu. (GAP-025)
 
-### 7.2 Navigation Visibility Rules and Route Guards
-- **Dynamic Menu Construction**: The sidebar navigation builder inspects the user's token claims. It iterates through all declared navigation items, evaluates permissions, checks laboratory section memberships, and removes any parent group that has no remaining visible children.
-- **Laboratory Scoping**:
-  - The Microbiology Laboratory items are visible only to users holding active membership in `MICRO`.
-  - The Physicochemical Laboratory items are visible only to users holding active membership in `FP`.
-  - Users with area `fp` see the **FP Workspace**; users with area `rmpm` see the **RM & PM Workspace**. If no area restriction is set, both workspaces are shown.
-  - System Administrators are treated as members of both laboratories and both areas, ensuring all navigation groups are accessible.
-- **Silent Route Redirection**: Navigation guards protect every underlying page route. If a user manually types a URL or follows a bookmarked link for a page they lack permission to access, MicroLIMS intercepts the request and **silently redirects the browser to `/dashboard` without displaying an error message**.
+> **Note for reviewers:** Two pages exist but have no menu link: a stand-alone Specifications page and a Media Evaluation page. Media evaluations are reached from the media lot screen. (GAP-034)
 
 ---
 
-### 7.3 Legacy and Redirect Routes
-MicroLIMS maintains automated redirects for legacy URLs and route aliases to ensure backward compatibility:
+### 7.2 What Decides What You See
+- The system hides every menu item whose permission you lack, and hides a group when none of its items is left.
+- **Laboratory assignment**: Microbiology items need assignment to the Microbiology Laboratory, and Physicochemical items need assignment to the Physicochemical Laboratory. Users assigned to area **FP** see the **FP Workspace**, users assigned to area **RM & PM** see the **RM & PM Workspace**, and users with no area restriction see both.
+- **System Administrators** are treated as assigned to both laboratories and both areas, so they see every group they have a permission for.
+- **Hidden items are also protected**: if you open the address of a page you may not use, for example from a bookmark, the system takes you to your dashboard without showing a message. The system also checks your permission each time you save or open data.
+- Some pages, for example Messages, Discussions, and the Document Control dashboard, have no permission check when you open them. The data they show is still checked by the system.
 
-| Legacy or Alternate Path | Target Redirect Path | Redirection Mechanism |
-|---|---|---|
-| `/` | `/dashboard` | Default route redirect |
-| `/receiving-testing` | First accessible laboratory workspace (`/microbiology/workspace`, `/physicochemical/workspace`, or `/physicochemical/rm-pm-workspace`) | Workspace resolver component (preserves URL query parameters) |
-| `/testing-workspace` | `/receiving-testing` | Legacy redirect |
-| `/laboratory-configuration/cause-of-testing` | `/laboratory-configuration/receiving-configuration` | Legacy redirect |
-| `/inventory/approved-media` | `/laboratory-configuration/media?tab=approved` | Direct query parameter redirect |
-| `/inventory/approved-cryovials` | `/laboratory-configuration/cryovials?tab=approved` | Direct query parameter redirect |
-| `/groups/:slug` | `/sections/:slug` | Structural URL alias |
+---
+
+### 7.3 Pages Without a Menu Item
+Some pages are reached from other places:
+- **My Profile**, **Change Password**, **Messages**, and **Discussions**: from the account menu in the header.
+- **Section pages**: by clicking a group heading in the sidebar (see Section 6).
+- **Sample report and Certificate of Analysis**: from the sample summary dialog.
+- **Media lot report and cryovial report**: from links in the media and cryovial lists.
+- **Create Role and role pages**: from the Roles screen.
+- **Solution preparation pages**: from the Solution Preparation list.
+- **Document pages**: from the Document Library and the Document Control dashboard.
+
+---
+
+### 7.4 Older Links
+Old bookmarks still work:
+- The home address opens your dashboard.
+- The old combined receiving-and-testing page opens the first laboratory workspace available to you (Microbiology first, then the Physicochemical areas).
+- The old Cause of Testing page opens **Receiving Configuration**.
+- The old approved media and approved cryovial links open the media and cryovial screens on their **approved** tab.
+- Older "group" page links open the matching section page.
+
+<!-- Review log (Sonnet): 12 corrections; invented items removed: route/path column, laboratory codes (MICRO/FP), permission codes outside Section 4, "token claims" wording; callouts added: GAP-025, GAP-034 -->

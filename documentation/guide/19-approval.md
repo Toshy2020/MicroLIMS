@@ -1,215 +1,206 @@
 ## 19. Approval
 
-MicroLIMS does not have a separate Final Release step. Release is completed upon Section Head approval, after which the sample reaches approved status and Certificates of Analysis can be generated.
+MicroLIMS does not have a separate Final Release step. The Section Head's signed release decision on a laboratory section is the last approval step; **Approved** is the final status.
+
+The release decision is made per laboratory section. The form offers four options:
+
+| Option on the screen | Resulting section status | Signature meaning | Described in |
+|---|---|---|---|
+| **Approve: Results conform to specifications** | **Approved** | Approved | §19.1 |
+| **Not Conform (Final Conclusion): Close this sample** | **Rejected** | Rejected | §19.2 |
+| **New Sample Required: Close and request new sample** | **Retest requested** | Rejected | §18.3 |
+| **Retest Retained Sample: Return to testing** | **Retest requested** | Retest requested | §18.2 |
+
+The sample status is then recomputed from all of its sections.
+
+> **Note for reviewers:** Review and approval are decided per laboratory section, not per test order. The Investigation and OOS Investigation decisions in the specification and Quick Table review are not available. (GAP-017, GAP-018)
+
+> **Note for reviewers:** There is no Final Release step; Approved is the last status, shown as a "Release Decision" on the screen. (GAP-017, GAP-018)
 
 ### 19.1 Sample Authorization (Approve)
 <!-- WF-APPROVAL-001 -->
 #### Purpose
-Authorize and release a laboratory section's test results when they conform to specifications, providing Section Head electronic sign-off, recording optional certificate remarks, and advancing the sample toward final release.
+Release a laboratory section whose results conform to specification, with the Section Head's electronic signature and optional certificate remarks.
 
 #### Who can use it
-Requires the *Approve samples* permission (by default: Section Head, System Administrator). Users must hold an active membership in the laboratory section being authorized.
+Requires the *Sample Release Approval* permission (by default: Section Head, System Administrator). You must be assigned to the laboratory section.
 
 #### Before you start
-- The laboratory section must be in **Under approval** status following completion of technical review. If attempting to approve a section in another state, the system displays: "Sample must be under approval before a decision can be made."
-- Segregation of duties: The approver cannot be the section's reviewer ("You cannot approve a sample you reviewed.") and cannot have performed any current test within the laboratory section ("You cannot approve a sample you tested."). Both segregation rules apply to all user roles, including System Administrator.
-- Analytical prerequisites:
-  - If any test order in the section is configured in Test Master to require system suitability (HPLC assay or dissolution), it must have a linked HPLC run that achieved a passed system suitability result.
-  - Every analysis-type test order must have an active result entry and cannot be in a pending stage.
+- The laboratory section must be **Under approval**, which follows a signed technical review (§17). Otherwise: "Sample must be under approval before a decision can be made."
+- Segregation of duties: you must not be the section's reviewer ("You cannot approve a sample you reviewed.") and must not have performed any current test of the section ("You cannot approve a sample you tested."). Both rules apply to every role, including System Administrator.
+- For **Approve** only: every test that requires system suitability must have a linked HPLC run with a passed system suitability, and every analysis-type test must have an active entry and no pending stage.
 
-> **Note for reviewers:** Review and approval are decided per laboratory section, not per test order; Quick Table review and Investigation / OOS Investigation decisions in the specification are not available. (GAP-017, GAP-018)
-
-> **Note for reviewers:** There is no separate Final Release step; Approved is the last status, shown as a "Release Decision" on the screen. (GAP-017, GAP-018)
-
-> **Note for reviewers:** Reviewer and approver separation of duties is evaluated per laboratory section only; an approver who tested or reviewed a different laboratory section of the same multi-laboratory sample is not blocked. (GAP-312)
+> **Note for reviewers:** Reviewer and approver separation of duties is checked per laboratory section only; an approver who reviewed or tested a different laboratory section of the same sample is not blocked. (GAP-312)
 
 > **Note for reviewers:** Approval of out-of-specification results is allowed after a warning; it certifies them as conforming. (GAP-304)
 
-> **Note for reviewers:** Approval, rejection, and close-testing signature statements are worded differently between the Certificate of Analysis, the sample report page, and the approval card. (GAP-315)
+> **Note for reviewers:** Approval, rejection and close-testing signature statements are worded differently on the certificate, the sample report and the approval card. (GAP-315)
 
-> **Note for reviewers:** Dashboard approval notifications count samples awaiting release decision rather than individual test orders as described in earlier specifications. (GAP-309)
+> **Note for reviewers:** Dashboard approval notifications count samples awaiting a release decision rather than individual test orders as described in the specification. (GAP-309)
 
 #### What you see
-- On the laboratory workspace, samples awaiting release display the **Under Approval** lifecycle badge (interactive for users holding the *Approve samples* permission).
-- **Sample Summary** dialog -> **Approval & Electronic Signatures** card:
-  - Form: **Submit Release Decision**.
-  - Dropdown: **Laboratory Section** (visible and mandatory if more than one section is awaiting approval; selecting a section pre-fills any saved certificate remarks).
-  - Text field: **Comment (optional)** (internal comment; never printed on the Certificate of Analysis).
-  - Radio options:
-    - **Approve: Results conform to specifications**
-    - **Not Conform (Final Conclusion): Close this sample**
-    - **New Sample Required: Close and request new sample** (see §18)
-    - **Retest Retained Sample: Return to testing** (see §18)
-  - Text field: **Certificate Remarks (optional)** (visible only when **Approve** is selected). Helper text: "Printed on the Certificate of Analysis exactly as typed. Leave blank to show "No remarks." Separate from the internal comment above, which never appears on the certificate."
-  - Warning banner (shown if any test order in the section has out-of-specification results): "Out-of-specification results in {section}: {tests}. Approving will certify them as conforming - consider Not Conform or a retest."
-  - Action button: **Submit Decision** (disabled if required section selection is missing).
-- **Electronic Signature** dialog:
-  - Displays user's name, assigned role, and confirmation text: "Approve: Results conform to specifications".
-  - Field: **Password** (mandatory).
-  - Action buttons: **Cancel** and **Sign**.
+- On the testing workspace, a sample waiting for release shows the **Under Approval** lifecycle badge. It is clickable only for users holding the *Sample Release Approval* permission.
+- **Sample Summary** dialog, card **Approval & Electronic Signatures**, form **Submit Release Decision**:
+  - **Laboratory Section** (when more than one section can be decided). Choosing a section fills **Certificate Remarks (optional)** with any remarks already stored for it.
+  - **Comment (optional)**: an internal comment that is never printed on the certificate.
+  - The four options listed above.
+  - **Certificate Remarks (optional)**, shown only when **Approve** is selected. Helper text: "Printed on the Certificate of Analysis exactly as typed. Leave blank to show "No remarks." Separate from the internal comment above, which never appears on the certificate."
+  - When **Approve** is selected and a test in the section is out of specification, the warning "Out-of-specification results in {section}: {tests}. Approving will certify them as conforming - consider Not Conform or a retest."
+  - **Submit Decision** (disabled until the decision is valid).
+- **Electronic Signature** dialog: your name and role, the text of the selected option (for example "Approve: Results conform to specifications"), the field **Password**, and the buttons **Cancel** and **Sign**.
 
 [SCREENSHOT SS-191]
 
 [SCREENSHOT SS-192]
 
 #### How to use it
-1. In the laboratory workspace, locate the sample and click the **Under Approval** badge (or click **Sample Summary**).
-2. In the **Sample Summary** dialog, review the test results, raw readings, and prior technical review signatures.
-3. Scroll to the **Approval & Electronic Signatures** card.
-4. If multiple sections are pending, select your section in the **Laboratory Section** dropdown.
-5. Select the radio option **Approve: Results conform to specifications**.
-6. Optionally, type internal notes in the **Comment (optional)** field.
-7. Optionally, enter formal remarks in the **Certificate Remarks (optional)** field. If left blank, the Certificate of Analysis will display "No remarks."
-8. If an out-of-specification warning banner appears, verify whether an approval override is intended.
+1. Click the **Under Approval** badge (or **Sample Summary**) of the sample.
+2. Read the test results and the earlier review signature in the **Sample Summary** dialog.
+3. Go to the **Approval & Electronic Signatures** card.
+4. If several sections are waiting, choose yours in **Laboratory Section**.
+5. Select **Approve: Results conform to specifications**.
+6. Optionally, type an internal note in **Comment (optional)**.
+7. Optionally, type the remarks to print on the certificate in **Certificate Remarks (optional)**. If left blank, the certificate shows "No remarks."
+8. If the out-of-specification warning appears, decide whether to continue or to choose **Not Conform** or a retest instead. The warning does not block the approval.
 9. Click **Submit Decision**. The **Electronic Signature** dialog opens.
-10. Enter your account password in the **Password** field.
+10. Type your account password in **Password**.
 11. Click **Sign**.
 
 #### System behavior
-- The system executes server checks in this sequence: verifies sample existence; resolves section scope; verifies approver segregation of duties against reviewer and performers; verifies system suitability requirements; validates analysis entry stages; and validates password authentication.
-- All updates commit in a single database transaction:
-  - An electronic signature is recorded with meaning `Approved`.
-  - A Workflow History event of type `ApprovalDecisionMade` is recorded with decision `Approve`.
-  - The laboratory section sign-off status advances to **Approved**, recording approver name, timestamp, and trimmed certificate remarks.
-  - Every current test order in the section is updated to status `Approved` and step `Approved`, with a history entry: "Sample approved by {name}".
-- Multi-section sample roll-up:
-  - If this approval completes the last open laboratory section on the sample (and no section was rejected), the parent sample status becomes **Approved**.
-  - When the sample reaches final approved status, an immutable summary report PDF is frozen and stored in the record archive with the label "Sample Approve" and a SHA-256 cryptographic hash.
+- The system checks, in this order: the sample exists; the laboratory section and your access to it; you are not the section's reviewer; you did not perform a current test of the section; the system suitability and analysis-entry requirements for **Approve**; your password.
+- When all checks pass, everything is saved together:
+  - An electronic signature with the meaning *Approved*, and a Workflow History event recording the decision.
+  - The section becomes **Approved**, recording the approver, the time and the trimmed certificate remarks.
+  - Every current test of the section is marked **Approved**, with the history entry "Sample approved by {name}".
+- When no section of the sample is open any more and none is rejected, the sample becomes **Approved**.
+- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled "Sample Approve" (see §21.3).
 
 #### Validation
-- If the section is not in the approval stage: "Sample must be under approval before a decision can be made."
-- If the approver reviewed the section: "You cannot approve a sample you reviewed."
-- If the approver tested any current test in the section: "You cannot approve a sample you tested."
-- If system suitability is required but unsupported by the test workflow: "Cannot approve section: test order {id} (\"{code}\") requires system suitability, but only HPLC workspace tests (assay, dissolution) can supply one. Clear \"Requires system suitability\" for this test in Test Master."
-- If a required HPLC system suitability run is missing or not passed: "Cannot approve section: test order {id} (\"{code}\") lacks an HPLC run with a passed system suitability."
-- If an analysis-type test lacks an active entry: "Cannot approve section: test order {id} (\"{code}\") lacks an active {display name} entry."
-- If an analysis-type test has an incomplete stage: "Cannot approve section: test order {id} (\"{code}\") has a pending stage."
-- If an unrecognized decision code is sent: "'{decision}' is not a valid sample-level decision."
-- Password errors: "Password verification failed. The signature was not applied." / "Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied."
+- "Sample must be under approval before a decision can be made."
+- "You cannot approve a sample you reviewed."
+- "You cannot approve a sample you tested."
+- "Cannot approve section: test order {id} (\"{code}\") requires system suitability, but only HPLC workspace tests (assay, dissolution) can supply one. Clear \"Requires system suitability\" for this test in Test Master."
+- "Cannot approve section: test order {id} (\"{code}\") lacks an HPLC run with a passed system suitability."
+- "Cannot approve section: test order {id} (\"{code}\") lacks an active {display name} entry."
+- "Cannot approve section: test order {id} (\"{code}\") has a pending stage."
+- "'{decision}' is not a valid sample-level decision." (appears only if a decision other than the four options is submitted)
+- "Password verification failed. The signature was not applied."
+- "Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied."
 
 #### Status
-- Laboratory section sign-off status: advances to **Approved**.
-- Test orders: advance to status `Approved` (workflow step `Approved`).
-- Sample status: advances to **Approved** when all laboratory sections are approved.
+- Section: **Under approval** to **Approved**.
+- Tests: each current test of the section becomes **Approved**.
+- Sample: **Approved** when no section is open and none is rejected; otherwise it follows the roll-up of the other sections.
 
 #### What happens next
-The sample testing workflow is complete. Users can open the printable sample summary report or view and print the official Certificate of Analysis (see §21 Sample Report, Certificate of Analysis and Archived Records).
+View or print the sample report and the Certificate of Analysis (see §21). If the sample is not yet final, other laboratory sections continue with their own review and approval.
 
 
 ### 19.2 Rejection (Not Conform)
 <!-- WF-APPROVAL-001 -->
 #### Purpose
-Reject a laboratory section when test results fail to conform to specifications and no further retesting is warranted, closing the section as non-conforming.
+Reject a laboratory section whose results do not conform to specification, using the option **Not Conform (Final Conclusion): Close this sample**.
 
 #### Who can use it
-Requires the *Approve samples* permission (by default: Section Head, System Administrator). Users must hold an active membership in the laboratory section.
+Requires the *Sample Release Approval* permission (by default: Section Head, System Administrator). You must be assigned to the laboratory section.
 
 #### Before you start
-- The laboratory section must be in **Under approval** status.
-- Segregation of duties: The user must not have reviewed or tested the section.
+- The laboratory section must be **Under approval**.
+- The same segregation-of-duties rules as in §19.1 apply: you must not be the section's reviewer and must not have performed any current test of the section.
 
-> **Note for reviewers:** "Not Conform (Final Conclusion): Close this sample" rejects the deciding section only; other laboratories continue; the code comments contradict each other. (GAP-303)
+> **Note for reviewers:** "Not Conform (Final Conclusion): Close this sample" rejects the deciding section only; other laboratories continue. The comments in the system's own code contradict each other on this point. (GAP-303)
 
 #### What you see
-- On the **Approval & Electronic Signatures** card:
-  - Form: **Submit Release Decision**.
-  - Radio option: **Not Conform (Final Conclusion): Close this sample**.
-  - Text field: **Comment (optional)** (internal rejection notes).
-  - Action button: **Submit Decision**.
-- **Electronic Signature** dialog:
-  - Confirmation statement: "Not Conform (Final Conclusion): Close this sample".
-  - Field: **Password**.
+- On the card **Approval & Electronic Signatures**, form **Submit Release Decision**: the option **Not Conform (Final Conclusion): Close this sample**, **Comment (optional)** and **Submit Decision**.
+- **Electronic Signature** dialog with the text "Not Conform (Final Conclusion): Close this sample" and the field **Password**.
 
 #### How to use it
-1. In the **Sample Summary** dialog, locate the **Approval & Electronic Signatures** card.
-2. If multiple sections are pending, select your section from the **Laboratory Section** dropdown.
-3. Select the radio option **Not Conform (Final Conclusion): Close this sample**.
-4. Optionally, enter an explanation in the **Comment (optional)** field.
+1. In the **Sample Summary** dialog, go to the **Approval & Electronic Signatures** card.
+2. If several sections are waiting, choose yours in **Laboratory Section**.
+3. Select **Not Conform (Final Conclusion): Close this sample**.
+4. Optionally, type an explanation in **Comment (optional)**.
 5. Click **Submit Decision**.
-6. Enter your account password in the **Electronic Signature** dialog and click **Sign**.
+6. Type your account password in the **Electronic Signature** dialog and click **Sign**.
 
 #### System behavior
-- An electronic signature is recorded with meaning `Rejected`.
-- A Workflow History event of type `ApprovalDecisionMade` is recorded with decision `Reject`.
-- The laboratory section sign-off status advances to **Rejected**, recording approver name and timestamp.
-- Each current test order in the section is set to status `Rejected` (workflow step remains unchanged), with a history note: "Sample rejected by {name}".
-- Other laboratory sections on multi-section samples are NOT automatically closed; they remain open and continue testing.
-- When the sample reaches a final state across all sections, an immutable summary report PDF is frozen and archived with the label "Sample Reject" and a SHA-256 hash.
+- One electronic signature is recorded with the meaning *Rejected*, and a Workflow History event records the decision.
+- The section becomes **Rejected**, recording the approver and the time.
+- Every current test of the section is marked **Rejected** (its step is unchanged), with the history entry "Sample rejected by {name}".
+- Other laboratory sections of the sample are not closed. They stay open and carry on.
+- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled "Sample Reject".
 
 #### Validation
-- Same segregation-of-duties and password validation rules as §19.1.
+- The same messages as in §19.1 for the section state, segregation of duties and password.
 
 #### Status
-- Laboratory section sign-off status: becomes **Rejected**.
-- Test orders: become status `Rejected`.
-- Sample status: recomputed according to the section roll-up rule. If other laboratory sections are still open, the overall sample status remains at the least advanced open state; once all sections are finalized, the overall sample reflects **Rejected**.
+- Section: **Rejected**.
+- Tests: **Rejected**.
+- Sample: recomputed from all sections. While another section is open, the sample shows the least advanced open status; once no section is open, a rejected section makes the sample **Rejected**.
 
 #### What happens next
-The rejected section is closed. If another laboratory section has open tests on the same sample, that section can choose to continue testing or execute the Close Testing procedure (see §19.3).
+If another laboratory still has open tests on the sample, it can continue or use Close Testing (§19.3).
 
 
 ### 19.3 Closing Laboratory Testing After Another Laboratory Rejected
 <!-- WF-APPROVAL-003 -->
 #### Purpose
-Discontinue and cancel open tests in a laboratory section when another laboratory section has already rejected the sample, avoiding unnecessary testing on an already non-conforming batch.
+Stop the remaining open tests of your laboratory section after another laboratory section has rejected the sample.
 
 #### Who can use it
-Requires the *Approve samples* permission (by default: Section Head, System Administrator). Users must hold an active membership in the laboratory section being closed.
+Requires the *Sample Release Approval* permission (by default: Section Head, System Administrator). You must be assigned to the laboratory section being closed.
 
 #### Before you start
-- Another laboratory section on the sample must already be in **Rejected** status. If no section is rejected, the system displays: "Testing can be closed only after another laboratory rejected the sample."
-- The user's laboratory section must have open tests in **In testing**, **Under review**, or **Under approval**. If already closed, the system displays: "This laboratory's testing is already closed." If no open tests remain, it displays: "This laboratory has no open tests on the sample."
-- A non-blank justification reason is mandatory.
+- Another section of the sample must be **Rejected**. Otherwise: "Testing can be closed only after another laboratory rejected the sample."
+- Your section must be open (**In testing**, **Under review** or **Under approval**). If it is already closed: "This laboratory's testing is already closed." If it has no open tests: "This laboratory has no open tests on the sample."
+- A reason is required.
 
 #### What you see
-- In the **Sample Summary** dialog, when the overall sample outcome is Rejected and the user's section has open tests:
-  - Panel: **Close Testing**.
-  - Warning banner: "Another laboratory has rejected this sample. You may close your own laboratory's remaining tests instead of continuing them."
-  - Dropdown: Section selector (visible if multiple sections can be closed).
-  - Action button: **Close Testing**.
-- **Close Testing** dialog:
-  - Dialog title: **Close Testing: {section}**.
-  - Subtitle: "Stops your laboratory's remaining tests on this sample - signed with your password".
-  - Informational notice: "Every still-open test in this laboratory will be recorded as Cancelled at the stage it had reached. Approved results already on file are kept."
-  - Text area: **Reason** (mandatory; pre-filled with "Sample rejected by {lab}").
-  - Action buttons: **Cancel** and **Sign & Close** (disabled while the Reason field is empty).
-- **Electronic Signature** dialog:
-  - Confirmation statement: "I am closing this laboratory's testing; it will not be resumed on this sample."
-  - Field: **Password**.
+- In the **Sample Summary** dialog, when the overall outcome is Rejected and you have a closable section, the block **Close Testing** with the warning "Another laboratory has rejected this sample. You may close your own laboratory's remaining tests instead of continuing them.", a section select (when several sections can be closed) and the button **Close Testing**.
+- Dialog **Close Testing: {section}**:
+  - Subtitle "Stops your laboratory's remaining tests on this sample - signed with your password".
+  - Text "Every still-open test in this laboratory will be recorded as Cancelled at the stage it had reached. Approved results already on file are kept."
+  - Field **Reason** (required), pre-filled with "Sample rejected by {lab}".
+  - Buttons **Cancel** and **Sign & Close** (disabled while **Reason** is empty).
+- **Electronic Signature** dialog with the text "I am closing this laboratory's testing; it will not be resumed on this sample." and the field **Password**.
 
 [SCREENSHOT SS-193]
 
 #### How to use it
-1. Open the **Sample Summary** dialog for the rejected sample.
-2. Locate the **Close Testing** panel.
-3. If multiple sections are closable, select your section from the dropdown.
+1. Open the **Sample Summary** dialog of the sample.
+2. Find the **Close Testing** block.
+3. If several sections can be closed, choose yours.
 4. Click **Close Testing**.
-5. In the **Close Testing: {section}** dialog, review the informational text.
-6. Review or edit the justification in the **Reason** field (mandatory).
+5. Read the text in the **Close Testing: {section}** dialog.
+6. Check or edit the **Reason**.
 7. Click **Sign & Close**.
-8. In the **Electronic Signature** dialog, enter your account password.
+8. In the **Electronic Signature** dialog, type your account password.
 9. Click **Sign**.
 
 #### System behavior
-- Checks that another laboratory rejected the sample, that the user is assigned to the section, that the section has open tests, and that a reason is provided.
-- An electronic signature is recorded with meaning `TestingClosed`.
-- A Workflow History event of type `SectionTestingClosed` is recorded with the closure reason.
-- Every current test order in the section that is not already Approved, Voided, or Cancelled is set to status `Cancelled`, recording the workflow step and incubation stage it had reached, with a history note: "Testing closed by {name}: {reason}".
-- Previously approved test orders on file remain untouched.
-- The laboratory section sign-off status advances to **Cancelled** (displayed in the user interface as **Closed**), recording the user, timestamp, reason, and signature.
-- If this closure leaves no remaining open sections on the sample, an immutable summary report PDF is frozen and archived with the label "Laboratory testing closed".
+- The system checks, in this order: the reason is not blank; the sample exists; your access to the section; the section belongs to the sample; another section is rejected; the section is not already closed; the section has open tests.
+- One electronic signature is recorded with the meaning *Testing closed*, and a Workflow History event records the reason.
+- Every current test of the section that is not already Approved, Voided or Cancelled becomes **Cancelled**, with the step and incubation stage it had reached recorded and the history entry "Testing closed by {name}: {reason}". Approved results already on file are kept.
+- The section becomes **Cancelled** (shown as **Closed**), recording who closed it, when, and the reason.
+- The sample status is recomputed. If the sample is now final, the report is saved as a frozen PDF archived copy labelled "Laboratory testing closed".
+
+#### Important rules
+- The reviewer and tester checks used for Approve do not apply to Close Testing.
 
 #### Validation
-- If the reason is empty: "A reason is required to close testing."
-- If no other section has rejected the sample: "Testing can be closed only after another laboratory rejected the sample."
-- If the section is already closed: "This laboratory's testing is already closed."
-- If the section has no open tests: "This laboratory has no open tests on the sample."
-- If the user is not assigned to the section: "This test belongs to a laboratory section you are not assigned to."
+- "A reason is required to close testing."
+- "Testing can be closed only after another laboratory rejected the sample."
+- "This laboratory's testing is already closed."
+- "This laboratory has no open tests on the sample."
+- "This sample has no tests in the selected laboratory section."
+- "This test belongs to a laboratory section you are not assigned to."
+- "Password verification failed. The signature was not applied."
 
 #### Status
-- Section sign-off status: becomes **Cancelled** (displayed as **Closed**).
-- Open test orders: become status `Cancelled`.
-- Overall sample status: recomputed to **Rejected**.
+- Section: **Cancelled** (shown as **Closed**).
+- Open tests: **Cancelled**.
+- Sample: recomputed from all sections.
 
 #### What happens next
-Testing in the closed laboratory is terminated. On the multi-section Certificate of Analysis, the closed laboratory's tests are reported as: "{test}: Not completed, testing closed ({step}, stage {n})."
+On the combined Certificate of Analysis the closed laboratory's tests are listed as "{test}: Not completed, testing closed ({step}, stage {n})." No section-only certificate exists for a closed section.
+
+<!-- Review log (Sonnet): 20 corrections; invented items removed: "active membership", enum/database/transaction wording, "approval override", "workflow complete" claim, "recomputed to Rejected" for close testing, "immutable"/"cryptographic" claims; added decision-options table with resulting statuses and signature meanings; callouts added: none missing (GAP-017/018 incl. no Final Release, GAP-312, GAP-304, GAP-303, GAP-315, GAP-309 present) -->

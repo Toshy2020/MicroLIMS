@@ -1,161 +1,137 @@
 ## 10. Search and Filters
 
-### 10.1 Search Architecture Across MicroLIMS
-MicroLIMS does not provide a single, universal global search bar in the header. Instead, search and filtering tools are embedded directly within specific operational modules:
-- **Sample Register & Workspaces**: Quick-filtering incoming samples, assigned tests, and incubation statuses.
-- **Tracking Board**: Multi-laboratory cross-sectional querying by laboratory section, overall status, and product.
-- **Reports (Record Search)**: Historical analytical query engine with multi-parameter filtering, quick-report shortcuts, and CSV/PDF export.
-- **Audit Trail (Audit Search)**: Change-event log searching across date ranges, action types, entity categories, and laboratory reference identifiers.
-- **Document Library**: Lifecycle and classification filtering across controlled SOPs, training matrices, and document audit records.
-- **Error Monitoring**: Technical incident filtering by severity, source tier, date range, and correlation ID.
+### 10.1 Where You Can Search
+MicroLIMS has no single search box that searches the whole application. Search and filters are part of individual screens:
+- **Receive Sample (sample register)** and the laboratory workspaces: find samples, tests, and workloads.
+- **Tracking Board**: find samples across laboratories.
+- **Reports**: search results and see media, reference strain, trending, and KPI figures.
+- **Audit Trail**: search change events.
+- **Document Control**: library, reading list, training matrix, and Document Control audit trail.
+- **Error Monitoring**: filter technical incidents.
+- **Discussions** and **Messages**: search posts and conversations (see Section 9).
+- **Roles**: search by role name ("Search by role name...").
 
 ---
 
-### 10.2 Sample Register and Tracking Board Filters
+### 10.2 Sample Register, Tracking Board, and Workspace Filters
 
-#### Sample Register Filters (`/receiving`)
-On the **Receive Sample** screen, the filter bar allows locating active and incoming records:
-- **Search Field**: Text box with placeholder `"Search by item, reference number, control number, batch number..."`. Matches partial or complete strings across reference codes, lot numbers, and item names.
-- **Item Type Dropdown**: Filters by product classification (options include "All Item Types", "Product", "Raw Material", "Packaging Material", "Water", "Environmental Monitoring", "After Cleaning").
-- **Sample Status Dropdown**: Filters by overall lifecycle stage (options include "All Sample Statuses", "Received", "Under Testing", "Pending Review", "Under Review", "Under Approval", "Approved").
-- **Test Status Dropdown**: Filters records based on the progress of their subordinate test orders.
-- **Date Range Pickers**: **Received From** and **Received To** date fields to isolate samples received within a defined calendar window.
-- **Selection Filtering**: When checkboxes on sample rows are ticked, the **Selection Bar** appears:
-  - Displays count: `"{n} sample(s) selected"`.
-  - Shows if active filters hide selected items: `"{n} hidden by current filters"`.
-  - Button **Show selected only**: Temporarily hides all unselected samples, displaying guidance text: `"Showing only the selected samples; other filters are paused."`
-  - Button **Back to filters**: Restores the previous filter criteria.
-  - Button **Clear selection**: Unchecks all samples.
-- **View Mode Toggles**: Buttons on the right edge switch between **Table view**, **Card view**, and **Kanban view**.
+#### Sample register (Receive Sample)
+The filter bar above the register offers:
+- **Search**: the box "Search by item, reference number, control number, batch number..."
+- **Item Type**: **All Item Types**, **Product**, **Raw Material**, **Packaging Material**, **Water**, **Environmental Monitoring**, **After Cleaning**.
+- **Sample Status**: **All Sample Statuses**, **Received**, **Under Testing**, **Pending Review**, **Under Review**, **Under Approval**, **Approved**, **Rejected**, **Cancelled / Voided**.
+- **Test Status**: **All Test Statuses**, **Not Started**, **In Progress**, **Result Entered**, **Under Review**, **Reviewed**, **Approved**, **Rejected**.
+- **Received From** and **Received To**: dates.
+- View buttons for the table, card, and kanban views.
 
-#### Tracking Board Filters (`/receiving/tracking`)
-Requires the *Cross-lab sample tracking* permission (`Samples.TrackAll`).
-- **Laboratory**: Dropdown with options "All Laboratories", "Microbiology Laboratory", and "Physicochemical Laboratory".
-- **Overall Status**: Dropdown with options "All Overall Statuses", "In Progress", "Approved", "Rejected", "Retest Requested", "Voided", and "Cancelled".
-- **Product / Item**: Search and selection dropdown populated with registered laboratory items. If the catalog fails to load, helper text reads: `"Product list unavailable - reload the page to retry."`
-- **Received From / Received To**: Calendar date pickers (the "To" date includes the full 24-hour calendar day).
-- **Reset**: Clears all filter parameters to default settings.
-- Default page size is 50 records; maximum server pagination is 200 records per page.
+When you tick samples in the register, a selection bar appears. It shows "{n} sample(s) selected" and, when filters hide some of them, "{n} hidden by current filters". The button **Show selected only** shows just the ticked samples ("Showing only the selected samples; other filters are paused."), **Back to filters** returns to your filters, and **Clear selection** unticks everything.
 
-#### Testing Workspace Workload Filters
-In the **Microbiology**, **FP**, and **RM & PM** workspaces:
-- Clicking any KPI tile (**Needs Preparation**, **Ready to Read**, **Awaiting Review**, **Overdue**, **Assigned to Me**, **Unassigned**) activates a dedicated workload filter.
-- Deep-link workload filter chips display at the top of the register: **Active Workload Filter:** with chips such as **Retests in Progress**, **Overdue Review (>24h)**, and **Overdue Approval (>24h)**. Clicking a chip toggles the filter off.
+> **Note for reviewers:** The register uses the label **Cancelled / Voided** for the status that other screens call "Retest Requested". (GAP-204)
+
+#### Tracking Board
+Needs the *Cross-Lab Sample Tracking* permission (see Section 4).
+- **Laboratory**: **All Laboratories**, **Microbiology Laboratory**, **Physicochemical Laboratory**.
+- **Overall Status**: **All Overall Statuses**, **In Progress**, **Approved**, **Rejected**, **Retest Requested**, **Voided**, **Cancelled**.
+- **Product / Item**: choose an item. If the item list cannot be loaded, the screen shows "Product list unavailable - reload the page to retry."
+- **Received From** and **Received To**, and a reset button.
+- The board shows 50 samples per page.
+
+#### Laboratory workspaces
+In the Microbiology, FP, and RM & PM workspaces, clicking a summary tile (**Needs Preparation**, **Ready to Read**, **Awaiting Review**, **Overdue**, **Assigned to Me**, **Unassigned**) filters the register to that workload. Clicking the tile again removes the filter. Links from dashboards can also set a filter; the line **Active Workload Filter:** then shows a label such as **Retests in Progress**, **Overdue Review (>24h)**, or **Overdue Approval (>24h)**, and clicking it removes the filter.
 
 ---
 
-### 10.3 Reports — Record Search and Specialized Reporting Filters
+### 10.3 Reports: Record Search and Other Report Filters
 
-#### Record Search Tab (`/reports?tab=search`)
-Available to any authenticated user to search historical, approved, and in-progress analytical results.
-- **Left Filter Panel (`ReportFilterPanel`)**:
-  - Header with **Filters** title and **Reset** link button.
-  - **Search**: Free-text input with placeholder `"Search Sample ID, Batch No., Item, Test, Location..."`.
-  - **Result Type**: Dropdown options "All", "Quantitative", and "Qualitative".
-  - **Category**: Dropdown options "All" plus available sample categories (FinishedProduct, RawMaterial, Water, EnvironmentalMonitoring, AfterCleaning).
-  - **Test**: Dropdown displaying `{testCode} - {testDisplayName}`.
-  - **Result Level**: Segmented button selector: **All**, **Within Limit**, **Alert Level**, **Action Level**, and **Out of Spec**.
-  - **Status**: Dropdown options "All", "Received", "InTesting", "UnderReview", "UnderApproval", "Approved", "Rejected", "RetestRequested".
-  - **Approval Status**: Dropdown options "All", "Approved", "Pending", "Rejected".
-  - **Date Range**: Two date inputs labeled **From date** and **To date**.
-  - **Location / Point**: Dropdown filtering by specific water sampling points, cleanroom areas, or machine surfaces.
-  - Action button: **Search Records** (submits the query).
-- **Quick Reports Tiles**: Clickable tiles above the filter panel that pre-populate standard filters:
-  - **Product**, **Raw Material**, **Water**, **Environmental Monitoring**, **After Cleaning**, **Media/GPT** (switches to Media tab), **Reference Strains** (switches to Strains tab), and **Custom Report** (resets filters and focuses the search box).
-- **Results Table Controls**:
-  - Displays total count chip: `"{totalCount} Records Found"`.
-  - **Columns** button: Dropdown menu with checkboxes allowing users to toggle visible columns (Date/Time, Sample/Reference, Item/Location, Type, Test, Result, Unit, Result Level, Status, Approved By, Approval Date).
-  - **Export CSV**: Prompts with confirmation: `"This will export {totalCount} row(s) matching your current filters as a CSV file. This export will be logged."` (enforces a hard 10,000-row maximum export limit).
-  - **Export PDF**: Generates a printable A4 landscape report of the currently displayed page.
-  - Multi-select actions: Selecting Approved rows displays **Export Selected PDF**, **Export Selected CSV**, and **Analyze Selected** (opens Trending tab).
-  - Empty state: `"No results found"` with subtitle `"Try widening the date range or clearing some filters."` and button **Clear Filters**.
+#### Record Search tab
+Open to every signed-in user. It searches results in your laboratory sections.
+- The **Filters** panel, with a **Reset** link, contains:
+  - **Search**: "Search Sample ID, Batch No., Item, Test, Location..."
+  - **Result Type**: **All**, **Quantitative**, **Qualitative**.
+  - **Category**: **All** and the categories that have results.
+  - **Test**: tests shown as "{code} - {name}".
+  - **Result Level**: **All**, **Within Limit**, **Alert Level**, **Action Level**, **Out of Spec**.
+  - **Status**: **All**, **Received**, **InTesting**, **UnderReview**, **UnderApproval**, **Approved**, **Rejected**, **RetestRequested** (these names appear in the list as written).
+  - **Approval Status**: **All**, **Approved**, **Pending**, **Rejected**.
+  - **Date Range**: **From date** and **To date**.
+  - **Location / Point**: **All** and the locations or points that have results.
+  - The button **Search Records**.
+- **Quick Reports** tiles pre-set the filters: **Product**, **Raw Material**, **Water**, **Environmental Monitoring**, **After Cleaning**, **Media/GPT** and **Reference Strains** (these two open their own tabs), and **Custom Report** (clears the filters and moves to the search box).
+- The results table shows "{n} Records Found" and has the buttons **Columns** (choose which columns to show), **Export PDF** (the page you are looking at), and **Export CSV**.
+  - **Export CSV** asks "This will export {n} row(s) matching your current filters as a CSV file. This export will be logged." and exports at most 10,000 rows. If more rows match, narrow the filters (for example a shorter date range).
+  - When you tick approved rows, the buttons **Export Selected PDF**, **Export Selected CSV**, and **Analyze Selected** (opens the Trending tab) appear.
+- When nothing matches: "No results found" and "Try widening the date range or clearing some filters." with the button **Clear Filters**.
 
 [SCREENSHOT SS-101]
 
-#### Specialized Reporting Filters
-- **Media / GPT Tab (`/reports?tab=media-gpt`)**: Filters by Search text, Media Type, Evaluation Type (default "GrowthPromotion"), Evaluation Outcome ("Conform", "NonConform"), Approval Status, and Date Range.
-- **Reference Strains Tab (`/reports?tab=reference-strains`)**: Filters by Search text, Organism, Approval Status, Active / Destroyed status, Receipt date range, and Usage date range.
-- **Trending & Analysis Tab (`/reports?tab=trending`)**: Filters by Parameter / Test, Product / Item (or cleanroom location cascade), Category, Date Range ("Last 30 Days", "Last 3 Months", "Last 6 Months", "Last 12 Months"), and Compare With ("None", "Previous Period", "Product Comparison", "Location Comparison").
-- **KPI / Performance Tab (`/reports?tab=performance`)**: Requires `Kpi.View`. Filter bar includes mandatory **From** and **To** dates, **Category** ("All categories"), **Location / subject** ("All locations"), and **Test** ("All tests").
+#### Other Reports tabs
+- **Media / GPT**: Search, Media Type, Evaluation Type (starts as GrowthPromotion), Evaluation Outcome (**Conform**, **NonConform**), Approval Status, and a date range.
+- **Reference Strains**: Search, Organism, Approval Status, Active / Destroyed, a receipt date range, and a usage date range.
+- **Trending & Analysis**: Parameter / Test, Product / Item (or a location selection for water, environmental monitoring, and after-cleaning), Category, Date Range (**Last 30 Days**, **Last 3 Months**, **Last 6 Months**, **Last 12 Months**, starting at 12 months), and Compare With (**None**, **Previous Period**, **Product Comparison**, **Location Comparison**), then **Apply Criteria**.
+- **KPI / Performance**: needs the *KPI Dashboard Viewing* permission. **From** and **To** dates (required), **Category** (starts as "All categories"), **Location / subject** (starts as "All locations"), and **Test** (starts as "All tests").
+
+> **Note for reviewers:** When no options can be loaded, the Trending tab offers a built-in list of tests and products instead. These may not match your laboratory's data. (GAP-002)
 
 ---
 
-### 10.4 Audit Search and Traceability Filters
+### 10.4 Audit Trail Search
 
-#### Audit Trail Search (`/audit-search`)
-Requires the *Audit trail viewing* permission (`Audit.View`). Allows inspecting change events, user identities, and field diffs across the entire system.
-- **Standard Filter Controls**:
-  - **From Date** and **To Date**: Date range selection for change events.
-  - **Action**: Dropdown options: **All Actions**, **Create**, **Update**, and **Delete**.
-  - **Entity Category**: Dropdown displaying all auditable entities formatted as `"{label} ({key})"`.
-- **Collapsible Laboratory Identifiers**:
-  - Clicking the toggle **More Laboratory Identifiers (Batch, Sample, Media...)** expands specialized search fields:
-    - **Sample Reference** (e.g. `FP0107026`)
-    - **Batch Number**
-    - **Control Number**
-    - **Media Lot Number**
-    - **Cryovial / RS Code**
-    - **User ID**
-  - Clicking **Hide Laboratory Identifiers** collapses the panel.
-- **Search Execution**:
-  - Buttons: **Search Audit Trail** (displays **Searching...**) and **Reset**. Pressing Enter within any filter field executes the query.
-- **Results Capping and Presentation**:
-  - Results header displays: **Audit Events (N)**.
-  - If 300 or more matching events exist, the header indicates: `", capped at 300 latest"`.
-  - Empty state: `"No audit events found"`.
-  - Row action: **Inspect Event & Traceability Chain** opens a drawer displaying before-and-after JSON diffs, actor details, and upstream/downstream traceability nodes.
+#### Audit Trail (Audit Search)
+Needs the *Audit Trail Viewing* permission (by default: System Administrator, Section Head).
+- **From Date** and **To Date**.
+- **Action**: **All Actions**, **Create**, **Update**, **Delete**.
+- **Entity Category**: **All Entities** and the record types, each shown as a name with its internal key in brackets.
+- **More Laboratory Identifiers (Batch, Sample, Media...)**: opens **Sample Reference**, **Batch Number**, **Control Number**, **Media Lot Number**, **Cryovial / RS Code**, and **User ID**. The same control then reads **Hide Laboratory Identifiers**.
+- The buttons **Search Audit Trail** (**Searching...** while processing) and **Reset**. Pressing Enter in a field also searches.
+- The result heading reads **Audit Events (N)**. When 300 or more events match, it adds ", capped at 300 latest" and only the 300 newest are shown. If nothing matches: "No audit events found". If the search fails: "Failed to fetch audit records from the server."
+- **Inspect Event & Traceability Chain** on a row opens a panel with the differences, the raw data, and the traceability chain.
 
 [SCREENSHOT SS-102]
 
-> **Note for reviewers:** Audit Trail shows 300 events at most, has no export, cannot filter on user/role actions, and does not show login history or security events. (GAP-030, GAP-101)
+> **Note for reviewers:** The Audit Trail screen shows at most 300 events, has no export or print function, cannot filter on user and role administration actions, and does not show login history or security events. (GAP-030, GAP-101)
+
+> **Note for reviewers:** Some record types (for example error log entries, sign-in tokens, and notification read state) are never written to the audit trail, so they cannot be found here. (GAP-111)
 
 ---
 
-### 10.5 Document Control Library and Audit Filters
+### 10.5 Document Control Filters
 
-#### Document Library Filters (`/document-control/library`)
-Open to all authenticated users for locating Standard Operating Procedures and controlled specifications:
-- **Search Field**: Text box with placeholder `"Search code, title, or keywords..."`.
-- **Document Type**: Dropdown with options "All Types", followed by registered document types (`{code}: {name}`).
-- **Department**: Dropdown with options "All Departments", followed by registered departments (`{code}: {name}`).
-- **Status**: Dropdown with options "All Statuses", "Draft", "In Review", "Awaiting Approval", "Future Effective", "Effective", "Superseded", "Obsolete", and "Cancelled".
-- **Switches**:
-  - **Show Voided**: Toggles visibility of retired and voided document masters.
-  - **Review Overdue Only**: Filters the library to active effective documents whose periodic review date is past due.
-- **Reset**: Clears all active filter parameters.
-- Empty state: `"No controlled documents match the selected filters"`. Pagination options: 5, 10, 25, 50 rows per page.
+#### Document Library
+Open to every signed-in user.
+- **Search**: "Search code, title, or keywords..."
+- **Document Type**: **All Types**, then each type as "{code}: {name}".
+- **Department**: **All Departments**, then each department as "{code}: {name}".
+- **Status**: **All Statuses**, **Draft**, **In Review**, **Awaiting Approval**, **Future Effective**, **Effective**, **Superseded**, **Obsolete**, **Cancelled**.
+- The switches **Show Voided** and **Review Overdue Only**, and the button **Reset** (disabled while no filter is set).
+- When nothing matches: "No controlled documents match the selected filters". The table can show 5, 10, 25, or 50 rows per page.
 
 [SCREENSHOT SS-103]
 
-#### Training and Compliance Filters
-- **My Reading List (`/document-control/my-reading-list`)**: Search box (`"Search document title, code, MicroLIMS ID..."`), button **Refresh List**, and status tabs: **To read**, **Overdue**, **Completed**, **Superseded**, and **All**.
-- **Training Matrix (`/document-control/training-matrix`)**: Search box (`"Search personnel name, username, or role..."`), **Department** dropdown ("All Departments"), and **Qualification Status** dropdown ("All States", "Qualified", "Pending", "Overdue", "Trained on Superseded Only").
+#### My Reading List and Training Matrix
+- **My Reading List**: the search box "Search document title, code, MicroLIMS ID...", the button **Refresh List**, and the tabs **To read**, **Overdue**, **Completed**, **Superseded**, and **All**.
+- **Training Matrix**: the search box "Search personnel name, username, or role...", **Department** (**All Departments**), and **Qualification Status** (**All States**, **Qualified**, **Pending**, **Overdue**, **Trained on Superseded Only**).
 
-#### Document Control Audit Trail Filters (`/document-control/audit`)
-Requires base role type `Reviewer`, `SectionHead`, or `SystemAdministrator`.
-- **Search Field**: Text input with placeholder `"Search Event UID, Action, Reason, Entity..."`.
-- **Action Category**: Dropdown options: "All Categories", "Document", "Workflow", "Security", "Configuration", and "System".
-- **Date Pickers**: **Date From** and **Date To**.
-- **Reset**: Restores default search parameters.
-- Action button: **Export Audit Trail (CSV)**.
+#### Document Control Audit Trail
+Only users with the Reviewer, Section Head, or System Administrator base role type get results.
+- **Search**: "Search Event UID, Action, Reason, Entity..."
+- **Action Category**: **All Categories**, **Document**, **Workflow**, **Security**, **Configuration**, **System**.
+- **Date From** and **Date To**, and **Reset**.
+- The button **Export Audit Trail (CSV)** (**Exporting CSV...** while processing).
 
-> **Note for reviewers:** In the Document Control Audit Trail, the dropdown options "Workflow" and "System" do not match the backend enum values, and some backend categories cannot be selected. (GAP-813)
+> **Note for reviewers:** The categories **Workflow** and **System** in this list are not categories the system uses, and some categories it does use cannot be chosen. How the system answers the two unknown values has not been tested. (GAP-813)
 
 ---
 
 ### 10.6 Error Monitoring Filters
-#### Error Monitoring (`/error-monitoring`)
-Requires the *Error log monitoring* permission (`System.ViewErrorLog`). Displays technical system incidents and application exceptions.
+Needs the *Error Log Monitoring* permission (by default: System Administrator).
+- **Severity**: **All**, **Info**, **Warning**, **Error**, **Critical**.
+- **Source**: **All**, **Backend**, **Frontend**, **Database**.
+- **Status**: **All**, **Open**, **Resolved**.
+- **Active from** and **Active to**: dates, applied to the time the incident was last seen.
+- **Search summary or correlation id**.
+- **Reset**, and **Export CSV** (**Exporting...** while processing), which exports up to 5,000 incidents for the current filters. If the export fails: "The export could not be generated."
+- When nothing matches: "No incidents match these filters." If the list cannot be loaded: "Could not load incidents."
 
-- **Filter Controls**:
-  - **Severity**: Dropdown options: "All", "Info", "Warning", "Error", "Critical".
-  - **Source**: Dropdown options: "All", "Backend", "Frontend", "Database".
-  - **Status**: Dropdown options: "All", "Open", "Resolved".
-  - **Active from / Active to**: Calendar date pickers applied against the incident's "Last seen" timestamp.
-  - **Search summary or correlation id**: Text input filtering incident descriptions or unique error correlation identifiers.
-- **Actions**:
-  - Button **Reset**: Clears all filters.
-  - Button **Export CSV** (displays **Exporting...**): Exports up to 5,000 incidents matching current filters to a CSV file.
-- **Empty State**: `"No incidents match these filters."`
+> **Note for reviewers:** Error Monitoring is a technical log, not a deviation or investigation record, and resolving an incident is not written to the audit trail. It also lists routine refusals such as business-rule and permission errors. (GAP-110)
 
-> **Note for reviewers:** Error Monitoring is a technical log, not a deviation or investigation record; resolving an incident is not audited. (GAP-110)
+<!-- Review log (Sonnet): 25 corrections; invented items removed: page addresses, internal component and permission-code wording (Kpi.View, Samples.TrackAll, Audit.View, System.ViewErrorLog), item-type and sample-status lists corrected (added Rejected and Cancelled / Voided, test status list added), "Reset" button label on Tracking Board, unsupported description of Review Overdue Only, Trending category list, "immutable" audit wording, example reference FP0107026, "before-and-after JSON" wording, "read all" etc.; callouts added: GAP-204, GAP-002, GAP-030/101, GAP-111, GAP-813, GAP-110 -->

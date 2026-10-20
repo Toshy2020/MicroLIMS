@@ -1,106 +1,88 @@
 ## 29. Material Stock
 
-MicroLIMS provides centralized inventory tracking for laboratory reagents, culture media, reference standards, microbiological strains, chemical supplies, and consumables within the **Materials Stock** module (`/inventory/materials`). Inventory records are scoped to laboratory sections (**Microbiology** or **Physicochemical**), support automated stock deductions across testing and preparation workflows, enforce mandatory Certificate of Analysis (COA) verification gates, and maintain controlled document lifecycles.
+**Materials Stock** records the lots of reagents, culture media, reference standards, strains, supplies and other consumables that each laboratory section holds. It shows the stock left and the expiry dates, deducts stock when a lot is used in a preparation or test, requires a Certificate of Analysis (COA) for some material types, and keeps the documents of each lot. Each laboratory section sees its own stock: open it from **Laboratories** > **Microbiology Laboratory** > **Materials Stock** or **Laboratories** > **Physicochemical Laboratory** > **Materials Stock**.
 
-> **Important notice:** MicroLIMS does not have a separate receipt quarantine or release inspection step; newly received material lots are registered directly into inventory stock in status InStock.
+> **Important notice:** MicroLIMS has no separate release or quarantine step for a received lot and no second-person check at receipt. A lot is available as soon as it is added to stock, subject to the expiry, COA and quantity checks described in section 29.4.
 
 ---
 
 ### 29.1 Materials Stock Inventory Overview
 #### Purpose
-View current stock levels, track expiration dates, locate storage assignments, and filter laboratory materials across chemical and biological categories.
+See the stock of your laboratory section: quantities left, expiry dates and storage locations.
 
 #### Who can use it
-Requires the *Manage materials* permission (by default: Analyst, Section Head, System Administrator). Visibility is strictly scoped to the user's assigned laboratory section (`?lab=MICRO` or `?lab=FP`).
+Requires the *Manage materials* permission (by default: Analyst, Section Head, System Administrator). Only the lots of your own laboratory section are listed.
 
 #### Before you start
-- The user must hold active membership in the relevant laboratory section (Microbiology or Physicochemical).
+You are assigned to the laboratory section whose stock you want to see.
 
 #### What you see
-- Materials Stock table displaying:
-  - Columns: **Type**, **Material Name**, **Manufacturer**, **Batch/Lot No.**, **Received**, **Expiry**, **Code**, **Location**, **Qty Received**.
-  - Status badges: **In Stock**, **Depleted** (remaining quantity zero or less), and **Expired** (expiration date earlier than the current laboratory date).
-  - Informational chip: **Not linked to a media product** (for dehydrated media lacking a product link).
-  - Row actions: **Details and documents**, **Edit material**.
-  - Empty state (if no inventory exists): "No materials in stock — Receive the first material lot."
-  - Action button: **Add to Stock**.
+- The title **Materials in Stock: Physicochemical Lab** or **Materials in Stock: Microbiology Lab**.
+- Summary cards: **Total Items**, **In Stock**, **Low Stock**, **Out of Stock**, **Expiring Soon**. Selecting a card filters the table.
+- A search box ("Search by name, lot no., code...") and filters **Type**, **Manufacturer**, **Location**, **Status** (**All Statuses**, **In Stock**, **Low Stock**, **Depleted**, **Expired**) and **Expiry**.
+- A table with the columns **Type**, **Material Name**, **Manufacturer**, **Batch/Lot No.**, **Received**, **Expiry**, **Code**, **Location**, **Qty Received** and **Qty Remaining**. A chip **Not linked to a media product** marks dehydrated media without a media product.
+- Row actions **Details and documents** and **Edit material**, and the button **Add to Stock**.
+- When the section has no stock: "No materials in stock — Receive the first material lot."
 
 [SCREENSHOT SS-291]
 
 #### How to use it
-1. Navigate to **Laboratories** > **Microbiology Laboratory** > **Materials Stock** (or **Physicochemical Laboratory** > **Materials Stock**).
-2. Filter the inventory register by material type or search by material name, batch/lot number, or catalog code.
-3. Review available quantities remaining, storage locations, and upcoming expiration dates.
+1. Open **Materials Stock** from the menu of your laboratory.
+2. Use the search box, the filters or the summary cards to find a lot.
+3. Check the quantity left, the location and the expiry date.
 
 #### System behavior
-- Stock status is evaluated dynamically and is not stored as a static database status:
-  - **InStock**: Remaining quantity $> 0$ and expiration date on or after the current date (or no expiration date configured).
-  - **Depleted**: Remaining quantity $\le 0$.
-  - **Expired**: Expiration date earlier than the current laboratory date.
+The status of a lot is calculated each time, not stored:
+- **Expired:** the expiry date is before today's laboratory date.
+- **Depleted:** the quantity remaining is zero or less.
+- **In Stock:** otherwise. **Low Stock** is an In Stock lot whose quantity remaining is at or below the **Min. Stock Level** set at receipt.
 
-> **Note for reviewers:** Material lots registered without an expiration date are never treated as expired by the system. (GAP-508)
+> **Note for reviewers:** A lot added without an expiry date is never treated as expired by the system. (GAP-508)
 
 ---
 
 ### 29.2 Receiving Material Lots into Stock
 <!-- WF-MATERIAL-001 -->
 #### Purpose
-Register newly received physical lots of chemical reagents, reference standards, culture media, and biological materials into section inventory.
+Add a newly received lot to the stock of your laboratory section.
 
 #### Who can use it
 Requires the *Manage materials* permission (by default: Analyst, Section Head, System Administrator).
 
 #### Before you start
-- For chemical reagents, indicators, primary standards, and reference standards, the master entry must exist in the Reagents & Reference Standards catalog.
-- For dehydrated media, the corresponding media product must be configured in Laboratory Configuration.
-- In-house working standards cannot be received here; they are created exclusively through approved qualification workflows.
+- For chemicals, indicators, primary standards and reference standards, the entry exists in the Reagents & Reference Standards master (section 28.5). It must be active, of your laboratory, and of the matching category.
+- For dehydrated media, the media product is configured in Laboratory Configuration > Media Configuration (a Section Head adds it there).
+- In-house working standards cannot be received here: they are created when a qualification is approved (section 28.3).
 
 #### What you see
-- Dialog title: **Add Material to Stock** (buttons: **Cancel**, **Add to Stock**).
-- Entry fields:
-  - **Material Type**: Dropdown of built-in types or custom text (saved under category `Other`).
-  - Type-specific configuration pickers:
-    - Dehydrated Media: Media product selector (helper: "Media not listed? A Section Head adds it in Laboratory Configuration > Media Configuration.").
-    - Chemical, Indicator, Primary Standard, Reference Standard: Master entry selector (helper: "Required. Master entry sets the name, code, and base unit.").
-    - Primary Standard: **Purity (%)** (helper: "Purity percentage (0 < p ≤ 100)").
-    - Reference Standard: **Purity (%)** and optional **Moisture Content (%)** (helper: "Moisture percentage (0 ≤ m < 100, optional)").
-    - Lyophilized Microorganism: Organism selector and **ATCC No.**
-  - Common receiving fields:
-    - **Laboratory Section**: Dropdown (visible if the user has multiple section assignments).
-    - **Material Name \***: Catalog or commercial name.
-    - **Manufacturer**: Supplier or manufacturer name.
-    - **Code / Catalog No.**: Manufacturer catalog or reference code.
-    - **Batch / Lot No. \***: Manufacturer batch or lot identifier.
-    - **Storage Location \***: Designated shelf, cabinet, refrigerator, or freezer location.
-    - **Quantity Received \***: Numerical received quantity (must be $> 0$).
-    - **Unit**: Stock measurement unit (e.g., Gram, Kilogram, Milliliter, Liter, Unit).
-    - **Min. Stock Level (optional)**: Reorder threshold.
-    - **Receiving Date \***: Date of physical receipt.
-    - **Expiry Date**: Expiration date indicated on the manufacturer label.
+The dialog **Add Material to Stock** with the buttons **Cancel** and **Add to Stock**.
+- **Material Type** (helper "Pick a type or type a new one"). A new name is saved under the type **Other**.
+- Depending on the type:
+  - Dehydrated media: a media product picker (helper "Media not listed? A Section Head adds it in Laboratory Configuration > Media Configuration.") and **Media code**.
+  - Chemical, indicator, primary standard, reference standard: a **... Master Entry** picker (helper "Required. Master entry sets the name, code, and base unit.").
+  - Primary standard: **Purity (%)** (helper "Purity percentage (0 < p ≤ 100)").
+  - Reference standard: **Purity (%)** and **Moisture Content (%)** (helper "Moisture percentage (0 ≤ m < 100, optional)").
+  - Lyophilized microorganism: an organism picker and **ATCC No.**
+- **Laboratory Section** (when you have more than one section), **Material Name \***, **Manufacturer**, **Code / Catalog No.**, **Batch / Lot No. \***, **Storage Location \***, **Quantity Received \***, **Unit**, **Min. Stock Level (optional)**, **Receiving Date \*** and **Expiry Date** (not marked as required).
 
 [SCREENSHOT SS-292]
 
 #### How to use it
 1. On the Materials Stock page, click **Add to Stock**.
-2. Select the **Material Type** from the dropdown.
-3. If receiving:
-   - *Dehydrated Media*: Select the configured media product.
-   - *Chemical, Indicator, or Standards*: Select the master entry. For primary standards, enter **Purity (%)**. For reference standards, enter **Purity (%)** and optional **Moisture Content (%)**.
-   - *Lyophilized Microorganism*: Select the organism and enter the ATCC number.
-4. Enter the **Material Name \***, **Manufacturer**, and **Code / Catalog No.**.
-5. Enter the **Batch / Lot No. \*** and assigned **Storage Location \***.
-6. Enter the **Quantity Received \***, select the **Unit**, and set the **Receiving Date \***.
-7. Enter the manufacturer **Expiry Date** (if specified on the container).
-8. Click **Add to Stock**.
+2. Choose the **Material Type** and the pickers or values that the type asks for. For a primary standard enter the purity; for a reference standard enter the purity and, if known, the moisture content.
+3. Enter the material name, manufacturer and code, then the batch or lot number and the storage location.
+4. Enter the quantity received, the unit and the receiving date.
+5. Enter the **Expiry Date** shown on the label.
+6. Click **Add to Stock**.
 
 #### System behavior
-- Initializes `QuantityRemaining = QuantityReceived`.
-- Evaluates stock status (**InStock**, or **Expired** if received past expiration).
-- Records an entry in the system record-change log capturing the user, timestamp, and initial inventory quantities.
-- No electronic signature password is required for material receiving.
+- The quantity remaining starts equal to the quantity received.
+- The status is calculated (section 29.1).
+- The receipt is recorded in the audit trail with the user and time. No signature or password is asked.
+- Purity and moisture are used in later calculations: a reference or primary standard needs a purity to be used for system suitability or titrant standardization, and a reference standard used for system suitability also needs a moisture content ("Lot X has no moisture content recorded."). Weighed standards are deducted in grams or kilograms only, so stock such standards in those units (section 29.4).
 
 #### Validation
-- Client presence checks:
+- Checks on the screen:
   - "Material name, batch/lot number, receiving date, storage location, and quantity received are required."
   - "Quantity received must be greater than zero."
   - "Laboratory section is required."
@@ -109,7 +91,7 @@ Requires the *Manage materials* permission (by default: Analyst, Section Head, S
   - "Purity percentage is required for primary standards."
   - "Purity percentage is required for reference standards."
   - "Moisture content must be at least 0 and below 100."
-- Server validations:
+- Checks by the system:
   - "Purity is required for primary standards."
   - "Purity is required for reference standards."
   - "Purity must be greater than 0 and less than or equal to 100."
@@ -118,77 +100,68 @@ Requires the *Manage materials* permission (by default: Analyst, Section Head, S
   - "Moisture content must be at least 0 and below 100."
   - "Choose the material master entry for this lot."
   - "That master entry belongs to another laboratory."
-  - "Master entry \"{code}\" is inactive."
-  - "Master entry \"{code}\" is a {category}, not a {category}."
-  - "Choose the configured media product for this dehydrated media."
+  - "Master entry \"X\" is inactive."
+  - "Master entry \"X\" is a Y, not a Z."
   - "Working standards are created by approving a qualification, not received here."
   - "A custom material type can only be saved with the type Other."
-  - "'{name}' is the name of a built-in material type - pick it from the list or use a different name."
+  - "'X' is the name of a built-in material type - pick it from the list or use a different name."
 
 #### Status
-- Dynamic stock status evaluates to **InStock** (or **Expired**).
+The lot is **In Stock** (or **Expired** if it was received past its expiry date).
 
 #### What happens next
-The lot appears in the Materials Stock register. If the material type requires a Certificate of Analysis (Dehydrated Media, Lyophilized Microorganisms, or Supplements), upload the COA before consuming the lot.
+The lot appears in the register. For dehydrated media, lyophilized microorganisms and supplements, upload the COA before the lot is used (section 29.3).
 
 ---
 
 ### 29.3 Managing Lot Documents: COA, Specifications, and Certificates
 #### Purpose
-Upload, verify, supersede, and void controlled documents associated with received material lots, including Certificates of Analysis, supplier certificates, material specifications, and safety data sheets.
+Attach, replace and void the documents of a lot: Certificate of Analysis, supplier certificate, specification, safety data sheet and others.
 
 #### Who can use it
-- **Viewing and uploading documents**: Requires the *Manage materials* permission (by default: Analyst, Section Head, System Administrator).
-- **Superseding and voiding documents**: Requires the *Control material documents* permission (by default: Section Head, System Administrator).
+- Viewing and uploading documents: *Manage materials* permission (by default: Analyst, Section Head, System Administrator).
+- Replacing (superseding) and voiding documents: *Control material documents* permission (by default: Section Head, System Administrator).
 
 #### Before you start
-- Document files must be formatted as PDF, JPG, JPEG, PNG, WEBP, or TIFF.
-- File size must not exceed the maximum allowed size (default 25 MB).
-- The file must contain valid binary content matching the declared extension.
+- The file is a PDF, JPG, JPEG, PNG, WEBP or TIFF file, not empty, within the maximum size (25 MB by default), and its content matches its extension.
 
 #### What you see
-- Material Lot Details drawer:
-  - Tab: **Lot details and documents**.
-  - Document list displaying: Document type badge (**COA**, **Supplier Certificate**, **Specification**, **SDS**, **Other**), file name, upload date, status (**Current**, **Superseded**, **Voided**), and action buttons.
-  - Action buttons: **Upload Document**, **Supersede**, **Void**.
-- Upload Dialog: Document type dropdown and file selector.
-- Supersede Dialog: Replacement file picker, mandatory **A supersession reason is required** field, and confirm button.
-- Void Dialog: Mandatory **A void reason is required** field and confirm button.
+- The **Lot Details** window (opened with **Details and documents** on a row) with the lot details and a **Documents** list: type (**COA**, **Supplier Certificate**, **Specification**, **SDS**, **Other**), file name, status (**Current**, **Superseded**, **Voided**), and actions to view or download, supersede and void. A lot that needs a COA shows that it cannot be used until a current COA is available. The window also lists the preparations that consumed the lot.
+- The button **Upload Document** opens the dialog **Upload Document** (field **Document Type \***, file, buttons **Cancel** and **Upload**).
+- The dialog **Supersede Document** (field **Reason for Supersession \***, replacement file, button **Supersede**).
+- The dialog **Void Document** (field **Reason for Voiding \***, button **Void Document**).
 
 [SCREENSHOT SS-293]
 [SCREENSHOT SS-294]
 
 #### How to use it
-##### Uploading a Document:
-1. In the Materials Stock table, click **Details and documents** on the material row.
-2. Under the documents tab, click **Upload Document**.
-3. Select the **Document Type \*** (**COA**, **Supplier Certificate**, **Specification**, **SDS**, or **Other**).
-4. Select the file and click **Upload**. The document is saved in status **Current**.
+##### Upload a document
+1. Click **Details and documents** on the lot, then **Upload Document**.
+2. Choose the **Document Type \***, select the file and click **Upload**. The document is **Current**.
 
-##### Superseding a Document:
-1. On an existing **Current** document row, click **Supersede**.
-2. Select the replacement file.
-3. In the **Supersession Reason \*** field, enter a detailed explanation of why the document is being replaced.
-4. Click **Confirm Supersession**. The old document transitions to **Superseded** and remains visible in the history; the new document becomes **Current**.
+##### Supersede a document
+1. On a **Current** document, click the supersede action.
+2. Select the replacement file and enter **Reason for Supersession \***.
+3. Click **Supersede**. The old document becomes **Superseded** and stays visible with the reason; the new one is **Current**.
 
-##### Voiding a Document:
-1. On an active document row, click **Void**.
-2. In the **Void Reason \*** field, enter a mandatory explanation for voiding the document.
-3. Click **Confirm Void**. The document transitions to **Voided**. A voided document cannot be superseded.
+##### Void a document
+1. On a document that is not voided, click the void action.
+2. Enter **Reason for Voiding \*** and click **Void Document**. The document becomes **Voided**. A voided document cannot be superseded.
 
 #### System behavior
-- **File integrity verification**: The system computes a SHA-256 cryptographic hash upon upload. Every subsequent download or view verifies the hash against stored bytes. If a mismatch occurs, access is refused: "Document integrity check failed. The file may have been altered. Please contact your System Administrator."
-- **Audit tracking**: Uploading, superseding, and voiding record the user, timestamp, documented reason, and access events in the document audit log. No password signature is required.
-- **COA gating**: For Dehydrated Media, Lyophilized Microorganisms, and Supplements, having at least one document of type **COA** in status **Current** satisfies the COA requirement for preparation workflows.
+- Each file is checked when it is uploaded, and its integrity is checked every time it is opened. If the file has changed, access is refused: "Document integrity check failed. The file may have been altered. Please contact your System Administrator."
+- Upload, supersede and void are recorded with the user, the time and the reason, and each view or download is logged. No password or signature is asked for these actions.
+- For dehydrated media, lyophilized microorganisms and supplements, a **Current** COA must exist before the lot can be consumed (section 29.4).
 
 #### Validation
-- "File exceeds the maximum allowed size of {n} MB."
+- "Please select a file."
+- "File exceeds the maximum allowed size of N MB."
 - "The uploaded file is empty."
-- "File type '{ext}' is not supported. Allowed types: PDF, JPG, JPEG, PNG, WEBP, TIFF."
-- "The declared content type '{type}' does not match the file extension '{ext}'."
+- "File type 'X' is not supported. Allowed types: PDF, JPG, JPEG, PNG, WEBP, TIFF."
+- "The declared content type 'X' does not match the file extension 'Y'."
 - "The file content could not be validated because it is too short."
 - "The file does not appear to be a valid WEBP image."
-- "The file content does not match the expected format for '{ext}'. The file may be corrupted or misnamed."
+- "The file content does not match the expected format for 'X'. The file may be corrupted or misnamed."
 - "A supersession reason is required."
 - "A replacement file is required for supersession."
 - "A voided document cannot be superseded. Upload a new document instead."
@@ -197,56 +170,61 @@ Upload, verify, supersede, and void controlled documents associated with receive
 - "Document integrity check failed. The file may have been altered. Please contact your System Administrator."
 
 #### Status
-- Document status transitions: **Current** (0) $\rightarrow$ **Superseded** (1) or **Voided** (2).
+A document is **Current**, **Superseded** or **Voided**. Upload gives **Current**; superseding turns the old document **Superseded**; voiding gives **Voided**.
 
 ---
 
 ### 29.4 Stock Deduction and Inventory Consumption Rules
 #### Purpose
-Automatically verify eligibility, enforce quality gates, and deduct material quantities during laboratory testing, solution preparation, media preparation, and strain maintenance.
+Explain when and how stock is deducted, and which checks can refuse the use of a lot.
 
 #### Who can use it
-Triggered automatically during testing and preparation actions by authorized users (`Solutions.Prepare`, `Media.Prepare`, `Hplc.Operate`, `TestWorkflow.Execute`).
+Deduction happens automatically when a user with the right permission completes a preparation, standardization, system suitability or test result that uses the lot.
 
 #### System behavior
-When any laboratory workflow attempts to consume material stock, the system enforces the following verification sequence:
-1. **Material Type Check**: Confirms that the material lot matches the required category (e.g., DehydratedMedia for media preparation, PrimaryStandard for titrant standardization).
-2. **Expiration Gate**: Confirms that the material is not expired. If the expiration date is earlier than the current date, consumption is refused: "Material {name} (batch {batch}) is expired and cannot be used."
-3. **Mandatory COA Check**: For Dehydrated Media, Lyophilized Microorganisms, and Supplements, the system verifies that a **Current** COA document is attached: "A current Certificate of Analysis (COA) is required before {name} (batch {batch}) can be used. Please upload a valid COA in the Inventory module first."
-4. **Stock Quantity Check**: Confirms that the remaining quantity covers the requested amount. If stock is insufficient, the action is refused: "Insufficient stock: {name} (batch {batch}) has {remaining} {unit} remaining, {requested} requested."
-5. **Consumption Deduction**: Decrements `QuantityRemaining` by the consumed amount and updates last-modified user and timestamp metadata.
+When a workflow consumes stock, the system checks, in this order:
+1. **Type:** the lot is of the type the workflow needs ("Material X is not a Y item.").
+2. **Expiry:** if the lot has an expiry date and it is before today, use is refused: "Material X (batch Y) is expired and cannot be used." A lot that expires today can still be used. A lot without an expiry date is never refused for expiry.
+3. **COA:** for dehydrated media, lyophilized microorganisms and supplements, a **Current** COA must be attached: "A current Certificate of Analysis (COA) is required before X (batch Y) can be used. Please upload a valid COA in the Inventory module first."
+4. **Quantity:** "Insufficient stock: X (batch Y) has N UNIT remaining, M requested."
+5. **Deduction:** the quantity is deducted and the user and time of the change are recorded.
 
-#### Workflows consuming stock:
-- **Solution Preparation**: Deducts component quantities upon signed completion.
-- **Titrant Standardization**: Deducts primary standard weight upon signed submission (whether standardization passes or fails).
-- **Relative Titration**: Deducts standard weight upon signed result recording.
-- **HPLC System Suitability**: Deducts standard weight upon SST confirmation (whether suitability passes or fails).
-- **Media Preparation**: Deducts dehydrated media weight upon saving a prepared lot.
-- **Cryovial Preparation**: Deducts lyophilized discs upon batch preparation.
-- **Media Evaluation**: Deducts one lyophilized disc from inventory stock immediately when assigned as a challenge organism source.
+The physicochemical workflows that use lots (solution preparation, system suitability, titrant standardization and titration) also check that the lot is linked to the right reagent entry, in date, and has enough quantity, with the reasons shown in sections 27 and 28.
 
-> **Note for reviewers:** Selecting a lyophilized microorganism disc as a challenge source during media evaluation deducts one unit from inventory stock immediately upon selection; the disc is not returned if the challenge is cancelled. (GAP-511)
+Stock is deducted by:
+- **Solution preparation:** each component quantity when the preparation is signed. A discarded solution does not return the stock.
+- **Titrant standardization:** the weighed primary standard, when the record is signed, whether the standardization passes or fails.
+- **Titration with the relative calculation:** the standard weights, when the result is signed.
+- **HPLC system suitability:** the weighed standard, when system suitability is confirmed, whether it passes or fails. The weight in mg is converted for lots in grams or kilograms; lots in other units are refused.
+- **Media preparation:** the dehydrated media weight.
+- **Cryovial preparation:** the lyophilized discs used.
+- **Media evaluation:** one lyophilized disc when it is selected as the challenge source.
+
+> **Note for reviewers:** The disc for a media evaluation is taken from stock when it is selected and is not returned if the challenge is changed or cancelled. (GAP-511)
+
+> **Note for reviewers:** Users without the *Manage materials* permission, for example the default Reviewer role, may be unable to load the stock list used in the media and cryovial preparation dialogs. (GAP-514)
 
 ---
 
 ### 29.5 Editing Material Lot Records
 #### Purpose
-Update non-critical receipt metadata, storage location, or corrected received quantities.
+Correct the details of a lot, such as the storage location, manufacturer, code or quantity received.
 
 #### Who can use it
 Requires the *Manage materials* permission (by default: Analyst, Section Head, System Administrator).
 
 #### What you see
-- Dialog: **Edit Material** (fields populated with existing lot metadata).
+The dialog **Edit Material** with the fields of the lot and the buttons **Cancel** and **Save Changes**. A note explains that changing **Quantity Received** adjusts **Qty Remaining** by the difference.
 
 #### How to use it
-1. Locate the lot in the Materials Stock register and click **Edit material**.
-2. Update the storage location, manufacturer details, or catalog number.
-3. If correcting the quantity received, enter the new value in **Quantity Received**.
-4. Click **Save Changes**.
+1. Click **Edit material** on the row of the lot.
+2. Change the fields that need correcting. If the quantity received was wrong, enter the corrected value in **Quantity Received**.
+3. Click **Save Changes**.
 
 #### System behavior
-- **Quantity adjustments**: Correcting **Quantity Received** automatically recalculates **Quantity Remaining** by applying the difference:
-  $$\text{QuantityRemaining}_{\text{new}} = \text{QuantityRemaining}_{\text{old}} + (\text{QuantityReceived}_{\text{new}} - \text{QuantityReceived}_{\text{old}})$$
-- **Media product lock**: Once media lots have been prepared from a dehydrated media batch, its linked media product cannot be changed: "Lots have already been prepared from batch {batch} - its media product can't be changed."
-- Working standard lots cannot be edited through this interface: "Working standards change only through their qualifications."
+- The new quantity remaining = old quantity remaining + (new quantity received - old quantity received).
+- Once lots have been prepared from a batch of dehydrated media, its media product cannot be changed: "Lots have already been prepared from batch X - its media product can't be changed."
+- Working standard lots cannot be edited here: "Working standards change only through their qualifications."
+- The change is recorded in the audit trail with the user and time.
+
+<!-- Review log (Sonnet): 19 corrections; invented items removed: route and query strings, permission codes in prose, raw status names (InStock), numeric status values, field name QuantityRemaining, LaTeX formula, dialog and field names not in the screens ("Supersession Reason *", "Void Reason *", "Confirm Supersession", "Confirm Void", drawer instead of Lot Details window), claim of a receipt quarantine step, invented status badges in the table (replaced by the real cards and filters); callouts added: GAP-508 kept, GAP-511 kept, GAP-514 added; receipt without second-person check stated as fact (no gap id exists for it) -->

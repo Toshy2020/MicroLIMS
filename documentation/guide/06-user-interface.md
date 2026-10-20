@@ -1,82 +1,81 @@
 ## 6. User Interface
 
-### 6.1 Application Shell and Global Header
-The MicroLIMS application shell provides a consistent top header, collapsible navigation sidebar, breadcrumb hierarchy, and page container across every authenticated view:
+### 6.1 Application Header and Account Menu
+After you sign in, every page shows the same frame: a header at the top, a navigation sidebar on the left, a trail of breadcrumbs above the page, and the page itself.
 
-- **Skip Navigation**: Accessible hidden link labeled "Skip to main content" allowing keyboard and screen-reader users to bypass navigation menus.
-- **Navigation Toggle**: Hamburger icon button with accessibility label **Toggle navigation menu**. On desktop screens, it toggles the sidebar between expanded and compact rail modes. On mobile screens, it toggles the overlay drawer.
-- **Theme Mode Toggle**: Icon button with tooltip and accessibility label **Switch to dark mode** or **Switch to light mode**. Toggles between light and dark visual themes.
-- **Notifications Bell**: Icon button with accessibility label **Notifications** (or **Notifications, {n} unread**). Clicking the bell opens a popover listing recent attention alerts, sample review requests, incubation alerts, and media expiry notices.
-- **Account Menu**: Profile icon button with accessibility label **Account menu for {name}**. Clicking the menu reveals:
-  - **My Profile**: Opens the read-only user profile page (`/profile`).
-  - **Messages** (or **Messages ({n} unread)**): Navigates directly to the messaging workspace (`/messages`).
-  - **Discussions**: Navigates to the discussions and knowledge feed (`/discussions`).
-  - **Change Password**: Navigates to the credential update form (`/change-password`).
-  - **Sign Out**: Terminates the session, revokes refresh tokens, and returns to `/login`.
+The header contains:
+- **Skip to main content**: a link, intended for keyboard and screen-reader users, that jumps past the menus.
+- **Toggle navigation menu**: the menu button. On a desktop it switches the sidebar between its full and compact forms. On a small screen it opens or closes the menu drawer.
+- **Theme switch** (**Switch to dark mode** / **Switch to light mode**): changes between the light and dark appearance.
+- **Notifications** bell (shown as **Notifications, {n} unread** when there are unread items): opens the list of your notifications (see Section 9).
+- **Account menu** (**Account menu for {name}**), which contains:
+  - **My Profile**: your account details (see 5.5).
+  - **Messages** (or **Messages ({n} unread)**): direct and group messages (see Section 9).
+  - **Discussions**: the discussion board (see Section 9).
+  - **Change Password**: see 5.4.
+  - **Sign Out**: ends your session and opens the sign-in screen, with no confirmation question.
 
 [SCREENSHOT SS-061]
 
 ---
 
-### 6.2 Sidebar Layout and Theme Persistence
-- **Collapsible Rail**: The sidebar navigation occupies the left edge of the desktop view (landmark: "Main navigation"). When collapsed, it narrows to a 68-pixel rail displaying top-level group icons. Hovering or expanding restores full text labels.
-- **Sidebar Toggle Controls**: An explicit toggle button labeled **Collapse sidebar** or **Expand sidebar** allows manual layout adjustment. The collapsed state is persisted in your browser's local storage (`microlims_sidebar_collapsed`).
-- **Dark Mode Support**: Users can freely switch between dark and light appearance modes. The active choice is stored in browser local storage (`microlims-theme-mode`). If no choice has been saved, the application detects and follows your operating system's dark mode preference.
+### 6.2 Sidebar and Appearance
+- **Sidebar**: the navigation menu on the left. The button **Collapse sidebar** / **Expand sidebar** narrows it to a slim rail of group icons or widens it again. MicroLIMS remembers your choice in your browser.
+- **Light and dark appearance**: use the theme switch in the header. MicroLIMS remembers your choice in your browser. If you have not chosen, it follows the dark-mode setting of your operating system.
+- Because these choices are stored in the browser, they apply to that browser and computer only.
 
 ---
 
-### 6.3 Breadcrumbs, Section Pages, and Error Handling
-- **Breadcrumb Navigation**: Displayed above the primary card of each screen, showing the structural path (e.g. `Home > Microbiology Laboratory > Workspace`).
-- **Section Landing Pages (`SCR-NAV-001`)**: Accessible via `/sections/:slug` (with legacy alias `/groups/:slug`). When a major sidebar category is opened, this landing view presents navigation cards for all subordinate pages that the current user has permission to open:
-  - Header: Section name (fallback: "Section not available").
-  - Subtitle: "{n} page(s) you can open here".
-  - Empty state: If you have no permissions for child screens in that section, the page displays: `"You have no pages in this section."`
-- **Page Not Found (`SCR-NAV-002`)**: Navigating to an invalid or obsolete URL triggers the application-level catch-all route (`*`):
-  - Heading: **Page not found**.
-  - Title: "There is no page at this address".
-  - Description: `"{pathname}" does not match any MicroLIMS page. The link may be outdated, or the page may have moved. Use the navigation menu or return to your dashboard.`
-  - Action button: **Go to Dashboard** (redirects to `/dashboard`).
-- **Per-Page Error Boundaries**: Every primary page view is encapsulated within an isolated error boundary. If a runtime rendering exception occurs on a particular screen, only that page displays a recovery prompt while the global header, sidebar navigation, and user session remain fully operational.
+### 6.3 Breadcrumbs, Section Pages, and Errors
+- **Breadcrumbs** above each page show where you are in the menu.
+- **Section pages**: opening a group in the sidebar shows a page of cards, one for each page in that group that you are allowed to open.
+  - The subtitle reads "{n} page(s) you can open here".
+  - If a section has no page you may open, the screen shows "You have no pages in this section." If the section cannot be found, the title reads "Section not available".
+- **Page not found**: if you follow an outdated or wrong address, the screen shows the heading **Page not found**, the text "There is no page at this address", and the explanation: `"{address}" does not match any MicroLIMS page. The link may be outdated, or the page may have moved. Use the navigation menu or return to your dashboard.` The button **Go to Dashboard** returns you to your dashboard.
+- **Pages you are not allowed to open**: if you open an address for a page you have no permission for, the system takes you to your dashboard without showing a message.
+- **Page problems**: each page is protected separately, so a problem on one page is contained to that page and the header and sidebar keep working.
 
 ---
 
 <!-- SCR-SIG-001 -->
-### 6.4 Shared Electronic Signature Dialog
+### 6.4 Electronic Signature Dialog
 #### Purpose
-Provide a standardized, tamper-evident re-authentication dialog for authorizing sensitive laboratory actions, release decisions, record corrections, and controlled document updates.
+Confirm sensitive actions by typing your login password again. The same dialog is used by the 26 actions in the application that are signed, such as sample review, release decisions, sample correction or voiding, media release, and physicochemical result recording.
 
 #### Who can use it
-Any authenticated user executing an operational step that requires an electronic signature. The dialog is invoked by 26 distinct actions across the application.
+Any signed-in user who carries out a signed action. The permission needed is the one of the action itself, not of the dialog.
 
 #### What you see
-- **Pinned Light Theme**: The signature dialog automatically renders in a high-contrast light theme (`PinnedLightTheme`), regardless of whether the user has enabled dark mode.
-- Title: **Electronic Signature**.
-- Signer Information:
-  - User Full Name (or username).
-  - User Role (read-only snapshot).
-- Meaning Statement: A plain-language alert box describing the exact legal and operational meaning of the action being signed (e.g. "I confirm the preparation steps shown above are the steps performed for this sample.", "I confirm that this titrant was standardized according to SOP...", or "I entered these qualitative observations and am recording this test result.").
-- Input Fields:
-  - **Comment (optional)**: Multi-line text area (2 rows) displayed when the calling module permits signature comments.
-  - **Password**: Mandatory password input with autofocus.
-- Action Buttons:
-  - **Cancel**
-  - **Sign** (displays **Signing...** while verifying). The button remains disabled until a password has been typed. Pressing Enter in the password field submits the signature.
+The dialog titled **Electronic Signature**. It always appears in a light appearance, even when the dark appearance is on. It contains:
+- Your full name (or username) and your role, read-only.
+- A message, in a highlighted box, that states what your signature means, for example "I confirm the preparation steps shown above are the steps performed for this sample." Each action has its own wording.
+- **Comment (optional)**: a text box that appears only for actions that allow a comment.
+- **Password**: required.
+- The buttons **Cancel** and **Sign** (**Signing...** while checking). **Sign** stays disabled until you type a password.
 
 [SCREENSHOT SS-062]
 
 #### How to use it
-1. Initiate a sensitive laboratory action (e.g., clicking **Sign & Save**, **Sign & Void**, **Submit Technical Review**, or **Submit Release Decision**).
-2. The **Electronic Signature** modal appears over the current screen.
-3. Review your name, role, and the specific meaning statement displayed in the dialog.
-4. If applicable, enter any supplementary notes in the **Comment (optional)** field.
-5. In the **Password** field, enter your active login password.
-6. Click **Sign** (or press Enter).
-7. If verification succeeds, the system records the electronic signature and commits the underlying action in a single atomic transaction.
+1. Start a signed action, for example by clicking **Sign & Save**, **Sign & Void**, **Submit Technical Review**, or **Submit Release Decision**.
+2. Read your name, your role, and the meaning statement in the **Electronic Signature** dialog.
+3. If the dialog offers it, enter a note in **Comment (optional)**.
+4. Type your login password in **Password**.
+5. Click **Sign** (or press Enter).
 
 #### System behavior
-- **Atomic Execution**: The signature record and the business action are committed together. If password re-authentication fails, the underlying record is not modified.
-- **Signature Audit Attributes**: The system captures the user ID, full name, username, base role type snapshot, meaning string, entity ID, UTC timestamp, optional comment, and client IP address in the immutable electronic signature log.
-- **Failure Throttling**: If a user enters five incorrect signature passwords within 15 minutes, further signature attempts are temporarily throttled for that user. This throttle applies strictly to electronic signatures and does not lock the user's primary login account.
+- The signature and the action are saved together. If the password check fails, the action is not carried out.
+- The system records with the signature your name, username, role, the meaning statement, the record signed, the time, your comment if any, and your IP address.
+- If you enter wrong signature passwords five times within 15 minutes, further signature attempts are refused for a time. This limit applies to signatures only and does not lock your login account. Failed attempts are recorded without the password.
+- Not all actions are signed. For example, microbiology plate-count entry, pathogen test steps, returning a test to the analyst, and user and role administration are not.
+
+> **Note for reviewers:** Whether a comment or reason is required differs between signed actions, and the wording of the meaning statements differs between screens. Which of these differences are intended has not been confirmed. (GAP-027)
+
+> **Note for reviewers:** Microbiology plate-count entry and pathogen test steps carry no electronic signature. (GAP-010)
 
 #### Errors
-- If an incorrect password is submitted, the system displays the server error message (fallback: `"Signature failed."`), clears the password input, and keeps the dialog open for re-entry.
+- A wrong password, or a locked or disabled account: the dialog shows the message from the system (if none, "Signature failed."), clears the password, and stays open so that you can try again.
+
+#### What happens next
+After a successful signature the dialog closes and the action is completed on the page behind it.
+
+<!-- Review log (Sonnet): 14 corrections; invented items removed: page addresses and browser storage key names, component and screen ids, example breadcrumb path, "recent attention alerts / sample review requests" list for the bell, "hover restores labels", "recovery prompt" text for page errors, "legal meaning", "tamper-evident", "immutable" log wording, "atomic transaction" wording; callouts added: GAP-027, GAP-010 -->

@@ -1,140 +1,99 @@
 ## 21. Sample Report, Certificate of Analysis and Archived Records
 
-MicroLIMS does not have a separate Final Release step. Release is completed upon Section Head approval, after which the sample reaches approved status, frozen archived records are generated, and Certificates of Analysis can be viewed and printed.
+MicroLIMS does not have a separate Final Release step. The Section Head's approval or rejection (see §19) is the last decision; the printable sample report and the Certificate of Analysis present the result, and a frozen PDF copy is saved when the sample becomes final.
 
 ### 21.1 Sample Summary Report
 <!-- WF-COA-001 -->
 #### Purpose
-Display the complete operational and analytical record of a sample, including sample identity, preparation details, test results, workflow history timeline, electronic signatures, and immutable archived copies.
+Show the record of a sample on one printable page: identity, dates and personnel, preparation, test results, timeline, electronic signatures and archived copies.
 
 #### Who can use it
-Any signed-in user who can access the sample record. The report route (`/samples/:id/report`) has no route-level permission guard; data access for samples that are not yet final is scoped to the user's assigned laboratory sections.
+Any signed-in user who can reach the sample. The report page has no permission check of its own; for a sample that is not yet final, the data shown is limited to the user's laboratory sections.
 
 #### Before you start
-- A sample must exist in the system.
-- Open the sample from the testing workspace or sample tracking board, or navigate from the **Sample Summary** dialog using the **Printable Report** (or **Open Printable Report**) button.
+Open the **Sample Summary** dialog of the sample and click **Printable Report** (or **Open Printable Report**).
 
-> **Note for reviewers:** There is no separate Final Release step; Approved is the final sample status in the system, reached upon Section Head approval decision. (GAP-017, GAP-018)
+> **Note for reviewers:** There is no separate Final Release step; Approved is the final sample status, reached through the Section Head's release decision. (GAP-017, GAP-018)
 
-> **Note for reviewers:** Two PDFs exist (archived at final decision, on-demand export); which one is the controlled record is not defined. (GAP-311)
+> **Note for reviewers:** Two PDFs exist (the copy archived at the final decision and the on-demand **Export PDF**); which one is the controlled record is not defined. (GAP-311)
 
 > **Note for reviewers:** Approval, rejection and close-testing signature statements are worded differently on the certificate, the report and the approval card. (GAP-315)
 
 > **Note for reviewers:** The Word export of the summary has no screen. (GAP-310)
 
 #### What you see
-- Page title in browser tab: "Sample Summary - {reference}"
-- Document heading: **sample summary report**
-- Status header:
-  - Lifecycle badge with status label: **Received**, **Under testing**, **Under review**, **Under approval**, **Approved**, or **Rejected**.
-  - Timestamp caption: "Received {date time}".
-- Section blocks:
-  - **sample identity**: Reference, Category, Item, Prev. Product and Prev. Batch (After Cleaning samples only), Stage, Batch (omitted for After Cleaning), Control, Cause, Quantity, Sampling point, Storage.
-  - **dates & personnel**: Manufactured, Expires, Received by, Received at, Sampled by, Reviewed by (shown only when review is signed), Approved by (shown only when approval is signed).
-  - **sample preparation** (rendered only when preparation data was recorded): Amount, Technique (including Filtration and Washing volumes for membrane filtration), Diluent, Neutralizer, Prepared by.
-  - **test results**: Summary matrix and individual test result cards displaying parameters, specifications, observed values, and status badges. If no tests exist, the page displays: "No tests recorded."
-  - **workflow timeline**: Chronological lifecycle steps showing:
-    - **Received**: Date and time sample was received.
-    - **In testing**: Time when the earliest incubation or testing step began.
-    - **Under review**: Time when results were submitted for technical review.
-    - **Under approval**: Time when technical review was completed.
-    - Final step: **Approved**, **Rejected**, or **Voided** with completion timestamp.
-  - **electronic signatures** (displayed only when formal signatures exist): Cards showing signer full name, @username, assigned role, signing timestamp, and signature statement:
-    - Review: "Meaning: I have reviewed the test data and confirm it is complete and accurate."
-    - Approval: "Meaning: I approve the release of this sample for its intended use."
-    - Rejection: "Meaning: I reject this sample; the results do not conform to specification."
-    - Retest: "Meaning: I am ordering a retest of the retained sample."
-    - Investigation: "Meaning: I am ordering an investigation into these results."
-    - Testing closed: Displays the humanized closure label.
-    - Displays any optional internal signing comments in quotation marks.
-  - **archived copies**: List of frozen PDF records (§21.3).
-- Action buttons and footer:
-  - Header button: **Print / Save PDF** (triggers the browser print dialog).
-  - Document footer: "This is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled."
+- Browser tab title "Sample Summary - {reference}"; heading **sample summary report**.
+- A status badge (**Received**, **Under testing**, **Under review**, **Under approval**, **Approved** or **Rejected**) and "Received {date time}".
+- Blocks:
+  - **sample identity**: Reference, Category, Item, Prev. Product and Prev. Batch (After Cleaning only), Stage, Batch (not shown for After Cleaning), Control, Cause, Quantity, Sampling point, Storage.
+  - **dates & personnel**: Manufactured, Expires, Received by, Received at, Sampled by, and Reviewed by and Approved by (shown only when set).
+  - **sample preparation** (only when a preparation exists): Amount, Technique (with Filtration and Washing volumes for filtration), Diluent, Neutralizer, Prepared by.
+  - **test results**: a summary matrix and one card per test. When there are none: "No tests recorded."
+  - **workflow timeline**: Received, In testing (earliest incubation start), Under review (when the section was submitted for review), Under approval (when the review was completed), and the final step Approved or Rejected (or Voided).
+  - **electronic signatures** (only when signatures exist): for each signature the printed name, @username, role, time, "Meaning: {text}" and any comment in quotation marks. The meaning texts on this page are "I have reviewed the test data and confirm it is complete and accurate.", "I approve the release of this sample for its intended use.", "I reject this sample; the results do not conform to specification." and "I am ordering a retest of the retained sample."; a closing signature shows its meaning name instead of a sentence.
+  - **archived copies** (see §21.3).
+- Button **Print / Save PDF** (opens the browser's print dialog) and the footer "This is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled."
 
 [SCREENSHOT SS-211]
 
 #### How to use it
-1. In the **Sample Summary** dialog, click **Printable Report** (or **Open Printable Report**). The report opens in a new browser tab.
-2. Review the identity, preparation parameters, analytical test results, and timeline milestones.
-3. Verify that the required technical review and Section Head release signatures appear in the **electronic signatures** block.
-4. To print or create a local PDF document, click **Print / Save PDF**.
-5. Use your browser's print interface to select your destination printer or save as PDF.
+1. In the **Sample Summary** dialog, click **Printable Report** (or **Open Printable Report**).
+2. Read the identity, preparation, test results and timeline.
+3. Check that the review and release signatures appear in the **electronic signatures** block.
+4. To print or save a PDF, click **Print / Save PDF** and choose a printer or "Save as PDF" in the browser dialog.
+5. To get a PDF built by the system instead, click **Export PDF** in the **Sample Summary** dialog (the button shows "Exporting…" while working).
 
 #### System behavior
-- The report page enforces a light theme regardless of the user's active interface theme setting.
-- The workflow timeline reconstructs lifecycle progression from recorded system events.
-- Test result statuses reflect current data from count readings, location grids, pathogen confirmations, and physicochemical entries.
-
-#### Important rules
-- The sample summary report displays the live operational view of the sample record.
-- Any printed copy of the summary report is marked as uncontrolled in the document footer.
+- The page always uses the light colour theme, whatever theme the application is set to.
+- The page shows the current record of the sample, not a frozen copy.
+- Printed copies are marked uncontrolled in the footer.
 
 #### Errors
+- "Loading report…" is shown while the page loads.
 - "Failed to load the sample report."
 - "The archived copies of this record could not be loaded. Reload the page to try again."
+- "Export failed." (when **Export PDF** fails)
 
 #### What happens next
-- Once a sample has been approved or rejected by the Section Head, the Certificate of Analysis can be accessed and printed (§21.2).
+When the sample is approved or rejected, the Certificate of Analysis can be opened (§21.2).
 
 ---
 
 ### 21.2 Certificate of Analysis
 <!-- WF-COA-001 -->
 #### Purpose
-Generate, review, and print the official Certificate of Analysis (CoA) for an approved or rejected sample, including finished product specifications, analytical results, Section Head remarks, overall conformity conclusions, and formal authorization blocks.
+Show and print the Certificate of Analysis of an approved or rejected sample: results against specification, remarks, the overall conclusion and the reviewer and approver blocks.
 
 #### Who can use it
-Any signed-in user who can access the sample. Viewing the certificate route (`/samples/:id/coa`) has no route-level permission guard; non-final sample access is governed by laboratory section scoping.
+Any signed-in user who can reach the sample. The certificate page has no permission check of its own.
 
 #### Before you start
-- The sample must have completed the approval workflow and reached **Approved** or **Rejected** status.
-- Test results must be recorded for the sample's test orders.
-- Open the certificate from the **Sample Summary** dialog by clicking **View COA** (or **View Certificate of Analysis**), or by navigating directly to `/samples/:id/coa`.
+- For a sample tested by one laboratory, the sample must be **Approved** or **Rejected**.
+- Results must have been recorded.
+- Open the certificate from the **Sample Summary** dialog with **View COA** (or **View Certificate of Analysis**). These buttons appear only when certificate results exist and a certificate is available.
 
-> **Note for reviewers:** The certificate page is available only for approved or rejected samples; the underlying API does not enforce this. (GAP-306)
+> **Note for reviewers:** The certificate page is available only for approved or rejected samples; the underlying system function does not enforce this. (GAP-306)
 
-> **Note for reviewers:** Multi-laboratory certificates print stored names and times rather than signature records. (GAP-307)
+> **Note for reviewers:** Certificates for samples tested by more than one laboratory print stored names and times rather than signature records. (GAP-307)
+
+> **Note for reviewers:** Approval of out-of-specification results is allowed after a warning, so a certificate can certify them as conforming. (GAP-304)
 
 > **Note for reviewers:** Approval, rejection and close-testing signature statements are worded differently on the certificate, the report and the approval card. (GAP-315)
 
 #### What you see
-- Page title: **Certificate of Analysis** (or **Certificate of Analysis - {section}**)
-- Variant selector (visible only for multi-section samples):
-  - Toggle buttons: **Combined** and individual section buttons (e.g. **Microbiology**, **Physicochemical**).
-  - The selector bar is hidden automatically during printing.
-- Certificate header:
-  - Document title: **Certificate of Analysis**
-  - Subtitle: Material category, item name, and "Batch: {batch}"
-  - Right-hand block: Sample Reference number and "Generated {date time}"
-- Results presentation:
-  - Standard format (Finished Products, Raw Materials, Packaging Materials):
-    - Identity strip showing Quantity, and a dates grid with labels: **Batch No.**, **Mfg. Date**, **Exp. Date**, **Sampling / Arrival**, **Test Date**, **Result Date**, **QC No.**, and **Certificate Date**.
-    - Section heading: **Test Results** (in combined variant: **{section} Test Results**).
-    - Table columns: **Test**, **Specification**, **Sample Result**, **Analyst** (displays analyst name and timestamp; tests carried from an origin sample display "via retest {reference}").
-    - If a section's testing was closed after rejection by another laboratory: "{test}: Not completed, testing closed ({step}, stage {n})."
-  - Location Matrix format (Water, Environmental Monitoring, After Cleaning):
-    - Header strip: Reference, Category, **Batch / Control**, Received date.
-    - Section heading: **Test Results by Location**.
-    - Matrix table: Column **Location**, followed by per-test columns for **Alert**, **Action**, **Spec**, and **Result** (qualitative pathogen tests share "Spec: Absent / 10 mL").
-    - Footnote explaining analytical units and absence criteria.
-- Remarks section:
-  - Heading: **Remarks** (in combined variant: **Remarks ({section})**).
-  - Displays the certificate remarks entered by the Section Head during the approval step. If no remarks were entered, displays: "No remarks."
-- Overall conclusion:
-  - Callout box: **Overall Conclusion** with server-evaluated conclusion text (highlighted in red styling if the sample does not comply with specifications).
-- Signatory authorization blocks:
-  - Single-section certificates:
-    - **Reviewer** block: Signer name, title, date, and statement "I have reviewed the test data and confirm it is complete and accurate."
-    - **Approver** block: Approver name, title, date, and statement:
-      - Approved: "I approve the release of this sample for its intended use."
-      - Rejected: "I reject the release of this sample; it does not conform to specification."
-  - Multi-section certificates:
-    - Combined variant: One block per laboratory section showing **Approver: {section}**, **Rejected by {section}**, or **Testing closed by {section}** (with "Reason: {reason}") using stored user names and timestamps.
-    - Section variant: Displays **Reviewer** (if recorded) and **Approver** using stored section sign-off names.
-- Action buttons and footer:
-  - Top action button: **Print / Save PDF** (hidden when printing).
-  - Document footer: "This Certificate of Analysis is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled." along with a cross-reference line citing the Sample Summary Report document identifier.
+- Title **Certificate of Analysis** (or **Certificate of Analysis - {section}**), with category, item name and "Batch: {batch}" below, and the sample reference and "Generated {date time}" on the right.
+- For a sample tested by more than one laboratory, **Certificate Variant:** with the buttons **Combined** and one button per section you can see whose status is Approved. The bar is hidden when printing. The default is **Combined** if available, otherwise the first available section.
+- Results, in one of two layouts:
+  - Water, environmental monitoring and After Cleaning samples: an identity strip (Reference, Category, **Batch / Control**, Received), the heading **Test Results by Location**, and a matrix with **Location** and, per test, **Alert**, **Action**, **Spec** and **Result** (qualitative tests share one "Spec: Absent / 10 mL" cell), with a footnote about units and absence.
+  - Other categories: an item strip with **Qty** and a dates grid (**Batch No.**, **Mfg. Date**, **Exp. Date**, **Sampling / Arrival**, **Test Date**, **Result Date**, **QC No.**, **Certificate Date**), the heading **Test Results**, and a table with **Test**, **Specification**, **Sample Result** and **Analyst** (name and time; "via retest {reference}" for tests carried from a retest).
+- Combined variant: headings "{section} Test Results", "No recorded results for this section.", and for cancelled tests "{test}: Not completed, testing closed ({step}, stage {n})."
+- **Remarks** (combined variant: **Remarks ({section})**): the certificate remarks typed at approval, or "No remarks."
+- **Overall Conclusion**: text built by the system, shown in red when the certificate shows non-conformance.
+- Signature blocks:
+  - One laboratory: **Reviewer** block and **Approver** block. They use the last matching signature when there is one (Reviewer: "I have reviewed the test data and confirm it is complete and accurate."; Approver: "I approve the release of this sample for its intended use." or "I reject the release of this sample; it does not conform to specification."). For a sample whose decision was a retest or new sample, the stored name and time are printed instead.
+  - Combined variant: one block per section ("Approver: {section}", "Rejected by {section}" or "Testing closed by {section}", with "Reason: {reason}") from stored names and times.
+  - Section variant: **Reviewer** (if a reviewer name exists) and **Approver** from stored names and times.
+- Button **Print / Save PDF** (hidden when printing) and the footer "This Certificate of Analysis is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled." with a line that points to the Sample Summary Report by Document ID.
 
 [SCREENSHOT SS-212]
 
@@ -142,103 +101,72 @@ Any signed-in user who can access the sample. Viewing the certificate route (`/s
 
 #### How to use it
 1. In the **Sample Summary** dialog, click **View COA** (or **View Certificate of Analysis**).
-2. For multi-laboratory samples, choose the desired certificate variant:
-   - Click **Combined** to generate an integrated certificate covering all laboratory sections.
-   - Click a section name (e.g., **Microbiology**) to generate a certificate limited to that section.
-3. Review the test results table, specifications, and observed values.
-4. Verify the **Remarks** text and the **Overall Conclusion** determination.
-5. Inspect the signatory blocks to ensure reviewer and approver authorizations are present.
-6. Click **Print / Save PDF** to print the certificate or save an electronic PDF copy.
+2. For a sample tested by more than one laboratory, choose **Combined** or a section button under **Certificate Variant:**.
+3. Check the results against the specification.
+4. Check **Remarks** and **Overall Conclusion**.
+5. Check the reviewer and approver blocks.
+6. Click **Print / Save PDF**.
 
 #### System behavior
-- The Certificate of Analysis enforces a light theme (`PinnedLightTheme`) regardless of user profile preferences.
-- Page formatting is configured for A4 portrait layout with print margins adjusted to zero and inner padding applied (18 mm top, 16 mm right, 22 mm bottom, 16 mm left). Interactive buttons and variant selectors are automatically excluded from the printed output.
-- For single-section samples, the signatory blocks look up electronic signature rows matching the sample release decision. For multi-section combined and section certificates, signatory details are rendered from stored section sign-off names and timestamps.
-- Certificate remarks entered during approval appear exactly as typed. The Section Head's internal approval comment is never printed on the certificate.
+- The page always uses the light colour theme.
+- Printing is set for A4 portrait; the variant bar and buttons are not printed.
+- Remarks print exactly as typed at approval. The internal comment is never printed.
 
 #### Validation
-If a user attempts to access the Certificate of Analysis before prerequisites are met, the screen presents explicit availability messages:
-- Single-section sample not final: "A Certificate of Analysis is only available once this sample has been approved or rejected. Current status: {status}."
+- Sample tested by one laboratory, not final: "A Certificate of Analysis is only available once this sample has been approved or rejected. Current status: {status}."
 - Final sample without results: "A Certificate of Analysis is not available for this sample - none of its tests have recorded results yet."
-- Multi-section sample with pending laboratories: Alert **Certificate of Analysis Not Available** with text: "A Certificate of Analysis is not available yet. The following laboratories are not final yet:" followed by "{section}: {status}" lines.
-- No accessible approved sections: "No approved laboratory sections are currently accessible."
-- Section variant without results: "A Certificate of Analysis is not available for this section - none of its tests have recorded results yet."
+- More than one laboratory, no certificate available: the alert **Certificate of Analysis Not Available** with "A Certificate of Analysis is not available yet. The following laboratories are not final yet:" and lines "{section}: {status}".
+- No approved section visible to you: "No approved laboratory sections are currently accessible."
+- Section without results: "A Certificate of Analysis is not available for this section - none of its tests have recorded results yet."
 
 #### Status
-- Certificates become available when the sample reaches **Approved** or **Rejected** status.
-- For multi-section samples:
-  - The **Combined** certificate requires the overall sample status to be **Approved** or **Rejected**, and every laboratory section must be accessible to the user.
-  - An individual section certificate requires that specific section status to be **Approved**. A section with **Rejected** or **Cancelled** status does not produce a section-only certificate.
-
-#### Important rules
-- Any printed copy of a Certificate of Analysis is uncontrolled.
-- Multi-section combined certificates include all completed tests and record closed laboratory tests as not completed.
-- Approval of out-of-specification results generates an approved certificate with the non-conforming values certified by the approver.
+- **Combined** needs the sample to be **Approved** or **Rejected** and every section to be visible to you.
+- A section certificate needs that section to be **Approved**. A **Rejected** or **Closed** section has no section-only certificate.
 
 #### Errors
+- "Loading certificate…" is shown while the page loads.
 - "Failed to load the certificate of analysis."
 
 #### What happens next
-- The Certificate of Analysis can be archived, printed for batch disposition records, or distributed to authorized stakeholders.
+Nothing further happens in the system. Printed copies are marked uncontrolled.
 
 ---
 
 ### 21.3 Archived Records
 <!-- WF-COA-001 -->
 #### Purpose
-Inspect and download immutable PDF copies of sample records frozen automatically at final release decisions, preserving the exact state of the document at the time authorization was granted.
+Download the PDF copies saved when a sample became final.
 
 #### Who can use it
-Any signed-in user viewing the **Sample Summary Report** page (`/samples/:id/report`). Downloading an archived copy requires sign-in authentication (`[Authorize]`) with no laboratory section scope restrictions.
+Any signed-in user who opens the sample report. Downloading an archived copy needs only sign-in.
 
 #### Before you start
-- The sample must have reached a final release decision (**Approved**, **Rejected**, or testing closed) where an archived record was created by the system.
-- Open the sample's printable summary report page.
+The sample must have reached a final decision, so that an archived copy exists, and you must open its printable sample report (§21.1).
 
-> **Note for reviewers:** Archived-record download has no laboratory scope check; a failed integrity check sets a response header and displays a warning toast. (GAP-108, GAP-314)
+> **Note for reviewers:** Archived-record download has no laboratory scope check; a failed integrity check shows a warning message. (GAP-108, GAP-314)
 
 #### What you see
-- On the **sample summary report** page, locate the **archived copies** section near the bottom of the document:
-  - Header: **archived copies**
-  - Descriptive text: "Immutable PDFs frozen at each final decision - what this record looked like when it was issued, not this live view."
-  - Table or list of archived records:
-    - Reason / Decision label: Displays the decision event that triggered the snapshot (e.g., "Sample Approve", "Sample Reject", "Laboratory testing closed", or "Sample Approve (OOS resolved)").
-    - Generation timestamp.
-    - Generated by: Name snapshot of the authorizing user.
-    - Action control: Download link or button to retrieve the stored PDF file.
+On the sample summary report, the block **archived copies** with the text "Immutable PDFs frozen at each final decision - what this record looked like when it was issued, not this live view." Each row shows the reason (for example "Sample Approve", "Sample Reject", "Laboratory testing closed" or "Sample {outcome} (OOS resolved)") and a download control.
 
 [SCREENSHOT SS-214]
 
 #### How to use it
-1. Navigate to the sample summary report (`/samples/:id/report`).
-2. Scroll to the **archived copies** section.
-3. Locate the archived record entry corresponding to the desired release decision or OOS resolution event.
-4. Click the download action. The browser downloads the frozen PDF document.
-5. If the system detects a file hash mismatch during retrieval, review the on-screen alert.
+1. Open the sample's printable report (§21.1).
+2. Go to the **archived copies** block.
+3. Find the row for the decision you need.
+4. Click the download control.
+5. If a warning appears, read it (see below).
 
 #### System behavior
-- The system automatically creates a frozen PDF copy whenever:
-  - A sample reaches final **Approved** status upon Section Head approval.
-  - A sample reaches final **Rejected** status upon Section Head rejection.
-  - A multi-laboratory sample's testing is closed after rejection by another laboratory, leaving no sections open.
-  - An original sample's OOS investigation is resolved following completion of retest samples.
-- The archived copy is generated with a standardized filename: `{entityType}_{documentId}_{timestamp}.pdf`.
-- Each archived record is stored with a cryptographic SHA-256 hash.
-- Upon download, the server recalculates the hash of the stored file and compares it to the original hash recorded at signature time.
-- If the recalculated hash matches, the server returns the document with the response header `X-Archive-Integrity: verified`.
-- If a hash mismatch is detected, the server returns `X-Archive-Integrity: FAILED`, and the user interface displays a warning notification: "Warning: this archived copy failed its integrity check - the stored file no longer matches the hash recorded when it was signed. Do not treat it as authoritative; report this to a System Administrator."
-
-#### Status
-- Archived records are immutable. Once written to storage at a final decision, records cannot be modified, overwritten, or deleted through the user interface.
-
-#### Important rules
-- Archived copies reflect the exact state of the record at the time the release decision was signed, unlike the printable summary report which displays live operational data.
-- If an archive generation failure occurs during the approval transaction, the failure is logged and the Section Head's release decision remains valid.
+- A copy is saved when the sample becomes Approved or Rejected, when closing a laboratory's testing makes the sample final, and when a retest outcome resolves the original sample (see §18).
+- Each copy is saved with a hash, which is checked again on download.
+- If the check fails, the screen shows: "Warning: this archived copy failed its integrity check - the stored file no longer matches the hash recorded when it was signed. Do not treat it as authoritative; report this to a System Administrator."
 
 #### Errors
 - "The archived copies of this record could not be loaded. Reload the page to try again."
-- "Archived record {id} not found."
-- "Warning: this archived copy failed its integrity check - the stored file no longer matches the hash recorded when it was signed. Do not treat it as authoritative; report this to a System Administrator."
+- The integrity warning above.
 
 #### What happens next
-- Authorized personnel retain downloaded archived PDFs for batch records, regulatory submissions, or historical investigations.
+Nothing further happens in the system.
+
+<!-- Review log (Sonnet): 30 corrections; invented items removed: route/auth/filename/header/theme-class names, "sample tracking board", "new tab", "Header button", Investigation signature line, "title" in signature blocks, product-category list for standard layout, result-status-source claim, "generated by" archive column, "immutable"/"cryptographic" claims, archive-failure-keeps-decision claim (unconfirmed), CoA "archived/distributed" next step; callouts added: GAP-304 (OOS approval certified), GAP-017/018 kept -->

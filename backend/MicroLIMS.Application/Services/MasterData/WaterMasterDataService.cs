@@ -47,7 +47,7 @@ public class WaterMasterDataService
         return WaterSamplingPointResponse.From(point);
     }
 
-    // Blocked if any Sample or SamplingConfiguration still references
+    // Blocked if any Sample, SampleLocation or SamplingConfiguration still references
     // this point - same "guard with a clear message" pattern as
     // ItemService.DeleteAsync.
     public async Task<object> DeleteWaterSamplingPointAsync(int id)
@@ -57,9 +57,10 @@ public class WaterMasterDataService
 
         var sampleCount = await _db.Samples.CountAsync(s => s.WaterSamplingPointId == id);
         var configCount = await _db.SamplingConfigurations.CountAsync(c => c.WaterSamplingPointId == id);
-        if (sampleCount > 0 || configCount > 0)
+        var locationCount = await _db.SampleLocations.CountAsync(l => l.WaterSamplingPointId == id);
+        if (sampleCount > 0 || locationCount > 0 || configCount > 0)
             throw new InvalidOperationException(
-                $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s) and {configCount} sampling configuration(s).");
+                $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s), {locationCount} sample location(s) and {configCount} sampling configuration(s).");
 
         _db.WaterSamplingPoints.Remove(point);
         await _db.SaveChangesAsync();

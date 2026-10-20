@@ -168,12 +168,18 @@ public class EnvironmentalMonitoringMasterDataService
         return RoomTestConfigurationResponse.From(entity);
     }
 
-    // No downstream dependents (TestOrder.TestCode is a copied string,
-    // not an FK to this row) - always safe to hard-delete.
+    // Blocked once any sample location has been recorded against this
+    // configuration, so results keep their link to the limits they used.
     public async Task<object> DeleteRoomTestConfigurationAsync(int id)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
+
+        var locationCount = await _db.SampleLocations.CountAsync(l => l.RoomTestConfigurationId == id);
+        if (locationCount > 0)
+            throw new InvalidOperationException(
+                $"Cannot delete this room test configuration - it is referenced by {locationCount} sample location(s).");
+
         _db.RoomTestConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return new { };

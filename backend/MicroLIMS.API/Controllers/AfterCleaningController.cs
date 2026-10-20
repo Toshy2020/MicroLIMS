@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -31,6 +32,7 @@ public class AfterCleaningController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost("receive")]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Receive(ReceiveAfterCleaningRequest request) =>
         Ok(ApiResponse<object>.Ok(await _afterCleaningService.ReceiveAsync(new AfterCleaningReceiveRequest(
             request.MachineId,
@@ -44,6 +46,7 @@ public class AfterCleaningController : ControllerBase
     // The checklist screen - selecting which machine parts are included
     // in this batch generates the batch TestOrders + SampleLocations.
     [HttpPost("prepare")]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Prepare(PrepareAfterCleaningRequest request) =>
         Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.MachinePartConfigurationIds, CurrentUserId)));
 }

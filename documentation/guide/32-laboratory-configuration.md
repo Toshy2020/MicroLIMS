@@ -97,7 +97,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
      - Caption: "The stage dropdown on Finished Product receiving. Not shown for other categories."
      - Input field: **Production stage** (placeholder "e.g. Coating"), dropdown **Role** (**Bulk**, **InProcess**, **Finished**, **Stability**, **Other**), button **Add**.
      - Row actions: **Rename**, **Delete**.
-     - Delete confirmation: "Delete \"{name}\" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes."
+     - Delete confirmation: "Delete \"{name}\" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes." (the stage name stays visible on old samples, but their link to the stage is removed; see the warning below)
 
 [SCREENSHOT SS-322]
 
@@ -119,6 +119,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 3. Click **Add**.
 4. To rename or adjust the assigned role, click the pencil icon, make changes, and click **Save**.
 5. To delete a stage, click the bin icon and confirm.
+> **Warning:** Deleting a stage removes the stage link from every sample recorded with it. Stage-specific specification rows and replicate counts then no longer apply to those samples, and stage-dependent physicochemical tests on samples still in testing cannot resolve their replicate count. Do not delete a stage that is in use; rename it instead.
 
 #### System behavior
 - Names within each list are unique, compared case-insensitively.
@@ -280,3 +281,6 @@ Load checked master data workbooks using an electronic signature, enforce mandat
 - Workbook load: **Waiting for verification** (after the signed load) and **Verified by {name}** (after the second person signs). There is no way back from verified and no rejected status.
 
 <!-- Review log (Sonnet): 24 corrections; invented items removed: real person name in placeholder, component/table/database/transaction wording, signature meaning codes, "Password *" label, internal transaction message, raw status names; callouts added: GAP-705 on workbook verification, second-round specification sheets -->
+<!-- Phase 13 (agy): applied F-C03 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

@@ -114,7 +114,7 @@ The system asks for password re-authentication for these 26 actions:
 The following do not ask for a signature password (verified in the code for the first group; messages and discussions are not signed either):
 - **Microbiology plate count entry**.
 - **Pathogen testing steps**.
-- **Biochemical decision**.
+- **Biochemical decision** (no screen exists for it).
 - **Return to analyst**.
 - **Incubator changes**.
 - **User administration** (create, edit, change role, disable, unlock, reset password, delete).
@@ -156,10 +156,8 @@ The system compares user accounts and refuses the action with these messages:
 | **Document Revision Approval Decision** | Author or technical reviewer cannot execute the approval decision | "Segregation of Duties Violation: The author of a document revision cannot approve or decide upon their own revision." / "Segregation of Duties Violation: A technical reviewer for this revision cannot approve or decide upon this revision." |
 | **Document Periodic Review** | Author of a document cannot conduct its periodic review | "Segregation of Duties Violation: The author cannot perform or complete the periodic review." |
 
-#### Absolute Rule: No Administrative Exemption
-The segregation-of-duties guard is role-agnostic and compares user accounts only. **System Administrators possess no administrative exemption**:
-- A System Administrator who prepares a sample, enters test counts, standardizes a titrant, or prepares a media lot is strictly blocked from reviewing or approving that record.
-- Every analytical review and release decision requires two distinct authorized individuals.
+#### No administrative exemption
+The rules in the table compare user accounts; System Administrators and Section Heads are not exempt from them. Segregation of duties is enforced only for the actions in the table. Other signed or approved actions (for example item preparation configuration approval, KPI workflow profile versions, titrant standardization, solution completion, HPLC system suitability and ICP calibration confirmation) have no second-person check. (GAP-026, GAP-820)
 
 
 > **Note for reviewers:** Microbiology plate count entry and pathogen steps are not signed, and returns to analyst are not signed. (GAP-009, GAP-010, GAP-028)
@@ -167,3 +165,6 @@ The segregation-of-duties guard is role-agnostic and compares user accounts only
 > **Note for reviewers:** Role and user changes are audited but not signed and need no second person; nothing prevents removing the *Manage roles* permission from an administrative role. (GAP-009)
 
 <!-- Review log (Sonnet): 18 corrections; invented items removed: "cryptographic" wording, enum/meaning names, class and field names, Autoclave Program Management row, transaction/hash wording, audit claims for unsigned actions; callouts added: GAP-027, GAP-030, GAP-009, GAP-010, GAP-028. Signed list (26) matches verified source; not-signed list limited to verified items. -->
+<!-- Phase 13 (agy): applied F-A10, F-C04 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

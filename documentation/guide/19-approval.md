@@ -36,7 +36,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 > **Note for reviewers:** Approval, rejection and close-testing signature statements are worded differently on the certificate, the sample report and the approval card. (GAP-315)
 
-> **Note for reviewers:** Dashboard approval notifications count samples awaiting a release decision rather than individual test orders as described in the specification. (GAP-309)
+> **Note for reviewers:** Dashboard approval notifications count samples awaiting a release decision rather than individual test orders as described in the specification, for users whose role is, or is based on, Section Head or System Administrator (the count follows the role type, not the permission). (GAP-309)
 
 #### What you see
 - On the testing workspace, a sample waiting for release shows the **Under Approval** lifecycle badge. It is clickable only for users holding the *Sample Release Approval* permission.
@@ -72,8 +72,8 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
   - An electronic signature with the meaning *Approved*, and a Workflow History event recording the decision.
   - The section becomes **Approved**, recording the approver, the time and the trimmed certificate remarks.
   - Every current test of the section is marked **Approved**, with the history entry "Sample approved by {name}".
-- When no section of the sample is open any more and none is rejected, the sample becomes **Approved**.
-- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled "Sample Approve" (see §21.3).
+- When no section of the sample is open any more and none is rejected or waiting on a retest, the sample becomes **Approved**. If another section is waiting on a retest, the sample becomes **Retest requested** (shown as **Cancelled / Voided** in the register).
+- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled with the decision that closed the sample (for example 'Sample Approve') (see §21.3).
 
 #### Validation
 - "Sample must be under approval before a decision can be made."
@@ -90,7 +90,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 #### Status
 - Section: **Under approval** to **Approved**.
 - Tests: each current test of the section becomes **Approved**.
-- Sample: **Approved** when no section is open and none is rejected; otherwise it follows the roll-up of the other sections.
+- Sample: **Approved** when no section is open and none is rejected or waiting on a retest; if another section is waiting on a retest, the sample becomes **Retest requested** (shown as **Cancelled / Voided** in the register); otherwise it follows the roll-up of the other sections.
 
 #### What happens next
 View or print the sample report and the Certificate of Analysis (see §21). If the sample is not yet final, other laboratory sections continue with their own review and approval.
@@ -127,7 +127,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - The section becomes **Rejected**, recording the approver and the time.
 - Every current test of the section is marked **Rejected** (its step is unchanged), with the history entry "Sample rejected by {name}".
 - Other laboratory sections of the sample are not closed. They stay open and carry on.
-- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled "Sample Reject".
+- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled with the decision that closed the sample (for example 'Sample Approve') (see §21.3).
 
 #### Validation
 - The same messages as in §19.1 for the section state, segregation of duties and password.
@@ -204,3 +204,6 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 On the combined Certificate of Analysis the closed laboratory's tests are listed as "{test}: Not completed, testing closed ({step}, stage {n})." No section-only certificate exists for a closed section.
 
 <!-- Review log (Sonnet): 20 corrections; invented items removed: "active membership", enum/database/transaction wording, "approval override", "workflow complete" claim, "recomputed to Rejected" for close testing, "immutable"/"cryptographic" claims; added decision-options table with resulting statuses and signature meanings; callouts added: none missing (GAP-017/018 incl. no Final Release, GAP-312, GAP-304, GAP-303, GAP-315, GAP-309 present) -->
+<!-- Phase 13 (agy): applied F-B03, F-B04, F-B05 -->
+
+<!-- Phase 13 review (Sonnet): F-B03, F-B04, F-B05 verified; Retest requested label confirmed in StatusBadge; no invented items. -->

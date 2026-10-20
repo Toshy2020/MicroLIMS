@@ -110,7 +110,7 @@ Machines and parts can be chosen when an After Cleaning sample is received and p
 Register an incoming after-cleaning sample with the cleaned machine and the previous product and batch.
 
 #### Who can use it
-Users who can receive samples see the **Receive** button (by default: Section Head, Reviewer, Analyst, System Administrator).
+Any signed-in user. The **+ New Sample** button in the Microbiology workspace is shown to every member of the laboratory, and the server checks neither a receiving permission nor the laboratory. On the **Receive Sample** page, the **Receive** button is shown to users who hold a receiving permission. (GAP-227)
 
 #### Before you start
 - The machine must exist in the After Cleaning configuration (§25.1).
@@ -156,7 +156,7 @@ Prepare the sample (§25.3).
 Choose the machine parts that were swabbed or rinsed. The system then creates the tests and one location per part test.
 
 #### Who can use it
-Any signed-in user working in the Microbiology workspace. Preparation of an After Cleaning sample needs no password or signature.
+Any signed-in user (the system does not check the laboratory). Preparation of an After Cleaning sample needs no password or signature.
 
 #### Before you start
 - The sample must be **Received** and need preparation.
@@ -301,3 +301,6 @@ All parts are submitted together. The grid is accepted or refused as a whole.
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
 <!-- Review log (Sonnet): 26 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" claims, class and field names, dilution-factor wording, section-assignment claim at receipt, OOS retest/investigation claim, BR id in a reviewer note, unsupported "active test configurations" wording; callouts added: GAP-227, GAP-212, GAP-501/GAP-517, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
+
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->

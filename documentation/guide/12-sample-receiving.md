@@ -6,8 +6,10 @@
 Register incoming samples of Finished Product, Raw Material, or Packaging Material, assign the destination laboratory sections, and automatically generate test orders for all configured laboratory tests.
 
 #### Who can use it
-- Users with the *Global sample receiving* permission (by default: Section Head, System Administrator) can receive samples for any laboratory section across the organization.
+- Users who hold both the *Global sample receiving* and the *Own-lab sample receiving* permissions (by default: Section Head, System Administrator) can receive for any laboratory section.
 - Users with the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) can receive samples only for the laboratory sections where they hold an active membership.
+
+> **Note for reviewers:** Users who hold *Global sample receiving* alone cannot receive Product, Raw Material, or Packaging Material samples because the endpoint also requires *Own-lab sample receiving*. Whether this requirement is intended has not been confirmed. (GAP-909)
 
 #### Before you start
 - The item must exist in the item master, be active, and have configured laboratory tests in the Test Master. If an item is frozen, the system displays: "Item '{name}' is frozen and cannot be used to receive new samples." If an item lacks configured tests, the system displays: "Item '{name}' has no assigned tests. Configuration must be completed by the Section Head before samples can be received."
@@ -95,7 +97,7 @@ The system evaluates the following client-side and server-side validation rules:
 - Test orders are initialized to **Pending** with step **Waiting**.
 
 #### What happens next
-For samples requiring preparation, preparation must be confirmed before incubation can start (see Section 13). For samples whose tests do not require preparation, testing can begin immediately.
+For samples requiring preparation, preparation must be confirmed before incubation can start (see Section 14). For samples whose tests do not require preparation, testing can begin immediately.
 
 
 ### 12.2 Receiving Environmental Monitoring Samples
@@ -265,3 +267,5 @@ Machines and machine part test configurations must be configured in master data.
 The sample appears in the register. An analyst opens **Prepare Sample** to select the machine parts, which creates the associated test orders.
 
 <!-- Review log (Sonnet): 7 corrections; invented items removed: expiry-date server message on receive, Physicochemical-section Ready rule (now FP section), register banner claim, swab/rinse wording; callouts added: After Cleaning order mismatch (GAP-225) -->
+<!-- Phase 13 (agy): applied F-A05, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

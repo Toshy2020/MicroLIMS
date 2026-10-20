@@ -5,7 +5,7 @@
 View, search, filter, and monitor incoming and in-progress laboratory samples across table, card, and kanban views, inspect workload summary indicators, and access sample-level actions.
 
 #### Who can use it
-Requires the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) or *Global sample receiving* permission (by default: Section Head, System Administrator). Holders of the own-lab permission work with the laboratory sections they belong to; holders of the global permission can receive for any laboratory. Row actions have their own permissions: **Assign Analyst** (*Assign responsible analyst* permission; by default Section Head, System Administrator), **Add Laboratory** (global sample receiving permission) and the edit icon and **Void Sample** (*Sample correction & voiding* permission; by default Section Head, Reviewer, System Administrator).
+Requires the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) or both the *Global sample receiving* and the *Own-lab sample receiving* permissions (by default: Section Head, System Administrator). Holders of the own-lab permission work with the laboratory sections they belong to; holders of both permissions can receive for any laboratory section. Row actions have their own permissions: **Assign Analyst** (*Assign responsible analyst* permission; by default Section Head, System Administrator), **Add Laboratory** (global sample receiving permission) and the edit icon and **Void Sample** (*Sample correction & voiding* permission; by default Section Head, Reviewer, System Administrator).
 
 #### Before you start
 You must be signed in with an account that holds one of the receiving permissions above.
@@ -23,7 +23,7 @@ You must be signed in with an account that holds one of the receiving permission
 - Filter bar:
   - Search field: "Search by item, reference number, control number, batch number..."
   - **Item Type** dropdown (options include "All Item Types")
-  - **Sample Status** dropdown (options include "All Sample Statuses", "Received", "Under Testing", "Pending Review", "Under Review", "Under Approval", "Approved")
+  - **Sample Status** dropdown (options include "All Sample Statuses", "Received", "Under Testing", "Pending Review", "Under Review", "Under Approval", "Approved", "Rejected", "Cancelled / Voided". **Cancelled / Voided** finds samples that were voided, cancelled, or closed with a retest request. **Pending Review** finds samples with a section waiting for technical review or for the release decision, so it overlaps **Under Review** and **Under Approval**.)
   - **Test Status** dropdown
   - Date pickers: **Received From** and **Received To**
   - View toggle options: **Table view**, **Card view**, and **Kanban view**
@@ -79,6 +79,13 @@ You must be signed in with an account that holds one of the receiving permission
   - Samples approved display as **Approved**.
   - Samples rejected display as **Rejected**.
   - Samples with a retest requested, a cancelled status, or a voided status all display as **Cancelled / Voided**.
+
+| Register label | Badge / review screens | Status |
+|---|---|---|
+| **Under Testing** | **In Testing** | in testing |
+| **Pending Review** | **Under Review** | under review |
+| **Pending Approval** | **Under Approval** | under approval |
+| **Cancelled / Voided** | **Retest Requested**, **Cancelled** or **Voided** | closed without approval |
 
 > **Note for reviewers:** The sample register displays the single label "Cancelled / Voided" for three different statuses: retest requested, cancelled, and voided. (GAP-204)
 
@@ -231,7 +238,7 @@ The system enforces the following exact validation rules:
 ### 11.4 Voiding a Sample
 <!-- WF-SAMPLE-005 -->
 #### Purpose
-Strike an erroneously created or invalid sample and all of its open tests from active laboratory workflows under electronic signature and audit trail tracking.
+Strike an erroneously created or invalid sample and all of its current (non-superseded) tests, including tests that are already approved or rejected, from active laboratory workflows under electronic signature and audit trail tracking.
 
 #### Who can use it
 Requires the *Sample correction & voiding* permission (by default: Section Head, Reviewer, System Administrator).
@@ -242,7 +249,7 @@ The sample must not already be in Voided status.
 #### What you see
 - Dialog title: **Void Sample Confirmation**
 - Subtitle: "Strikes the sample from the register - signed with your password"
-- Warning banner: "The sample record and its open tests will be marked as Voided."
+- Warning banner: "The sample record and its open tests will be marked as Voided." The banner says "open tests", but the system voids every current test of the sample, including approved and rejected ones.
 - Mandatory field: **Reason for Voiding \*** (helper text displays "A reason for voiding is required." when empty, and "Recorded with your electronic signature and in the sample's audit trail." when populated).
 - Action buttons: **Cancel** and **Sign & Void** (disabled until a reason is entered).
 
@@ -275,3 +282,5 @@ The system enforces the following exact validation rules:
 > **Note for reviewers:** A sample can be voided at any status except already Voided, including after approval or rejection, with no warning if an archived certificate of analysis exists. (GAP-203)
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: Sign & Save disabled-when-unchanged, signature timestamp, 'reopened/edited/reset' claim, section-membership and System Administrator unrestricted-access claim, enum names; callouts added: workflow-spec/analyst assignment note in 11.1 (GAP-200, GAP-213) -->
+<!-- Phase 13 (agy): applied F-A02, F-A06, F-B11, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

@@ -10,9 +10,7 @@ Prompt: `user_guide_prompt_v2.md` (Master User Guide Generation Agent v2).
 | App run locally | Not yet — screen behaviour currently from code only (lower confidence) |
 
 ## Current phase
-**Phase 12 complete — reconciliation written. STOPPED, awaiting user approval** before Phase 13 (apply corrections).
-
-Decisions in force: Phases 2, 4 and 5–9 approved by the user. App NOT run (code only). Memory notes are not INTENDED sources. Model routing: agy (Gemini) writes, Sonnet reviews; Phases 11–12 Opus as the prompt requires.
+**All phases (0–15) complete.** USER_GUIDE.md DRAFT 0.1 is corrected and ready for human review and approval. Nothing pushed; branch `docs/user-guide` is local.
 
 ## Phase log
 - 2026-10-15 — Phase 0: branch created, `documentation/` + `knowledge/` + `screenshots/` folders created.
@@ -34,6 +32,10 @@ COVERED 18, PARTIAL 38, REQUIRES CONFIRMATION 1, NOT-EXPOSED-IN-UI 8, LEGACY/RET
 - 2026-10-20 — Phase 10: `SCREENSHOT_PLAN.md` (123 screenshots, 102 P1) from `guide/_ss/*.md`.
 - 2026-10-20 — Phase 11: three fresh-context Opus reviewers (§1–16, §17–29, §30–44) → `_review/review-A/B/C.md`, merged into `USER_GUIDE_REVIEW.md` (43 findings: 0 critical, 8 high, 16 medium, 19 low).
 - 2026-10-20 — Phase 12: Opus reconciliation → `RECONCILIATION.md` (38 confirmed, 4 partly, 1 rejected, 2 new; final 10 high / 13 medium / 21 low; no CRITICAL). Proposes GAP-901..910 and updates to GAP-214/221/227/300 and clusters C2, C3, C5, C8, R3.
+
+- 2026-10-20 — Phase 13: 44 reconciliation corrections applied to `guide/` in three agy batches, each reviewed by Sonnet (nothing invented; minor tidy-ups); knowledge-base fixes in C2, C3, C5, C8, R3; GAP-901..910 added and GAP-214/221/227/300 updated; guide header gains review/approval rows and revision history.
+- 2026-10-20 — Phase 14: final checks: 44/44 sections reviewed, every cited GAP id exists, no compliance or code-name wording, 123/123 screenshot placeholders planned, every module mapped to a guide section except the 7 backend-only modules (stated in §2).
+- 2026-10-20 — Phase 15: `DOCUMENTATION_INDEX.md` + `DOCUMENTATION_INDEX.csv` (66 modules, 106 module × workflow rows) via `E:/MicroLIMS/rls-tmp/build_index.py`.
 
 ## Files created (Phases 5–9)
 - `USER_GUIDE.md` — DRAFT 0.1, 44 sections, ~10,500 lines, 275 reviewer notes, 123 screenshot placeholders; every cited GAP id exists in `DOCUMENTATION_GAPS.md` (216 gaps).
@@ -59,7 +61,27 @@ See `DOCUMENTATION_GAPS.md` (GAP-001..055, then cluster ranges GAP-100..821). Hi
 - GAP-015 / GAP-016: default role grants may differ in production (needs a read-only check by an authorised person).
 - GAP-040: the application has not been run; permission is needed for a local test instance with fake data.
 
+## Final report
+
+| # | Item | Result |
+|---|---|---|
+| 1 | Modules | 66. Coverage matrix: every row complete; 7 backend-only modules (no screens) have no guide section by design and are listed in §2. |
+| 2 | Screens | 107 screen ids |
+| 3 | Workflows | 80 (81 sections; Test Master split micro / physicochemical) |
+| 4 | Roles / permission codes | 4 default roles (admin-editable); 50 codes (40 enforced, 10 not enforced) |
+| 5 | Business rules | 566 |
+| 6 | Screenshots required | 123 (102 priority P1) |
+| 7 | Documentation gaps | 226 |
+| 8 | Discrepancies (spec vs code, or spec vs spec) | 17 gap entries labelled DISCREPANCY |
+| 9 | Critical findings | 0 after reconciliation |
+| 10 | High findings | 10 confirmed in Phase 12, all corrected in Phase 13 |
+| 11 | Files created | see "Files created" sections above; all under `documentation/` |
+| 12 | Human confirmation needed | GAP list (top: no URS/FRS for microbiology core GAP-001; Final Release absent GAP-014; production role grants GAP-015/016; EM/Water/AC receive and prepare need only sign-in GAP-227; unsigned return-to-analyst and count entry GAP-009/010; pathogen reset reach GAP-221; Select All export GAP-906) |
+| 13 | git diff outside documentation/ | none (`git diff --name-only f773042c HEAD` lists only `documentation/` paths) |
+
+The documentation makes no claim that the application is validated or compliant. The application was never run; all screen behaviour comes from the code.
+
 ## Next step
-1. User approves `RECONCILIATION.md` (or amends decisions).
-2. Phase 13: apply the confirmed corrections to `guide/NN-*.md` and the named cluster files (agy writes, Sonnet reviews), add GAP-901..910 and the gap updates to `DOCUMENTATION_GAPS.md`, re-run `E:/MicroLIMS/rls-tmp/merge_clusters.py` and `assemble_guide.py`.
-3. Phase 14: final guide check against `COVERAGE_MATRIX.md`. Phase 15: `DOCUMENTATION_INDEX.md` + `.csv`. Final report.
+1. Human review of `USER_GUIDE.md` (reviewer-note boxes first) and the GAP list.
+2. Optional: run a local test instance with fake data to take the 123 screenshots and confirm screen behaviour.
+3. Push / PR the `docs/user-guide` branch when the user decides.

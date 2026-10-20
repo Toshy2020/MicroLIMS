@@ -41,8 +41,10 @@ The following were not found in MicroLIMS. This guide gives no procedures for th
 - An integration with **SAP** or any other ERP system.
 - A **local AI assistant**.
 - A **live data feed from instruments**. Results are entered by hand and report files are attached as evidence.
-- Separate **Reception** or **QA** roles. Receiving is done by users who hold a receiving permission, and QA staff need a custom role created by an administrator.
+- Separate **Reception** or **QA** roles. Product, Raw Material and Packaging Material samples are received by users who hold a receiving permission. Environmental Monitoring, Water and After Cleaning samples can be received by any signed-in user (see §23–§25). QA staff need a custom role created by an administrator.
 
 > **Note for reviewers:** Screen text in the media area mentions sterility, but no sterility test or result entry exists. (GAP-022)
 
 <!-- Review log (Sonnet): 9 corrections; invented items removed: module ids, endpoint paths, background worker claim for escalations, "automated sampling schedule generator" and "no reference-strain passage tracking" overstatements, laboratory code names; callouts added: GAP-030, GAP-022 -->
+<!-- Phase 13 (agy): applied F-A01 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

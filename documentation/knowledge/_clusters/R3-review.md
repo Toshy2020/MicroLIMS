@@ -9,7 +9,7 @@ Reviewed from `C3-review-approval.md` (source of truth) with spot checks against
 |---|---|---|---|
 | Reviewer workflow | DOCUMENTED | WF-REVIEW-001, SCR-REVIEW-001, BR-REVIEW-001..006 | Per laboratory section, not per test order. One signature (Reviewed). |
 | Automatic submit for review | DOCUMENTED | BR-REVIEW-001, BR-SAMPLE-012 | No password, no signature; event text "All tests completed - automatically submitted for review". |
-| Return to Analyst | PARTIAL | WF-REVIEW-002, SCR-REVIEW-002, BR-REVIEW-007..011 | Unsigned, reason optional, no separation-of-duties check. UI offers it for count tests only; service also accepts analysis workflows (GAP-300). Not available for location-grid, pathogen or qualitative tests in the UI. |
+| Return to Analyst | PARTIAL | WF-REVIEW-002, SCR-REVIEW-002, BR-REVIEW-007..011 | Unsigned, reason optional, no separation-of-duties check. UI offers it for count tests and every physicochemical test (GAP-300) (corrected in Phase 13, RECONCILIATION.md). Not available for location-grid, pathogen or qualitative tests in the UI. |
 | Rejection / rework by reviewer | PARTIAL | BR-REVIEW-007 | A reviewer cannot reject. Rework before review is Return to Analyst only; after review only approver Reject/Retest. |
 | Quick Table / Detailed review modes | NOT IMPLEMENTED | BR-REVIEW-013, GAP-018 | In the spec, not in the code. |
 | Per-test-order review (spec) | NOT IMPLEMENTED | BR-REVIEW-012, GAP-018 | Section-level review replaces it; intended section-level rule REQUIRES CONFIRMATION. |
@@ -106,7 +106,7 @@ Reviewed from `C3-review-approval.md` (source of truth) with spot checks against
 1. Review and approval are decided per laboratory section, not per test order; Quick Table review and Investigation / OOS Investigation decisions in the specification are not available. (GAP-017, GAP-018)
 2. There is no Final Release step; Approved is the last status, shown as a "Release Decision" on the screen. (GAP-017, GAP-018; new confirmation item)
 3. Return to Analyst takes no password or signature, the reason is optional, and the reviewer who performed the test is not blocked. (GAP-009, GAP-301)
-4. Return to Analyst is offered in the UI for count tests only. (GAP-300)
+4. Return to Analyst is offered in the UI for count tests and every physicochemical test; whether this is intended is open. (GAP-300) (corrected in Phase 13, RECONCILIATION.md)
 5. A reviewer cannot return a test after the section is reviewed; correction then requires the approver's Reject or Retest. (BR-REVIEW-007)
 6. Reviewer and approver separation is checked per section only. (GAP-312)
 7. Approval of out-of-specification results is allowed after a warning; it certifies them as conforming. (GAP-304)

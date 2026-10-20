@@ -21,7 +21,7 @@ Phase 3 verification (Sonnet pass): every role, permission, signature, time-gate
 
 ### MOD-PREP-001 Sample preparation
 - Purpose: record preparation before testing starts. Product / RM / PM: diluent and neutraliser, signed. EM: room grid. After Cleaning: machine-part grid. Water: sampling-point grid plus storage condition. Grouped preparation for several samples. [src: frontend/src/modules/testPreparation/PreparationDialog.tsx:70-101; backend/MicroLIMS.Application/Services/SamplePreparationService.cs]
-- Status: IMPLEMENTED. Item preparation configuration and approval (WF-PREP-002) backend read in Phase 3 (BR-PREP-008..010); UI screen still not located (GAP-214).
+- Status: IMPLEMENTED. Item preparation configuration and approval (WF-PREP-002) backend read in Phase 3 (BR-PREP-008..010); the approval screen is the Items > Preparation Configuration tab (**Approve**); remaining question in GAP-214 (corrected in Phase 13, RECONCILIATION.md).
 - FP-section tests have no preparation stage: a sample whose tests are all in section code "FP" is Ready at receipt; a mixed sample needs preparation only for its non-FP tests. [src: backend/MicroLIMS.Application/Workflows/PreparationRules.cs:L7-L30] (verified, BR-PREP-011)
 - Lab scope: preparation endpoints check section access (`EnsureSampleAccessAsync`) but have no permission policy beyond being signed in (EM, After Cleaning and Water receive/prepare endpoints have neither; see roles). [src: backend/MicroLIMS.API/Controllers/SamplePreparationController.cs:L45; EMController.cs:L33-L35]
 
@@ -118,7 +118,7 @@ Count: 17 SCR ids in map (SCR-SAMPLE-001..006, SCR-TRACK-001, SCR-PREP-001, SCR-
 - Water form (WaterPreparationForm): "Storage Condition *" (options "Refrigerator", "Room Temperature"; placeholder "Select storage condition"); "Storage Time (hours) *" (number, shown when Refrigerator); confirm disabled until storage complete; points with no assigned test disabled; "Loading sampling points..."; `/api/water/prepare`; no signature. [src: frontend/src/modules/laboratoryConfiguration/water/WaterPreparationForm.tsx:31-33, 97-137]
 - Shared grid (SamplingPointGrid): "Select All", chip "{n} selected", chip "Assigned Tests" / "No tests configured"; default confirm label "Start Testing"; "Starting..." while loading. [src: frontend/src/modules/testPreparation/components/SamplingPointGrid.tsx:82-111, 184-278]
 - Grouped preparation row (GroupedPreparationRow): "Test Preparation · {item}", chips "× N Sample(s)", "Approved" / "Pending Approval"; expanded "Samples to prepare (N):"; info when configuration pending section-head approval; button "Confirm & Start Testing (N Samples)" (signed). [src: frontend/src/modules/testPreparation/components/GroupedPreparationRow.tsx:95-209]
-- Item preparation configuration screen: not located (GAP-214).
+- Item preparation configuration screen: Items > Preparation Configuration tab, see C7 / guide §31.2 (GAP-214 narrowed) (corrected in Phase 13, RECONCILIATION.md).
 
 ### MOD-TESTING-001 Laboratory workspaces
 

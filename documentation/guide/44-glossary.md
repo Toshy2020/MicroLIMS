@@ -46,7 +46,7 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Segregation of Duties (SoD)** | A governance rule preventing the person who performed an action from reviewing or approving the same sample, test, or record. |
 | **Command Center** | The primary dashboard page displaying workload summaries, queues, and attention items for a user's role. |
 | **Ready to read** | A test status indicating that an incubation period has ended and the test is ready for colony counting or observation entry. |
-| **On-Time Reading Rate** | The percentage of microbial incubations read within four hours of their scheduled completion time. |
+| **Incubation reads on time** | The percentage of completed incubation windows read no later than 4 hours after the expected read time (earlier reads count as on time). |
 | **Incident** | A technical system error logged in Error Monitoring with a correlation identifier; distinct from laboratory testing deviations. |
 | **Traceability chain** | An interactive record chain inside the audit event drawer showing all linked upstream and downstream records. |
 | **Archived copies** | Frozen PDF copies saved at a final decision (for example sample approval or rejection), shown on the sample report with a download. |
@@ -82,6 +82,10 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Biochemical Test** | A phenotypic identification test (such as Gram stain, catalase, or oxidase) used in pathogen confirmation. |
 | **Grouped Actions** | Batch operations applied to two or more selected samples simultaneously. |
 | **Void Sample** | The signed voiding of a sample record (action in the sample list). |
+| **Under Testing** (register) | The sample register label for the status shown elsewhere as **In Testing**. |
+| **Pending Review** (register) | The sample register label for the status shown elsewhere as **Under Review**. |
+| **Pending Approval** (register) | The sample register label for the status shown elsewhere as **Under Approval**. |
+| **Cancelled / Voided** (register) | The sample register label for samples closed without approval: **Retest Requested**, **Cancelled** or **Voided**. |
 
 ---
 
@@ -93,7 +97,7 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Submit Release Decision** | The signed approval or rejection form submitted by a Section Head. |
 | **Comment (optional)** | An internal note recorded with a review or approval decision; never printed on the external Certificate of Analysis. |
 | **Certificate Remarks** | Narrative remarks entered during approval that print directly on the Certificate of Analysis. |
-| **Return to Analyst** | An action during technical review that returns a count test to the analyst for re-entry without canceling the sample. |
+| **Return to Analyst** | An action during technical review that returns a count test or a physicochemical result-entry test to the analyst for recount or result re-entry without cancelling the sample (see §18.1). |
 | **Retest Retained Sample** | An approval decision creating one new sample for selected tests using retained material and keeping the original analyst assignment. |
 | **New Sample Required** | An approval decision requiring fresh physical samples, generating two new samples assigned to two different analysts. |
 | **Close Testing** | An action allowing a laboratory section to stop and cancel its open tests on a sample after another laboratory has rejected it. |
@@ -119,8 +123,8 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Thaw** | The recorded withdrawal and use of a single frozen cryovial from a reference batch. |
 | **Out of Stock** | A status set manually on a media lot that is no longer used for new storage or tests. |
 | **Materials Stock** | The laboratory inventory register tracking chemical reagents, primary/reference standards, and dehydrated media. |
-| **Active Equipment** | A tab of the Equipment Inventory listing in-service assets with their activities. |
-| **Set Point** | The target operating temperature configured for an incubator, refrigerator, or oven. |
+| **Active Equipment** | A tab of the Equipment Inventory listing every asset in your laboratories, whatever its status, with its activities. |
+| **Set Point** | The target temperature configured for an incubator in Laboratory Configuration: Equipment (§30.3). |
 | **Autoclave Program / Load** | A defined sterilisation cycle specifying temperature, cycle time, and load type on an autoclave. |
 | **Item** | A catalog definition for a finished product, raw material, or packaging material tested by the laboratory. |
 | **Assigned Tests** | The battery of laboratory test definitions linked to an item that are automatically ordered upon sample receipt. |
@@ -147,8 +151,13 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Document Master** | The top-level administrative record for a controlled standard operating procedure or quality document. |
 | **Document Revision** | A specific versioned release of a controlled document (e.g. Rev 01). |
 | **Controlled PDF** | The official released copy of a controlled document rendered in the system viewer. |
-| **Source File** | The editable authoring file (Word format) accessible only during draft and technical review stages. |
+| **Source File** | The editable Word file of a revision. System Administrators, Section Heads and the document owner or assigned author can open it; a technical reviewer or approver can open it only while their task on that revision is open. |
 | **Finding Resolution Ladder** | The structured review comment progression (Open, Author Responded, Reviewer Verified, Resolved). |
 | **Periodic Review** | The scheduled recurring re-evaluation of an effective controlled document to ensure ongoing scientific validity. |
 
 <!-- Review log (Sonnet): 16 corrections; invented items removed: "cryptographic hashes"/"immutable" archived copies, "Quick Period" component name, Correct Sample Details (not a UI label), unsupported definitions of Recovery %, Out of Stock, Th.Wt, r, RSD, Second-Person Verification; callouts added: none needed (glossary). Standard terms (GPT, EM, AC, TAMC, TYMC, CFU, TNTC, TSB, OOS, COA, CDS, HPLC, ICP-OES, the usual abbreviations) present; no code names remain. -->
+<!-- Phase 13 (agy): applied F-C12, F-C13, F-C14, F-C17 -->
+
+<!-- Phase 13 review (Sonnet): F-C12/C13/C14/C17 verified OK; F-B11 section 44 part applied (register-label rows in 44.3). Return to Analyst row in 44.4 still says count test only (out of scope). -->
+
+<!-- Phase 13 (Opus orchestrator): Return to Analyst scope aligned with §18.1 (F-B08). -->

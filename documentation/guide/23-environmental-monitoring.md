@@ -102,7 +102,7 @@ Rooms that have at least one test can be chosen when an EM sample is prepared (�
 Register an incoming EM sampling event.
 
 #### Who can use it
-Users who can receive samples see the **Receive** button (by default: Section Head, Reviewer, Analyst, System Administrator).
+Any signed-in user. The **+ New Sample** button in the Microbiology workspace is shown to every member of the laboratory, and the server checks neither a receiving permission nor the laboratory. On the **Receive Sample** page, the **Receive** button is shown to users who hold a receiving permission. (GAP-227)
 
 #### Before you start
 The department must exist in the Environmental Monitoring configuration (§23.1).
@@ -143,7 +143,7 @@ Prepare the sample (§23.3).
 Choose the rooms that were sampled. The system then creates the tests and one location per room test.
 
 #### Who can use it
-Any signed-in user working in the Microbiology workspace. Preparation of an EM sample needs no password or signature.
+Any signed-in user (the system does not check the laboratory). Preparation of an EM sample needs no password or signature.
 
 #### Before you start
 - The sample must be **Received** and need preparation.
@@ -297,3 +297,6 @@ Pathogen tests:
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
 <!-- Review log (Sonnet): 29 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" list claims, unreferenced Annex/compliance wording, "Dilution factor" and internal rounding names, section-assignment claim at receipt, OOS retest/investigation claim, internal test-type error message; callouts added: GAP-227, GAP-212, GAP-501/GAP-517, calibration message, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
+
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->

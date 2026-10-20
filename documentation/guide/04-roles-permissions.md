@@ -41,7 +41,7 @@ MicroLIMS controls access in three ways:
 #### Reviewer
 - **Base type**: Reviewer.
 - **Default permissions**: 15.
-- **Typical responsibilities**: technical review of results, returning count tests to analysts, and acting as the assigned technical reviewer of document revisions.
+- **Typical responsibilities**: technical review of results, returning count and physicochemical result-entry tests to analysts, and acting as the assigned technical reviewer of document revisions.
 - **Limits**: cannot record release decisions, release media lots, or approve cryovial batches. Cannot review a test or sample they performed or prepared.
 
 #### Analyst
@@ -50,7 +50,7 @@ MicroLIMS controls access in three ways:
 - **Typical responsibilities**: receiving samples for their own laboratory sections, sample preparation, count and observation entry, pathogen tests, HPLC, GC, and ICP work, solution preparation, working standards, and inventory updates.
 - **Limits**: no review or release permissions. In the testing workspaces, an analyst sees the tests assigned to them by default. Cannot review or approve their own work.
 
-The system has no separate Reception or QA role. Receiving is done by users with a receiving permission.
+The system has no separate Reception or QA role. Product, Raw Material and Packaging Material samples are received by users who hold a receiving permission. Environmental Monitoring, Water and After Cleaning samples can be received by any signed-in user (see §23–§25).
 
 > **Note for reviewers:** Which custom roles the laboratory uses for Reception and QA staff has not been confirmed. (GAP-050)
 
@@ -68,13 +68,13 @@ Default roles in the table: SA = System Administrator, SH = Section Head, REV = 
 | 2 | `Roles.Manage` | Role & Permission Management | SA | Enforced | Create custom roles, rename roles, edit permissions, delete unassigned custom roles. |
 | 3 | `Audit.View` | Audit Trail Viewing | SA, SH | Enforced | View audit events, change differences, record history, and traceability chains. |
 | 4 | `Reporting.Admin` | Administrative Reporting | SA | Enforced | Run administrative reporting maintenance (no screen is provided for it). |
-| 5 | `Samples.Review` | Sample Technical Review | SA, SH, REV | Enforced | Submit technical reviews on sample sections, return count tests to analysts, and review working standards. |
+| 5 | `Samples.Review` | Sample Technical Review | SA, SH, REV | Enforced | Submit technical reviews on sample sections, return count and physicochemical result-entry tests to analysts, and review working standards. |
 | 6 | `Samples.Approve` | Sample Release Approval | SA, SH | Enforced | Record release decisions (Approve, Not Conform, New Sample Required, Retest Retained Sample), close testing, and approve working standards. |
-| 7 | `Samples.Receive` | Global Sample Receiving | SA, SH | Enforced | Receive samples for any laboratory and add a laboratory to an existing sample. |
+| 7 | `Samples.Receive` | Global Sample Receiving | SA, SH | Enforced | Receive samples for any laboratory and add a laboratory to an existing sample. Applies to Product, Raw Material and Packaging Material samples only, where receipt also requires *Own-lab sample receiving*; this permission widens it to every laboratory. |
 | 8 | `Samples.TrackAll` | Cross-Lab Sample Tracking | SA, SH | Enforced | View the Tracking Board across all laboratory sections. |
 | 9 | `Signatures.Manage` | Signature Trail Viewing | SA, SH | Enforced | View the electronic signature history of a record (no separate screen is provided for it). |
-| 10 | `TestWorkflow.Execute` | Test Workflow Execution | SA, SH, REV, ANA | Enforced | Enter microbiology counts, observations, pathogen test steps, and test results. |
-| 11 | `TestWorkflow.BiochemicalDecision` | Biochemical Decision Recording | SA, SH, REV | Enforced | Record biochemical confirmation decisions in pathogen testing. |
+| 10 | `TestWorkflow.Execute` | Test Workflow Execution | SA, SH, REV, ANA | Enforced | Enter microbiology counts, observations, pathogen test steps, and test results, and media evaluation (growth promotion, indication and inhibition) steps. |
+| 11 | `TestWorkflow.BiochemicalDecision` | Biochemical Decision Recording | SA, SH, REV | Enforced | Record biochemical confirmation decisions in pathogen testing (no screen is provided for it). |
 | 12 | `Cryovials.Manage` | Cryovial Management | SA, SH, REV, ANA | Enforced | Prepare batches, thaw, move storage, and destroy reference cryovials. |
 | 13 | `Cryovials.Approve` | Cryovial Batch Approval | SA, SH | Enforced | Approve or reject prepared cryovial batches. |
 | 14 | `Materials.Manage` | Material Stock Management | SA, SH, ANA | Enforced | Receive material lots, update details, consume stock, and upload documents. |
@@ -108,7 +108,7 @@ Default roles in the table: SA = System Administrator, SH = Section Head, REV = 
 | 42 | `Media.Release` | Media Lot Release | SA, SH | Enforced | Release or reject media lots under electronic signature. |
 | 43 | `Oos.Manage` | OOS Tracking Management | SA, SH | Enforced | Manage OOS groups and investigation documents. |
 | 44 | `TestWorkflow.Supervise` | Test Workflow Supervision | SA, SH | Enforced | Override minimum incubation times and reset pathogen sessions. |
-| 45 | `Samples.ReceiveOwnLab` | Own-Lab Sample Receiving | SA, SH, REV, ANA | Enforced | Receive samples for the laboratory sections you are assigned to. |
+| 45 | `Samples.ReceiveOwnLab` | Own-Lab Sample Receiving | SA, SH, REV, ANA | Enforced | Receive samples for the laboratory sections you are assigned to. Applies to Product, Raw Material and Packaging Material samples only. |
 | 46 | `Samples.Correct` | Sample Correction & Voiding | SA, SH, REV | Enforced | Correct sample details and void samples under electronic signature. |
 | 47 | `Samples.AssignAnalyst` | Sample Analyst Assignment | SA, SH | Enforced | Assign analysts to sample tests. |
 | 48 | `Solutions.Prepare` | Solution Preparation | SA, SH, ANA | Enforced | Prepare solutions and mobile phases, and standardize titrants. |
@@ -129,7 +129,7 @@ The system compares the people who did the work, not their roles. **System Admin
 | Sample technical review | You cannot review a sample section in which you performed or prepared a test. | "You cannot review a sample you tested." |
 | Sample release decision | You cannot approve a sample you reviewed. | "You cannot approve a sample you reviewed." |
 | Sample release decision | You cannot approve a sample you performed or prepared a test on. | "You cannot approve a sample you tested." |
-| Pathogen biochemical decision | You cannot decide on a result you performed. | "A reviewer cannot decide on a result they performed." |
+| Pathogen biochemical decision (no screen; reachable only through the system interface) | You cannot decide on a result you performed. | "A reviewer cannot decide on a result they performed." |
 | Media lot release | You cannot release a lot you prepared or evaluated. | "You cannot approve a media lot you prepared or evaluated." |
 | Cryovial batch approval | You cannot approve a batch you prepared. | "You cannot approve a cryovial batch you prepared." |
 | Working standard sign-off | The analyst who submitted a qualification cannot review or approve it, and the reviewer cannot also approve it. | "The analyst who submitted the qualification cannot review it." / "The analyst who submitted the qualification cannot approve it." / "The reviewer cannot also approve the qualification." |
@@ -221,3 +221,7 @@ The system saves the changes and records in the audit trail which permissions we
 Assign the role to users on the Users screen (see Section 39).
 
 <!-- Review log (Sonnet): 24 corrections; invented items removed: role ids (ROLE-...), screen addresses, "server middleware / token claim / database" wording, "audit code ROLE_PERMISSIONS_UPDATED", unsupported "invalid code" validation as normal user path, misplaced role-change audit note (GAP-112 belongs to user role change, Section 39), "Clicking delete on a system role is prevented" (button is hidden); callouts added: GAP-015 (live grants), GAP-026, GAP-050, GAP-107, GAP-009 retained -->
+<!-- Phase 13 (agy): applied F-A01, F-A03, F-A10, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
+
+<!-- Phase 13 review (Sonnet): F-B08 section 4 part applied (4.2 Reviewer, 4.3 row 5). -->

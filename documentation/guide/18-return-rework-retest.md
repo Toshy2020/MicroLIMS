@@ -3,19 +3,17 @@
 ### 18.1 Return a Test to the Analyst
 <!-- WF-REVIEW-002 -->
 #### Purpose
-Send a count test back to the assigned analyst for a recount or result re-entry before the review is signed. The current count readings are set aside and the incubation step is reopened.
+Send a count test or a physicochemical result-entry test back to the assigned analyst for a recount or result re-entry before the review is signed. The current count readings or active analysis entries are set aside and the test returns to testing.
 
 #### Who can use it
 Requires the *Sample Technical Review* permission (by default: Reviewer, Section Head, System Administrator). You must be assigned to the laboratory section of the test.
 
 #### Before you start
-- The test must have its result entered and must not be superseded.
-- The test must be a count test (it has count readings, or results without biochemical, location or pathogen data). The button is offered for count tests only.
+- The test is a count test or a physicochemical result-entry test whose result is entered. Pathogen, location (EM/Water/After Cleaning) and biochemical tests do not offer the button.
+- The test must not be superseded.
 - The test's laboratory section must be **In testing** or **Under review**, and the sample must not be **Under approval**, **Approved**, **Rejected**, **Retest requested**, **Cancelled** or **Voided**. Once the section has been reviewed the system refuses with: "Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead."
 
 > **Note for reviewers:** Return to Analyst takes no password or signature, the reason is optional, and the reviewer who performed the test is not blocked. (GAP-009, GAP-301)
-
-> **Note for reviewers:** Return to Analyst is offered on the screen for count tests only, although the system also accepts result-entry (analysis) tests. (GAP-300)
 
 > **Note for reviewers:** A test cannot be returned after the section has been reviewed; correction then requires the Section Head's Not Conform or retest decision (see §18.2 and §19). This follows the "Cannot return a test…" message above. (GAP-018)
 
@@ -31,7 +29,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 
 #### How to use it
 1. Open the **Sample Summary** dialog (the lifecycle badge or **Sample Summary**).
-2. Find the count test and expand it.
+2. Find the test and expand it.
 3. Click **Return to Analyst**.
 4. Read the information text in the **Return Test to Analyst** dialog.
 5. Optionally, type a reason in **Reason for Return (optional)**.
@@ -40,10 +38,10 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 
 #### System behavior
 - The system checks, in this order: your access to the test's section; the test exists; the section and sample are in an allowed state; the test has its result entered; the test definition exists; the test type is supported.
-- The active count readings are set aside (kept in the record but no longer current).
-- The latest incubation is reopened: its completion time, who completed it and its outcome are cleared.
+- For a count test: the active count readings are set aside (kept in the record but no longer current), and the latest incubation is reopened (its completion time, who completed it and its outcome are cleared).
+- For a physicochemical (result-entry) test, the active analysis entries and parameter results are set aside, no incubation is reopened, and the test goes back to **Running**.
 - If the section was **Under review**, it goes back to **In testing** and the sample status is recomputed.
-- The test moves to the **Incubating** step with the history note "Returned to analyst: {reason}" (or "Returned to analyst by reviewer" when no reason was typed).
+- The test moves to the **Incubating** step (count tests) or **Running** (physicochemical tests) with the history note "Returned to analyst: {reason}" (or "Returned to analyst by reviewer" when no reason was typed).
 - A return event is stored with the reviewer, the assigned analyst, the reason and the time. The assigned analyst does not change.
 - No electronic signature is recorded.
 
@@ -58,7 +56,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 
 #### Status
 - Section: **Under review** goes back to **In testing**.
-- Test: the step returns to **Incubating**.
+- Test: **Incubating** for a count test, **Running** for a result-entry test.
 - Sample: recomputed from all sections.
 
 #### What happens next
@@ -79,7 +77,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - A cause of testing named "Retest" must exist. Otherwise: "The 'Retest' cause of testing is not configured."
 - At least one test must be selected.
 
-> **Note for reviewers:** When a retest sample reaches a final status, its outcome is copied to the original sample's section without a new electronic signature. For Retest Retained Sample the original takes the retest's outcome. (GAP-018)
+> **Note for reviewers:** When a retest sample reaches a final status, its outcome is copied to the original sample's section without a new electronic signature. The original section takes the outcome (Retest Retained Sample: the retest's outcome; New Sample Required: Approved only when both new samples are approved). Each original test is then marked Approved or Rejected from its own recorded result, so the test that triggered the retest stays **Rejected**. The original section records the Section Head who decided the retest as its approver; no new signature is applied to the original. This happens only when the retest sample covers one laboratory section. (GAP-018)
 
 > **Note for reviewers:** The Investigation and OOS Investigation decisions in the design specifications are not available; only the four decisions in §19 exist. (GAP-017)
 
@@ -87,7 +85,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - **Sample Summary** dialog, card **Approval & Electronic Signatures**, form **Submit Release Decision**:
   - **Laboratory Section** (when more than one section is waiting).
   - The option **Retest Retained Sample: Return to testing**.
-  - The block **Tests to Retest**, with the text "Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample(s); everything else on this sample is left untouched." and one checkbox per current test, each with a section chip and a **Non-conforming** chip where the screen judges the test non-conforming.
+  - The block **Tests to Retest**, with the text "Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample; everything else on this sample is left untouched." (for **New Sample Required** the text reads 'new samples') and one checkbox per current test, each with a section chip and a **Non-conforming** chip where the screen judges the test non-conforming.
   - The warning "Select at least one test to retest." when no box is checked.
   - **Comment (optional)** and **Submit Decision** (disabled until the decision is valid).
 - **Electronic Signature** dialog with your name, role, the text "Retest Retained Sample: Return to testing", the field **Password** and the buttons **Cancel** and **Sign**.
@@ -130,7 +128,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - New sample: **Received**.
 
 #### What happens next
-The new retest sample appears in the testing workspace and goes through testing, review and approval itself. The group appears in OOS Tracking (see §20) for users with the *OOS Tracking Management* permission. When the retest sample is finally approved or rejected, its outcome is copied to the original sample's section.
+The new retest sample appears in the testing workspace and goes through testing, review and approval itself. The group appears in OOS Tracking (see §20) for users with the *OOS Tracking Management* permission. When the retest sample is finally approved or rejected, its outcome is copied to the original sample's section (Retest Retained Sample: the retest's outcome; New Sample Required: Approved only when both new samples are approved). Each original test is then marked Approved or Rejected from its own recorded result, so the test that triggered the retest stays **Rejected**. The original section records the Section Head who decided the retest as its approver; no new signature is applied to the original. This happens only when the retest sample covers one laboratory section.
 
 
 ### 18.3 Requesting a New Sample
@@ -178,7 +176,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - The section becomes **Retest requested**, and the original sample receives an OOS group number if it has none.
 - The selected original tests are marked superseded, with the history note "New sample requested by {name}".
 - TWO new samples are created one after the other, each with its own reference number, the details of the original sample, a link to it, the shared OOS group, and copies of the selected tests assigned to its own chosen analyst.
-- Outcome: the original section waits until both new samples have a final status. It then takes **Approved** only if both are approved, otherwise **Rejected**. No new signature is recorded for this.
+- Outcome: the original section waits until both new samples have a final status. It then takes **Approved** only if both are approved, otherwise **Rejected**. No new signature is recorded for this (see §18.2).
 
 #### Validation
 - "Two analysts must be assigned - one per new sample - when requesting a new sample."
@@ -198,3 +196,6 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 The two new samples appear in the testing workspace for their analysts and follow the normal test, review and approval workflow. The group is followed in OOS Tracking (see §20).
 
 <!-- Review log (Sonnet): 22 corrections; invented items removed: "active membership", enum/database/ID wording (ResultEntered code kept only inside exact message), InProgress test status, "in parallel", "sample receiving" workspace, "master data", analyst-notification claim; callouts added: GAP-017 (Investigation/OOS Investigation not available), GAP-018 on after-review return and retest mirroring -->
+<!-- Phase 13 (agy): applied F-B01, F-B02, F-B08, F-B12 -->
+
+<!-- Phase 13 review (Sonnet): F-B01, F-B02, F-B08, F-B12 verified; 2 wording fixes (status line, duplicated sentence); no invented items. -->

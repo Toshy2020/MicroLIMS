@@ -101,7 +101,7 @@ Water systems and locations can be chosen when a water sample is received and pr
 Register an incoming water sample.
 
 #### Who can use it
-Users who can receive samples see the **Receive** button (by default: Section Head, Reviewer, Analyst, System Administrator).
+Any signed-in user. The **+ New Sample** button in the Microbiology workspace is shown to every member of the laboratory, and the server checks neither a receiving permission nor the laboratory. On the **Receive Sample** page, the **Receive** button is shown to users who hold a receiving permission. (GAP-227)
 
 #### Before you start
 The water system must exist in the Water configuration (§24.1).
@@ -142,7 +142,7 @@ Prepare the sample (§24.3).
 Record how the sample was stored, choose the sampled points, and let the system create the tests and locations.
 
 #### Who can use it
-Any signed-in user working in the Microbiology workspace. Preparation of a water sample needs no password or signature.
+Any signed-in user (the system does not check the laboratory). Preparation of a water sample needs no password or signature.
 
 #### Before you start
 - The sample must be **Received** and need preparation.
@@ -287,3 +287,6 @@ All points are submitted together. The grid is accepted or refused as a whole.
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
 <!-- Review log (Sonnet): 27 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" claims, "PW/WFI" system list, internal rounding and class names, dilution-factor wording, section-assignment claim at receipt, OOS retest/investigation claim, legacy-endpoint message, BR id in a reviewer note; callouts added: GAP-423, GAP-418 wording, GAP-227, GAP-212, GAP-501/GAP-517, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
+
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->

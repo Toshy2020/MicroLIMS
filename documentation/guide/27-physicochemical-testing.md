@@ -116,7 +116,7 @@ The result is calculated by the system, not by the screen. The system uses:
 The test order moves to the ready step when the result is signed. The result is judged as within limits, out of specification or requires review.
 
 #### What happens next
-The result cannot be edited. When all tests of the sample section are ready, the section moves to **Under Review**. The person who entered the result cannot review or approve the sample. If a reviewer returns the test, the panel shows "Returned for revision: {reason}" and the result can be entered again.
+The result cannot be edited. When all tests of the sample section are ready, the section moves to **Under Review**. The person who entered the result cannot review or approve the sample. If a reviewer returns the test (see §18.1; the test goes back to **Running**), the panel shows "Returned for revision: {reason}" and the result can be entered again.
 
 ---
 
@@ -646,4 +646,39 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 
 > **Note for reviewers:** The page lists only six entries. Dissolution, Disintegration, Weight Variation, Titration and the HPLC and ICP method assays are not listed, although the system performs those calculations. The page must not be read as the full list. (GAP-606)
 
+---
+
+### 27.10 Chromatography and ICP Methods Masters
+<!-- MOD-HPLCM-001 -->
+<!-- MOD-ICPM-001 -->
+#### Purpose
+Manage analytical method masters:
+- Chromatography (HPLC and GC) methods: name, abbreviation, technique, column, elution and detection, mobile phases, analytes, SST criteria, GC conditions and oven program, residual-solvent mode.
+- ICP-OES methods: mode, elements and wavelengths, calibration levels, optional blank, ICV and CCV checks, sample-prep defaults.
+
+#### Who can use it
+Requires the *Master Data Management* permission (by default: Section Head, System Administrator) to create, edit or activate methods. Other signed-in users can view the methods inside the workspaces.
+
+#### Before you start
+Open **Laboratories** > **Physicochemical Configuration** > **HPLC Methods** or **ICP Methods** (see §7.1).
+
+#### What you see
+> **Note for reviewers:** REQUIRES CONFIRMATION: field labels to be taken from the screen during the screenshot phase. (GAP-043)
+
+#### How to use it
+> **Note for reviewers:** REQUIRES CONFIRMATION: procedure steps to be taken from the screen during the screenshot phase. (GAP-043)
+
+#### System behavior
+- A reason is required for changes. Changes are recorded in the audit trail and are not electronically signed.
+- An inactive method cannot be used to start a run ("ICP method \"X\" is inactive.").
+
+> **Note for reviewers:** Method master changes require a reason and are audited, but are not electronically signed. (GAP-615)
+
+#### Validation
+- "A reason is required."
+- "ICP method \"{name}\" is inactive."
+
 <!-- Review log (Sonnet): 14 corrections (section rewritten sub-section by sub-section against C6); invented items removed: route paths and area codes, tab names of the sample queue, dialog title "{testCode} Workflow", raw status/enum names (InService, WithinLimits, ResultRecorded, TitrantDueAcknowledged), run-code format, component and code names (ChromatogramEvidencePanel, ResidualSolventCalculationView, IcpMethodAssay, MinCorrelation, WeightMg, GrossMg), unsupported field labels (Initial weight (g), Sample Weight (mg) etc.), "Upload Report"/"Upload Report Document" buttons, SHA-256 and secure storage claims, GC capillary/packed wording, LaTeX formulas, two internal-field validation messages; callouts added: GAP-609 (types in use), GAP-601, GAP-602 (HPLC and ICP), GAP-603, GAP-600, GAP-617, GAP-610/611, GAP-613, GAP-606 -->
+<!-- Phase 13 (agy): applied F-B08, F-B10 -->
+
+<!-- Phase 13 review (Sonnet): F-B08, F-B10 verified: section 27.10 facts match C6 and code (menu labels, A reason is required., ICP method inactive message at IcpRunService); GAP-043/615 exist; nothing invented. -->

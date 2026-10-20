@@ -274,7 +274,7 @@ Count: 17 SCR ids in map (SCR-SAMPLE-001..006, SCR-TRACK-001, SCR-PREP-001, SCR-
 - Water form (WaterPreparationForm): "Storage Condition *" (options "Refrigerator", "Room Temperature"; placeholder "Select storage condition"); "Storage Time (hours) *" (number, shown when Refrigerator); confirm disabled until storage complete; points with no assigned test disabled; "Loading sampling points..."; `/api/water/prepare`; no signature. [src: frontend/src/modules/laboratoryConfiguration/water/WaterPreparationForm.tsx:31-33, 97-137]
 - Shared grid (SamplingPointGrid): "Select All", chip "{n} selected", chip "Assigned Tests" / "No tests configured"; default confirm label "Start Testing"; "Starting..." while loading. [src: frontend/src/modules/testPreparation/components/SamplingPointGrid.tsx:82-111, 184-278]
 - Grouped preparation row (GroupedPreparationRow): "Test Preparation · {item}", chips "× N Sample(s)", "Approved" / "Pending Approval"; expanded "Samples to prepare (N):"; info when configuration pending section-head approval; button "Confirm & Start Testing (N Samples)" (signed). [src: frontend/src/modules/testPreparation/components/GroupedPreparationRow.tsx:95-209]
-- Item preparation configuration screen: not located (GAP-214).
+- Item preparation configuration screen: Items > Preparation Configuration tab, see C7 / guide §31.2 (GAP-214 narrowed) (corrected in Phase 13, RECONCILIATION.md).
 
 ### MOD-TESTING-001 Laboratory workspaces
 
@@ -1044,7 +1044,7 @@ Permission and lab notes apply to each screen. Field lists marked "not enumerate
       - "Export CSV" (startIcon `<FileDownloadIcon />`, disabled when exporting or totalCount === 0) -> opens ConfirmationDialog [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L329].
     - Confirmation Dialog: Message `This will export {totalCount} row(s) matching your current filters as a CSV file. This export will be logged.` Buttons: Cancel, Confirm [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L484-L489].
     - Multi-selection bar (active when rows selected or select all clicked):
-      - Link "Select All {totalCount} Matching Records" (selects every Approved result matching filters) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L348-L352].
+      - Link "Select All {totalCount} Matching Records" (tooltip says it selects every Approved result; the export actually includes every matching record whatever its status, and the selected-PDF stops at 200 rows; GAP-906) (corrected in Phase 13, RECONCILIATION.md) [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L348-L352].
       - Counter text: `All {totalCount} selected` or `{selectionCount} selected`, Link "Clear" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L359-L408].
       - Button "Export Selected PDF" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L373].
       - Button "Export Selected CSV" [src: frontend/src/modules/reports/components/ReportResultsTable.tsx:L381].
@@ -1113,7 +1113,7 @@ Permission and lab notes apply to each screen. Field lists marked "not enumerate
     - Product / Item (select) or Location cascade: for Water/EM/AfterCleaning, renders `LocationCascadeFilter`; for flat categories, renders select populated from backend filter options; fallback to hardcoded product/item names (including a hardcoded product name) when empty [src: frontend/src/modules/reports/components/TrendingTab.tsx:L227-L260].
     - Category (select): FinishedProduct, RawMaterial, Water, EnvironmentalMonitoring [src: frontend/src/modules/reports/components/TrendingTab.tsx:L261-L285].
     - Date Range (select): "Last 30 Days" (`30d`), "Last 3 Months" (`3m`), "Last 6 Months" (`6m`), "Last 12 Months" (`12m`, default) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L294-L345].
-    - Compare With (select): "None" (default), "Previous Period", "Product Comparison" (opens CompareDialog in products mode), "Location Comparison" (opens CompareDialog in locations mode) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L309-L325].
+    - Compare With (select): "None" (default), "Previous Period" (selectable but has no effect; GAP-908 (corrected in Phase 13, RECONCILIATION.md)), "Product Comparison" (opens CompareDialog in products mode), "Location Comparison" (opens CompareDialog in locations mode) [src: frontend/src/modules/reports/components/TrendingTab.tsx:L309-L325].
     - Button: "Apply Criteria" [src: frontend/src/modules/reports/components/TrendingTab.tsx:L330].
   - Center column:
     - Trend Chart Card: Header with test name, subject name, period, Chip ("Live Numeric Trend ({unit})" or "Qualitative Detection Event Log") [src: frontend/src/modules/reports/components/TrendingTab.tsx:L353].

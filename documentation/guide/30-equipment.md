@@ -45,7 +45,7 @@ Requires the *Manage equipment* permission (by default: Analyst, Section Head, S
 - **Overdue** is worked out each time from the calibration due date and today's date; it is not a stored status.
 - The equipment print list contains assets with status **InService** only.
 - **OutOfService** or **Retired** inventory equipment cannot be chosen as the storage location for media or cryovials. In the Physicochemical Laboratory, out-of-service or retired inventory equipment is refused when starting HPLC and ICP runs and physicochemical analysis.
-- **Which record do test steps check?** When an incubator is chosen for a microbiology test step, the system checks the equipment record in Laboratory Configuration (section 30.3): that it is an incubator, that its set point is inside the medium's temperature range, and that its calibration due date has not passed. It does **not** look at the status or calibration date in Equipment Inventory. An incubator marked **OutOfService** in the inventory is still accepted if its configuration record is in range and in calibration. Recording incubation for a media evaluation accepts any incubator without these checks.
+- **Which record do test steps check?** When an incubator is chosen for a microbiology test step, the system checks the equipment record in Laboratory Configuration (section 30.3): that it is an incubator, that its set point is inside the medium's temperature range, and that its calibration due date has not passed. It does **not** look at the status or calibration date in Equipment Inventory. An incubator marked **OutOfService** in the inventory is still accepted if its configuration record is in range and in calibration. An incubator whose configuration record has no calibration due date is accepted. Recording incubation for a media evaluation accepts any incubator without these checks.
 
 > **Note for reviewers:** Equipment Inventory and Laboratory Configuration Equipment are two records linked by code; update both (the intended procedure is unconfirmed). Test-time incubator checks read the configuration record rather than the inventory status or calibration date. (GAP-501, GAP-517)
 
@@ -225,11 +225,13 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - Autoclave program: **Active** or **Inactive**. Changed with **Activate** / **Deactivate** or in the program dialog; each change adds a history row.
 
 #### What happens next
-- Incubators are checked against this configuration record when selected for media in individual and grouped test steps, shared TSB starts and pathogen confirmation: the set point must be inside the medium's temperature range and the calibration due date must not have passed.
-- If an incubator is rejected, the message is always "The selected incubator's set point is outside this medium's temperature range.", even when the real reason is an overdue calibration.
+- Incubators are checked against this configuration record when selected for media in individual and grouped test steps, shared TSB starts and pathogen confirmation: the set point must be inside the medium's temperature range and the calibration due date must not have passed. An incubator whose configuration record has no calibration due date is accepted.
+- In individual and grouped test steps the message is 'The selected incubator's set point is outside this medium's temperature range.'. Shared TSB starts show 'The shared TSB can't start: …' and pathogen confirmation shows 'Incubator {code}'s set point is outside the {range} range of …'. None of the messages names an overdue calibration as the cause.
 - Autoclave programs configured here are used when preparing media lots: choosing a program fills in the load type, temperature and cycle time.
 
 > **Note for reviewers:** An incubator rejected because its calibration is overdue shows the "set point is outside this medium's temperature range" message, which does not name the real cause. (BR-EQUIP-009)
+
+> **Note for reviewers:** An incubator whose configuration record has no calibration due date is accepted. (GAP-905)
 
 ---
 
@@ -295,3 +297,6 @@ Maintain the chromatography column list: code, name, serial number, USP designat
 A run can use only an active column that is compatible with the chosen instrument and whose USP designation matches the method.
 
 <!-- Review log (Sonnet): 31 corrections; invented items removed: ?lab= route parameters, enum numbers (0/1/2), "database"/"hash"/SHA-256 wording, "mandatory/strictly" wording, GC and "bench" analysis refusal claim, claim that incubators gate media-evaluation workflows, ALCOA+ message quoted as fact; callouts added: GAP-038, GAP-023 (with GAP-408/410), column fields/filters from code; BR-EQUIP-014 cite replaced by GAP-038 -->
+<!-- Phase 13 (agy): applied F-C01, F-C02 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

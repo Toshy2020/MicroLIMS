@@ -9,6 +9,15 @@
 | Application code described | commit `f773042c` (branch `refactor/consolidation`) |
 | Author | Documentation Engineering Agent (AI-assisted draft) |
 | Status | **Draft, requires human review and approval before controlled use.** |
+| Reviewed by | _(name, role, date — to be completed)_ |
+| Approved by | _(name, role, date — to be completed)_ |
+| Open questions | `documentation/DOCUMENTATION_GAPS.md` (cited in the text by GAP number) |
+
+### Revision history
+
+| Version | Date | Description |
+|---|---|---|
+| DRAFT 0.1 | 2026-10-20 | First AI-assisted draft from the source code; independent review (USER_GUIDE_REVIEW.md) and reconciliation (RECONCILIATION.md) corrections applied. |
 
 This guide was produced from the application's source code and its specification documents. The application was not run while writing it, so screen descriptions come from the code. Boxes marked **Note for reviewers** show behaviour that could not be confirmed or that differs from a specification; open questions are tracked in `DOCUMENTATION_GAPS.md` by their GAP number.
 
@@ -136,11 +145,13 @@ The following were not found in MicroLIMS. This guide gives no procedures for th
 - An integration with **SAP** or any other ERP system.
 - A **local AI assistant**.
 - A **live data feed from instruments**. Results are entered by hand and report files are attached as evidence.
-- Separate **Reception** or **QA** roles. Receiving is done by users who hold a receiving permission, and QA staff need a custom role created by an administrator.
+- Separate **Reception** or **QA** roles. Product, Raw Material and Packaging Material samples are received by users who hold a receiving permission. Environmental Monitoring, Water and After Cleaning samples can be received by any signed-in user (see §23–§25). QA staff need a custom role created by an administrator.
 
 > **Note for reviewers:** Screen text in the media area mentions sterility, but no sterility test or result entry exists. (GAP-022)
 
 <!-- Review log (Sonnet): 9 corrections; invented items removed: module ids, endpoint paths, background worker claim for escalations, "automated sampling schedule generator" and "no reference-strain passage tracking" overstatements, laboratory code names; callouts added: GAP-030, GAP-022 -->
+<!-- Phase 13 (agy): applied F-A01 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -257,7 +268,7 @@ MicroLIMS controls access in three ways:
 #### Reviewer
 - **Base type**: Reviewer.
 - **Default permissions**: 15.
-- **Typical responsibilities**: technical review of results, returning count tests to analysts, and acting as the assigned technical reviewer of document revisions.
+- **Typical responsibilities**: technical review of results, returning count and physicochemical result-entry tests to analysts, and acting as the assigned technical reviewer of document revisions.
 - **Limits**: cannot record release decisions, release media lots, or approve cryovial batches. Cannot review a test or sample they performed or prepared.
 
 #### Analyst
@@ -266,7 +277,7 @@ MicroLIMS controls access in three ways:
 - **Typical responsibilities**: receiving samples for their own laboratory sections, sample preparation, count and observation entry, pathogen tests, HPLC, GC, and ICP work, solution preparation, working standards, and inventory updates.
 - **Limits**: no review or release permissions. In the testing workspaces, an analyst sees the tests assigned to them by default. Cannot review or approve their own work.
 
-The system has no separate Reception or QA role. Receiving is done by users with a receiving permission.
+The system has no separate Reception or QA role. Product, Raw Material and Packaging Material samples are received by users who hold a receiving permission. Environmental Monitoring, Water and After Cleaning samples can be received by any signed-in user (see §23–§25).
 
 > **Note for reviewers:** Which custom roles the laboratory uses for Reception and QA staff has not been confirmed. (GAP-050)
 
@@ -284,13 +295,13 @@ Default roles in the table: SA = System Administrator, SH = Section Head, REV = 
 | 2 | `Roles.Manage` | Role & Permission Management | SA | Enforced | Create custom roles, rename roles, edit permissions, delete unassigned custom roles. |
 | 3 | `Audit.View` | Audit Trail Viewing | SA, SH | Enforced | View audit events, change differences, record history, and traceability chains. |
 | 4 | `Reporting.Admin` | Administrative Reporting | SA | Enforced | Run administrative reporting maintenance (no screen is provided for it). |
-| 5 | `Samples.Review` | Sample Technical Review | SA, SH, REV | Enforced | Submit technical reviews on sample sections, return count tests to analysts, and review working standards. |
+| 5 | `Samples.Review` | Sample Technical Review | SA, SH, REV | Enforced | Submit technical reviews on sample sections, return count and physicochemical result-entry tests to analysts, and review working standards. |
 | 6 | `Samples.Approve` | Sample Release Approval | SA, SH | Enforced | Record release decisions (Approve, Not Conform, New Sample Required, Retest Retained Sample), close testing, and approve working standards. |
-| 7 | `Samples.Receive` | Global Sample Receiving | SA, SH | Enforced | Receive samples for any laboratory and add a laboratory to an existing sample. |
+| 7 | `Samples.Receive` | Global Sample Receiving | SA, SH | Enforced | Receive samples for any laboratory and add a laboratory to an existing sample. Applies to Product, Raw Material and Packaging Material samples only, where receipt also requires *Own-lab sample receiving*; this permission widens it to every laboratory. |
 | 8 | `Samples.TrackAll` | Cross-Lab Sample Tracking | SA, SH | Enforced | View the Tracking Board across all laboratory sections. |
 | 9 | `Signatures.Manage` | Signature Trail Viewing | SA, SH | Enforced | View the electronic signature history of a record (no separate screen is provided for it). |
-| 10 | `TestWorkflow.Execute` | Test Workflow Execution | SA, SH, REV, ANA | Enforced | Enter microbiology counts, observations, pathogen test steps, and test results. |
-| 11 | `TestWorkflow.BiochemicalDecision` | Biochemical Decision Recording | SA, SH, REV | Enforced | Record biochemical confirmation decisions in pathogen testing. |
+| 10 | `TestWorkflow.Execute` | Test Workflow Execution | SA, SH, REV, ANA | Enforced | Enter microbiology counts, observations, pathogen test steps, and test results, and media evaluation (growth promotion, indication and inhibition) steps. |
+| 11 | `TestWorkflow.BiochemicalDecision` | Biochemical Decision Recording | SA, SH, REV | Enforced | Record biochemical confirmation decisions in pathogen testing (no screen is provided for it). |
 | 12 | `Cryovials.Manage` | Cryovial Management | SA, SH, REV, ANA | Enforced | Prepare batches, thaw, move storage, and destroy reference cryovials. |
 | 13 | `Cryovials.Approve` | Cryovial Batch Approval | SA, SH | Enforced | Approve or reject prepared cryovial batches. |
 | 14 | `Materials.Manage` | Material Stock Management | SA, SH, ANA | Enforced | Receive material lots, update details, consume stock, and upload documents. |
@@ -324,7 +335,7 @@ Default roles in the table: SA = System Administrator, SH = Section Head, REV = 
 | 42 | `Media.Release` | Media Lot Release | SA, SH | Enforced | Release or reject media lots under electronic signature. |
 | 43 | `Oos.Manage` | OOS Tracking Management | SA, SH | Enforced | Manage OOS groups and investigation documents. |
 | 44 | `TestWorkflow.Supervise` | Test Workflow Supervision | SA, SH | Enforced | Override minimum incubation times and reset pathogen sessions. |
-| 45 | `Samples.ReceiveOwnLab` | Own-Lab Sample Receiving | SA, SH, REV, ANA | Enforced | Receive samples for the laboratory sections you are assigned to. |
+| 45 | `Samples.ReceiveOwnLab` | Own-Lab Sample Receiving | SA, SH, REV, ANA | Enforced | Receive samples for the laboratory sections you are assigned to. Applies to Product, Raw Material and Packaging Material samples only. |
 | 46 | `Samples.Correct` | Sample Correction & Voiding | SA, SH, REV | Enforced | Correct sample details and void samples under electronic signature. |
 | 47 | `Samples.AssignAnalyst` | Sample Analyst Assignment | SA, SH | Enforced | Assign analysts to sample tests. |
 | 48 | `Solutions.Prepare` | Solution Preparation | SA, SH, ANA | Enforced | Prepare solutions and mobile phases, and standardize titrants. |
@@ -345,7 +356,7 @@ The system compares the people who did the work, not their roles. **System Admin
 | Sample technical review | You cannot review a sample section in which you performed or prepared a test. | "You cannot review a sample you tested." |
 | Sample release decision | You cannot approve a sample you reviewed. | "You cannot approve a sample you reviewed." |
 | Sample release decision | You cannot approve a sample you performed or prepared a test on. | "You cannot approve a sample you tested." |
-| Pathogen biochemical decision | You cannot decide on a result you performed. | "A reviewer cannot decide on a result they performed." |
+| Pathogen biochemical decision (no screen; reachable only through the system interface) | You cannot decide on a result you performed. | "A reviewer cannot decide on a result they performed." |
 | Media lot release | You cannot release a lot you prepared or evaluated. | "You cannot approve a media lot you prepared or evaluated." |
 | Cryovial batch approval | You cannot approve a batch you prepared. | "You cannot approve a cryovial batch you prepared." |
 | Working standard sign-off | The analyst who submitted a qualification cannot review or approve it, and the reviewer cannot also approve it. | "The analyst who submitted the qualification cannot review it." / "The analyst who submitted the qualification cannot approve it." / "The reviewer cannot also approve the qualification." |
@@ -437,6 +448,10 @@ The system saves the changes and records in the audit trail which permissions we
 Assign the role to users on the Users screen (see Section 39).
 
 <!-- Review log (Sonnet): 24 corrections; invented items removed: role ids (ROLE-...), screen addresses, "server middleware / token claim / database" wording, "audit code ROLE_PERMISSIONS_UPDATED", unsupported "invalid code" validation as normal user path, misplaced role-change audit note (GAP-112 belongs to user role change, Section 39), "Clicking delete on a system role is prevented" (button is hidden); callouts added: GAP-015 (live grants), GAP-026, GAP-050, GAP-107, GAP-009 retained -->
+<!-- Phase 13 (agy): applied F-A01, F-A03, F-A10, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
+
+<!-- Phase 13 review (Sonnet): F-B08 section 4 part applied (4.2 Reviewer, 4.3 row 5). -->
 
 ---
 
@@ -1163,7 +1178,7 @@ The filter bar above the register offers:
 
 When you tick samples in the register, a selection bar appears. It shows "{n} sample(s) selected" and, when filters hide some of them, "{n} hidden by current filters". The button **Show selected only** shows just the ticked samples ("Showing only the selected samples; other filters are paused."), **Back to filters** returns to your filters, and **Clear selection** unticks everything.
 
-> **Note for reviewers:** The register uses the label **Cancelled / Voided** for the status that other screens call "Retest Requested". (GAP-204)
+> **Note for reviewers:** **Cancelled / Voided** finds samples that were voided, cancelled, or closed with a retest request. **Pending Review** finds samples with a section waiting for technical review **or** for the release decision, so it overlaps **Under Review** and **Under Approval**. In the table, samples under approval are labelled **Pending Approval**. (GAP-204)
 
 #### Tracking Board
 Needs the *Cross-Lab Sample Tracking* permission (see Section 4).
@@ -1272,6 +1287,8 @@ Needs the *Error Log Monitoring* permission (by default: System Administrator).
 > **Note for reviewers:** Error Monitoring is a technical log, not a deviation or investigation record, and resolving an incident is not written to the audit trail. It also lists routine refusals such as business-rule and permission errors. (GAP-110)
 
 <!-- Review log (Sonnet): 25 corrections; invented items removed: page addresses, internal component and permission-code wording (Kpi.View, Samples.TrackAll, Audit.View, System.ViewErrorLog), item-type and sample-status lists corrected (added Rejected and Cancelled / Voided, test status list added), "Reset" button label on Tracking Board, unsupported description of Review Overdue Only, Trending category list, "immutable" audit wording, example reference FP0107026, "before-and-after JSON" wording, "read all" etc.; callouts added: GAP-204, GAP-002, GAP-030/101, GAP-111, GAP-813, GAP-110 -->
+<!-- Phase 13 (agy): applied F-A02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -1282,7 +1299,7 @@ Needs the *Error Log Monitoring* permission (by default: System Administrator).
 View, search, filter, and monitor incoming and in-progress laboratory samples across table, card, and kanban views, inspect workload summary indicators, and access sample-level actions.
 
 #### Who can use it
-Requires the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) or *Global sample receiving* permission (by default: Section Head, System Administrator). Holders of the own-lab permission work with the laboratory sections they belong to; holders of the global permission can receive for any laboratory. Row actions have their own permissions: **Assign Analyst** (*Assign responsible analyst* permission; by default Section Head, System Administrator), **Add Laboratory** (global sample receiving permission) and the edit icon and **Void Sample** (*Sample correction & voiding* permission; by default Section Head, Reviewer, System Administrator).
+Requires the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) or both the *Global sample receiving* and the *Own-lab sample receiving* permissions (by default: Section Head, System Administrator). Holders of the own-lab permission work with the laboratory sections they belong to; holders of both permissions can receive for any laboratory section. Row actions have their own permissions: **Assign Analyst** (*Assign responsible analyst* permission; by default Section Head, System Administrator), **Add Laboratory** (global sample receiving permission) and the edit icon and **Void Sample** (*Sample correction & voiding* permission; by default Section Head, Reviewer, System Administrator).
 
 #### Before you start
 You must be signed in with an account that holds one of the receiving permissions above.
@@ -1300,7 +1317,7 @@ You must be signed in with an account that holds one of the receiving permission
 - Filter bar:
   - Search field: "Search by item, reference number, control number, batch number..."
   - **Item Type** dropdown (options include "All Item Types")
-  - **Sample Status** dropdown (options include "All Sample Statuses", "Received", "Under Testing", "Pending Review", "Under Review", "Under Approval", "Approved")
+  - **Sample Status** dropdown (options include "All Sample Statuses", "Received", "Under Testing", "Pending Review", "Under Review", "Under Approval", "Approved", "Rejected", "Cancelled / Voided". **Cancelled / Voided** finds samples that were voided, cancelled, or closed with a retest request. **Pending Review** finds samples with a section waiting for technical review or for the release decision, so it overlaps **Under Review** and **Under Approval**.)
   - **Test Status** dropdown
   - Date pickers: **Received From** and **Received To**
   - View toggle options: **Table view**, **Card view**, and **Kanban view**
@@ -1356,6 +1373,13 @@ You must be signed in with an account that holds one of the receiving permission
   - Samples approved display as **Approved**.
   - Samples rejected display as **Rejected**.
   - Samples with a retest requested, a cancelled status, or a voided status all display as **Cancelled / Voided**.
+
+| Register label | Badge / review screens | Status |
+|---|---|---|
+| **Under Testing** | **In Testing** | in testing |
+| **Pending Review** | **Under Review** | under review |
+| **Pending Approval** | **Under Approval** | under approval |
+| **Cancelled / Voided** | **Retest Requested**, **Cancelled** or **Voided** | closed without approval |
 
 > **Note for reviewers:** The sample register displays the single label "Cancelled / Voided" for three different statuses: retest requested, cancelled, and voided. (GAP-204)
 
@@ -1508,7 +1532,7 @@ The system enforces the following exact validation rules:
 ### 11.4 Voiding a Sample
 <!-- WF-SAMPLE-005 -->
 #### Purpose
-Strike an erroneously created or invalid sample and all of its open tests from active laboratory workflows under electronic signature and audit trail tracking.
+Strike an erroneously created or invalid sample and all of its current (non-superseded) tests, including tests that are already approved or rejected, from active laboratory workflows under electronic signature and audit trail tracking.
 
 #### Who can use it
 Requires the *Sample correction & voiding* permission (by default: Section Head, Reviewer, System Administrator).
@@ -1519,7 +1543,7 @@ The sample must not already be in Voided status.
 #### What you see
 - Dialog title: **Void Sample Confirmation**
 - Subtitle: "Strikes the sample from the register - signed with your password"
-- Warning banner: "The sample record and its open tests will be marked as Voided."
+- Warning banner: "The sample record and its open tests will be marked as Voided." The banner says "open tests", but the system voids every current test of the sample, including approved and rejected ones.
 - Mandatory field: **Reason for Voiding \*** (helper text displays "A reason for voiding is required." when empty, and "Recorded with your electronic signature and in the sample's audit trail." when populated).
 - Action buttons: **Cancel** and **Sign & Void** (disabled until a reason is entered).
 
@@ -1552,6 +1576,8 @@ The system enforces the following exact validation rules:
 > **Note for reviewers:** A sample can be voided at any status except already Voided, including after approval or rejection, with no warning if an archived certificate of analysis exists. (GAP-203)
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: Sign & Save disabled-when-unchanged, signature timestamp, 'reopened/edited/reset' claim, section-membership and System Administrator unrestricted-access claim, enum names; callouts added: workflow-spec/analyst assignment note in 11.1 (GAP-200, GAP-213) -->
+<!-- Phase 13 (agy): applied F-A02, F-A06, F-B11, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -1563,8 +1589,10 @@ The system enforces the following exact validation rules:
 Register incoming samples of Finished Product, Raw Material, or Packaging Material, assign the destination laboratory sections, and automatically generate test orders for all configured laboratory tests.
 
 #### Who can use it
-- Users with the *Global sample receiving* permission (by default: Section Head, System Administrator) can receive samples for any laboratory section across the organization.
+- Users who hold both the *Global sample receiving* and the *Own-lab sample receiving* permissions (by default: Section Head, System Administrator) can receive for any laboratory section.
 - Users with the *Own-lab sample receiving* permission (by default: Analyst, Reviewer, Section Head, System Administrator) can receive samples only for the laboratory sections where they hold an active membership.
+
+> **Note for reviewers:** Users who hold *Global sample receiving* alone cannot receive Product, Raw Material, or Packaging Material samples because the endpoint also requires *Own-lab sample receiving*. Whether this requirement is intended has not been confirmed. (GAP-909)
 
 #### Before you start
 - The item must exist in the item master, be active, and have configured laboratory tests in the Test Master. If an item is frozen, the system displays: "Item '{name}' is frozen and cannot be used to receive new samples." If an item lacks configured tests, the system displays: "Item '{name}' has no assigned tests. Configuration must be completed by the Section Head before samples can be received."
@@ -1652,7 +1680,7 @@ The system evaluates the following client-side and server-side validation rules:
 - Test orders are initialized to **Pending** with step **Waiting**.
 
 #### What happens next
-For samples requiring preparation, preparation must be confirmed before incubation can start (see Section 13). For samples whose tests do not require preparation, testing can begin immediately.
+For samples requiring preparation, preparation must be confirmed before incubation can start (see Section 14). For samples whose tests do not require preparation, testing can begin immediately.
 
 
 ### 12.2 Receiving Environmental Monitoring Samples
@@ -1822,6 +1850,8 @@ Machines and machine part test configurations must be configured in master data.
 The sample appears in the register. An analyst opens **Prepare Sample** to select the machine parts, which creates the associated test orders.
 
 <!-- Review log (Sonnet): 7 corrections; invented items removed: expiry-date server message on receive, Physicochemical-section Ready rule (now FP section), register banner claim, swab/rinse wording; callouts added: After Cleaning order mismatch (GAP-225) -->
+<!-- Phase 13 (agy): applied F-A05, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -1930,7 +1960,7 @@ The sample appears in the added laboratory's register. If preparation is needed 
 ### 13.3 Assigning a Responsible Analyst
 <!-- WF-SAMPLE-003 -->
 #### Purpose
-Assign or reassign a designated laboratory analyst to all open test orders on a sample, or clear an existing assignment so that any authorized analyst may prepare the sample.
+Assign or reassign a designated laboratory analyst to every current test order that is not Approved or Rejected (including tests whose results are already entered, and voided or cancelled tests) on a sample, or clear an existing assignment so that any authorized analyst may prepare the sample.
 
 #### Who can use it
 Requires the *Sample analyst assignment* permission (by default: Section Head, System Administrator).
@@ -1973,6 +2003,7 @@ The sample must be within the user's laboratory section scope.
   - The assigned analyst counts as having performed the test, whatever that user's role. As a result, that user cannot perform technical review or release approval on the sample:
     - Attempting review displays: "You cannot review a sample you tested."
     - Attempting approval displays: "You cannot approve a sample you tested."
+  - A user assigned to a test whose results are already entered counts as having performed it and can no longer review or approve the sample.
 - Analyst assignment does not require an electronic signature.
 
 #### Validation
@@ -1988,6 +2019,8 @@ The system enforces the following exact validation rules:
 The test orders retain their current workflow step and approval status, with the assigned analyst field updated.
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: test-order card contents, 'Assigned to Me' default test filter, all-user access statement, signature timestamp, enum-style status names; callouts added: preparer-becomes-analyst/unsigned preparation (GAP-212, GAP-227), assigned-analyst ownership mismatch (GAP-219); note on 13.2 narrowed (GAP-200) -->
+<!-- Phase 13 (agy): applied F-A13 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -2152,7 +2185,7 @@ The banner disappears and the tests can be opened for media selection and incuba
 Select the rooms, sampling points or machine parts that were monitored, so that the system creates the laboratory tests for Environmental Monitoring, Water and After Cleaning samples.
 
 #### Who can use it
-Any signed-in user with access to the sample's laboratory section. No separate permission is needed.
+Any signed-in user. The system checks neither a permission nor the user's laboratory assignment. The user who prepares the sample becomes the assigned analyst of every test it creates, and so cannot review or approve that sample. (GAP-212, GAP-227)
 
 #### Before you start
 - The sample's preparation status is **Sample Needs Preparation**.
@@ -2346,14 +2379,16 @@ In the test workflow dialog or the pathogen incubation view:
 #### How to use it
 1. Open the workflow dialog of the incubating test.
 2. Click **Skip Wait**.
-3. Check that the dialog shows "Minimum wait time was skipped by a Section Head/System Administrator."
-4. Record the plate counts or observations.
+3. Confirm the question "Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
+4. Check that the dialog shows "Minimum wait time was skipped by a Section Head/System Administrator."
+5. Record the plate counts or observations.
 
 #### System behavior
 - The system records who skipped the wait and when, on the open incubation.
 - The time checks of that incubation are bypassed on every result path.
 - Incubation hours, temperatures and the incubator are not changed.
 - No reason, password or electronic signature is asked.
+- The notice always reads "Section Head/System Administrator", whatever role the user has; the user who skipped the wait is recorded on the incubation.
 
 #### Validation
 "No incubation window is currently open."
@@ -2383,7 +2418,13 @@ Requires the *Manage items* permission (by default: Section Head, System Adminis
 The item must exist.
 
 #### What you see
-No dedicated screen for editing or approving the configuration has been located. The same values (**Sample Amount**, **Technique**, **Filtration Volume (ml)**, **Washing Volume (ml)**, **Diluent**, **Neutralizer**) and the chip **Pending Approval** or **Approved** appear in the **Preparation** dialog (see 14.2).
+The configuration is kept on the item: **Items** > (item) > **Preparation Configuration** tab (see §31.2 for the fields and buttons). A pending configuration shows the chip **Pending Approval** and the button **Approve**.
+
+#### How to use it
+1. Open **Items** and select the item.
+2. Open **Preparation Configuration**.
+3. Check the values.
+4. Click **Approve**.
 
 #### System behavior
 - The first manual preparation of an item, or any saved change, sets the configuration to **Pending Approval**. Editing an existing configuration clears the earlier approval.
@@ -2398,7 +2439,7 @@ No dedicated screen for editing or approving the configuration has been located.
 - "Item {id} has no preparation configuration to approve."
 - "This preparation configuration is already approved."
 
-> **Note for reviewers:** The screen and the queue for approving item preparation configurations have not been located, and the system does not check that the person who approves differs from the analyst whose entry created the configuration. (GAP-214)
+> **Note for reviewers:** Approval is a single unsigned click and can be made by the person who saved the configuration; the configuration is used for testing before approval. (GAP-214, GAP-704, GAP-707)
 
 #### Status
 **Pending Approval** becomes **Approved**.
@@ -2407,6 +2448,8 @@ No dedicated screen for editing or approving the configuration has been located.
 Later samples of the item show the configuration in the confirm form (see 14.2).
 
 <!-- Review log (Sonnet): 62 corrections; invented items removed: route paths, section code names, class names, enum and audit codes, unsupported audit reason text, unsupported "Failed to load the sample register" and "Could not start testing" errors, "system administrators hold all roles"-type access wording, approval screen description; callouts added: GAP-203, GAP-204, GAP-213 (GAP-212, 214, 219, 220, 225, 226, 227, 228 kept) -->
+<!-- Phase 13 (agy): applied F-A08, F-A09, F-A11 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -3013,7 +3056,7 @@ Concluded as Detected: the test waits for review. Otherwise the analyst does the
 ### 16.5 Biochemical Test Confirmation and Finalization
 <!-- WF-PATH-001 -->
 #### Purpose
-Record the biochemical identification result, optionally attach supporting evidence, and finish the pathogen test.
+Record the biochemical identification result and finish the pathogen test.
 
 #### Who can use it
 Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
@@ -3023,17 +3066,17 @@ Requires the *Execute test workflows* permission (by default: Analyst, Reviewer,
 - The biochemical identification has been performed.
 
 #### What you see
-The biochemical panel has a required result text, a yes/no answer on whether the organism was detected, and an optional attachment. Its buttons are **Proceed to Biochemical Test** and **Submit as Detected (skip biochemical)**.
-
-> **Note for reviewers:** The exact field labels of the biochemical panel were not confirmed from the verified sources; only the two button names above are confirmed. Check them against the screen when taking the screenshot.
+- **Decision**, shown only after an all-conforming confirmatory result: the alert "Confirmatory result: All Conforming. An analyst decision is required before this workflow proceeds.", the warning "Submitting as Detected without biochemical confirmation will be flagged for the reviewer.", and the buttons **Submit as Detected (skip biochemical)** and **Proceed to Biochemical Test**. **Submit as Detected (skip biochemical)** ends the test as **Detected** without a biochemical result, and the result is flagged for the reviewer.
+- **Result form**: **Biochemical result** (required; helper "For example an IMViC pattern or API strip result."), the question "Based on this result, is the organism Detected or Not Detected? …" with choices **Detected** and **Not Detected**, and the button **Submit Result** (disabled until both are filled).
+- For an Inconclusive confirmatory result, the screen also shows "Confirmatory plating was Inconclusive and has been flagged for investigation in the audit trail. …".
 
 #### How to use it
-1. Open the biochemical step in the **{testCode} Workflow** dialog.
-2. Enter the identification result (required), for example a profile number or identification percentage.
-3. Answer whether the organism was detected.
-4. Optionally attach a supporting file.
-5. Click **Proceed to Biochemical Test**.
-6. Review the final result and click **Done / Close**.
+1. Open the biochemical step.
+2. If the decision buttons are shown, click **Proceed to Biochemical Test** (use **Submit as Detected** only when the laboratory procedure allows it).
+3. Enter the **Biochemical result**.
+4. Choose **Detected** or **Not Detected**.
+5. Click **Submit Result**.
+6. Click **Done / Close**.
 
 #### System behavior
 - The step is available only after a conforming result on the preceding step: "A biochemical test is only available after a conforming result on \"{step}\"."
@@ -3046,7 +3089,7 @@ The biochemical panel has a required result text, a yes/no answer on whether the
 - "A biochemical test is only available after a conforming result on \"{step}\"."
 - "Test order {id} is already at {step} - its workflow can no longer be submitted against."
 
-> **Note for reviewers:** A reviewer can return a result that was concluded as Detected without biochemical confirmation, with a mandatory reason ("A reason is required when returning a result for biochemical confirmation."; "A reviewer cannot decide on a result they performed."). The screen that lets reviewers do this has not been found, so how reviewers reach it is not confirmed.
+> **Note for reviewers:** A reviewer decision on a result submitted as Detected without biochemical confirmation exists in the system, but no screen offers it. (GAP-901)
 
 #### Status
 **Ready** (Result Entered); result **Detected** or **Not Detected**.
@@ -3127,13 +3170,15 @@ The sample goes to the technical reviewer.
 ### 16.7 Supervisor Pathogen Session Reset
 <!-- WF-PATH-003 -->
 #### Purpose
-Let a supervisor clear all entries of a pathogen testing session so that the tests can be started again.
+Let a supervisor clear all entries of a sample's testing session so that the tests can be started again. The reset applies to every test order of the sample, including count tests, physicochemical tests and superseded orders, not only the pathogen tests.
 
 #### Who can use it
 Requires the *Supervise test workflows* permission (by default: Section Head, System Administrator).
 
 #### Before you start
 The sample is not **Voided** or **Rejected**.
+
+> **Warning:** The system does not stop a reset of a sample that is **Under Approval** or **Approved**. Its results are deleted, its tests return to Pending, and an approved sample keeps the status **Approved**. Do not reset a sample that has been reviewed or released.
 
 #### What you see
 In the session workspace header, the button **Reset Session**. The dialog **Reset Testing Session & Steps?** has the field **Reason for Reset \*** (placeholder "e.g. Test configuration error / Wrong media lot selected / Operational error") and the buttons **Cancel** and **Confirm Reset** ("Resetting...").
@@ -3148,6 +3193,7 @@ In the session workspace header, the button **Reset Session**. The dialog **Rese
 - A voided or rejected sample cannot be reset.
 - The system permanently deletes, for every test of the sample, the observations, step results, plate readings, results and incubations, including the location results.
 - Every test returns to waiting (Pending). A sample that was **Under Testing** or **Pending Review** returns to **Received**; samples in other statuses keep their status.
+- Test orders of every laboratory on the sample are set to Pending.
 - Preparation is kept.
 - The system writes an audit entry with user, time, reference and reason, and a workflow note on each test: "Testing session and workflow steps reset. Reason: {reason}".
 - No electronic signature or password is needed.
@@ -3156,7 +3202,7 @@ In the session workspace header, the button **Reset Session**. The dialog **Rese
 - "Sample #{ref} has been voided and its testing session cannot be reset."
 - "Sample #{ref} has been rejected and its testing session cannot be reset. A rejection is reversed through the approval workflow by a Section Head."
 
-> **Note for reviewers:** Resetting a session permanently deletes all entered observations, step results, readings, results and incubations for every test of the sample, and is not refused for samples under approval or approved. (GAP-221)
+> **Note for reviewers:** Resetting a session permanently deletes all entered observations, step results, readings, results and incubations for every test order across all laboratories on the sample, and is not refused for samples under approval or approved; the **Reset Session** button is not status-gated and an Approved sample keeps the status Approved while its results are deleted and its test orders return to Pending. (GAP-221)
 
 > **Note for reviewers:** The dialog asks for a reason, but if the reason arrives blank the system uses a default text ("Section Head requested session reset" from the screen, "Analyst requested session workflow reset" from the system). (GAP-217)
 
@@ -3171,6 +3217,8 @@ All tests return to waiting (Pending). **Under Testing** or **Pending Review** s
 Analysts must start incubation again and re-enter all observations and counts.
 
 <!-- Review log (Sonnet): 44 corrections; invented items removed: class and enum names, flag/audit codes, permission code, unconfirmed biochemical field labels and button "Record Biochemical Result", ALCOA+ confirmation message, unsupported "Failed to save observations", "testing data must exist" precondition, reset "operational warning" step; callouts added: GAP-220 (session lots), biochemical reviewer-return note (no gap id), others kept (GAP-205, 210, 216, 217, 221, 222, 223, 224) -->
+<!-- Phase 13 (agy): applied F-A07, F-A10, F-A12 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
 ---
 
@@ -3189,13 +3237,13 @@ All current (non-superseded) tests of the laboratory section must reach the **Re
 #### System behavior
 - When the last test of a laboratory section reaches the **Ready** step, the section moves from **In testing** to **Under review**.
 - The system records an event in the sample Workflow History with the text "All tests completed - automatically submitted for review". No electronic signature is recorded for this automatic step.
-- The dashboard counts the sample for users holding the Reviewer, Section Head or System Administrator role by default: "{n} sample(s) awaiting review".
+- The dashboard counts the sample for users whose role is, or is based on, Reviewer, Section Head or System Administrator (the count follows the role type, not the permission): "{n} sample(s) awaiting review".
 
 > **Note for reviewers:** Dashboard review notifications count samples awaiting review rather than individual test orders as described in earlier specifications. (GAP-309)
 
 #### Status
 - The laboratory section changes from **In testing** to **Under review**.
-- The sample status is recomputed from all sections: if no other section is still in testing, the sample shows the **Under Review** lifecycle badge.
+- The sample status is recomputed from all sections: if no other section is still in testing, the sample shows the **Under Review** lifecycle badge (the sample register shows these as Pending Review / Pending Approval; see §11.1).
 
 #### Important rules
 - Automatic submission happens separately for each laboratory section of a sample tested by more than one laboratory. One section can enter review while another continues testing.
@@ -3285,6 +3333,9 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 The section waits for the Section Head's release decision (see §19 Approval). If a count test needs a recount or re-entry, return it to the analyst before you sign the review (see §18 Return to Analyst, Rework and Retest).
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: "active membership" wording, SysAdmin-only unrestricted access, raw readings/incubation/analyst-comment detail in the summary, enum/record/database/transaction wording, test order status code; callouts added: none missing (GAP-017/018, GAP-312, GAP-309 present) -->
+<!-- Phase 13 (agy): applied F-B05, F-B11 -->
+
+<!-- Phase 13 review (Sonnet): F-B05, F-B11 verified; no invented items. -->
 
 ---
 
@@ -3293,19 +3344,17 @@ The section waits for the Section Head's release decision (see §19 Approval). I
 ### 18.1 Return a Test to the Analyst
 <!-- WF-REVIEW-002 -->
 #### Purpose
-Send a count test back to the assigned analyst for a recount or result re-entry before the review is signed. The current count readings are set aside and the incubation step is reopened.
+Send a count test or a physicochemical result-entry test back to the assigned analyst for a recount or result re-entry before the review is signed. The current count readings or active analysis entries are set aside and the test returns to testing.
 
 #### Who can use it
 Requires the *Sample Technical Review* permission (by default: Reviewer, Section Head, System Administrator). You must be assigned to the laboratory section of the test.
 
 #### Before you start
-- The test must have its result entered and must not be superseded.
-- The test must be a count test (it has count readings, or results without biochemical, location or pathogen data). The button is offered for count tests only.
+- The test is a count test or a physicochemical result-entry test whose result is entered. Pathogen, location (EM/Water/After Cleaning) and biochemical tests do not offer the button.
+- The test must not be superseded.
 - The test's laboratory section must be **In testing** or **Under review**, and the sample must not be **Under approval**, **Approved**, **Rejected**, **Retest requested**, **Cancelled** or **Voided**. Once the section has been reviewed the system refuses with: "Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead."
 
 > **Note for reviewers:** Return to Analyst takes no password or signature, the reason is optional, and the reviewer who performed the test is not blocked. (GAP-009, GAP-301)
-
-> **Note for reviewers:** Return to Analyst is offered on the screen for count tests only, although the system also accepts result-entry (analysis) tests. (GAP-300)
 
 > **Note for reviewers:** A test cannot be returned after the section has been reviewed; correction then requires the Section Head's Not Conform or retest decision (see §18.2 and §19). This follows the "Cannot return a test…" message above. (GAP-018)
 
@@ -3321,7 +3370,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 
 #### How to use it
 1. Open the **Sample Summary** dialog (the lifecycle badge or **Sample Summary**).
-2. Find the count test and expand it.
+2. Find the test and expand it.
 3. Click **Return to Analyst**.
 4. Read the information text in the **Return Test to Analyst** dialog.
 5. Optionally, type a reason in **Reason for Return (optional)**.
@@ -3330,10 +3379,10 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 
 #### System behavior
 - The system checks, in this order: your access to the test's section; the test exists; the section and sample are in an allowed state; the test has its result entered; the test definition exists; the test type is supported.
-- The active count readings are set aside (kept in the record but no longer current).
-- The latest incubation is reopened: its completion time, who completed it and its outcome are cleared.
+- For a count test: the active count readings are set aside (kept in the record but no longer current), and the latest incubation is reopened (its completion time, who completed it and its outcome are cleared).
+- For a physicochemical (result-entry) test, the active analysis entries and parameter results are set aside, no incubation is reopened, and the test goes back to **Running**.
 - If the section was **Under review**, it goes back to **In testing** and the sample status is recomputed.
-- The test moves to the **Incubating** step with the history note "Returned to analyst: {reason}" (or "Returned to analyst by reviewer" when no reason was typed).
+- The test moves to the **Incubating** step (count tests) or **Running** (physicochemical tests) with the history note "Returned to analyst: {reason}" (or "Returned to analyst by reviewer" when no reason was typed).
 - A return event is stored with the reviewer, the assigned analyst, the reason and the time. The assigned analyst does not change.
 - No electronic signature is recorded.
 
@@ -3348,7 +3397,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 
 #### Status
 - Section: **Under review** goes back to **In testing**.
-- Test: the step returns to **Incubating**.
+- Test: **Incubating** for a count test, **Running** for a result-entry test.
 - Sample: recomputed from all sections.
 
 #### What happens next
@@ -3369,7 +3418,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - A cause of testing named "Retest" must exist. Otherwise: "The 'Retest' cause of testing is not configured."
 - At least one test must be selected.
 
-> **Note for reviewers:** When a retest sample reaches a final status, its outcome is copied to the original sample's section without a new electronic signature. For Retest Retained Sample the original takes the retest's outcome. (GAP-018)
+> **Note for reviewers:** When a retest sample reaches a final status, its outcome is copied to the original sample's section without a new electronic signature. The original section takes the outcome (Retest Retained Sample: the retest's outcome; New Sample Required: Approved only when both new samples are approved). Each original test is then marked Approved or Rejected from its own recorded result, so the test that triggered the retest stays **Rejected**. The original section records the Section Head who decided the retest as its approver; no new signature is applied to the original. This happens only when the retest sample covers one laboratory section. (GAP-018)
 
 > **Note for reviewers:** The Investigation and OOS Investigation decisions in the design specifications are not available; only the four decisions in §19 exist. (GAP-017)
 
@@ -3377,7 +3426,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - **Sample Summary** dialog, card **Approval & Electronic Signatures**, form **Submit Release Decision**:
   - **Laboratory Section** (when more than one section is waiting).
   - The option **Retest Retained Sample: Return to testing**.
-  - The block **Tests to Retest**, with the text "Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample(s); everything else on this sample is left untouched." and one checkbox per current test, each with a section chip and a **Non-conforming** chip where the screen judges the test non-conforming.
+  - The block **Tests to Retest**, with the text "Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample; everything else on this sample is left untouched." (for **New Sample Required** the text reads 'new samples') and one checkbox per current test, each with a section chip and a **Non-conforming** chip where the screen judges the test non-conforming.
   - The warning "Select at least one test to retest." when no box is checked.
   - **Comment (optional)** and **Submit Decision** (disabled until the decision is valid).
 - **Electronic Signature** dialog with your name, role, the text "Retest Retained Sample: Return to testing", the field **Password** and the buttons **Cancel** and **Sign**.
@@ -3420,7 +3469,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - New sample: **Received**.
 
 #### What happens next
-The new retest sample appears in the testing workspace and goes through testing, review and approval itself. The group appears in OOS Tracking (see §20) for users with the *OOS Tracking Management* permission. When the retest sample is finally approved or rejected, its outcome is copied to the original sample's section.
+The new retest sample appears in the testing workspace and goes through testing, review and approval itself. The group appears in OOS Tracking (see §20) for users with the *OOS Tracking Management* permission. When the retest sample is finally approved or rejected, its outcome is copied to the original sample's section (Retest Retained Sample: the retest's outcome; New Sample Required: Approved only when both new samples are approved). Each original test is then marked Approved or Rejected from its own recorded result, so the test that triggered the retest stays **Rejected**. The original section records the Section Head who decided the retest as its approver; no new signature is applied to the original. This happens only when the retest sample covers one laboratory section.
 
 
 ### 18.3 Requesting a New Sample
@@ -3468,7 +3517,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - The section becomes **Retest requested**, and the original sample receives an OOS group number if it has none.
 - The selected original tests are marked superseded, with the history note "New sample requested by {name}".
 - TWO new samples are created one after the other, each with its own reference number, the details of the original sample, a link to it, the shared OOS group, and copies of the selected tests assigned to its own chosen analyst.
-- Outcome: the original section waits until both new samples have a final status. It then takes **Approved** only if both are approved, otherwise **Rejected**. No new signature is recorded for this.
+- Outcome: the original section waits until both new samples have a final status. It then takes **Approved** only if both are approved, otherwise **Rejected**. No new signature is recorded for this (see §18.2).
 
 #### Validation
 - "Two analysts must be assigned - one per new sample - when requesting a new sample."
@@ -3488,6 +3537,9 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 The two new samples appear in the testing workspace for their analysts and follow the normal test, review and approval workflow. The group is followed in OOS Tracking (see §20).
 
 <!-- Review log (Sonnet): 22 corrections; invented items removed: "active membership", enum/database/ID wording (ResultEntered code kept only inside exact message), InProgress test status, "in parallel", "sample receiving" workspace, "master data", analyst-notification claim; callouts added: GAP-017 (Investigation/OOS Investigation not available), GAP-018 on after-review return and retest mirroring -->
+<!-- Phase 13 (agy): applied F-B01, F-B02, F-B08, F-B12 -->
+
+<!-- Phase 13 review (Sonnet): F-B01, F-B02, F-B08, F-B12 verified; 2 wording fixes (status line, duplicated sentence); no invented items. -->
 
 ---
 
@@ -3529,7 +3581,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 > **Note for reviewers:** Approval, rejection and close-testing signature statements are worded differently on the certificate, the sample report and the approval card. (GAP-315)
 
-> **Note for reviewers:** Dashboard approval notifications count samples awaiting a release decision rather than individual test orders as described in the specification. (GAP-309)
+> **Note for reviewers:** Dashboard approval notifications count samples awaiting a release decision rather than individual test orders as described in the specification, for users whose role is, or is based on, Section Head or System Administrator (the count follows the role type, not the permission). (GAP-309)
 
 #### What you see
 - On the testing workspace, a sample waiting for release shows the **Under Approval** lifecycle badge. It is clickable only for users holding the *Sample Release Approval* permission.
@@ -3565,8 +3617,8 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
   - An electronic signature with the meaning *Approved*, and a Workflow History event recording the decision.
   - The section becomes **Approved**, recording the approver, the time and the trimmed certificate remarks.
   - Every current test of the section is marked **Approved**, with the history entry "Sample approved by {name}".
-- When no section of the sample is open any more and none is rejected, the sample becomes **Approved**.
-- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled "Sample Approve" (see §21.3).
+- When no section of the sample is open any more and none is rejected or waiting on a retest, the sample becomes **Approved**. If another section is waiting on a retest, the sample becomes **Retest requested** (shown as **Cancelled / Voided** in the register).
+- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled with the decision that closed the sample (for example 'Sample Approve') (see §21.3).
 
 #### Validation
 - "Sample must be under approval before a decision can be made."
@@ -3583,7 +3635,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 #### Status
 - Section: **Under approval** to **Approved**.
 - Tests: each current test of the section becomes **Approved**.
-- Sample: **Approved** when no section is open and none is rejected; otherwise it follows the roll-up of the other sections.
+- Sample: **Approved** when no section is open and none is rejected or waiting on a retest; if another section is waiting on a retest, the sample becomes **Retest requested** (shown as **Cancelled / Voided** in the register); otherwise it follows the roll-up of the other sections.
 
 #### What happens next
 View or print the sample report and the Certificate of Analysis (see §21). If the sample is not yet final, other laboratory sections continue with their own review and approval.
@@ -3620,7 +3672,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 - The section becomes **Rejected**, recording the approver and the time.
 - Every current test of the section is marked **Rejected** (its step is unchanged), with the history entry "Sample rejected by {name}".
 - Other laboratory sections of the sample are not closed. They stay open and carry on.
-- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled "Sample Reject".
+- When the sample reaches **Approved** or **Rejected**, the summary report is saved as a frozen PDF archived copy labelled with the decision that closed the sample (for example 'Sample Approve') (see §21.3).
 
 #### Validation
 - The same messages as in §19.1 for the section state, segregation of duties and password.
@@ -3697,6 +3749,9 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 On the combined Certificate of Analysis the closed laboratory's tests are listed as "{test}: Not completed, testing closed ({step}, stage {n})." No section-only certificate exists for a closed section.
 
 <!-- Review log (Sonnet): 20 corrections; invented items removed: "active membership", enum/database/transaction wording, "approval override", "workflow complete" claim, "recomputed to Rejected" for close testing, "immutable"/"cryptographic" claims; added decision-options table with resulting statuses and signature meanings; callouts added: none missing (GAP-017/018 incl. no Final Release, GAP-312, GAP-304, GAP-303, GAP-315, GAP-309 present) -->
+<!-- Phase 13 (agy): applied F-B03, F-B04, F-B05 -->
+
+<!-- Phase 13 review (Sonnet): F-B03, F-B04, F-B05 verified; Retest requested label confirmed in StatusBadge; no invented items. -->
 
 ---
 
@@ -3741,7 +3796,7 @@ An OOS group must exist. A group is created only when a Section Head signs the d
 #### System behavior
 - A retest sample copies the identity details of the original sample (item, category, batch, control number, dates, quantity, sampling point, machine, department, production stage) and keeps a link to it.
 - Retest samples share the OOS group number of the original sample.
-- When a retest sample is finally approved or rejected, its outcome is copied to the original sample's section without a new signature (see §18.2 and §18.3).
+- When a retest sample is finally approved or rejected, its outcome is copied to the original sample's section (see §18.2) without a new signature (see §18.3).
 
 #### Status
 - **Retest Status** shows the sample status of the retest sample.
@@ -3844,6 +3899,9 @@ To download a document:
 Nothing further happens in the system for the document: no review or approval step exists for investigation reports. The retest samples of the group are followed through their own review and approval.
 
 <!-- Review log (Sonnet): 17 corrections; invented items removed: permission code and route, "storage details" copied, "immutable"/"permanent link", void-only messages (not reachable from screen), "administrative service endpoints", "review by Section Heads" claim, group-code header claim; callouts added: GAP-017/018 (Investigation decisions not available) -->
+<!-- Phase 13 (agy): applied F-B02 -->
+
+<!-- Phase 13 review (Sonnet): F-B02 verified. -->
 
 ---
 
@@ -3997,6 +4055,8 @@ The sample must have reached a final decision, so that an archived copy exists, 
 #### What you see
 On the sample summary report, the block **archived copies** with the text "Immutable PDFs frozen at each final decision - what this record looked like when it was issued, not this live view." Each row shows the reason (for example "Sample Approve", "Sample Reject", "Laboratory testing closed" or "Sample {outcome} (OOS resolved)") and a download control.
 
+> **Note for reviewers:** The label names the decision that closed the sample, not its final status. For a sample tested by more than one laboratory, a copy labelled 'Sample Approve' can belong to a sample whose final status is **Rejected**, because another laboratory rejected it earlier. Check the status on the record. (GAP-902)
+
 [SCREENSHOT SS-214]
 
 #### How to use it
@@ -4019,6 +4079,9 @@ On the sample summary report, the block **archived copies** with the text "Immut
 Nothing further happens in the system.
 
 <!-- Review log (Sonnet): 30 corrections; invented items removed: route/auth/filename/header/theme-class names, "sample tracking board", "new tab", "Header button", Investigation signature line, "title" in signature blocks, product-category list for standard layout, result-status-source claim, "generated by" archive column, "immutable"/"cryptographic" claims, archive-failure-keeps-decision claim (unconfirmed), CoA "archived/distributed" next step; callouts added: GAP-304 (OOS approval certified), GAP-017/018 kept -->
+<!-- Phase 13 (agy): applied F-B04 -->
+
+<!-- Phase 13 review (Sonnet): F-B04, GAP-902 verified (exists). -->
 
 ---
 
@@ -4050,6 +4113,8 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
 
 > **Note for reviewers:** The expected colony description for an Indication challenge is required by the dialog only; it is not checked again when the record is saved. (GAP-405)
 
+> **Note for reviewers:** For Growth Promotion, entering only a minimum recovery causes every challenge to evaluate as NonConform and the lot to be rejected; leaving the minimum empty causes every challenge to evaluate as Conform. (GAP-505, GAP-903)
+
 #### What you see
 - In the menu, open **LABORATORIES**, then **Microbiology Configuration**, then **Media Configurations**. The page title is **Media Configurations**.
 - Left panel: **Configured Media ({n})**, a search box with a reset control, and the button **Add Media Product**.
@@ -4075,7 +4140,7 @@ To add the evaluation configuration:
 1. Open the **Configurations** tab and click **Add Configuration**. If the product has no incubation condition yet, the dialog says "{product} has no incubation conditions yet. Add one in the Incubation Conditions tab first."
 2. Select the **Evaluation Type**: **Growth Promotion** or **Indication / Inhibition**.
 3. Select the **Incubation Condition**.
-4. For Growth Promotion, optionally enter **Recovery Min (%)** and **Recovery Max (%)**.
+4. For Growth Promotion, enter both **Recovery Min (%)** and **Recovery Max (%)**. If you enter only a minimum, every challenge is judged **NonConform** and the lot is rejected. If you leave the minimum empty, every challenge is judged **Conform** whatever the recovery.
 5. Under **Challenge Organisms (Optional)**: choose the organism; for Indication / Inhibition choose the **Challenge Role** (**Inhibition** or **Indication**); for an Indication role enter the **Expected Colony Description \***; optionally enter the **Initial Inoculum (CFU)**; then click **Add Organism**.
 6. Click **Save Configuration**.
 
@@ -4262,7 +4327,7 @@ For each challenge:
 5. Click **Record Result**. The system shows "Result recorded successfully." After the result is saved the dialog shows "EVALUATION RESULT RECORDED" and no further inputs.
 
 #### System behavior
-- Recovery % = (New Media Count ÷ Old Media Count) × 100, rounded to one decimal. The challenge is **Conform** when the recovery is inside the configured minimum and maximum (limits included).
+- Recovery % = (New Media Count ÷ Old Media Count) × 100, rounded to one decimal. The challenge is **Conform** when the recovery is inside the configured minimum and maximum (limits included). If you enter only a minimum, every challenge is judged **NonConform** and the lot is rejected. If you leave the minimum empty, every challenge is judged **Conform** whatever the recovery.
 - Inhibition is Conform when no growth is observed. Enrichment is Conform when the broth is turbid. Indication is Conform or NonConform exactly as you judge it; the system does not compare your text with the expected colony description.
 - The system records who read each challenge and when.
 - When every challenge has a result the evaluation is completed. It is Conform only if every challenge is Conform.
@@ -4443,7 +4508,7 @@ To mark a lot out of stock:
 - "Media lot {lot} is not currently released for use and active."
 - "Equipment {code} is not currently in service."
 - "A reason is required to move media storage."
-- "Reason must be at least 5 characters."
+- The **Move** button stays disabled until the reason has at least 5 characters.
 - "Cannot move {n} units; only {m} available in entry {id}."
 - "Destination storage location must be different from the source storage location."
 - "Media storage entry {id} not found for media lot {lot}."
@@ -4481,6 +4546,9 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
 2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
 
 <!-- Review log (Sonnet): 34 corrections; invented items removed: route paths and permission/enum/status codes, numeric status codes, "dual-person" wording, "legal signing statement", "Word export via URL", unsupported report field list, signature-throttle text as an on-screen error, rejection "regardless of state" as a screen action; callouts added: GAP-022, GAP-518/GAP-501 (evaluation incubator), GAP-500/GAP-516 (release/expiry path table), GAP-510 -->
+<!-- Phase 13 (agy): applied F-B06, F-B07 -->
+
+<!-- Phase 13 review (Sonnet): F-B06, F-B07 verified; GAP-505/903 exist. -->
 
 ---
 
@@ -4588,7 +4656,7 @@ Rooms that have at least one test can be chosen when an EM sample is prepared (�
 Register an incoming EM sampling event.
 
 #### Who can use it
-Users who can receive samples see the **Receive** button (by default: Section Head, Reviewer, Analyst, System Administrator).
+Any signed-in user. The **+ New Sample** button in the Microbiology workspace is shown to every member of the laboratory, and the server checks neither a receiving permission nor the laboratory. On the **Receive Sample** page, the **Receive** button is shown to users who hold a receiving permission. (GAP-227)
 
 #### Before you start
 The department must exist in the Environmental Monitoring configuration (§23.1).
@@ -4629,7 +4697,7 @@ Prepare the sample (§23.3).
 Choose the rooms that were sampled. The system then creates the tests and one location per room test.
 
 #### Who can use it
-Any signed-in user working in the Microbiology workspace. Preparation of an EM sample needs no password or signature.
+Any signed-in user (the system does not check the laboratory). Preparation of an EM sample needs no password or signature.
 
 #### Before you start
 - The sample must be **Received** and need preparation.
@@ -4783,6 +4851,9 @@ Pathogen tests:
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
 <!-- Review log (Sonnet): 29 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" list claims, unreferenced Annex/compliance wording, "Dilution factor" and internal rounding names, section-assignment claim at receipt, OOS retest/investigation claim, internal test-type error message; callouts added: GAP-227, GAP-212, GAP-501/GAP-517, calibration message, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
+
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->
 
 ---
 
@@ -4889,7 +4960,7 @@ Water systems and locations can be chosen when a water sample is received and pr
 Register an incoming water sample.
 
 #### Who can use it
-Users who can receive samples see the **Receive** button (by default: Section Head, Reviewer, Analyst, System Administrator).
+Any signed-in user. The **+ New Sample** button in the Microbiology workspace is shown to every member of the laboratory, and the server checks neither a receiving permission nor the laboratory. On the **Receive Sample** page, the **Receive** button is shown to users who hold a receiving permission. (GAP-227)
 
 #### Before you start
 The water system must exist in the Water configuration (§24.1).
@@ -4930,7 +5001,7 @@ Prepare the sample (§24.3).
 Record how the sample was stored, choose the sampled points, and let the system create the tests and locations.
 
 #### Who can use it
-Any signed-in user working in the Microbiology workspace. Preparation of a water sample needs no password or signature.
+Any signed-in user (the system does not check the laboratory). Preparation of a water sample needs no password or signature.
 
 #### Before you start
 - The sample must be **Received** and need preparation.
@@ -5075,6 +5146,9 @@ All points are submitted together. The grid is accepted or refused as a whole.
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
 <!-- Review log (Sonnet): 27 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" claims, "PW/WFI" system list, internal rounding and class names, dilution-factor wording, section-assignment claim at receipt, OOS retest/investigation claim, legacy-endpoint message, BR id in a reviewer note; callouts added: GAP-423, GAP-418 wording, GAP-227, GAP-212, GAP-501/GAP-517, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
+
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->
 
 ---
 
@@ -5190,7 +5264,7 @@ Machines and parts can be chosen when an After Cleaning sample is received and p
 Register an incoming after-cleaning sample with the cleaned machine and the previous product and batch.
 
 #### Who can use it
-Users who can receive samples see the **Receive** button (by default: Section Head, Reviewer, Analyst, System Administrator).
+Any signed-in user. The **+ New Sample** button in the Microbiology workspace is shown to every member of the laboratory, and the server checks neither a receiving permission nor the laboratory. On the **Receive Sample** page, the **Receive** button is shown to users who hold a receiving permission. (GAP-227)
 
 #### Before you start
 - The machine must exist in the After Cleaning configuration (§25.1).
@@ -5236,7 +5310,7 @@ Prepare the sample (§25.3).
 Choose the machine parts that were swabbed or rinsed. The system then creates the tests and one location per part test.
 
 #### Who can use it
-Any signed-in user working in the Microbiology workspace. Preparation of an After Cleaning sample needs no password or signature.
+Any signed-in user (the system does not check the laboratory). Preparation of an After Cleaning sample needs no password or signature.
 
 #### Before you start
 - The sample must be **Received** and need preparation.
@@ -5381,6 +5455,9 @@ All parts are submitted together. The grid is accepted or refused as a whole.
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
 <!-- Review log (Sonnet): 26 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" claims, class and field names, dilution-factor wording, section-assignment claim at receipt, OOS retest/investigation claim, BR id in a reviewer note, unsupported "active test configurations" wording; callouts added: GAP-227, GAP-212, GAP-501/GAP-517, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
+
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->
 
 ---
 
@@ -5529,7 +5606,7 @@ Release a prepared batch for use with a signature, or reject it.
 Requires the *Cryovial Batch Approval* permission (by default: Section Head, System Administrator).
 
 #### Before you start
-- The batch must be **Pending Review** and not destroyed.
+- The screen offers **Approve** and **Reject** only for a pending batch that is not destroyed (the server itself checks only that the batch is still pending).
 - You must not be the person who prepared it.
 
 > **Note for reviewers:** Approval does not check the batch expiry date or the identity confirmation results. Whether the approver must check them is unconfirmed. (GAP-037)
@@ -5659,6 +5736,9 @@ Requires the *Cryovial Management* permission (by default: Section Head, Reviewe
 2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
 
 <!-- Review log (Sonnet): 31 corrections; invented items removed: route paths, permission/enum codes and numeric codes, "Prepare New Batch" button name, invented table columns and dialog names, invented "legal signing statement", "Save" button on the move dialog, "Please enter a reason for thawing" message, unsupported report content; callouts added: GAP-037 (approval without expiry check), GAP-503, GAP-509, GAP-514, GAP-507 -->
+<!-- Phase 13 (agy): applied F-B13 -->
+
+<!-- Phase 13 review (Sonnet): F-B13 verified. -->
 
 ---
 
@@ -5780,7 +5860,7 @@ The result is calculated by the system, not by the screen. The system uses:
 The test order moves to the ready step when the result is signed. The result is judged as within limits, out of specification or requires review.
 
 #### What happens next
-The result cannot be edited. When all tests of the sample section are ready, the section moves to **Under Review**. The person who entered the result cannot review or approve the sample. If a reviewer returns the test, the panel shows "Returned for revision: {reason}" and the result can be entered again.
+The result cannot be edited. When all tests of the sample section are ready, the section moves to **Under Review**. The person who entered the result cannot review or approve the sample. If a reviewer returns the test (see §18.1; the test goes back to **Running**), the panel shows "Returned for revision: {reason}" and the result can be entered again.
 
 ---
 
@@ -6310,7 +6390,42 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 
 > **Note for reviewers:** The page lists only six entries. Dissolution, Disintegration, Weight Variation, Titration and the HPLC and ICP method assays are not listed, although the system performs those calculations. The page must not be read as the full list. (GAP-606)
 
+---
+
+### 27.10 Chromatography and ICP Methods Masters
+<!-- MOD-HPLCM-001 -->
+<!-- MOD-ICPM-001 -->
+#### Purpose
+Manage analytical method masters:
+- Chromatography (HPLC and GC) methods: name, abbreviation, technique, column, elution and detection, mobile phases, analytes, SST criteria, GC conditions and oven program, residual-solvent mode.
+- ICP-OES methods: mode, elements and wavelengths, calibration levels, optional blank, ICV and CCV checks, sample-prep defaults.
+
+#### Who can use it
+Requires the *Master Data Management* permission (by default: Section Head, System Administrator) to create, edit or activate methods. Other signed-in users can view the methods inside the workspaces.
+
+#### Before you start
+Open **Laboratories** > **Physicochemical Configuration** > **HPLC Methods** or **ICP Methods** (see §7.1).
+
+#### What you see
+> **Note for reviewers:** REQUIRES CONFIRMATION: field labels to be taken from the screen during the screenshot phase. (GAP-043)
+
+#### How to use it
+> **Note for reviewers:** REQUIRES CONFIRMATION: procedure steps to be taken from the screen during the screenshot phase. (GAP-043)
+
+#### System behavior
+- A reason is required for changes. Changes are recorded in the audit trail and are not electronically signed.
+- An inactive method cannot be used to start a run ("ICP method \"X\" is inactive.").
+
+> **Note for reviewers:** Method master changes require a reason and are audited, but are not electronically signed. (GAP-615)
+
+#### Validation
+- "A reason is required."
+- "ICP method \"{name}\" is inactive."
+
 <!-- Review log (Sonnet): 14 corrections (section rewritten sub-section by sub-section against C6); invented items removed: route paths and area codes, tab names of the sample queue, dialog title "{testCode} Workflow", raw status/enum names (InService, WithinLimits, ResultRecorded, TitrantDueAcknowledged), run-code format, component and code names (ChromatogramEvidencePanel, ResidualSolventCalculationView, IcpMethodAssay, MinCorrelation, WeightMg, GrossMg), unsupported field labels (Initial weight (g), Sample Weight (mg) etc.), "Upload Report"/"Upload Report Document" buttons, SHA-256 and secure storage claims, GC capillary/packed wording, LaTeX formulas, two internal-field validation messages; callouts added: GAP-609 (types in use), GAP-601, GAP-602 (HPLC and ICP), GAP-603, GAP-600, GAP-617, GAP-610/611, GAP-613, GAP-606 -->
+<!-- Phase 13 (agy): applied F-B08, F-B10 -->
+
+<!-- Phase 13 review (Sonnet): F-B08, F-B10 verified: section 27.10 facts match C6 and code (menu labels, A reason is required., ICP method inactive message at IcpRunService); GAP-043/615 exist; nothing invented. -->
 
 ---
 
@@ -6829,7 +6944,7 @@ Stock is deducted by:
 
 ### 29.5 Editing Material Lot Records
 #### Purpose
-Correct the details of a lot, such as the storage location, manufacturer, code or quantity received.
+Correct the details of a lot: material type, name, manufacturer, code, batch number, receiving and expiry dates, storage location, organism and ATCC number, quantity received, unit, minimum stock level, and purity and moisture for standards.
 
 #### Who can use it
 Requires the *Manage materials* permission (by default: Analyst, Section Head, System Administrator).
@@ -6843,12 +6958,17 @@ The dialog **Edit Material** with the fields of the lot and the buttons **Cancel
 3. Click **Save Changes**.
 
 #### System behavior
-- The new quantity remaining = old quantity remaining + (new quantity received - old quantity received).
-- Once lots have been prepared from a batch of dehydrated media, its media product cannot be changed: "Lots have already been prepared from batch X - its media product can't be changed."
-- Working standard lots cannot be edited here: "Working standards change only through their qualifications."
-- The change is recorded in the audit trail with the user and time.
+- No reason, password or signature is asked; the change is recorded in the audit trail.
+- Changing **Unit** does not convert the quantities.
+- Changing **Quantity Received** changes **Qty Remaining** by the same amount, which can take it below zero.
+- Working standards cannot be edited here; the media product of dehydrated media cannot be changed once lots were prepared from it.
+
+> **Note for reviewers:** Purity, moisture and expiry of a lot can be changed after the lot was used in a calculation, without a reason or signature. (GAP-904)
 
 <!-- Review log (Sonnet): 19 corrections; invented items removed: route and query strings, permission codes in prose, raw status names (InStock), numeric status values, field name QuantityRemaining, LaTeX formula, dialog and field names not in the screens ("Supersession Reason *", "Void Reason *", "Confirm Supersession", "Confirm Void", drawer instead of Lot Details window), claim of a receipt quarantine step, invented status badges in the table (replaced by the real cards and filters); callouts added: GAP-508 kept, GAP-511 kept, GAP-514 added; receipt without second-person check stated as fact (no gap id exists for it) -->
+<!-- Phase 13 (agy): applied F-B09 -->
+
+<!-- Phase 13 review (Sonnet): F-B09, GAP-904 verified against MaterialService; no invented items. -->
 
 ---
 
@@ -6899,7 +7019,7 @@ Requires the *Manage equipment* permission (by default: Analyst, Section Head, S
 - **Overdue** is worked out each time from the calibration due date and today's date; it is not a stored status.
 - The equipment print list contains assets with status **InService** only.
 - **OutOfService** or **Retired** inventory equipment cannot be chosen as the storage location for media or cryovials. In the Physicochemical Laboratory, out-of-service or retired inventory equipment is refused when starting HPLC and ICP runs and physicochemical analysis.
-- **Which record do test steps check?** When an incubator is chosen for a microbiology test step, the system checks the equipment record in Laboratory Configuration (section 30.3): that it is an incubator, that its set point is inside the medium's temperature range, and that its calibration due date has not passed. It does **not** look at the status or calibration date in Equipment Inventory. An incubator marked **OutOfService** in the inventory is still accepted if its configuration record is in range and in calibration. Recording incubation for a media evaluation accepts any incubator without these checks.
+- **Which record do test steps check?** When an incubator is chosen for a microbiology test step, the system checks the equipment record in Laboratory Configuration (section 30.3): that it is an incubator, that its set point is inside the medium's temperature range, and that its calibration due date has not passed. It does **not** look at the status or calibration date in Equipment Inventory. An incubator marked **OutOfService** in the inventory is still accepted if its configuration record is in range and in calibration. An incubator whose configuration record has no calibration due date is accepted. Recording incubation for a media evaluation accepts any incubator without these checks.
 
 > **Note for reviewers:** Equipment Inventory and Laboratory Configuration Equipment are two records linked by code; update both (the intended procedure is unconfirmed). Test-time incubator checks read the configuration record rather than the inventory status or calibration date. (GAP-501, GAP-517)
 
@@ -7079,11 +7199,13 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - Autoclave program: **Active** or **Inactive**. Changed with **Activate** / **Deactivate** or in the program dialog; each change adds a history row.
 
 #### What happens next
-- Incubators are checked against this configuration record when selected for media in individual and grouped test steps, shared TSB starts and pathogen confirmation: the set point must be inside the medium's temperature range and the calibration due date must not have passed.
-- If an incubator is rejected, the message is always "The selected incubator's set point is outside this medium's temperature range.", even when the real reason is an overdue calibration.
+- Incubators are checked against this configuration record when selected for media in individual and grouped test steps, shared TSB starts and pathogen confirmation: the set point must be inside the medium's temperature range and the calibration due date must not have passed. An incubator whose configuration record has no calibration due date is accepted.
+- In individual and grouped test steps the message is 'The selected incubator's set point is outside this medium's temperature range.'. Shared TSB starts show 'The shared TSB can't start: …' and pathogen confirmation shows 'Incubator {code}'s set point is outside the {range} range of …'. None of the messages names an overdue calibration as the cause.
 - Autoclave programs configured here are used when preparing media lots: choosing a program fills in the load type, temperature and cycle time.
 
 > **Note for reviewers:** An incubator rejected because its calibration is overdue shows the "set point is outside this medium's temperature range" message, which does not name the real cause. (BR-EQUIP-009)
+
+> **Note for reviewers:** An incubator whose configuration record has no calibration due date is accepted. (GAP-905)
 
 ---
 
@@ -7149,6 +7271,9 @@ Maintain the chromatography column list: code, name, serial number, USP designat
 A run can use only an active column that is compatible with the chosen instrument and whose USP designation matches the method.
 
 <!-- Review log (Sonnet): 31 corrections; invented items removed: ?lab= route parameters, enum numbers (0/1/2), "database"/"hash"/SHA-256 wording, "mandatory/strictly" wording, GC and "bench" analysis refusal claim, claim that incubators gate media-evaluation workflows, ALCOA+ message quoted as fact; callouts added: GAP-038, GAP-023 (with GAP-408/410), column fields/filters from code; BR-EQUIP-014 cite replaced by GAP-038 -->
+<!-- Phase 13 (agy): applied F-C01, F-C02 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
 ---
 
@@ -7719,7 +7844,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
      - Caption: "The stage dropdown on Finished Product receiving. Not shown for other categories."
      - Input field: **Production stage** (placeholder "e.g. Coating"), dropdown **Role** (**Bulk**, **InProcess**, **Finished**, **Stability**, **Other**), button **Add**.
      - Row actions: **Rename**, **Delete**.
-     - Delete confirmation: "Delete \"{name}\" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes."
+     - Delete confirmation: "Delete \"{name}\" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes." (the stage name stays visible on old samples, but their link to the stage is removed; see the warning below)
 
 [SCREENSHOT SS-322]
 
@@ -7741,6 +7866,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 3. Click **Add**.
 4. To rename or adjust the assigned role, click the pencil icon, make changes, and click **Save**.
 5. To delete a stage, click the bin icon and confirm.
+> **Warning:** Deleting a stage removes the stage link from every sample recorded with it. Stage-specific specification rows and replicate counts then no longer apply to those samples, and stage-dependent physicochemical tests on samples still in testing cannot resolve their replicate count. Do not delete a stage that is in use; rename it instead.
 
 #### System behavior
 - Names within each list are unique, compared case-insensitively.
@@ -7902,6 +8028,9 @@ Load checked master data workbooks using an electronic signature, enforce mandat
 - Workbook load: **Waiting for verification** (after the signed load) and **Verified by {name}** (after the second person signs). There is no way back from verified and no rejected status.
 
 <!-- Review log (Sonnet): 24 corrections; invented items removed: real person name in placeholder, component/table/database/transaction wording, signature meaning codes, "Password *" label, internal transaction message, raw status names; callouts added: GAP-705 on workbook verification, second-round specification sheets -->
+<!-- Phase 13 (agy): applied F-C03 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
 ---
 
@@ -8061,7 +8190,7 @@ The **Record Search** tab is structured in a two-column layout:
   - **Location / Point** dropdown (**All** and distinct subject locations)
   - Buttons: **Reset** and **Search Records**
 - Left **Quick Reports** tiles:
-  - Eight one-click filter tiles: **Product**, **Raw Material**, **Water**, **Environmental Monitoring**, **After Cleaning**, **Media/GPT**, **Reference Strains**, and **Custom Report**.
+  - Eight tiles. **Product**, **Raw Material**, **Water**, **Environmental Monitoring** and **After Cleaning** set the category filter; **Media/GPT** and **Reference Strains** open their own tabs; **Custom Report** clears the filters.
 - Right results table (**Search Results**):
   - Results count chip: `"{totalCount} Records Found"`
   - Table action buttons: **Columns** (column toggle menu), **Export PDF**, and **Export CSV**
@@ -8094,7 +8223,7 @@ The **Record Search** tab is structured in a two-column layout:
    c. Click **Confirm**. The browser downloads the generated file (`microlims-results-{yyyyMMdd-HHmmss}.csv`).
 6. To export the current visible table page as a printable document, click **Export PDF**.
 7. To export or analyze specific approved results:
-   a. Select the checkboxes on the desired rows, or click **Select All {totalCount} Matching Records**. Only records with **Approved** status can be selected.
+   a. Select the checkboxes on the desired rows, or click **Select All {totalCount} Matching Records**. Ticking rows allows only **Approved** records. **Select All {totalCount} Matching Records** is different: it exports every record that matches the filters, whatever its approval status, although its tooltip says 'Approved'. Set **Approval Status** to **Approved** first if you need approved results only. **Export Selected PDF** after **Select All** contains at most the first 200 matching records and gives no warning.
    b. Click **Export Selected CSV**, **Export Selected PDF**, or **Analyze Selected** (to transfer the test code and item to the trending workspace).
 
 #### System behavior
@@ -8113,6 +8242,8 @@ The **Record Search** tab is structured in a two-column layout:
 - If an export request encounters a network or server error, the system reports: "Export failed."
 
 > **Note for reviewers:** The CSV export stops if matches exceed 10,000 rows without advance warning in the confirmation dialog. PDF and trend exports are produced in the browser and, as far as the code shows, are not recorded in the audit trail. (GAP-804)
+
+> **Note for reviewers:** **Select All Matching Records** exports records of any approval status despite its tooltip claiming Approved only, and the selected-PDF export is capped at 200 rows without warning. (GAP-906)
 
 > **Note for reviewers:** Reports read from a derived results table, and the administrative rebuild of that table has no screen. (GAP-803)
 
@@ -8220,9 +8351,9 @@ The **Trending & Analysis** tab is structured in a three-column layout:
 - Left column (**Analysis Criteria**):
   - **Parameter / Test** dropdown
   - **Product / Item** dropdown (or location cascade selector for Water, Environmental Monitoring, or After Cleaning)
-  - **Category** dropdown (**FinishedProduct**, **RawMaterial**, **Water**, **EnvironmentalMonitoring**)
+  - **Category** dropdown: the categories returned by the server; if the lists cannot be loaded, four default categories are shown (Finished Product, Raw Material, Water, Environmental Monitoring). (GAP-002, GAP-800)
   - **Date Range** dropdown (**Last 30 Days**, **Last 3 Months**, **Last 6 Months**, **Last 12 Months** [default])
-  - **Compare With** dropdown (**None** [default], **Previous Period**, **Product Comparison**, **Location Comparison**)
+  - **Compare With** dropdown (**None** [default], **Previous Period**, **Product Comparison**, **Location Comparison**). **Previous Period** can be selected but does not change the chart. (GAP-908)
   - Button: **Apply Criteria**
 - Center column (**Trend Chart & Statistics**):
   - Chart card header showing test name, subject name, selected period, and chip (**Live Numeric Trend ({unit})** or **Qualitative Detection Event Log**)
@@ -8296,7 +8427,7 @@ The **KPI / Performance** tab presents:
   4. **Retest rate**: percentage of decided samples with a retest-retained-sample decision (retests created from an earlier sample are not counted), and monthly sparkline.
   5. **OOS rate**: percentage of decided samples that carry an out-of-specification group. This is a sample-level field, so a viewer of one laboratory also sees an out-of-specification that arose in another laboratory. The retest rate is a subset of this rate. Monthly sparkline.
   6. **WIP backlog**: current snapshot count of open tests (pending or in progress) broken down by current step. The date filter does not apply and no prior period is shown; tests waiting for review or approval appear in backlog aging instead.
-  7. **Incubation reads on time**: percentage of completed incubation windows finished within 4 hours of the expected read time (media-challenge incubations are not counted), a warning chip for windows left out because no expected read time exists, and monthly sparkline.
+  7. **Incubation reads on time**: percentage of completed incubation windows read no later than 4 hours after the expected read time (earlier reads count as on time; media-challenge incubations are not counted), a warning chip for windows left out because no expected read time exists, and monthly sparkline.
   8. **EM excursion rate**: percentage of environmental monitoring readings at alert or action levels, with separate alert and action rates, and an adverse-trend indicator if there are at least 5 results and the alert rate exceeds 2.5% or the action rate exceeds 0.15%. Results without levels (for example detected/absent) and retests created from an earlier sample are not counted.
 - Category breakdown charts:
   - **Flow**: time spent in each testing stage (**Testing**, **Incubation**, **Review**, **Approval**), and backlog aging grouped into buckets (up to 50%, 50–100%, and over 100% of target; the target for review and approval is 24 hours).
@@ -8383,7 +8514,7 @@ Clicking **Workflow Profiles** on the KPI tab opens the **Workflow Profiles** di
 5. Click **Continue to sign**.
 6. Review the electronic signature statement:
    `"I am adding a workflow profile version for {scope}: {u} work units (1 unit = 1 standard analyst-hour), {t} target analyst days, effective {effectiveFrom}. Reason: {reason}"`
-   The system attaches the electronic signature meaning **MasterDataChanged**.
+   The system attaches an electronic signature (meaning: master data changed).
 7. Enter your login password and click confirm.
 8. The version is saved and becomes active on its effective date.
 
@@ -8421,6 +8552,9 @@ Two administrative functions behind Reports have no screen in the application:
 - **Analyst Availability and Section Settings**: MicroLIMS does not provide a user interface screen for configuring laboratory section capacity parameters (standard daily hours, working weekdays, forward load horizon) or individual analyst availability adjustments (such as leave or training). (GAP-802)
 
 <!-- Review log (Sonnet): 46 corrections; invented items removed: route paths, permission codes, gap/flag codes, SCR id, endpoint path, database-trigger and enum/class names; callouts added: none missing (GAP-800/801/802/803/804/805/806/045/817/820 present, strengthened GAP-800/801/804) -->
+<!-- Phase 13 (agy): applied F-C05, F-C07, F-C08, F-C09, F-C10, F-C17 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
 ---
 
@@ -8746,7 +8880,7 @@ The system asks for password re-authentication for these 26 actions:
 The following do not ask for a signature password (verified in the code for the first group; messages and discussions are not signed either):
 - **Microbiology plate count entry**.
 - **Pathogen testing steps**.
-- **Biochemical decision**.
+- **Biochemical decision** (no screen exists for it).
 - **Return to analyst**.
 - **Incubator changes**.
 - **User administration** (create, edit, change role, disable, unlock, reset password, delete).
@@ -8788,10 +8922,8 @@ The system compares user accounts and refuses the action with these messages:
 | **Document Revision Approval Decision** | Author or technical reviewer cannot execute the approval decision | "Segregation of Duties Violation: The author of a document revision cannot approve or decide upon their own revision." / "Segregation of Duties Violation: A technical reviewer for this revision cannot approve or decide upon this revision." |
 | **Document Periodic Review** | Author of a document cannot conduct its periodic review | "Segregation of Duties Violation: The author cannot perform or complete the periodic review." |
 
-#### Absolute Rule: No Administrative Exemption
-The segregation-of-duties guard is role-agnostic and compares user accounts only. **System Administrators possess no administrative exemption**:
-- A System Administrator who prepares a sample, enters test counts, standardizes a titrant, or prepares a media lot is strictly blocked from reviewing or approving that record.
-- Every analytical review and release decision requires two distinct authorized individuals.
+#### No administrative exemption
+The rules in the table compare user accounts; System Administrators and Section Heads are not exempt from them. Segregation of duties is enforced only for the actions in the table. Other signed or approved actions (for example item preparation configuration approval, KPI workflow profile versions, titrant standardization, solution completion, HPLC system suitability and ICP calibration confirmation) have no second-person check. (GAP-026, GAP-820)
 
 
 > **Note for reviewers:** Microbiology plate count entry and pathogen steps are not signed, and returns to analyst are not signed. (GAP-009, GAP-010, GAP-028)
@@ -8799,6 +8931,9 @@ The segregation-of-duties guard is role-agnostic and compares user accounts only
 > **Note for reviewers:** Role and user changes are audited but not signed and need no second person; nothing prevents removing the *Manage roles* permission from an administrative role. (GAP-009)
 
 <!-- Review log (Sonnet): 18 corrections; invented items removed: "cryptographic" wording, enum/meaning names, class and field names, Autoclave Program Management row, transaction/hash wording, audit claims for unsigned actions; callouts added: GAP-027, GAP-030, GAP-009, GAP-010, GAP-028. Signed list (26) matches verified source; not-signed list limited to verified items. -->
+<!-- Phase 13 (agy): applied F-A10, F-C04 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
 ---
 
@@ -9341,7 +9476,7 @@ Opening a periodic review task from the document detail page launches the **Peri
 
 <!-- WF-DC-004 -->
 #### Purpose
-Track personal controlled document reading and training assignments, access released PDF documents in the controlled viewer, and record conscious legal read-and-understand acknowledgements.
+Track personal controlled document reading and training assignments, access released PDF documents in the controlled viewer, and record a read-and-understood acknowledgement (checkbox confirmation, no password).
 
 #### Who can use it
 Open to all signed-in users. Each user sees their own personal training assignments. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view assignments across personnel.
@@ -9390,7 +9525,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 9. The assignment status immediately changes to **Acknowledged** (audit action code ReadingAssignmentAcknowledged), and your cell in the Training Matrix counts as **Qualified**.
 
 #### System behavior
-- **Conscious Legal Acknowledgement**: Reading progress and scroll tracking are informational only. Legal acknowledgement strictly requires the explicit selection of the confirmation checkbox.
+- **Acknowledgement requires the checkbox**: reading progress and scroll tracking are informational only; the acknowledgement is recorded only when the confirmation checkbox is ticked.
 - **Acknowledgement record**: Submitting an acknowledgement stores the statement text as shown, the SHA-256 checksum of the controlled PDF, the time, the client IP address and the browser user agent.
 - **Assignment Ownership**: Users can only acknowledge assignments assigned to their own account. Attempting to submit an acknowledgement for another user is blocked and records a security audit event.
 - No password re-entry or electronic signature is required for reading acknowledgement.
@@ -9404,7 +9539,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 - "Cannot acknowledge an assignment that has been terminally closed as SupersededIncomplete."
 - "Cannot acknowledge an assignment that has been terminally closed as Cancelled due to document obsolescence."
 
-> **Note for reviewers:** The system permits users to submit the legal acknowledgement without enforcing complete scrolling or a minimum reading duration in the PDF viewer; scroll progress is informational. (GAP-810)
+> **Note for reviewers:** The system permits users to submit the acknowledgement without enforcing complete scrolling or a minimum reading duration in the PDF viewer; scroll progress is informational. (GAP-810)
 
 > **Note for reviewers:** The acknowledgement dialog heading contains regulatory wording ("GMP / 21 CFR Part 11"). This is screen text only, not a validation statement. (GAP-023)
 
@@ -9419,7 +9554,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 Track, verify, and cross-reference personnel qualifications against active controlled documents across departments, and identify training compliance gaps or superseded qualifications.
 
 #### Who can use it
-Open to all signed-in users. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view the entire matrix; the *Training Matrix Viewing* permission has no effect, so Reviewers do not see the whole matrix by default; users without this permission see only their own row.
+Open to all signed-in users. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view the entire matrix; the *Training Matrix Viewing* permission has no effect, so Reviewers do not see the whole matrix by default; users without this permission see only their own row. The **Document Compliance Profile** drawer and the compliance KPIs are not limited in this way: any user who can open the matrix can see every assigned person's status for a document.
 
 #### What you see
 [SCREENSHOT SS-388]
@@ -9465,6 +9600,8 @@ The **Training Matrix** page presents:
 > **Note for reviewers:** Role curricula, per-document training settings and training escalations have no screen, and the curriculum department is not applied. (GAP-807, GAP-809, GAP-819)
 
 > **Note for reviewers:** Reading assignments are not created when a revision is approved with an effective date of today or earlier. (GAP-816)
+
+> **Note for reviewers:** The Document Compliance Profile drawer and compliance KPIs are open to every user who can access the matrix, rather than restricted to their own data. (GAP-907)
 
 ---
 
@@ -9670,6 +9807,9 @@ Some Document Control functions run automatically or have no screen:
 - **Permissions that have no effect**: The permissions *Document Draft Editing*, *Document Revision Creation*, *Document Technical Review*, *Document Revision Approval*, *Document Periodic Review* and *Training Matrix Viewing* do not change what anyone can do. Authority follows the user's role type and the per-document assignments; voiding is for Section Heads only. (GAP-015)
 
 <!-- Review log (Sonnet): ~85 corrections; invented items removed: route paths, permission codes (outside admin), enum/class/worker/database names, unverified acknowledgement messages, unsupported example revision numbers, unverified signature-record fields, Inspection Dossier contents, Return for Correction label in technical review; callouts added: GAP-043, GAP-807, GAP-809, GAP-816, GAP-818 (Obsolete filter, void message), GAP-023 (approval and acknowledgement wording), GAP-814 reworded; no Obsolete/retire procedure described -->
+<!-- Phase 13 (agy): applied F-C06, F-C15 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
 ---
 
@@ -10089,7 +10229,7 @@ This section explains messages and blocks that users meet in MicroLIMS and what 
 
 ### 42.4 Segregation-of-Duties Messages
 
-MicroLIMS does not let the same person perform and then review or approve. System Administrators are not exempt.
+For the actions listed in §37.4, MicroLIMS does not let the same person perform and then review or approve. System Administrators are not exempt.
 
 #### "You cannot review a sample you tested."
 - **What it means:** You performed testing on this sample (assigned analyst, sample preparer, entered a result or reading, or recorded a workflow or pathogen step), so you cannot review it.
@@ -10232,6 +10372,9 @@ Old addresses are redirected automatically:
 - When a retired assay type is selected in Test Master the application shows "HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay." or "Elemental assay tests are retired; use an ICP method assay test."
 
 <!-- Review log (Sonnet): 31 corrections; invented items removed: hash/"cryptographic" wording, laboratory code names, routes, wrong meaning of the global audit trail message (it is the Document Control audit trail), claim that failed signatures are not audited, "Maintenance" equipment status, cryovial identity-confirmation SoD cause, Skip Wait default holders corrected (Section Head, System Administrator), invented menu paths; callouts added: GAP-100, GAP-012, GAP-053, GAP-023. All quoted messages checked with git grep -F. -->
+<!-- Phase 13 (agy): applied F-C04 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
 ---
 
@@ -10291,7 +10434,7 @@ Each incubation has a minimum time set in the Test Master or media configuration
 You must type your own current sign-in password in the **Electronic Signature** dialog. A wrong password gives "Password verification failed. The signature was not applied." After 5 wrong attempts within 15 minutes signing is refused for 15 minutes: "Too many failed signature attempts. Wait 15 minutes, then try again. The signature was not applied." Your sign-in account is not locked by this (see §37).
 
 #### 11. Why was my test returned to me by the reviewer?
-During review a reviewer can use **Return to Analyst** on a count test. The count readings are set aside, the incubation step is reopened and the test goes back to the assigned analyst. This is possible only before the review of the laboratory section is signed. After that the system refuses: "Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead." (see §18).
+During review a reviewer can use **Return to Analyst** on a count test or a physicochemical result-entry test. For a count test the readings are set aside and the incubation step is reopened; for a physicochemical test the active entries are set aside and the test goes back to **Running**. The test returns to the assigned analyst. This is possible only before the review of the laboratory section is signed. After that the system refuses: "Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead." (see §18).
 
 #### 12. What is the difference between "Retest Retained Sample" and "New Sample Required"?
 Both are release-decision options chosen by the Section Head at approval (see §18 and §19):
@@ -10309,7 +10452,7 @@ The person who performed the testing cannot review it: "You cannot review a samp
 The reviewer cannot also give the release decision: "You cannot approve a sample you reviewed." A different user with the *Sample Release Approval* permission must approve. A person who tested the sample cannot approve it either: "You cannot approve a sample you tested."
 
 #### 15. Can a System Administrator override these rules?
-No. The rules compare user accounts only and System Administrators are not exempt. A System Administrator who prepared or tested a record cannot review or approve it.
+No. The segregation-of-duties rules (§37.4) compare user accounts only and System Administrators are not exempt. A System Administrator who prepared or tested a record covered by those rules cannot review or approve it.
 
 #### 16. Why can't I verify a Master Data Workbook that I loaded?
 The person who loaded the workbook cannot verify it: "The person who loaded the workbook cannot verify it. Ask a second person." A second authorised user must verify it (see §32).
@@ -10322,7 +10465,7 @@ The person who loaded the workbook cannot verify it: "The person who loaded the 
 No. MicroLIMS does not have a separate Final Release step or permission. The Section Head's signed release decision on a laboratory section is the last approval step and **Approved** is the final status (see §19).
 
 #### 18. Does MicroLIMS have separate Reception or QA roles?
-No. The four system roles are System Administrator, Section Head, Reviewer and Analyst. Sample receiving is done by users who hold a receiving permission, and release decisions by users who hold the *Sample Release Approval* permission, as set by the administrator.
+No. The four system roles are System Administrator, Section Head, Reviewer and Analyst. Product, Raw Material and Packaging Material samples are received by users who hold a receiving permission; Environmental Monitoring, Water and After Cleaning samples by any signed-in user, and release decisions by users who hold the *Sample Release Approval* permission, as set by the administrator.
 
 #### 19. Does MicroLIMS take data directly from instruments or connect to an ERP system?
 No. There is no live instrument feed, no screen for importing instrument reports, no SAP or ERP connection and no AI assistant. Instrument results are entered in the testing workspaces (see §41).
@@ -10337,6 +10480,11 @@ The following are not implemented:
 - Incident, deviation or CAPA modules (Error Monitoring is a technical log only, see §40).
 
 <!-- Review log (Sonnet): 18 corrections; invented items removed: routes, "MICRO"/"FP" codes, menu paths, token wording, "imported via structured report files" and instrument-specific names, retained-sample material claims, CoA export claim, "Under Testing" state, IQ/OQ/PQ, Skip Wait default holders; answers aligned with §18, §19, §33, §37, §39, §42; callouts added: GAP-012, GAP-100, GAP-053 -->
+<!-- Phase 13 (agy): applied F-A01, F-C04 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
+
+<!-- Phase 13 (Opus orchestrator): Return to Analyst scope aligned with §18.1 (F-B08). -->
 
 ---
 
@@ -10388,7 +10536,7 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Segregation of Duties (SoD)** | A governance rule preventing the person who performed an action from reviewing or approving the same sample, test, or record. |
 | **Command Center** | The primary dashboard page displaying workload summaries, queues, and attention items for a user's role. |
 | **Ready to read** | A test status indicating that an incubation period has ended and the test is ready for colony counting or observation entry. |
-| **On-Time Reading Rate** | The percentage of microbial incubations read within four hours of their scheduled completion time. |
+| **Incubation reads on time** | The percentage of completed incubation windows read no later than 4 hours after the expected read time (earlier reads count as on time). |
 | **Incident** | A technical system error logged in Error Monitoring with a correlation identifier; distinct from laboratory testing deviations. |
 | **Traceability chain** | An interactive record chain inside the audit event drawer showing all linked upstream and downstream records. |
 | **Archived copies** | Frozen PDF copies saved at a final decision (for example sample approval or rejection), shown on the sample report with a download. |
@@ -10424,6 +10572,10 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Biochemical Test** | A phenotypic identification test (such as Gram stain, catalase, or oxidase) used in pathogen confirmation. |
 | **Grouped Actions** | Batch operations applied to two or more selected samples simultaneously. |
 | **Void Sample** | The signed voiding of a sample record (action in the sample list). |
+| **Under Testing** (register) | The sample register label for the status shown elsewhere as **In Testing**. |
+| **Pending Review** (register) | The sample register label for the status shown elsewhere as **Under Review**. |
+| **Pending Approval** (register) | The sample register label for the status shown elsewhere as **Under Approval**. |
+| **Cancelled / Voided** (register) | The sample register label for samples closed without approval: **Retest Requested**, **Cancelled** or **Voided**. |
 
 ---
 
@@ -10435,7 +10587,7 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Submit Release Decision** | The signed approval or rejection form submitted by a Section Head. |
 | **Comment (optional)** | An internal note recorded with a review or approval decision; never printed on the external Certificate of Analysis. |
 | **Certificate Remarks** | Narrative remarks entered during approval that print directly on the Certificate of Analysis. |
-| **Return to Analyst** | An action during technical review that returns a count test to the analyst for re-entry without canceling the sample. |
+| **Return to Analyst** | An action during technical review that returns a count test or a physicochemical result-entry test to the analyst for recount or result re-entry without cancelling the sample (see §18.1). |
 | **Retest Retained Sample** | An approval decision creating one new sample for selected tests using retained material and keeping the original analyst assignment. |
 | **New Sample Required** | An approval decision requiring fresh physical samples, generating two new samples assigned to two different analysts. |
 | **Close Testing** | An action allowing a laboratory section to stop and cancel its open tests on a sample after another laboratory has rejected it. |
@@ -10461,8 +10613,8 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Thaw** | The recorded withdrawal and use of a single frozen cryovial from a reference batch. |
 | **Out of Stock** | A status set manually on a media lot that is no longer used for new storage or tests. |
 | **Materials Stock** | The laboratory inventory register tracking chemical reagents, primary/reference standards, and dehydrated media. |
-| **Active Equipment** | A tab of the Equipment Inventory listing in-service assets with their activities. |
-| **Set Point** | The target operating temperature configured for an incubator, refrigerator, or oven. |
+| **Active Equipment** | A tab of the Equipment Inventory listing every asset in your laboratories, whatever its status, with its activities. |
+| **Set Point** | The target temperature configured for an incubator in Laboratory Configuration: Equipment (§30.3). |
 | **Autoclave Program / Load** | A defined sterilisation cycle specifying temperature, cycle time, and load type on an autoclave. |
 | **Item** | A catalog definition for a finished product, raw material, or packaging material tested by the laboratory. |
 | **Assigned Tests** | The battery of laboratory test definitions linked to an item that are automatically ordered upon sample receipt. |
@@ -10489,8 +10641,13 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Document Master** | The top-level administrative record for a controlled standard operating procedure or quality document. |
 | **Document Revision** | A specific versioned release of a controlled document (e.g. Rev 01). |
 | **Controlled PDF** | The official released copy of a controlled document rendered in the system viewer. |
-| **Source File** | The editable authoring file (Word format) accessible only during draft and technical review stages. |
+| **Source File** | The editable Word file of a revision. System Administrators, Section Heads and the document owner or assigned author can open it; a technical reviewer or approver can open it only while their task on that revision is open. |
 | **Finding Resolution Ladder** | The structured review comment progression (Open, Author Responded, Reviewer Verified, Resolved). |
 | **Periodic Review** | The scheduled recurring re-evaluation of an effective controlled document to ensure ongoing scientific validity. |
 
 <!-- Review log (Sonnet): 16 corrections; invented items removed: "cryptographic hashes"/"immutable" archived copies, "Quick Period" component name, Correct Sample Details (not a UI label), unsupported definitions of Recovery %, Out of Stock, Th.Wt, r, RSD, Second-Person Verification; callouts added: none needed (glossary). Standard terms (GPT, EM, AC, TAMC, TYMC, CFU, TNTC, TSB, OOS, COA, CDS, HPLC, ICP-OES, the usual abbreviations) present; no code names remain. -->
+<!-- Phase 13 (agy): applied F-C12, F-C13, F-C14, F-C17 -->
+
+<!-- Phase 13 review (Sonnet): F-C12/C13/C14/C17 verified OK; F-B11 section 44 part applied (register-label rows in 44.3). Return to Analyst row in 44.4 still says count test only (out of scope). -->
+
+<!-- Phase 13 (Opus orchestrator): Return to Analyst scope aligned with §18.1 (F-B08). -->

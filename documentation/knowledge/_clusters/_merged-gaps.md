@@ -392,7 +392,7 @@ Existing gaps referenced, not duplicated: GAP-009 (return unsigned), GAP-010 (co
 ### GAP-300 Return to Analyst scope: service versus UI
 - **Question:** Should Return to Analyst be offered for analysis (non-count) tests, as the service allows, or count tests only, as the UI offers?
 - **Affected:** MOD-REVIEW-001, SCR-REVIEW-002, WF-REVIEW-002 (Phase 4).
-- **Facts:** The service accepts CountTest and analysis workflows and refuses others [src: backend/MicroLIMS.Application/Services/SampleReviewService.cs:L188-L189]. The UI button is shown only for count tests [src: frontend/src/modules/testingWorkspace/sampleSummary/TestResultsSection.tsx:33-45, 109-129].
+- **Facts:** The service accepts CountTest and analysis workflows and refuses others [src: backend/MicroLIMS.Application/Services/SampleReviewService.cs:L188-L189]. The UI button is shown for count tests and every physicochemical test (the check matches any test with a result row) (corrected in Phase 13, RECONCILIATION.md) [src: frontend/src/modules/testingWorkspace/sampleSummary/TestResultsSection.tsx:33-45, 109-129].
 - **Why it matters:** The guide must state one rule. Analysis-test return is reachable only by a direct API call today.
 - **Needs confirmation:** Intended scope of return to analyst.
 - **Who or what:** QA; Section Head.

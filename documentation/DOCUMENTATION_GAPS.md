@@ -707,6 +707,7 @@ New questions (GAP-200 onward):
 - **Who or what:** Product owner.
 
 ### GAP-214 Item preparation configuration screen and approval not located
+- **Phase 12–13 update (RECONCILIATION.md):** Narrowed: the approval screen exists (Items > Preparation Configuration tab, **Approve**). Remaining question: should the approver differ from the person who saved the configuration?
 - **Phase 3 update:** Backend read: GET/PUT `/api/items/{id}/preparation-configuration`, POST `.../approve` and GET `/api/preparation-configurations/pending` need `Items.Manage`; behaviour in BR-PREP-008..010. Only the screen (labels, tile for pending approvals) is still unlocated.
 - **Question:** Which screen shows preparation configuration and its approval queue?
 - **Affected:** MOD-PREP-001 (WF-PREP-002).
@@ -766,6 +767,7 @@ New questions (GAP-200 onward):
 - **Who or what:** Developer and quality owner.
 
 ### GAP-221 Pathogen session reset deletes data
+- **Phase 12–13 update (RECONCILIATION.md):** Added facts: reset is not refused for Under Approval or Approved samples; the **Reset Session** button is not status-gated; an Approved sample keeps status Approved while its results are deleted; test orders of all laboratories on the sample are reset.
 - **Question:** Is permanent deletion of all results, readings, observations and incubations on reset intended, and should it depend on sample status?
 - **Affected:** WF-PATH-003.
 - **Facts:** Reset hard-deletes records for every test order of the sample (including non-pathogen tests) and writes an audit-log line with the reason (PathogenSessionService.cs:1301-1399). Only Voided and Rejected samples are refused; for UnderApproval, Approved, RetestRequested or Cancelled the data is deleted and the sample status is left unchanged. The reason is optional with a server default text.
@@ -814,6 +816,7 @@ New questions (GAP-200 onward):
 - **Who or what:** Quality owner.
 
 ### GAP-227 EM / Water / After Cleaning receive and prepare have no permission or lab-scope check
+- **Phase 12–13 update (RECONCILIATION.md):** Added: the Microbiology workspace **+ New Sample** button is shown to all laboratory members without a permission check; EM, Water and After Cleaning receive and prepare need only a signed-in user.
 - **Question:** Should these endpoints require a permission and a lab-membership check like Product receipt?
 - **Affected:** WF-SAMPLE-006..008.
 - **Facts:** The controllers carry `[Authorize]` only; the authorization matrix lists all four roles (authorization-matrix.txt:1-2, 138-139, 522-523). Product receipt needs `Samples.ReceiveOwnLab` and the lab guard. UI gating for these categories was not read.
@@ -854,6 +857,7 @@ New questions (GAP-200 onward):
 Existing gaps referenced, not duplicated: GAP-009 (return unsigned), GAP-010 (count and pathogen steps unsigned), GAP-017 (decision set), GAP-018 (review and approval design), GAP-043 (OOS void control and CoA body not read).
 
 ### GAP-300 Return to Analyst scope: service versus UI
+- **Phase 12–13 update (RECONCILIATION.md):** Rewritten fact: the screen offers Return to Analyst for count tests and for every physicochemical test (all physicochemical recorders write a result row, which the screen's check matches). Open question: is return of physicochemical tests intended, and should the check use the workflow type?
 - **Question:** Should Return to Analyst be offered for analysis (non-count) tests, as the service allows, or count tests only, as the UI offers?
 - **Affected:** MOD-REVIEW-001, SCR-REVIEW-002, WF-REVIEW-002 (Phase 4).
 - **Facts:** The service accepts CountTest and analysis workflows and refuses others [src: backend/MicroLIMS.Application/Services/SampleReviewService.cs:L188-L189]. The UI button is shown only for count tests [src: frontend/src/modules/testingWorkspace/sampleSummary/TestResultsSection.tsx:33-45, 109-129].
@@ -1803,3 +1807,77 @@ Numbering: this cluster uses GAP-700..749. Existing GAP-034 (Specifications rout
 - GAP-023 CONFIRMED: the sign-in footer wording is outside this cluster; inside it, the approval signature dialog states "you certify under 21 CFR Part 11" and cites "21 CFR §11.200", the approval workspace says "Approval Governed by 21 CFR Part 11 Electronic Signature", the acknowledgement dialog heading says "(GMP / 21 CFR Part 11)" and the KPI PDF footer says "MicroLIMS verified report" [src: frontend/src/modules/documentControl/components/ElectronicSignatureDialog.tsx:L119-L122, L202; frontend/src/modules/documentControl/components/ApprovalWorkspaceDialog.tsx:L253; frontend/src/modules/documentControl/components/DocumentAcknowledgementDialog.tsx:L212; frontend/src/modules/kpi/utils/exportKpiPdf.ts:L143]. The guide does not repeat these claims.
 - GAP-024 CONFIRMED with an update: the code contains the Training Matrix, My Reading List, acknowledgement, periodic review, the effective-date worker and the approval signature that older release records list as not implemented. It does not contain the Release 1d server-side conversion (GAP-815) or the obsolescence transition (GAP-818), which the newer records plan.
 - GAP-045 CONFIRMED (not downgraded): the KPI design file still reads "Status: draft for review (no code written)" while the code and the plan index (with 21 listed deviations from it) are in use. The KPI definitions in BR-KPI-005 to BR-KPI-016 are therefore described as implemented behaviour and marked DISCREPANCY only where the plan or design text differs (BR-KPI-005, BR-KPI-009) [src: docs/superpowers/specs/2026-10-11-kpi-performance-remodel-design.md:L3].
+
+---
+
+# Gaps added in Phase 13 (from RECONCILIATION.md §3)
+
+### GAP-901 Reviewer screen for pathogen results submitted as Detected without biochemical confirmation
+- **Question:** Should reviewers have a screen to approve or return such a result? Today no screen calls the biochemical-decision function.
+- **Affected:** MOD-PATH-001 (§4.3, §4.4, §16.5).
+- **Why it matters:** A permission and a segregation-of-duties rule appear to be active controls but cannot be used.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** Product Owner, QA.
+
+### GAP-902 Archived-copy label versus final sample status
+- **Question:** Is the archived-copy label "Sample {decision}" intended when a multi-laboratory sample closes as Rejected through a later approval?
+- **Affected:** MOD-APPROVAL-001 (§19, §21.3).
+- **Why it matters:** A frozen record can carry a label that contradicts the sample's final status.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** QA, Product Owner.
+
+### GAP-903 Growth Promotion recovery band with minimum but no maximum
+- **Question:** Is a configuration with a minimum but no maximum recovery meant to be allowed? Every challenge is then NonConform and the lot is rejected.
+- **Affected:** MOD-MEDIA-001 (§22.1, §22.3; see GAP-505).
+- **Why it matters:** Good lots are rejected; the configuration screen accepts the setting without warning.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** QC Microbiology lead.
+
+### GAP-904 Unsigned edits to material lot properties after use
+- **Question:** Should editing purity, moisture, expiry, unit or quantity after use require a reason or signature, convert units, and stop Qty Remaining going below zero?
+- **Affected:** MOD-MATERIAL-001 (§29.5, §27.5, §28.2).
+- **Why it matters:** Purity and moisture feed assay calculations; unsigned changes weaken traceability.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** QA, QC Chemistry lead.
+
+### GAP-905 Incubator with no calibration due date
+- **Question:** Is an incubator with no calibration due date meant to pass the eligibility check?
+- **Affected:** MOD-EQUIP-001 (§30.1, §30.3).
+- **Why it matters:** A missing calibration date silently counts as in calibration.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** QA, Equipment owner.
+
+### GAP-906 Select All export scope and PDF row cap
+- **Question:** Should Select All Matching Records export only Approved records, as its tooltip says, and should the selected-PDF export warn about or remove its 200-row cap?
+- **Affected:** MOD-REPORTS-001 (§34.2).
+- **Why it matters:** Users may pass on unapproved or incomplete results believing them complete and approved.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** Product Owner, QA.
+
+### GAP-907 Document Compliance Profile visibility
+- **Question:** Should the Document Compliance Profile drawer and the compliance KPIs be restricted like the grid and the user drill-down?
+- **Affected:** MOD-DC-002 (§38.10).
+- **Why it matters:** Personnel qualification status is visible to every user; the access rule is inconsistent.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** Document Control owner, HR/QA.
+
+### GAP-908 Previous Period comparison
+- **Question:** Is the Previous Period comparison planned, or should the option be removed?
+- **Affected:** MOD-REPORTS-001 (§34.5).
+- **Why it matters:** The option is offered but does nothing.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** Product Owner.
+
+### GAP-909 Global sample receiving without own-lab receiving
+- **Question:** Is it intended that Global sample receiving works only together with Own-lab sample receiving for Product/RM/PM receipt?
+- **Affected:** MOD-SAMPLE-001 (§4.3, §12.1).
+- **Why it matters:** Custom roles with the global permission alone cannot receive, while the menu offers the page.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** System Administrator, Product Owner.
+
+### GAP-910 Skip Wait notice text
+- **Question:** Should the Skip Wait notice name the user who skipped the wait instead of the fixed text "Section Head/System Administrator"?
+- **Affected:** MOD-TESTING-001 (§14.6).
+- **Why it matters:** Screen evidence of who acted can be misread when a custom role holds the permission.
+- **Needs confirmation:** intended behaviour.
+- **Who or what:** QA.

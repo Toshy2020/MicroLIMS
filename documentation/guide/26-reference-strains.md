@@ -143,7 +143,7 @@ Release a prepared batch for use with a signature, or reject it.
 Requires the *Cryovial Batch Approval* permission (by default: Section Head, System Administrator).
 
 #### Before you start
-- The batch must be **Pending Review** and not destroyed.
+- The screen offers **Approve** and **Reject** only for a pending batch that is not destroyed (the server itself checks only that the batch is still pending).
 - You must not be the person who prepared it.
 
 > **Note for reviewers:** Approval does not check the batch expiry date or the identity confirmation results. Whether the approver must check them is unconfirmed. (GAP-037)
@@ -273,3 +273,6 @@ Requires the *Cryovial Management* permission (by default: Section Head, Reviewe
 2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
 
 <!-- Review log (Sonnet): 31 corrections; invented items removed: route paths, permission/enum codes and numeric codes, "Prepare New Batch" button name, invented table columns and dialog names, invented "legal signing statement", "Save" button on the move dialog, "Please enter a reason for thawing" message, unsupported report content; callouts added: GAP-037 (approval without expiry check), GAP-503, GAP-509, GAP-514, GAP-507 -->
+<!-- Phase 13 (agy): applied F-B13 -->
+
+<!-- Phase 13 review (Sonnet): F-B13 verified. -->

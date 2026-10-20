@@ -39,7 +39,7 @@ An OOS group must exist. A group is created only when a Section Head signs the d
 #### System behavior
 - A retest sample copies the identity details of the original sample (item, category, batch, control number, dates, quantity, sampling point, machine, department, production stage) and keeps a link to it.
 - Retest samples share the OOS group number of the original sample.
-- When a retest sample is finally approved or rejected, its outcome is copied to the original sample's section without a new signature (see §18.2 and §18.3).
+- When a retest sample is finally approved or rejected, its outcome is copied to the original sample's section (see §18.2) without a new signature (see §18.3).
 
 #### Status
 - **Retest Status** shows the sample status of the retest sample.
@@ -142,3 +142,6 @@ To download a document:
 Nothing further happens in the system for the document: no review or approval step exists for investigation reports. The retest samples of the group are followed through their own review and approval.
 
 <!-- Review log (Sonnet): 17 corrections; invented items removed: permission code and route, "storage details" copied, "immutable"/"permanent link", void-only messages (not reachable from screen), "administrative service endpoints", "review by Section Heads" claim, group-code header claim; callouts added: GAP-017/018 (Investigation decisions not available) -->
+<!-- Phase 13 (agy): applied F-B02 -->
+
+<!-- Phase 13 review (Sonnet): F-B02 verified. -->

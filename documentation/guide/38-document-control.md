@@ -537,7 +537,7 @@ Opening a periodic review task from the document detail page launches the **Peri
 
 <!-- WF-DC-004 -->
 #### Purpose
-Track personal controlled document reading and training assignments, access released PDF documents in the controlled viewer, and record conscious legal read-and-understand acknowledgements.
+Track personal controlled document reading and training assignments, access released PDF documents in the controlled viewer, and record a read-and-understood acknowledgement (checkbox confirmation, no password).
 
 #### Who can use it
 Open to all signed-in users. Each user sees their own personal training assignments. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view assignments across personnel.
@@ -586,7 +586,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 9. The assignment status immediately changes to **Acknowledged** (audit action code ReadingAssignmentAcknowledged), and your cell in the Training Matrix counts as **Qualified**.
 
 #### System behavior
-- **Conscious Legal Acknowledgement**: Reading progress and scroll tracking are informational only. Legal acknowledgement strictly requires the explicit selection of the confirmation checkbox.
+- **Acknowledgement requires the checkbox**: reading progress and scroll tracking are informational only; the acknowledgement is recorded only when the confirmation checkbox is ticked.
 - **Acknowledgement record**: Submitting an acknowledgement stores the statement text as shown, the SHA-256 checksum of the controlled PDF, the time, the client IP address and the browser user agent.
 - **Assignment Ownership**: Users can only acknowledge assignments assigned to their own account. Attempting to submit an acknowledgement for another user is blocked and records a security audit event.
 - No password re-entry or electronic signature is required for reading acknowledgement.
@@ -600,7 +600,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 - "Cannot acknowledge an assignment that has been terminally closed as SupersededIncomplete."
 - "Cannot acknowledge an assignment that has been terminally closed as Cancelled due to document obsolescence."
 
-> **Note for reviewers:** The system permits users to submit the legal acknowledgement without enforcing complete scrolling or a minimum reading duration in the PDF viewer; scroll progress is informational. (GAP-810)
+> **Note for reviewers:** The system permits users to submit the acknowledgement without enforcing complete scrolling or a minimum reading duration in the PDF viewer; scroll progress is informational. (GAP-810)
 
 > **Note for reviewers:** The acknowledgement dialog heading contains regulatory wording ("GMP / 21 CFR Part 11"). This is screen text only, not a validation statement. (GAP-023)
 
@@ -615,7 +615,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 Track, verify, and cross-reference personnel qualifications against active controlled documents across departments, and identify training compliance gaps or superseded qualifications.
 
 #### Who can use it
-Open to all signed-in users. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view the entire matrix; the *Training Matrix Viewing* permission has no effect, so Reviewers do not see the whole matrix by default; users without this permission see only their own row.
+Open to all signed-in users. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view the entire matrix; the *Training Matrix Viewing* permission has no effect, so Reviewers do not see the whole matrix by default; users without this permission see only their own row. The **Document Compliance Profile** drawer and the compliance KPIs are not limited in this way: any user who can open the matrix can see every assigned person's status for a document.
 
 #### What you see
 [SCREENSHOT SS-388]
@@ -661,6 +661,8 @@ The **Training Matrix** page presents:
 > **Note for reviewers:** Role curricula, per-document training settings and training escalations have no screen, and the curriculum department is not applied. (GAP-807, GAP-809, GAP-819)
 
 > **Note for reviewers:** Reading assignments are not created when a revision is approved with an effective date of today or earlier. (GAP-816)
+
+> **Note for reviewers:** The Document Compliance Profile drawer and compliance KPIs are open to every user who can access the matrix, rather than restricted to their own data. (GAP-907)
 
 ---
 
@@ -866,3 +868,6 @@ Some Document Control functions run automatically or have no screen:
 - **Permissions that have no effect**: The permissions *Document Draft Editing*, *Document Revision Creation*, *Document Technical Review*, *Document Revision Approval*, *Document Periodic Review* and *Training Matrix Viewing* do not change what anyone can do. Authority follows the user's role type and the per-document assignments; voiding is for Section Heads only. (GAP-015)
 
 <!-- Review log (Sonnet): ~85 corrections; invented items removed: route paths, permission codes (outside admin), enum/class/worker/database names, unverified acknowledgement messages, unsupported example revision numbers, unverified signature-record fields, Inspection Dossier contents, Return for Correction label in technical review; callouts added: GAP-043, GAP-807, GAP-809, GAP-816, GAP-818 (Obsolete filter, void message), GAP-023 (approval and acknowledgement wording), GAP-814 reworded; no Obsolete/retire procedure described -->
+<!-- Phase 13 (agy): applied F-C06, F-C15 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

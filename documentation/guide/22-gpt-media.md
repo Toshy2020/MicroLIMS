@@ -26,6 +26,8 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
 
 > **Note for reviewers:** The expected colony description for an Indication challenge is required by the dialog only; it is not checked again when the record is saved. (GAP-405)
 
+> **Note for reviewers:** For Growth Promotion, entering only a minimum recovery causes every challenge to evaluate as NonConform and the lot to be rejected; leaving the minimum empty causes every challenge to evaluate as Conform. (GAP-505, GAP-903)
+
 #### What you see
 - In the menu, open **LABORATORIES**, then **Microbiology Configuration**, then **Media Configurations**. The page title is **Media Configurations**.
 - Left panel: **Configured Media ({n})**, a search box with a reset control, and the button **Add Media Product**.
@@ -51,7 +53,7 @@ To add the evaluation configuration:
 1. Open the **Configurations** tab and click **Add Configuration**. If the product has no incubation condition yet, the dialog says "{product} has no incubation conditions yet. Add one in the Incubation Conditions tab first."
 2. Select the **Evaluation Type**: **Growth Promotion** or **Indication / Inhibition**.
 3. Select the **Incubation Condition**.
-4. For Growth Promotion, optionally enter **Recovery Min (%)** and **Recovery Max (%)**.
+4. For Growth Promotion, enter both **Recovery Min (%)** and **Recovery Max (%)**. If you enter only a minimum, every challenge is judged **NonConform** and the lot is rejected. If you leave the minimum empty, every challenge is judged **Conform** whatever the recovery.
 5. Under **Challenge Organisms (Optional)**: choose the organism; for Indication / Inhibition choose the **Challenge Role** (**Inhibition** or **Indication**); for an Indication role enter the **Expected Colony Description \***; optionally enter the **Initial Inoculum (CFU)**; then click **Add Organism**.
 6. Click **Save Configuration**.
 
@@ -238,7 +240,7 @@ For each challenge:
 5. Click **Record Result**. The system shows "Result recorded successfully." After the result is saved the dialog shows "EVALUATION RESULT RECORDED" and no further inputs.
 
 #### System behavior
-- Recovery % = (New Media Count ÷ Old Media Count) × 100, rounded to one decimal. The challenge is **Conform** when the recovery is inside the configured minimum and maximum (limits included).
+- Recovery % = (New Media Count ÷ Old Media Count) × 100, rounded to one decimal. The challenge is **Conform** when the recovery is inside the configured minimum and maximum (limits included). If you enter only a minimum, every challenge is judged **NonConform** and the lot is rejected. If you leave the minimum empty, every challenge is judged **Conform** whatever the recovery.
 - Inhibition is Conform when no growth is observed. Enrichment is Conform when the broth is turbid. Indication is Conform or NonConform exactly as you judge it; the system does not compare your text with the expected colony description.
 - The system records who read each challenge and when.
 - When every challenge has a result the evaluation is completed. It is Conform only if every challenge is Conform.
@@ -419,7 +421,7 @@ To mark a lot out of stock:
 - "Media lot {lot} is not currently released for use and active."
 - "Equipment {code} is not currently in service."
 - "A reason is required to move media storage."
-- "Reason must be at least 5 characters."
+- The **Move** button stays disabled until the reason has at least 5 characters.
 - "Cannot move {n} units; only {m} available in entry {id}."
 - "Destination storage location must be different from the source storage location."
 - "Media storage entry {id} not found for media lot {lot}."
@@ -457,3 +459,6 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
 2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
 
 <!-- Review log (Sonnet): 34 corrections; invented items removed: route paths and permission/enum/status codes, numeric status codes, "dual-person" wording, "legal signing statement", "Word export via URL", unsupported report field list, signature-throttle text as an on-screen error, rejection "regardless of state" as a screen action; callouts added: GAP-022, GAP-518/GAP-501 (evaluation incubator), GAP-500/GAP-516 (release/expiry path table), GAP-510 -->
+<!-- Phase 13 (agy): applied F-B06, F-B07 -->
+
+<!-- Phase 13 review (Sonnet): F-B06, F-B07 verified; GAP-505/903 exist. -->

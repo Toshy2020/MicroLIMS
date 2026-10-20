@@ -26,7 +26,7 @@ The filter bar above the register offers:
 
 When you tick samples in the register, a selection bar appears. It shows "{n} sample(s) selected" and, when filters hide some of them, "{n} hidden by current filters". The button **Show selected only** shows just the ticked samples ("Showing only the selected samples; other filters are paused."), **Back to filters** returns to your filters, and **Clear selection** unticks everything.
 
-> **Note for reviewers:** The register uses the label **Cancelled / Voided** for the status that other screens call "Retest Requested". (GAP-204)
+> **Note for reviewers:** **Cancelled / Voided** finds samples that were voided, cancelled, or closed with a retest request. **Pending Review** finds samples with a section waiting for technical review **or** for the release decision, so it overlaps **Under Review** and **Under Approval**. In the table, samples under approval are labelled **Pending Approval**. (GAP-204)
 
 #### Tracking Board
 Needs the *Cross-Lab Sample Tracking* permission (see Section 4).
@@ -135,3 +135,5 @@ Needs the *Error Log Monitoring* permission (by default: System Administrator).
 > **Note for reviewers:** Error Monitoring is a technical log, not a deviation or investigation record, and resolving an incident is not written to the audit trail. It also lists routine refusals such as business-rule and permission errors. (GAP-110)
 
 <!-- Review log (Sonnet): 25 corrections; invented items removed: page addresses, internal component and permission-code wording (Kpi.View, Samples.TrackAll, Audit.View, System.ViewErrorLog), item-type and sample-status lists corrected (added Rejected and Cancelled / Voided, test status list added), "Reset" button label on Tracking Board, unsupported description of Review Overdue Only, Trending category list, "immutable" audit wording, example reference FP0107026, "before-and-after JSON" wording, "read all" etc.; callouts added: GAP-204, GAP-002, GAP-030/101, GAP-111, GAP-813, GAP-110 -->
+<!-- Phase 13 (agy): applied F-A02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

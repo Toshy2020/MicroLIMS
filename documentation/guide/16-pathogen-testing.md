@@ -219,7 +219,7 @@ Concluded as Detected: the test waits for review. Otherwise the analyst does the
 ### 16.5 Biochemical Test Confirmation and Finalization
 <!-- WF-PATH-001 -->
 #### Purpose
-Record the biochemical identification result, optionally attach supporting evidence, and finish the pathogen test.
+Record the biochemical identification result and finish the pathogen test.
 
 #### Who can use it
 Requires the *Execute test workflows* permission (by default: Analyst, Reviewer, Section Head, System Administrator).
@@ -229,17 +229,17 @@ Requires the *Execute test workflows* permission (by default: Analyst, Reviewer,
 - The biochemical identification has been performed.
 
 #### What you see
-The biochemical panel has a required result text, a yes/no answer on whether the organism was detected, and an optional attachment. Its buttons are **Proceed to Biochemical Test** and **Submit as Detected (skip biochemical)**.
-
-> **Note for reviewers:** The exact field labels of the biochemical panel were not confirmed from the verified sources; only the two button names above are confirmed. Check them against the screen when taking the screenshot.
+- **Decision**, shown only after an all-conforming confirmatory result: the alert "Confirmatory result: All Conforming. An analyst decision is required before this workflow proceeds.", the warning "Submitting as Detected without biochemical confirmation will be flagged for the reviewer.", and the buttons **Submit as Detected (skip biochemical)** and **Proceed to Biochemical Test**. **Submit as Detected (skip biochemical)** ends the test as **Detected** without a biochemical result, and the result is flagged for the reviewer.
+- **Result form**: **Biochemical result** (required; helper "For example an IMViC pattern or API strip result."), the question "Based on this result, is the organism Detected or Not Detected? …" with choices **Detected** and **Not Detected**, and the button **Submit Result** (disabled until both are filled).
+- For an Inconclusive confirmatory result, the screen also shows "Confirmatory plating was Inconclusive and has been flagged for investigation in the audit trail. …".
 
 #### How to use it
-1. Open the biochemical step in the **{testCode} Workflow** dialog.
-2. Enter the identification result (required), for example a profile number or identification percentage.
-3. Answer whether the organism was detected.
-4. Optionally attach a supporting file.
-5. Click **Proceed to Biochemical Test**.
-6. Review the final result and click **Done / Close**.
+1. Open the biochemical step.
+2. If the decision buttons are shown, click **Proceed to Biochemical Test** (use **Submit as Detected** only when the laboratory procedure allows it).
+3. Enter the **Biochemical result**.
+4. Choose **Detected** or **Not Detected**.
+5. Click **Submit Result**.
+6. Click **Done / Close**.
 
 #### System behavior
 - The step is available only after a conforming result on the preceding step: "A biochemical test is only available after a conforming result on \"{step}\"."
@@ -252,7 +252,7 @@ The biochemical panel has a required result text, a yes/no answer on whether the
 - "A biochemical test is only available after a conforming result on \"{step}\"."
 - "Test order {id} is already at {step} - its workflow can no longer be submitted against."
 
-> **Note for reviewers:** A reviewer can return a result that was concluded as Detected without biochemical confirmation, with a mandatory reason ("A reason is required when returning a result for biochemical confirmation."; "A reviewer cannot decide on a result they performed."). The screen that lets reviewers do this has not been found, so how reviewers reach it is not confirmed.
+> **Note for reviewers:** A reviewer decision on a result submitted as Detected without biochemical confirmation exists in the system, but no screen offers it. (GAP-901)
 
 #### Status
 **Ready** (Result Entered); result **Detected** or **Not Detected**.
@@ -333,13 +333,15 @@ The sample goes to the technical reviewer.
 ### 16.7 Supervisor Pathogen Session Reset
 <!-- WF-PATH-003 -->
 #### Purpose
-Let a supervisor clear all entries of a pathogen testing session so that the tests can be started again.
+Let a supervisor clear all entries of a sample's testing session so that the tests can be started again. The reset applies to every test order of the sample, including count tests, physicochemical tests and superseded orders, not only the pathogen tests.
 
 #### Who can use it
 Requires the *Supervise test workflows* permission (by default: Section Head, System Administrator).
 
 #### Before you start
 The sample is not **Voided** or **Rejected**.
+
+> **Warning:** The system does not stop a reset of a sample that is **Under Approval** or **Approved**. Its results are deleted, its tests return to Pending, and an approved sample keeps the status **Approved**. Do not reset a sample that has been reviewed or released.
 
 #### What you see
 In the session workspace header, the button **Reset Session**. The dialog **Reset Testing Session & Steps?** has the field **Reason for Reset \*** (placeholder "e.g. Test configuration error / Wrong media lot selected / Operational error") and the buttons **Cancel** and **Confirm Reset** ("Resetting...").
@@ -354,6 +356,7 @@ In the session workspace header, the button **Reset Session**. The dialog **Rese
 - A voided or rejected sample cannot be reset.
 - The system permanently deletes, for every test of the sample, the observations, step results, plate readings, results and incubations, including the location results.
 - Every test returns to waiting (Pending). A sample that was **Under Testing** or **Pending Review** returns to **Received**; samples in other statuses keep their status.
+- Test orders of every laboratory on the sample are set to Pending.
 - Preparation is kept.
 - The system writes an audit entry with user, time, reference and reason, and a workflow note on each test: "Testing session and workflow steps reset. Reason: {reason}".
 - No electronic signature or password is needed.
@@ -362,7 +365,7 @@ In the session workspace header, the button **Reset Session**. The dialog **Rese
 - "Sample #{ref} has been voided and its testing session cannot be reset."
 - "Sample #{ref} has been rejected and its testing session cannot be reset. A rejection is reversed through the approval workflow by a Section Head."
 
-> **Note for reviewers:** Resetting a session permanently deletes all entered observations, step results, readings, results and incubations for every test of the sample, and is not refused for samples under approval or approved. (GAP-221)
+> **Note for reviewers:** Resetting a session permanently deletes all entered observations, step results, readings, results and incubations for every test order across all laboratories on the sample, and is not refused for samples under approval or approved; the **Reset Session** button is not status-gated and an Approved sample keeps the status Approved while its results are deleted and its test orders return to Pending. (GAP-221)
 
 > **Note for reviewers:** The dialog asks for a reason, but if the reason arrives blank the system uses a default text ("Section Head requested session reset" from the screen, "Analyst requested session workflow reset" from the system). (GAP-217)
 
@@ -377,3 +380,5 @@ All tests return to waiting (Pending). **Under Testing** or **Pending Review** s
 Analysts must start incubation again and re-enter all observations and counts.
 
 <!-- Review log (Sonnet): 44 corrections; invented items removed: class and enum names, flag/audit codes, permission code, unconfirmed biochemical field labels and button "Record Biochemical Result", ALCOA+ confirmation message, unsupported "Failed to save observations", "testing data must exist" precondition, reset "operational warning" step; callouts added: GAP-220 (session lots), biochemical reviewer-return note (no gap id), others kept (GAP-205, 210, 216, 217, 221, 222, 223, 224) -->
+<!-- Phase 13 (agy): applied F-A07, F-A10, F-A12 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

@@ -103,7 +103,7 @@ The sample appears in the added laboratory's register. If preparation is needed 
 ### 13.3 Assigning a Responsible Analyst
 <!-- WF-SAMPLE-003 -->
 #### Purpose
-Assign or reassign a designated laboratory analyst to all open test orders on a sample, or clear an existing assignment so that any authorized analyst may prepare the sample.
+Assign or reassign a designated laboratory analyst to every current test order that is not Approved or Rejected (including tests whose results are already entered, and voided or cancelled tests) on a sample, or clear an existing assignment so that any authorized analyst may prepare the sample.
 
 #### Who can use it
 Requires the *Sample analyst assignment* permission (by default: Section Head, System Administrator).
@@ -146,6 +146,7 @@ The sample must be within the user's laboratory section scope.
   - The assigned analyst counts as having performed the test, whatever that user's role. As a result, that user cannot perform technical review or release approval on the sample:
     - Attempting review displays: "You cannot review a sample you tested."
     - Attempting approval displays: "You cannot approve a sample you tested."
+  - A user assigned to a test whose results are already entered counts as having performed it and can no longer review or approve the sample.
 - Analyst assignment does not require an electronic signature.
 
 #### Validation
@@ -161,3 +162,5 @@ The system enforces the following exact validation rules:
 The test orders retain their current workflow step and approval status, with the assigned analyst field updated.
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: test-order card contents, 'Assigned to Me' default test filter, all-user access statement, signature timestamp, enum-style status names; callouts added: preparer-becomes-analyst/unsigned preparation (GAP-212, GAP-227), assigned-analyst ownership mismatch (GAP-219); note on 13.2 narrowed (GAP-200) -->
+<!-- Phase 13 (agy): applied F-A13 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

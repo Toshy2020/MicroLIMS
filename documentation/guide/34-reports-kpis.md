@@ -65,7 +65,7 @@ The **Record Search** tab is structured in a two-column layout:
   - **Location / Point** dropdown (**All** and distinct subject locations)
   - Buttons: **Reset** and **Search Records**
 - Left **Quick Reports** tiles:
-  - Eight one-click filter tiles: **Product**, **Raw Material**, **Water**, **Environmental Monitoring**, **After Cleaning**, **Media/GPT**, **Reference Strains**, and **Custom Report**.
+  - Eight tiles. **Product**, **Raw Material**, **Water**, **Environmental Monitoring** and **After Cleaning** set the category filter; **Media/GPT** and **Reference Strains** open their own tabs; **Custom Report** clears the filters.
 - Right results table (**Search Results**):
   - Results count chip: `"{totalCount} Records Found"`
   - Table action buttons: **Columns** (column toggle menu), **Export PDF**, and **Export CSV**
@@ -98,7 +98,7 @@ The **Record Search** tab is structured in a two-column layout:
    c. Click **Confirm**. The browser downloads the generated file (`microlims-results-{yyyyMMdd-HHmmss}.csv`).
 6. To export the current visible table page as a printable document, click **Export PDF**.
 7. To export or analyze specific approved results:
-   a. Select the checkboxes on the desired rows, or click **Select All {totalCount} Matching Records**. Only records with **Approved** status can be selected.
+   a. Select the checkboxes on the desired rows, or click **Select All {totalCount} Matching Records**. Ticking rows allows only **Approved** records. **Select All {totalCount} Matching Records** is different: it exports every record that matches the filters, whatever its approval status, although its tooltip says 'Approved'. Set **Approval Status** to **Approved** first if you need approved results only. **Export Selected PDF** after **Select All** contains at most the first 200 matching records and gives no warning.
    b. Click **Export Selected CSV**, **Export Selected PDF**, or **Analyze Selected** (to transfer the test code and item to the trending workspace).
 
 #### System behavior
@@ -117,6 +117,8 @@ The **Record Search** tab is structured in a two-column layout:
 - If an export request encounters a network or server error, the system reports: "Export failed."
 
 > **Note for reviewers:** The CSV export stops if matches exceed 10,000 rows without advance warning in the confirmation dialog. PDF and trend exports are produced in the browser and, as far as the code shows, are not recorded in the audit trail. (GAP-804)
+
+> **Note for reviewers:** **Select All Matching Records** exports records of any approval status despite its tooltip claiming Approved only, and the selected-PDF export is capped at 200 rows without warning. (GAP-906)
 
 > **Note for reviewers:** Reports read from a derived results table, and the administrative rebuild of that table has no screen. (GAP-803)
 
@@ -224,9 +226,9 @@ The **Trending & Analysis** tab is structured in a three-column layout:
 - Left column (**Analysis Criteria**):
   - **Parameter / Test** dropdown
   - **Product / Item** dropdown (or location cascade selector for Water, Environmental Monitoring, or After Cleaning)
-  - **Category** dropdown (**FinishedProduct**, **RawMaterial**, **Water**, **EnvironmentalMonitoring**)
+  - **Category** dropdown: the categories returned by the server; if the lists cannot be loaded, four default categories are shown (Finished Product, Raw Material, Water, Environmental Monitoring). (GAP-002, GAP-800)
   - **Date Range** dropdown (**Last 30 Days**, **Last 3 Months**, **Last 6 Months**, **Last 12 Months** [default])
-  - **Compare With** dropdown (**None** [default], **Previous Period**, **Product Comparison**, **Location Comparison**)
+  - **Compare With** dropdown (**None** [default], **Previous Period**, **Product Comparison**, **Location Comparison**). **Previous Period** can be selected but does not change the chart. (GAP-908)
   - Button: **Apply Criteria**
 - Center column (**Trend Chart & Statistics**):
   - Chart card header showing test name, subject name, selected period, and chip (**Live Numeric Trend ({unit})** or **Qualitative Detection Event Log**)
@@ -300,7 +302,7 @@ The **KPI / Performance** tab presents:
   4. **Retest rate**: percentage of decided samples with a retest-retained-sample decision (retests created from an earlier sample are not counted), and monthly sparkline.
   5. **OOS rate**: percentage of decided samples that carry an out-of-specification group. This is a sample-level field, so a viewer of one laboratory also sees an out-of-specification that arose in another laboratory. The retest rate is a subset of this rate. Monthly sparkline.
   6. **WIP backlog**: current snapshot count of open tests (pending or in progress) broken down by current step. The date filter does not apply and no prior period is shown; tests waiting for review or approval appear in backlog aging instead.
-  7. **Incubation reads on time**: percentage of completed incubation windows finished within 4 hours of the expected read time (media-challenge incubations are not counted), a warning chip for windows left out because no expected read time exists, and monthly sparkline.
+  7. **Incubation reads on time**: percentage of completed incubation windows read no later than 4 hours after the expected read time (earlier reads count as on time; media-challenge incubations are not counted), a warning chip for windows left out because no expected read time exists, and monthly sparkline.
   8. **EM excursion rate**: percentage of environmental monitoring readings at alert or action levels, with separate alert and action rates, and an adverse-trend indicator if there are at least 5 results and the alert rate exceeds 2.5% or the action rate exceeds 0.15%. Results without levels (for example detected/absent) and retests created from an earlier sample are not counted.
 - Category breakdown charts:
   - **Flow**: time spent in each testing stage (**Testing**, **Incubation**, **Review**, **Approval**), and backlog aging grouped into buckets (up to 50%, 50–100%, and over 100% of target; the target for review and approval is 24 hours).
@@ -387,7 +389,7 @@ Clicking **Workflow Profiles** on the KPI tab opens the **Workflow Profiles** di
 5. Click **Continue to sign**.
 6. Review the electronic signature statement:
    `"I am adding a workflow profile version for {scope}: {u} work units (1 unit = 1 standard analyst-hour), {t} target analyst days, effective {effectiveFrom}. Reason: {reason}"`
-   The system attaches the electronic signature meaning **MasterDataChanged**.
+   The system attaches an electronic signature (meaning: master data changed).
 7. Enter your login password and click confirm.
 8. The version is saved and becomes active on its effective date.
 
@@ -425,3 +427,6 @@ Two administrative functions behind Reports have no screen in the application:
 - **Analyst Availability and Section Settings**: MicroLIMS does not provide a user interface screen for configuring laboratory section capacity parameters (standard daily hours, working weekdays, forward load horizon) or individual analyst availability adjustments (such as leave or training). (GAP-802)
 
 <!-- Review log (Sonnet): 46 corrections; invented items removed: route paths, permission codes, gap/flag codes, SCR id, endpoint path, database-trigger and enum/class names; callouts added: none missing (GAP-800/801/802/803/804/805/806/045/817/820 present, strengthened GAP-800/801/804) -->
+<!-- Phase 13 (agy): applied F-C05, F-C07, F-C08, F-C09, F-C10, F-C17 -->
+
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

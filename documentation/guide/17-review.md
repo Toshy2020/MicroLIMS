@@ -13,13 +13,13 @@ All current (non-superseded) tests of the laboratory section must reach the **Re
 #### System behavior
 - When the last test of a laboratory section reaches the **Ready** step, the section moves from **In testing** to **Under review**.
 - The system records an event in the sample Workflow History with the text "All tests completed - automatically submitted for review". No electronic signature is recorded for this automatic step.
-- The dashboard counts the sample for users holding the Reviewer, Section Head or System Administrator role by default: "{n} sample(s) awaiting review".
+- The dashboard counts the sample for users whose role is, or is based on, Reviewer, Section Head or System Administrator (the count follows the role type, not the permission): "{n} sample(s) awaiting review".
 
 > **Note for reviewers:** Dashboard review notifications count samples awaiting review rather than individual test orders as described in earlier specifications. (GAP-309)
 
 #### Status
 - The laboratory section changes from **In testing** to **Under review**.
-- The sample status is recomputed from all sections: if no other section is still in testing, the sample shows the **Under Review** lifecycle badge.
+- The sample status is recomputed from all sections: if no other section is still in testing, the sample shows the **Under Review** lifecycle badge (the sample register shows these as Pending Review / Pending Approval; see §11.1).
 
 #### Important rules
 - Automatic submission happens separately for each laboratory section of a sample tested by more than one laboratory. One section can enter review while another continues testing.
@@ -109,3 +109,6 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 The section waits for the Section Head's release decision (see §19 Approval). If a count test needs a recount or re-entry, return it to the analyst before you sign the review (see §18 Return to Analyst, Rework and Retest).
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: "active membership" wording, SysAdmin-only unrestricted access, raw readings/incubation/analyst-comment detail in the summary, enum/record/database/transaction wording, test order status code; callouts added: none missing (GAP-017/018, GAP-312, GAP-309 present) -->
+<!-- Phase 13 (agy): applied F-B05, F-B11 -->
+
+<!-- Phase 13 review (Sonnet): F-B05, F-B11 verified; no invented items. -->

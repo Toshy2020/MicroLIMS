@@ -84,7 +84,7 @@
 
 ### MOD-PREP-001 Sample preparation
 - Purpose: record preparation before testing starts. Product / RM / PM: diluent and neutraliser, signed. EM: room grid. After Cleaning: machine-part grid. Water: sampling-point grid plus storage condition. Grouped preparation for several samples. [src: frontend/src/modules/testPreparation/PreparationDialog.tsx:70-101; backend/MicroLIMS.Application/Services/SamplePreparationService.cs]
-- Status: IMPLEMENTED. Item preparation configuration and approval (WF-PREP-002) backend read in Phase 3 (BR-PREP-008..010); UI screen still not located (GAP-214).
+- Status: IMPLEMENTED. Item preparation configuration and approval (WF-PREP-002) backend read in Phase 3 (BR-PREP-008..010); the approval screen is the Items > Preparation Configuration tab (**Approve**); remaining question in GAP-214 (corrected in Phase 13, RECONCILIATION.md).
 - FP-section tests have no preparation stage: a sample whose tests are all in section code "FP" is Ready at receipt; a mixed sample needs preparation only for its non-FP tests. [src: backend/MicroLIMS.Application/Workflows/PreparationRules.cs:L7-L30] (verified, BR-PREP-011)
 - Lab scope: preparation endpoints check section access (`EnsureSampleAccessAsync`) but have no permission policy beyond being signed in (EM, After Cleaning and Water receive/prepare endpoints have neither; see roles). [src: backend/MicroLIMS.API/Controllers/SamplePreparationController.cs:L45; EMController.cs:L33-L35]
 

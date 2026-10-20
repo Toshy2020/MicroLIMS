@@ -159,7 +159,7 @@ The banner disappears and the tests can be opened for media selection and incuba
 Select the rooms, sampling points or machine parts that were monitored, so that the system creates the laboratory tests for Environmental Monitoring, Water and After Cleaning samples.
 
 #### Who can use it
-Any signed-in user with access to the sample's laboratory section. No separate permission is needed.
+Any signed-in user. The system checks neither a permission nor the user's laboratory assignment. The user who prepares the sample becomes the assigned analyst of every test it creates, and so cannot review or approve that sample. (GAP-212, GAP-227)
 
 #### Before you start
 - The sample's preparation status is **Sample Needs Preparation**.
@@ -353,14 +353,16 @@ In the test workflow dialog or the pathogen incubation view:
 #### How to use it
 1. Open the workflow dialog of the incubating test.
 2. Click **Skip Wait**.
-3. Check that the dialog shows "Minimum wait time was skipped by a Section Head/System Administrator."
-4. Record the plate counts or observations.
+3. Confirm the question "Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
+4. Check that the dialog shows "Minimum wait time was skipped by a Section Head/System Administrator."
+5. Record the plate counts or observations.
 
 #### System behavior
 - The system records who skipped the wait and when, on the open incubation.
 - The time checks of that incubation are bypassed on every result path.
 - Incubation hours, temperatures and the incubator are not changed.
 - No reason, password or electronic signature is asked.
+- The notice always reads "Section Head/System Administrator", whatever role the user has; the user who skipped the wait is recorded on the incubation.
 
 #### Validation
 "No incubation window is currently open."
@@ -390,7 +392,13 @@ Requires the *Manage items* permission (by default: Section Head, System Adminis
 The item must exist.
 
 #### What you see
-No dedicated screen for editing or approving the configuration has been located. The same values (**Sample Amount**, **Technique**, **Filtration Volume (ml)**, **Washing Volume (ml)**, **Diluent**, **Neutralizer**) and the chip **Pending Approval** or **Approved** appear in the **Preparation** dialog (see 14.2).
+The configuration is kept on the item: **Items** > (item) > **Preparation Configuration** tab (see §31.2 for the fields and buttons). A pending configuration shows the chip **Pending Approval** and the button **Approve**.
+
+#### How to use it
+1. Open **Items** and select the item.
+2. Open **Preparation Configuration**.
+3. Check the values.
+4. Click **Approve**.
 
 #### System behavior
 - The first manual preparation of an item, or any saved change, sets the configuration to **Pending Approval**. Editing an existing configuration clears the earlier approval.
@@ -405,7 +413,7 @@ No dedicated screen for editing or approving the configuration has been located.
 - "Item {id} has no preparation configuration to approve."
 - "This preparation configuration is already approved."
 
-> **Note for reviewers:** The screen and the queue for approving item preparation configurations have not been located, and the system does not check that the person who approves differs from the analyst whose entry created the configuration. (GAP-214)
+> **Note for reviewers:** Approval is a single unsigned click and can be made by the person who saved the configuration; the configuration is used for testing before approval. (GAP-214, GAP-704, GAP-707)
 
 #### Status
 **Pending Approval** becomes **Approved**.
@@ -414,3 +422,5 @@ No dedicated screen for editing or approving the configuration has been located.
 Later samples of the item show the configuration in the confirm form (see 14.2).
 
 <!-- Review log (Sonnet): 62 corrections; invented items removed: route paths, section code names, class names, enum and audit codes, unsupported audit reason text, unsupported "Failed to load the sample register" and "Could not start testing" errors, "system administrators hold all roles"-type access wording, approval screen description; callouts added: GAP-203, GAP-204, GAP-213 (GAP-212, 214, 219, 220, 225, 226, 227, 228 kept) -->
+<!-- Phase 13 (agy): applied F-A08, F-A09, F-A11 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

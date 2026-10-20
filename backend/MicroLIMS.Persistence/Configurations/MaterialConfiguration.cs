@@ -29,6 +29,8 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.HasIndex(m => m.Code);
         builder.HasIndex(m => m.MaterialType);
         builder.HasIndex(m => m.MediaProductId);
+        builder.HasIndex(m => m.BatchNumber);
+        builder.HasIndex(m => m.MaterialName);
         // WS-nn/MM/yyyy codes are generated (WorkingStandardService.ApproveAsync);
         // other types reuse master-entry codes, so the uniqueness is WS-only.
         builder.HasIndex(m => m.Code, "IX_Materials_WorkingStandardCode").IsUnique().HasFilter("\"MaterialType\" = 12");

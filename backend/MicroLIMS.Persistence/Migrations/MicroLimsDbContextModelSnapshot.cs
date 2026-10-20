@@ -5425,9 +5425,13 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BatchNumber");
+
                     b.HasIndex("Code");
 
                     b.HasIndex("MaterialMasterEntryId");
+
+                    b.HasIndex("MaterialName");
 
                     b.HasIndex("MaterialType");
 
@@ -8018,7 +8022,11 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("ApprovedByUserId");
 
+                    b.HasIndex("BatchNumber");
+
                     b.HasIndex("CauseOfTestingId");
+
+                    b.HasIndex("ControlNumber");
 
                     b.HasIndex("DepartmentId");
 

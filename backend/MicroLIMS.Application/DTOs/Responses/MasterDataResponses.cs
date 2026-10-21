@@ -179,6 +179,10 @@ public class EmDepartmentResponse
     public string Name { get; init; } = null!;
     public string Class { get; init; } = null!;
     public string TestingFrequency { get; init; } = null!;
+    public FrequencyType? FrequencyType { get; init; }
+    public int? FrequencyInterval { get; init; }
+    public DayOfWeek? SamplingWeekday { get; init; }
+    public int? FrequencyAnchorMonth { get; init; }
 
     public static EmDepartmentResponse From(Department e) => new()
     {
@@ -188,6 +192,10 @@ public class EmDepartmentResponse
         Name = e.Name,
         Class = e.Class,
         TestingFrequency = e.TestingFrequency,
+        FrequencyType = e.FrequencyType,
+        FrequencyInterval = e.FrequencyInterval,
+        SamplingWeekday = e.SamplingWeekday,
+        FrequencyAnchorMonth = e.FrequencyAnchorMonth,
     };
 }
 
@@ -199,6 +207,12 @@ public class RoomResponse
     public string Name { get; init; } = null!;
     public int DepartmentId { get; init; }
     public string GradeClassification { get; init; } = null!;
+    public RoomKind Kind { get; init; }
+    public int? ParentRoomId { get; init; }
+    public FrequencyType? FrequencyType { get; init; }
+    public int? FrequencyInterval { get; init; }
+    public DayOfWeek? SamplingWeekday { get; init; }
+    public int? FrequencyAnchorMonth { get; init; }
 
     public static RoomResponse From(Room e) => new()
     {
@@ -208,6 +222,12 @@ public class RoomResponse
         Name = e.Name,
         DepartmentId = e.DepartmentId,
         GradeClassification = e.GradeClassification,
+        Kind = e.Kind,
+        ParentRoomId = e.ParentRoomId,
+        FrequencyType = e.FrequencyType,
+        FrequencyInterval = e.FrequencyInterval,
+        SamplingWeekday = e.SamplingWeekday,
+        FrequencyAnchorMonth = e.FrequencyAnchorMonth,
     };
 }
 
@@ -265,6 +285,10 @@ public class WaterSamplingPointResponse
     public string TestingFrequency { get; init; } = null!;
     public List<string> AssignedTestCodes { get; init; } = new();
     public int? WaterDepartmentId { get; init; }
+    public FrequencyType? FrequencyType { get; init; }
+    public int? FrequencyInterval { get; init; }
+    public DayOfWeek? SamplingWeekday { get; init; }
+    public int? FrequencyAnchorMonth { get; init; }
 
     public static WaterSamplingPointResponse From(WaterSamplingPoint e) => new()
     {
@@ -276,6 +300,10 @@ public class WaterSamplingPointResponse
         TestingFrequency = e.TestingFrequency,
         AssignedTestCodes = e.AssignedTestCodes.ToList(),
         WaterDepartmentId = e.WaterDepartmentId,
+        FrequencyType = e.FrequencyType,
+        FrequencyInterval = e.FrequencyInterval,
+        SamplingWeekday = e.SamplingWeekday,
+        FrequencyAnchorMonth = e.FrequencyAnchorMonth,
     };
 }
 

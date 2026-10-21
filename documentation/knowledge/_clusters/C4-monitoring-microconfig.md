@@ -1,0 +1,927 @@
+# C4 Monitoring & micro configuration
+
+## modules
+
+### MOD-EM-001 Environmental Monitoring configuration
+- Purpose: configure EM departments (name, class, testing frequency), rooms (with grade A to D) and per-room test configurations (test type, test code, alert / action / specification limits, unit). [src: frontend/src/modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage.tsx:129; backend/MicroLIMS.Application/Services/MasterData/EnvironmentalMonitoringMasterDataService.cs:L25-L181] (verified)
+- Sub-features: Departments; Rooms; Room tests (test type, test, limits, unit). [src: environmentalMonitoring/components/EmPanels.tsx:33-240]
+- Status: IMPLEMENTED (configuration and API). The EM receive and preparation flows are in C2 (WF-SAMPLE-006, MOD-PREP-001).
+- Lab scope: microbiology. The page is guarded by `MasterData.Manage`; the three write families (department, room, room test configuration) are `[Authorize(Policy = MasterData.Manage)]`; the GET endpoints are `[Authorize]` only. Not laboratory-section scoped. [src: backend/MicroLIMS.API/Controllers/EnvironmentalMonitoringMasterDataController.cs:L21-L88] (verified)
+- "Testing frequency" is informational: the field is stored as text and no scheduling or reminder code uses it. [src: backend/MicroLIMS.Domain/Entities/Department.cs:L9; `git grep TestingFrequency` over backend returned only the entity, DTOs and master-data services] (verified)
+
+### MOD-WATER-001 Water configuration
+- Purpose: configure water systems (entity WaterDepartment, name only), sample locations (entity WaterSamplingPoint: point code, point name, water system, testing frequency, assigned test codes) and per-location limits for the assigned count tests (entity SamplingConfiguration). [src: frontend/src/modules/laboratoryConfiguration/water/WaterConfigPage.tsx:142; backend/MicroLIMS.Application/Services/MasterData/WaterMasterDataService.cs:L16-L157; backend/MicroLIMS.Domain/Entities/WaterDepartment.cs:L1-L13] (verified)
+- Sub-features: Water systems (Add water system, Rename, delete); Sample locations (one side panel holds details, assigned tests and limits); filter buttons "All ({n})" and "Needs attention ({n})"; summary tiles "Water systems", "Sample locations", "Missing limits", "No tests assigned". [src: water/WaterConfigPage.tsx:140-200]
+- Status: IMPLEMENTED. Water receive, preparation and results are in C2 (WF-SAMPLE-007, WF-COUNT-002).
+- Lab scope: microbiology. Write endpoints (point, department, sampling configuration) are `MasterData.Manage`; GET endpoints `[Authorize]` only. [src: backend/MicroLIMS.API/Controllers/WaterMasterDataController.cs:L21-L87] (verified)
+
+### MOD-AC-001 After Cleaning configuration
+- Purpose: configure machines, machine parts, swab and rinse count tests per part (with limits), and pathogen (presence / absence) tests per part. [src: frontend/src/modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage.tsx:151; backend/MicroLIMS.Application/Services/MasterData/AfterCleaningMasterDataService.cs:L16-L172] (verified)
+- Sub-features: Machines; Parts; Count tests per part (sample type Swab or Rinse, test, limits, unit); Pathogen tests per part (multi-select). [src: afterCleaning/components/AcPanels.tsx:30-270; AcPartCard.tsx:58-110]
+- Status: IMPLEMENTED. After Cleaning receive and preparation are in C2 (WF-SAMPLE-008).
+- Lab scope: microbiology. Writes `MasterData.Manage`; GET `machines` and `machine-part-configurations` are `[Authorize]` only (there is no GET endpoint for machine parts alone; parts come with the machine list). [src: backend/MicroLIMS.API/Controllers/AfterCleaningMasterDataController.cs:L21-L82] (verified)
+
+### MOD-ORG-001 Organisms master
+- Purpose: the canonical organism list (scientific name, ATCC number, common name, description) referenced by media configuration challenges, media evaluation challenges, cryovials and materials, and by Test Master step "target organism". [src: frontend/src/modules/laboratoryConfiguration/masterDataSimple/OrganismsPage.tsx:90-91; backend/MicroLIMS.Application/Services/MasterData/OrganismMasterDataService.cs:L16-L81; backend/MicroLIMS.Persistence/Configurations/TestWorkflowStepConfiguration.cs:L24-L27]
+- Status: IMPLEMENTED (the "COVERED" label in the application map is kept as is). Not laboratory-scoped; the list is shared. Writes `MasterData.Manage`; GET `[Authorize]`. [src: backend/MicroLIMS.API/Controllers/OrganismMasterDataController.cs:L21-L48] (verified)
+
+### MOD-MEDIACFG-001 Media Configurations
+- Purpose: configure each dehydrated medium as a media product (name, unique code that prefixes lot numbers), its incubation conditions (hours and temperature range) and its evaluation configuration (Growth Promotion or Indication / Inhibition, with challenge organisms and recovery limits). [src: frontend/src/modules/laboratoryConfiguration/media/MediaConfigurationPage.tsx:138-139; backend/MicroLIMS.Application/Services/MediaProductService.cs:L13-L235; MediaIncubationConditionService.cs:L24-L166; MasterData/MediaMasterDataService.cs:L15-L290] (verified)
+- Sub-features: media products (add, rename, change code (signed), delete); incubation conditions per product; one evaluation configuration per product; challenge organisms.
+- Status: IMPLEMENTED (PARTIAL in the application map: lot preparation and evaluation are in MOD-MEDIA-001, C5).
+- Lab scope: writes need `MasterData.Manage`; the product code change instead needs the role type Section Head (see roles). The page and the "Change code" button gate differently: the page needs the permission, the button needs `role === "SectionHead"`. [src: backend/MicroLIMS.API/Controllers/MediaMasterDataController.cs:L38-L107; frontend/src/modules/laboratoryConfiguration/media/MediaConfigurationPage.tsx:L23-L24; components/MediaProductWorkspace.tsx:L191] (verified)
+
+### MOD-EQUIP-002 Equipment configuration
+- Purpose: configure the microbiology equipment used by the laboratory (incubators, autoclaves, cabinets, water baths and others): master record, an optional link to an inventory asset, incubator set point (with reason and history) and autoclave programs (loads) with cycle time, temperature and history. [src: frontend/src/modules/laboratoryConfiguration/masterDataSimple/EquipmentPage.tsx:555-556; backend/MicroLIMS.Application/Services/MasterData/EquipmentMasterDataService.cs:L16-L149; backend/MicroLIMS.Application/Services/EquipmentConfigurationService.cs:L93-L430] (verified)
+- Sub-features: tabs "Configured Equipment", "Autoclave Programs / Loads ({n})", "Configuration History"; buttons "Add Equipment" and "Select from Inventory"; "Edit Equipment"; "Edit Set Point"; "Add Program / Load". [src: EquipmentPage.tsx:564-601, 763-766, 884-887, 942]
+- Status: IMPLEMENTED. Physicochemical instruments (HPLC, ICP-OES, pH meter, balance) are configured on the separate FP Instruments page (MOD-EQUIP-002 SCR-EQUIP-003 in the map; read in C6) and are filtered out of this page. [src: EquipmentPage.tsx:63-69, 686]
+- Lab scope: the page offers only microbiology equipment types; the server list (`GET equipment`, `GET equipment/{id}`) is filtered to the caller's laboratory sections (`IUserSectionScopeService`; a System Administrator is unrestricted). [src: EquipmentPage.tsx:53-69; EquipmentMasterDataService.cs:L27-L46; backend/MicroLIMS.Application/Services/UserSectionScopeService.cs:L20-L30] (verified)
+- Equipment inventory is a separate module (C5 / MOD-EQUIP-001). On this page the inventory dialog only pre-fills the Add Equipment form (see SCR-EQUIP-002); the API `link-inventory` endpoint is not called by the page. [src: EquipmentPage.tsx:409-433, 1549-1597; `git grep linkInventory` in frontend returns only the service definition] (verified)
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+- Purpose: define microbiology tests (code, display name, laboratory section, workflow type), their ordered workflow steps (each with step type, target organism, step media with a chosen incubation condition, optional second incubation stage and phenotypic test types) and freeze or unfreeze tests. [src: frontend/src/modules/laboratoryConfiguration/masterDataSimple/TestMasterPage.tsx:35, 655-659; backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs:L17-L46; TestWorkflowStepMasterDataService.cs:L16-L333] (verified)
+- Scope in this module: the microbiology page only (route `/laboratory-configuration/test-master`, `lab="micro"`). The FP and RM & PM Test Masters (titration, HPLC, ICP, dissolution, disintegration, weight variation, measurement, gravimetric, qualitative, stage replicates) are in C7 and are not described here.
+- Microbiology workflow types: "Count Test" (CountTest) and "Observation" (Observation); both are step-driven. [src: frontend/.../testMaster/testMasterConstants.ts:L8-L25; backend/MicroLIMS.Application/Services/MasterData/TestWorkflowStepMasterDataService.cs:L32; backend/MicroLIMS.Domain/Enums/WorkflowType.cs:L5-L6] (verified)
+- Status: IMPLEMENTED. Test execution (step chains, incubation, results) is in C2 (WF-COUNT-001, WF-PATH-001..003).
+- Lab scope: a microbiology test belongs to the laboratory section chosen in the form; the test update is refused for a user outside the test's section ("This test belongs to a laboratory section you are not assigned to."). Freeze, unfreeze and all step writes carry no such check. [src: TestDefinitionMasterDataService.cs:L393-L394, L796-L813; TestWorkflowStepMasterDataService.cs:L25-L333] (verified)
+
+## screens
+
+### SCR-EM-001 Environmental Monitoring (configuration)
+- Route `/laboratory-configuration/environmental-monitoring`; guard `MasterData.Manage`. Title "Environmental Monitoring"; subtitle "Departments, their rooms and grades, and per-room test limits."; button "Retry" on load error. [src: frontend/src/routes/AppRoutes.tsx:232; EMConfigPage.tsx:129, 147]
+- Header buttons "Add department" and "Add room"; summary tiles "Departments", "Rooms", "Tests configured", "Rooms without tests"; left list with search "Find a department or room" (placeholder "e.g. Filling"; empty text `No departments yet. Use “Add department” to create one.`); right panel "Select a department" until one is chosen. For the selected department: buttons "Edit department", delete icon (tooltip "Delete department"), room cards, and a dashed button "Add room to {department}". Load-error text "Could not load the environmental monitoring configuration." with button "Retry". [src: frontend/src/modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage.tsx:53, 129-225] (verified)
+- Room cards list their tests. Empty room chip "No tests configured"; count text "{n} test" / "{n} tests"; test button "Add first test" (no tests) or "Add test". [src: environmentalMonitoring/components/EmRoomCard.tsx:32-88] (verified)
+- Row/icon tooltips and aria labels: "Delete department" (`Delete {name}`); "Edit room" / "Delete room" (`Edit {room}`, `Delete {room}`); "Add test to {room}" button; "Edit test" / "Delete test" (per test). [src: EMConfigPage.tsx:198-215; EmRoomCard.tsx:40-89]
+- Dialog: Department ("Add department" or "Edit {name}"; save button "Add department" or "Save changes"). Fields: "Name" (required), "Class" (placeholder "e.g. Grade C"), "Testing frequency" (autocomplete; placeholder "e.g. Weekly"; options Daily, Weekly, Fortnightly, Monthly, Quarterly, Annually). [src: EmPanels.tsx:45-68; frontend/src/components/configHierarchy/FrequencyField.tsx:3, 14]
+- Dialog: Room ("Add room" or "Edit {name}"). Fields: "Room name" (required), "Department" (select, required), "Grade" (select, options "Grade A", "Grade B", "Grade C", "Grade D"; default "A" for a new room). [src: EmPanels.tsx:83, 91, 114-135; emConfigTypes.ts:44]
+- Dialog: Test ("Add test" or "Edit test"; overline shows the room name; save "Add test" or "Save changes"). Section "1 · What is sampled": "Test type" (select: "Passive air sample", "Active air sample", "Surface sample", "Compressed air", "Drains"); "Test" (test code picker sourced from Test Master). Section "2 · Limits" with hint "Leave a limit blank if it does not apply." (or, for unit-required types, "{type} reports the unit you enter here, so it is required."). Limit fields: "Alert", "Action", "Specification", "Unit" (unit placeholder per type, e.g. "e.g. CFU/m³"; "Unit" is marked required for Active air sample, Compressed air and Drains). [src: EmPanels.tsx:150-240; emConfigTypes.ts:33-39; components/configHierarchy/LimitFields.tsx:40-51]
+- Test picker (same picker is used in the After Cleaning count test dialog): the options are active Test Master tests shown as "{code}: {display name}"; typing a code that is not in the Test Master offers `+ Add "{code}" to Test Master`; choosing it creates the Test Master definition at once, before the EM test is saved, with the code as its display name and without a workflow type, so the server default workflow type Observation applies and the section is resolved from the user's section membership (error "Choose a laboratory section - you belong to more than one." or "Choose a laboratory section." for a System Administrator). See GAP-416. [src: frontend/src/components/TestCodePicker.tsx:21-62; frontend/src/services/masterDataOptions.ts:253-258; backend/MicroLIMS.Application/DTOs/MasterDataRequests.cs:L170-L174; backend/MicroLIMS.Application/Services/UserSectionScopeService.cs:L104-L143] (verified)
+- Limit order warning (advisory, does not block save): "Alert limit is higher than the action limit.", "Action limit is higher than the specification.", "Alert limit is higher than the specification." followed by "Check the values before saving." Shown only when all filled values are plain numbers. [src: frontend/src/components/configHierarchy/LimitFields.tsx:15-23, 53-56]
+- Delete confirmations (ConfirmationDialog): `Delete department "{name}"? This cannot be undone.`; `Delete room "{name}"? This cannot be undone.`; `Remove the {type} / {code} test from {room}?`. [src: EMConfigPage.tsx:118-124, 252-254]
+- Save success messages: `"{name}" added.` / `"{name}" updated.` (department); `Room "{name}" added.` / `Room "{name}" updated.` (room); `Test added to {room}.` / `Test updated for {room}.` (test). [src: EmPanels.tsx:39, 42, 102; EmPanels.tsx:185]
+- Save-time client messages: "Name is required." (department); "Room name and department are required." (room); "Choose the test to run." (test, no code chosen); "Unit is required for {type label}." (test, unit-required type with blank unit). Server errors shown via `errorText(e, "Could not save this test.")`. [src: EmPanels.tsx:33, 96, 176, 185-195]
+- Endpoints: `GET /api/masterdata/departments`, `POST/PUT/DELETE /api/masterdata/departments[/{id}]`, `GET/POST/PUT/DELETE /api/masterdata/rooms[/{id}]`, `GET /api/masterdata/room-test-configurations?roomId=`, `POST/PUT/DELETE /api/masterdata/room-test-configurations[/{id}]`. [src: EnvironmentalMonitoringMasterDataController.cs:L32-L88; frontend/src/modules/laboratoryConfiguration/environmentalMonitoring/services/EMConfigService.ts:4-24]
+
+### SCR-WATER-001 Water (configuration)
+- Route `/laboratory-configuration/water`; guard `MasterData.Manage`. Title "Water"; subtitle "Water systems, their sample locations, assigned tests and per-location limits."; header buttons "Add water system" and "Add sample location" (the second is disabled until at least one water system exists); summary tiles "Water systems", "Sample locations", "Missing limits", "No tests assigned"; left list with search "Find a system or location" (placeholder "e.g. PW-02 or WFI"; empty text `No water systems yet. Use “Add water system” to create one.`); right panel "Select a water system" until one is chosen, then buttons "Rename" and the delete icon (tooltip "Delete water system") and the filter buttons "All ({n})" / "Needs attention ({n})". Load-error text "Could not load the water configuration." with button "Retry". [src: AppRoutes.tsx:231; WaterConfigPage.tsx:55, 140-225] (verified)
+- Water system (dialog title "Add water system" or "Rename {name}"; save "Add water system" or "Save changes"). Field: "Name" (client message "Name is required."). [src: water/components/WaterDepartmentPanel.tsx:28, 52-62]
+- Sample location (dialog title "Add sample location" or "Edit sample location {code}"; save "Add sample location" or "Save changes"). Section "1 · Location details": "Point code" (required), "Water system" (select, required), "Point name" (placeholder "e.g. Manufacturing hall tap"), testing frequency (same autocomplete as EM), and assigned tests (multi-select test picker). Client message: "Point code and water system are required." Server message shown as-is when a save fails (`e.response.data.message`, fallback "Could not save this sample location."). [src: water/components/WaterLocationPanel.tsx:71-72, 124-168; WaterLocationPanel.tsx:88]
+- Section "2 · Assigned tests", hint "Every test here is ordered when a sample from this location is received." (the hint says "received"; the server creates the test orders at preparation, see C2 WF-SAMPLE-007; UI text noted, GAP-418). Picker label "Assigned tests". [src: WaterLocationPanel.tsx:160-162; backend/MicroLIMS.Application/Workflows/WaterWorkflowEngine.cs:L66-L161] (verified)
+- Section "3 · Limits for count tests", hint "One row per assigned count test. Presence/absence tests need no limits." One row per assigned count test (a test counts as a count test when its Test Master workflow type is Count Test); each row has "Alert", "Action", "Specification", "Unit" (placeholder "e.g. CFU/mL"). If no count test is assigned: "Assign a count test (e.g. TAMC-Water) to set limits." On save, the location is saved first, then one limit row per count test: an existing row is updated only if a value changed, a new row is created only if at least one of Alert / Action / Specification is filled; a row is never deleted from this panel (including when its test is un-assigned). If a limit row fails: "The location was saved, but some limits were not. {code}: {message}". Save button "Save changes" / "Add sample location"; success text `Sample location {code} updated.` / `Sample location {code} added.`. [src: WaterLocationPanel.tsx:30-60, 95-120, 163-190] (verified)
+- List: each location row has tooltips "Edit location" (`Edit {code}`), "Delete location" (`Delete {code}`), "Show limits" / "Hide limits"; a row with no limit shows chip "Limits not set". [src: water/components/WaterLocationList.tsx:97-132]
+- Delete confirmations: `Delete water system "{name}"? This cannot be undone.`; `Delete sample location "{code}"? This cannot be undone.`. Success texts `"{name}" deleted.` and `Sample location {code} deleted.`; failure texts (server message first) "Could not delete this water system." / "Could not delete this sample location.". [src: water/WaterConfigPage.tsx:117-135, 294, 301] (verified)
+- Endpoints: `/api/masterdata/water-departments` (GET/POST/PUT/DELETE); `/api/masterdata/water-sampling-points` (GET/POST/PUT/DELETE); `/api/masterdata/water-sampling-configurations` (GET/POST/PUT/DELETE). [src: frontend/src/modules/laboratoryConfiguration/water/services/WaterConfigService.ts:9-29; backend/MicroLIMS.API/Controllers/WaterMasterDataController.cs]
+
+### SCR-AC-001 After Cleaning (configuration)
+- Route `/laboratory-configuration/after-cleaning`; guard `MasterData.Manage`. Title "After Cleaning"; subtitle "Machines, their parts, and the swab, rinse and pathogen tests run on each part."; header buttons "Add machine" and "Add machine part" (the second is disabled until a machine exists); left list with search for machines; for the selected machine: button "Rename", delete icon (tooltip "Delete machine"), one card per part, and a dashed button "Add part to {machine}"; each part card has "Count tests" (button "Add swab / rinse test"; icons "Edit test" / "Remove test") and "Pathogen tests" (chips; button "Add pathogen tests" or "Edit pathogen tests"). Empty text `No machines yet. Use “Add machine” to create one.`; load-error text "Could not load the after-cleaning configuration." with button "Retry". [src: AppRoutes.tsx:233; AfterCleaningConfigPage.tsx:151, 169]
+- Machine (dialog "Add machine" or "Rename {name}"; save "Add machine" or "Save changes"). Field "Machine name" (required, placeholder "e.g. Filling line 2"; client message "Name is required."). [src: afterCleaning/components/AcPanels.tsx:30, 52-59]
+- Part (dialog "Add machine part" or "Edit {name}"; save "Add part" or "Save changes"). Fields "Part name" (required, placeholder "e.g. Filling needles") and "Machine" (select, required). Client message "Part name and machine are required." [src: AcPanels.tsx:87, 105-114]
+- Count test (dialog "Add swab / rinse test" or "Edit count test"). Section "1 · What is sampled": "Sample type" (select: "Swab" with unit hint "CFU/25 cm2"; "Rinse" with unit hint "CFU/mL"), "Test" (test code picker). Section "2 · Limits", hint "Results for {swab|rinse} samples are reported in {unit hint}."; limit fields "Alert", "Action", "Specification", "Unit" (the unit placeholder is the unit hint of the sample type). Save button "Add test" / "Save changes"; success text `Test added to {part}.` / `Test updated for {part}.`; client message "Choose the test to run."; server errors shown, fallback "Could not save this test.". The unit typed here is used at result entry when it is not blank (it overrides the derived unit; see BR-EM-004 / BR-COUNT-012 in C2). [src: AcPanels.tsx:134-200; afterCleaning/acConfigTypes.ts:30-33; backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs:L511-L512] (verified)
+- Pathogen tests (dialog title "Pathogen tests"; section "Pathogens tested on this part"; a multi-select "Pathogen tests" picker that offers Test Master tests with workflow type Observation, placeholder "e.g. E. coli, Salmonella", empty text "No pathogen tests in the Test Master"; section hint "Choose as many as needed. Each is a presence/absence test with its own test order - no numeric limits."; button "Save pathogen tests"). Save adds each newly ticked pathogen as its own configuration and removes each unticked one. Partial failure text: "Some changes were not saved. {code}: {message}". Success text: "Pathogen tests updated for {part}." Each pathogen is saved with sample type "Pathogen", the pathogen flag set, and empty limits and unit. [src: AcPanels.tsx:203-290; afterCleaning/components/PathogenPicker.tsx:7-40] (verified)
+- Tooltips and aria labels: "Rename part" (`Edit {part}`), "Delete part" (`Delete {part}`), "Edit test", "Remove test", "Delete machine" (`Delete {machine}`). Delete confirmations: `Delete machine "{name}"? This cannot be undone.`; `Delete part "{name}"? This cannot be undone.`; `Remove the {Swab|Rinse} / {code} test from {part}?`. Success texts `"{name}" deleted.`, `Part "{name}" deleted.`, `Test removed from {part}.`; failure fallback "Could not delete this record." (the server message is shown first; the pathogen test removal in the pathogen dialog reuses the same server guard BR-AC-004). [src: afterCleaning/components/AcPartCard.tsx:44-71; AfterCleaningConfigPage.tsx:120-149] (verified)
+- Endpoints: `/api/masterdata/machines` (GET/POST/PUT/DELETE); `/api/masterdata/machine-parts` (POST/PUT/DELETE); `/api/masterdata/machine-part-configurations` (GET/POST/PUT/DELETE). [src: frontend/src/modules/laboratoryConfiguration/afterCleaning/services/AfterCleaningConfigService.ts:4-21]
+
+
+### SCR-ORG-001 Organisms
+- Route `/laboratory-configuration/organisms`; guard `MasterData.Manage`. Title "Organisms"; subtitle "The canonical organism list referenced by Media Challenge Specs, Materials, and Cryovials." [src: frontend/src/routes/AppRoutes.tsx:227; frontend/src/modules/laboratoryConfiguration/masterDataSimple/OrganismsPage.tsx:90-91]
+- Form (inline, above the table): "Scientific Name" (placeholder "e.g. Escherichia coli"), "ATCC No." (placeholder "e.g. 25922"), "Common Name (optional)", "Description (optional)"; buttons "Add Organism" or "Save Changes" (when editing) and "Cancel" (when editing). [src: OrganismsPage.tsx:104-110]
+- Client message: "Scientific Name is required." (empty check only). Success messages: `Organism "{name}" added.` / `Organism "{name}" updated.` [src: OrganismsPage.tsx:58-68]
+- Table columns: "Scientific Name" (sortable), "ATCC No." (sortable), "Common Name" (sortable; "—" when empty), "Description" (wraps; "—" when empty). Row menu: "Edit" and "Delete" (danger). Delete confirmation: `Delete organism "{name}"? This cannot be undone.` [src: OrganismsPage.tsx:35-40, 127-128, 140]
+- Endpoints: `GET /api/masterdata/organisms` (any signed-in user); `POST`, `PUT /{id}`, `DELETE /{id}` (`MasterData.Manage`). [src: frontend/src/services/masterDataOptions.ts:244-249; backend/MicroLIMS.API/Controllers/OrganismMasterDataController.cs:L33-L48]
+
+### SCR-MEDIACFG-001 Media Configurations
+- Route `/laboratory-configuration/media-configurations`; guard `MasterData.Manage`. Title "Media Configurations"; subtitle "Configure each dehydrated medium and how it is used." [src: frontend/src/routes/AppRoutes.tsx:222-230; MediaConfigurationPage.tsx:23, 138-139]
+- Left list: media products (`MediaProductList`). Row buttons: aria "Edit media product" and "Delete media product"; tooltips "Rename Product" and "Delete Product". Filter bar `MediaProductFilterBar` (search by media name or code, with a reset). Header button "Add Media Product" (shown only to a holder of `MasterData.Manage`). List title "Configured Media ({n})". Empty text: "Loading media products...", "No media products yet. Add one to start configuring it." (manager) / "No media products have been configured yet." (non-manager), "No media products match your search.". Delete confirmation: `Delete media product "{name}" ({code})? This cannot be undone. A product that has configurations or stock batches can't be deleted.` Messages: `Media product "{name}" created successfully.` (the page then opens the "Incubation Conditions" tab), "Media product renamed successfully.", "Media product code changed successfully.", `Media product "{name}" deleted.`, fallback "Could not delete this media product.", load fallback "Failed to load media configuration data.". [src: frontend/src/modules/laboratoryConfiguration/media/MediaConfigurationPage.tsx:54-190; components/MediaProductList.tsx:58-70, 165-182] (verified)
+- Product workspace (shown beside the list once a product is selected): tabs "Overview", "Incubation Conditions ({n})", "Configurations ({n})". Overview tiles: "Media code" (with the button "Change code", shown only when the signed-in role type is Section Head), "Lot number format" (`{code}/01/{yy}, {code}/02/{yy} ...`; caption "Every lot prepared from this medium is numbered with its code."), "Configurations" (count), "Stock batches" (count); and a "Configuration Summary" with the rows "Incubation conditions:" (`{n} condition(s) defined →`) and "Configurations:" (`{n} configuration(s) defined →`) that open the matching tab. [src: frontend/src/modules/laboratoryConfiguration/media/components/MediaProductWorkspace.tsx:150-290] (verified)
+- Add product dialog ("Add Media Product"): "Product Name" (required), "Product Code" (required; helper "2-10 letters, digits, dot or hyphen"). Client messages: "Both product name and code are required."; server message shown otherwise, fallback "Failed to create media product.". [src: frontend/src/modules/laboratoryConfiguration/media/dialogs/AddMediaProductDialog.tsx:33-88]
+- Rename dialog ("Rename Media Product: {name}"): "Product Name" (required; client message "Product name is required."); "Product Code" shown read-only with helper "The code is changed from the Overview tab with an electronic signature." Fallback "Failed to rename media product.". [src: dialogs/RenameMediaProductDialog.tsx:21-77]
+- Change code dialog ("Change Code: {name}"): "Current Code" (read-only), "New Code" (required; helper "2-10 letters, digits, dot or hyphen"), "Reason" (required). Button disabled until both new code and reason are non-blank. Signature meaning statement: `I am changing the code of media product "{name}" from {old} to {new}. Lots prepared from now on will be numbered {new}/01/{yy} onwards. Reason: {reason}`. Buttons "Cancel" and "Continue to sign" (disabled until new code and reason are non-blank, both trimmed). Then the "Electronic Signature" dialog (signer name and role, field "Password", buttons "Cancel" / "Sign"; on failure the server message is shown, the password is cleared and the dialog stays open). The meaning statement above is display text; the signature record the server writes carries the meaning MasterDataChanged and the comment `Code {old} -> {new}: {reason}` (see audit-trail). [src: dialogs/ChangeMediaProductCodeDialog.tsx:14-99; frontend/src/components/SignatureDialog.tsx:20-75; backend/MicroLIMS.Application/Services/MediaProductService.cs:L137-L144] (verified)
+- Configuration dialog ("Add configuration - {product}" / "Edit configuration - {product}"). Buttons "Cancel", "Save Configuration" / "Save Changes" ("Saving..." while busy); disabled when no incubation condition exists for the product (info: "{product} has no incubation conditions yet. Add one in the Incubation Conditions tab first."). Fields: "Evaluation Type" (options "Growth Promotion", "Indication / Inhibition"); "Incubation Condition" (select, placeholder "Select a condition *"); "Recovery Min (%)" and "Recovery Max (%)" (Growth Promotion only); section "Challenge Organisms (Optional)" with "Challenge Role" (options "Inhibition", "Indication"; placeholder "Select Challenge Role *"), "Expected Colony Description *" (required when role is Indication), "Initial Inoculum (CFU)" and button "Add Organism" (disabled until valid). Staged rows have a remove icon "Remove challenge organism {n}". Client messages: "This organism and role combination is already staged for this configuration."; "Choose an incubation condition."; "Recovery % min cannot exceed max." [src: dialogs/MediaConfigurationDialog.tsx:35-41, 66-180, 231-405]
+- Incubation conditions section (within product workspace): table with a "Not used" chip when a condition is unused; the edit/delete icon for a condition in use is disabled with tooltip-style aria label "In use - add a new condition instead". [src: components/MediaIncubationConditionsSection.tsx:174-200]
+- Incubation condition dialog ("Add incubation condition - {product}" / "Edit incubation condition - {product}"). Fields (all required): "Incubation Min (h)", "Incubation Max (h)", "Temp Min (°C)", "Temp Max (°C)". Caption: "Once an evaluation configuration or a Test Master step uses this condition, it can't be changed." Client message: "Enter the incubation hours and temperature range."; server message otherwise, fallback "Failed to save the incubation condition.". [src: dialogs/MediaIncubationConditionDialog.tsx:48-170]
+- Delete confirmations: configuration `Delete media configuration for "{product}" ({evaluation type label})? This cannot be undone.`; incubation condition `Delete the incubation condition {label} for "{product}"? This cannot be undone.` (label form `{min}–{max} h at {tmin}–{tmax} °C`); product text is in the first list line of this screen. Incubation conditions tab: title "Incubation Conditions", caption "Time and temperature pairs this medium can be incubated at. The evaluation configuration and Test Master step media each pick one. A condition in use can't be edited or deleted - add a new one instead.", button "Add Condition", table columns "Incubation", "Temperature", "Used by", "Actions" (Actions only for a manager), empty text "No incubation conditions yet. Add one before configuring this medium or using it in Test Master." (manager) / "No incubation conditions yet." Success texts "Incubation condition added." / "Incubation condition updated." / `Incubation condition {label} deleted.`; failure fallback "Could not delete this incubation condition.". Configurations tab: button "Add Configuration" appears only while the product has no configuration and the user is a manager (empty text "No configuration yet. Add one to define how this medium is evaluated."); a configuration row expands to show challenge organisms. [src: components/MediaConfigurationsSection.tsx:100-290; components/MediaIncubationConditionsSection.tsx:60-245] (verified)
+- Endpoints: `/api/masterdata/media-products` (GET; POST and PUT `/{id}` and DELETE `/{id}` with Manage; PUT `/{id}/code` with body code, reason, password); `/api/masterdata/media-incubation-conditions` (GET; POST, PUT `/{id}`, DELETE `/{id}`); `/api/masterdata/media-configurations` (GET; POST, PUT `/{id}`, DELETE `/{id}`). [src: frontend/src/services/masterDataOptions.ts:222-243; backend/MicroLIMS.API/Controllers/MediaMasterDataController.cs:L38-L107]
+
+
+### SCR-EQUIP-002 Laboratory Configuration: Equipment
+- Route `/laboratory-configuration/equipment`; guard `MasterData.Manage`. Title "Laboratory Configuration: Equipment"; subtitle "Configure equipment used by this laboratory, set points, and autoclave programs."; icon button aria/title "Refresh data". [src: frontend/src/routes/AppRoutes.tsx:236; EquipmentPage.tsx:555-559]
+- Tabs: "Configured Equipment"; "Autoclave Programs / Loads ({n})"; "Configuration History". [src: EquipmentPage.tsx:599-601]
+- Configured Equipment table: a "Set Point" chip (type cell); inventory status chip shows the inventory status or "In Service" when none. [src: EquipmentPage.tsx:660, 709, 1151]
+- Equipment dialog ("Add Equipment" or "Edit Equipment"). Fields: "Equipment Name *" (required), "Equipment Code *" (required), "Equipment Type *" (select; microbiology types: Incubator, Autoclave, LAF Cabinet, Biological Safety Cabinet, Water Bath, Other), "Vendor / Manufacturer" (maximum 100 characters), "Laboratory Section *" (shown only when creating and only when the user belongs to more than one section, option "Select Laboratory Section…"; with exactly one section it is used automatically and the field is hidden; never shown when editing), "Location", "Connection Settings (optional)", "Set Point Temp (°C)" (a free field for every type, also on Edit Equipment), "Calibration Due Date". The field "CDS Software *" appears only for type HPLC, which this page does not offer (physicochemical types are excluded). Buttons "Cancel" and "Create Equipment" / "Save Changes" ("Saving…" while busy). Success toasts "Equipment created successfully." / "Equipment updated successfully."; fallback "Could not save equipment.". Client messages: "Name, Code, and Type are required."; "Laboratory section is required.". Server messages shown as-is (BR-EQUIP-001..004). [src: EquipmentPage.tsx:460-520, 1180-1318, 1238] (verified)
+- Set point dialog ("Edit Incubator Set Point"). Fields: "New Set Point (°C) *" and "Reason for Change *". Button "Edit Set Point" (shown on an incubator's detail card with the "Current Set Point Temperature" and a "Set Point Change History" table); dialog buttons "Cancel" / "Save Changes". Client messages: "Please enter a valid numeric set point temperature."; blank reason: "Reason for Change is required for audit and ALCOA+ compliance." (this is UI wording only; see the audit section for what is recorded); fallback "Could not update set point.". History empty text "No set point changes recorded yet." (or "The set point history could not be loaded. Select the incubator again to retry."). The tab "Configuration History" lists only the set point changes of the selected incubator (columns "Effective On", "Equipment Code", "Category", "Details / Change", "Changed By", "Reason / Comment"), despite the caption "Complete audit trail of incubator set point changes and autoclave program configuration events."; autoclave program history is viewed per program ("View History"). [src: EquipmentPage.tsx:286-320, 855-925, 1126-1178, 1334-1387] (verified)
+- Autoclave program dialog ("Add Autoclave Program / Load" or "Edit Autoclave Program / Load"). Fields: "Program / Load Code *", "Program / Load Name *", "Load Type *" (placeholder "e.g. Media / Glassware / Biohazard Waste"), "Temperature (°C) *" (default 121), "Cycle Time (min) *" (default 15), a status select (aria "Program status": Active / Inactive) and "Audit Comment / Reason *" (prefilled "Initial program configuration" on add, empty on edit). Buttons "Cancel" / "Save Program". Client message only: "Please fill out Program Code, Program Name, and Load Type." (the comment is not checked by the client; GAP-410). Add button "Add Program / Load" on an autoclave's card (empty text `No autoclave programs configured. Click "+ Add Program / Load" to configure one.`). [src: EquipmentPage.tsx:322-370, 925-1000, 1404-1482] (verified)
+- Program history dialog ("Program History: {code}"); table columns include an action chip (values such as "Created"; other values from the record). [src: EquipmentPage.tsx:1495-1521]
+- Program row actions: status chip "Active" / "Inactive"; edit icon (tooltip "Edit Program"), the button "Deactivate" / "Activate" (sends the fixed comment "Deactivated program" / "Activated program"; toast "Program deactivated" / "Program activated"; failure "Status update failed.") and history icon (tooltip "View History"). [src: EquipmentPage.tsx:376-392, 960-990, 1091-1101] (verified)
+- Inventory dialog ("Select Equipment from Master Inventory"): list of inventory assets with status chip (for example "InService"); columns "Equipment Code", "Instrument Type", "Manufacturer", "Location", "Status", "Action"; the per-row button reads "Configure for Lab" (or "Configured" and disabled when a configured record with the same code exists). The button does not call the link endpoint: it opens the Add Equipment form pre-filled from the inventory row (name = instrument type, code, location, vendor, calibration due date, and a type guessed from the instrument type text: Incubator, Autoclave, LAF Cabinet, else Other), and the user then presses "Create Equipment". Page button label: "Select from Inventory"; dialog text "Register physical equipment from Inventory into Laboratory Configuration. Master equipment identity and calibration remain managed by Inventory." [src: EquipmentPage.tsx:405-433, 1549-1600] (verified)
+- No signature dialog is used on this page (no SignatureDialog found in the page source). [src: EquipmentPage.tsx; grep for "Signature" returned no match]
+- Endpoints: `GET /api/masterdata/equipment`, `GET /api/masterdata/equipment/{id}`, `POST /api/masterdata/equipment`, `PUT /api/masterdata/equipment/{id}`, `GET /api/masterdata/equipment/configured-summary`, `POST /api/masterdata/equipment/link-inventory/{inventoryId}`, `PUT /api/masterdata/equipment/{id}/set-point`, `GET /api/masterdata/equipment/{id}/set-point-history`, `GET /api/masterdata/equipment/{id}/autoclave-programs`, `GET /api/masterdata/equipment/autoclave-programs/all`, `POST /api/masterdata/equipment/{id}/autoclave-programs`, `PUT /api/masterdata/equipment/autoclave-programs/{programId}`, `PUT /api/masterdata/equipment/autoclave-programs/{programId}/status`, `GET /api/masterdata/equipment/autoclave-programs/{programId}/history`. Inventory list: `GET /inventory/equipment`. [src: frontend/src/modules/laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService.ts:171-237; backend/MicroLIMS.API/Controllers/EquipmentMasterDataController.cs:L38-L124]
+
+
+### SCR-TESTMASTER-001 Test Master (Microbiology)
+- Route `/laboratory-configuration/test-master`; guard `MasterData.Manage`. Title "Microbiology Test Master"; subtitle "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."; button "Add Test"; search box (placeholder "Search code, name, section") with a refresh control; only tests whose section belongs to the microbiology laboratory are listed. If the laboratory sections cannot be loaded: "The laboratory sections could not be loaded, so the tests cannot be sorted into this laboratory and none are shown." with a retry. [src: frontend/src/routes/AppRoutes.tsx:223; TestMasterPage.tsx:60-62, 655-690] (verified)
+- Table columns (micro): "Code" (monospace), "Display Name", "Section", "Status" (badge "Active" or "Frozen"). Row menu: "Details & Workflow Steps", "Edit", and "Freeze" (when active) or "Unfreeze" (when frozen; Freeze is shown as a danger action). Empty state title "No tests found" with the "Add Test" button when no search text. [src: TestMasterPage.tsx:560-691]
+- Freeze/unfreeze message: `Test "{code}" frozen.` / `Test "{code}" unfrozen.` [src: TestMasterPage.tsx:548-552]
+- Add/Edit dialog ("Add Test" or "Edit Test"). Fields: "Code" (required), "Display Name" (required), "Section" (select, required; "Select Section" option when the user has several sections), "Workflow Type" (select, micro: "Count Test", "Observation"). Client messages: "Both Code and Display Name are required."; "Laboratory section is required.". Placeholders "e.g. HPLC_VITC" (Code) and "e.g. Vitamin C Assay" (Display Name); the "Section" select lists the user's own sections as "{section} ({department})" and, when editing, shows a helper "Existing test orders keep their current section." after the section is changed. Buttons "Cancel" and "Add Test" / "Save Changes" ("Saving…" while busy; disabled while saving). Code and display name are trimmed on the client. Success messages `Test "{code}" added to the Test Master.` / `Test "{code}" updated.`; failure fallback `Could not add this test.` / `Could not update this test.` (server message first). A dialog-list failure is named in the dialog. [src: TestMasterPage.tsx:241-268, 529-545, 709-790; WORKFLOW_TYPE_LABELS testMasterConstants.ts:14-25] (verified)
+- Details dialog ("Details & Workflow Steps: {code}"): workflow steps table. Workflow type select with aria "Workflow type"; error text on failed change: "Could not update the workflow type."; a step-driven type can be switched only between Count Test and Observation (other types are set by the test type). The details dialog loads the steps, the organism list, the stock materials of type "DehydratedMedia" and all media incubation conditions. [src: TestMasterPage.tsx:698; testMaster/WorkflowStepsSection.tsx:56-77, 246] (verified)
+- Workflow steps table: "Needs configuration" chip (warning icon, tooltip "This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration."); chips "2-Stage" and "Transfer" for incubation stage settings; icon buttons "Move up", "Move down", "Edit step", "Delete step". [src: testMaster/WorkflowStepsSection.tsx:520-600]
+- Step form: "Step Name" (placeholder "e.g. TSB"); "Step type" (select, aria "Step type"; values PlateCount, BrothEnrichment, SelectiveBroth, SelectivePlating, ConfirmatoryPlating, BiochemicalTest); "Target Organism (required)" (select, shown for SelectivePlating and ConfirmatoryPlating only; empty option); phenotypic test types (select with "Add" button; chips; shown for BiochemicalTest); "Final Step" (checkbox); "Requires incubation transfer" (checkbox, PlateCount only); "2-Stage" stage 2 fields "Stage 2 Temp Min", "Stage 2 Temp Max", "Stage 2 Min Hours", "Stage 2 Max Hours". Buttons "Add Step" / "Save Changes", "Cancel" (when editing). [src: testMaster/WorkflowStepsSection.tsx:628-740]
+- Step media section: an info note "Saving replaces this step's entire medium list with what's shown below."; per row: "Material" (aria; list of materials), "Incubation condition" (aria; conditions of that material's media product), "Required" (checkbox), remove icon "Remove medium"; button "Add Medium" (disabled when the step type allows only one medium and one is already set). Caption: "Pick the medium, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added on the Media Configurations page." The "Material" list is the stock materials of type DehydratedMedia (a stock batch entry, shown by material name); the "Incubation condition" list shows only the conditions of that material's media product, labelled `{min}–{max} h at {tmin}–{tmax} °C` and is disabled when there are none; row hints "This batch isn't linked to a media product." and "This medium has no incubation conditions yet."; each row shows "Order {n}"; the "Required" checkbox is hidden for ConfirmatoryPlating (always saved as not required). The step's own hours and temperatures are not entered here (the request sends 0 and the server copies them from the first medium; the step medium window is authoritative at execution). [src: testMaster/WorkflowStepsSection.tsx:150-200, 765-837] (verified)
+- Delete confirmation dialog title "Delete Workflow Step". [src: WorkflowStepsSection.tsx:845]
+- Step client messages: "Step Name is required."; "Step Name and at least one Phenotypic Test Type are required." (BiochemicalTest). Other client checks (mirror of the server rules, shown in the step panel): "A broth step must have exactly one assigned medium, marked as required."; "A broth step must not target an organism."; "A selective plating step must have exactly one assigned medium, marked as required."; "A selective plating step must target an organism."; "A confirmatory plating step must have at least one permitted medium."; "A confirmatory plating step must target an organism."; "A biochemical test step must have no assigned media."; "A biochemical test step must not target an organism."; "A biochemical test step must specify at least one phenotypic test type."; "The same phenotypic test type cannot be assigned to this step more than once."; "Only a biochemical test step may specify a phenotypic test type."; "At least one medium is required for this step type."; "Every medium row needs a selected material."; "Every medium row needs an incubation condition."; "The same medium cannot be assigned to this step more than once."; the three stage 2 messages of server rule 7. Changing the step type clears the media, organism and phenotypic selections. Delete confirmation: title "Delete Workflow Step", text "Are you sure you want to delete this workflow step? This action cannot be undone.", confirm button "Delete Step". [src: WorkflowStepsSection.tsx:112-126, 155-165, 843-860; testMasterConstants.ts:96-148] (verified)
+- Endpoints: `GET /api/masterdata/test-definitions`; `POST /api/masterdata/test-definitions`; `PUT /api/masterdata/test-definitions/{id}`; `PUT .../{id}/freeze`; `PUT .../{id}/unfreeze`; `PUT .../{id}/workflow-type`; `GET .../{id}/steps`; `POST .../{id}/steps`; `PUT .../steps/{stepId}`; `PUT .../steps/{stepId}/move`; `DELETE .../steps/{stepId}`. [src: frontend/src/services/masterDataOptions.ts:252-289; backend/MicroLIMS.API/Controllers/TestDefinitionMasterDataController.cs:L34-L54; TestWorkflowStepMasterDataController.cs:L34-L59]
+- The stage replicate section (`TestStageReplicatesSection`) is rendered inside the Add/Edit Test dialog only when the page is the FP page or the selected section is the FP section, so it does not appear for microbiology tests (verified; C7). [src: TestMasterPage.tsx:1425-1430] (verified)
+
+
+## roles
+
+Common to all modules in this cluster (verified against `verified-roles-permissions.md` and the controllers):
+- `MasterData.Manage` is held by default by the System Administrator role (all 50 permission codes) and the Section Head role; it is not held by Reviewer or Analyst. Roles and their permission sets are administrator-editable, so a custom role can hold it; the token carries the permission claims until it expires. [src: documentation/knowledge/_raw/verified-roles-permissions.md:§3 (role table lines 82-90); backend/MicroLIMS.Persistence/Seed/DbSeeder.cs:L523-L546; backend/MicroLIMS.Shared/Constants/PermissionConstants.cs:L29] (verified)
+- Every page in this cluster is a route under `PermissionRoute code=MASTER_DATA_MANAGE`; every write endpoint is `[Authorize(Policy = MasterData.Manage)]`; every read endpoint is `[Authorize]` only (any signed-in user can call the GET endpoints directly even though the pages are guarded). [src: frontend/src/routes/AppRoutes.tsx:L222-L236; the eight controllers under backend/MicroLIMS.API/Controllers (class-level `[Authorize]`, per-action policy)] (verified)
+- Segregation of duties: none in this cluster. The same user can create, change and delete any configuration; there is no second-person review and no approval of configuration changes (verified: none of the services reads the acting user to refuse a change). 
+- Preparation screens for EM / Water / After Cleaning need only sign-in; see C2 (MOD-PREP-001, GAP-227).
+- Lab scoping: only equipment and Test Master are section-scoped (details per module). EM, Water, After Cleaning, Organisms and Media configuration are not laboratory-scoped.
+
+### MOD-EM-001 Environmental Monitoring configuration
+- Write (departments, rooms, room test configurations: create, update, delete): `MasterData.Manage`. [src: backend/MicroLIMS.API/Controllers/EnvironmentalMonitoringMasterDataController.cs:L36-L88] (verified)
+- Read (`GET departments`, `rooms`, `room-test-configurations`): `[Authorize]` only. [src: EnvironmentalMonitoringMasterDataController.cs:L32-L34, L51-L53, L71-L73] (verified)
+- Page guard: `MasterData.Manage`. [src: frontend/src/routes/AppRoutes.tsx:232] (verified)
+- Default holders: System Administrator, Section Head. No role-type restriction, no lab scoping.
+
+### MOD-WATER-001 Water configuration
+- Write (sampling points, water departments, sampling configurations): `MasterData.Manage`; read `[Authorize]`. [src: backend/MicroLIMS.API/Controllers/WaterMasterDataController.cs:L32-L87] (verified)
+- Page guard: `MasterData.Manage`. [src: AppRoutes.tsx:231] (verified)
+- INTENDED role gate differs in mechanism: the water parity spec says the mutating endpoints carry `[Authorize(Roles = SectionHead + SystemAdministrator)]`; the code uses the permission policy instead (same default holders, but a custom role can differ). DISCREPANCY (minor), see BR-WATER-009. [src: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md:L136-L138 (the sentence "All mutating endpoints carry the same ..."); WaterMasterDataController.cs:L36-L87]
+
+### MOD-AC-001 After Cleaning configuration
+- Write (machines, machine parts, machine part configurations): `MasterData.Manage`; read (`GET machines`, `GET machine-part-configurations`) `[Authorize]`. [src: backend/MicroLIMS.API/Controllers/AfterCleaningMasterDataController.cs:L32-L82] (verified)
+- Page guard: `MasterData.Manage`. [src: AppRoutes.tsx:233] (verified)
+
+### MOD-ORG-001 Organisms master
+- Write (create, update, delete): `MasterData.Manage`; read `[Authorize]`. Not laboratory-scoped. [src: backend/MicroLIMS.API/Controllers/OrganismMasterDataController.cs:L33-L48] (verified)
+- Page guard: `MasterData.Manage`. [src: AppRoutes.tsx:227] (verified)
+
+### MOD-MEDIACFG-001 Media Configurations
+- Media products create, rename, delete; incubation conditions and media configurations create, update, delete: `MasterData.Manage`. GET endpoints `[Authorize]`. [src: backend/MicroLIMS.API/Controllers/MediaMasterDataController.cs:L38-L48, L58-L59, L67-L107] (verified)
+- Media product code change (`PUT media-products/{id}/code`): `[Authorize(Roles = RoleConstants.SectionHead)]`, a role-type check on the token's role claim, not a permission. Consequences: a System Administrator is refused (even though that role holds every permission); a custom role whose base type is Section Head is accepted; `MasterData.Manage` alone is not enough. The call also needs the signer's password and a reason; the service signs before changing anything. [src: MediaMasterDataController.cs:L52-L56; backend/MicroLIMS.Shared/Constants/RoleConstants.cs:L6; documentation/knowledge/_raw/verified-roles-permissions.md:L105, L108 (JWT role claim is the base type)] (verified; GAP-013 remains for the guide wording)
+- UI gate for the code change: the button "Change code" is shown only when the signed-in role type is `SectionHead` (page-level `role === "SectionHead"`); the rename dialog states "The code is changed from the Overview tab with an electronic signature." [src: frontend/src/modules/laboratoryConfiguration/media/MediaConfigurationPage.tsx:L23-L24; components/MediaProductWorkspace.tsx:L191; dialogs/RenameMediaProductDialog.tsx] (verified)
+- UI gate for other actions: Add Media Product, rename, delete, Add Condition, edit and delete icons, Add Configuration are shown only when the user holds `MasterData.Manage` (`isManager`); the page itself is also behind that permission, so for these actions the in-page check is redundant. [src: MediaConfigurationPage.tsx:L22-L23; MediaIncubationConditionsSection.tsx:L100, L152; MediaConfigurationsSection.tsx:L106, L153] (verified)
+- Segregation of duties: none. The signer of a code change may be the same person who requested it; there is no second signer. (verified)
+
+### MOD-EQUIP-002 Equipment configuration
+- Write (create and update equipment, link inventory, set point change, autoclave program create, update and status change): `MasterData.Manage`. [src: backend/MicroLIMS.API/Controllers/EquipmentMasterDataController.cs:L52-L124] (verified)
+- Read: `[Authorize]` for `GET equipment`, `GET equipment/{id}`, `configured-summary`, set point history, autoclave programs, program history. [src: EquipmentMasterDataController.cs:L40-L83, L114] (verified)
+- Page guard: `MasterData.Manage`. [src: AppRoutes.tsx:236] (verified)
+- Laboratory scoping (verified, corrected): the accessible section ids come from the user's organisation memberships; a System Administrator is unrestricted (`null`), a user without any membership gets an empty list. Section checks are applied by `GET equipment` (list filtered), `GET equipment/{id}`, and, through `EnsureEquipmentAccessAsync`, by `PUT equipment/{id}`, `PUT .../set-point`, `GET .../set-point-history`, `GET .../autoclave-programs` and `POST .../autoclave-programs`. They are not applied by `GET configured-summary`, `GET autoclave-programs/all`, `GET autoclave-programs/{id}/history`, `PUT autoclave-programs/{id}` (edit), `PUT autoclave-programs/{id}/status` or `POST link-inventory`. Creating equipment needs a section: with no membership the error is "Your account is not assigned to any laboratory section. Ask an administrator to assign one."; with several memberships and none chosen "Choose a laboratory section - you belong to more than one."; a System Administrator must choose one ("Choose a laboratory section."). [src: backend/MicroLIMS.Application/Services/UserSectionScopeService.cs:L18-L143; EquipmentMasterDataService.cs:L27-L46, L76, L98, L131-L134; EquipmentMasterDataController.cs:L56-L115] (verified; the earlier statement "filtered ... when a scope service is present" was wrong: the service is a required dependency)
+- No role-type rule and no signature for equipment, set point or autoclave program changes. (verified; GAP-408, GAP-409)
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+- Read test definitions and steps: `[Authorize]`. [src: backend/MicroLIMS.API/Controllers/TestDefinitionMasterDataController.cs:L34; TestWorkflowStepMasterDataController.cs:L39] (verified)
+- Create test, update test, freeze, unfreeze, change workflow type, create / update / move / delete step: `MasterData.Manage`. [src: TestDefinitionMasterDataController.cs:L38-L54; TestWorkflowStepMasterDataController.cs:L34-L59] (verified)
+- Section scope: only `PUT test-definitions/{id}` (update) refuses a caller whose accessible sections do not include the test's section ("This test belongs to a laboratory section you are not assigned to."; HTTP 403). Freeze, unfreeze, change workflow type and every step write have no section check. Creation resolves the section with the same rules as equipment (membership required; System Administrator must choose). [src: backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs:L393-L397, L796-L813; TestWorkflowStepMasterDataService.cs:L25-L333] (verified; GAP-419)
+- Page guard: `MasterData.Manage`. [src: AppRoutes.tsx:223] (verified)
+- The stage replicate endpoints (physchem) are described in C7.
+
+## workflows
+
+Common to every workflow below: INTENDED source is REQUIRES CONFIRMATION unless a spec is named (no specification exists for Organisms, Media Configurations, Equipment configuration or the micro Test Master). Steps are reconstructed from code only; the application was not run. Every write needs `MasterData.Manage` (default holders: System Administrator, Section Head), is audited generically (see audit-trail) and is not signed unless stated. Validation texts are in validations; a stale-form refusal reads "This record was changed by someone else while you were working on it. Nothing was saved - reload it and make your change again."
+
+### WF-MEDIACFG-001 Configure media products, conditions and configurations
+- **Trigger / who:** A user with `MasterData.Manage` opens Laboratory Configuration > Media Configurations (`/laboratory-configuration/media-configurations`) to set up a new dehydrated medium or change its setup.
+- **Prerequisites:** Organisms exist in the Organisms master if challenge organisms are wanted (WF-ORG-001). Nothing else is required.
+- **Steps:**
+  1. Add the product. Press "Add Media Product"; enter "Product Name" and "Product Code" (2-10 letters, digits, dot or hyphen); press the save button. System: validates and creates the product; message `Media product "{name}" created successfully.`; the new product is selected and the "Incubation Conditions" tab opens. Validation: "Both product name and code are required."; name / code uniqueness (case-insensitive), code format, name maximum 200 characters (BR-MEDIA-001, -002). Status change: none exists.
+  2. Add an incubation condition. On "Incubation Conditions" press "Add Condition"; enter "Incubation Min (h)", "Incubation Max (h)", "Temp Min (°C)", "Temp Max (°C)" (all required). System: saves; "Incubation condition added." Validation: BR-MEDIA-012 (min hours above zero, max not below min, temperature min below max), no duplicate condition (BR-MEDIA-016).
+  3. Optionally change a condition: edit and delete icons work only while the condition is "Not used"; a used condition shows "In use - add a new condition instead" (BR-MEDIA-013). Delete asks `Delete the incubation condition {label} for "{product}"? This cannot be undone.`
+  4. Add the evaluation configuration. On "Configurations" press "Add Configuration" (shown only while the product has none; the dialog button is disabled and the text "{product} has no incubation conditions yet. Add one in the Incubation Conditions tab first." appears if no condition exists). Choose "Evaluation Type" (Growth Promotion or Indication / Inhibition) and "Incubation Condition"; for Growth Promotion optionally "Recovery Min (%)" and "Recovery Max (%)"; optionally add challenge organisms (for Indication / Inhibition: "Challenge Role" Inhibition or Indication, "Expected Colony Description *" for Indication, optional "Initial Inoculum (CFU)", then "Add Organism"); press "Save Configuration". System: saves the configuration with its challenge organisms. Validation: BR-MEDIA-005..011; client messages "Choose an incubation condition.", "Recovery % min cannot exceed max.", "This organism and role combination is already staged for this configuration."
+  5. Edit or delete later: edit icon opens "Edit configuration - {product}" ("Save Changes"); delete asks `Delete media configuration for "{product}" ({type})? This cannot be undone.` (no usage check, BR-MEDIA-018). Rename a product with the rename icon ("Rename Media Product: {name}"; the code is read-only there); delete a product from the list (`Delete media product "{name}" ({code})? ...`; refused while configurations, stock batches or step-medium use exist, BR-MEDIA-004).
+- **Next action / Review / Approval:** none. **Final state:** the product, conditions and configuration are stored and usable by lot preparation and evaluation (C5) and as Test Master step-medium conditions (WF-TESTMASTER-001 (micro)).
+- **Required vs optional:** required - product name, code, at least one condition before a configuration, evaluation type, condition. Optional - recovery range, challenge organisms, inoculum.
+- **Permissions per step:** `MasterData.Manage` for all steps. **Blocking conditions:** missing condition (step 4), used condition (step 3), referenced product (step 5). **Errors:** texts under validations. **Signature points:** none. 
+- **Source:** REQUIRES CONFIRMATION (no spec). **DISCREPANCY:** none.
+
+### WF-MEDIACFG-002 Change media product code (signed)
+- **Trigger / who:** A Section Head (role type; a System Administrator cannot do it) needs to change the code that prefixes new lot numbers.
+- **Prerequisites:** The product exists; the signer knows their password; a justification.
+- **Steps:**
+  1. Select the product, open "Overview", press "Change code" (button visible only to the Section Head role type). Dialog "Change Code: {name}" shows "Current Code" (read-only).
+  2. Enter "New Code" (2-10 letters, digits, dot or hyphen) and "Reason". "Continue to sign" stays disabled until both are filled.
+  3. Press "Continue to sign". The "Electronic Signature" dialog shows the statement `I am changing the code of media product "{name}" from {old} to {new}. Lots prepared from now on will be numbered {new}/01/{yy} onwards. Reason: {reason}`, the signer name and role, and a "Password" field.
+  4. Enter the password and press "Sign". System: checks the role (a non-Section-Head gets HTTP 403), then the reason, code format, difference from the current code and uniqueness; verifies the password; records the signature (meaning MasterDataChanged); changes the code; records the audit event `MediaProductCodeChanged` with the reason and the old and new code. Message "Media product code changed successfully."
+- **Next / Review / Approval:** none; no second signer. **Final state:** new lots are numbered `{new code}/01/{yy}` onwards; received batches and earlier lots keep their code.
+- **Errors:** "A reason for the code change is required."; "The new code must be different from the current code."; code format and clash messages; "Password verification failed. The signature was not applied." (dialog stays open; failed attempt is logged); "Too many failed signature attempts. Wait {n} minutes, then try again. The signature was not applied."
+- **Blocking conditions:** none beyond the above. **Signature point:** step 4 only. **Time gates:** none.
+- **Source:** REQUIRES CONFIRMATION (no spec; behaviour from code). Role restriction GAP-013; other product changes unsigned GAP-406.
+
+### WF-EQUIP-002 Configure equipment, incubator set points and autoclave programs
+- **Trigger / who:** A user with `MasterData.Manage` opens Laboratory Configuration: Equipment (`/laboratory-configuration/equipment`).
+- **Prerequisites:** The user belongs to at least one laboratory section (without one, creating equipment is refused with "Your account is not assigned to any laboratory section. Ask an administrator to assign one."; a System Administrator has no section choice in this form and is refused with "Choose a laboratory section."; see roles).
+- **Part A - add or edit equipment**
+  1. Press "Add Equipment", or press "Select from Inventory" and "Configure for Lab" on an inventory row (this only pre-fills the same form). Fill "Equipment Name *", "Equipment Code *", "Equipment Type *" (Incubator, Autoclave, LAF Cabinet, Biological Safety Cabinet, Water Bath, Other), optional vendor, location, connection settings, "Set Point Temp (°C)", "Calibration Due Date"; choose the section if asked.
+  2. Press "Create Equipment". System: validates (BR-EQUIP-001, -003, -004) and saves; "Equipment created successfully." To change a record select it and press "Edit Equipment", then "Save Changes" ("Equipment updated successfully."). Editing the set point field here writes no reason and no history (GAP-422).
+- **Part B - incubator set point**
+  3. Select an incubator under "Configured Equipment"; press "Edit Set Point". Enter "New Set Point (°C) *" and "Reason for Change *"; press "Save Changes". System: refuses a non-number or blank reason on the client, a non-incubator or blank reason on the server; stores previous value, new value, reason, user and time in the set point history and updates the incubator. The history table "Set Point Change History" and the "Configuration History" tab show it.
+- **Part C - autoclave programs**
+  4. Select an autoclave; press "Add Program / Load". Enter "Program / Load Code *", "Program / Load Name *", "Load Type *", "Temperature (°C) *", "Cycle Time (min) *", status, "Audit Comment / Reason *"; press "Save Program". System: stores the code upper-case, refuses a duplicate code on that autoclave, writes a "Created" history row.
+  5. Edit with the edit icon (new comment recommended; history row "Updated"); switch with "Deactivate" / "Activate" (history row "StatusChanged", comment "Deactivated program" / "Activated program"); view with the history icon ("Program History: {code}").
+- **Next / Review / Approval:** none. **Final state:** equipment, set point and programs are stored; the incubator and autoclave data are used when tests are started (C2, C5).
+- **Required vs optional:** as the asterisks above. **Permissions:** `MasterData.Manage`; reads need sign-in; section scope applies to the list and to most per-equipment actions (roles). **Blocking:** duplicate code, missing section, non-incubator set point. **Signature points:** none (GAP-408). **Errors:** validations section.
+- **Source:** REQUIRES CONFIRMATION (no spec). DISCREPANCY: none; UI wording about ALCOA+ is not a compliance claim.
+
+### WF-TESTMASTER-001 (micro) Define a microbiology test, its steps and step media
+- **Trigger / who:** A user with `MasterData.Manage` opens Microbiology Test Master (`/laboratory-configuration/test-master`).
+- **Prerequisites:** A section membership; for steps that use media: stock materials of type DehydratedMedia linked to a media product (Inventory > Materials Stock) and at least one incubation condition for that product (WF-MEDIACFG-001); for selective or confirmatory plating: the target organism in the Organisms master (WF-ORG-001).
+- **Steps:**
+  1. Press "Add Test". Enter "Code" and "Display Name" (both required), "Section" (your sections), "Workflow Type" (Count Test or Observation). Press "Add Test". System: checks code uniqueness; message `Test "{code}" added to the Test Master.` The test is Active.
+  2. Open the row menu "Details & Workflow Steps". The "Workflow type" select can switch Count Test / Observation later.
+  3. Add a step. Enter "Step Name", choose "Step type" (PlateCount, BrothEnrichment, SelectiveBroth, SelectivePlating, ConfirmatoryPlating, BiochemicalTest), "Final Step" if it ends the chain, "Target Organism (required)" for selective or confirmatory plating, phenotypic test types for a biochemical step, "Requires incubation transfer" with the four "Stage 2 ..." fields for a PlateCount step with a second stage. Under the step media add rows: choose "Material", then its "Incubation condition", and "Required" (not for confirmatory plating); "Add Medium". Press "Add Step". System: runs the client rule check, then the server template rules (all violations returned together as `Rule {n} ({step}): ...`), copies each condition's temperatures and hours onto the medium, appends the step at the end.
+  4. Reorder with "Move up" / "Move down"; edit with "Edit step" then "Save Changes" (replaces the whole medium list); delete with "Delete step" and "Delete Step" (refused once a test order used the step). Steps showing "Needs configuration" must be edited before they can run.
+  5. Edit the test ("Edit" > "Save Changes"; refused outside your section). Freeze with "Freeze" when the test should no longer be offered ("Test "{code}" frozen."); "Unfreeze" reverses it.
+- **Next / Review / Approval:** none. **Final state:** an Active test with ordered steps and media, usable in item, room, location and part assignments (C7, WF-EM-001, WF-WATER-001, WF-AC-001) and executable in C2 workflows.
+- **Required vs optional:** code, name, section, workflow type; per step: name, type and the type's mandatory media / organism / phenotypic items; final step flag and stage 2 optional.
+- **Blocking conditions:** unlinked material, missing condition, second final step, step already used (delete), section scope (update only). **Time gates:** none here (the minimum incubation hours come from the chosen condition at run time, C2).
+- **Signature points:** none (GAP-412). **Errors:** validations section.
+- **Source:** REQUIRES CONFIRMATION (no spec). Open: step media by material vs product GAP-413; freeze effect GAP-411; picker-created tests GAP-416. The FP / RM & PM Test Masters are C7.
+
+### WF-EM-001 Configure environmental monitoring departments, rooms and room tests
+- **Trigger / who:** A user with `MasterData.Manage` opens Environmental Monitoring (`/laboratory-configuration/environmental-monitoring`).
+- **Prerequisites:** The tests to be run exist in the Test Master (or are added through the picker, GAP-416).
+- **Steps:**
+  1. "Add department": "Name" (required), "Class", "Testing frequency"; "Add department". Message `"{name}" added.`
+  2. "Add room" (or "Add room to {department}"): "Room name" and "Department" required, "Grade" A-D (default A). Message `Room "{name}" added.`
+  3. On the room card press "Add first test" / "Add test": choose "Test type" (Passive air sample, Active air sample, Surface sample, Compressed air, Drains) and "Test"; enter "Alert", "Action", "Specification" (blank allowed; a warning appears if the numbers are out of order) and "Unit" (required for Active air, Compressed air and Drains); "Add test". System: validates the type and unit; `Test added to {room}.`
+  4. Edit with "Edit department" and the card icons; delete with the confirmations `Delete department "{name}"? ...`, `Delete room "{name}"? ...`, `Remove the {type} / {code} test from {room}?`. Deleting a department with rooms, or a room with tests or monitoring history, is refused (BR-EM-001, -002); deleting a test row that a prepared sample uses fails with a generic server error (GAP-420).
+- **Next / Final state:** rooms with tests become selectable at EM preparation (C2 WF-SAMPLE-006); limits and unit are read at result entry (BR-EM-006, -007).
+- **Signature points:** none (GAP-404). **Blocking:** unit missing for unit-required types. **Source:** REQUIRES CONFIRMATION (no EM configuration spec). BusinessRules.md §5 out-of-trend rule is not implemented (BR-EM-011, C2 GAP-211).
+
+### WF-WATER-001 Configure water systems, sampling points, test plans and limits
+- **Trigger / who:** A user with `MasterData.Manage` opens Water (`/laboratory-configuration/water`).
+- **Prerequisites:** Count and pathogen tests exist in the Test Master (count tests must have workflow type Count Test to get limit rows).
+- **Steps:**
+  1. "Add water system": "Name" (required); `"{name}" added.` (only the name is stored, BR-WATER-007).
+  2. "Add sample location" (enabled after a system exists): "Point code" and "Water system" required, "Point name", testing frequency, "Assigned tests" (every assigned test becomes a test order at preparation).
+  3. For each assigned count test fill "Alert", "Action", "Specification", "Unit" (placeholder "e.g. CFU/mL"). A row is created only if at least one limit is filled.
+  4. Press "Add sample location" / "Save changes". System: saves the location, then the limit rows one by one; partial failure reads "The location was saved, but some limits were not. {code}: {message}". Success `Sample location {code} added.`
+  5. Check "Limits not set" chips and the "Needs attention" filter. Rename the system with "Rename"; delete with `Delete water system "{name}"? ...` or `Delete sample location "{code}"? ...` (BR-WATER-001, -002, GAP-420).
+- **Final state:** locations with assigned tests and limits are offered at water preparation (C2 WF-SAMPLE-007); limits are linked at preparation and read at result entry (BR-WATER-005), so add limits before preparing a sample.
+- **Signature points:** none. **Source:** INTENDED partly: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md (hierarchy, count-test-only limits) and 2026-08-17-water-batch-workflow-design.md; both "Design — awaiting approval" (GAP-423). DISCREPANCY: department testing frequency (BR-WATER-007); role gate wording (BR-WATER-010). Everything else REQUIRES CONFIRMATION.
+
+### WF-AC-001 Configure machines, parts, swab / rinse tests and pathogen tests
+- **Trigger / who:** A user with `MasterData.Manage` opens After Cleaning (`/laboratory-configuration/after-cleaning`).
+- **Steps:**
+  1. "Add machine": "Machine name" (required). 2. "Add machine part": "Part name" and "Machine" (required).
+  3. On the part card press "Add swab / rinse test": choose "Sample type" (Swab or Rinse) and "Test", enter limits and unit (a typed unit overrides the standard unit, GAP-403); "Add test". A repeated type + code on the part is refused (BR-AC-003).
+  4. Press "Add pathogen tests" / "Edit pathogen tests": tick the pathogens (Observation tests) and "Save pathogen tests". System adds a configuration per new pathogen and deletes one per unticked pathogen; a pathogen already tested on the part cannot be removed (BR-AC-004). Partial failure: "Some changes were not saved. ..."
+  5. Delete machine / part / test with the confirmations; a machine with parts or received samples, and a part with tests, is refused (BR-AC-001, -002).
+- **Final state:** the part configurations are chosen at After Cleaning preparation (C2 WF-SAMPLE-008). **Signature points:** none.
+- **Source:** INTENDED in BusinessRules.md §6 (collective pathogen sample plus a TAMC order per part): DISCREPANCY BR-AC-007 / C2 GAP-225 (not implemented). Everything else REQUIRES CONFIRMATION.
+
+### WF-ORG-001 Maintain the organism list
+- **Trigger / who:** A user with `MasterData.Manage` opens Organisms (`/laboratory-configuration/organisms`).
+- **Steps:** enter "Scientific Name" (required, unique ignoring case), "ATCC No.", "Common Name (optional)", "Description (optional)"; press "Add Organism" (`Organism "{name}" added.`). To change a row use its menu "Edit", change the fields, press "Save Changes" (or "Cancel"). To remove use "Delete" and confirm `Delete organism "{name}"? This cannot be undone.`; refused while media challenges, cryovials or materials use it; an organism targeted by a Test Master step fails with a generic server error (BR-ORG-002, GAP-420).
+- **Final state:** the organism is selectable in media configurations, cryovials, materials (C5) and Test Master steps. **Signature points:** none. **Source:** REQUIRES CONFIRMATION.
+
+## business-rules
+
+Evidence note for this section. Specifications found for this cluster: `docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md` and `2026-08-17-water-batch-workflow-design.md` (both headed "Status: Design — awaiting approval"), `documents/DesignSpecification/BusinessRules.md` (sections 1, 4, 5, 6) and `WorkflowDiagrams.md` (Water, EM, After Cleaning diagrams). No specification was found for Organisms, Media Configurations, Equipment configuration or the microbiology Test Master (see `documentation/knowledge/_raw/spec-sources.md`); statements about these modules are IMPLEMENTED (code) or REQUIRES CONFIRMATION, never INTENDED.
+
+### MOD-EM-001 Environmental Monitoring configuration
+- **BR-EM-001 (IMPLEMENTED, verified):** A department cannot be deleted while it still has rooms. Message: `Cannot delete '{name}' - it still has {n} room(s). Delete those rooms first.` Only rooms are counted; received samples that reference the department are not (the database foreign key from Sample.DepartmentId is Restrict, so such a delete would fail with the generic server error, GAP-420). [src: backend/MicroLIMS.Application/Services/MasterData/EnvironmentalMonitoringMasterDataService.cs:L58-L69; backend/MicroLIMS.Persistence/Configurations/SampleConfiguration.cs:L21]
+- **BR-EM-002 (IMPLEMENTED, verified):** A room cannot be deleted while it has test configurations, and not while it has monitoring history. Messages: `Cannot delete '{name}' - it still has {n} test configuration(s). Delete those first.` and `Cannot delete '{name}' - it has {n} monitoring record(s) in its history.` [src: EnvironmentalMonitoringMasterDataService.cs:L109-L125]
+- **BR-EM-003 (IMPLEMENTED, verified):** Room test type must be one of five values: PassiveAirSample, ActiveAirSample, SurfaceAirSample, CompressedAir, Drains (create and update). Message: `Unknown test type '{t}'. Allowed: PassiveAirSample, SurfaceAirSample, ActiveAirSample, CompressedAir, Drains.` [src: EnvironmentalMonitoringMasterDataService.cs:L130-L139, L143, L160; backend/MicroLIMS.Domain/Entities/RoomTestTypes.cs:L8-L22]
+- **BR-EM-004 (IMPLEMENTED, corrected):** A unit is required by the server for ActiveAirSample, CompressedAir and Drains. Message: `Unit is required for {testType} test configurations.` For PassiveAirSample and SurfaceAirSample the unit may be blank (stored trimmed, or as an empty string). At result entry the unit stored on the location is the unit typed on the room test configuration when it is not blank (for any of the five types); only when it is blank is a unit derived from the test type ("CFU/plate/4 hours" for passive air, "CFU/25 cm2" for surface). The earlier statement that the report unit for passive and surface types is "fixed by the backend" was wrong when a unit is typed. Consistent with C2 BR-COUNT-012. [src: EnvironmentalMonitoringMasterDataService.cs:L132-L148; backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs:L511-L512, L738-L753]
+- **BR-EM-005 (IMPLEMENTED, verified):** Limits (alert, action, specification) are stored as free text exactly as entered (no trimming, no numeric or order check). The order warning is advisory in the UI only (it appears only when all filled values are plain numbers). [src: EnvironmentalMonitoringMasterDataService.cs:L141-L166; frontend/src/components/configHierarchy/LimitFields.tsx:12-23]
+- **BR-EM-006 (IMPLEMENTED, corrected):** At preparation each EM location is linked to the room test configuration it was prepared from (`SampleLocation.RoomTestConfigurationId`, one location per configuration). At result entry the current alert / action / specification limits and unit of that linked configuration are read and copied onto the location together with the status. A change made to a configuration after preparation but before result entry therefore applies to that sample; a change after result entry does not alter the stored location. The earlier wording ("copied at result entry; existing locations unchanged; new locations pick up the change") was incomplete. [src: backend/MicroLIMS.Application/Workflows/EMWorkflowEngine.cs:L100-L108; IncubationStepRecorder.cs:L497-L520] (verified)
+- **BR-EM-007 (IMPLEMENTED, corrected):** Limit evaluation for each EM / After Cleaning location result: the average of the entered plate readings (not the whole-number reported value) is compared by `SpecLimitParser.Compare(value, alert, action, spec)`. Order: specification first, then action, then alert; the first limit exceeded decides. A limit is exceeded when the value is strictly greater than its upper bound or strictly less than its lower bound; equal to the limit is not exceeded. Limit text forms: a plain number, thousands-separated number or "NMT x" = upper bound; "NLT x" = lower bound; "a-b" (hyphen or dash variants) = range; "t ± d", "t +/- d", "t ± d%" = range around a target; a trailing unit text is ignored; an unparseable non-empty limit is treated as no limit (never an error). Result: OutOfSpecification (exceeded "Specification"), ActionLimitExceeded ("Action"), AlertLimitExceeded ("Alert"), WithinLimits, or LimitsNotConfigured when none of the three limits parses. Call sites: batch EM / After Cleaning `IncubationStepRecorder.cs:L497-L500`; batch water `L603-L606`; legacy single-average water `WaterWorkflowEngine.cs:L192`; shared helper `SpecLimitParser.cs:L208-L225`. [src: backend/MicroLIMS.Application/Services/SpecLimitParser.cs:L52-L205, L208-L228; IncubationStepRecorder.cs:L989-L990] (verified)
+- **BR-EM-008 (IMPLEMENTED, verified by absence):** Room test configuration create and update have no duplicate check on room + test type + test code. No unique index was looked for in the database configuration; the batch locations are unique per test order and configuration (`IX` on TestOrderId + RoomTestConfigurationId). [src: EnvironmentalMonitoringMasterDataService.cs:L141-L169; backend/MicroLIMS.Persistence/Configurations/SampleLocationConfiguration.cs:L32-L35]
+- **BR-EM-009 (IMPLEMENTED, corrected):** Editing a room or room test configuration does not check whether samples or results use it; only the record version is checked (when the client sends it). Deleting a room test configuration that a prepared location references is not refused with a message: the location foreign key is Restrict, so the database refuses and the user sees "An unexpected error occurred." (HTTP 500, recorded as a database incident). The service comment "always safe to hard-delete" is not accurate once a location references the row. [src: EnvironmentalMonitoringMasterDataService.cs:L155-L180; SampleLocationConfiguration.cs:L25; backend/MicroLIMS.API/Middleware/ExceptionMiddleware.cs:L67-L84] (verified; GAP-420)
+- **BR-EM-010 (IMPLEMENTED, corrected):** Concurrency: an update is refused when the client sends the record version it loaded (header If-Match) and the record has since changed; nothing is saved. The user sees "This record was changed by someone else while you were working on it. Nothing was saved - reload it and make your change again." (HTTP 409). The exception text `{Entity} changed after the form was loaded (version {expected}, now {version}).` is not shown to the user. Without the header no version check is made. [src: backend/MicroLIMS.Application/Helpers/RecordVersion.cs:L11-L18; backend/MicroLIMS.API/Middleware/RecordVersionMiddleware.cs:L18-L26; ExceptionMiddleware.cs:L17-L18, L55-L66] (verified)
+- **BR-EM-011 (REQUIRES CONFIRMATION, relabelled):** The earlier label "INTENDED, consistent with code" was wrong: `BusinessRules.md` lines 88-94 are in the Water section (section 4), not EM. The EM section (section 5) and the EM diagram describe only the out-of-trend rule `(Step1Count + Step2Count) > ActionLimit` and no alert / action / specification comparison, so the intended EM limit comparison is not specified. The out-of-trend rule is not implemented (C2 BR-COUNT-017, GAP-211). [src: documents/DesignSpecification/BusinessRules.md:L83-L117; documents/DesignSpecification/WorkflowDiagrams.md:L61-L74]
+
+### MOD-WATER-001 Water configuration
+- **BR-WATER-001 (IMPLEMENTED, verified):** A water system cannot be deleted while it still has sample locations. Message: `Cannot delete '{name}' - it still has {n} sample location(s). Delete those first.` Samples that reference the system are not counted (Sample.WaterDepartmentId is Restrict; GAP-420). [src: backend/MicroLIMS.Application/Services/MasterData/WaterMasterDataService.cs:L105-L117; SampleConfiguration.cs:L23]
+- **BR-WATER-002 (IMPLEMENTED, corrected):** A sample location cannot be deleted while samples or sampling configurations (limit rows) reference it. Message: `Cannot delete '{code}' - it is referenced by {n} sample(s) and {m} sampling configuration(s).` The sample count covers only the older per-point samples (`Sample.WaterSamplingPointId`); batch-prepared water samples reference the point through their locations, which are not counted, so a point used only by batch samples is deleted unless a limit row exists, and a point that has limit rows must have them removed first (the message does not say where). A location row that references the point blocks the delete at the database (Restrict) with the generic server error (GAP-420). [src: WaterMasterDataService.cs:L53-L67; backend/MicroLIMS.Persistence/Configurations/SampleLocationConfiguration.cs:L27]
+- **BR-WATER-003 (IMPLEMENTED, verified):** Sampling configuration (limits per count test) has no unit requirement and no duplicate check on the server; the unit defaults to an empty string; the test code is accepted as given (no check that it is an assigned count test). [src: WaterMasterDataService.cs:L119-L156]
+- **BR-WATER-004 (IMPLEMENTED, verified):** Limit rows are created by the UI only for assigned tests whose Test Master workflow type is Count Test; presence / absence tests get none. The server does not enforce this. [src: frontend/src/modules/laboratoryConfiguration/water/components/WaterLocationPanel.tsx:L89, L163-L190; WaterMasterDataService.cs:L122-L133]
+- **BR-WATER-005 (IMPLEMENTED, corrected):** Water preparation links each location of a count test to the sampling configuration of that point and test code, if one exists at that moment (`SamplingConfigurationId`). At result entry the alert / action / specification limits and unit are read from the linked row and copied onto the location. A location prepared before the limit row existed has no link, so no limits are used (status LimitsNotConfigured). A limit row edited after preparation but before result entry applies. [src: backend/MicroLIMS.Application/Workflows/WaterWorkflowEngine.cs:L125-L152; IncubationStepRecorder.cs:L603-L620] (verified)
+- **BR-WATER-006 (IMPLEMENTED, corrected):** Batch-prepared water samples are compared in `RecordWaterBatchReadingsCoreAsync` (average of the readings of each point against that point's linked limits, `SpecLimitParser.Compare`; see BR-EM-007). `WaterWorkflowEngine.CalculateAndCompareAsync` (looks the limit row up by test code and the sample's sampling point) is the legacy single-average path; it refuses an order that was prepared in batch with "This water test was prepared across multiple sampling points; per-location result entry is not available yet." The earlier text cited the legacy call as the water comparison. [src: IncubationStepRecorder.cs:L556-L626; WaterWorkflowEngine.cs:L166-L195] (verified)
+- **BR-WATER-007 (DISCREPANCY, confirmed):** INTENDED (spec quote): "Water Department fields: `Name` + `TestingFrequency` (mirrors the EM department table, which shows Class + Testing Frequency; Water omits Class)" and `CreateWaterDepartmentRequest(string Name, string TestingFrequency)`. Code: `CreateWaterDepartmentRequest(string Name)` and `UpdateWaterDepartmentRequest(string Name)`; the `WaterDepartment` entity has only `Name`, and a code comment states "Testing frequency lives on the sample location, not here."; the UI has a Name field only, and the testing frequency is entered per sample location. Spec status is "Design — awaiting approval", so the code decision may be deliberate; the spec has not been updated. See GAP-415. [src: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md:L44-L46, L96-L97; backend/MicroLIMS.Application/DTOs/MasterDataRequests.cs:L13-L14; backend/MicroLIMS.Domain/Entities/WaterDepartment.cs:L3-L13; frontend/.../water/components/WaterDepartmentPanel.tsx:L28, L52-L62]
+- **BR-WATER-008 (INTENDED, consistent with code):** Limits only for count tests (selected by workflow type, not by a hard-coded name); presence / absence tests carry no limits. [src: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md:L47-L51, L90-L95] (spec read in full; UI behaviour matches BR-WATER-004)
+- **BR-WATER-009 (INTENDED, consistent with code):** Comparison order: specification, then action, then alert; the first limit exceeded wins; one status per result; status values WithinLimits, AlertLimitExceeded, ActionLimitExceeded, OutOfSpecification; the water average is compared with "greater than" each limit (diagram: "Average > Spec Limit?"). Code adds LimitsNotConfigured and supports lower bounds and ranges beyond what the spec describes. [src: documents/DesignSpecification/BusinessRules.md:L83-L97; documents/DesignSpecification/WorkflowDiagrams.md:L47-L59; SpecLimitParser.cs:L208-L225]
+- **BR-WATER-010 (DISCREPANCY, minor):** INTENDED: the mutating water endpoints carry `[Authorize(Roles = SectionHead + SystemAdministrator)]`. Code: they carry the permission policy `MasterData.Manage` (default holders are the same two roles; a custom role can differ). [src: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md:L136-L138; WaterMasterDataController.cs:L36-L87]
+- **BR-WATER-011 (INTENDED, consistent with code):** The water batch design: receiving captures a water department; preparation chooses sampling points of that department and generates one test order per distinct test code and one location per point and test, linking the limit row for count tests when one exists; results are per location with the multi-reading average compared with that point's limits. Code matches (including the check that every chosen point belongs to the sample's department: `Sampling point(s) {codes} do not belong to this sample's department.`). The spec's separate "detection" grid and endpoint names (`calculate` per location, `detection`) differ from the code's `water-batch-readings` / `batch-pathogen-results` (C2 WF-COUNT-002). [src: docs/superpowers/specs/2026-08-17-water-batch-workflow-design.md:L29-L43, L127-L143, L145-L165; WaterWorkflowEngine.cs:L66-L161]
+
+### MOD-AC-001 After Cleaning configuration
+- **BR-AC-001 (IMPLEMENTED, verified):** A machine cannot be deleted while it has parts, and cannot be deleted once it has been used to receive samples. Messages: `Cannot delete '{name}' - it still has {n} part(s). Delete those first.` and `Cannot delete '{name}' - it has been used to receive {n} sample(s).` [src: backend/MicroLIMS.Application/Services/MasterData/AfterCleaningMasterDataService.cs:L57-L73]
+- **BR-AC-002 (IMPLEMENTED, verified):** A machine part cannot be deleted while it has test configurations. Message: `Cannot delete '{name}' - it still has {n} test configuration(s). Delete those first.` [src: AfterCleaningMasterDataService.cs:L97-L109]
+- **BR-AC-003 (IMPLEMENTED, verified):** The same test type and test code cannot be configured twice on one part (create and update). Message: `{testCode} ({testType}) is already configured for this part.` [src: AfterCleaningMasterDataService.cs:L117-L127, L145]
+- **BR-AC-004 (IMPLEMENTED, verified):** A part test configuration that a sample location uses cannot be deleted. Message: `{testCode} has already been tested on this part ({n} sample location(s)), so it cannot be removed.` (This guard exists for After Cleaning only; the equivalent EM and Water deletes rely on the database constraint, BR-EM-009.) [src: AfterCleaningMasterDataService.cs:L157-L171]
+- **BR-AC-005 (IMPLEMENTED, verified):** The UI offers the count sample types Swab and Rinse. Pathogen tests are saved with TestType "Pathogen", the pathogen flag true, and empty limits and unit. The server accepts any test type text. [src: frontend/.../afterCleaning/acConfigTypes.ts:L30-L35; afterCleaning/components/AcPanels.tsx:L238; AfterCleaningMasterDataService.cs:L125-L138]
+- **BR-AC-006 (IMPLEMENTED, corrected):** Each pathogen test on a part is its own configuration row. At preparation the server creates one test order per distinct test code across the chosen configurations, and one location per configuration; two parts with the same pathogen share one test order. The earlier wording ("each gets its own test order") was imprecise. Consistent with C2 BR-PREP-006. [src: AcPanels.tsx:L215-L245; backend/MicroLIMS.Application/Workflows/AfterCleaningWorkflowEngine.cs:L85-L130] (verified)
+- **BR-AC-007 (DISCREPANCY, confirmed):** INTENDED (spec quote): "Collective pathogen sampling is opt-in per `MachinePartConfiguration.IsCollectivePathogenSample` — if none of the selected parts require it, no collective TestOrder is created." and "Every selected part always gets its own individual TAMC TestOrder (`TestCode = "TAMC:{partName}"`)" (the diagram shows ONE collective pathogen test order plus one individual TAMC test order per selected part). Code: `git grep -i Collective` and `git grep "TAMC:"` over backend and frontend find no such field or code (only the spec); `MachinePartConfiguration` carries `IsPathogenTest` only; preparation creates one test order per distinct test code (BR-AC-006). Same discrepancy as C2 GAP-225. The spec is a baseline document (committed 2026-07-31) and was not found updated. [src: documents/DesignSpecification/BusinessRules.md:L120-L135; documents/DesignSpecification/WorkflowDiagrams.md:L76-L85; backend/MicroLIMS.Application/DTOs/MasterDataRequests.cs:L26, L159; AfterCleaningMasterDataService.cs:L125-L138]
+- **BR-AC-008 (IMPLEMENTED, verified):** For After Cleaning locations the limits and unit are read from the linked `MachinePartConfiguration` at result entry (same order and rule as BR-EM-007; the configured unit overrides the derived "CFU/25 cm2" (swab) or "CFU/mL" (rinse) when not blank). The acConfigTypes comment calling the unit field "informational" is not accurate. [src: IncubationStepRecorder.cs:L497-L512, L738-L753; frontend/.../afterCleaning/acConfigTypes.ts:L28-L29]
+
+### MOD-ORG-001 Organisms master
+- **BR-ORG-001 (IMPLEMENTED, verified):** Scientific name must be unique, compared case-insensitively, on create and on update. Message: `Organism "{name}" already exists in the Organism list.` The client only checks that the name is not empty. [src: backend/MicroLIMS.Application/Services/MasterData/OrganismMasterDataService.cs:L28-L31, L45-L46]
+- **BR-ORG-002 (IMPLEMENTED, corrected):** An organism cannot be deleted while media configuration challenges, media evaluation challenges, cryovials or materials reference it. Test Master step target organisms are not in this check; the database foreign key from the step is Restrict, so deleting an organism that a step targets fails with the generic server error (GAP-420). [src: OrganismMasterDataService.cs:L61-L80; backend/MicroLIMS.Persistence/Configurations/TestWorkflowStepConfiguration.cs:L24-L27] (verified)
+- **BR-ORG-003 (IMPLEMENTED, verified):** Organisms are listed sorted by scientific name. [src: OrganismMasterDataService.cs:L25-L26]
+- **BR-ORG-004 (IMPLEMENTED, verified):** Update checks the record version when the client sends it. [src: OrganismMasterDataService.cs:L43; RecordVersion.cs:L11-L18]
+
+### MOD-MEDIACFG-001 Media Configurations
+- **BR-MEDIA-001 (IMPLEMENTED, verified):** A media product code is 2 to 10 characters, starts with a letter or digit, and contains only letters, digits, "." or "-" (regex `^[A-Za-z0-9][A-Za-z0-9.-]{1,9}$`); the code is trimmed first. [src: backend/MicroLIMS.Application/Services/MediaProductService.cs:L35, L205-L214]
+- **BR-MEDIA-002 (IMPLEMENTED, verified):** Media product codes and names are unique, compared case-insensitively (on create and rename for names; on create and code change for codes). The database also holds case-insensitive unique indexes on lower(Name) and lower(Code). [src: MediaProductService.cs:L65-L71, L84-L94, L216-L234; backend/MicroLIMS.Persistence/Configurations/MediaProductConfiguration.cs:L8-L22]
+- **BR-MEDIA-003 (IMPLEMENTED, verified):** Changing a media product code: a reason is required (trimmed); the new code must pass the code rule; it must differ from the current code (exact comparison, so a change of letter case only is accepted) and must not clash with another product's code; the electronic signature (password) is checked before any change, so a wrong password changes nothing; the change and the audit event are saved together. Already-received batches keep the code they were received with; lots prepared afterwards use the new code and start again at /01/. The code change does not check the record version. [src: MediaProductService.cs:L111-L161]
+- **BR-MEDIA-004 (IMPLEMENTED, verified):** A media product cannot be deleted while it has media configurations or material batches, nor while any of its incubation conditions is used by a Test Master step medium. When the delete is allowed the product's remaining (unused) incubation conditions are deleted with it. [src: MediaProductService.cs:L163-L193]
+- **BR-MEDIA-005 (IMPLEMENTED, verified):** Each media product has at most one media configuration; creating a second is refused: `'{product}' already has an evaluation configuration. Edit it instead.` The UI hides "Add Configuration" once one exists. [src: backend/MicroLIMS.Application/Services/MasterData/MediaMasterDataService.cs:L78-L82; frontend/.../media/components/MediaConfigurationsSection.tsx:L106]
+- **BR-MEDIA-006 (IMPLEMENTED, verified):** A media configuration's incubation condition must belong to the same media product. [src: MediaMasterDataService.cs:L71-L76, L180-L185]
+- **BR-MEDIA-007 (IMPLEMENTED, verified):** A media configuration cannot be moved to another media product. [src: MediaMasterDataService.cs:L172-L175]
+- **BR-MEDIA-008 (IMPLEMENTED, verified):** For Growth Promotion, the recovery percent minimum cannot exceed the maximum (checked only when both are entered); recovery values are stored only for Growth Promotion. [src: MediaMasterDataService.cs:L87-L103, L190-L203]
+- **BR-MEDIA-009 (IMPLEMENTED, verified):** For Indication / Inhibition every challenge needs a challenge role (Inhibition or Indication); the role is stored only for that type; the expected description is stored only for the Indication role. The server does not check that the expected description is non-blank (the dialog requires it). [src: MediaMasterDataService.cs:L106-L130, L213-L218; MediaConfigurationDialog.tsx:L128-L129, L351-L355]
+- **BR-MEDIA-010 (IMPLEMENTED, verified):** Each challenge organism must exist. The initial inoculum is stored trimmed, or as null when blank. [src: MediaMasterDataService.cs:L108-L112, L127]
+- **BR-MEDIA-011 (IMPLEMENTED, corrected):** On update, the same organism and role combination cannot appear twice in the request (`Duplicate challenge organism and role combination in request.`), and challenges missing from an update are removed. Create has no duplicate check (the dialog prevents duplicates on the client). [src: MediaMasterDataService.cs:L220-L260; MediaConfigurationDialog.tsx:L148-L151]
+- **BR-MEDIA-012 (IMPLEMENTED, verified):** Incubation condition: minimum hours must be greater than zero; maximum hours cannot be less than the minimum; the temperature minimum must be strictly below the maximum. [src: backend/MicroLIMS.Application/Services/MediaIncubationConditionService.cs:L143-L153]
+- **BR-MEDIA-013 (IMPLEMENTED, verified):** An incubation condition cannot be changed or deleted once an evaluation configuration or a Test Master step medium uses it. Message: `This incubation condition is used by {n} evaluation configuration(s) and {m} Test Master step medium/media, so it can't be changed or deleted. Add a new condition instead.` [src: MediaIncubationConditionService.cs:L155-L165]
+- **BR-MEDIA-014 (IMPLEMENTED):** Duplicate of BR-MEDIA-004 (product delete also blocked by step-media use); kept for numbering. [src: MediaProductService.cs:L177-L184]
+- **BR-MEDIA-015 (IMPLEMENTED, verified):** The configuration screen offers Growth Promotion and Indication / Inhibition. The enum also defines EnrichmentCharacteristics and the server accepts any defined value, so a direct API call can store it; the audit label list contains "Enrichment Characteristics". [src: MediaConfigurationDialog.tsx:L35-L38; backend/MicroLIMS.Domain/Enums/EvaluationType.cs:L6-L11; MediaMasterDataService.cs:L84-L85; frontend/src/modules/auditSearch/utils/auditEnumLabels.ts:L27]
+- **BR-MEDIA-016 (IMPLEMENTED):** An incubation condition cannot duplicate another condition of the same product (same hours and temperatures). Message: `'{product}' already has an incubation condition of {min}–{max} h at {tmin}–{tmax} °C.` The database has a matching unique index. [src: MediaIncubationConditionService.cs:L65-L76, L105-L121; backend/MicroLIMS.Persistence/Configurations/MediaIncubationConditionConfiguration.cs:L21] (verified)
+- **BR-MEDIA-017 (IMPLEMENTED):** Renaming a media product updates the display name on all its media configurations; the names already copied onto received batches are not changed. A rename checks the record version when sent. [src: MediaProductService.cs:L84-L109] (verified)
+- **BR-MEDIA-018 (IMPLEMENTED, verified by absence):** Deleting a media configuration has no usage check in the service. [src: MediaMasterDataService.cs:L298-L307]
+
+### MOD-EQUIP-002 Equipment configuration
+- **BR-EQUIP-001 (IMPLEMENTED, corrected):** Equipment name and code are required (server) and the code must be unique across all equipment on create and update, by exact (case-sensitive) comparison of the trimmed code. Messages: "Name is required.", "Code is required.", `Equipment code "{code}" already exists.` Name and code are trimmed on save. The inventory link matches codes case-insensitively (BR-EQUIP-005). [src: backend/MicroLIMS.Application/Services/MasterData/EquipmentMasterDataService.cs:L50-L55, L80-L81, L105-L110, L136-L137]
+- **BR-EQUIP-002 (IMPLEMENTED, verified):** CDS software is required for HPLC and ICP-OES equipment and allowed only for those two types. The Add / Edit Equipment dialog of this page cannot select those types (see SCR-EQUIP-002, Equipment dialog), so the rule is not reachable from this page. [src: EquipmentMasterDataService.cs:L60-L74, L115-L129]
+- **BR-EQUIP-003 (IMPLEMENTED, verified):** Vendor cannot exceed 100 characters (server message "Vendor cannot exceed 100 characters."; the field also stops at 100 on the client). [src: EquipmentMasterDataService.cs:L57-L58, L112-L113; EquipmentPage.tsx:L1262-L1268]
+- **BR-EQUIP-004 (IMPLEMENTED, verified):** On create the laboratory section is resolved from the user's memberships (error texts under roles); on update the section changes only if the request names a different section, which this page never sends. [src: EquipmentMasterDataService.cs:L76, L131-L134; EquipmentPage.tsx:L497-L507]
+- **BR-EQUIP-005 (IMPLEMENTED, corrected):** The API call "link inventory asset" is not used by the page (see SCR-EQUIP-002, Inventory dialog). When called: if a master equipment record with the same code (case-insensitive) already exists that record is returned and nothing is created; otherwise a master record is created with name = the inventory instrument type, code = the inventory code, a type guessed from the instrument type text (Incubator, Autoclave, LAF Cabinet by "Cabinet", else Other), the inventory location and calibration due date, a set point of 32.5 °C for an incubator (written without a set point history row), and the Microbiology section (code MICRO). Error: "The Microbiology laboratory section (code MICRO) is missing." [src: backend/MicroLIMS.Application/Services/EquipmentConfigurationService.cs:L140-L174] (verified)
+- **BR-EQUIP-006 (IMPLEMENTED, verified):** A set point change through the set point call is allowed only for equipment of type Incubator (`Equipment {code} is not an incubator.`) and needs a non-blank reason (`A reason explaining the change to the set point temperature is required.`). [src: EquipmentConfigurationService.cs:L176-L186]
+- **BR-EQUIP-007 (IMPLEMENTED, verified):** Each set point change stores the previous value (0 when none was set), the new value, the reason (trimmed), the user and the UTC time as a history row. [src: EquipmentConfigurationService.cs:L187-L203]
+- **BR-EQUIP-008 (IMPLEMENTED, corrected):** An autoclave program is saved on an equipment item of type Autoclave (`Autoclave equipment {id} not found.`). The program code is stored trimmed and upper-cased. The duplicate check compares the code as typed (case-sensitive, untrimmed) with the stored codes, so a code typed in different case from an existing one passes the service check and is then refused by the database unique index (equipment + code) with the generic server error (GAP-421). Message when caught: `Program code "{code}" already exists on autoclave {equipment code}.` [src: EquipmentConfigurationService.cs:L257-L272, L316-L321, L344; backend/MicroLIMS.Persistence/Configurations/AutoclaveProgramConfiguration.cs:L12, L22]
+- **BR-EQUIP-009 (IMPLEMENTED, verified):** Autoclave program create and update write a history row (action "Created" / "Updated") with previous and new name, load type, temperature, cycle time and active state, the comment, the user and the UTC time. [src: EquipmentConfigurationService.cs:L284-L303, L323-L342]
+- **BR-EQUIP-010 (IMPLEMENTED, corrected):** Active / inactive change: if the program is already in the requested state nothing is written; otherwise a history row with action "StatusChanged" is written and the program's last-modified fields are updated. Through the HTTP endpoint a missing comment becomes an empty string (not the service defaults "Activated program" / "Deactivated program"); the page always sends those two texts. The status change does not check the record version. [src: EquipmentConfigurationService.cs:L363-L396; EquipmentMasterDataController.cs:L106-L111; EquipmentPage.tsx:L376-L392]
+- **BR-EQUIP-011 (IMPLEMENTED, verified):** Concurrency: equipment edits and autoclave program edits are refused when the sent record version is stale (BR-EM-010 text). Set point change, status change and inventory link do not check the version. [src: EquipmentMasterDataService.cs:L103; EquipmentConfigurationService.cs:L176-L203, L318, L363]
+- **BR-EQUIP-012 (IMPLEMENTED, verified):** The configured-equipment summary shows the calibration due date (the equipment value, or the matching inventory asset's when the equipment has none), the inventory status (or "InService" when no asset with the same code, case-insensitive, exists), the location (equipment first, then inventory) and the number of programs. The page displays "In Service" for an empty status. [src: EquipmentConfigurationService.cs:L104-L138; EquipmentPage.tsx:L709]
+- **BR-EQUIP-013 (IMPLEMENTED):** "Edit Equipment" writes the field "Set Point Temp (°C)" directly on the equipment record. That path asks for no reason and writes no set point history row; only the "Edit Set Point" dialog does. See GAP-422. [src: EquipmentPage.tsx:L505, L1308-L1315; EquipmentMasterDataService.cs:L140] (verified)
+- **BR-EQUIP-014 (IMPLEMENTED, verified by absence):** There is no delete or deactivate action for equipment in this controller or on this page; autoclave programs can be deactivated but not deleted; the operational status shown comes from the inventory asset. [src: EquipmentMasterDataController.cs:L38-L124 (no HttpDelete for equipment)]
+- **BR-EQUIP-015 (REQUIRES CONFIRMATION):** No specification was found for equipment configuration or for the audit and signature expectations of a set point or autoclave program change (GAP-408).
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+- **BR-TM-001 (IMPLEMENTED, verified):** A test code is unique across the Test Master (create and update), by exact (case-sensitive) comparison; the page trims the code. Message: `Test code "{code}" already exists in the Test Master.` [src: backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs:L40-L41, L387-L388; frontend/.../masterDataSimple/TestMasterPage.tsx:L246-L255]
+- **BR-TM-002 (IMPLEMENTED, verified):** A test belongs to one laboratory section. A section is required on create (resolved from the user's membership; System Administrator must choose); on update the section changes only through the same resolution, and existing test orders keep the section they were created with. [src: TestDefinitionMasterDataService.cs:L313, L393-L397; TestMasterPage.tsx:L744-L752]
+- **BR-TM-003 (IMPLEMENTED, corrected):** Freeze sets the test inactive; unfreeze sets it active. No check of usage, open orders, section scope or record version was found in the freeze / unfreeze service methods; no reason or signature. Frozen tests are not offered for a new selection in the test code picker (active options only) while a frozen code still displays on an existing record; the pathogen picker also keeps an already chosen frozen code. What happens to open test orders of a frozen test was not traced (GAP-411). [src: TestDefinitionMasterDataService.cs:L796-L813; frontend/src/components/TestCodePicker.tsx:L21-L30; afterCleaning/components/PathogenPicker.tsx:L7-L12] (verified)
+- **BR-TM-004 (IMPLEMENTED, verified):** The workflow type of a test can be changed from the details dialog only between Count Test and Observation, and only if the test's equation type is not one of the dedicated equations (HPLC / ICP method assay, dissolution, disintegration, weight variation, titration, measurement, qualitative, gravimetric loss or residue). Otherwise: "The workflow type of this test is set by its test type; change it in the test settings." The change has no section, version or audit-event check (generic audit only). [src: backend/MicroLIMS.Application/Services/MasterData/TestWorkflowStepMasterDataService.cs:L25-L42]
+- **BR-TM-005 (IMPLEMENTED, verified):** Microbiology tests (Count Test, Observation) carry workflow steps; workflow types that use test analysis have none. Creating a step on such a test is refused: `{type} tests have no workflow steps.` [src: TestWorkflowStepMasterDataService.cs:L77-L82; backend/MicroLIMS.Domain/Entities/AnalysisWorkflows.cs:L24]
+- **BR-TM-006 (IMPLEMENTED, verified):** A new step is appended after the highest step number; step numbers must stay contiguous from 1 (checked after create and move; deleting a step renumbers the later steps); only one step per test can be the final step (`Only one step per test can be marked as the final step.`). [src: TestWorkflowStepMasterDataService.cs:L84-L85, L240-L250, L310-L332]
+- **BR-TM-007 (IMPLEMENTED, corrected):** A step cannot be deleted once a test order has used it. "Used" means an incubation record exists with the same step name for a test order with the same test code (matched by name and code, not by step id). Message: `Cannot delete step "{name}" - it has already been used by a test order.` Editing a used step is allowed (completed incubations keep their own copied values). [src: TestWorkflowStepMasterDataService.cs:L123-L127, L225-L237] (verified)
+- **BR-TM-008 (IMPLEMENTED, verified):** A step cannot move past the end of the sequence (up from the first, down from the last): "This step is already at that end of the sequence." [src: TestWorkflowStepMasterDataService.cs:L198-L210]
+- **BR-TM-009 (IMPLEMENTED, corrected):** The template validator returns every violation at once; the server joins them with a space, each prefixed `Rule {n} ({step name}): `. The rule texts are under validations. [src: backend/MicroLIMS.Application/Services/WorkflowTemplateValidator.cs:L13-L109; TestWorkflowStepMasterDataService.cs:L303-L308] (verified)
+- **BR-TM-010 (IMPLEMENTED, verified):** Each step medium refers to a material (the page lists stock materials of type DehydratedMedia); the material must be linked to a media product, an incubation condition must be chosen, and it must belong to that product. The condition's temperature range and hours are copied onto the step medium when the step is saved, and the step's own hours and temperatures are taken from the first medium when the request sends zero. [src: TestWorkflowStepMasterDataService.cs:L87-L92, L253-L299; WorkflowStepsSection.tsx:L56-L62, L765-L810]
+- **BR-TM-011 (IMPLEMENTED, verified):** Saving a step replaces its whole medium list and its incubation stages; the phenotypic test list is replaced only when the request sends it. [src: TestWorkflowStepMasterDataService.cs:L153-L182]
+- **BR-TM-012 (IMPLEMENTED, corrected):** Organism rules: SelectivePlating and ConfirmatoryPlating must target an organism (rules 2 and 3); BrothEnrichment, SelectiveBroth and BiochemicalTest must not (rules 1 and 4); PlateCount has no organism rule. The earlier text listed selective plating as both required and forbidden. [src: WorkflowTemplateValidator.cs:L22-L52] (verified)
+- **BR-TM-013 (IMPLEMENTED, corrected):** Broth, selective broth and selective plating steps each need exactly one medium and it must be marked required (rules 1, 2); a biochemical test step needs no media (rule 4) and at least one phenotypic test type, no type twice; every other step type needs at least one medium (rule 8, which is the only media rule for PlateCount); the same medium cannot appear twice (rule 6). [src: WorkflowTemplateValidator.cs:L22-L79]
+- **BR-TM-014 (IMPLEMENTED, corrected):** Confirmatory plating: needs at least as many permitted media as the step's confirmatory media count (minimum 1; the page does not set the count, the server stores 1), none of them marked required, and a target organism (rule 3). [src: WorkflowTemplateValidator.cs:L37-L46; TestWorkflowStepMasterDataService.cs:L101, L150; WorkflowStepsSection.tsx:L183-L190]
+- **BR-TM-015 (IMPLEMENTED, verified):** Only a PlateCount step with incubation transfer may define a second incubation stage; a transfer step must define stage 2's temperature and hours; stage 2's minimum temperature must be below its maximum and its hours must have a positive minimum and a maximum not below the minimum (rule 7). [src: WorkflowTemplateValidator.cs:L88-L106]
+- **BR-TM-016 (IMPLEMENTED, verified):** Only a biochemical test step may specify a phenotypic test type (rule 8). [src: WorkflowTemplateValidator.cs:L71-L72]
+- **BR-TM-017 (IMPLEMENTED, verified):** The step editor caps broth, selective broth and selective plating at one medium row; the server enforces the same through rules 1 and 2. [src: testMaster/testMasterConstants.ts:L51-L56; WorkflowStepsSection.tsx:L837]
+- **BR-TM-018 (REQUIRES CONFIRMATION):** Whether step media should be chosen by media product rather than by material; see GAP-413. [src: TestWorkflowStepMasterDataService.cs:L268-L283]
+- **BR-TM-019 (IMPLEMENTED, verified):** For every step type except biochemical, each medium's incubation hours must have a positive minimum and a maximum not below the minimum (rule 9; the message tells the user to set it on the media configuration), and each medium's temperature minimum must be below its maximum (rule 5). Both are always satisfied by a valid media incubation condition. [src: WorkflowTemplateValidator.cs:L75-L86]
+- **BR-TM-020 (IMPLEMENTED, verified):** A test created through the "+ Add {code} to Test Master" option of a test picker gets the server default workflow type Observation and no steps (GAP-416). [src: frontend/src/services/masterDataOptions.ts:L253-L258; backend/MicroLIMS.Application/DTOs/MasterDataRequests.cs:L170-L174]
+- **BR-TM-021 (REQUIRES CONFIRMATION):** No specification was found for the microbiology Test Master; the intended rules for step design, freezing and audit are unknown.
+
+## validations
+
+How the messages reach the user (verified): a business-rule refusal is an `InvalidOperationException` (HTTP 400) or `BusinessRuleException`; a missing record is a `NotFoundException` (HTTP 404); both return the message text, which the pages show as written (or as the "fallback" text when the response has no message). A stale form version returns HTTP 409 with "This record was changed by someone else while you were working on it. Nothing was saved - reload it and make your change again." A database refusal (foreign key, unique index) is a generic HTTP 500 with "An unexpected error occurred." [src: backend/MicroLIMS.API/Middleware/ExceptionMiddleware.cs:L17-L18, L44-L110]
+
+### MOD-EM-001 Environmental Monitoring configuration
+Server messages (exact text):
+- `Department {id} not found.` / `Room {id} not found.` / `Room test configuration {id} not found.` [src: backend/MicroLIMS.Application/Services/MasterData/EnvironmentalMonitoringMasterDataService.cs:L47, L95, L158, L176]
+- `Cannot delete '{name}' - it still has {n} room(s). Delete those rooms first.` [L65]
+- `Cannot delete '{name}' - it still has {n} test configuration(s). Delete those first.` [L116]
+- `Cannot delete '{name}' - it has {n} monitoring record(s) in its history.` [L120]
+- `Unknown test type '{t}'. Allowed: PassiveAirSample, SurfaceAirSample, ActiveAirSample, CompressedAir, Drains.` [L135-L136]
+- `Unit is required for {testType} test configurations.` (ActiveAirSample, CompressedAir, Drains) [L137-L138]
+- Concurrency: see the introduction above (the exception text `{Entity} changed after the form was loaded ...` in `RecordVersion.cs:L16-L17` is not shown to the user).
+
+Client messages (exact text):
+- "Name is required." (department) [src: environmentalMonitoring/components/EmPanels.tsx:L33]
+- "Room name and department are required." [EmPanels.tsx:L96]
+- "Choose the test to run." (EM test; same text in the After Cleaning count test) [EmPanels.tsx:L175; afterCleaning/components/AcPanels.tsx:L156]
+- "Unit is required for {type label}." (EM test of a unit-required type) [EmPanels.tsx:L176]
+- Advisory (does not block): "Alert limit is higher than the action limit." / "Action limit is higher than the specification." / "Alert limit is higher than the specification." followed by "Check the values before saving." [src: frontend/src/components/configHierarchy/LimitFields.tsx:L19-L21, L55]
+- Save fallback for a test: "Could not save this test."; load fallback "Could not load the environmental monitoring configuration."; delete fallback "Could not delete this record." [EmPanels.tsx:L195; EMConfigPage.tsx:L53, L123]
+
+Required markers (MUI `required`): department "Name"; room "Room name", "Department"; test "Unit" for unit-required types. [src: EmPanels.tsx:L63, L122-L123; LimitFields.tsx:L47]
+
+Not validated (verified by reading the create methods): empty or duplicate names for departments and rooms; limit text format and order; duplicate room test configurations; the test code (the client requires one, the server stores `TestCode` as given, even if it is not in the Test Master). [src: EnvironmentalMonitoringMasterDataService.cs:L36-L42, L84-L90, L141-L153]
+
+### MOD-WATER-001 Water configuration
+Server messages (exact text):
+- `Sampling point {id} not found.` / `Water department {id} not found.` / `Water sampling configuration {id} not found.` [src: backend/MicroLIMS.Application/Services/MasterData/WaterMasterDataService.cs:L39, L98, L108, L138, L152]
+- `Cannot delete '{code}' - it is referenced by {n} sample(s) and {m} sampling configuration(s).` [L61-L62]
+- `Cannot delete '{name}' - it still has {n} sample location(s). Delete those first.` [L111-L112]
+
+Client messages (exact text):
+- "Name is required." (water system) [src: water/components/WaterDepartmentPanel.tsx:L28]
+- "Point code and water system are required." [water/components/WaterLocationPanel.tsx:L71]
+- "The location was saved, but some limits were not. {code}: {message}" [WaterLocationPanel.tsx:L106-L108]
+- Fallbacks: "Could not save this sample location."; "Could not delete this water system."; "Could not delete this sample location."; "Could not load the water configuration." [WaterLocationPanel.tsx:L88; WaterConfigPage.tsx:L55, L123, L135]
+- Advisory limit-order warnings: as for EM.
+
+Required markers: "Point code", "Water system". [src: WaterLocationPanel.tsx:L134, L138]
+
+Not validated: empty or duplicate names / codes of systems and locations (a location code is not checked for uniqueness); that the department exists; limit text format and order; sampling configuration unit and duplicates; that a limit row's test code is an assigned count test. [src: WaterMasterDataService.cs:L28-L48, L87-L93, L122-L147]
+
+### MOD-AC-001 After Cleaning configuration
+Server messages (exact text):
+- `Machine {id} not found.` / `Machine part {id} not found.` / `Machine part configuration {id} not found.` [src: backend/MicroLIMS.Application/Services/MasterData/AfterCleaningMasterDataService.cs:L47, L60, L86, L100, L143, L163]
+- `Cannot delete '{name}' - it still has {n} part(s). Delete those first.` [L64]
+- `Cannot delete '{name}' - it has been used to receive {n} sample(s).` [L68]
+- `Cannot delete '{name}' - it still has {n} test configuration(s). Delete those first.` [L104]
+- `{testCode} ({testType}) is already configured for this part.` [L122]
+- `{testCode} has already been tested on this part ({n} sample location(s)), so it cannot be removed.` [L166-L167]
+
+Client messages (exact text):
+- "Name is required." (machine) [AcPanels.tsx:L30]
+- "Part name and machine are required." [AcPanels.tsx:L87]
+- "Choose the test to run." (count test) [AcPanels.tsx:L156]
+- "Some changes were not saved. {code}: {message}" (pathogen tests; per-code reasons "could not be added" / "could not be removed" when the server gives no message) [AcPanels.tsx:L238-L250]
+- Fallbacks: "Could not save this test."; "Could not delete this record."; "Could not load the after-cleaning configuration."
+
+Required markers: "Machine name", "Part name", "Machine". [src: AcPanels.tsx:L59, L113-L114]
+
+Not validated: empty or duplicate machine and part names; the test type text (any text accepted); limit text format and order; that a pathogen configuration is an Observation test (the picker offers only Observation tests, the server does not check). [src: AfterCleaningMasterDataService.cs:L36-L42, L75-L81, L125-L138]
+
+### MOD-ORG-001 Organisms master
+Server messages (exact text):
+- `Organism "{name}" already exists in the Organism list.` [src: backend/MicroLIMS.Application/Services/MasterData/OrganismMasterDataService.cs:L31, L46]
+- `Organism {id} not found.` [L42, L64]
+- `Cannot delete '{name}' - it is referenced by {n} record(s) (Media Configuration Challenges: {a}, Media Evaluation Challenges: {b}, Cryovials: {c}, Materials: {d}).` [L73-L75]
+
+Client messages (exact text): "Scientific Name is required." (empty check only, not trimmed) [src: OrganismsPage.tsx:L58-L60]; success `Organism "{name}" added.` / `Organism "{name}" updated.`; delete confirmation `Delete organism "{name}"? This cannot be undone.` Required marker: "Scientific Name". Not validated: ATCC number, common name and description (free text, any length). [src: OrganismsPage.tsx:L58-L68, L105; OrganismMasterDataService.cs:L33]
+
+### MOD-MEDIACFG-001 Media Configurations
+Server messages (exact text):
+- `Media product with ID {id} not found.` [src: backend/MicroLIMS.Application/Services/MediaProductService.cs:L89, L125, L166; MasterData/MediaMasterDataService.cs:L69, L178]
+- `Incubation condition {id} not found.` / `Incubation condition with ID {id} not found.` / `Media configuration {id} not found.` [MediaMasterDataService.cs:L72, L169, L181, L300; MediaIncubationConditionService.cs:L98, L135]
+- "The chosen incubation condition belongs to a different media product." [MediaMasterDataService.cs:L75, L184]
+- `'{product}' already has an evaluation configuration. Edit it instead.` [MediaMasterDataService.cs:L81]
+- "Valid evaluation type is required." [MediaMasterDataService.cs:L85, L188]
+- "Recovery percent min cannot exceed recovery percent max." [MediaMasterDataService.cs:L92, L195]
+- `Organism with ID {id} not found.` [MediaMasterDataService.cs:L112, L211]
+- "Challenge role is required for Indication/Inhibition evaluation." [MediaMasterDataService.cs:L117, L216]
+- "Duplicate challenge organism and role combination in request." [MediaMasterDataService.cs:L224]
+- "A configuration can't be moved to another media product." [MediaMasterDataService.cs:L174]
+- "Media product name is required." / "Media product name cannot exceed 200 characters." [MediaProductService.cs:L198, L201]
+- "Media product code is required." / "Media product code must be 2-10 characters, start with an alphanumeric character, and contain only letters, digits, '.', or '-'." [MediaProductService.cs:L208, L211-L212]
+- `A media product named '{name}' already exists.` / `A media product with code '{code}' already exists ('{name}').` [MediaProductService.cs:L223, L233]
+- "A reason for the code change is required." / "The new code must be different from the current code." [MediaProductService.cs:L119, L128]
+- Signature failure (code change): "Password verification failed. The signature was not applied." (also after too many attempts: "Too many failed signature attempts. Wait {n} minutes, then try again. The signature was not applied."). [src: backend/MicroLIMS.Application/Services/ElectronicSignatureService.cs:L55-L58, L65-L81] (verified)
+- `Cannot delete media product '{name}' because it is referenced by {n} media configuration(s) and {m} material batch(es).` [MediaProductService.cs:L173-L174]
+- `Cannot delete media product '{name}' because its incubation conditions are used by {n} Test Master step medium/media.` [MediaProductService.cs:L182-L183]
+- "Incubation min hours must be greater than zero." / "Incubation max hours cannot be less than min hours." / "Temperature min must be below temperature max." [MediaIncubationConditionService.cs:L146, L148, L152]
+- `'{product}' already has an incubation condition of {min}–{max} h at {tmin}–{tmax} °C.` [MediaIncubationConditionService.cs:L74-L75, L119-L120]
+- `This incubation condition is used by {n} evaluation configuration(s) and {m} Test Master step medium/media, so it can't be changed or deleted. Add a new condition instead.` [MediaIncubationConditionService.cs:L162-L163]
+
+Client messages (exact text): "Both product name and code are required." [AddMediaProductDialog.tsx:L33]; "Product name is required." [RenameMediaProductDialog.tsx:L28]; "This organism and role combination is already staged for this configuration." [MediaConfigurationDialog.tsx:L151]; "Choose an incubation condition." [MediaConfigurationDialog.tsx:L171]; "Recovery % min cannot exceed max." [MediaConfigurationDialog.tsx:L177]; "Enter the incubation hours and temperature range." [MediaIncubationConditionDialog.tsx:L62]. Fallbacks: "Failed to create media product."; "Failed to rename media product."; "Failed to save the incubation condition."; "Could not delete this incubation condition."; "Could not delete this media product."; "Failed to load media configuration data."
+
+Required markers: media product - "Product Name", "Product Code"; change code - "New Code", "Reason"; configuration - "Expected Colony Description *" (when the role is Indication; the Add Organism button stays disabled until it is filled) and the "Challenge Role *" placeholder; incubation condition - all four fields. [src: AddMediaProductDialog.tsx:L74-L84; ChangeMediaProductCodeDialog.tsx:L74-L89; MediaConfigurationDialog.tsx:L128-L129, L351-L355; MediaIncubationConditionDialog.tsx:L123-L159] (verified)
+
+### MOD-EQUIP-002 Equipment configuration
+Server messages (exact text):
+- `Equipment {id} not found.` [src: backend/MicroLIMS.Application/Services/MasterData/EquipmentMasterDataService.cs:L44, L101; EquipmentConfigurationService.cs:L182]
+- "Name is required." / "Code is required." [EquipmentMasterDataService.cs:L51-L53, L106-L108]
+- `Equipment code "{code}" already exists.` [EquipmentMasterDataService.cs:L55, L110]
+- "Vendor cannot exceed 100 characters." [EquipmentMasterDataService.cs:L58, L113]
+- "CDS Software is required for HPLC equipment." / "CDS Software is required for ICP-OES equipment." / "CDS Software is only allowed for HPLC and ICP-OES equipment." [EquipmentMasterDataService.cs:L63, L68, L73, L118, L123, L128]
+- `Inventory equipment {id} not found.` [EquipmentConfigurationService.cs:L143]
+- "The Microbiology laboratory section (code MICRO) is missing." [EquipmentConfigurationService.cs:L158]
+- "A reason explaining the change to the set point temperature is required." [EquipmentConfigurationService.cs:L179]
+- `Equipment {code} is not an incubator.` [EquipmentConfigurationService.cs:L185]
+- `Autoclave equipment {id} not found.` / `Autoclave program {id} not found.` [EquipmentConfigurationService.cs:L260, L317, L366]
+- `Program code "{code}" already exists on autoclave {code}.` [EquipmentConfigurationService.cs:L266, L321]
+- Section messages: "Your account is not assigned to any laboratory section. Ask an administrator to assign one." / "Choose a laboratory section - you belong to more than one." / "Choose a laboratory section." / "You are not a member of the selected laboratory section." / "Selected laboratory section was not found or is inactive." [src: backend/MicroLIMS.Application/Services/UserSectionScopeService.cs:L116-L142]
+
+Client messages (exact text): "Name, Code, and Type are required."; "Laboratory section is required."; "Please enter a valid numeric set point temperature."; "Reason for Change is required for audit and ALCOA+ compliance."; "Please fill out Program Code, Program Name, and Load Type."; fallbacks "Could not save equipment.", "Could not update set point.", "Could not save program.", "Status update failed." [src: EquipmentPage.tsx:L297-L317, L357-L383, L480-L520]
+
+Required markers (MUI): "Equipment Name *", "Equipment Code *", "Equipment Type *"; set point "New Set Point (°C) *", "Reason for Change *"; program "Program / Load Code *", "Program / Load Name *", "Load Type *", "Temperature (°C) *", "Cycle Time (min) *", "Audit Comment / Reason *" (a marker only: the client does not check the comment and the server does not either, GAP-410). [src: EquipmentPage.tsx:L1200-L1478] (verified)
+
+Not validated by the server: temperature and cycle time ranges (any number), program name and load type length, location length, the set point value range. [src: EquipmentConfigurationService.cs:L257-L361]
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+Server messages (exact text):
+- `Test code "{code}" already exists in the Test Master.` [src: backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs:L41, L388]
+- `Test {id} not found.` / `Workflow step {id} not found.` [TestDefinitionMasterDataService.cs:L379, L798, L807; TestWorkflowStepMasterDataService.cs:L28, L80, L131, L204, L231]
+- "This test belongs to a laboratory section you are not assigned to." [TestDefinitionMasterDataService.cs:L394]
+- Section messages as under Equipment (create). 
+- "The workflow type of this test is set by its test type; change it in the test settings." [TestWorkflowStepMasterDataService.cs:L38]
+- `{WorkflowType} tests have no workflow steps.` [TestWorkflowStepMasterDataService.cs:L82]
+- `Material {id} not found.` / `Choose an incubation condition for medium '{material}'.` / `'{material}' isn't linked to a media product. Link it in Inventory > Materials Stock first.` / `Incubation condition {id} not found.` / `The incubation condition chosen for '{material}' belongs to a different media product.` [TestWorkflowStepMasterDataService.cs:L271-L283]
+- `Cannot delete step "{name}" - it has already been used by a test order.` [L236]
+- "This step is already at that end of the sequence." [L209]
+- "Only one step per test can be marked as the final step." [L315]
+- "Workflow steps must have contiguous step numbers starting from 1." [L330]
+- Workflow template rules. The server returns all violations in one message, each as `Rule {n} ({step name}): {text}`, joined by a space. Rule texts (exact): [src: backend/MicroLIMS.Application/Services/WorkflowTemplateValidator.cs:L13-L109; TestWorkflowStepMasterDataService.cs:L303-L308] (verified)
+  - Rule 1 (broth steps): "A broth step must have exactly one assigned medium, marked as required."; "A broth step must not target an organism."
+  - Rule 2 (selective plating): "A selective plating step must have exactly one assigned medium, marked as required."; "A selective plating step must target an organism."
+  - Rule 3 (confirmatory plating): "Confirmatory media count must be at least 1."; "A confirmatory plating step requires at least {n} permitted media, all analyst-selectable."; "A confirmatory plating step must have at least one permitted medium, all analyst-selectable."; "A confirmatory plating step must target an organism."
+  - Rule 4 (biochemical): "A biochemical test step must have no assigned media."; "A biochemical test step must not target an organism."; "A biochemical test step must specify at least one phenotypic test type."; "Phenotypic test type {type} is assigned to this step more than once."
+  - Rule 5: "Medium {materialId}: the minimum temperature must be below the maximum."
+  - Rule 6: "Medium {materialId} is assigned to this step more than once."
+  - Rule 7 (stage 2): "A step requiring incubation transfer must define stage 2's temperature and incubation-hours range."; "Stage 2's minimum temperature must be below its maximum."; "Stage 2's incubation-hours range must have a positive minimum and a maximum no less than the minimum."; "Only a PlateCount step with incubation transfer enabled may define a second incubation stage."
+  - Rule 8: "At least one medium is required for this step type."; "Only a biochemical test step may specify a phenotypic test type."
+  - Rule 9: "Medium {materialId}: the incubation-hours range must have a positive minimum and a maximum no less than the minimum - set it on the media configuration."
+  (The earlier list gave rule 6 as "Medium {type} is assigned ..." and omitted the prefix; corrected.)
+
+Client messages (exact text): "Both Code and Display Name are required."; "Laboratory section is required."; "Could not update the workflow type."; "Step Name is required."; "Step Name and at least one Phenotypic Test Type are required."; the step-form messages listed under SCR-TESTMASTER-001; fallbacks "Could not add this step." / "Could not update this step." / "Could not reorder this step." / "Could not delete this step." / "Could not add this test." / "Could not update this test." / "Could not update this test's status." [src: TestMasterPage.tsx:L246-L256, L545, L562; WorkflowStepsSection.tsx:L77, L162, L206, L217, L228] (verified)
+
+Required markers: "Code", "Display Name", "Section" (MUI required); step "Step Name" (client check). [src: TestMasterPage.tsx:L730-L753]
+
+## statuses
+
+### MOD-EM-001 Environmental Monitoring configuration
+None found. Departments, rooms and room test configurations have no status field. Display chips only: "No tests configured" (room without tests). [src: environmentalMonitoring/components/EmRoomCard.tsx:L32] (verified)
+
+### MOD-WATER-001 Water configuration
+None found. Water systems, locations and limit rows have no status field. Display chips only: "Limits not set" (location with no limit row). The "Needs attention" filter is a view filter, not a stored status. [src: water/components/WaterLocationList.tsx:L132; WaterConfigPage.tsx:L190-L200] (verified)
+
+### MOD-AC-001 After Cleaning configuration
+None found. Machines, parts and part configurations have no status field. Display chip "No tests configured" on a part card. [src: afterCleaning/components/AcPartCard.tsx:L36] (verified)
+
+### MOD-ORG-001 Organisms master
+None found. An organism has no status (no active / inactive flag); it is either present or deleted. [src: backend/MicroLIMS.Application/Services/MasterData/OrganismMasterDataService.cs:L28-L80] (verified)
+
+### MOD-MEDIACFG-001 Media Configurations
+None stored. Media products, incubation conditions and configurations have no status field. Display chip "Not used" on an incubation condition that no configuration and no step medium uses; a condition in use shows how many configurations and step media use it ("{n} configuration(s)", "{n} step medium" / "step media") and its edit and delete icons are disabled with the text "In use - add a new condition instead". [src: components/MediaIncubationConditionsSection.tsx:L120-L205] (verified)
+
+### MOD-EQUIP-002 Equipment configuration
+- **Autoclave program status** - UI label "Active" or "Inactive" (boolean `IsActive`). Transitions: Active to Inactive with the row button "Deactivate", Inactive to Active with "Activate", or by changing the status select in the Edit Program dialog; performed by any user holding `MasterData.Manage`; no signature; each change writes a history row (action "StatusChanged" for the button, "Updated" for the dialog). A new program is created Active by default. [src: EquipmentPage.tsx:L325-L335, L376-L392, L960-L990, L1465-L1473; EquipmentConfigurationService.cs:L363-L396] (verified)
+- **Inventory status** shown on the configured equipment row - the label of the matching inventory asset's status (for example "InService"); "In Service" when no asset matches. Changing it is done in the inventory module (C5), not here. [src: EquipmentPage.tsx:L709; EquipmentConfigurationService.cs:L129] (verified)
+- Equipment records, set points and configurations have no status of their own (no retire or delete action). [src: EquipmentMasterDataController.cs:L38-L124] (verified)
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+| UI label | Stored value | Meaning | Transition |
+|---|---|---|---|
+| Active | IsActive = true | The test is offered for new selections in the test code pickers | "Unfreeze" row action (`PUT .../unfreeze`) |
+| Frozen | IsActive = false | The test is not offered for new selections; a frozen code still displays where it is already assigned | "Freeze" row action (`PUT .../freeze`) |
+
+New tests are created Active. Any user holding `MasterData.Manage` can freeze or unfreeze; no signature, no reason, no usage check. Message `Test "{code}" frozen.` / `Test "{code}" unfrozen.` [src: TestMasterPage.tsx:L548-L556, L636-L640, L686; TestDefinitionMasterDataService.cs:L796-L813] (verified)
+
+Step chip "Needs configuration" (warning): not stored; shown when a step is missing a required organism or medium (typically inherited from the older migration). Chips "2-Stage" and "Transfer" describe a step's second incubation stage. [src: WorkflowStepsSection.tsx:L522-L574] (verified)
+
+## terminology
+
+### MOD-EM-001 Environmental Monitoring configuration
+- **Alert** - first limit; a result above it (and not above action or specification) is reported as Alert Limit Exceeded. [src: backend/MicroLIMS.Application/Services/SpecLimitParser.cs:L219-L221]
+- **Action** - second limit; a result above it (and not above the specification) is Action Limit Exceeded. [src: SpecLimitParser.cs:L215-L217]
+- **Specification** (UI label "Specification"; "Spec" in code) - highest limit; a result above it is Out of Specification. [src: SpecLimitParser.cs:L211-L213; frontend/src/components/configHierarchy/LimitFields.tsx:L42]
+- **Grade A to D** - room grade classification stored per room (UI options "Grade A" to "Grade D"). [src: environmentalMonitoring/emConfigTypes.ts:L44]
+- **Class** - free-text classification of an EM department (placeholder "e.g. Grade C"). [src: EmPanels.tsx:L45-L68]
+- **Testing frequency** - choice of Daily, Weekly, Fortnightly, Monthly, Quarterly, Annually, stored as text; the code marks it "informational only" and no scheduling or reminder uses it. [src: frontend/src/components/configHierarchy/FrequencyField.tsx:L3; backend/MicroLIMS.Domain/Entities/Department.cs:L9] (verified)
+- **Test type** (room) - what is sampled: Passive air sample, Active air sample, Surface sample, Compressed air, Drains. [src: emConfigTypes.ts:L33-L39]
+
+### MOD-WATER-001 Water configuration
+- **Water system** - UI name for the WaterDepartment entity. [src: water/components/WaterDepartmentPanel.tsx:L52]
+- **Sample location / point** - UI name for a water sampling point (entity WaterSamplingPoint); "Point code" = Code, "Point name" = Location. [src: water/components/WaterLocationPanel.tsx:L124-L150]
+- **Assigned tests** - the test codes ordered for a sample from this location; the server creates the test orders at preparation. [src: WaterLocationPanel.tsx:L160; WaterWorkflowEngine.cs:L125-L150]
+- **Count test** - a test whose Test Master workflow type is Count Test; only these carry limits. **Presence / absence test** - a pathogen (Observation) test, no limits. [src: WaterLocationPanel.tsx:L163-L190]
+- **Needs attention** - view filter listing locations with missing limits or no assigned tests. [src: WaterConfigPage.tsx:L190-L200]
+
+### MOD-AC-001 After Cleaning configuration
+- **Machine / machine part** - After Cleaning equipment and its parts (entities Machine, MachinePart). [src: afterCleaning/components/AcPanels.tsx:L52, L105]
+- **Swab / Rinse** - After Cleaning count sample types, with unit hints "CFU/25 cm2" and "CFU/mL". [src: afterCleaning/acConfigTypes.ts:L30-L33]
+- **Pathogen test** - an After Cleaning presence / absence configuration saved with sample type "Pathogen". [src: acConfigTypes.ts:L35]
+
+### MOD-ORG-001 Organisms master
+- **Scientific name / ATCC No. / Common name** - organism identifiers in the organism master (only the scientific name is required). [src: OrganismsPage.tsx:L35-L37, L104-L110]
+
+### MOD-MEDIACFG-001 Media Configurations
+- **Media product** - a dehydrated medium with a name and a unique short code. The code prefixes the lot numbers prepared from it (`{Code}/{seq:D2}/{yy}`). [src: MediaProductService.cs:L19-L31; ChangeMediaProductCodeDialog.tsx:L33]
+- **Incubation condition** - hours (min and max) and temperature range (min and max, °C) for one product. [src: MediaIncubationConditionDialog.tsx:L120-L159]
+- **Media configuration** - the evaluation setup for one product: evaluation type, incubation condition, optional recovery range and challenge organisms. One per product. [src: MediaMasterDataService.cs:L78-L82]
+- **Growth Promotion** - evaluation type; the recovery percent range applies. [src: MediaConfigurationDialog.tsx:L36]
+- **Indication / Inhibition** - evaluation type; each challenge organism has a role (Inhibition or Indication). [src: MediaConfigurationDialog.tsx:L37, L41]
+- **Challenge organism** - an organism added to a configuration with an initial inoculum (CFU) and, for the Indication role, an expected colony description. [src: MediaConfigurationDialog.tsx:L351-L361]
+- **Recovery %** - minimum and maximum recovery percentage limits for Growth Promotion. [src: MediaConfigurationDialog.tsx:L300-L309]
+- **Stock batches** - number of material batches (stock entries) linked to the product. [src: MediaProductWorkspace.tsx:L230-L242; MediaProductService.cs:L55-L61]
+
+### MOD-EQUIP-002 Equipment configuration
+- **Set point** - target temperature of an incubator (°C); changes through "Edit Set Point" need a reason and are kept in a history. [src: EquipmentPage.tsx:L1310, L1377]
+- **Autoclave program / load** - a sterilisation cycle on an autoclave: code, name, load type, temperature, cycle time. [src: EquipmentPage.tsx:L1434-L1462]
+- **Cycle time (min)** - length of the autoclave program in minutes. [src: EquipmentPage.tsx:L1462]
+- **Configured equipment** - equipment record in the laboratory configuration (as opposed to the inventory asset). [src: EquipmentPage.tsx:L599]
+- **Master Inventory** - the equipment register of the inventory module (C5); "Select from Inventory" uses it to pre-fill the form. [src: EquipmentPage.tsx:L1549-L1600]
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+- **Test code** - unique identifier of the test (for example TAMC, TYMC are named as count tests in the code comment). [src: TestDefinitionMasterDataService.cs:L40-L41; backend/MicroLIMS.Domain/Enums/WorkflowType.cs:L5]
+- **Count Test** - plate-count test (CFU) with media and incubation; see C2. [src: testMasterConstants.ts:L14-L16]
+- **Observation** - staged pathogen detection chain; each step's type drives the flow. [src: backend/MicroLIMS.Domain/Enums/WorkflowType.cs:L6]
+- **Step type** - PlateCount, BrothEnrichment, SelectiveBroth, SelectivePlating, ConfirmatoryPlating, BiochemicalTest (shown with these names). [src: testMasterConstants.ts:L43]
+- **Step medium / medium** - a dehydrated-media stock material, linked to a media product, assigned to a step with one of that product's incubation conditions and a Required flag. [src: WorkflowStepsSection.tsx:L765-L837]
+- **Target organism** - the organism a selective plating or confirmatory plating step targets. [src: testMasterConstants.ts:L45-L46]
+- **Phenotypic test** - labels "Gram Stain", "Catalase", "Oxidase", "Coagulase", "Antibiogram", "Identification Kit". [src: testMasterConstants.ts:L58-L65]
+- **Final Step** - checkbox on a step; only one step per test may carry it. [src: WorkflowStepsSection.tsx:L654; TestWorkflowStepMasterDataService.cs:L315]
+- **Requires incubation transfer / 2-Stage** - the plate count is moved to a second incubation stage with its own temperature and hours. [src: WorkflowStepsSection.tsx:L522, L557, L677, L699-L723]
+- **Freeze / Frozen** - sets the test inactive; the test is not offered for new selections. [src: TestDefinitionMasterDataService.cs:L796-L803; TestCodePicker.tsx:L21-L30]
+- **Needs configuration** - warning chip on a step missing a required organism or medium. [src: WorkflowStepsSection.tsx:L574]
+
+## reports
+
+### MOD-EM-001 Environmental Monitoring configuration
+None found. The configuration page has no print or export. Result output for EM samples is in C3 (CoA) and the reports module. [src: EMConfigPage.tsx (no export control)]
+
+### MOD-WATER-001 Water configuration
+None found. No print or export on the page. The summary tiles "Missing limits" and "No tests assigned" are on-screen counts only. [src: WaterConfigPage.tsx:L150-L160]
+
+### MOD-AC-001 After Cleaning configuration
+None found. No print or export on the page. [src: AfterCleaningConfigPage.tsx]
+
+### MOD-ORG-001 Organisms master
+None found. The register table can be sorted by column; no export was found. [src: OrganismsPage.tsx:L127-L140]
+
+### MOD-MEDIACFG-001 Media Configurations
+None found in the configuration screens. The media lot report and evaluation outputs are in C5 and C8.
+
+### MOD-EQUIP-002 Equipment configuration
+None found on this page. The "Configuration History" tab and the "Program History" dialog are on-screen tables; no print or export control was found. [src: EquipmentPage.tsx:L1126-L1178, L1495-L1521]
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+None found on this page. A test workflow printout or CoA content is not in this module (see C3 and C8).
+
+## audit-trail
+
+General rule (verified) for every write in this cluster: the database context writes an audit log row for each entity added (action Create), modified (Update, with the previous values and the new values as JSON of all properties) or deleted (Delete, with the previous values); the audit rows and the change are committed in one transaction. Each row records the entity name, record id, acting user id (set per request by the audit middleware; 0 when none), UTC time, and, where the entity has them, the batch number, control number, sample reference, media lot number, sample id and test order id. Entity types excluded from this audit: the audit tables themselves and the audit event changes, material and equipment document access logs, incidents, error logs, refresh tokens, notification logs and security events. No reason text is captured by the generic audit. [src: backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs:L259-L375; backend/MicroLIMS.API/Middleware/AuditMiddleware.cs:L23]
+
+### MOD-EM-001 Environmental Monitoring configuration
+- Department, room and room test configuration create, update and delete: generic audit only (Create / Update / Delete with previous and new values). [src: MicroLimsDbContext.cs:L259-L375] (verified)
+- No electronic signature: no signature dialog exists on the page and no service in this cluster's EM code calls the signature service. [src: EMConfigPage.tsx, EmPanels.tsx (no SignatureDialog import); EnvironmentalMonitoringMasterDataService.cs (no sign call)] (verified)
+- No reason is captured (the request records carry no reason field). [src: backend/MicroLIMS.Application/DTOs/MasterDataRequests.cs:L15-L26] (verified)
+- Limits copied onto a sample location at result entry become part of the location row, which is itself audited (C2); later edits to the configuration do not rewrite it.
+
+### MOD-WATER-001 Water configuration
+- Water system, sample location (including assigned test codes) and limit row create, update and delete: generic audit only. One save of the location panel can produce several audit rows (the location, then each limit row). No signature, no reason. [src: WaterMasterDataService.cs:L25-L156; WaterLocationPanel.tsx:L95-L120] (verified)
+
+### MOD-AC-001 After Cleaning configuration
+- Machine, part and part configuration create, update and delete: generic audit only. The pathogen dialog saves one configuration per ticked pathogen and deletes one per unticked pathogen, each audited separately (an add and a remove can partly succeed: "Some changes were not saved. ..."). No signature, no reason. [src: AcPanels.tsx:L226-L253; AfterCleaningMasterDataService.cs:L36-L171] (verified)
+
+### MOD-ORG-001 Organisms master
+- Create, update and delete: generic audit only. No signature, no reason. [src: OrganismMasterDataService.cs:L28-L80; MicroLimsDbContext.cs:L259-L375] (verified)
+
+### MOD-MEDIACFG-001 Media Configurations
+- **Media product code change (signed):** the user enters the password in the "Electronic Signature" dialog; the server writes an electronic signature record (signer full name, user name and role at signing time, meaning "MasterDataChanged", entity type MediaProduct, product id, comment `Code {old} -> {new}: {reason}`, IP address) before changing anything; then the code is changed and an audit event with the action code `MediaProductCodeChanged`, category Configuration, the reason and the field change `Code` (old and new value) is recorded; the generic audit also records the Update of the product row. a wrong password writes an audit log row (entity "ElectronicSignature", action "SignatureFailed") "Failed signature attempt (MasterDataChanged) for MediaProduct #{id}." and changes nothing. [src: backend/MicroLIMS.Application/Services/MediaProductService.cs:L111-L161; backend/MicroLIMS.Application/Services/ElectronicSignatureService.cs:L38-L100] (verified)
+- Product create, rename and delete; incubation condition and media configuration create, update and delete; challenge organism changes: generic audit only; no signature, no reason. A rename also updates the display name on the product's configurations (each an audited Update). [src: MediaProductService.cs:L65-L109, L163-L193; MediaMasterDataService.cs:L66-L304; MediaIncubationConditionService.cs:L57-L141] (verified)
+
+### MOD-EQUIP-002 Equipment configuration
+- Equipment master create and update: generic audit only (including a change of the "Set Point Temp (°C)" field made through Edit Equipment, which has no reason and no history row, BR-EQUIP-013). [src: EquipmentMasterDataService.cs:L48-L148] (verified)
+- **Incubator set point change** (Edit Set Point): a history row (previous value, new value, reason, user, UTC time) in addition to the generic audit of the equipment row. The reason is mandatory in the dialog and on the server. [src: EquipmentConfigurationService.cs:L176-L203] (verified)
+- **Autoclave program create, update and status change:** history rows with the comment and user; the history shows previous and new name, load type, temperature, cycle time and active state. Default comments apply only when no comment is sent at all: "Initial program configuration" on create, "Program configuration update" on update; the status change through the endpoint stores an empty comment if none is sent (the page sends "Activated program" / "Deactivated program"). [src: EquipmentConfigurationService.cs:L284-L303, L323-L342, L370-L389; EquipmentMasterDataController.cs:L106-L111] (verified)
+- The "Configuration History" tab shows only the set point history of the selected incubator; the program history is shown per program ("Program History: {code}"). [src: EquipmentPage.tsx:L1126-L1178, L1495-L1521]
+- Inventory link (API only): the new master equipment row is audited generically; the default incubator set point 32.5 °C is written without a history row. [src: EquipmentConfigurationService.cs:L160-L173] (verified)
+- No electronic signature for equipment, set point or program changes. [src: EquipmentPage.tsx (no signature dialog; `grep Signature` returns 0 matches); EquipmentConfigurationService.cs (no sign call)] (verified)
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+- Test, workflow step and step medium writes (create, update, move, delete, workflow type change, freeze, unfreeze): generic audit only (Create / Update / Delete with previous and new values; a step save also records the replaced step medium rows as deletes and creates). No reason and no signature. The dedicated audit event with a change reason applies to titration tests only (FP, C7). [src: MicroLimsDbContext.cs:L259-L375; TestDefinitionMasterDataService.cs:L770, L796-L813; TestWorkflowStepMasterDataService.cs:L127-L188] (verified)
+
+## traceability
+
+### MOD-EM-001 Environmental Monitoring configuration
+- Department -> Room (department id) -> RoomTestConfiguration (room id, test type, test code, limits, unit). At preparation each chosen configuration becomes a sample location linked to it by id (`SampleLocation.RoomTestConfigurationId`); the test order stores the test code as a copied string (no foreign key). Limits and unit are read from the linked configuration at result entry and copied onto the location. [src: EnvironmentalMonitoringMasterDataService.cs:L114-L116, L171-L172; backend/MicroLIMS.Application/Workflows/EMWorkflowEngine.cs:L100-L108; IncubationStepRecorder.cs:L497-L520] (verified)
+- Sample -> Department (`Sample.DepartmentId`, Restrict). [src: SampleConfiguration.cs:L21]
+- Test codes come from the Test Master (TestCodePicker). [src: TestCodePicker.tsx:L21]
+
+### MOD-WATER-001 Water configuration
+- WaterDepartment -> WaterSamplingPoint (department id, assigned test codes list) -> SamplingConfiguration (point id, test code, limits, unit). At preparation each location of a count test is linked to the point's limit row (`SamplingConfigurationId`) if one exists; samples reference the department (`WaterDepartmentId`) and, in the older model, the point (`WaterSamplingPointId`). [src: WaterMasterDataService.cs:L53-L62, L122-L127; WaterWorkflowEngine.cs:L125-L152; SampleConfiguration.cs:L20, L23] (verified)
+- Test codes are chosen with the multi-select test picker (`TestCodePickerMulti`) from the Test Master. [src: water/components/WaterLocationPanel.tsx:L11, L160]
+
+### MOD-AC-001 After Cleaning configuration
+- Machine -> MachinePart (machine id) -> MachinePartConfiguration (part id, test type, test code, pathogen flag, limits, unit). At preparation each chosen configuration becomes a sample location linked by id (`MachinePartConfigurationId`); samples reference the machine (`MachineId`). [src: AfterCleaningMasterDataService.cs:L57-L67, L97-L103; AfterCleaningWorkflowEngine.cs:L85-L130] (verified)
+- Count test codes come from the Test Master picker; pathogen codes come from the Test Master tests with workflow type Observation. [src: AcPanels.tsx:L155; PathogenPicker.tsx:L7-L12]
+
+### MOD-ORG-001 Organisms master
+- Organism -> media configuration challenges, media evaluation challenges, cryovials and materials (each blocks deletion) and -> Test Master step target organism (does not block deletion in the service; the database refuses, BR-ORG-002). [src: OrganismMasterDataService.cs:L61-L80; TestWorkflowStepConfiguration.cs:L24-L27] (verified)
+
+### MOD-MEDIACFG-001 Media Configurations
+- Media product (code) -> media lots (lot number prefix) -> material batch snapshot (name and code copied at receiving). [src: MediaProductService.cs:L19-L31, L151-L152]
+- Media product -> incubation conditions (product id) -> media configuration (incubation condition id) and Test Master step media (incubation condition id; hours and temperatures copied at save). [src: MediaMasterDataService.cs:L96-L101; MediaIncubationConditionService.cs:L155-L165; TestWorkflowStepMasterDataService.cs:L285-L295] (verified)
+- Media configuration -> challenge organisms (organism id) -> organism master. [src: MediaMasterDataService.cs:L120-L125]
+- Material batch (stock) -> media product (`Material.MediaProductId`); required before a batch can be used as a Test Master step medium. [src: TestWorkflowStepMasterDataService.cs:L276-L277]
+
+### MOD-EQUIP-002 Equipment configuration
+- Equipment master (id, code, type, section) -> inventory asset (matched by code, case-insensitive; only for the summary and the API link). [src: EquipmentConfigurationService.cs:L117, L140-L168]
+- Equipment (incubator) -> set point history rows. [src: EquipmentConfigurationService.cs:L190-L226]
+- Equipment (autoclave) -> autoclave programs (equipment id) -> program history rows. [src: EquipmentConfigurationService.cs:L257-L303, L398-L430]
+- Incubators and autoclaves are referenced by the test workflow when a step is started (the incubator choice is made in C2 / C5). [src: C2 WF-COUNT-001 (cluster file)]
+
+### MOD-TESTMASTER-001 Test Master (Microbiology)
+- Test definition -> section (laboratory) -> test orders (copied test code string, not a foreign key). [src: TestDefinitionMasterDataService.cs:L313; EnvironmentalMonitoringMasterDataService.cs:L171-L172 (same pattern)]
+- Test definition -> workflow steps -> step media (material -> media product -> incubation condition). [src: TestWorkflowStepMasterDataService.cs:L256-L299]
+- Step -> test orders that used it, matched by step name and test code (blocks delete). [src: TestWorkflowStepMasterDataService.cs:L233-L236]
+- Organism master -> step target organism. [src: TestWorkflowStepConfiguration.cs:L24-L27]
+- The test code is chosen in the EM room test, water location (assigned tests), After Cleaning part test and Items pickers (C7). [src: TestCodePicker.tsx; hooks/useTestDefinitions.ts:L69-L97]
+
+## gaps
+
+### GAP-400 EM, water and after-cleaning limits are free text with no server validation
+- **Question:** Should the server reject or warn when alert, action and specification limits are not plain numbers or are out of order?
+- **Affected:** SCR-EM-001, SCR-WATER-001, SCR-AC-001; BR-EM-005, BR-WATER-003.
+- **Facts:** The services store limit strings unchanged; the order warning exists only in the UI and never blocks a save. An unparseable non-empty limit is silently treated as no limit at result time. [src: EnvironmentalMonitoringMasterDataService.cs:L141-L166; LimitFields.tsx:L12-L23; SpecLimitParser.cs:L52-L205]
+- **Why it matters:** A typo is accepted silently and then drives (or silently disables) every result status.
+- **Needs confirmation:** Intended validation rule.
+- **Who or what:** Product owner / quality.
+
+### GAP-401 Water sampling configuration has no duplicate or unit rule
+- **Question:** Is a second limit row for the same test code on the same sampling point intended, and should a unit be required for water count tests?
+- **Affected:** SCR-WATER-001; BR-WATER-003, BR-WATER-005.
+- **Facts:** The server checks neither duplicates nor unit (After Cleaning checks duplicates). At preparation the first matching row for point and test code is linked (`FirstOrDefault`); which row that is when two exist was not determined. [src: WaterMasterDataService.cs:L122-L147; WaterWorkflowEngine.cs:L143-L149; AfterCleaningMasterDataService.cs:L117-L123]
+- **Why it matters:** Duplicate rows could give an unpredictable limit.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Product owner.
+
+### GAP-402 EM / water / after-cleaning configuration edits between preparation and result entry
+- **Question:** Should a limit or unit change be allowed after samples are prepared from the configuration, and should it be visible?
+- **Affected:** BR-EM-006, BR-EM-009, BR-WATER-005, BR-AC-008.
+- **Facts:** A prepared location is linked to its configuration row; limits and unit are read at result entry, so an edit before entry applies and an edit after entry does not change the stored location. No marker records which limits were used other than the copied values. [src: IncubationStepRecorder.cs:L497-L520, L603-L620]
+- **Why it matters:** Two samples prepared together can be judged against different limits.
+- **Needs confirmation:** Intended behaviour (freeze at preparation or at entry).
+- **Who or what:** Quality assurance.
+
+### GAP-403 Unit typed on passive / surface / swab / rinse configurations overrides the derived unit
+- **Question:** Is it intended that a unit typed for Passive air, Surface, Swab or Rinse replaces the standard unit?
+- **Affected:** SCR-EM-001, SCR-AC-001; BR-EM-004, BR-AC-008.
+- **Facts:** The page hint says results are reported in the standard unit; the server uses the typed unit when not blank. The code comment calls the AC unit field informational. [src: IncubationStepRecorder.cs:L511-L512, L738-L753; acConfigTypes.ts:L28-L29]
+- **Why it matters:** Printed units may differ from the hint.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Product owner.
+
+### GAP-404 Configuration changes carry no reason or signature
+- **Question:** Should changes to EM, water and after-cleaning limits or assignments require a reason and an electronic signature?
+- **Affected:** SCR-EM-001, SCR-WATER-001, SCR-AC-001; audit-trail section.
+- **Facts:** Writes are audited generically; no reason or signature. Media product code change is signed. [src: MicroLimsDbContext.cs:L259-L375; MediaProductService.cs:L137-L144]
+- **Why it matters:** The guide must say which changes are signed.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Quality assurance.
+
+### GAP-405 Expected colony description is not enforced on the server
+- **Question:** Should the server refuse an Indication challenge organism without an expected colony description?
+- **Affected:** SCR-MEDIACFG-001; BR-MEDIA-009.
+- **Facts:** The dialog requires it; the server stores it only for the Indication role without a non-blank check. [src: MediaConfigurationDialog.tsx:L128-L129; MediaMasterDataService.cs:L120-L126]
+- **Why it matters:** An Indication challenge can be saved without the text the analyst compares against.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Quality assurance.
+
+### GAP-406 Media product rename, create and delete are not signed
+- **Question:** Should renaming, creating or deleting a media product require a signature as the code change does?
+- **Affected:** SCR-MEDIACFG-001; audit-trail section.
+- **Facts:** Only `ChangeCodeAsync` calls the signature service. [src: MediaProductService.cs:L65-L109, L137-L144, L163-L193]
+- **Why it matters:** The guide must state which product changes are signed.
+- **Needs confirmation:** Intended signature rule.
+- **Who or what:** Quality assurance.
+
+### GAP-407 Evaluation type "Enrichment Characteristics" has no configuration screen
+- **Question:** Is "Enrichment Characteristics" a supported evaluation type?
+- **Affected:** SCR-MEDIACFG-001; BR-MEDIA-015.
+- **Facts:** Defined in the enum and accepted by the server; the dialog offers two types. [src: EvaluationType.cs:L6-L11; MediaConfigurationDialog.tsx:L35-L38; MediaMasterDataService.cs:L84-L85]
+- **Why it matters:** The guide must not describe it as configurable.
+- **Needs confirmation:** Retired or pending.
+- **Who or what:** Product owner.
+
+### GAP-408 Set point and autoclave program changes are not signed
+- **Question:** Should incubator set point and autoclave program changes require an electronic signature?
+- **Affected:** SCR-EQUIP-002; BR-EQUIP-006, BR-EQUIP-007, BR-EQUIP-010.
+- **Facts:** The set point dialog says the reason is required "for audit and ALCOA+ compliance" (UI wording); there is no signature step. [src: EquipmentPage.tsx:L301; EquipmentConfigurationService.cs:L176-L203]
+- **Why it matters:** The guide must not call the change signed nor repeat the compliance wording as fact.
+- **Needs confirmation:** Intended rule and wording.
+- **Who or what:** Quality assurance.
+
+### GAP-409 Equipment and autoclave-program changes are not limited to the Section Head role
+- **Question:** Should equipment configuration writes be limited to a role type like the media code change?
+- **Affected:** SCR-EQUIP-002; roles section.
+- **Facts:** Writes need only `MasterData.Manage`; the media code change needs the Section Head role type. [src: EquipmentMasterDataController.cs:L52-L124; MediaMasterDataController.cs:L52-L56]
+- **Why it matters:** The role table must state the permission-only rule.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Product owner.
+
+### GAP-410 Autoclave program audit comment is marked required but not enforced
+- **Question:** Should a blank "Audit Comment / Reason" be refused?
+- **Affected:** SCR-EQUIP-002; BR-EQUIP-009, BR-EQUIP-010.
+- **Facts:** The label has an asterisk; the client checks only code, name and load type; the server accepts any comment and uses defaults only when the comment is absent (null), so an empty edit comment is stored empty. [src: EquipmentPage.tsx:L355-L360, L1478; EquipmentConfigurationService.cs:L299, L338]
+- **Why it matters:** The history may hold empty reasons.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Product owner.
+
+### GAP-411 Freeze is not refused when a test has been used or has open orders
+- **Question:** Should freezing be refused or warned while open orders use the test, and what happens to open orders?
+- **Affected:** SCR-TESTMASTER-001; BR-TM-003.
+- **Facts:** Freeze only sets IsActive false; no usage, scope or version check. [src: TestDefinitionMasterDataService.cs:L796-L813]
+- **Why it matters:** The guide must state the effect on existing work.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Product owner.
+
+### GAP-412 Test Master micro changes have no reason and no signature
+- **Question:** Should changes to micro test definitions, steps and media (and freeze) require a reason and signature?
+- **Affected:** SCR-TESTMASTER-001; audit-trail section.
+- **Facts:** Generic audit only; only titration records a dedicated event (FP). [src: TestDefinitionMasterDataService.cs:L770]
+- **Why it matters:** The guide must not call these changes signed.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Quality assurance.
+
+### GAP-413 Step media model: material-based in code
+- **Question:** Is the step medium meant to be chosen as a media product (not a stock material batch)?
+- **Affected:** SCR-TESTMASTER-001; BR-TM-010, BR-TM-018.
+- **Facts:** Step medium rows carry a material id (a DehydratedMedia stock entry linked to a product); the condition comes from that product. [src: TestWorkflowStepMasterDataService.cs:L256-L299; WorkflowStepsSection.tsx:L56-L62]
+- **Why it matters:** The guide's step-media text must match the released model.
+- **Needs confirmation:** Intended model.
+- **Who or what:** Product owner.
+
+### GAP-414 Stage replicate section on the microbiology Test Master page (RESOLVED)
+- **Question:** Do stage replicates apply to microbiology tests?
+- **Affected:** SCR-TESTMASTER-001.
+- **Facts:** Withdrawn: the section is rendered only for the FP page or the FP section, so it does not appear for micro tests. [src: TestMasterPage.tsx:L1425-L1430]
+- **Why it matters:** None remaining.
+- **Needs confirmation:** None.
+- **Who or what:** n/a.
+
+### GAP-415 Water department testing frequency: spec says it is stored, code does not
+- **Question:** Should the water system store a testing frequency as the EM department does?
+- **Affected:** SCR-WATER-001; BR-WATER-007.
+- **Facts:** Spec lists Name + TestingFrequency; code stores name only and a code comment says the frequency lives on the location. [src: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md:L44-L46; WaterDepartment.cs:L3-L13]
+- **Why it matters:** Spec and code disagree; the guide shows the code behaviour.
+- **Needs confirmation:** Intended model.
+- **Who or what:** Product owner.
+
+### GAP-416 Test created through a picker defaults to workflow type Observation
+- **Question:** Is it intended that "+ Add {code} to Test Master" in the EM, After Cleaning and Items pickers creates an Observation test with no steps?
+- **Affected:** SCR-EM-001, SCR-AC-001; BR-TM-020.
+- **Facts:** The call sends code and display name only; the server default is Observation; the test has no steps until added in Test Master; a System Administrator or multi-section user gets a section error. [src: masterDataOptions.ts:L253-L258; MasterDataRequests.cs:L170-L174; UserSectionScopeService.cs:L127-L142]
+- **Why it matters:** A count test added this way cannot run correctly and is treated as presence / absence on the water page.
+- **Needs confirmation:** Intended default.
+- **Who or what:** Product owner.
+
+### GAP-417 Inventory link endpoint is not used by the page
+- **Question:** Is the API `link-inventory` (default 32.5 °C set point, type guess, MICRO section) still intended?
+- **Affected:** SCR-EQUIP-002; BR-EQUIP-005.
+- **Facts:** The page pre-fills the Add Equipment form instead; `linkInventory` is only defined in the service. [src: EquipmentPage.tsx:L405-L433; EquipmentConfigurationService.ts:L176]
+- **Why it matters:** The guide must describe the form path.
+- **Needs confirmation:** Whether the endpoint is retired.
+- **Who or what:** Developer.
+
+### GAP-418 Water assigned-tests hint says "received"
+- **Question:** Should the hint "Every test here is ordered when a sample from this location is received" say "prepared"?
+- **Affected:** SCR-WATER-001.
+- **Facts:** Receiving creates no test orders; preparation does. [src: WaterLocationPanel.tsx:L160; WaterWorkflowEngine.cs:L66-L161]
+- **Why it matters:** Users may expect orders at receiving.
+- **Needs confirmation:** Wording.
+- **Who or what:** Product owner.
+
+### GAP-419 Test Master freeze, workflow type and step writes have no section scope check
+- **Question:** Should these writes be limited to users of the test's section like the test update?
+- **Affected:** SCR-TESTMASTER-001; roles section.
+- **Facts:** Only the update checks the section. [src: TestDefinitionMasterDataService.cs:L393-L394; TestWorkflowStepMasterDataService.cs:L25-L333]
+- **Why it matters:** Lab separation could be bypassed for steps and freezing.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Product owner.
+
+### GAP-420 Delete guards are incomplete; the database refuses with a generic error
+- **Question:** Should deleting a used room test configuration, water limit row, water location, EM or water department, or an organism that a step targets give a clear message?
+- **Affected:** BR-EM-001, BR-EM-009, BR-WATER-001, BR-WATER-002, BR-ORG-002.
+- **Facts:** Restrict foreign keys refuse these deletes; the user sees "An unexpected error occurred." and an incident is logged. After Cleaning has a clear guard. [src: SampleLocationConfiguration.cs:L25-L28; SampleConfiguration.cs:L20-L23; ExceptionMiddleware.cs:L67-L84; AfterCleaningMasterDataService.cs:L157-L171]
+- **Why it matters:** Users cannot tell why a delete failed.
+- **Needs confirmation:** Intended guard messages.
+- **Who or what:** Developer.
+
+### GAP-421 Autoclave program code duplicate check is case-sensitive
+- **Question:** Should a code typed in other case be refused with the clear message?
+- **Affected:** SCR-EQUIP-002; BR-EQUIP-008.
+- **Facts:** Codes are stored upper-case; the check compares the typed text; the unique index then refuses with the generic error. [src: EquipmentConfigurationService.cs:L265-L271, L320-L321; AutoclaveProgramConfiguration.cs:L22]
+- **Why it matters:** Unclear failure.
+- **Needs confirmation:** Intended behaviour.
+- **Who or what:** Developer.
+
+### GAP-422 Edit Equipment changes the incubator set point without reason or history
+- **Question:** Should the set point field be read-only in Edit Equipment so that only "Edit Set Point" (reason and history) changes it?
+- **Affected:** SCR-EQUIP-002; BR-EQUIP-013.
+- **Facts:** The field is editable and saved by the equipment update; no history row. [src: EquipmentPage.tsx:L505, L1308-L1315; EquipmentMasterDataService.cs:L140]
+- **Why it matters:** Set point history can be bypassed.
+- **Needs confirmation:** Intended rule.
+- **Who or what:** Quality assurance.
+
+### GAP-423 Status of the two water design specs
+- **Question:** Were the water configuration and water batch specs ("Design — awaiting approval") approved, changed or superseded?
+- **Affected:** BR-WATER-007, BR-WATER-010, BR-WATER-011.
+- **Facts:** Both are headed "Status: Design — awaiting approval"; code differs on the department frequency, role gate and endpoint names. [src: docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md:L1-L5; 2026-08-17-water-batch-workflow-design.md:L1-L5]
+- **Why it matters:** INTENDED labels depend on their standing.
+- **Needs confirmation:** Approval status.
+- **Who or what:** Product owner.
+
+### GAP-424 Confirmatory media count cannot be set in the page
+- **Question:** Should the Test Master step form offer the confirmatory media count?
+- **Affected:** BR-TM-014.
+- **Facts:** The request omits it; the server stores 1. [src: WorkflowStepsSection.tsx:L168-L190; TestWorkflowStepMasterDataService.cs:L101]
+- **Why it matters:** Multi-medium confirmatory rules cannot be configured.
+- **Needs confirmation:** Intended.
+- **Who or what:** Product owner.
+
+### GAP-425 C2 wording on After Cleaning preparation (contradiction recorded, C2 not edited)
+- **Question:** C2 says preparation ticks parts and creates one location per part; should it say part configurations?
+- **Affected:** C2 WF-SAMPLE-008, GAP-225.
+- **Facts:** The form submits `machinePartConfigurationIds`; one location is created per chosen configuration, one test order per distinct test code. [src: AfterCleaningPreparationForm.tsx:L59-L64; AfterCleaningWorkflowEngine.cs:L85-L130]
+- **Why it matters:** The guide steps must match.
+- **Needs confirmation:** Check in the C2 merge.
+- **Who or what:** Documentation team.

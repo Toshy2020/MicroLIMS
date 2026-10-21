@@ -191,7 +191,7 @@ public class MonitoringPlanLinkingTests
         Assert.Contains(first.ReferenceNumber, ex.Message);
 
         // The first sample is voided: its test no longer counts.
-        first.TestOrders.Single().Status = ApprovalStatus.Voided;
+        foreach (var order in w.Db.TestOrders.Where(t => t.SampleId == first.Id)) order.Status = ApprovalStatus.Voided;
         await w.Db.SaveChangesAsync();
 
         var retry = await w.Engine.PrepareAsync(second.Id, new List<int> { w.ConfigA.Id }, 1, new[] { occurrence.Id });

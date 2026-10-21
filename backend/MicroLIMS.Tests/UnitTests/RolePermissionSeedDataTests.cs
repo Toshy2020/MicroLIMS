@@ -110,10 +110,12 @@ public class RolePermissionSeedDataTests
             // HPLC chain S6 - HPLC Workspace.
             PermissionConstants.HplcOperate,
             // Working standard qualification.
-            PermissionConstants.WorkingStandardsQualify
+            PermissionConstants.WorkingStandardsQualify,
+            // Annual Monitoring Plan.
+            PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove
         };
 
-        Assert.Equal(43, codes.Count);
+        Assert.Equal(46, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -137,10 +139,11 @@ public class RolePermissionSeedDataTests
             // approval are each still gated on the per-document assignment.
             PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
             PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
-            PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect
+            PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
+            PermissionConstants.MonitoringPlanView
         };
 
-        Assert.Equal(15, codes.Count);
+        Assert.Equal(16, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
         // A reviewer does not register documents or edit drafts.
@@ -171,10 +174,11 @@ public class RolePermissionSeedDataTests
             // HPLC chain S6 - HPLC Workspace.
             PermissionConstants.HplcOperate,
             // Working standard qualification.
-            PermissionConstants.WorkingStandardsQualify
+            PermissionConstants.WorkingStandardsQualify,
+            PermissionConstants.MonitoringPlanView
         };
 
-        Assert.Equal(15, codes.Count);
+        Assert.Equal(16, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -192,10 +196,10 @@ public class RolePermissionSeedDataTests
         // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
         // 110 (SystemAdministrator holds it via PermissionConstants.All).
         // Hplc.Operate (HPLC chain S6) is granted to the same three roles -
-        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123.
+        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123. MonitoringPlan.View (all four roles) +4, Manage and Approve (SystemAdministrator, SectionHead) +4, for 131.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(123, total);
+        Assert.Equal(131, total);
     }
 
     [Fact]
@@ -205,7 +209,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(123, await db.RolePermissions.CountAsync());
+        Assert.Equal(131, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

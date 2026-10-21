@@ -35,7 +35,13 @@ jobs:
       - name: Find the requested migration name
         id: req
         run: |
-          FILE="$(git diff --name-only --diff-filter=AR "${{ github.event.before }}" "${{ github.sha }}" -- '.github/migration-requests/*.txt' | head -n1)"
+          BEFORE="${{ github.event.before }}"
+          if echo "$BEFORE" | grep -Eq '^0+$'; then
+            # A new branch has no previous commit to diff against: use the request files it carries.
+            FILE="$(ls .github/migration-requests/*.txt 2>/dev/null | head -n1)"
+          else
+            FILE="$(git diff --name-only --diff-filter=AR "$BEFORE" "${{ github.sha }}" -- '.github/migration-requests/*.txt' | head -n1)"
+          fi
           if [ -z "$FILE" ]; then echo "No request file added; nothing to do."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           NAME="$(basename "$FILE" .txt)"
           if ! echo "$NAME" | grep -Eq '^[A-Za-z][A-Za-z0-9]{2,80}$'; then

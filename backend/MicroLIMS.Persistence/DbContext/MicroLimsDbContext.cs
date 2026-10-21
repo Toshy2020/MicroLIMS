@@ -50,6 +50,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<LabCalendarDate> LabCalendarDates => Set<LabCalendarDate>();
     public DbSet<MonitoringSettings> MonitoringSettings => Set<MonitoringSettings>();
+    public DbSet<MonitoringPlanRevision> MonitoringPlanRevisions => Set<MonitoringPlanRevision>();
+    public DbSet<MonitoringOccurrence> MonitoringOccurrences => Set<MonitoringOccurrence>();
+    public DbSet<MonitoringOccurrenceItem> MonitoringOccurrenceItems => Set<MonitoringOccurrenceItem>();
+    public DbSet<MonitoringOccurrenceEvent> MonitoringOccurrenceEvents => Set<MonitoringOccurrenceEvent>();
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<MachinePart> MachineParts => Set<MachinePart>();
     public DbSet<WaterSamplingPoint> WaterSamplingPoints => Set<WaterSamplingPoint>();
@@ -270,6 +274,47 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             .HasForeignKey(r => r.ParentRoomId)
             .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<LabCalendarDate>().HasIndex(d => d.Date).IsUnique();
+
+        // Annual Monitoring Plan. Nothing here is deleted once approved, so
+        // every foreign key restricts; only an occurrence's own items go
+        // with it (a draft being rebuilt).
+        modelBuilder.Entity<MonitoringPlanRevision>(e =>
+        {
+            e.HasIndex(r => new { r.Year, r.RevisionNumber }).IsUnique();
+            // At most one approved revision per year. 1 = PlanRevisionStatus.Approved.
+            e.HasIndex(r => r.Year).IsUnique().HasFilter("\"Status\" = 1").HasDatabaseName("IX_MonitoringPlanRevisions_Year_Approved");
+            e.HasOne(r => r.ApprovalSignature).WithMany().HasForeignKey(r => r.ApprovalSignatureId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<MonitoringOccurrence>(e =>
+        {
+            e.HasOne(o => o.CreatedByRevision).WithMany(r => r.CreatedOccurrences).HasForeignKey(o => o.CreatedByRevisionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.RetiredByRevision).WithMany().HasForeignKey(o => o.RetiredByRevisionId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(o => o.PeriodKey).HasMaxLength(40);
+            e.Property(o => o.FrequencySnapshot).HasMaxLength(200);
+            e.HasIndex(o => new { o.TargetType, o.WaterSamplingPointId, o.RoomId, o.MachineId, o.PeriodKey, o.Sequence })
+                // Two of the three target ids are always null, so nulls must compare equal.
+                .IsUnique().AreNullsDistinct(false).HasDatabaseName("IX_MonitoringOccurrences_Target_Period");
+            e.HasIndex(o => o.WindowStart);
+            e.HasIndex(o => o.WindowEnd);
+            e.HasIndex(o => o.WaterSamplingPointId);
+            e.HasIndex(o => o.RoomId);
+            e.HasIndex(o => o.MachineId);
+            e.HasIndex(o => o.CreatedByRevisionId);
+            e.ToTable(t => t.HasCheckConstraint("CK_MonitoringOccurrences_OneTarget",
+                "(CASE WHEN \"WaterSamplingPointId\" IS NULL THEN 0 ELSE 1 END + CASE WHEN \"RoomId\" IS NULL THEN 0 ELSE 1 END + CASE WHEN \"MachineId\" IS NULL THEN 0 ELSE 1 END) = 1"));
+        });
+        modelBuilder.Entity<MonitoringOccurrenceItem>(e =>
+        {
+            e.HasOne(i => i.MonitoringOccurrence).WithMany(o => o.Items).HasForeignKey(i => i.MonitoringOccurrenceId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(i => i.TestCode).HasMaxLength(100);
+            e.HasIndex(i => i.MonitoringOccurrenceId);
+        });
+        modelBuilder.Entity<MonitoringOccurrenceEvent>(e =>
+        {
+            e.HasOne(v => v.MonitoringOccurrence).WithMany().HasForeignKey(v => v.MonitoringOccurrenceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.ElectronicSignature).WithMany().HasForeignKey(v => v.ElectronicSignatureId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(v => v.MonitoringOccurrenceId);
+        });
         modelBuilder.Entity<RoomTestConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<WaterDepartment>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<WaterSamplingPoint>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();

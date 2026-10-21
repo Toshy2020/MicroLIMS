@@ -106,6 +106,12 @@ public static class PermissionConstants
     public const string HplcOperate = "Hplc.Operate";
     public const string WorkingStandardsQualify = "WorkingStandards.Qualify";
 
+    // Annual Monitoring Plan: view the plan and calendar; generate revisions,
+    // keep the lab calendar and settings, request skips; sign a revision.
+    public const string MonitoringPlanView = "MonitoringPlan.View";
+    public const string MonitoringPlanManage = "MonitoringPlan.Manage";
+    public const string MonitoringPlanApprove = "MonitoringPlan.Approve";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -124,7 +130,8 @@ public static class PermissionConstants
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
-        SolutionsPrepare, HplcOperate, WorkingStandardsQualify
+        SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
+        MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -139,6 +146,7 @@ public static class PermissionConstants
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
-        SolutionsPrepare, HplcOperate, WorkingStandardsQualify
+        SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
+        MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove
     };
 }

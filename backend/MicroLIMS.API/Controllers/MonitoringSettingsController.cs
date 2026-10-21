@@ -22,25 +22,27 @@ public class MonitoringSettingsController : ControllerBase
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
+    [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("settings")]
     public async Task<IActionResult> GetSettings() =>
         Ok(ApiResponse<object>.Ok(await _service.GetSettingsAsync()));
 
-    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [Authorize(Policy = PermissionConstants.MonitoringPlanManage)]
     [HttpPut("settings")]
     public async Task<IActionResult> SaveSettings(MonitoringSettingsRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.SaveSettingsAsync(request, CurrentUserId)));
 
+    [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("calendar")]
     public async Task<IActionResult> GetCalendarDates([FromQuery] int year) =>
         Ok(ApiResponse<object>.Ok(await _service.GetDatesAsync(year)));
 
-    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [Authorize(Policy = PermissionConstants.MonitoringPlanManage)]
     [HttpPost("calendar")]
     public async Task<IActionResult> AddCalendarDate(LabCalendarDateRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.AddDateAsync(request)));
 
-    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [Authorize(Policy = PermissionConstants.MonitoringPlanManage)]
     [HttpDelete("calendar/{id}")]
     public async Task<IActionResult> RemoveCalendarDate(int id)
     {

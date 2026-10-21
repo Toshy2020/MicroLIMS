@@ -6130,6 +6130,237 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("MediaUsages");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CreatedByRevisionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExceptionState")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FrequencySnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("MachineId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("OriginalTargetDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("OriginalWindowEnd")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PeriodKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("RetiredByRevisionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RoomId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("TargetDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int?>("WaterSamplingPointId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("WindowEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("WindowStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByRevisionId");
+
+                    b.HasIndex("MachineId");
+
+                    b.HasIndex("RetiredByRevisionId");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("WaterSamplingPointId");
+
+                    b.HasIndex("WindowEnd");
+
+                    b.HasIndex("WindowStart");
+
+                    b.HasIndex("TargetType", "WaterSamplingPointId", "RoomId", "MachineId", "PeriodKey", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MonitoringOccurrences_Target_Period");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TargetType", "WaterSamplingPointId", "RoomId", "MachineId", "PeriodKey", "Sequence"), false);
+
+                    b.ToTable("MonitoringOccurrences", t =>
+                        {
+                            t.HasCheckConstraint("CK_MonitoringOccurrences_OneTarget", "(CASE WHEN \"WaterSamplingPointId\" IS NULL THEN 0 ELSE 1 END + CASE WHEN \"RoomId\" IS NULL THEN 0 ELSE 1 END + CASE WHEN \"MachineId\" IS NULL THEN 0 ELSE 1 END) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrenceEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ElectronicSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonitoringOccurrenceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PerformedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ElectronicSignatureId");
+
+                    b.HasIndex("MonitoringOccurrenceId");
+
+                    b.ToTable("MonitoringOccurrenceEvents");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrenceItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("MachinePartConfigurationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonitoringOccurrenceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RoomTestConfigurationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TestCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MonitoringOccurrenceId");
+
+                    b.ToTable("MonitoringOccurrenceItems");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringPlanRevision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ApprovalSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GeneratedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RevisionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovalSignatureId");
+
+                    b.HasIndex("Year")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MonitoringPlanRevisions_Year_Approved")
+                        .HasFilter("\"Status\" = 1");
+
+                    b.HasIndex("Year", "RevisionNumber")
+                        .IsUnique();
+
+                    b.ToTable("MonitoringPlanRevisions");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringSettings", b =>
                 {
                     b.Property<int>("Id")
@@ -12139,6 +12370,63 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("TestOrder");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrence", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringPlanRevision", "CreatedByRevision")
+                        .WithMany("CreatedOccurrences")
+                        .HasForeignKey("CreatedByRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringPlanRevision", "RetiredByRevision")
+                        .WithMany()
+                        .HasForeignKey("RetiredByRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByRevision");
+
+                    b.Navigation("RetiredByRevision");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrenceEvent", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ElectronicSignature")
+                        .WithMany()
+                        .HasForeignKey("ElectronicSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringOccurrence", "MonitoringOccurrence")
+                        .WithMany()
+                        .HasForeignKey("MonitoringOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ElectronicSignature");
+
+                    b.Navigation("MonitoringOccurrence");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrenceItem", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringOccurrence", "MonitoringOccurrence")
+                        .WithMany("Items")
+                        .HasForeignKey("MonitoringOccurrenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MonitoringOccurrence");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringPlanRevision", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ApprovalSignature")
+                        .WithMany()
+                        .HasForeignKey("ApprovalSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovalSignature");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.OosInvestigationDocument", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.OosInvestigationDocument", "SupersededByDocument")
@@ -13538,6 +13826,16 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Configurations");
 
                     b.Navigation("IncubationConditions");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrence", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringPlanRevision", b =>
+                {
+                    b.Navigation("CreatedOccurrences");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ParameterResult", b =>

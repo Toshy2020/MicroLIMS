@@ -24,7 +24,7 @@ public class GlobalSearchController : ControllerBase
 
     [HttpGet("global")]
     public async Task<IActionResult> Search(
-        [FromQuery] string query,
+        [FromQuery(Name = "q")] string? query,
         [FromQuery] string? category = null,
         [FromQuery] int limit = 5)
     {

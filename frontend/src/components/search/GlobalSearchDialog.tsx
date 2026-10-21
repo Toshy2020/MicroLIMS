@@ -76,7 +76,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
   const handleSelectItem = (item: GlobalSearchItemDto) => {
     addSearch(query);
     onClose();
-    navigate(item.route);
+    navigate(item.navigationTarget);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -167,7 +167,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
                   const isSelected = itemIndex === selectedIndex;
                   return (
                     <ListItemButton
-                      key={item.id}
+                      key={`${item.entityType}-${item.id}`}
                       selected={isSelected}
                       onClick={() => handleSelectItem(item)}
                       sx={{ borderRadius: 1.5, my: 0.5, display: "flex", justifyContent: "space-between" }}
@@ -181,7 +181,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
                         }}
                       />
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        {item.badge && <Chip label={item.badge} size="small" variant="outlined" />}
+                        {item.status && <Chip label={item.status} size="small" variant="outlined" />}
                         <ArrowForwardIosIcon sx={{ fontSize: 12, color: "action.disabled" }} />
                       </Box>
                     </ListItemButton>

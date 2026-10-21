@@ -27,13 +27,15 @@ describe("globalSearchApi", () => {
               count: 1,
               items: [
                 {
-                  id: "1",
+                  id: 1,
+                  entityType: "Sample",
                   title: "SMP-2026-001",
                   subtitle: "Paracetamol 500mg",
-                  category: "Samples",
-                  badge: "InTesting",
-                  route: "/receiving-testing?sampleId=1",
-                  matchedField: "ReferenceNumber"
+                                    status: "InTesting",
+                  navigationTarget: "/receiving-testing?sampleId=1",
+                  matchedField: "ReferenceNumber",
+                  matchedValue: "x",
+                  badgeColor: "info"
                 }
               ]
             }

@@ -1,14 +1,17 @@
 import { apiClient } from "../services/apiClient";
 
+// Mirrors MicroLIMS.Application.DTOs.Search.GlobalSearchItemDto.
 export interface GlobalSearchItemDto {
-  id: string;
+  id: number;
+  entityType: string;
   title: string;
   subtitle: string;
-  category: string;
-  badge?: string;
-  route: string;
+  status: string;
   matchedField: string;
-  additionalInfo?: string;
+  matchedValue: string;
+  badgeColor: string;
+  navigationTarget: string;
+  metadata?: Record<string, string> | null;
 }
 
 export interface GlobalSearchCategoryDto {

@@ -41,13 +41,15 @@ describe("GlobalSearchDialog", () => {
           count: 1,
           items: [
             {
-              id: "101",
+              id: 101,
+                  entityType: "Sample",
               title: "SMP-2026-0001",
               subtitle: "Raw Material • Testing",
-              category: "Samples",
-              badge: "InTesting",
-              route: "/receiving-testing?sampleId=101",
-              matchedField: "ReferenceNumber"
+                            status: "InTesting",
+              navigationTarget: "/receiving-testing?sampleId=101",
+              matchedField: "ReferenceNumber",
+                  matchedValue: "x",
+                  badgeColor: "info"
             }
           ]
         }

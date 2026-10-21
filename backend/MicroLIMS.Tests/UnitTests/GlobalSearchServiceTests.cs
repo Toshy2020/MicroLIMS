@@ -1,4 +1,7 @@
+using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.DTOs.Search;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -282,5 +285,12 @@ public class GlobalSearchServiceTests
         var materialIndexes = materialType.GetIndexes().Select(i => string.Join(",", i.Properties.Select(p => p.Name))).ToList();
         Assert.Contains("BatchNumber", materialIndexes);
         Assert.Contains("MaterialName", materialIndexes);
+    }
+
+    [Fact]
+    public void Controller_ReadsTheSearchTextFromQ_TheParameterTheFrontendSends()
+    {
+        var query = typeof(GlobalSearchController).GetMethod(nameof(GlobalSearchController.Search))!.GetParameters()[0];
+        Assert.Equal("q", query.GetCustomAttribute<FromQueryAttribute>()!.Name);
     }
 }

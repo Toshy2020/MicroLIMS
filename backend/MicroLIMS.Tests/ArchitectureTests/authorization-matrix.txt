@@ -353,6 +353,8 @@ MonitoringPlanController.ApproveRevision(Int32, ApprovePlanRequest): SystemAdmin
 MonitoringPlanController.GenerateRevision(GeneratePlanRequest): SystemAdministrator,SectionHead
 MonitoringPlanController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringPlanController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringReportsController.GetCoverage(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringReportsController.GetSpacing(Int32, Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringSettingsController.AddCalendarDate(LabCalendarDateRequest): SystemAdministrator,SectionHead
 MonitoringSettingsController.GetCalendarDates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringSettingsController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst

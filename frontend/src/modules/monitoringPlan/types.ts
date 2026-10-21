@@ -154,3 +154,23 @@ export interface MonitoringSettings {
 }
 
 export interface LabCalendarDate { id: number; date: string; description: string }
+
+export interface PlanRevision {
+  id: number;
+  version: number;
+  year: number;
+  revisionNumber: number;
+  status: "Draft" | "Approved" | "Superseded";
+  reason: string | null;
+  effectiveFrom: string;
+  generatedAt: string;
+  approvedAt: string | null;
+  occurrenceCount: number;
+}
+
+export interface PlanPreview {
+  revision: PlanRevision;
+  totals: { category: MonitoringCategory; targets: number; occurrences: number }[];
+  toRetire: { occurrenceId: number; category: MonitoringCategory; target: string; periodKey: string; windowStart: string; windowEnd: string }[];
+  exceptions: { kind: string; category: MonitoringCategory; target: string; message: string }[];
+}

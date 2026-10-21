@@ -10,6 +10,7 @@ import { DuePanel } from "./components/DuePanel";
 import { ManualEntryDialog } from "./components/ManualEntryDialog";
 import { MonthGrid } from "./components/MonthGrid";
 import { OccurrenceDialog } from "./components/OccurrenceDialog";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { SpacingTable } from "./components/SpacingTable";
 import { YearGrid } from "./components/YearGrid";
 import { MonitoringPlanService } from "./services/MonitoringPlanService";
@@ -30,7 +31,7 @@ export function MonitoringPlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
-  const [tab, setTab] = useState<"calendar" | "coverage" | "spacing">("calendar");
+  const [tab, setTab] = useState<"calendar" | "coverage" | "spacing" | "settings">("calendar");
   const [coverage, setCoverage] = useState<CoverageReport | null>(null);
   const [spacing, setSpacing] = useState<SpacingReport | null>(null);
   const [flaggedOnly, setFlaggedOnly] = useState(true);
@@ -40,6 +41,7 @@ export function MonitoringPlanPage() {
   const load = useCallback(async () => {
     setError(null);
     try {
+      if (tab === "settings") return;
       if (tab === "coverage") { setCoverage(await MonitoringPlanService.getCoverage(year, cat)); return; }
       if (tab === "spacing") { setSpacing(await MonitoringPlanService.getSpacing(year, cat, flaggedOnly)); return; }
       const [y, d] = await Promise.all([MonitoringPlanService.getYear(year, cat), MonitoringPlanService.getDue(cat)]);
@@ -78,6 +80,7 @@ export function MonitoringPlanPage() {
         <Tab value="calendar" label="Calendar" />
         <Tab value="coverage" label="Coverage" />
         <Tab value="spacing" label="Spacing" />
+        <Tab value="settings" label="Settings" />
       </Tabs>
       {tab === "calendar" && <DuePanel due={due} onPick={(o) => setOpenId(o.id)} />}
 
@@ -102,7 +105,9 @@ export function MonitoringPlanPage() {
         </TextField>
       </Box>
 
-      {tab === "coverage" ? (
+      {tab === "settings" ? (
+        <SettingsPanel year={year} />
+      ) : tab === "coverage" ? (
         <CoverageTable report={coverage} />
       ) : tab === "spacing" ? (
         <SpacingTable report={spacing} />

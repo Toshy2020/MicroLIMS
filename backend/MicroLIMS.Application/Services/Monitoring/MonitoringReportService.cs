@@ -25,10 +25,6 @@ public record SpacingReportResponse(int Year, List<SpacingRowResponse> Rows);
 // status the calendar shows, so a report can never disagree with the screen.
 public class MonitoringReportService
 {
-    // N8: allowed days between two fulfilments of the same target.
-    public static readonly (int Min, int Max) MonthlySpacing = (14, 45);
-    public static readonly (int Min, int Max) WeeklySpacing = (4, 10);
-
     private readonly IMicroLimsDbContext _db;
     private readonly ILabClock _clock;
     private readonly OccurrenceStatusService _status;
@@ -84,6 +80,9 @@ public class MonitoringReportService
         var targets = await OccurrenceNameResolver.TargetNamesAsync(_db, occurrences);
         var groups = await OccurrenceNameResolver.GroupNamesAsync(_db, occurrences);
 
+        // Allowed days between two fulfilments of one target come from the plan settings (N8).
+        var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
+
         var rows = new List<SpacingRowResponse>();
         // Weekly and monthly series are checked separately; manual entries have no cadence.
         foreach (var series in occurrences
@@ -91,7 +90,9 @@ public class MonitoringReportService
                      .Where(x => x.Kind != null)
                      .GroupBy(x => (Key: OccurrenceNameResolver.TargetKey(x.Occurrence), x.Kind)))
         {
-            var (min, max) = series.Key.Kind == "Weekly" ? WeeklySpacing : MonthlySpacing;
+            var (min, max) = series.Key.Kind == "Weekly"
+                ? (settings.WeeklyMinGapDays, settings.WeeklyMaxGapDays)
+                : (settings.MonthlyMinGapDays, settings.MonthlyMaxGapDays);
             var dates = series
                 .Select(x => details[x.Occurrence.Id].Result.FulfilledOn)
                 .Where(d => d.HasValue).Select(d => d!.Value)

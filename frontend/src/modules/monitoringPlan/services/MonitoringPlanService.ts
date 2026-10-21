@@ -1,6 +1,8 @@
 import { apiClient } from "../../../services/apiClient";
 import type {
   CoverageReport,
+  LabCalendarDate,
+  MonitoringSettings,
   SpacingReport,
   DueResult,
   MonitoringCategory,
@@ -16,6 +18,19 @@ const REPORTS = "/monitoring-reports";
 
 // Row versions travel in the If-Match header like the other editable records.
 const ifMatch = (version: number) => ({ headers: { "If-Match": String(version) } });
+
+export const MonitoringSettingsApi = {
+  get: () => apiClient.get("/monitoring/settings").then((r) => r.data.data as MonitoringSettings),
+  save: (s: MonitoringSettings) => {
+    const { id: _id, version, ...body } = s;
+    return apiClient.put("/monitoring/settings", body, ifMatch(version)).then((r) => r.data.data as MonitoringSettings);
+  },
+  getDates: (year: number) =>
+    apiClient.get("/monitoring/calendar", { params: { year } }).then((r) => r.data.data as LabCalendarDate[]),
+  addDate: (date: string, description: string) =>
+    apiClient.post("/monitoring/calendar", { date, description }).then((r) => r.data.data as LabCalendarDate),
+  removeDate: (id: number) => apiClient.delete(`/monitoring/calendar/${id}`)
+};
 
 export const MonitoringPlanService = {
   getCoverage: (year: number, category?: MonitoringCategory) =>

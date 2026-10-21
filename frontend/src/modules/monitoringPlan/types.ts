@@ -133,3 +133,24 @@ export interface SpacingRow {
 }
 
 export interface SpacingReport { year: number; rows: SpacingRow[] }
+
+export interface MonitoringSettings {
+  id: number;
+  version: number;
+  labWeekStartDay: string;
+  workingWeekdays: number;
+  waterEarlyToleranceDays: number;
+  waterLateToleranceDays: number;
+  emEarlyToleranceDays: number;
+  emLateToleranceDays: number;
+  acEarlyToleranceDays: number;
+  acLateToleranceDays: number;
+  warningDayOfMonth: number;
+  graceDays: number;
+  monthlyMinGapDays: number;
+  monthlyMaxGapDays: number;
+  weeklyMinGapDays: number;
+  weeklyMaxGapDays: number;
+}
+
+export interface LabCalendarDate { id: number; date: string; description: string }

@@ -7,5 +7,7 @@ export { LimitFields, emptyLimits, limitOrderWarning } from "./LimitFields";
 export type { LimitValues } from "./LimitFields";
 export { SidePanel, PanelSection } from "./SidePanel";
 export { FrequencyField } from "./FrequencyField";
+export { StructuredFrequencyField, emptyFrequency, frequencyFrom, frequencyRule, frequencyLabel } from "./StructuredFrequencyField";
+export type { FrequencyValue, FrequencyColumns } from "./StructuredFrequencyField";
 export { ToneChip } from "./ToneChip";
 export type { ConfigBadge } from "./types";

@@ -2,12 +2,14 @@ import { Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { LimitPills, ToneChip } from "../../../../components/configHierarchy";
+import { FrequencyColumns, LimitPills, ToneChip, frequencyLabel } from "../../../../components/configHierarchy";
 import { EmRoom, RoomTestConfig, emTestTypeLabel } from "../emConfigTypes";
 import { GradeChip } from "./GradeChip";
 
 interface Props {
   room: EmRoom;
+  // The department's rule, used when the room has none of its own.
+  deptFrequency?: FrequencyColumns;
   configs: RoomTestConfig[];
   onEditRoom: () => void;
   onDeleteRoom: () => void;
@@ -19,7 +21,7 @@ interface Props {
 // One room: its grade, and every test configured for it with limits.
 // A room with no tests is highlighted, since samples from it would have
 // nothing to run.
-export function EmRoomCard({ room, configs, onEditRoom, onDeleteRoom, onAddConfig, onEditConfig, onDeleteConfig }: Props) {
+export function EmRoomCard({ room, deptFrequency, configs, onEditRoom, onDeleteRoom, onAddConfig, onEditConfig, onDeleteConfig }: Props) {
   const empty = configs.length === 0;
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column", borderColor: empty ? "warning.light" : "divider" }}>
@@ -28,6 +30,14 @@ export function EmRoomCard({ room, configs, onEditRoom, onDeleteRoom, onAddConfi
           <Typography component="h3" sx={{ fontSize: 16, fontWeight: 600, overflowWrap: "anywhere" }}>{room.name}</Typography>
           <Stack useFlexGap direction="row" spacing={0.75} sx={{ mt: 0.75, alignItems: "center", flexWrap: "wrap" }}>
             <GradeChip grade={room.gradeClassification} />
+            {room.kind === "LAF" && <ToneChip label="LAF" tone="pending" />}
+            {frequencyLabel(room) ? (
+              <ToneChip label={frequencyLabel(room)} tone="pending" />
+            ) : (
+              deptFrequency && frequencyLabel(deptFrequency) && (
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{frequencyLabel(deptFrequency)} (from department)</Typography>
+              )
+            )}
             {empty ? (
               <ToneChip label="No tests configured" tone="inconclusive" />
             ) : (

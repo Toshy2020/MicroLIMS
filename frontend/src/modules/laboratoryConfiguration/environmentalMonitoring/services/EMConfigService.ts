@@ -2,17 +2,17 @@ import { apiClient, ifMatch } from "../../../../services/apiClient";
 
 export const EMConfigService = {
   getDepartments: () => apiClient.get("/masterdata/departments").then((r) => r.data.data),
-  createDepartment: (name: string, cls: string, frequency: string) =>
-    apiClient.post("/masterdata/departments", { name, class: cls, testingFrequency: frequency }).then((r) => r.data.data),
-  updateDepartment: (id: number, name: string, cls: string, frequency: string, version?: number) =>
-    apiClient.put(`/masterdata/departments/${id}`, { name, class: cls, testingFrequency: frequency }, ifMatch(version)).then((r) => r.data.data),
+  createDepartment: (name: string, cls: string, frequency: string, rule?: object) =>
+    apiClient.post("/masterdata/departments", { name, class: cls, testingFrequency: frequency, frequency: rule }).then((r) => r.data.data),
+  updateDepartment: (id: number, name: string, cls: string, frequency: string, version?: number, rule?: object) =>
+    apiClient.put(`/masterdata/departments/${id}`, { name, class: cls, testingFrequency: frequency, frequency: rule }, ifMatch(version)).then((r) => r.data.data),
   deleteDepartment: (id: number) => apiClient.delete(`/masterdata/departments/${id}`),
 
   getRooms: () => apiClient.get("/masterdata/rooms").then((r) => r.data.data),
-  createRoom: (name: string, departmentId: number, gradeClassification: string) =>
-    apiClient.post("/masterdata/rooms", { name, departmentId, gradeClassification }).then((r) => r.data.data),
-  updateRoom: (id: number, name: string, departmentId: number, gradeClassification: string, version?: number) =>
-    apiClient.put(`/masterdata/rooms/${id}`, { name, departmentId, gradeClassification }, ifMatch(version)).then((r) => r.data.data),
+  createRoom: (name: string, departmentId: number, gradeClassification: string, extra?: { kind?: string; parentRoomId?: number | null; frequency?: object }) =>
+    apiClient.post("/masterdata/rooms", { name, departmentId, gradeClassification, ...extra }).then((r) => r.data.data),
+  updateRoom: (id: number, name: string, departmentId: number, gradeClassification: string, version?: number, extra?: { kind?: string; parentRoomId?: number | null; frequency?: object }) =>
+    apiClient.put(`/masterdata/rooms/${id}`, { name, departmentId, gradeClassification, ...extra }, ifMatch(version)).then((r) => r.data.data),
   deleteRoom: (id: number) => apiClient.delete(`/masterdata/rooms/${id}`),
 
   getRoomTestConfigurations: (roomId: number) =>

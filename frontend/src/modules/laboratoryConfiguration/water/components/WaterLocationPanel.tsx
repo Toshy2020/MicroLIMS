@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { MenuItem, Stack, TextField, Typography } from "@mui/material";
 import {
-  FrequencyField,
+  StructuredFrequencyField,
+  FrequencyValue,
+  emptyFrequency,
+  frequencyFrom,
+  frequencyLabel,
+  frequencyRule,
   LimitFields,
   LimitValues,
   PanelSection,
@@ -36,7 +41,7 @@ const hasAny = (v: LimitValues) => [v.alertLimit, v.actionLimit, v.specLimit].so
 export function WaterLocationPanel({ open, point, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved }: Props) {
   const [code, setCode] = useState("");
   const [location, setLocation] = useState("");
-  const [frequency, setFrequency] = useState("");
+  const [frequency, setFrequency] = useState<FrequencyValue>(emptyFrequency);
   const [departmentId, setDepartmentId] = useState<number | "">("");
   const [testCodes, setTestCodes] = useState<string[]>([]);
   const [limits, setLimits] = useState<Record<string, LimitValues>>({});
@@ -51,7 +56,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
     if (!open) return;
     setCode(point?.code ?? "");
     setLocation(point?.location ?? "");
-    setFrequency(point?.testingFrequency ?? "");
+    setFrequency(frequencyFrom(point));
     setDepartmentId(point?.waterDepartmentId ?? defaultDepartmentId ?? "");
     setTestCodes(point?.assignedTestCodes ?? []);
     setLimits(
@@ -71,15 +76,19 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       setError("Point code and water system are required.");
       return;
     }
+    if (frequency.type === "Weekly" && !frequency.weekday) {
+      setError("A weekly frequency needs a sampling weekday.");
+      return;
+    }
     setSaving(true);
     setError(null);
     let pointId = savedPointId;
     try {
       if (pointId != null) {
-        const updated = await WaterConfigService.updateSamplingPoint(pointId, code.trim(), location, frequency, testCodes, Number(departmentId), pointVersion);
+        const updated = await WaterConfigService.updateSamplingPoint(pointId, code.trim(), location, frequencyLabel(frequency), testCodes, Number(departmentId), pointVersion, frequencyRule(frequency));
         setPointVersion(updated?.version);
       } else {
-        const created = await WaterConfigService.createSamplingPoint(code.trim(), location, frequency, testCodes, Number(departmentId));
+        const created = await WaterConfigService.createSamplingPoint(code.trim(), location, frequencyLabel(frequency), testCodes, Number(departmentId), frequencyRule(frequency));
         pointId = created.id;
         setSavedPointId(pointId);
         setPointVersion(created?.version);
@@ -149,7 +158,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
             </TextField>
           </Stack>
           <TextField size="small" label="Point name" placeholder="e.g. Manufacturing hall tap" value={location} onChange={(e) => setLocation(e.target.value)} />
-          <FrequencyField id="water-point-frequency" value={frequency} onChange={setFrequency} />
+          <StructuredFrequencyField idPrefix="water-point-frequency" value={frequency} onChange={setFrequency} weekdayRequired />
         </Stack>
       </PanelSection>
 

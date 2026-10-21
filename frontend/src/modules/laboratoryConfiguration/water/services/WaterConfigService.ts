@@ -14,10 +14,10 @@ export const WaterConfigService = {
   deleteWaterDepartment: (id: number) => apiClient.delete(`/masterdata/water-departments/${id}`),
 
   getSamplingPoints: () => apiClient.get("/masterdata/water-sampling-points").then((r) => r.data.data),
-  createSamplingPoint: (code: string, location: string, testingFrequency: string, assignedTestCodes: string[], waterDepartmentId: number) =>
-    apiClient.post("/masterdata/water-sampling-points", { code, location, testingFrequency, assignedTestCodes, waterDepartmentId }).then((r) => r.data.data),
-  updateSamplingPoint: (id: number, code: string, location: string, testingFrequency: string, assignedTestCodes: string[], waterDepartmentId: number, version?: number) =>
-    apiClient.put(`/masterdata/water-sampling-points/${id}`, { code, location, testingFrequency, assignedTestCodes, waterDepartmentId }, ifMatch(version)).then((r) => r.data.data),
+  createSamplingPoint: (code: string, location: string, testingFrequency: string, assignedTestCodes: string[], waterDepartmentId: number, frequency?: object) =>
+    apiClient.post("/masterdata/water-sampling-points", { code, location, testingFrequency, assignedTestCodes, waterDepartmentId, frequency }).then((r) => r.data.data),
+  updateSamplingPoint: (id: number, code: string, location: string, testingFrequency: string, assignedTestCodes: string[], waterDepartmentId: number, version?: number, frequency?: object) =>
+    apiClient.put(`/masterdata/water-sampling-points/${id}`, { code, location, testingFrequency, assignedTestCodes, waterDepartmentId, frequency }, ifMatch(version)).then((r) => r.data.data),
   deleteSamplingPoint: (id: number) => apiClient.delete(`/masterdata/water-sampling-points/${id}`),
 
   getSamplingConfigurations: (pointId: number) =>

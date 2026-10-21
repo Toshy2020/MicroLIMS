@@ -1181,6 +1181,15 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("FrequencyAnchorMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyType")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
@@ -1188,6 +1197,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("SamplingWeekday")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TestingFrequency")
                         .IsRequired()
@@ -4970,6 +4982,35 @@ namespace MicroLIMS.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.LabCalendarDate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date")
+                        .IsUnique();
+
+                    b.ToTable("LabCalendarDates");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
                 {
                     b.Property<int>("Id")
@@ -6087,6 +6128,73 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("TestOrderId");
 
                     b.ToTable("MediaUsages");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AcEarlyToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AcLateToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EmEarlyToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EmLateToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GraceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LabWeekStartDay")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonthlyMaxGapDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonthlyMinGapDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("WarningDayOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WaterEarlyToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WaterLateToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WeeklyMaxGapDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WeeklyMinGapDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WorkingWeekdays")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MonitoringSettings");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Neutralizer", b =>
@@ -7399,6 +7507,15 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("DepartmentId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("FrequencyAnchorMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyType")
+                        .HasColumnType("integer");
+
                     b.Property<string>("GradeClassification")
                         .IsRequired()
                         .HasColumnType("text");
@@ -7407,10 +7524,19 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<int?>("ParentRoomId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SamplingWeekday")
+                        .HasColumnType("integer");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
@@ -7421,6 +7547,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
+
+                    b.HasIndex("ParentRoomId");
 
                     b.ToTable("Rooms");
                 });
@@ -9542,6 +9670,15 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("FrequencyAnchorMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyType")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
@@ -9549,6 +9686,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("SamplingWeekday")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TestingFrequency")
                         .IsRequired()
@@ -12318,7 +12458,14 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Room", "ParentRoom")
+                        .WithMany()
+                        .HasForeignKey("ParentRoomId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Department");
+
+                    b.Navigation("ParentRoom");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RoomMonitoring", b =>

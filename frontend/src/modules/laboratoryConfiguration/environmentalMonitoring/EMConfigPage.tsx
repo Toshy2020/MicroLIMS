@@ -4,7 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { PageHeader } from "../../../components/PageHeader";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
-import { ConfigMasterList, MasterListItem, SummaryTiles, ToneChip } from "../../../components/configHierarchy";
+import { ConfigMasterList, MasterListItem, SummaryTiles, ToneChip, frequencyLabel } from "../../../components/configHierarchy";
 import { EMConfigService } from "./services/EMConfigService";
 import { EmDepartment, EmRoom, RoomTestConfig, emTestTypeLabel } from "./emConfigTypes";
 import { EmRoomCard } from "./components/EmRoomCard";
@@ -72,7 +72,7 @@ export function EMConfigPage() {
     .map((d) => {
       const rooms = d.rooms ?? [];
       const empty = rooms.filter((r) => (configsByRoom[r.id] ?? []).length === 0).length;
-      const details = [rooms.length === 0 ? "No rooms yet" : plural(rooms.length, "room"), d.testingFrequency].filter(Boolean).join(" · ");
+      const details = [rooms.length === 0 ? "No rooms yet" : plural(rooms.length, "room"), frequencyLabel(d) || d.testingFrequency].filter(Boolean).join(" · ");
       return {
         id: d.id,
         title: d.name,
@@ -188,7 +188,7 @@ export function EMConfigPage() {
                   <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedDept.name}</Typography>
                   <Stack useFlexGap direction="row" spacing={0.75} sx={{ mt: 0.5, alignItems: "center", flexWrap: "wrap" }}>
                     {selectedDept.class && <ToneChip label={selectedDept.class} tone="pending" />}
-                    {selectedDept.testingFrequency && <ToneChip label={`Tested ${selectedDept.testingFrequency.toLowerCase()}`} tone="pending" />}
+                    {(frequencyLabel(selectedDept) || selectedDept.testingFrequency) && <ToneChip label={`Tested ${(frequencyLabel(selectedDept) || selectedDept.testingFrequency).toLowerCase()}`} tone="pending" />}
                     <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedDept.rooms ?? []).length, "room")}</Typography>
                   </Stack>
                 </Box>
@@ -207,6 +207,7 @@ export function EMConfigPage() {
                   <EmRoomCard
                     key={room.id}
                     room={room}
+                    deptFrequency={selectedDept}
                     configs={configsByRoom[room.id] ?? []}
                     onEditRoom={() => setRoomPanel({ open: true, room: { ...room, departmentId: selectedDept.id } })}
                     onDeleteRoom={() => setPendingDelete({ kind: "room", room })}

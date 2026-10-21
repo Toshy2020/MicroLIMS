@@ -1,12 +1,19 @@
-export interface EmRoom {
+import type { FrequencyColumns } from "../../../components/configHierarchy";
+
+export type EmRoomKind = "Room" | "LAF";
+
+export interface EmRoom extends FrequencyColumns {
   id: number;
   version?: number;
   name: string;
   departmentId: number;
   gradeClassification: string;
+  isActive?: boolean;
+  kind?: EmRoomKind;
+  parentRoomId?: number | null;
 }
 
-export interface EmDepartment {
+export interface EmDepartment extends FrequencyColumns {
   id: number;
   version?: number;
   name: string;

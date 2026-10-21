@@ -4,8 +4,8 @@ using MicroLIMS.Domain.Enums;
 namespace MicroLIMS.Application.Services.Monitoring;
 
 // Reads the free-text TestingFrequency the master data used to carry
-// ("Weekly", "Quarterly", "Every 2 months") into a structured rule.
-// Returns null for text it cannot map (e.g. "Daily"), so the caller leaves
+// ("Weekly", "Daily", "Quarterly", "Every 2 months") into a structured rule.
+// Returns null for text it cannot map (e.g. "when needed"), so the caller leaves
 // the structured rule empty for a person to set.
 public static class LegacyFrequencyParser
 {
@@ -20,6 +20,7 @@ public static class LegacyFrequencyParser
 
         switch (t.ToLowerInvariant())
         {
+            case "daily": return new(FrequencyType.Daily, 1);
             case "weekly": return new(FrequencyType.Weekly, 1);
             case "fortnightly":
             case "biweekly":

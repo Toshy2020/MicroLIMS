@@ -13,6 +13,7 @@ public class FrequencyRulesTests
     [InlineData("Monthly", FrequencyType.Monthly, 1)]
     [InlineData("Quarterly", FrequencyType.Monthly, 3)]
     [InlineData("Annually", FrequencyType.Monthly, 12)]
+    [InlineData("Daily", FrequencyType.Daily, 1)]
     [InlineData("Every 2 months", FrequencyType.Monthly, 2)]
     [InlineData("every 3 weeks", FrequencyType.Weekly, 3)]
     [InlineData("  6-monthly ", FrequencyType.Monthly, 6)]
@@ -28,7 +29,6 @@ public class FrequencyRulesTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("Daily")]
     [InlineData("when needed")]
     [InlineData("Every 13 months")]
     [InlineData("Every 0 weeks")]
@@ -62,6 +62,45 @@ public class FrequencyRulesTests
         Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Monthly, 3, null, 13)));
         Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Weekly, 1, null, 3)));
         Assert.Null(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Monthly, 3, null, 3)));
+    }
+
+    [Fact]
+    public void Validate_DailyTakesNoOtherFields()
+    {
+        Assert.Null(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Daily, 1), weekdayRequired: true));
+        Assert.Null(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Daily)));
+        Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Daily, 2)));
+        Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Daily, 1, DayOfWeek.Sunday)));
+        Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Daily, 1, null, null, 2)));
+    }
+
+    [Fact]
+    public void Validate_WeekOfMonthIsOneToFourAndMonthlyOnly()
+    {
+        Assert.Null(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 2)));
+        Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 5)));
+        Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 0)));
+        Assert.NotNull(FrequencyRules.Validate(new FrequencyRuleDto(FrequencyType.Weekly, 1, null, null, 2)));
+    }
+
+    [Fact]
+    public void Describe_DailyAndWeekOfMonth()
+    {
+        Assert.Equal("Daily, working days", FrequencyRules.Describe(new FrequencyRuleDto(FrequencyType.Daily, 1)));
+        Assert.Equal("Monthly, week 2", FrequencyRules.Describe(new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 2)));
+    }
+
+    [Fact]
+    public void Apply_RoundTripsWeekOfMonth_AndClearResetsIt()
+    {
+        var dept = new Department();
+
+        FrequencyRules.Apply(dept, new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 3));
+        Assert.Equal(3, dept.FrequencyWeekOfMonth);
+        Assert.Equal(3, FrequencyRules.From(dept)!.WeekOfMonth);
+
+        FrequencyRules.Apply(dept, new FrequencyRuleDto(null));
+        Assert.Null(dept.FrequencyWeekOfMonth);
     }
 
     [Fact]

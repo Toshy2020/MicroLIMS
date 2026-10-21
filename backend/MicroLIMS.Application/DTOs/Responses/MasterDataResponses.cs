@@ -183,6 +183,7 @@ public class EmDepartmentResponse
     public int? FrequencyInterval { get; init; }
     public DayOfWeek? SamplingWeekday { get; init; }
     public int? FrequencyAnchorMonth { get; init; }
+    public int? FrequencyWeekOfMonth { get; init; }
 
     public static EmDepartmentResponse From(Department e) => new()
     {
@@ -196,6 +197,7 @@ public class EmDepartmentResponse
         FrequencyInterval = e.FrequencyInterval,
         SamplingWeekday = e.SamplingWeekday,
         FrequencyAnchorMonth = e.FrequencyAnchorMonth,
+        FrequencyWeekOfMonth = e.FrequencyWeekOfMonth,
     };
 }
 
@@ -213,6 +215,7 @@ public class RoomResponse
     public int? FrequencyInterval { get; init; }
     public DayOfWeek? SamplingWeekday { get; init; }
     public int? FrequencyAnchorMonth { get; init; }
+    public int? FrequencyWeekOfMonth { get; init; }
 
     public static RoomResponse From(Room e) => new()
     {
@@ -228,6 +231,7 @@ public class RoomResponse
         FrequencyInterval = e.FrequencyInterval,
         SamplingWeekday = e.SamplingWeekday,
         FrequencyAnchorMonth = e.FrequencyAnchorMonth,
+        FrequencyWeekOfMonth = e.FrequencyWeekOfMonth,
     };
 }
 
@@ -289,6 +293,7 @@ public class WaterSamplingPointResponse
     public int? FrequencyInterval { get; init; }
     public DayOfWeek? SamplingWeekday { get; init; }
     public int? FrequencyAnchorMonth { get; init; }
+    public int? FrequencyWeekOfMonth { get; init; }
 
     public static WaterSamplingPointResponse From(WaterSamplingPoint e) => new()
     {
@@ -304,6 +309,7 @@ public class WaterSamplingPointResponse
         FrequencyInterval = e.FrequencyInterval,
         SamplingWeekday = e.SamplingWeekday,
         FrequencyAnchorMonth = e.FrequencyAnchorMonth,
+        FrequencyWeekOfMonth = e.FrequencyWeekOfMonth,
     };
 }
 

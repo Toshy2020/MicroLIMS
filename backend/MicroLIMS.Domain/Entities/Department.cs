@@ -14,6 +14,7 @@ public class Department : IVersionedEntity, IHasFrequency
     public int? FrequencyInterval { get; set; }
     public DayOfWeek? SamplingWeekday { get; set; }
     public int? FrequencyAnchorMonth { get; set; }
+    public int? FrequencyWeekOfMonth { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Class { get; set; } = string.Empty; // e.g. Grade A/B/C/D classification of the department
     public string TestingFrequency { get; set; } = string.Empty; // informational only, e.g. "Monthly"

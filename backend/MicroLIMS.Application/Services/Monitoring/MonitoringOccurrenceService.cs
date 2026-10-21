@@ -30,7 +30,18 @@ public record YearSummaryResponse(int Year, List<MonthSummaryResponse> Months);
 
 public record DueResponse(DateOnly Today, int WarningDayOfMonth, bool ShowWarning, List<OccurrenceSummaryResponse> Items);
 
-public record CreateManualOccurrenceRequest(int MachineId, DateOnly TargetDate, List<int> MachinePartConfigurationIds, string? Reason);
+// Day: due on TargetDate (with the After Cleaning tolerances). Week: due any
+// time in the lab week holding TargetDate. Month: due any time in TargetDate's month.
+public enum ManualWindowKind
+{
+    Day,
+    Week,
+    Month
+}
+
+public record CreateManualOccurrenceRequest(
+    int MachineId, DateOnly TargetDate, List<int> MachinePartConfigurationIds, string? Reason,
+    ManualWindowKind Kind = ManualWindowKind.Day);
 
 // A skip or a window change is signed by the person making it and by a
 // second person who holds the approve permission.
@@ -177,7 +188,8 @@ public class MonitoringOccurrenceService
     // ---- manual After Cleaning entries ----
 
     // After Cleaning has no frequency: a section head adds an occurrence when a
-    // machine is to be sampled after cleaning (spec 6.5).
+    // machine is to be sampled after cleaning (spec 6.5). It is due on a day,
+    // or any time in a chosen week or month.
     public async Task<OccurrenceSummaryResponse> CreateManualAsync(CreateManualOccurrenceRequest request, int userId)
     {
         var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
@@ -197,13 +209,45 @@ public class MonitoringOccurrenceService
         if (inactive.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive.");
 
         var today = _clock.LabToday;
-        if (request.TargetDate < today) throw new BusinessRuleException("The target date cannot be in the past.");
+        var date = request.TargetDate;
+        DateOnly? targetDate;
+        DateOnly windowStart, windowEnd;
+        string period, snapshot, described;
+        switch (request.Kind)
+        {
+            case ManualWindowKind.Week:
+                windowStart = PlanWindowCalculator.WeekStart(date, settings.LabWeekStartDay);
+                windowEnd = windowStart.AddDays(6);
+                targetDate = null;
+                period = $"manual-W{windowStart:yyyyMMdd}";
+                snapshot = "Manual entry, any day in the week";
+                described = $"the week {windowStart:yyyy-MM-dd} to {windowEnd:yyyy-MM-dd}";
+                break;
+            case ManualWindowKind.Month:
+                windowStart = new DateOnly(date.Year, date.Month, 1);
+                windowEnd = new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
+                targetDate = null;
+                period = $"manual-M{date:yyyyMM}";
+                snapshot = "Manual entry, any day in the month";
+                described = date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            default:
+                windowStart = date.AddDays(-settings.AcEarlyToleranceDays);
+                windowEnd = date.AddDays(settings.AcLateToleranceDays);
+                targetDate = date;
+                period = $"manual-{date:yyyyMMdd}";
+                snapshot = "Manual entry";
+                described = date.ToString("yyyy-MM-dd");
+                break;
+        }
+        if ((targetDate ?? windowEnd) < today) throw new BusinessRuleException(
+            request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
 
+        var planYear = (targetDate ?? windowEnd).Year;
         var revision = await _db.MonitoringPlanRevisions
-            .FirstOrDefaultAsync(r => r.Year == request.TargetDate.Year && r.Status == PlanRevisionStatus.Approved)
-            ?? throw new BusinessRuleException($"There is no approved monitoring plan for {request.TargetDate.Year}. Approve the plan before adding entries.");
+            .FirstOrDefaultAsync(r => r.Year == planYear && r.Status == PlanRevisionStatus.Approved)
+            ?? throw new BusinessRuleException($"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.");
 
-        var period = $"manual-{request.TargetDate:yyyyMMdd}";
         var sequence = (await _db.MonitoringOccurrences.Where(o => o.TargetType == MonitoringTargetType.Machine
                 && o.MachineId == machine.Id && o.PeriodKey == period)
             .Select(o => (int?)o.Sequence).MaxAsync() ?? 0) + 1;
@@ -216,19 +260,19 @@ public class MonitoringOccurrenceService
             MachineId = machine.Id,
             PeriodKey = period,
             Sequence = sequence,
-            FrequencySnapshot = "Manual entry",
-            TargetDate = request.TargetDate,
-            OriginalTargetDate = request.TargetDate,
-            WindowStart = request.TargetDate.AddDays(-settings.AcEarlyToleranceDays),
-            WindowEnd = request.TargetDate.AddDays(settings.AcLateToleranceDays),
-            OriginalWindowEnd = request.TargetDate.AddDays(settings.AcLateToleranceDays),
+            FrequencySnapshot = snapshot,
+            TargetDate = targetDate,
+            OriginalTargetDate = targetDate,
+            WindowStart = windowStart,
+            WindowEnd = windowEnd,
+            OriginalWindowEnd = windowEnd,
             Items = configs.Select(c => new MonitoringOccurrenceItem { MachinePartConfigurationId = c.Id }).ToList()
         };
         _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
         {
             MonitoringOccurrence = occurrence,
             EventType = OccurrenceEventType.Created,
-            NewValue = $"Manual entry for {request.TargetDate:yyyy-MM-dd}",
+            NewValue = $"Manual entry for {described}",
             Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
             PerformedByUserId = userId,
             PerformedAt = _clock.UtcNow.UtcDateTime

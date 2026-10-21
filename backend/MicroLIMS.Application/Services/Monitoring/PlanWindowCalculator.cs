@@ -3,8 +3,8 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
-// One period of a frequency rule: when it is due. TargetDate is set only
-// for weekly rules with a sampling weekday.
+// One period of a frequency rule: when it is due. TargetDate is set for
+// weekly rules with a sampling weekday and for each day of a daily rule.
 public record PlannedPeriod(
     string PeriodKey,
     DateOnly? TargetDate,
@@ -17,6 +17,8 @@ public record PlannedPeriod(
 // Pure: no database, no clock. Weeks are lab weeks starting on
 // MonitoringSettings.LabWeekStartDay; a week belongs to the year that holds
 // its fourth day, so week 1 is the first lab week mostly inside the year.
+// A monthly rule with a week of the month is due in that lab week (the Nth
+// week starting in the month), with no fixed day.
 public static class PlanWindowCalculator
 {
     public static List<PlannedPeriod> Calculate(
@@ -27,7 +29,8 @@ public static class PlanWindowCalculator
         return rule.Type switch
         {
             FrequencyType.Weekly => Weekly(rule, interval, year, settings, earlyToleranceDays, lateToleranceDays, nonWorkingDates),
-            FrequencyType.Monthly => Monthly(rule, interval, year),
+            FrequencyType.Monthly => Monthly(rule, interval, year, settings),
+            FrequencyType.Daily => Daily(year, settings, nonWorkingDates),
             _ => new List<PlannedPeriod>()
         };
     }
@@ -93,7 +96,28 @@ public static class PlanWindowCalculator
         return result;
     }
 
-    private static List<PlannedPeriod> Monthly(FrequencyRuleDto rule, int interval, int year)
+    // The Nth lab week that starts inside the month (n = 1..4).
+    public static DateOnly WeekOfMonthStart(int year, int month, int weekOfMonth, DayOfWeek weekStartDay)
+    {
+        var first = new DateOnly(year, month, 1);
+        var week = WeekStart(first, weekStartDay);
+        if (week < first) week = week.AddDays(7);
+        return week.AddDays(7 * (weekOfMonth - 1));
+    }
+
+    // One period per working day; days off are skipped, never moved.
+    private static List<PlannedPeriod> Daily(int year, MonitoringSettings s, IReadOnlySet<DateOnly> nonWorking)
+    {
+        var result = new List<PlannedPeriod>();
+        for (var d = new DateOnly(year, 1, 1); d.Year == year; d = d.AddDays(1))
+        {
+            if (!IsWorkingDay(d, s.WorkingWeekdays, nonWorking)) continue;
+            result.Add(new PlannedPeriod($"D{d:yyyyMMdd}", d, d, d, d, false));
+        }
+        return result;
+    }
+
+    private static List<PlannedPeriod> Monthly(FrequencyRuleDto rule, int interval, int year, MonitoringSettings s)
     {
         var result = new List<PlannedPeriod>();
         var anchor = interval > 1 ? (rule.AnchorMonth ?? 1) : 1;
@@ -105,6 +129,12 @@ public static class PlanWindowCalculator
             var lastMonth = Math.Min(month + interval - 1, 12);
             var start = new DateOnly(year, month, 1);
             var end = new DateOnly(year, lastMonth, DateTime.DaysInMonth(year, lastMonth));
+            if (rule.WeekOfMonth is int week)
+            {
+                // Pinned to one lab week of the first month; a week that runs past month end is cut there.
+                start = WeekOfMonthStart(year, month, week, s.LabWeekStartDay);
+                end = new[] { start.AddDays(6), new DateOnly(year, month, DateTime.DaysInMonth(year, month)) }.Min();
+            }
             result.Add(new PlannedPeriod($"{year}-{month:00}", null, null, start, end, false));
         }
         return result;

@@ -90,7 +90,7 @@ public class WaterMasterDataService
                 d.Id, d.Version, d.Name,
                 SamplingPoints = d.SamplingPoints.Select(p => new
                 {
-                    p.Id, p.Version, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes, p.IsActive, p.FrequencyType, p.FrequencyInterval, p.SamplingWeekday, p.FrequencyAnchorMonth
+                    p.Id, p.Version, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes, p.IsActive, p.FrequencyType, p.FrequencyInterval, p.SamplingWeekday, p.FrequencyAnchorMonth, p.FrequencyWeekOfMonth
                 })
             })
             .ToListAsync();

@@ -29,7 +29,7 @@ public class EnvironmentalMonitoringMasterDataService
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query - same pattern as GetMachines.
         var departments = await _db.Departments
-            .Select(d => new { d.Id, d.Version, d.Name, d.Class, d.TestingFrequency, d.IsActive, d.FrequencyType, d.FrequencyInterval, d.SamplingWeekday, d.FrequencyAnchorMonth, Rooms = d.Rooms.Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, r.IsActive, r.Kind, r.ParentRoomId, r.FrequencyType, r.FrequencyInterval, r.SamplingWeekday, r.FrequencyAnchorMonth }) })
+            .Select(d => new { d.Id, d.Version, d.Name, d.Class, d.TestingFrequency, d.IsActive, d.FrequencyType, d.FrequencyInterval, d.SamplingWeekday, d.FrequencyAnchorMonth, d.FrequencyWeekOfMonth, Rooms = d.Rooms.Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, r.IsActive, r.Kind, r.ParentRoomId, r.FrequencyType, r.FrequencyInterval, r.SamplingWeekday, r.FrequencyAnchorMonth, r.FrequencyWeekOfMonth }) })
             .ToListAsync();
         return departments;
     }
@@ -115,7 +115,7 @@ public class EnvironmentalMonitoringMasterDataService
         // sides are tracked in the same query (raw entities would crash
         // JSON serialization here).
         var rooms = await _db.Rooms
-            .Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, r.IsActive, r.Kind, r.ParentRoomId, r.FrequencyType, r.FrequencyInterval, r.SamplingWeekday, r.FrequencyAnchorMonth, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
+            .Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, r.IsActive, r.Kind, r.ParentRoomId, r.FrequencyType, r.FrequencyInterval, r.SamplingWeekday, r.FrequencyAnchorMonth, r.FrequencyWeekOfMonth, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
             .ToListAsync();
         return rooms;
     }

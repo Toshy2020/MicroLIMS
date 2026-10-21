@@ -14,6 +14,7 @@ public class Room : IVersionedEntity, IHasFrequency
     public int? FrequencyInterval { get; set; }
     public DayOfWeek? SamplingWeekday { get; set; }
     public int? FrequencyAnchorMonth { get; set; }
+    public int? FrequencyWeekOfMonth { get; set; }
     public string Name { get; set; } = string.Empty;
     public int DepartmentId { get; set; }
     public Department? Department { get; set; }

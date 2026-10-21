@@ -4,5 +4,7 @@ namespace MicroLIMS.Domain.Enums;
 public enum FrequencyType
 {
     Weekly,
-    Monthly
+    Monthly,
+    // Every working day of the lab week; no interval, weekday or anchor.
+    Daily
 }

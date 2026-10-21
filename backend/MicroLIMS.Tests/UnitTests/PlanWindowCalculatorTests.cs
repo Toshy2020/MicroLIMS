@@ -165,4 +165,43 @@ public class PlanWindowCalculatorTests
         Assert.Equal("Monthly (from department OSD II)", room[0].FrequencySnapshot);
         Assert.DoesNotContain(plan.Occurrences, o => o.TargetId == 1);
     }
+
+    [Fact]
+    public void Daily_HasOneDayWindowPerWorkingDay_SkippingDaysOff()
+    {
+        var holiday = new DateOnly(2026, 1, 5); // a Monday
+        var periods = Run(new FrequencyRuleDto(FrequencyType.Daily, 1), new HashSet<DateOnly> { holiday });
+
+        // 2026: 261 Sunday-to-Thursday days, less the holiday.
+        Assert.Equal(260, periods.Count);
+        Assert.DoesNotContain(periods, p => p.TargetDate == holiday);
+        Assert.DoesNotContain(periods, p => p.TargetDate!.Value.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday);
+        Assert.All(periods, p => { Assert.Equal(p.TargetDate, p.WindowStart); Assert.Equal(p.TargetDate, p.WindowEnd); });
+        Assert.Equal(periods.Count, periods.Select(p => p.PeriodKey).Distinct().Count());
+        Assert.False(periods.Any(p => p.MovedForNonWorkingDate));
+    }
+
+    [Theory]
+    [InlineData(2026, 1, 11, 17)]  // Jan 1 is a Thursday, so week 1 starts Sunday Jan 4
+    [InlineData(2026, 2, 8, 14)]   // Feb 1 is a Sunday
+    public void MonthlyWithWeekOfMonth_IsDueInThatLabWeek_WithNoTargetDay(int year, int month, int startDay, int endDay)
+    {
+        var rule = new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 2);
+
+        var period = Run(rule).Single(p => p.PeriodKey == $"{year}-{month:00}");
+
+        Assert.Null(period.TargetDate);
+        Assert.Equal(new DateOnly(year, month, startDay), period.WindowStart);
+        Assert.Equal(new DateOnly(year, month, endDay), period.WindowEnd);
+    }
+
+    [Fact]
+    public void MonthlyWeekFour_IsCutAtMonthEnd()
+    {
+        var period = Run(new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 4)).Single(p => p.PeriodKey == "2026-12");
+
+        // Dec 2026: Dec 1 is a Tuesday, week 1 starts Dec 6, week 4 starts Dec 27 and would end Jan 2.
+        Assert.Equal(new DateOnly(2026, 12, 27), period.WindowStart);
+        Assert.Equal(new DateOnly(2026, 12, 31), period.WindowEnd);
+    }
 }

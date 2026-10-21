@@ -121,6 +121,26 @@ public class MonitoringOccurrenceServiceTests
     }
 
     [Fact]
+    public async Task CreateManual_ForAWeekOrMonth_HasNoTargetDateAndTheWholeWindow()
+    {
+        var w = await BuildAsync();
+        var parts = new List<int> { w.PartConfig.Id };
+
+        var week = await w.Service.CreateManualAsync(
+            new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 10, 28), parts, null, ManualWindowKind.Week), w.Head.Id);
+        var month = await w.Service.CreateManualAsync(
+            new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 11, 10), parts, null, ManualWindowKind.Month), w.Head.Id);
+
+        Assert.Null(week.TargetDate);
+        Assert.Equal(new DateOnly(2026, 10, 25), week.WindowStart);
+        Assert.Equal(new DateOnly(2026, 10, 31), week.WindowEnd);
+        Assert.True(week.Manual);
+        Assert.Null(month.TargetDate);
+        Assert.Equal(new DateOnly(2026, 11, 1), month.WindowStart);
+        Assert.Equal(new DateOnly(2026, 11, 30), month.WindowEnd);
+    }
+
+    [Fact]
     public async Task CreateManual_SameMachineAndDateTwice_GetsTheNextSequence()
     {
         var w = await BuildAsync();

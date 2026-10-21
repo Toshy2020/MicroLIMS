@@ -203,6 +203,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnvironmentalMonitoringMasterDataService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringSettingsService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringPlanService>();
+        services.AddScoped<MicroLIMS.Application.Services.Monitoring.OccurrenceStatusService>();
+        services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringLinkService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
         services.AddScoped<ReferenceListMasterDataService>();

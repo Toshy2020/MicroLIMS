@@ -255,7 +255,9 @@ public class MonitoringPlanService
                         && o.TargetType != MonitoringTargetType.Machine
                         && o.RetiredByRevisionId == null
                         && o.ExceptionState == OccurrenceExceptionState.None
-                        && o.CreatedByRevision!.Status != PlanRevisionStatus.Draft)
+                        && o.CreatedByRevision!.Status != PlanRevisionStatus.Draft
+                        // Once a session has been started from it, an occurrence stays.
+                        && !_db.SampleLocations.Any(l => l.MonitoringOccurrenceId == o.Id))
             .ToListAsync();
     }
 
@@ -273,8 +275,7 @@ public class MonitoringPlanService
     }
 
     // Occurrences a revision may retire: in force, no longer in the plan,
-    // window not yet open, no exception. (Linked occurrences join this rule
-    // when linking arrives.)
+    // window not yet open, no exception, no session started from it.
     private static List<MonitoringOccurrence> RetirementCandidates(List<MonitoringOccurrence> live, GeneratedPlan plan, DateOnly today)
     {
         var desired = plan.Occurrences.Select(KeyOf).ToHashSet();

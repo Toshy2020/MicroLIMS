@@ -15,7 +15,7 @@ public record ReceiveAfterCleaningRequest(
     string PreviousProductName,
     string PreviousProductBatchNumber
 );
-public record PrepareAfterCleaningRequest(int SampleId, List<int> MachinePartConfigurationIds);
+public record PrepareAfterCleaningRequest(int SampleId, List<int> MachinePartConfigurationIds, List<int>? MonitoringOccurrenceIds = null);
 
 [ApiController]
 [Route("api/aftercleaning")]
@@ -48,5 +48,5 @@ public class AfterCleaningController : ControllerBase
     [HttpPost("prepare")]
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Prepare(PrepareAfterCleaningRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.MachinePartConfigurationIds, CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.MachinePartConfigurationIds, CurrentUserId, request.MonitoringOccurrenceIds)));
 }

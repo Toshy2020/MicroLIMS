@@ -341,6 +341,7 @@ MessageController.GetMessages(Int32, Int32): SystemAdministrator,SectionHead,Rev
 MessageController.GetTotalUnreadCount(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MessageController.MarkAsRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MessageController.SendMessage(Int32, SendMessageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringOccurrencesController.GetForSession(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringPlanController.ApproveRevision(Int32, ApprovePlanRequest): SystemAdministrator,SectionHead
 MonitoringPlanController.GenerateRevision(GeneratePlanRequest): SystemAdministrator,SectionHead
 MonitoringPlanController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

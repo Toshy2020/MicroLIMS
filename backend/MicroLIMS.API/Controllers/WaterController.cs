@@ -9,7 +9,7 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 public record ReceiveWaterRequest(int WaterDepartmentId, int CauseOfTestingId, string SampleQuantity, string SampledBy, string ControlNumber);
-public record PrepareWaterRequest(int SampleId, List<int> WaterSamplingPointIds, string? StorageCondition, int? StorageTimeHours);
+public record PrepareWaterRequest(int SampleId, List<int> WaterSamplingPointIds, string? StorageCondition, int? StorageTimeHours, List<int>? MonitoringOccurrenceIds = null);
 public record CalculateWaterRequest(int TestOrderId, List<decimal> Readings);
 
 [ApiController]
@@ -40,7 +40,7 @@ public class WaterController : ControllerBase
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Prepare(PrepareWaterRequest request) =>
         Ok(ApiResponse<object>.Ok(await _waterService.PrepareAsync(
-            request.SampleId, request.WaterSamplingPointIds, CurrentUserId, request.StorageCondition, request.StorageTimeHours)));
+            request.SampleId, request.WaterSamplingPointIds, CurrentUserId, request.StorageCondition, request.StorageTimeHours, request.MonitoringOccurrenceIds)));
 
     [HttpPost("calculate")]
     public async Task<IActionResult> Calculate(CalculateWaterRequest request)

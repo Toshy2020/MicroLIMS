@@ -309,6 +309,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             e.Property(i => i.TestCode).HasMaxLength(100);
             e.HasIndex(i => i.MonitoringOccurrenceId);
         });
+        modelBuilder.Entity<SampleLocation>(e =>
+        {
+            e.HasOne(l => l.MonitoringOccurrence).WithMany().HasForeignKey(l => l.MonitoringOccurrenceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(l => l.MonitoringOccurrenceId);
+        });
         modelBuilder.Entity<MonitoringOccurrenceEvent>(e =>
         {
             e.HasOne(v => v.MonitoringOccurrence).WithMany().HasForeignKey(v => v.MonitoringOccurrenceId).OnDelete(DeleteBehavior.Restrict);

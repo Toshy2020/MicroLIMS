@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.Monitoring;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +27,7 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
     // storageCondition/storageTimeHours describe how the collected water was
     // held before testing - captured here because this is where a water
     // sample is actually prepared.
-    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null);
+    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null);
 
     // Calculation engine: averages the entered raw readings and compares
     // against Alert -> Action -> Specification limits, in that order of
@@ -41,12 +43,14 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService? _scope;
+    private readonly MonitoringLinkService? _monitoring;
 
-    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
+    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null)
     {
         _db = db;
         _refNumbers = refNumbers;
         _scope = scope;
+        _monitoring = monitoring;
     }
 
     public async Task<Sample> ReceiveAsync(WaterReceiveRequest request)
@@ -87,7 +91,12 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         return sample;
     }
 
-    public async Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null)
+    public Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null) =>
+        monitoringOccurrenceIds is { Count: > 0 }
+            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds))
+            : PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, null);
+
+    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition, int? storageTimeHours, IReadOnlyList<int>? monitoringOccurrenceIds)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
@@ -181,6 +190,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         // preparation never leaves the tracked sample half-mutated.
         sample.StorageCondition = storageCondition;
         sample.StorageTimeHours = storageCondition == "Refrigerator" ? storageTimeHours : null;
+
+        if (monitoringOccurrenceIds is { Count: > 0 })
+        {
+            if (_monitoring is null)
+                throw new InvalidOperationException("Monitoring plan linking is not available.");
+            await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
+        }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
         await _db.SaveChangesAsync();

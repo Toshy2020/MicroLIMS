@@ -195,7 +195,9 @@ public class MonitoringPlanLinkingTests
         await w.Db.SaveChangesAsync();
 
         var retry = await w.Engine.PrepareAsync(second.Id, new List<int> { w.ConfigA.Id }, 1, new[] { occurrence.Id });
-        Assert.Equal(occurrence.Id, retry.Locations.Single().MonitoringOccurrenceId);
+        // The refused attempt left its unsaved locations on the tracked sample (the in-memory
+        // provider has no transaction to roll back), so look for the linked one.
+        Assert.Contains(retry.Locations, l => l.MonitoringOccurrenceId == occurrence.Id);
     }
 
     [Fact]

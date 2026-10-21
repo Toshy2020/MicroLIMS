@@ -8068,6 +8068,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("MachinePartConfigurationId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("MonitoringOccurrenceId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RawReadings")
                         .HasColumnType("text");
 
@@ -8107,6 +8110,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MachinePartConfigurationId");
+
+                    b.HasIndex("MonitoringOccurrenceId");
 
                     b.HasIndex("RoomTestConfigurationId");
 
@@ -12869,6 +12874,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("MachinePartConfigurationId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringOccurrence", "MonitoringOccurrence")
+                        .WithMany()
+                        .HasForeignKey("MonitoringOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.RoomTestConfiguration", "RoomTestConfiguration")
                         .WithMany()
                         .HasForeignKey("RoomTestConfigurationId")
@@ -12897,6 +12907,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("MachinePartConfiguration");
+
+                    b.Navigation("MonitoringOccurrence");
 
                     b.Navigation("RoomTestConfiguration");
 

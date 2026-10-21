@@ -7,7 +7,7 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReceiveEMRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber);
+public record ReceiveEMRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber, DateTime? SampledAt = null);
 public record PrepareEMRequest(int SampleId, List<int> RoomTestConfigurationIds, List<int>? MonitoringOccurrenceIds = null);
 
 [ApiController]
@@ -28,7 +28,7 @@ public class EMController : ControllerBase
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Receive(ReceiveEMRequest request) =>
         Ok(ApiResponse<object>.Ok(await _emService.ReceiveAsync(new EMReceiveRequest(
-            request.DepartmentId, request.CauseOfTestingId, request.SampledBy, request.ControlNumber, CurrentUserId))));
+            request.DepartmentId, request.CauseOfTestingId, request.SampledBy, request.ControlNumber, CurrentUserId, request.SampledAt))));
 
     // The checklist screen - selecting which rooms are included in this
     // monitoring session generates the batch TestOrders + SampleLocations.

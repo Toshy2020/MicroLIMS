@@ -54,6 +54,9 @@ public class Sample : IVersionedEntity
 
     public int ReceivedByUserId { get; set; }
     public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+    // When the sample was taken, for Water, EM and After Cleaning samples; the
+    // monitoring plan judges lateness on this. Null: the receipt time is used.
+    public DateTime? SampledAt { get; set; }
     public SampleStatus Status { get; set; } = SampleStatus.Received;
 
     // EM/After Cleaning start here and need the checkbox preparation

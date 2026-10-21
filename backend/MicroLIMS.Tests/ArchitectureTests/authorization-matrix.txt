@@ -341,11 +341,20 @@ MessageController.GetMessages(Int32, Int32): SystemAdministrator,SectionHead,Rev
 MessageController.GetTotalUnreadCount(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MessageController.MarkAsRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MessageController.SendMessage(Int32, SendMessageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringOccurrencesController.ChangeWindow(Int32, ChangeWindowRequest): SystemAdministrator,SectionHead
+MonitoringOccurrencesController.CreateManual(CreateManualOccurrenceRequest): SystemAdministrator,SectionHead
+MonitoringOccurrencesController.GetCalendar(DateOnly, DateOnly, Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringOccurrencesController.GetDetail(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringOccurrencesController.GetDue(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringOccurrencesController.GetForSession(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringOccurrencesController.GetYearSummary(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringOccurrencesController.Skip(Int32, SkipOccurrenceRequest): SystemAdministrator,SectionHead
 MonitoringPlanController.ApproveRevision(Int32, ApprovePlanRequest): SystemAdministrator,SectionHead
 MonitoringPlanController.GenerateRevision(GeneratePlanRequest): SystemAdministrator,SectionHead
 MonitoringPlanController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringPlanController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringReportsController.GetCoverage(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+MonitoringReportsController.GetSpacing(Int32, Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringSettingsController.AddCalendarDate(LabCalendarDateRequest): SystemAdministrator,SectionHead
 MonitoringSettingsController.GetCalendarDates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 MonitoringSettingsController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst

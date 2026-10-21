@@ -6256,6 +6256,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Reason")
                         .HasColumnType("text");
 
+                    b.Property<int?>("SecondElectronicSignatureId")
+                        .HasColumnType("integer");
+
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -6267,6 +6270,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("ElectronicSignatureId");
 
                     b.HasIndex("MonitoringOccurrenceId");
+
+                    b.HasIndex("SecondElectronicSignatureId");
 
                     b.ToTable("MonitoringOccurrenceEvents");
                 });
@@ -7973,6 +7978,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<string>("SampleQuantity")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SampledAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SampledBy")
                         .IsRequired()
@@ -12406,9 +12414,16 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "SecondElectronicSignature")
+                        .WithMany()
+                        .HasForeignKey("SecondElectronicSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("ElectronicSignature");
 
                     b.Navigation("MonitoringOccurrence");
+
+                    b.Navigation("SecondElectronicSignature");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrenceItem", b =>

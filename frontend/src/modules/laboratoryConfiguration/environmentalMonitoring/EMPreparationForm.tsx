@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
+import { MonitoringChecklist } from "../../monitoringPlan/components/MonitoringChecklist";
 import { EMPreparationService } from "./services/EMPreparationService";
 import { SamplingPointGrid, SamplingPointGridItem } from "../../testPreparation/components/SamplingPointGrid";
 
@@ -18,6 +19,7 @@ interface Props {
 export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [monitoringIds, setMonitoringIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -61,7 +63,7 @@ export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props)
       .flatMap((r) => r.configs?.map((c) => c.id) ?? []);
 
     try {
-      await EMPreparationService.prepare(sampleId, roomTestConfigurationIds);
+      await EMPreparationService.prepare(sampleId, roomTestConfigurationIds, monitoringIds);
       onComplete();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
@@ -72,6 +74,7 @@ export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props)
 
   return (
     <Box>
+      <MonitoringChecklist sampleId={sampleId} onChange={setMonitoringIds} />
       {rooms.length === 0 ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
           Loading rooms...

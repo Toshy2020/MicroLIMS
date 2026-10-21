@@ -45,7 +45,7 @@ public record OccurrenceStatusInput(
     DateOnly? LatestFulfilledOn);
 
 public record OccurrenceStatusResult(
-    OccurrenceStatus Status, bool Late, int ItemsTotal, int ItemsLinked, int ItemsPerformed);
+    OccurrenceStatus Status, bool Late, int ItemsTotal, int ItemsLinked, int ItemsPerformed, DateOnly? FulfilledOn = null);
 
 // Pure rules for the status table; no database, no clock.
 public static class OccurrenceStatusCalculator
@@ -57,7 +57,7 @@ public static class OccurrenceStatusCalculator
         var performed = i.Items.Count(p => p >= ItemProgress.Performed);
         var late = linked > 0 && i.LatestFulfilledOn is DateOnly on && on > i.WindowEnd;
 
-        OccurrenceStatusResult Result(OccurrenceStatus s) => new(s, late, total, linked, performed);
+        OccurrenceStatusResult Result(OccurrenceStatus s) => new(s, late, total, linked, performed, linked > 0 ? i.LatestFulfilledOn : null);
 
         if (i.ExceptionState == OccurrenceExceptionState.Retired) return Result(OccurrenceStatus.Retired);
         if (i.ExceptionState == OccurrenceExceptionState.Skipped) return Result(OccurrenceStatus.Skipped);

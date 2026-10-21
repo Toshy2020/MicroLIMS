@@ -15,9 +15,10 @@ export const WaterPreparationService = {
     sampleId: number,
     waterSamplingPointIds: number[],
     storageCondition: string,
-    storageTimeHours?: number | null
+    storageTimeHours?: number | null,
+    monitoringOccurrenceIds: number[] = []
   ) =>
     apiClient
-      .post("/water/prepare", { sampleId, waterSamplingPointIds, storageCondition, storageTimeHours })
+      .post("/water/prepare", { sampleId, waterSamplingPointIds, storageCondition, storageTimeHours, monitoringOccurrenceIds })
       .then((r) => r.data.data)
 };

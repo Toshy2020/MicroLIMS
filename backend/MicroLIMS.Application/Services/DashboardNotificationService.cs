@@ -5,6 +5,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Monitoring;
 
 namespace MicroLIMS.Application.Services;
 
@@ -28,11 +29,13 @@ public class DashboardNotificationService
     private readonly NotificationRecomputeThrottle? _recomputeThrottle;
     private readonly IUserSectionScopeService _scope;
     private readonly TimeProvider _time;
+    private readonly MonitoringReminderService? _monitoring;
 
     public DashboardNotificationService(IMicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender,
         IUserSectionScopeService scope, NotificationRecomputeThrottle? recomputeThrottle = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null, MonitoringReminderService? monitoring = null)
     {
+        _monitoring = monitoring;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
@@ -206,6 +209,10 @@ public class DashboardNotificationService
 
             results.Add(new ComputedNotification("TestReturnedForRevision", message, "warning", r.TestOrder?.SampleId, r.TestOrderId));
         }
+
+        if (_monitoring is not null)
+            foreach (var reminder in await _monitoring.GetForUserAsync(userId))
+                results.Add(new ComputedNotification(reminder.Type, reminder.Message, reminder.Severity));
 
         return results;
     }

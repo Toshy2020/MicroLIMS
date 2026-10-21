@@ -17,4 +17,7 @@ public class MonitoringOccurrenceEvent
     public DateTime PerformedAt { get; set; }
     public int? ElectronicSignatureId { get; set; }
     public ElectronicSignature? ElectronicSignature { get; set; }
+    // The second person who signed a skip or window change.
+    public int? SecondElectronicSignatureId { get; set; }
+    public ElectronicSignature? SecondElectronicSignature { get; set; }
 }

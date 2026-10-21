@@ -8,6 +8,7 @@ import TableViewOutlinedIcon from "@mui/icons-material/TableViewOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
@@ -78,6 +79,7 @@ const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", descri
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: "REPORTS" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", description: "Search the audit trail of every record and signature.", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.AUDIT_VIEW };
 const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
+const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: "REPORTS", permission: PERMISSIONS.MONITORING_PLAN_VIEW };
 const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: "SYSTEM", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
@@ -262,7 +264,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
   }
   items.push(
     itemsItem, receivingConfigItem, masterDataWorkbookItem,
-    documentControlItem(role), usersItem, rolesItem, reportsItem, auditSearchItem, oosTrackingItem, errorMonitoringItem
+    documentControlItem(role), usersItem, rolesItem, reportsItem, monitoringPlanItem, auditSearchItem, oosTrackingItem, errorMonitoringItem
   );
   return groupItems(visibleItems(items, permissions));
 }

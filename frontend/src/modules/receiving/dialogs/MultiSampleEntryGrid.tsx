@@ -219,6 +219,8 @@ export function MultiSampleEntryGrid({
                   </TableCell>
                 )}
 
+                {!isItemBased && <TableCell sx={{ minWidth: 190 }}>Sampled At</TableCell>}
+
                 {/* The server requires both for item-based samples (ReceiveSampleValidator). */}
                 <TableCell sx={{ minWidth: 130 }}>
                   Control No.{isItemBased && <> <span style={{ color: theme.custom.status.detected.text }}>*</span></>}
@@ -540,6 +542,21 @@ export function MultiSampleEntryGrid({
                           onChange={(e) => onChangeRow(idx, "batchNumber", e.target.value)}
                           slotProps={{
                             htmlInput: { "aria-label": `Sample ${idx + 1} batch number`, style: { fontSize: 12 } }
+                          }}
+                        />
+                      </TableCell>
+                    )}
+
+                    {!isItemBased && (
+                      <TableCell>
+                        <TextField
+                          type="datetime-local"
+                          size="small"
+                          fullWidth
+                          value={row.sampledAt ?? ""}
+                          onChange={(e) => onChangeRow(idx, "sampledAt", e.target.value)}
+                          slotProps={{
+                            htmlInput: { "aria-label": `Sample ${idx + 1} sampled at`, style: { fontSize: 12 } }
                           }}
                         />
                       </TableCell>

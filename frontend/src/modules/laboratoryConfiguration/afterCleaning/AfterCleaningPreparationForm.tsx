@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
+import { MonitoringChecklist } from "../../monitoringPlan/components/MonitoringChecklist";
 import { AfterCleaningPreparationService } from "./services/AfterCleaningPreparationService";
 import { SamplingPointGrid, SamplingPointGridItem } from "../../testPreparation/components/SamplingPointGrid";
 
@@ -18,6 +19,7 @@ interface Props {
 export function AfterCleaningPreparationForm({ sampleId, machineId, onComplete }: Props) {
   const [parts, setParts] = useState<Part[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [monitoringIds, setMonitoringIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -61,7 +63,7 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, onComplete }
       .flatMap((p) => p.configs?.map((c) => c.id) ?? []);
 
     try {
-      await AfterCleaningPreparationService.prepare(sampleId, machinePartConfigurationIds);
+      await AfterCleaningPreparationService.prepare(sampleId, machinePartConfigurationIds, monitoringIds);
       onComplete();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
@@ -72,6 +74,7 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, onComplete }
 
   return (
     <Box>
+      <MonitoringChecklist sampleId={sampleId} onChange={setMonitoringIds} />
       {parts.length === 0 ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
           Loading machine parts...

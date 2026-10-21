@@ -31,6 +31,9 @@ interface Props {
   labMode: LabMode;
 }
 
+// The sampling time is optional; the server checks it is not after the receipt.
+const sampledAtIso = (row: ReceiveRowItem) => (row.sampledAt ? new Date(row.sampledAt).toISOString() : null);
+
 const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem => ({
   id: Math.random().toString(36).substring(2, 9),
   itemId: defaultValues?.itemId ?? "",
@@ -41,6 +44,7 @@ const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem
   causeOfTestingId: defaultValues?.causeOfTestingId ?? "",
   sampleQuantity: defaultValues?.sampleQuantity ?? "",
   sampledBy: defaultValues?.sampledBy ?? "",
+  sampledAt: "",
   batchNumber: defaultValues?.batchNumber ?? "",
   controlNumber: defaultValues?.controlNumber ?? "",
   mfgDate: defaultValues?.mfgDate ?? "",
@@ -270,14 +274,16 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             causeOfTestingId: Number(row.causeOfTestingId),
             sampleQuantity: row.sampleQuantity || "",
             sampledBy: row.sampledBy || "",
-            controlNumber: row.controlNumber || ""
+            controlNumber: row.controlNumber || "",
+            sampledAt: sampledAtIso(row)
           });
         } else if (category === "em") {
           await ReceiveService.receiveEM({
             departmentId: Number(row.departmentId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampledBy: row.sampledBy || "",
-            controlNumber: row.controlNumber || ""
+            controlNumber: row.controlNumber || "",
+            sampledAt: sampledAtIso(row)
           });
         } else if (category === "ac") {
           await ReceiveService.receiveAfterCleaning({
@@ -286,7 +292,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             sampledBy: row.sampledBy || "",
             controlNumber: row.controlNumber || "",
             previousProductName: String(row.previousProductName || "").trim(),
-            previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim()
+            previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim(),
+            sampledAt: sampledAtIso(row)
           });
         }
       }

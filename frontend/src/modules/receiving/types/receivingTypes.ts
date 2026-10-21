@@ -122,6 +122,7 @@ export interface WaterReceiveRequest {
   sampleQuantity: string;
   sampledBy: string;
   controlNumber: string;
+  sampledAt?: string | null;
 }
 
 export interface EMReceiveRequest {
@@ -129,6 +130,7 @@ export interface EMReceiveRequest {
   causeOfTestingId: number;
   sampledBy: string;
   controlNumber: string;
+  sampledAt?: string | null;
 }
 
 export interface AfterCleaningReceiveRequest {
@@ -138,6 +140,7 @@ export interface AfterCleaningReceiveRequest {
   controlNumber: string;
   previousProductName: string;
   previousProductBatchNumber: string;
+  sampledAt?: string | null;
 }
 
 export type SampleCategoryKey = "product" | "rm" | "pm" | "water" | "em" | "ac";
@@ -171,6 +174,8 @@ export interface ReceiveRowItem {
   causeOfTestingId?: number | "";
   sampleQuantity?: string;
   sampledBy?: string;
+  // Water / EM / After Cleaning: when the sample was taken (datetime-local value).
+  sampledAt?: string;
   batchNumber?: string;
   controlNumber?: string;
   mfgDate?: string;

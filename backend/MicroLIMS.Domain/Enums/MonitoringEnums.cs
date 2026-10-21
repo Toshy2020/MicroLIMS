@@ -37,5 +37,6 @@ public enum OccurrenceEventType
     Skipped,
     Retired,
     Linked,
-    LinkRefused
+    LinkRefused,
+    Created
 }

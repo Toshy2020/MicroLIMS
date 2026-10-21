@@ -9,7 +9,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
-public record EMReceiveRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber, int ReceivedByUserId);
+public record EMReceiveRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber, int ReceivedByUserId, DateTime? SampledAt = null);
 
 public interface IEMWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -55,9 +55,13 @@ public class EMWorkflowEngine : IEMWorkflowEngine
             SampledBy = request.SampledBy,
             ControlNumber = request.ControlNumber,
             ReceivedByUserId = request.ReceivedByUserId,
+            SampledAt = request.SampledAt,
             Status = SampleStatus.Received,
             PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
+
+        if (sample.SampledAt > sample.ReceivedAt)
+            throw new InvalidOperationException("The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 

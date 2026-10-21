@@ -14,7 +14,7 @@ public record WaterComparisonResult(decimal Average, string Status, string? Exce
 
 public record WaterReceiveRequest(
     int WaterDepartmentId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
-    string ControlNumber, int ReceivedByUserId);
+    string ControlNumber, int ReceivedByUserId, DateTime? SampledAt = null);
 
 public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -70,9 +70,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
             SampledBy = request.SampledBy,
             ControlNumber = request.ControlNumber,
             ReceivedByUserId = request.ReceivedByUserId,
+            SampledAt = request.SampledAt,
             Status = SampleStatus.Received,
             PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
+
+        if (sample.SampledAt > sample.ReceivedAt)
+            throw new InvalidOperationException("The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 

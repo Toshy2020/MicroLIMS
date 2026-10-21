@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, MenuItem, Paper, Select, TextField, Typography } from "@mui/material";
+import { MonitoringChecklist } from "../../monitoringPlan/components/MonitoringChecklist";
 import { WaterPreparationService } from "./services/WaterPreparationService";
 import { SamplingPointGrid, SamplingPointGridItem } from "../../testPreparation/components/SamplingPointGrid";
 
@@ -18,6 +19,7 @@ interface Props {
 export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }: Props) {
   const [points, setPoints] = useState<SamplingPoint[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [monitoringIds, setMonitoringIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -65,7 +67,8 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
         sampleId,
         waterSamplingPointIds,
         storageCondition,
-        storageCondition === "Refrigerator" ? Number(storageTimeHours) : null
+        storageCondition === "Refrigerator" ? Number(storageTimeHours) : null,
+        monitoringIds
       );
       onComplete();
     } catch (e: any) {
@@ -77,6 +80,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
 
   return (
     <Box>
+      <MonitoringChecklist sampleId={sampleId} onChange={setMonitoringIds} />
       {points.length === 0 ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
           Loading sampling points...

@@ -42,7 +42,7 @@ Users who are members of the relevant laboratory section. The system blocks the 
   - **Assigned Tests (N)** with the subtitle "Test Master configured laboratory workflows"; empty list: "No tests assigned to this sample."
 - Grouped Actions panel (shown when two or more samples are checked): header **Grouped Actions**, subtitle "{n} samples selected across workspace", button **Deselect All** and a clear-selection icon.
 
-[SCREENSHOT SS-141]
+![SS-141: Microbiology Laboratory Workspace](../screenshots/ss-141-microbiology-workspace.png)
 
 #### How to use it
 1. Open the workspace of your laboratory from the **Laboratories** area of the sidebar.

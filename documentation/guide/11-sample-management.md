@@ -57,7 +57,7 @@ You must be signed in with an account that holds one of the receiving permission
   - Edit icon (tooltip "Edit Sample Details" when editable, or "Locked: the sample has been submitted for review")
 - Kanban view columns: **Received**, **Under Testing**, **Under Review**, **Under Approval**, **Approved**, **Rejected**, and **Retest Requested**.
 
-[SCREENSHOT SS-111]
+![SS-111: Receive Sample (Sample Register)](../screenshots/ss-111-sample-register.png)
 
 #### How to use it
 1. Open **RECEIVING** and select **Receive Sample** from the sidebar navigation.
@@ -132,7 +132,7 @@ Samples must be registered in the system with at least one test order created.
   - "Not requested" (displayed when the sample was not submitted to that laboratory)
 - Empty state: displays "No samples found matching the filter criteria." when no records match the active filters.
 
-[SCREENSHOT SS-112]
+![SS-112: Tracking Board](../screenshots/ss-112-tracking-board.png)
 
 #### How to use it
 1. Open **RECEIVING** and select **Tracking Board** from the sidebar navigation.
@@ -185,7 +185,7 @@ Requires the *Sample correction & voiding* permission (by default: Section Head,
   - **Reason for Correction** (mandatory; helper text: "Recorded with your electronic signature and in the sample's audit trail.")
 - Action buttons: **Cancel** and **Sign & Save** (disabled when details are locked or a required value, including the reason, is blank).
 
-[SCREENSHOT SS-113]
+![SS-113: Edit Sample Details](../screenshots/ss-113-edit-sample-details.png)
 
 #### How to use it
 1. Locate the sample in the sample register or testing workspace.
@@ -253,7 +253,7 @@ The sample must not already be in Voided status.
 - Mandatory field: **Reason for Voiding \*** (helper text displays "A reason for voiding is required." when empty, and "Recorded with your electronic signature and in the sample's audit trail." when populated).
 - Action buttons: **Cancel** and **Sign & Void** (disabled until a reason is entered).
 
-[SCREENSHOT SS-114]
+![SS-114: Void Sample Confirmation](../screenshots/ss-114-void-sample-confirmation.png)
 
 #### How to use it
 1. Locate the sample in the sample register or laboratory workspace.

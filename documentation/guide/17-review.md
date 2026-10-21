@@ -58,7 +58,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
   - Footer: "Sample Reference: {ref} · Record Status: {status} · MicroLIMS Operational View".
 - **Electronic Signature** dialog: your full name (or username) and role, the confirmation sentence, the field **Password** (Enter submits), and the buttons **Cancel** and **Sign** (shows "Signing..." while working; disabled while the password is empty).
 
-[SCREENSHOT SS-171]
+![SS-171: Sample Summary (dialog)](../screenshots/ss-171-sample-summary-review.png)
 
 [SCREENSHOT SS-172]
 

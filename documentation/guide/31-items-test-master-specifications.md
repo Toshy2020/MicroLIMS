@@ -26,7 +26,7 @@ Requires the *Manage items* permission (by default: Section Head, System Adminis
 - Selecting an item opens its workspace beside the list, with the tabs **Overview**, **Assigned Tests ({N})**, **Specifications ({N})**, **Documents & Attachments ({N})**, **Preparation Configuration** and **Audit History** (button **Open Audit History Log**).
 - The **Add New Item** / **Edit Item: {name}** dialog: **Item Name**, **Item Code**, **SOP Number** (optional), **Category** and **Assigned Tests**; buttons **Cancel** and **Save Item** / **Save Changes**.
 
-[SCREENSHOT SS-311]
+![SS-311: Items Page & Register](../screenshots/ss-311-item-master-register.png)
 
 #### How to use it
 ##### Creating an item
@@ -285,7 +285,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - The step form: **Step Name**, **Step type**, **Target Organism (required)**, phenotypic test types (biochemical steps), **Final Step**, **Requires incubation transfer** and the **Stage 2** temperature and hours fields.
   - The **Step Media** section: per row a **Material** and an **Incubation condition**, a **Required** checkbox, **Remove medium**, and the button **Add Medium**. A note says "Saving replaces this step's entire medium list with what's shown below."
 
-[SCREENSHOT SS-313]
+![SS-313: Microbiology Test Master Details & Steps Dialog](../screenshots/ss-313-micro-test-master-steps.png)
 
 #### How to use it
 ##### Creating a microbiology test
@@ -379,7 +379,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - **Reason for Change**, shown only when titration settings of an existing test are changed (5 to 500 characters).
   - The **Replicates per stage** box (not for titration tests).
 
-[SCREENSHOT SS-314]
+![SS-314: Physicochemical Test Master Add/Edit Dialog](../screenshots/ss-314-physchem-test-master.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Configuration** > **FP Test Master** (or **RM & PM Test Master**).

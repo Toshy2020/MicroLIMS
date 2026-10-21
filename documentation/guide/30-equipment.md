@@ -33,7 +33,7 @@ Requires the *Manage equipment* permission (by default: Analyst, Section Head, S
   - Row action menu: **Details and documents**, **Edit equipment**, **Audit history** (shown only to users allowed to see history).
   - Action button: **Register Equipment**.
 
-[SCREENSHOT SS-301]
+![SS-301: Equipment Inventory Page](../screenshots/ss-301-equipment-inventory-register.png)
 
 #### How to use it
 1. Open **Laboratories** > **Microbiology Laboratory** > **Equipment Inventory** (or **Physicochemical Laboratory** > **Equipment Inventory**).
@@ -74,7 +74,7 @@ Register new equipment assets, record changes to operational status with a comme
   - Document list showing calibration certificates, upload dates and statuses (**Current**, **Superseded**, **Voided**).
   - Buttons: **Upload Document**, **Supersede**, **Void**.
 
-[SCREENSHOT SS-302]
+![SS-302: Register Equipment Dialog](../screenshots/ss-302-register-equipment-dialog.png)
 
 #### How to use it
 ##### Registering new equipment
@@ -158,7 +158,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - **Configuration History**: the set point changes of the selected incubator (columns **Effective On**, **Equipment Code**, **Category**, **Details / Change**, **Changed By**, **Reason / Comment**), although its caption also mentions autoclave events. Autoclave program history is opened per program with **View History**.
 - Buttons: **Add Equipment**, **Select from Inventory**, **Edit Equipment**, **Edit Set Point** (incubators), **Add Program / Load** (autoclaves).
 
-[SCREENSHOT SS-303]
+![SS-303: Laboratory Configuration: Equipment Page](../screenshots/ss-303-lab-config-equipment.png)
 
 #### How to use it
 ##### Adding equipment
@@ -254,7 +254,7 @@ Maintain the chromatography column list: code, name, serial number, USP designat
 - Button **Add Column**. The dialog is titled **Add Chromatography Column** (or **Edit Column**) with **Column Code**, **Column Name**, **Serial Number**, **USP Designation**, **Laboratory Section**, **Compatible HPLC Instruments** and, when editing, the checkbox **Column is Active**.
 - The deactivate confirmation is titled **Deactivate Chromatography Column**.
 
-[SCREENSHOT SS-304]
+![SS-304: Chromatography Columns Page](../screenshots/ss-304-chromatography-columns.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Configuration** > **Chromatography Columns**.

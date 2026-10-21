@@ -15,7 +15,7 @@ The header contains:
   - **Change Password**: see 5.4.
   - **Sign Out**: ends your session and opens the sign-in screen, with no confirmation question.
 
-[SCREENSHOT SS-061]
+![SS-061: Application Shell](../screenshots/ss-061-application-shell.png)
 
 ---
 

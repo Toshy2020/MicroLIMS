@@ -157,7 +157,7 @@ Decide which base role type (System Administrator, Section Head, Reviewer, or An
 - **ADMINISTRATION** > **Roles**: a list with columns **Role**, **Type**, **Status**, and **Users**, a search field "Search by role name...", and the button **Create Role**.
 - The Create Role wizard with four steps: **Name**, **Base Type**, **Permissions**, and **Review**.
 
-[SCREENSHOT SS-041]
+![SS-041: Roles List](../screenshots/ss-041-roles-list.png)
 
 #### How to use it
 1. In the sidebar, open **ADMINISTRATION** > **Roles**.
@@ -197,7 +197,7 @@ Requires the *Role & Permission Management* permission (by default: System Admin
 - A list of the users who hold the role, each marked **Active** or **Disabled**.
 - The buttons **Save Changes** and, for custom roles only, **Delete Role**.
 
-[SCREENSHOT SS-042]
+![SS-042: Role Detail](../screenshots/ss-042-role-detail.png)
 
 #### How to use it
 1. In the **Roles** list, click the role.

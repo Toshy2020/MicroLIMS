@@ -332,8 +332,8 @@ Every action that changes data requires the *Operate HPLC, GC and ICP workstatio
 - Start wizard "Start HPLC Run: {instrument}" with steps **Select Method**, **Select Column**, **Assign Mobile Phases**, **Review & Start** and buttons **Back**, **Next**, **Start HPLC Run**.
 - Sample entry page: **Replicate**, **Actual Weight (mg)**, **Peak Response**, **Save Replicates**, **Send for Review**.
 
-[SCREENSHOT SS-276]
-[SCREENSHOT SS-277]
+![SS-276: Start HPLC Run wizard](../screenshots/ss-276-start-hplc-run-wizard.png)
+![SS-277: HPLC run page (System Suitability tab)](../screenshots/ss-277-hplc-system-suitability.png)
 
 #### How to use it
 ##### 1. Start a run
@@ -460,7 +460,7 @@ Requires the *Operate HPLC, GC and ICP workstations* permission (by default: Ana
 - Start wizard with three steps: **Select Method**, **Select Column**, **Review & Start**, and the button **Start GC Run**. There is no mobile-phase step.
 - Sample entry page with replicate rows of sample weight and one response for each solvent, and the calculation view for residual solvents.
 
-[SCREENSHOT SS-278]
+![SS-278: GC sample entry page (residual solvents)](../screenshots/ss-278-gc-residual-solvents.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Laboratory** > **GC Workspace** and click **Start New Run** on an available GC instrument.
@@ -510,7 +510,7 @@ Every action that changes data requires the *Operate HPLC, GC and ICP workstatio
 - **CCV** tab: **Select Analyte / Element**, **Measured Concentration (mg/L)**, and a table (**Time**, **Element**, **Measured (mg/L)**, **Status**, **Entered By**).
 - Sample entry page: **Amount Unit**, **Replicate Measurements**, **Evidence: Sample Reports**, **Sample Report Upload**, **Save Replicates**, **Send for Review**, and a result preview with the columns **Parameter**, **Quantity**, **Result**, **Unit**, **Spec Limit**, **Status**, **Problem / Warning**.
 
-[SCREENSHOT SS-279]
+![SS-279: ICP run page (Calibration and CCV tabs)](../screenshots/ss-279-icp-calibration-ccv.png)
 
 #### How to use it
 ##### 1. Start the run

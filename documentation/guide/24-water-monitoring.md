@@ -41,7 +41,7 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
 - Left: a search box **Find a system or location** and the list of water systems. Right: "Select a water system" until you pick one; then **Rename**, a delete icon, and the filters **All ({n})** and **Needs attention ({n})**.
 - Each location row has the icons **Edit location**, **Delete location** and **Show limits** / **Hide limits**. A location with no limit shows the chip **Limits not set**.
 
-[SCREENSHOT SS-241]
+![SS-241: Water (page)](../screenshots/ss-241-water-configuration.png)
 
 #### How to use it
 To add a water system:
@@ -56,7 +56,7 @@ To add or edit a sample location:
 4. In **3 · Limits for count tests**, enter **Alert**, **Action**, **Specification** and **Unit** (for example CFU/mL) for each assigned count test. Presence/absence tests need no limits. If no count test is assigned the panel says "Assign a count test (e.g. TAMC-Water) to set limits."
 5. Click **Add sample location** or **Save changes**. The system shows `Sample location {code} added.` or `Sample location {code} updated.`
 
-[SCREENSHOT SS-242]
+![SS-242: Edit Sample Location (dialog)](../screenshots/ss-242-water-location-dialog.png)
 
 To rename a water system, click **Rename**. To delete a system or location, use the delete icon and confirm the question.
 

@@ -27,7 +27,7 @@ Maintain the canonical microorganism repository (scientific name, ATCC catalog n
   - Row action menu: **Edit**, **Delete** (danger).
   - Delete confirmation dialog: "Delete organism \"{name}\"? This cannot be undone."
 
-[SCREENSHOT SS-321]
+![SS-321: Organisms Master Page](../screenshots/ss-321-organisms-catalog.png)
 
 #### How to use it
 ##### Adding an Organism:
@@ -99,7 +99,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
      - Row actions: **Rename**, **Delete**.
      - Delete confirmation: "Delete \"{name}\" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes." (the stage name stays visible on old samples, but their link to the stage is removed; see the warning below)
 
-[SCREENSHOT SS-322]
+![SS-322: Receiving Configuration Page](../screenshots/ss-322-receiving-configuration.png)
 
 #### How to use it
 ##### Adding and Renaming Samplers:
@@ -171,7 +171,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - Table 1 (**Rows per sheet**): Columns **Sheet**, **New**, **Unchanged**, **Errors**.
   - Table 2 (**Problems to fix**): Header "{N} problem(s) to fix in the workbook", Columns **Sheet**, **Row**, **Column**, **Problem**.
 
-[SCREENSHOT SS-323]
+![SS-323: Master Data Workbook Page & Validation Report](../screenshots/ss-323-workbook-validation-report.png)
 
 #### How to use it
 1. Navigate to **General Laboratory Configuration** > **Master Data Workbook**.

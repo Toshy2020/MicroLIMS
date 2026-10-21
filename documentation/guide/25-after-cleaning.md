@@ -38,7 +38,7 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
 - Left: a search box and the list of machines. Right: for the selected machine, **Rename**, a delete icon, a card for each part, and a dashed button **Add part to {machine}**.
 - Each part card has **Count tests** (button **Add swab / rinse test**; icons **Edit test** and **Remove test**) and **Pathogen tests** (chips; button **Add pathogen tests** or **Edit pathogen tests**). A part with no tests shows **No tests configured**.
 
-[SCREENSHOT SS-251]
+![SS-251: After Cleaning (page)](../screenshots/ss-251-after-cleaning-configuration.png)
 
 #### How to use it
 To add a machine:
@@ -57,7 +57,7 @@ To add a swab or rinse test to a part:
 3. In **2 · Limits**, enter **Alert**, **Action** and **Specification** limits (leave a limit blank if it does not apply) and the **Unit**.
 4. Click **Add test**. The system shows `Test added to {part}.`
 
-[SCREENSHOT SS-252]
+![SS-252: Add Swab / Rinse Test (dialog)](../screenshots/ss-252-ac-count-test-dialog.png)
 
 To set the pathogen tests of a part:
 1. On the part card, under **Pathogen tests**, click **Add pathogen tests** or **Edit pathogen tests**.

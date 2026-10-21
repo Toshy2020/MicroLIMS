@@ -18,7 +18,7 @@ You need the username and password given to you by your system administrator.
 - The link **Forgot password?** and the button **Admin-Assisted Password Recovery**.
 - A footer line with the version number and a statement about regulatory compliance. This guide makes no compliance claim (see the note below).
 
-[SCREENSHOT SS-051]
+![SS-051: Sign In](../screenshots/ss-051-sign-in.png)
 
 #### How to use it
 1. Open the MicroLIMS address in your browser.
@@ -102,7 +102,7 @@ The **Password Recovery** screen, with the subtitle "Administrator-Assisted Acco
 - **Confirm New Password**.
 - The button **Submit Password Recovery** (**Resetting Password...** while processing) and the link **Return to Login**.
 
-[SCREENSHOT SS-052]
+![SS-052: Password Recovery](../screenshots/ss-052-admin-password-recovery.png)
 
 #### How to use it
 1. On the sign-in screen, click **Admin-Assisted Password Recovery**.
@@ -149,7 +149,7 @@ Know your current password.
 - The checklist **Password must contain:** with five live rules: at least 8 characters, an uppercase letter, a lowercase letter, a number, and a special character.
 - The button **Change Password** (**Updating Credentials...** while processing).
 
-[SCREENSHOT SS-053]
+![SS-053: Change Password](../screenshots/ss-053-change-password.png)
 
 #### How to use it
 1. Open the account menu in the header and select **Change Password**. (If a change is required, this screen opens by itself.)

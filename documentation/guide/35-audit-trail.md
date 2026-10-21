@@ -44,7 +44,7 @@ Requires the *View audit trail* permission (by default: Section Head, System Adm
 - Have the relevant record identifiers (such as a Sample Reference or Batch Number) ready if you are searching for a specific laboratory event.
 
 #### What you see
-[SCREENSHOT SS-351]
+![SS-351: Audit Trail Search & Results](../screenshots/ss-351-audit-trail-search.png)
 The **Audit Trail** screen presents:
 - Heading: **Audit Trail**
 - Subtitle: "Search and trace immutable change events, actor identities, and laboratory records across MicroLIMS."
@@ -106,7 +106,7 @@ Requires the *View audit trail* permission (by default: Section Head, System Adm
 - Run an audit search as described in §35.2 and find the event row.
 
 #### What you see
-[SCREENSHOT SS-352]
+![SS-352: Audit Event Details Drawer](../screenshots/ss-352-audit-event-drawer.png)
 Clicking **Inspect Event & Traceability Chain** opens a details drawer containing:
 - The action (**CREATE**, **UPDATE** or **DELETE**)
 - A difference viewer showing changed field names, previous values and new values

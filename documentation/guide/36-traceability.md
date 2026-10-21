@@ -36,7 +36,7 @@ Each node shows its type, a title and a status. The node types that can appear a
 
 <!-- WF-AUDIT-001 -->
 #### What you see
-[SCREENSHOT SS-361]
+![SS-361: Traceability Chain View](../screenshots/ss-361-traceability-chain.png)
 When you open the chain for a sample, the nodes follow the testing and review path:
 1. **Sample**: the sample reference (for example "SMP-0001"), category, receiving time and status.
 2. **Sample Preparation**: the confirmed preparation record.

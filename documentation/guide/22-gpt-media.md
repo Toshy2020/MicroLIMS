@@ -36,7 +36,7 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
   - **Incubation Conditions ({n})** tab: a table with **Incubation**, **Temperature**, **Used by** and **Actions**. A condition not used anywhere shows the chip **Not used**. A condition in use has disabled edit and delete icons with the hint "In use - add a new condition instead".
   - **Configurations ({n})** tab: the evaluation configuration with expandable challenge organisms, and the button **Add Configuration** (shown only while the product has none).
 
-[SCREENSHOT SS-221]
+![SS-221: Media Configurations (page)](../screenshots/ss-221-media-configurations.png)
 
 #### How to use it
 To add a media product:
@@ -139,7 +139,7 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
   - **Cycle Number \***, **pH (at 25°C) \*** and **Expiry Date \***;
   - the buttons **Cancel** and **Save Prepared Lot**.
 
-[SCREENSHOT SS-222]
+![SS-222: Prepare New Media Lot (dialog)](../screenshots/ss-222-media-preparation-dialog.png)
 
 #### How to use it
 1. Click **Prepare New Media Lot**.
@@ -390,7 +390,7 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
 - Dialog **Move Storage**: **Quantity to move \***, the new place, **Reason for move \*** (at least 5 characters). Button **Move**.
 - Dialog **Mark Media Lot Out of Stock**: the warning "Warning: This media lot will no longer be available for laboratory testing.", the box **Reason / Comment (Optional)**, and the buttons **Cancel** and **Confirm Out of Stock**.
 
-[SCREENSHOT SS-224]
+![SS-224: Selected Media Lot Workspace (Storage tab)](../screenshots/ss-224-media-storage-management.png)
 
 #### How to use it
 To add a storage entry:

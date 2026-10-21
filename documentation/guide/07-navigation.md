@@ -38,7 +38,7 @@ The sidebar groups the application into headings. You only see the items you are
 | | OOS Tracking | *OOS Tracking Management* |
 | **SYSTEM** | Error Monitoring | *Error Log Monitoring* |
 
-[SCREENSHOT SS-071]
+![SS-071: Main Navigation Sidebar](../screenshots/ss-071-sidebar-navigation.png)
 
 > **Note for reviewers:** Whether the Training Matrix and Compliance Dashboard pages should be restricted is not established; they are offered to every signed-in user in the menu. (GAP-025)
 

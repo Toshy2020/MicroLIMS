@@ -25,8 +25,8 @@ Requires the *Prepare solutions* permission (by default: Analyst, Section Head, 
   - Step 3: a table with **Reagent / Material**, **Recipe Target**, **Chosen Stock Lot** and **Quantity Used**, and the button **Sign & Complete Preparation**.
 - The preparation record page (opened from **View Record**): **Code**, **Started By / At**, **Prepared By / At**, **Expires At**, a components table (**Reagent / Material**, **Target Quantity**, **Consumed Stock Lot**, **Quantity Used**) and a history table (**Transition**, **Changed By**, **Changed At**, **Reason / Note**).
 
-[SCREENSHOT SS-281]
-[SCREENSHOT SS-282]
+![SS-281: Preparation wizard (Lots & Quantities)](../screenshots/ss-281-solution-lots-step.png)
+![SS-282: Preparation record page](../screenshots/ss-282-solution-record-page.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Laboratory** > **Solution Preparation**.
@@ -163,7 +163,7 @@ The **Working Standards** page can be opened by any signed-in user. Actions need
 - The detail drawer of a qualification with the sections **SOURCE & SPECIFICATIONS** (including **Moisture Content**, read-only), **HPLC RUN & ASSAY RESULTS**, **DOCUMENTS & EVIDENCE** (kinds **Source Report** and **Moisture Report**, button **Upload**) and **WORKFLOW & SIGN-OFF** (**Prepared by:**, **Reviewed by:**, **Approved by:**, **Rejected by:**).
 - For a qualification that is **Assayed**, a user who can review sees **Review Actions** with **Review**, **Return to Draft** and **Reject**. For one that is **Reviewed**, a user who can approve sees **Approval Actions** with **Approve** and **Reject**.
 
-[SCREENSHOT SS-284]
+![SS-284: Working standard qualification drawer](../screenshots/ss-284-working-standard-signoff.png)
 
 #### How to use it
 ##### 1. Create the qualification

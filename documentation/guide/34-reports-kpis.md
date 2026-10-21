@@ -9,7 +9,7 @@ Provide a consolidated operational summary of laboratory testing volume, release
 Open to all signed-in users. Data visibility is automatically restricted to the user's assigned laboratory sections; users whose base role type is System Administrator have unrestricted access across all laboratory sections. Users without an assigned laboratory section see no data.
 
 #### What you see
-[SCREENSHOT SS-341]
+![SS-341: Reports Overview](../screenshots/ss-341-reports-overview.png)
 The **Overview** tab of the **Reports** page presents:
 - Header title **Reports** with subtitle "Search, trend, and export laboratory results."
 - Quick period selector bar above the tabs (shown on every tab except **KPI / Performance**): options **30d** (default), **90d**, **1y**, and **custom** (with **From date** and **To date** inputs).
@@ -51,7 +51,7 @@ Open to all signed-in users. Record visibility is scoped to the user's assigned 
 - Ensure you have relevant search criteria (such as a Sample ID, Batch Number, Test Code, or Date Range) if searching for specific testing events.
 
 #### What you see
-[SCREENSHOT SS-342]
+![SS-342: Record Search & Results Table](../screenshots/ss-342-reports-record-search.png)
 The **Record Search** tab is structured in a two-column layout:
 - Left filter panel (**Filters**):
   - **Search** text box (placeholder "Search Sample ID, Batch No., Item, Test, Location...")
@@ -221,7 +221,7 @@ Perform statistical process control and graphical trend analysis across quantita
 Open to all signed-in users. Data is scoped to the user's accessible laboratory sections.
 
 #### What you see
-[SCREENSHOT SS-343]
+![SS-343: Trending & Analysis Workspace](../screenshots/ss-343-reports-trending-analysis.png)
 The **Trending & Analysis** tab is structured in a three-column layout:
 - Left column (**Analysis Criteria**):
   - **Parameter / Test** dropdown
@@ -286,7 +286,7 @@ Monitor operational throughput, turnaround times, quality metrics, and capacity 
 Requires the *View KPIs* permission (by default: Section Head, System Administrator). The tab and the **KPI / Performance** quick action on the Overview are hidden from users lacking this permission. Seeing the workload figures of other analysts requires the *View team KPIs and workload* permission (by default: Section Head, System Administrator); users without it see only their own workload row. The headline tiles show laboratory-level figures for everyone who can open the tab.
 
 #### What you see
-[SCREENSHOT SS-344]
+![SS-344: KPI Performance Dashboard & Workload Table](../screenshots/ss-344-kpi-performance-workload.png)
 The **KPI / Performance** tab presents:
 - Filter bar:
   - **From** and **To** date inputs

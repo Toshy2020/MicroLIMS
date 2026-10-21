@@ -46,7 +46,7 @@ Requires the *Manage users* permission (by default: System Administrator).
 - The user account exists and the departments and sections are active.
 
 #### What you see
-[SCREENSHOT SS-331]
+![SS-331: Laboratory Sections Dialog](../screenshots/ss-331-user-laboratory-sections.png)
 The **Laboratory Sections: {Full Name}** dialog shows:
 - A checkbox per department: "{department} ({code}): All sections (entire department)".
 - A checkbox per section: "{section} ({code})". Section boxes are ticked and disabled while the whole department is ticked.

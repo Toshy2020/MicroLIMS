@@ -24,7 +24,7 @@ You are assigned to the laboratory section whose stock you want to see.
 - Row actions **Details and documents** and **Edit material**, and the button **Add to Stock**.
 - When the section has no stock: "No materials in stock — Receive the first material lot."
 
-[SCREENSHOT SS-291]
+![SS-291: Materials in Stock page](../screenshots/ss-291-materials-stock-register.png)
 
 #### How to use it
 1. Open **Materials Stock** from the menu of your laboratory.
@@ -65,7 +65,7 @@ The dialog **Add Material to Stock** with the buttons **Cancel** and **Add to St
   - Lyophilized microorganism: an organism picker and **ATCC No.**
 - **Laboratory Section** (when you have more than one section), **Material Name \***, **Manufacturer**, **Code / Catalog No.**, **Batch / Lot No. \***, **Storage Location \***, **Quantity Received \***, **Unit**, **Min. Stock Level (optional)**, **Receiving Date \*** and **Expiry Date** (not marked as required).
 
-[SCREENSHOT SS-292]
+![SS-292: Add Material to Stock dialog](../screenshots/ss-292-add-material-dialog.png)
 
 #### How to use it
 1. On the Materials Stock page, click **Add to Stock**.
@@ -131,7 +131,7 @@ Attach, replace and void the documents of a lot: Certificate of Analysis, suppli
 - The dialog **Supersede Document** (field **Reason for Supersession \***, replacement file, button **Supersede**).
 - The dialog **Void Document** (field **Reason for Voiding \***, button **Void Document**).
 
-[SCREENSHOT SS-293]
+![SS-293: Lot Details window](../screenshots/ss-293-lot-documents.png)
 [SCREENSHOT SS-294]
 
 #### How to use it

@@ -24,7 +24,7 @@ Every signed-in user. You only receive the notifications that apply to you:
 - When the list cannot be loaded: "Notifications could not be loaded". The list is then retried automatically.
 - The Analyst dashboard and the laboratory dashboards show some of the same notifications (see Section 8).
 
-[SCREENSHOT SS-091]
+![SS-091: Notifications Panel](../screenshots/ss-091-notifications-panel.png)
 
 #### How to use it
 1. Click the **Notifications** bell in the header.
@@ -61,7 +61,7 @@ Open **Messages** from the account menu in the header (it shows **Messages ({n} 
 - **Conversation list** (left): the field **Filter conversations...**, the button **New Message**, and your conversations, each with the participant name, the last message, the time, and an unread badge. Empty: "No conversations yet. Start a new message!" or "No matching conversations found."
 - **Chat window** (right): the messages and the box "Write a message... (Press Enter to send)". Before you choose a conversation: "Select a conversation" and "Choose a conversation from the list or start a new message." In an empty conversation: "No messages in this conversation yet." and "Say hello to start the conversation!"
 
-[SCREENSHOT SS-092]
+![SS-092: Messages Workspace](../screenshots/ss-092-messages-workspace.png)
 
 #### How to use it
 To start a conversation:
@@ -110,7 +110,7 @@ Every signed-in user. The *Discussions Viewing* and *Discussions Creation* permi
 - When nothing is found: "No discussions found" with "Try adjusting your search query or category filters." (or "Be the first to start a conversation in this category.") and the button **Start a Discussion**.
 - The post page, with **Back to Discussions**, the full text, the attachments (downloadable), **Edit Post**, and the comments section.
 
-[SCREENSHOT SS-093]
+![SS-093: Discussions Feed](../screenshots/ss-093-discussions-feed.png)
 
 #### How to use it
 To create a post:

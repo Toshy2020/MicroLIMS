@@ -384,7 +384,7 @@ Decide which base role type (System Administrator, Section Head, Reviewer, or An
 - **ADMINISTRATION** > **Roles**: a list with columns **Role**, **Type**, **Status**, and **Users**, a search field "Search by role name...", and the button **Create Role**.
 - The Create Role wizard with four steps: **Name**, **Base Type**, **Permissions**, and **Review**.
 
-[SCREENSHOT SS-041]
+![SS-041: Roles List](screenshots/ss-041-roles-list.png)
 
 #### How to use it
 1. In the sidebar, open **ADMINISTRATION** > **Roles**.
@@ -424,7 +424,7 @@ Requires the *Role & Permission Management* permission (by default: System Admin
 - A list of the users who hold the role, each marked **Active** or **Disabled**.
 - The buttons **Save Changes** and, for custom roles only, **Delete Role**.
 
-[SCREENSHOT SS-042]
+![SS-042: Role Detail](screenshots/ss-042-role-detail.png)
 
 #### How to use it
 1. In the **Roles** list, click the role.
@@ -475,7 +475,7 @@ You need the username and password given to you by your system administrator.
 - The link **Forgot password?** and the button **Admin-Assisted Password Recovery**.
 - A footer line with the version number and a statement about regulatory compliance. This guide makes no compliance claim (see the note below).
 
-[SCREENSHOT SS-051]
+![SS-051: Sign In](screenshots/ss-051-sign-in.png)
 
 #### How to use it
 1. Open the MicroLIMS address in your browser.
@@ -559,7 +559,7 @@ The **Password Recovery** screen, with the subtitle "Administrator-Assisted Acco
 - **Confirm New Password**.
 - The button **Submit Password Recovery** (**Resetting Password...** while processing) and the link **Return to Login**.
 
-[SCREENSHOT SS-052]
+![SS-052: Password Recovery](screenshots/ss-052-admin-password-recovery.png)
 
 #### How to use it
 1. On the sign-in screen, click **Admin-Assisted Password Recovery**.
@@ -606,7 +606,7 @@ Know your current password.
 - The checklist **Password must contain:** with five live rules: at least 8 characters, an uppercase letter, a lowercase letter, a number, and a special character.
 - The button **Change Password** (**Updating Credentials...** while processing).
 
-[SCREENSHOT SS-053]
+![SS-053: Change Password](screenshots/ss-053-change-password.png)
 
 #### How to use it
 1. Open the account menu in the header and select **Change Password**. (If a change is required, this screen opens by itself.)
@@ -701,7 +701,7 @@ The header contains:
   - **Change Password**: see 5.4.
   - **Sign Out**: ends your session and opens the sign-in screen, with no confirmation question.
 
-[SCREENSHOT SS-061]
+![SS-061: Application Shell](screenshots/ss-061-application-shell.png)
 
 ---
 
@@ -808,7 +808,7 @@ The sidebar groups the application into headings. You only see the items you are
 | | OOS Tracking | *OOS Tracking Management* |
 | **SYSTEM** | Error Monitoring | *Error Log Monitoring* |
 
-[SCREENSHOT SS-071]
+![SS-071: Main Navigation Sidebar](screenshots/ss-071-sidebar-navigation.png)
 
 > **Note for reviewers:** Whether the Training Matrix and Compliance Dashboard pages should be restricted is not established; they are offered to every signed-in user in the menu. (GAP-025)
 
@@ -894,7 +894,7 @@ The heading **Administrator Command Center** and the button **Refresh**. The til
 6. **Prep configs pending**: item preparation configurations waiting for approval. This tile appears only when the count is above zero, and opens the Items configuration.
 7. **Overdue (>24h)**: open test orders on samples that were received more than 24 hours ago.
 
-[SCREENSHOT SS-081]
+![SS-081: Administrator Command Center](screenshots/ss-081-admin-dashboard.png)
 
 > **Note for reviewers:** "Total samples" and "Total tests" are all-time counts, not counts for today. (GAP-106)
 
@@ -1020,7 +1020,7 @@ Every signed-in user. You only receive the notifications that apply to you:
 - When the list cannot be loaded: "Notifications could not be loaded". The list is then retried automatically.
 - The Analyst dashboard and the laboratory dashboards show some of the same notifications (see Section 8).
 
-[SCREENSHOT SS-091]
+![SS-091: Notifications Panel](screenshots/ss-091-notifications-panel.png)
 
 #### How to use it
 1. Click the **Notifications** bell in the header.
@@ -1057,7 +1057,7 @@ Open **Messages** from the account menu in the header (it shows **Messages ({n} 
 - **Conversation list** (left): the field **Filter conversations...**, the button **New Message**, and your conversations, each with the participant name, the last message, the time, and an unread badge. Empty: "No conversations yet. Start a new message!" or "No matching conversations found."
 - **Chat window** (right): the messages and the box "Write a message... (Press Enter to send)". Before you choose a conversation: "Select a conversation" and "Choose a conversation from the list or start a new message." In an empty conversation: "No messages in this conversation yet." and "Say hello to start the conversation!"
 
-[SCREENSHOT SS-092]
+![SS-092: Messages Workspace](screenshots/ss-092-messages-workspace.png)
 
 #### How to use it
 To start a conversation:
@@ -1106,7 +1106,7 @@ Every signed-in user. The *Discussions Viewing* and *Discussions Creation* permi
 - When nothing is found: "No discussions found" with "Try adjusting your search query or category filters." (or "Be the first to start a conversation in this category.") and the button **Start a Discussion**.
 - The post page, with **Back to Discussions**, the full text, the attachments (downloadable), **Edit Post**, and the comments section.
 
-[SCREENSHOT SS-093]
+![SS-093: Discussions Feed](screenshots/ss-093-discussions-feed.png)
 
 #### How to use it
 To create a post:
@@ -1214,7 +1214,7 @@ Open to every signed-in user. It searches results in your laboratory sections.
   - When you tick approved rows, the buttons **Export Selected PDF**, **Export Selected CSV**, and **Analyze Selected** (opens the Trending tab) appear.
 - When nothing matches: "No results found" and "Try widening the date range or clearing some filters." with the button **Clear Filters**.
 
-[SCREENSHOT SS-101]
+![SS-101: Reports Record Search](screenshots/ss-101-reports-record-search.png)
 
 #### Other Reports tabs
 - **Media / GPT**: Search, Media Type, Evaluation Type (starts as GrowthPromotion), Evaluation Outcome (**Conform**, **NonConform**), Approval Status, and a date range.
@@ -1238,7 +1238,7 @@ Needs the *Audit Trail Viewing* permission (by default: System Administrator, Se
 - The result heading reads **Audit Events (N)**. When 300 or more events match, it adds ", capped at 300 latest" and only the 300 newest are shown. If nothing matches: "No audit events found". If the search fails: "Failed to fetch audit records from the server."
 - **Inspect Event & Traceability Chain** on a row opens a panel with the differences, the raw data, and the traceability chain.
 
-[SCREENSHOT SS-102]
+![SS-102: Audit Trail Search](screenshots/ss-102-audit-trail-search.png)
 
 > **Note for reviewers:** The Audit Trail screen shows at most 300 events, has no export or print function, cannot filter on user and role administration actions, and does not show login history or security events. (GAP-030, GAP-101)
 
@@ -1257,7 +1257,7 @@ Open to every signed-in user.
 - The switches **Show Voided** and **Review Overdue Only**, and the button **Reset** (disabled while no filter is set).
 - When nothing matches: "No controlled documents match the selected filters". The table can show 5, 10, 25, or 50 rows per page.
 
-[SCREENSHOT SS-103]
+![SS-103: Document Library Filters](screenshots/ss-103-document-library-filters.png)
 
 #### My Reading List and Training Matrix
 - **My Reading List**: the search box "Search document title, code, MicroLIMS ID...", the button **Refresh List**, and the tabs **To read**, **Overdue**, **Completed**, **Superseded**, and **All**.
@@ -1351,7 +1351,7 @@ You must be signed in with an account that holds one of the receiving permission
   - Edit icon (tooltip "Edit Sample Details" when editable, or "Locked: the sample has been submitted for review")
 - Kanban view columns: **Received**, **Under Testing**, **Under Review**, **Under Approval**, **Approved**, **Rejected**, and **Retest Requested**.
 
-[SCREENSHOT SS-111]
+![SS-111: Receive Sample (Sample Register)](screenshots/ss-111-sample-register.png)
 
 #### How to use it
 1. Open **RECEIVING** and select **Receive Sample** from the sidebar navigation.
@@ -1426,7 +1426,7 @@ Samples must be registered in the system with at least one test order created.
   - "Not requested" (displayed when the sample was not submitted to that laboratory)
 - Empty state: displays "No samples found matching the filter criteria." when no records match the active filters.
 
-[SCREENSHOT SS-112]
+![SS-112: Tracking Board](screenshots/ss-112-tracking-board.png)
 
 #### How to use it
 1. Open **RECEIVING** and select **Tracking Board** from the sidebar navigation.
@@ -1479,7 +1479,7 @@ Requires the *Sample correction & voiding* permission (by default: Section Head,
   - **Reason for Correction** (mandatory; helper text: "Recorded with your electronic signature and in the sample's audit trail.")
 - Action buttons: **Cancel** and **Sign & Save** (disabled when details are locked or a required value, including the reason, is blank).
 
-[SCREENSHOT SS-113]
+![SS-113: Edit Sample Details](screenshots/ss-113-edit-sample-details.png)
 
 #### How to use it
 1. Locate the sample in the sample register or testing workspace.
@@ -1547,7 +1547,7 @@ The sample must not already be in Voided status.
 - Mandatory field: **Reason for Voiding \*** (helper text displays "A reason for voiding is required." when empty, and "Recorded with your electronic signature and in the sample's audit trail." when populated).
 - Action buttons: **Cancel** and **Sign & Void** (disabled until a reason is entered).
 
-[SCREENSHOT SS-114]
+![SS-114: Void Sample Confirmation](screenshots/ss-114-void-sample-confirmation.png)
 
 #### How to use it
 1. Locate the sample in the sample register or laboratory workspace.
@@ -1619,7 +1619,7 @@ Register incoming samples of Finished Product, Raw Material, or Packaging Materi
     - **Exp Date** date picker
   - Action buttons: **Back**, **Add Another Sample**, and **Save All Samples** (displays "Receiving..." while the request is being processed)
 
-[SCREENSHOT SS-121]
+![SS-121: New Sample (Category Selection)](screenshots/ss-121-new-sample-category.png)
 
 [SCREENSHOT SS-122]
 
@@ -2068,7 +2068,7 @@ Users who are members of the relevant laboratory section. The system blocks the 
   - **Assigned Tests (N)** with the subtitle "Test Master configured laboratory workflows"; empty list: "No tests assigned to this sample."
 - Grouped Actions panel (shown when two or more samples are checked): header **Grouped Actions**, subtitle "{n} samples selected across workspace", button **Deselect All** and a clear-selection icon.
 
-[SCREENSHOT SS-141]
+![SS-141: Microbiology Laboratory Workspace](screenshots/ss-141-microbiology-workspace.png)
 
 #### How to use it
 1. Open the workspace of your laboratory from the **Laboratories** area of the sidebar.
@@ -3282,7 +3282,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
   - Footer: "Sample Reference: {ref} · Record Status: {status} · MicroLIMS Operational View".
 - **Electronic Signature** dialog: your full name (or username) and role, the confirmation sentence, the field **Password** (Enter submits), and the buttons **Cancel** and **Sign** (shows "Signing..." while working; disabled while the password is empty).
 
-[SCREENSHOT SS-171]
+![SS-171: Sample Summary (dialog)](screenshots/ss-171-sample-summary-review.png)
 
 [SCREENSHOT SS-172]
 
@@ -3784,7 +3784,7 @@ An OOS group must exist. A group is created only when a Section Head signs the d
   - A table of retest samples with the columns **Retest Sample**, **Parent / Origin**, **Item / Point**, **Retest Type** (**Retest Retained Sample** or **New Sample Request**), **Test(s)**, **Analyst(s)** (shows "User #{id}" if the name is not found), **Retest Status**, **Opened** and **Actions**. The action icon has the tooltip "Open the retest sample's printable report".
   - When the group has no retest samples yet: "No retest samples have been spun off yet for this OOS chain."
 
-[SCREENSHOT SS-201]
+![SS-201: Out-of-Specification Tracking (page)](screenshots/ss-201-oos-tracking.png)
 
 #### How to use it
 1. Open **OOS Tracking** under **AUDIT & COMPLIANCE** in the sidebar.
@@ -3835,7 +3835,7 @@ Requires the *OOS Tracking Management* permission (by default: Section Head, Sys
 - Row icons with the tooltips "Download file" and "Supersede with replacement report" (the supersede icon appears only on the **Current** row, and only while no supersede panel is open).
 - The supersede panel: "The current document will be marked Superseded. A new active version will take its place.", the field **Reason for Supersession \***, and the buttons **Choose Replacement File** and **Supersede** (disabled until a replacement file and a reason are given).
 
-[SCREENSHOT SS-202]
+![SS-202: Lab Investigation Documents (dialog)](screenshots/ss-202-oos-investigation-documents.png)
 
 #### How to use it
 To upload the initial report:
@@ -3941,7 +3941,7 @@ Open the **Sample Summary** dialog of the sample and click **Printable Report** 
   - **archived copies** (see §21.3).
 - Button **Print / Save PDF** (opens the browser's print dialog) and the footer "This is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled."
 
-[SCREENSHOT SS-211]
+![SS-211: Sample Summary Report (page)](screenshots/ss-211-sample-summary-report.png)
 
 #### How to use it
 1. In the **Sample Summary** dialog, click **Printable Report** (or **Open Printable Report**).
@@ -4002,7 +4002,7 @@ Any signed-in user who can reach the sample. The certificate page has no permiss
   - Section variant: **Reviewer** (if a reviewer name exists) and **Approver** from stored names and times.
 - Button **Print / Save PDF** (hidden when printing) and the footer "This Certificate of Analysis is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled." with a line that points to the Sample Summary Report by Document ID.
 
-[SCREENSHOT SS-212]
+![SS-212: Certificate of Analysis (standard format)](screenshots/ss-212-certificate-of-analysis.png)
 
 [SCREENSHOT SS-213]
 
@@ -4123,7 +4123,7 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
   - **Incubation Conditions ({n})** tab: a table with **Incubation**, **Temperature**, **Used by** and **Actions**. A condition not used anywhere shows the chip **Not used**. A condition in use has disabled edit and delete icons with the hint "In use - add a new condition instead".
   - **Configurations ({n})** tab: the evaluation configuration with expandable challenge organisms, and the button **Add Configuration** (shown only while the product has none).
 
-[SCREENSHOT SS-221]
+![SS-221: Media Configurations (page)](screenshots/ss-221-media-configurations.png)
 
 #### How to use it
 To add a media product:
@@ -4226,7 +4226,7 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
   - **Cycle Number \***, **pH (at 25°C) \*** and **Expiry Date \***;
   - the buttons **Cancel** and **Save Prepared Lot**.
 
-[SCREENSHOT SS-222]
+![SS-222: Prepare New Media Lot (dialog)](screenshots/ss-222-media-preparation-dialog.png)
 
 #### How to use it
 1. Click **Prepare New Media Lot**.
@@ -4477,7 +4477,7 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
 - Dialog **Move Storage**: **Quantity to move \***, the new place, **Reason for move \*** (at least 5 characters). Button **Move**.
 - Dialog **Mark Media Lot Out of Stock**: the warning "Warning: This media lot will no longer be available for laboratory testing.", the box **Reason / Comment (Optional)**, and the buttons **Cancel** and **Confirm Out of Stock**.
 
-[SCREENSHOT SS-224]
+![SS-224: Selected Media Lot Workspace (Storage tab)](screenshots/ss-224-media-storage-management.png)
 
 #### How to use it
 To add a storage entry:
@@ -4593,7 +4593,7 @@ Testing frequency is only a label. It does not schedule or remind anything.
 - Left: a search box **Find a department or room** and the department list. Right: "Select a department" until you pick one; then **Edit department**, a delete icon, and the room cards.
 - A room card shows its grade, the count of tests (for example "2 tests"), the button **Add first test** or **Add test**, and icons to edit or delete the room and each test. A room with no tests shows **No tests configured**.
 
-[SCREENSHOT SS-231]
+![SS-231: Environmental Monitoring (page)](screenshots/ss-231-em-configuration.png)
 
 #### How to use it
 To add a department:
@@ -4612,7 +4612,7 @@ To add a room test:
 3. In **2 · Limits**, enter **Alert**, **Action** and **Specification** limits (leave a limit blank if it does not apply) and the **Unit**. The unit is required for Active air sample, Compressed air and Drains.
 4. Click **Add test**. The system shows `Test added to {room}.`
 
-[SCREENSHOT SS-232]
+![SS-232: Add Test (dialog)](screenshots/ss-232-em-room-test-dialog.png)
 
 To change or remove something, use **Edit department**, the room and test icons, and confirm the deletion question (for example `Remove the {type} / {code} test from {room}?`).
 
@@ -4900,7 +4900,7 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
 - Left: a search box **Find a system or location** and the list of water systems. Right: "Select a water system" until you pick one; then **Rename**, a delete icon, and the filters **All ({n})** and **Needs attention ({n})**.
 - Each location row has the icons **Edit location**, **Delete location** and **Show limits** / **Hide limits**. A location with no limit shows the chip **Limits not set**.
 
-[SCREENSHOT SS-241]
+![SS-241: Water (page)](screenshots/ss-241-water-configuration.png)
 
 #### How to use it
 To add a water system:
@@ -4915,7 +4915,7 @@ To add or edit a sample location:
 4. In **3 · Limits for count tests**, enter **Alert**, **Action**, **Specification** and **Unit** (for example CFU/mL) for each assigned count test. Presence/absence tests need no limits. If no count test is assigned the panel says "Assign a count test (e.g. TAMC-Water) to set limits."
 5. Click **Add sample location** or **Save changes**. The system shows `Sample location {code} added.` or `Sample location {code} updated.`
 
-[SCREENSHOT SS-242]
+![SS-242: Edit Sample Location (dialog)](screenshots/ss-242-water-location-dialog.png)
 
 To rename a water system, click **Rename**. To delete a system or location, use the delete icon and confirm the question.
 
@@ -5192,7 +5192,7 @@ Requires the *Master Data Management* permission (by default: Section Head, Syst
 - Left: a search box and the list of machines. Right: for the selected machine, **Rename**, a delete icon, a card for each part, and a dashed button **Add part to {machine}**.
 - Each part card has **Count tests** (button **Add swab / rinse test**; icons **Edit test** and **Remove test**) and **Pathogen tests** (chips; button **Add pathogen tests** or **Edit pathogen tests**). A part with no tests shows **No tests configured**.
 
-[SCREENSHOT SS-251]
+![SS-251: After Cleaning (page)](screenshots/ss-251-after-cleaning-configuration.png)
 
 #### How to use it
 To add a machine:
@@ -5211,7 +5211,7 @@ To add a swab or rinse test to a part:
 3. In **2 · Limits**, enter **Alert**, **Action** and **Specification** limits (leave a limit blank if it does not apply) and the **Unit**.
 4. Click **Add test**. The system shows `Test added to {part}.`
 
-[SCREENSHOT SS-252]
+![SS-252: Add Swab / Rinse Test (dialog)](screenshots/ss-252-ac-count-test-dialog.png)
 
 To set the pathogen tests of a part:
 1. On the part card, under **Pathogen tests**, click **Add pathogen tests** or **Edit pathogen tests**.
@@ -5490,7 +5490,7 @@ Make sure the reference organisms exist in the Organisms list (§32).
 - The status shows **Pending Review**, **Approved** or **Rejected**; a destroyed batch shows **Destroyed**.
 - The **Approved Cryovials** tab lists approved, not destroyed batches with the columns **Cryovial Code**, **Organism**, **ATCC No.**, **Manufacturer**, **Storage**, **Vials Remaining**, **Expiry** and **Status**.
 
-[SCREENSHOT SS-261]
+![SS-261: Reference Cryovials (page)](screenshots/ss-261-reference-cryovials.png)
 
 #### How to use it
 1. Open **Reference Cryovials** and use the filters to find a batch.
@@ -5541,7 +5541,7 @@ Requires the *Cryovial Management* permission (by default: Section Head, Reviewe
 - **Section 2: Identity Confirmation Panel** (a table; at least one row): **Media (GPT-released) \***, **Incubator \***, **Start \***, **End \***, **Observation**, and the button **Add Media Row**.
 - Buttons **Cancel** and **Save Batch**.
 
-[SCREENSHOT SS-262]
+![SS-262: Prepare Cryovial Batch (dialog)](screenshots/ss-262-prepare-cryovial-batch.png)
 
 #### How to use it
 1. Click **Prepare Cryovial Batch**.
@@ -6076,8 +6076,8 @@ Every action that changes data requires the *Operate HPLC, GC and ICP workstatio
 - Start wizard "Start HPLC Run: {instrument}" with steps **Select Method**, **Select Column**, **Assign Mobile Phases**, **Review & Start** and buttons **Back**, **Next**, **Start HPLC Run**.
 - Sample entry page: **Replicate**, **Actual Weight (mg)**, **Peak Response**, **Save Replicates**, **Send for Review**.
 
-[SCREENSHOT SS-276]
-[SCREENSHOT SS-277]
+![SS-276: Start HPLC Run wizard](screenshots/ss-276-start-hplc-run-wizard.png)
+![SS-277: HPLC run page (System Suitability tab)](screenshots/ss-277-hplc-system-suitability.png)
 
 #### How to use it
 ##### 1. Start a run
@@ -6204,7 +6204,7 @@ Requires the *Operate HPLC, GC and ICP workstations* permission (by default: Ana
 - Start wizard with three steps: **Select Method**, **Select Column**, **Review & Start**, and the button **Start GC Run**. There is no mobile-phase step.
 - Sample entry page with replicate rows of sample weight and one response for each solvent, and the calculation view for residual solvents.
 
-[SCREENSHOT SS-278]
+![SS-278: GC sample entry page (residual solvents)](screenshots/ss-278-gc-residual-solvents.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Laboratory** > **GC Workspace** and click **Start New Run** on an available GC instrument.
@@ -6254,7 +6254,7 @@ Every action that changes data requires the *Operate HPLC, GC and ICP workstatio
 - **CCV** tab: **Select Analyte / Element**, **Measured Concentration (mg/L)**, and a table (**Time**, **Element**, **Measured (mg/L)**, **Status**, **Entered By**).
 - Sample entry page: **Amount Unit**, **Replicate Measurements**, **Evidence: Sample Reports**, **Sample Report Upload**, **Save Replicates**, **Send for Review**, and a result preview with the columns **Parameter**, **Quantity**, **Result**, **Unit**, **Spec Limit**, **Status**, **Problem / Warning**.
 
-[SCREENSHOT SS-279]
+![SS-279: ICP run page (Calibration and CCV tabs)](screenshots/ss-279-icp-calibration-ccv.png)
 
 #### How to use it
 ##### 1. Start the run
@@ -6456,8 +6456,8 @@ Requires the *Prepare solutions* permission (by default: Analyst, Section Head, 
   - Step 3: a table with **Reagent / Material**, **Recipe Target**, **Chosen Stock Lot** and **Quantity Used**, and the button **Sign & Complete Preparation**.
 - The preparation record page (opened from **View Record**): **Code**, **Started By / At**, **Prepared By / At**, **Expires At**, a components table (**Reagent / Material**, **Target Quantity**, **Consumed Stock Lot**, **Quantity Used**) and a history table (**Transition**, **Changed By**, **Changed At**, **Reason / Note**).
 
-[SCREENSHOT SS-281]
-[SCREENSHOT SS-282]
+![SS-281: Preparation wizard (Lots & Quantities)](screenshots/ss-281-solution-lots-step.png)
+![SS-282: Preparation record page](screenshots/ss-282-solution-record-page.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Laboratory** > **Solution Preparation**.
@@ -6594,7 +6594,7 @@ The **Working Standards** page can be opened by any signed-in user. Actions need
 - The detail drawer of a qualification with the sections **SOURCE & SPECIFICATIONS** (including **Moisture Content**, read-only), **HPLC RUN & ASSAY RESULTS**, **DOCUMENTS & EVIDENCE** (kinds **Source Report** and **Moisture Report**, button **Upload**) and **WORKFLOW & SIGN-OFF** (**Prepared by:**, **Reviewed by:**, **Approved by:**, **Rejected by:**).
 - For a qualification that is **Assayed**, a user who can review sees **Review Actions** with **Review**, **Return to Draft** and **Reject**. For one that is **Reviewed**, a user who can approve sees **Approval Actions** with **Approve** and **Reject**.
 
-[SCREENSHOT SS-284]
+![SS-284: Working standard qualification drawer](screenshots/ss-284-working-standard-signoff.png)
 
 #### How to use it
 ##### 1. Create the qualification
@@ -6760,7 +6760,7 @@ You are assigned to the laboratory section whose stock you want to see.
 - Row actions **Details and documents** and **Edit material**, and the button **Add to Stock**.
 - When the section has no stock: "No materials in stock — Receive the first material lot."
 
-[SCREENSHOT SS-291]
+![SS-291: Materials in Stock page](screenshots/ss-291-materials-stock-register.png)
 
 #### How to use it
 1. Open **Materials Stock** from the menu of your laboratory.
@@ -6801,7 +6801,7 @@ The dialog **Add Material to Stock** with the buttons **Cancel** and **Add to St
   - Lyophilized microorganism: an organism picker and **ATCC No.**
 - **Laboratory Section** (when you have more than one section), **Material Name \***, **Manufacturer**, **Code / Catalog No.**, **Batch / Lot No. \***, **Storage Location \***, **Quantity Received \***, **Unit**, **Min. Stock Level (optional)**, **Receiving Date \*** and **Expiry Date** (not marked as required).
 
-[SCREENSHOT SS-292]
+![SS-292: Add Material to Stock dialog](screenshots/ss-292-add-material-dialog.png)
 
 #### How to use it
 1. On the Materials Stock page, click **Add to Stock**.
@@ -6867,7 +6867,7 @@ Attach, replace and void the documents of a lot: Certificate of Analysis, suppli
 - The dialog **Supersede Document** (field **Reason for Supersession \***, replacement file, button **Supersede**).
 - The dialog **Void Document** (field **Reason for Voiding \***, button **Void Document**).
 
-[SCREENSHOT SS-293]
+![SS-293: Lot Details window](screenshots/ss-293-lot-documents.png)
 [SCREENSHOT SS-294]
 
 #### How to use it
@@ -7007,7 +7007,7 @@ Requires the *Manage equipment* permission (by default: Analyst, Section Head, S
   - Row action menu: **Details and documents**, **Edit equipment**, **Audit history** (shown only to users allowed to see history).
   - Action button: **Register Equipment**.
 
-[SCREENSHOT SS-301]
+![SS-301: Equipment Inventory Page](screenshots/ss-301-equipment-inventory-register.png)
 
 #### How to use it
 1. Open **Laboratories** > **Microbiology Laboratory** > **Equipment Inventory** (or **Physicochemical Laboratory** > **Equipment Inventory**).
@@ -7048,7 +7048,7 @@ Register new equipment assets, record changes to operational status with a comme
   - Document list showing calibration certificates, upload dates and statuses (**Current**, **Superseded**, **Voided**).
   - Buttons: **Upload Document**, **Supersede**, **Void**.
 
-[SCREENSHOT SS-302]
+![SS-302: Register Equipment Dialog](screenshots/ss-302-register-equipment-dialog.png)
 
 #### How to use it
 ##### Registering new equipment
@@ -7132,7 +7132,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - **Configuration History**: the set point changes of the selected incubator (columns **Effective On**, **Equipment Code**, **Category**, **Details / Change**, **Changed By**, **Reason / Comment**), although its caption also mentions autoclave events. Autoclave program history is opened per program with **View History**.
 - Buttons: **Add Equipment**, **Select from Inventory**, **Edit Equipment**, **Edit Set Point** (incubators), **Add Program / Load** (autoclaves).
 
-[SCREENSHOT SS-303]
+![SS-303: Laboratory Configuration: Equipment Page](screenshots/ss-303-lab-config-equipment.png)
 
 #### How to use it
 ##### Adding equipment
@@ -7228,7 +7228,7 @@ Maintain the chromatography column list: code, name, serial number, USP designat
 - Button **Add Column**. The dialog is titled **Add Chromatography Column** (or **Edit Column**) with **Column Code**, **Column Name**, **Serial Number**, **USP Designation**, **Laboratory Section**, **Compatible HPLC Instruments** and, when editing, the checkbox **Column is Active**.
 - The deactivate confirmation is titled **Deactivate Chromatography Column**.
 
-[SCREENSHOT SS-304]
+![SS-304: Chromatography Columns Page](screenshots/ss-304-chromatography-columns.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Configuration** > **Chromatography Columns**.
@@ -7305,7 +7305,7 @@ Requires the *Manage items* permission (by default: Section Head, System Adminis
 - Selecting an item opens its workspace beside the list, with the tabs **Overview**, **Assigned Tests ({N})**, **Specifications ({N})**, **Documents & Attachments ({N})**, **Preparation Configuration** and **Audit History** (button **Open Audit History Log**).
 - The **Add New Item** / **Edit Item: {name}** dialog: **Item Name**, **Item Code**, **SOP Number** (optional), **Category** and **Assigned Tests**; buttons **Cancel** and **Save Item** / **Save Changes**.
 
-[SCREENSHOT SS-311]
+![SS-311: Items Page & Register](screenshots/ss-311-item-master-register.png)
 
 #### How to use it
 ##### Creating an item
@@ -7564,7 +7564,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - The step form: **Step Name**, **Step type**, **Target Organism (required)**, phenotypic test types (biochemical steps), **Final Step**, **Requires incubation transfer** and the **Stage 2** temperature and hours fields.
   - The **Step Media** section: per row a **Material** and an **Incubation condition**, a **Required** checkbox, **Remove medium**, and the button **Add Medium**. A note says "Saving replaces this step's entire medium list with what's shown below."
 
-[SCREENSHOT SS-313]
+![SS-313: Microbiology Test Master Details & Steps Dialog](screenshots/ss-313-micro-test-master-steps.png)
 
 #### How to use it
 ##### Creating a microbiology test
@@ -7658,7 +7658,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - **Reason for Change**, shown only when titration settings of an existing test are changed (5 to 500 characters).
   - The **Replicates per stage** box (not for titration tests).
 
-[SCREENSHOT SS-314]
+![SS-314: Physicochemical Test Master Add/Edit Dialog](screenshots/ss-314-physchem-test-master.png)
 
 #### How to use it
 1. Open **Laboratories** > **Physicochemical Configuration** > **FP Test Master** (or **RM & PM Test Master**).
@@ -7774,7 +7774,7 @@ Maintain the canonical microorganism repository (scientific name, ATCC catalog n
   - Row action menu: **Edit**, **Delete** (danger).
   - Delete confirmation dialog: "Delete organism \"{name}\"? This cannot be undone."
 
-[SCREENSHOT SS-321]
+![SS-321: Organisms Master Page](screenshots/ss-321-organisms-catalog.png)
 
 #### How to use it
 ##### Adding an Organism:
@@ -7846,7 +7846,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
      - Row actions: **Rename**, **Delete**.
      - Delete confirmation: "Delete \"{name}\" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes." (the stage name stays visible on old samples, but their link to the stage is removed; see the warning below)
 
-[SCREENSHOT SS-322]
+![SS-322: Receiving Configuration Page](screenshots/ss-322-receiving-configuration.png)
 
 #### How to use it
 ##### Adding and Renaming Samplers:
@@ -7918,7 +7918,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
   - Table 1 (**Rows per sheet**): Columns **Sheet**, **New**, **Unchanged**, **Errors**.
   - Table 2 (**Problems to fix**): Header "{N} problem(s) to fix in the workbook", Columns **Sheet**, **Row**, **Column**, **Problem**.
 
-[SCREENSHOT SS-323]
+![SS-323: Master Data Workbook Page & Validation Report](screenshots/ss-323-workbook-validation-report.png)
 
 #### How to use it
 1. Navigate to **General Laboratory Configuration** > **Master Data Workbook**.
@@ -8082,7 +8082,7 @@ Requires the *Manage users* permission (by default: System Administrator).
 - The user account exists and the departments and sections are active.
 
 #### What you see
-[SCREENSHOT SS-331]
+![SS-331: Laboratory Sections Dialog](screenshots/ss-331-user-laboratory-sections.png)
 The **Laboratory Sections: {Full Name}** dialog shows:
 - A checkbox per department: "{department} ({code}): All sections (entire department)".
 - A checkbox per section: "{section} ({code})". Section boxes are ticked and disabled while the whole department is ticked.
@@ -8134,7 +8134,7 @@ Provide a consolidated operational summary of laboratory testing volume, release
 Open to all signed-in users. Data visibility is automatically restricted to the user's assigned laboratory sections; users whose base role type is System Administrator have unrestricted access across all laboratory sections. Users without an assigned laboratory section see no data.
 
 #### What you see
-[SCREENSHOT SS-341]
+![SS-341: Reports Overview](screenshots/ss-341-reports-overview.png)
 The **Overview** tab of the **Reports** page presents:
 - Header title **Reports** with subtitle "Search, trend, and export laboratory results."
 - Quick period selector bar above the tabs (shown on every tab except **KPI / Performance**): options **30d** (default), **90d**, **1y**, and **custom** (with **From date** and **To date** inputs).
@@ -8176,7 +8176,7 @@ Open to all signed-in users. Record visibility is scoped to the user's assigned 
 - Ensure you have relevant search criteria (such as a Sample ID, Batch Number, Test Code, or Date Range) if searching for specific testing events.
 
 #### What you see
-[SCREENSHOT SS-342]
+![SS-342: Record Search & Results Table](screenshots/ss-342-reports-record-search.png)
 The **Record Search** tab is structured in a two-column layout:
 - Left filter panel (**Filters**):
   - **Search** text box (placeholder "Search Sample ID, Batch No., Item, Test, Location...")
@@ -8346,7 +8346,7 @@ Perform statistical process control and graphical trend analysis across quantita
 Open to all signed-in users. Data is scoped to the user's accessible laboratory sections.
 
 #### What you see
-[SCREENSHOT SS-343]
+![SS-343: Trending & Analysis Workspace](screenshots/ss-343-reports-trending-analysis.png)
 The **Trending & Analysis** tab is structured in a three-column layout:
 - Left column (**Analysis Criteria**):
   - **Parameter / Test** dropdown
@@ -8411,7 +8411,7 @@ Monitor operational throughput, turnaround times, quality metrics, and capacity 
 Requires the *View KPIs* permission (by default: Section Head, System Administrator). The tab and the **KPI / Performance** quick action on the Overview are hidden from users lacking this permission. Seeing the workload figures of other analysts requires the *View team KPIs and workload* permission (by default: Section Head, System Administrator); users without it see only their own workload row. The headline tiles show laboratory-level figures for everyone who can open the tab.
 
 #### What you see
-[SCREENSHOT SS-344]
+![SS-344: KPI Performance Dashboard & Workload Table](screenshots/ss-344-kpi-performance-workload.png)
 The **KPI / Performance** tab presents:
 - Filter bar:
   - **From** and **To** date inputs
@@ -8604,7 +8604,7 @@ Requires the *View audit trail* permission (by default: Section Head, System Adm
 - Have the relevant record identifiers (such as a Sample Reference or Batch Number) ready if you are searching for a specific laboratory event.
 
 #### What you see
-[SCREENSHOT SS-351]
+![SS-351: Audit Trail Search & Results](screenshots/ss-351-audit-trail-search.png)
 The **Audit Trail** screen presents:
 - Heading: **Audit Trail**
 - Subtitle: "Search and trace immutable change events, actor identities, and laboratory records across MicroLIMS."
@@ -8666,7 +8666,7 @@ Requires the *View audit trail* permission (by default: Section Head, System Adm
 - Run an audit search as described in §35.2 and find the event row.
 
 #### What you see
-[SCREENSHOT SS-352]
+![SS-352: Audit Event Details Drawer](screenshots/ss-352-audit-event-drawer.png)
 Clicking **Inspect Event & Traceability Chain** opens a details drawer containing:
 - The action (**CREATE**, **UPDATE** or **DELETE**)
 - A difference viewer showing changed field names, previous values and new values
@@ -8733,7 +8733,7 @@ Each node shows its type, a title and a status. The node types that can appear a
 
 <!-- WF-AUDIT-001 -->
 #### What you see
-[SCREENSHOT SS-361]
+![SS-361: Traceability Chain View](screenshots/ss-361-traceability-chain.png)
 When you open the chain for a sample, the nodes follow the testing and review path:
 1. **Sample**: the sample reference (for example "SMP-0001"), category, receiving time and status.
 2. **Sample Preparation**: the confirmed preparation record.
@@ -8948,7 +8948,7 @@ Provide a consolidated executive and operational overview of controlled document
 Open to all signed-in users. However, because the page queries both document masters and recent audit trail events simultaneously, and global audit queries are restricted to Reviewer, Section Head, and System Administrator role types, users with other roles may receive an error alert instead of metric figures.
 
 #### What you see
-[SCREENSHOT SS-381]
+![SS-381: Document Control Dashboard](screenshots/ss-381-dc-dashboard.png)
 The **Document Control Dashboard** presents:
 - Header title **Document Control Dashboard** with subtitle "Document governance overview, lifecycle metrics, and quality records status".
 - Navigation buttons in the header: **My Reading List**, **Document Library**, and **Register Document** (visible only to users holding the *Document Master Registration* permission; by default: System Administrator, Section Head, Analyst).
@@ -8981,7 +8981,7 @@ Serve as the authoritative catalog and search index for all controlled documents
 Open to all signed-in users. Viewing voided document masters is restricted by the server to users whose role type is System Administrator or Section Head.
 
 #### What you see
-[SCREENSHOT SS-382]
+![SS-382: Document Library](screenshots/ss-382-dc-library.png)
 The **Document Library** page presents:
 - Header title **Document Library** with subtitle "Authoritative repository of controlled documents, Standard Operating Procedures, and quality records".
 - Header button: **Register New Document** (visible only to users holding the *Document Master Registration* permission).
@@ -9034,7 +9034,7 @@ Manage metadata, file attachments, revision lifecycles, technical reviews, appro
 Open to all signed-in users. Opening a voided document master requires the System Administrator or Section Head role type. Editing draft metadata, uploading files, creating revisions, or routing for review requires the System Administrator or Section Head role type, or being the assigned document owner or Author.
 
 #### What you see
-[SCREENSHOT SS-383]
+![SS-383: Document Detail Workspace](screenshots/ss-383-dc-detail-workspace.png)
 The **Document Detail** page presents:
 - Header card:
   - Navigation button: **Document Library** (returns to catalog)
@@ -9095,7 +9095,7 @@ Requires the *Document Master Registration* permission (by default: System Admin
 - Know the Document Owner's user number (the dialog asks for a number, not a name).
 
 #### What you see
-[SCREENSHOT SS-384]
+![SS-384: Register Document Master Dialog](screenshots/ss-384-dc-register-dialog.png)
 Clicking **Register Document** on the dashboard or **Register New Document** in the library opens the **Register New Document Master** dialog:
 - Information banner explaining that the MicroLIMS Document ID "is automatically generated by the database sequence upon registration and cannot be modified. Initial status will be Draft".
 - Mandatory entry fields:
@@ -9482,7 +9482,7 @@ Track personal controlled document reading and training assignments, access rele
 Open to all signed-in users. Each user sees their own personal training assignments. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view assignments across personnel.
 
 #### What you see
-[SCREENSHOT SS-387]
+![SS-387: My Reading List & Legal Acknowledgement Dialog](screenshots/ss-387-dc-reading-list-ack.png)
 The **My Reading List** page presents:
 - Header title **My Reading List** with subtitle "Active document training and standard operating procedures assigned to {your name}."
 - Four summary counter cards:
@@ -9557,7 +9557,7 @@ Track, verify, and cross-reference personnel qualifications against active contr
 Open to all signed-in users. Users holding the *Document Training Assignment* permission (by default: Section Head, System Administrator) can view the entire matrix; the *Training Matrix Viewing* permission has no effect, so Reviewers do not see the whole matrix by default; users without this permission see only their own row. The **Document Compliance Profile** drawer and the compliance KPIs are not limited in this way: any user who can open the matrix can see every assigned person's status for a document.
 
 #### What you see
-[SCREENSHOT SS-388]
+![SS-388: Training Matrix Grid](screenshots/ss-388-dc-training-matrix.png)
 The **Training Matrix** page presents:
 - Header title **Training Matrix** with subtitle "Multi-axis qualification matrix mapping personnel to controlled document training requirements."
 - Action buttons: **Compliance Dashboard** and **Refresh Matrix**.
@@ -9650,7 +9650,7 @@ Search, trace, and export the audit log of all document control lifecycle action
 Restricted by the server to users whose base role type is Reviewer, Section Head, or System Administrator. Users with other role types receive the refusal: "You do not have permission to query the global audit trail."
 
 #### What you see
-[SCREENSHOT SS-389]
+![SS-389: Document Control Audit Trail](screenshots/ss-389-dc-audit-trail.png)
 The **Document Control Audit Trail** page presents:
 - Header title **Document Control Audit Trail** with subtitle "Chronological, append-only regulatory audit log of document life-cycle actions and configuration changes".
 - Header button: **Export Audit Trail (CSV)** (displays "Exporting CSV..." during file generation).
@@ -9829,7 +9829,7 @@ Requires the *Manage users* permission (`Users.Manage`, by default: System Admin
 - Decide the role and the laboratory memberships (see §33) for the user.
 
 #### What you see
-[SCREENSHOT SS-391]
+![SS-391: User Management Screen](screenshots/ss-391-user-management.png)
 The **User Management** screen displays:
 - Title: **User Management**
 - Subtitle: "Manage system users, role assignments, security status, and account access."
@@ -9946,7 +9946,7 @@ Requires the *Role & permission management* permission (`Roles.Manage`, by defau
 - Decide which of the four base role types (System Administrator, Section Head, Reviewer, Analyst) the new role should behave like.
 
 #### What you see
-[SCREENSHOT SS-392]
+![SS-392: Role Detail & Permission Matrix](screenshots/ss-392-role-permission-matrix.png)
 The **Roles** screen displays:
 - Title: **Roles**
 - Subtitle: "System Administrator, Section Head, Reviewer, Analyst, and any custom roles."
@@ -10050,7 +10050,7 @@ Requires the *View error log* permission (`System.ViewErrorLog`, by default: Sys
 - Have the time range or correlation id of the reported problem ready.
 
 #### What you see
-[SCREENSHOT SS-401]
+![SS-401: Error Monitoring Screen](screenshots/ss-401-error-monitoring-incidents.png)
 The **Error Monitoring** screen presents:
 - Heading: **Error Monitoring** and the subtitle quoted above
 - Filters:

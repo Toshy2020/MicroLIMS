@@ -27,7 +27,7 @@ Make sure the reference organisms exist in the Organisms list (§32).
 - The status shows **Pending Review**, **Approved** or **Rejected**; a destroyed batch shows **Destroyed**.
 - The **Approved Cryovials** tab lists approved, not destroyed batches with the columns **Cryovial Code**, **Organism**, **ATCC No.**, **Manufacturer**, **Storage**, **Vials Remaining**, **Expiry** and **Status**.
 
-[SCREENSHOT SS-261]
+![SS-261: Reference Cryovials (page)](../screenshots/ss-261-reference-cryovials.png)
 
 #### How to use it
 1. Open **Reference Cryovials** and use the filters to find a batch.
@@ -78,7 +78,7 @@ Requires the *Cryovial Management* permission (by default: Section Head, Reviewe
 - **Section 2: Identity Confirmation Panel** (a table; at least one row): **Media (GPT-released) \***, **Incubator \***, **Start \***, **End \***, **Observation**, and the button **Add Media Row**.
 - Buttons **Cancel** and **Save Batch**.
 
-[SCREENSHOT SS-262]
+![SS-262: Prepare Cryovial Batch (dialog)](../screenshots/ss-262-prepare-cryovial-batch.png)
 
 #### How to use it
 1. Click **Prepare Cryovial Batch**.

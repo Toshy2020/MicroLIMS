@@ -27,7 +27,7 @@ An OOS group must exist. A group is created only when a Section Head signs the d
   - A table of retest samples with the columns **Retest Sample**, **Parent / Origin**, **Item / Point**, **Retest Type** (**Retest Retained Sample** or **New Sample Request**), **Test(s)**, **Analyst(s)** (shows "User #{id}" if the name is not found), **Retest Status**, **Opened** and **Actions**. The action icon has the tooltip "Open the retest sample's printable report".
   - When the group has no retest samples yet: "No retest samples have been spun off yet for this OOS chain."
 
-[SCREENSHOT SS-201]
+![SS-201: Out-of-Specification Tracking (page)](../screenshots/ss-201-oos-tracking.png)
 
 #### How to use it
 1. Open **OOS Tracking** under **AUDIT & COMPLIANCE** in the sidebar.
@@ -78,7 +78,7 @@ Requires the *OOS Tracking Management* permission (by default: Section Head, Sys
 - Row icons with the tooltips "Download file" and "Supersede with replacement report" (the supersede icon appears only on the **Current** row, and only while no supersede panel is open).
 - The supersede panel: "The current document will be marked Superseded. A new active version will take its place.", the field **Reason for Supersession \***, and the buttons **Choose Replacement File** and **Supersede** (disabled until a replacement file and a reason are given).
 
-[SCREENSHOT SS-202]
+![SS-202: Lab Investigation Documents (dialog)](../screenshots/ss-202-oos-investigation-documents.png)
 
 #### How to use it
 To upload the initial report:

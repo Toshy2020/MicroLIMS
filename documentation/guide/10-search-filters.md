@@ -62,7 +62,7 @@ Open to every signed-in user. It searches results in your laboratory sections.
   - When you tick approved rows, the buttons **Export Selected PDF**, **Export Selected CSV**, and **Analyze Selected** (opens the Trending tab) appear.
 - When nothing matches: "No results found" and "Try widening the date range or clearing some filters." with the button **Clear Filters**.
 
-[SCREENSHOT SS-101]
+![SS-101: Reports Record Search](../screenshots/ss-101-reports-record-search.png)
 
 #### Other Reports tabs
 - **Media / GPT**: Search, Media Type, Evaluation Type (starts as GrowthPromotion), Evaluation Outcome (**Conform**, **NonConform**), Approval Status, and a date range.
@@ -86,7 +86,7 @@ Needs the *Audit Trail Viewing* permission (by default: System Administrator, Se
 - The result heading reads **Audit Events (N)**. When 300 or more events match, it adds ", capped at 300 latest" and only the 300 newest are shown. If nothing matches: "No audit events found". If the search fails: "Failed to fetch audit records from the server."
 - **Inspect Event & Traceability Chain** on a row opens a panel with the differences, the raw data, and the traceability chain.
 
-[SCREENSHOT SS-102]
+![SS-102: Audit Trail Search](../screenshots/ss-102-audit-trail-search.png)
 
 > **Note for reviewers:** The Audit Trail screen shows at most 300 events, has no export or print function, cannot filter on user and role administration actions, and does not show login history or security events. (GAP-030, GAP-101)
 
@@ -105,7 +105,7 @@ Open to every signed-in user.
 - The switches **Show Voided** and **Review Overdue Only**, and the button **Reset** (disabled while no filter is set).
 - When nothing matches: "No controlled documents match the selected filters". The table can show 5, 10, 25, or 50 rows per page.
 
-[SCREENSHOT SS-103]
+![SS-103: Document Library Filters](../screenshots/ss-103-document-library-filters.png)
 
 #### My Reading List and Training Matrix
 - **My Reading List**: the search box "Search document title, code, MicroLIMS ID...", the button **Refresh List**, and the tabs **To read**, **Overdue**, **Completed**, **Superseded**, and **All**.

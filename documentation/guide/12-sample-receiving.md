@@ -36,7 +36,7 @@ Register incoming samples of Finished Product, Raw Material, or Packaging Materi
     - **Exp Date** date picker
   - Action buttons: **Back**, **Add Another Sample**, and **Save All Samples** (displays "Receiving..." while the request is being processed)
 
-[SCREENSHOT SS-121]
+![SS-121: New Sample (Category Selection)](../screenshots/ss-121-new-sample-category.png)
 
 [SCREENSHOT SS-122]
 

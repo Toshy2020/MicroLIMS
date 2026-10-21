@@ -43,7 +43,7 @@ The heading **Administrator Command Center** and the button **Refresh**. The til
 6. **Prep configs pending**: item preparation configurations waiting for approval. This tile appears only when the count is above zero, and opens the Items configuration.
 7. **Overdue (>24h)**: open test orders on samples that were received more than 24 hours ago.
 
-[SCREENSHOT SS-081]
+![SS-081: Administrator Command Center](../screenshots/ss-081-admin-dashboard.png)
 
 > **Note for reviewers:** "Total samples" and "Total tests" are all-time counts, not counts for today. (GAP-106)
 

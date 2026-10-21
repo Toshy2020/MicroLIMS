@@ -14,7 +14,7 @@ Requires the *Manage users* permission (`Users.Manage`, by default: System Admin
 - Decide the role and the laboratory memberships (see §33) for the user.
 
 #### What you see
-[SCREENSHOT SS-391]
+![SS-391: User Management Screen](../screenshots/ss-391-user-management.png)
 The **User Management** screen displays:
 - Title: **User Management**
 - Subtitle: "Manage system users, role assignments, security status, and account access."
@@ -131,7 +131,7 @@ Requires the *Role & permission management* permission (`Roles.Manage`, by defau
 - Decide which of the four base role types (System Administrator, Section Head, Reviewer, Analyst) the new role should behave like.
 
 #### What you see
-[SCREENSHOT SS-392]
+![SS-392: Role Detail & Permission Matrix](../screenshots/ss-392-role-permission-matrix.png)
 The **Roles** screen displays:
 - Title: **Roles**
 - Subtitle: "System Administrator, Section Head, Reviewer, Analyst, and any custom roles."

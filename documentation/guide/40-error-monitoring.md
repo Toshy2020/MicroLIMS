@@ -35,7 +35,7 @@ Requires the *View error log* permission (`System.ViewErrorLog`, by default: Sys
 - Have the time range or correlation id of the reported problem ready.
 
 #### What you see
-[SCREENSHOT SS-401]
+![SS-401: Error Monitoring Screen](../screenshots/ss-401-error-monitoring-incidents.png)
 The **Error Monitoring** screen presents:
 - Heading: **Error Monitoring** and the subtitle quoted above
 - Filters:

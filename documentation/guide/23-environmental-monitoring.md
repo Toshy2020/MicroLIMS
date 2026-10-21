@@ -39,7 +39,7 @@ Testing frequency is only a label. It does not schedule or remind anything.
 - Left: a search box **Find a department or room** and the department list. Right: "Select a department" until you pick one; then **Edit department**, a delete icon, and the room cards.
 - A room card shows its grade, the count of tests (for example "2 tests"), the button **Add first test** or **Add test**, and icons to edit or delete the room and each test. A room with no tests shows **No tests configured**.
 
-[SCREENSHOT SS-231]
+![SS-231: Environmental Monitoring (page)](../screenshots/ss-231-em-configuration.png)
 
 #### How to use it
 To add a department:
@@ -58,7 +58,7 @@ To add a room test:
 3. In **2 · Limits**, enter **Alert**, **Action** and **Specification** limits (leave a limit blank if it does not apply) and the **Unit**. The unit is required for Active air sample, Compressed air and Drains.
 4. Click **Add test**. The system shows `Test added to {room}.`
 
-[SCREENSHOT SS-232]
+![SS-232: Add Test (dialog)](../screenshots/ss-232-em-room-test-dialog.png)
 
 To change or remove something, use **Edit department**, the room and test icons, and confirm the deletion question (for example `Remove the {type} / {code} test from {room}?`).
 

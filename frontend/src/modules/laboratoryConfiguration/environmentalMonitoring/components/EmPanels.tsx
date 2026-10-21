@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MenuItem, Stack, TextField } from "@mui/material";
-import { FrequencyField, LimitFields, LimitValues, PanelSection, SidePanel, emptyLimits } from "../../../../components/configHierarchy";
+import { FrequencyValue, LimitFields, LimitValues, PanelSection, SidePanel, StructuredFrequencyField, emptyFrequency, emptyLimits, frequencyFrom, frequencyLabel, frequencyRule } from "../../../../components/configHierarchy";
 import { TestCodePicker } from "../../../../components/TestCodePicker";
 import { EMConfigService } from "../services/EMConfigService";
 import { EM_GRADES, EM_TEST_TYPES, EmDepartment, EmRoom, RoomTestConfig, emTestType } from "../emConfigTypes";
@@ -17,7 +17,7 @@ interface DeptProps {
 export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
   const [name, setName] = useState("");
   const [cls, setCls] = useState("");
-  const [frequency, setFrequency] = useState("");
+  const [frequency, setFrequency] = useState<FrequencyValue>(emptyFrequency);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +25,7 @@ export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
     if (!open) return;
     setName(dept?.name ?? "");
     setCls(dept?.class ?? "");
-    setFrequency(dept?.testingFrequency ?? "");
+    setFrequency(dept ? frequencyFrom(dept) : emptyFrequency);
     setError(null);
   }, [open, dept]);
 
@@ -35,10 +35,10 @@ export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
     setError(null);
     try {
       if (dept) {
-        await EMConfigService.updateDepartment(dept.id, name.trim(), cls, frequency, dept.version);
+        await EMConfigService.updateDepartment(dept.id, name.trim(), cls, frequencyLabel(frequency), dept.version, frequencyRule(frequency));
         onSaved(`"${name.trim()}" updated.`, dept.id);
       } else {
-        const created = await EMConfigService.createDepartment(name.trim(), cls, frequency);
+        const created = await EMConfigService.createDepartment(name.trim(), cls, frequencyLabel(frequency), frequencyRule(frequency));
         onSaved(`"${name.trim()}" added.`, created?.id);
       }
     } catch (e) {
@@ -62,7 +62,7 @@ export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
       <Stack spacing={1.5}>
         <TextField autoFocus size="small" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
         <TextField size="small" label="Class" placeholder="e.g. Grade C" value={cls} onChange={(e) => setCls(e.target.value)} />
-        <FrequencyField id="em-dept-frequency" value={frequency} onChange={setFrequency} />
+        <StructuredFrequencyField idPrefix="em-dept-frequency" value={frequency} onChange={setFrequency} />
       </Stack>
     </SidePanel>
   );
@@ -81,6 +81,9 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
   const [name, setName] = useState("");
   const [departmentId, setDepartmentId] = useState<number | "">("");
   const [grade, setGrade] = useState("A");
+  const [kind, setKind] = useState<"Room" | "LAF">("Room");
+  const [parentRoomId, setParentRoomId] = useState<number | "">("");
+  const [frequency, setFrequency] = useState<FrequencyValue>(emptyFrequency);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,16 +92,24 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
     setName(room?.name ?? "");
     setDepartmentId(room?.departmentId ?? defaultDepartmentId ?? "");
     setGrade(room?.gradeClassification || "A");
+    setKind(room?.kind ?? "Room");
+    setParentRoomId(room?.parentRoomId ?? "");
+    setFrequency(room ? frequencyFrom(room) : emptyFrequency);
     setError(null);
   }, [open, room, defaultDepartmentId]);
 
+  const department = departments.find((d) => d.id === departmentId);
+  const parentRooms = (department?.rooms ?? []).filter((r) => r.kind !== "LAF" && r.id !== room?.id);
+
   const save = async () => {
     if (!name.trim() || departmentId === "") return setError("Room name and department are required.");
+    if (kind === "LAF" && parentRoomId === "") return setError("Choose the room this LAF sits in.");
     setSaving(true);
     setError(null);
+    const extra = { kind, parentRoomId: kind === "LAF" ? Number(parentRoomId) : null, frequency: frequencyRule(frequency) };
     try {
-      if (room) await EMConfigService.updateRoom(room.id, name.trim(), Number(departmentId), grade, room.version);
-      else await EMConfigService.createRoom(name.trim(), Number(departmentId), grade);
+      if (room) await EMConfigService.updateRoom(room.id, name.trim(), Number(departmentId), grade, room.version, extra);
+      else await EMConfigService.createRoom(name.trim(), Number(departmentId), grade, extra);
       onSaved(room ? `Room "${name.trim()}" updated.` : `Room "${name.trim()}" added.`, Number(departmentId));
     } catch (e) {
       setError(errorText(e, "Could not save this room."));
@@ -134,6 +145,26 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
             </MenuItem>
           ))}
         </TextField>
+        <TextField select size="small" label="Type" value={kind} onChange={(e) => setKind(e.target.value as "Room" | "LAF")}>
+          <MenuItem value="Room">Room</MenuItem>
+          <MenuItem value="LAF">LAF (laminar air flow unit)</MenuItem>
+        </TextField>
+        {kind === "LAF" && (
+          <TextField select size="small" label="Sits in room" required value={parentRoomId} onChange={(e) => setParentRoomId(Number(e.target.value))}>
+            {parentRooms.map((r) => (
+              <MenuItem key={r.id} value={r.id}>
+                {r.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
+        <StructuredFrequencyField
+          idPrefix="em-room-frequency"
+          value={frequency}
+          onChange={setFrequency}
+          noneLabel="Same as department"
+          inheritedHint={department && frequencyLabel(department) ? `Uses the department's frequency: ${frequencyLabel(department)}.` : "The department has no structured frequency yet."}
+        />
       </Stack>
     </SidePanel>
   );

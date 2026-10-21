@@ -5,7 +5,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
-import { LimitPills, ToneChip } from "../../../../components/configHierarchy";
+import { LimitPills, ToneChip, frequencyLabel } from "../../../../components/configHierarchy";
 import { PointHealth, SamplingConfig, SamplingPoint, countTestsOf } from "../waterConfigTypes";
 
 interface Props {
@@ -56,7 +56,7 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
             <Box sx={{ display: "grid", gridTemplateColumns: COLS, gap: 1.5, px: 1.75, py: 1.5, alignItems: "center" }}>
               <Typography sx={{ fontFamily: "monospace", fontSize: 14, fontWeight: 600 }}>{p.code}</Typography>
               <Typography sx={{ fontSize: 14, overflowWrap: "anywhere" }}>{p.location || "—"}</Typography>
-              <Box>{p.testingFrequency ? <ToneChip label={p.testingFrequency} tone="pending" /> : <Typography sx={{ fontSize: 13, color: "text.secondary" }}>—</Typography>}</Box>
+              <Box>{frequencyLabel(p) || p.testingFrequency ? <ToneChip label={frequencyLabel(p) || p.testingFrequency} tone="pending" /> : <Typography sx={{ fontSize: 13, color: "text.secondary" }}>—</Typography>}</Box>
               <Box>
                 {health?.noTests ? (
                   <Stack spacing={0.25}>

@@ -1,4 +1,6 @@
-export interface SamplingPoint {
+import type { FrequencyColumns } from "../../../components/configHierarchy";
+
+export interface SamplingPoint extends FrequencyColumns {
   id: number;
   version?: number;
   code: string;

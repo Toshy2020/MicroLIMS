@@ -57,7 +57,7 @@ public static class OccurrenceStatusCalculator
         var performed = i.Items.Count(p => p >= ItemProgress.Performed);
         var late = linked > 0 && i.LatestFulfilledOn is DateOnly on && on > i.WindowEnd;
 
-        OccurrenceStatus Result(OccurrenceStatus s) => new(s, late, total, linked, performed);
+        OccurrenceStatusResult Result(OccurrenceStatus s) => new(s, late, total, linked, performed);
 
         if (i.ExceptionState == OccurrenceExceptionState.Retired) return Result(OccurrenceStatus.Retired);
         if (i.ExceptionState == OccurrenceExceptionState.Skipped) return Result(OccurrenceStatus.Skipped);

@@ -38,6 +38,7 @@ public class WaterMasterDataService
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
         RecordVersion.EnsureCurrent(_db, point);
+        if (request.IsActive.HasValue) point.IsActive = request.IsActive.Value;
         point.Code = request.Code;
         point.Location = request.Location;
         point.TestingFrequency = request.TestingFrequency;
@@ -98,6 +99,7 @@ public class WaterMasterDataService
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Water department {id} not found.");
         RecordVersion.EnsureCurrent(_db, dept);
+        if (request.IsActive.HasValue) dept.IsActive = request.IsActive.Value;
         dept.Name = request.Name;
         await _db.SaveChangesAsync();
         return WaterDepartmentResponse.From(dept);

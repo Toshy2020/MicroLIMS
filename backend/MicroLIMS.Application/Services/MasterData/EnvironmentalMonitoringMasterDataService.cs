@@ -46,6 +46,7 @@ public class EnvironmentalMonitoringMasterDataService
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Department {id} not found.");
         RecordVersion.EnsureCurrent(_db, dept);
+        if (request.IsActive.HasValue) dept.IsActive = request.IsActive.Value;
         dept.Name = request.Name;
         dept.Class = request.Class;
         dept.TestingFrequency = request.TestingFrequency;
@@ -94,6 +95,7 @@ public class EnvironmentalMonitoringMasterDataService
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Room {id} not found.");
         RecordVersion.EnsureCurrent(_db, room);
+        if (request.IsActive.HasValue) room.IsActive = request.IsActive.Value;
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
         room.GradeClassification = request.GradeClassification;
@@ -157,6 +159,7 @@ public class EnvironmentalMonitoringMasterDataService
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;

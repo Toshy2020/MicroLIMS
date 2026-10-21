@@ -39,6 +39,8 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     {
         var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId)
             ?? throw new InvalidOperationException($"Department {request.DepartmentId} not found.");
+        if (!department.IsActive)
+            throw new InvalidOperationException($"Department '{department.Name}' is inactive and cannot receive samples.");
 
         var sample = new Sample
         {
@@ -89,6 +91,11 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         var missing = roomTestConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
             throw new InvalidOperationException($"Room test configuration(s) not found: {string.Join(", ", missing)}.");
+
+        var inactive = configs.Where(c => !c.IsActive || c.Room?.IsActive == false).ToList();
+        if (inactive.Count > 0)
+            throw new InvalidOperationException(
+                $"Room(s) {string.Join(", ", inactive.Select(c => c.Room?.Name))} are inactive and cannot be prepared.");
 
         var wrongDepartment = configs.Where(c => c.Room?.DepartmentId != sample.DepartmentId).ToList();
         if (wrongDepartment.Count > 0)

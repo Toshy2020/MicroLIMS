@@ -53,6 +53,8 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     {
         var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == request.WaterDepartmentId)
             ?? throw new InvalidOperationException($"Water department {request.WaterDepartmentId} not found.");
+        if (!department.IsActive)
+            throw new InvalidOperationException($"Water department '{department.Name}' is inactive and cannot receive samples.");
 
         var sample = new Sample
         {
@@ -110,6 +112,11 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         var missing = waterSamplingPointIds.Except(points.Select(p => p.Id)).ToList();
         if (missing.Count > 0)
             throw new InvalidOperationException($"Sampling point(s) not found: {string.Join(", ", missing)}.");
+
+        var inactive = points.Where(p => !p.IsActive).ToList();
+        if (inactive.Count > 0)
+            throw new InvalidOperationException(
+                $"Sampling point(s) {string.Join(", ", inactive.Select(p => p.Code))} are inactive and cannot be prepared.");
 
         var wrongDepartment = points.Where(p => p.WaterDepartmentId != sample.WaterDepartmentId).ToList();
         if (wrongDepartment.Count > 0)

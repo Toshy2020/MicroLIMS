@@ -111,12 +111,14 @@ public class MachineResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public string Name { get; init; } = null!;
 
     public static MachineResponse From(Machine e) => new()
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         Name = e.Name,
     };
 }
@@ -125,6 +127,7 @@ public class MachinePartResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public int MachineId { get; init; }
     public string Name { get; init; } = null!;
 
@@ -132,6 +135,7 @@ public class MachinePartResponse
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         MachineId = e.MachineId,
         Name = e.Name,
     };
@@ -141,6 +145,7 @@ public class MachinePartConfigurationResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public int MachinePartId { get; init; }
     public string TestType { get; init; } = null!;
     public string TestCode { get; init; } = null!;
@@ -154,6 +159,7 @@ public class MachinePartConfigurationResponse
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         MachinePartId = e.MachinePartId,
         TestType = e.TestType,
         TestCode = e.TestCode,
@@ -169,6 +175,7 @@ public class EmDepartmentResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public string Name { get; init; } = null!;
     public string Class { get; init; } = null!;
     public string TestingFrequency { get; init; } = null!;
@@ -177,6 +184,7 @@ public class EmDepartmentResponse
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         Name = e.Name,
         Class = e.Class,
         TestingFrequency = e.TestingFrequency,
@@ -187,6 +195,7 @@ public class RoomResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public string Name { get; init; } = null!;
     public int DepartmentId { get; init; }
     public string GradeClassification { get; init; } = null!;
@@ -195,6 +204,7 @@ public class RoomResponse
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         Name = e.Name,
         DepartmentId = e.DepartmentId,
         GradeClassification = e.GradeClassification,
@@ -205,6 +215,7 @@ public class RoomTestConfigurationResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public int RoomId { get; init; }
     public string TestType { get; init; } = null!;
     public string TestCode { get; init; } = null!;
@@ -217,6 +228,7 @@ public class RoomTestConfigurationResponse
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         RoomId = e.RoomId,
         TestType = e.TestType,
         TestCode = e.TestCode,
@@ -231,12 +243,14 @@ public class WaterDepartmentResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public string Name { get; init; } = null!;
 
     public static WaterDepartmentResponse From(WaterDepartment e) => new()
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         Name = e.Name,
     };
 }
@@ -245,6 +259,7 @@ public class WaterSamplingPointResponse
 {
     public int Id { get; init; }
     public uint Version { get; init; }
+    public bool IsActive { get; init; }
     public string Code { get; init; } = null!;
     public string Location { get; init; } = null!;
     public string TestingFrequency { get; init; } = null!;
@@ -255,6 +270,7 @@ public class WaterSamplingPointResponse
     {
         Id = e.Id,
         Version = e.Version,
+        IsActive = e.IsActive,
         Code = e.Code,
         Location = e.Location,
         TestingFrequency = e.TestingFrequency,

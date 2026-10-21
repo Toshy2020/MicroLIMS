@@ -45,6 +45,8 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == request.MachineId)
             ?? throw new InvalidOperationException($"Machine {request.MachineId} not found.");
+        if (!machine.IsActive)
+            throw new InvalidOperationException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
 
         if (string.IsNullOrWhiteSpace(request.PreviousProductName))
         {
@@ -109,6 +111,11 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         var missing = machinePartConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
             throw new InvalidOperationException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+
+        var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
+        if (inactive.Count > 0)
+            throw new InvalidOperationException(
+                $"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive and cannot be prepared.");
 
         var wrongMachine = configs.Where(c => c.MachinePart?.MachineId != sample.MachineId).ToList();
         if (wrongMachine.Count > 0)

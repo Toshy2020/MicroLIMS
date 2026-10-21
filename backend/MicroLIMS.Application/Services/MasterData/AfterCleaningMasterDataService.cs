@@ -46,6 +46,7 @@ public class AfterCleaningMasterDataService
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
             ?? throw new NotFoundException($"Machine {id} not found.");
         RecordVersion.EnsureCurrent(_db, machine);
+        if (request.IsActive.HasValue) machine.IsActive = request.IsActive.Value;
         machine.Name = request.Name;
         await _db.SaveChangesAsync();
         return MachineResponse.From(machine);
@@ -85,6 +86,7 @@ public class AfterCleaningMasterDataService
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Machine part {id} not found.");
         RecordVersion.EnsureCurrent(_db, part);
+        if (request.IsActive.HasValue) part.IsActive = request.IsActive.Value;
         part.Name = request.Name;
         part.MachineId = request.MachineId;
         await _db.SaveChangesAsync();
@@ -142,6 +144,7 @@ public class AfterCleaningMasterDataService
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         await EnsureNotDuplicateAsync(entity.MachinePartId, request.TestType, request.TestCode, entity.Id);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;

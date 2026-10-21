@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Button, IconButton, MenuItem, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, FormControlLabel, IconButton, MenuItem, Switch, Tab, Tabs, TextField, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { PageHeader } from "../../components/PageHeader";
 import { useHasPermission } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { CoverageTable } from "./components/CoverageTable";
 import { DuePanel } from "./components/DuePanel";
 import { ManualEntryDialog } from "./components/ManualEntryDialog";
 import { MonthGrid } from "./components/MonthGrid";
 import { OccurrenceDialog } from "./components/OccurrenceDialog";
+import { SpacingTable } from "./components/SpacingTable";
 import { YearGrid } from "./components/YearGrid";
 import { MonitoringPlanService } from "./services/MonitoringPlanService";
 import { CATEGORY_LABEL, MONTH_NAMES, isoDate } from "./statusDisplay";
-import type { DueResult, MonitoringCategory, OccurrenceSummary, YearSummary } from "./types";
+import type { CoverageReport, DueResult, MonitoringCategory, OccurrenceSummary, SpacingReport, YearSummary } from "./types";
 
 // The annual monitoring plan as a calendar: the year shows twelve month
 // tiles, a month shows its days. Everything shown comes from the backend.
@@ -28,12 +30,18 @@ export function MonitoringPlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  const [tab, setTab] = useState<"calendar" | "coverage" | "spacing">("calendar");
+  const [coverage, setCoverage] = useState<CoverageReport | null>(null);
+  const [spacing, setSpacing] = useState<SpacingReport | null>(null);
+  const [flaggedOnly, setFlaggedOnly] = useState(true);
 
   const cat = category || undefined;
 
   const load = useCallback(async () => {
     setError(null);
     try {
+      if (tab === "coverage") { setCoverage(await MonitoringPlanService.getCoverage(year, cat)); return; }
+      if (tab === "spacing") { setSpacing(await MonitoringPlanService.getSpacing(year, cat, flaggedOnly)); return; }
       const [y, d] = await Promise.all([MonitoringPlanService.getYear(year, cat), MonitoringPlanService.getDue(cat)]);
       setSummary(y);
       setDue(d);
@@ -44,7 +52,7 @@ export function MonitoringPlanPage() {
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load the monitoring plan.");
     }
-  }, [year, month, cat]);
+  }, [year, month, cat, tab, flaggedOnly]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -52,7 +60,7 @@ export function MonitoringPlanPage() {
   const monthDays = useMemo(() => days, [days]);
 
   const step = (delta: number) => {
-    if (month === null) { setYear(year + delta); return; }
+    if (tab !== "calendar" || month === null) { setYear(year + delta); return; }
     const next = month + delta;
     if (next < 0) { setYear(year - 1); setMonth(11); }
     else if (next > 11) { setYear(year + 1); setMonth(0); }
@@ -66,15 +74,23 @@ export function MonitoringPlanPage() {
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <DuePanel due={due} onPick={(o) => setOpenId(o.id)} />
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+        <Tab value="calendar" label="Calendar" />
+        <Tab value="coverage" label="Coverage" />
+        <Tab value="spacing" label="Spacing" />
+      </Tabs>
+      {tab === "calendar" && <DuePanel due={due} onPick={(o) => setOpenId(o.id)} />}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2, flexWrap: "wrap" }}>
         <IconButton onClick={() => step(-1)} aria-label="Previous"><ChevronLeftIcon /></IconButton>
         <Typography sx={{ fontWeight: 600, minWidth: 160, textAlign: "center" }}>
-          {month === null ? year : `${MONTH_NAMES[month]} ${year}`}
+          {tab !== "calendar" || month === null ? year : `${MONTH_NAMES[month]} ${year}`}
         </Typography>
         <IconButton onClick={() => step(1)} aria-label="Next"><ChevronRightIcon /></IconButton>
-        {month !== null && <Button onClick={() => setMonth(null)}>Back to year</Button>}
+        {tab === "calendar" && month !== null && <Button onClick={() => setMonth(null)}>Back to year</Button>}
+        {tab === "spacing" && (
+          <FormControlLabel control={<Switch checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />} label="Only flagged gaps" />
+        )}
         <TextField
           select size="small" label="Area" value={category} sx={{ minWidth: 220, ml: "auto" }}
           onChange={(e) => setCategory(e.target.value as MonitoringCategory | "")}
@@ -86,7 +102,11 @@ export function MonitoringPlanPage() {
         </TextField>
       </Box>
 
-      {month === null ? (
+      {tab === "coverage" ? (
+        <CoverageTable report={coverage} />
+      ) : tab === "spacing" ? (
+        <SpacingTable report={spacing} />
+      ) : month === null ? (
         <YearGrid summary={summary} onPick={setMonth} />
       ) : (
         <MonthGrid year={year} month={month} occurrences={monthDays} today={today} onPick={(o) => setOpenId(o.id)} />

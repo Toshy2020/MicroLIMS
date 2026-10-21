@@ -1,5 +1,7 @@
 import { apiClient } from "../../../services/apiClient";
 import type {
+  CoverageReport,
+  SpacingReport,
   DueResult,
   MonitoringCategory,
   MonitoringChecklist,
@@ -10,11 +12,18 @@ import type {
 } from "../types";
 
 const BASE = "/monitoring-occurrences";
+const REPORTS = "/monitoring-reports";
 
 // Row versions travel in the If-Match header like the other editable records.
 const ifMatch = (version: number) => ({ headers: { "If-Match": String(version) } });
 
 export const MonitoringPlanService = {
+  getCoverage: (year: number, category?: MonitoringCategory) =>
+    apiClient.get(`${REPORTS}/coverage`, { params: { year, category } }).then((r) => r.data.data as CoverageReport),
+
+  getSpacing: (year: number, category: MonitoringCategory | undefined, flaggedOnly: boolean) =>
+    apiClient.get(`${REPORTS}/spacing`, { params: { year, category, flaggedOnly } }).then((r) => r.data.data as SpacingReport),
+
   getYear: (year: number, category?: MonitoringCategory) =>
     apiClient.get(`${BASE}/calendar/year`, { params: { year, category } }).then((r) => r.data.data as YearSummary),
 

@@ -102,3 +102,34 @@ export interface SignedChange {
   secondSignerUsername: string;
   secondSignerPassword: string;
 }
+
+export interface CoverageRow {
+  category: MonitoringCategory;
+  target: string;
+  group: string | null;
+  planned: number;
+  performed: number;
+  performedLate: number;
+  inProgress: number;
+  overdue: number;
+  upcoming: number;
+  skipped: number;
+  coveragePercent: number | null;
+}
+
+export interface CoverageReport { year: number; asOf: string; rows: CoverageRow[]; total: CoverageRow }
+
+export interface SpacingRow {
+  category: MonitoringCategory;
+  target: string;
+  group: string | null;
+  frequency: string;
+  previousOn: string;
+  nextOn: string;
+  gapDays: number;
+  minDays: number;
+  maxDays: number;
+  flagged: boolean;
+}
+
+export interface SpacingReport { year: number; rows: SpacingRow[] }

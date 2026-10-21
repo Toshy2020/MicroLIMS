@@ -1190,6 +1190,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("FrequencyType")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("FrequencyWeekOfMonth")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
@@ -7752,6 +7755,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("FrequencyType")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("FrequencyWeekOfMonth")
+                        .HasColumnType("integer");
+
                     b.Property<string>("GradeClassification")
                         .IsRequired()
                         .HasColumnType("text");
@@ -9921,6 +9927,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int?>("FrequencyType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyWeekOfMonth")
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")

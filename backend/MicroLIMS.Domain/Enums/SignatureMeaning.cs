@@ -21,6 +21,9 @@ public enum SignatureMeaning
     LaboratoryAdded,
     TitrantStandardized,
     TitrantDueAcknowledged,
-    BiologicalWasteDestroyed
+    BiologicalWasteDestroyed,
+    MonitoringPlanApproved,
+    MonitoringOccurrenceSkipped,
+    MonitoringOccurrenceWindowChanged
 }
 

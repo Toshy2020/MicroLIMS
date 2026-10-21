@@ -11,6 +11,7 @@ public enum FrequencySource
 {
     None,
     Own,
+    ParentRoom,
     Department
 }
 
@@ -64,11 +65,27 @@ public static class FrequencyRules
         target.FrequencyAnchorMonth = rule.AnchorMonth;
     }
 
-    // A Room's own rule overrides its department's.
-    public static EffectiveFrequency Resolve(IHasFrequency? own, IHasFrequency? department)
+    // A Room's own rule overrides its parent room's (for an LAF), which
+    // overrides its department's.
+    public static EffectiveFrequency Resolve(IHasFrequency? own, IHasFrequency? department, IHasFrequency? parentRoom = null)
     {
         if (own?.FrequencyType is not null) return new(From(own), FrequencySource.Own);
+        if (parentRoom?.FrequencyType is not null) return new(From(parentRoom), FrequencySource.ParentRoom);
         if (department?.FrequencyType is not null) return new(From(department), FrequencySource.Department);
         return new(null, FrequencySource.None);
+    }
+
+    // "Weekly, Sunday", "Every 3 months", "Every 3 months from March".
+    public static string Describe(FrequencyRuleDto rule)
+    {
+        if (rule.Type is null) return string.Empty;
+        var n = rule.Interval ?? 1;
+        var text = rule.Type == FrequencyType.Weekly
+            ? (n == 1 ? "Weekly" : $"Every {n} weeks")
+            : (n == 1 ? "Monthly" : $"Every {n} months");
+        if (rule.Type == FrequencyType.Monthly && n > 1 && rule.AnchorMonth is int a)
+            text += $" from {System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(a)}";
+        if (rule.SamplingWeekday is DayOfWeek d) text += $", {d}";
+        return text;
     }
 }

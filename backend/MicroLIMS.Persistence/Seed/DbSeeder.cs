@@ -499,6 +499,9 @@ public static class DbSeeder
             (PermissionConstants.SolutionsPrepare, "Start, edit, complete, cancel or discard a solution preparation (HPLC chain)."),
             (PermissionConstants.HplcOperate, "Operate the HPLC workspace: start runs, confirm system suitability, assign samples, enter replicates and submit for review."),
             (PermissionConstants.WorkingStandardsQualify, "Create and prepare working standard qualifications, attach documents, enter and submit qualification replicates."),
+            (PermissionConstants.MonitoringPlanView, "View the Annual Monitoring Plan, its calendar and occurrences."),
+            (PermissionConstants.MonitoringPlanManage, "Generate monitoring plan revisions, keep the lab calendar and monitoring settings, add manual entries and request skips or window changes."),
+            (PermissionConstants.MonitoringPlanApprove, "Sign a monitoring plan revision into force and sign skips and window changes."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -542,7 +545,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsApprove,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
-                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -555,7 +559,8 @@ public static class DbSeeder
                     // assignment), plus read access to the training matrix.
                     PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
-                    PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect
+                    PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
+                    PermissionConstants.MonitoringPlanView
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -572,7 +577,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate,
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
-                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
+                    PermissionConstants.MonitoringPlanView
                 })
             };
 

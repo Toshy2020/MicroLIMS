@@ -241,6 +241,8 @@ public static class UserReferenceRegistry
         // KPI remodel - S3
         new UserReferenceEntry(typeof(KpiSetting), nameof(KpiSetting.UpdatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - KPI capacity settings provenance"),
         new UserReferenceEntry(typeof(MonitoringSettings), nameof(MonitoringSettings.UpdatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - monitoring plan settings provenance"),
+        new UserReferenceEntry(typeof(MonitoringPlanRevision), nameof(MonitoringPlanRevision.GeneratedByUserId), UserReferenceDisposition.Blocks, "No DB FK - monitoring plan revision provenance"),
+        new UserReferenceEntry(typeof(MonitoringOccurrenceEvent), nameof(MonitoringOccurrenceEvent.PerformedByUserId), UserReferenceDisposition.Blocks, "No DB FK - monitoring occurrence history"),
         new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.UserId), UserReferenceDisposition.Blocks, "Analyst availability history; DB FK Restrict"),
         new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - availability entry provenance"),
     };

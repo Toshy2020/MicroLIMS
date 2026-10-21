@@ -212,11 +212,34 @@ namespace MicroLIMS.Persistence.Migrations
                 table: "MonitoringPlanRevisions",
                 columns: new[] { "Year", "RevisionNumber" },
                 unique: true);
+
+            // Permission catalog and grants for existing databases (DbSeeder covers fresh ones).
+            // RoleType: 0 = SystemAdministrator, 1 = SectionHead, 2 = Reviewer, 3 = Analyst.
+            migrationBuilder.Sql(@"
+                INSERT INTO ""Permissions"" (""Code"", ""Description"", ""IsEnforced"")
+                SELECT v.code, v.descr, TRUE
+                FROM (VALUES
+                    ('MonitoringPlan.View', 'View the Annual Monitoring Plan, its calendar and occurrences.'),
+                    ('MonitoringPlan.Manage', 'Generate monitoring plan revisions, keep the lab calendar and monitoring settings, add manual entries and request skips or window changes.'),
+                    ('MonitoringPlan.Approve', 'Sign a monitoring plan revision into force and sign skips and window changes.')
+                ) AS v(code, descr)
+                WHERE NOT EXISTS (SELECT 1 FROM ""Permissions"" p WHERE p.""Code"" = v.code);");
+            migrationBuilder.Sql(@"
+                INSERT INTO ""RolePermissions"" (""RoleId"", ""PermissionId"")
+                SELECT r.""Id"", p.""Id""
+                FROM ""Roles"" r CROSS JOIN ""Permissions"" p
+                WHERE ((p.""Code"" = 'MonitoringPlan.View' AND r.""Type"" IN (0, 1, 2, 3))
+                    OR (p.""Code"" IN ('MonitoringPlan.Manage', 'MonitoringPlan.Approve') AND r.""Type"" IN (0, 1)))
+                  AND NOT EXISTS (SELECT 1 FROM ""RolePermissions"" rp
+                                  WHERE rp.""RoleId"" = r.""Id"" AND rp.""PermissionId"" = p.""Id"");");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(@"DELETE FROM ""RolePermissions"" WHERE ""PermissionId"" IN
+                (SELECT ""Id"" FROM ""Permissions"" WHERE ""Code"" LIKE 'MonitoringPlan.%');");
+            migrationBuilder.Sql(@"DELETE FROM ""Permissions"" WHERE ""Code"" LIKE 'MonitoringPlan.%';");
             migrationBuilder.DropTable(
                 name: "MonitoringOccurrenceEvents");
 

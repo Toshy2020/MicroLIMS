@@ -82,8 +82,9 @@ public class RoleManagementTests
         // 7 laboratory codes, the 4 Document Control codes the Reviewer role
         // carries as technical reviewer / QA auditor, and the 4 codes that
         // replaced role-only gates (review dashboard, media preparation,
-        // receiving for their own lab, correcting a sample).
-        Assert.Equal(15, reviewer!.PermissionCodes.Count);
+        // receiving for their own lab, correcting a sample), and
+        // MonitoringPlan.View.
+        Assert.Equal(16, reviewer!.PermissionCodes.Count);
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }

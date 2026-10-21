@@ -72,15 +72,15 @@ public class MonitoringLinkService
             .OrderBy(o => o.WindowEnd).ThenBy(o => o.WindowStart).ThenBy(o => o.Id)
             .ToList();
 
-        var targets = await TargetNamesAsync(open);
-        var labels = await ItemLabelsAsync(open);
+        var targets = await OccurrenceNameResolver.TargetNamesAsync(_db, open);
+        var labels = await OccurrenceNameResolver.ItemLabelsAsync(_db, open);
 
         // One occurrence per target is ticked: a sample carries one location per
         // room test, so it can fulfil only the oldest due occurrence of each.
         var ticked = new HashSet<(MonitoringTargetType, int)>();
         ChecklistOccurrenceResponse Row(MonitoringOccurrence o, bool dueNow)
         {
-            var key = TargetKey(o);
+            var key = OccurrenceNameResolver.TargetKey(o);
             var tick = dueNow && ticked.Add(key);
             var remaining = o.Items
                 .Where(i => details[o.Id].Items.First(s => s.ItemId == i.Id).Progress == ItemProgress.None)
@@ -149,11 +149,11 @@ public class MonitoringLinkService
         if (missing.Count > 0)
             throw new NotFoundException($"Monitoring occurrence(s) not found: {string.Join(", ", missing)}.");
 
-        var names = await TargetNamesAsync(occurrences);
+        var names = await OccurrenceNameResolver.TargetNamesAsync(_db, occurrences);
         var inGroup = await InSampleGroupAsync(sample, category, occurrences);
         foreach (var o in occurrences)
         {
-            var label = $"{names.GetValueOrDefault(TargetKey(o), "?")} ({o.PeriodKey})";
+            var label = $"{names.GetValueOrDefault(OccurrenceNameResolver.TargetKey(o), "?")} ({o.PeriodKey})";
             if (o.Category != category || !inGroup.Contains(o.Id))
                 throw new BusinessRuleException($"{label} does not belong to this sample's {GroupName(category)}.");
             if (o.ExceptionState != OccurrenceExceptionState.None || o.RetiredByRevisionId != null)
@@ -168,7 +168,7 @@ public class MonitoringLinkService
 
         foreach (var occurrence in occurrences.OrderBy(o => o.WindowEnd).ThenBy(o => o.WindowStart).ThenBy(o => o.Id))
         {
-            var label = $"{names.GetValueOrDefault(TargetKey(occurrence), "?")} ({occurrence.PeriodKey})";
+            var label = $"{names.GetValueOrDefault(OccurrenceNameResolver.TargetKey(occurrence), "?")} ({occurrence.PeriodKey})";
             var linked = 0;
             foreach (var item in occurrence.Items)
             {
@@ -214,50 +214,4 @@ public class MonitoringLinkService
         MonitoringCategory.Water => "water department",
         _ => "machine"
     };
-
-    // ---- names ----
-
-    private static (MonitoringTargetType, int) TargetKey(MonitoringOccurrence o) =>
-        (o.TargetType, (o.WaterSamplingPointId ?? o.RoomId ?? o.MachineId)!.Value);
-
-    private async Task<Dictionary<(MonitoringTargetType, int), string>> TargetNamesAsync(List<MonitoringOccurrence> occurrences)
-    {
-        var names = new Dictionary<(MonitoringTargetType, int), string>();
-        var pointIds = occurrences.Where(o => o.WaterSamplingPointId.HasValue).Select(o => o.WaterSamplingPointId!.Value).Distinct().ToList();
-        var roomIds = occurrences.Where(o => o.RoomId.HasValue).Select(o => o.RoomId!.Value).Distinct().ToList();
-        var machineIds = occurrences.Where(o => o.MachineId.HasValue).Select(o => o.MachineId!.Value).Distinct().ToList();
-        if (pointIds.Count > 0)
-            foreach (var p in await _db.WaterSamplingPoints.AsNoTracking().Where(p => pointIds.Contains(p.Id)).Select(p => new { p.Id, p.Code }).ToListAsync())
-                names[(MonitoringTargetType.WaterSamplingPoint, p.Id)] = p.Code;
-        if (roomIds.Count > 0)
-            foreach (var r in await _db.Rooms.AsNoTracking().Where(r => roomIds.Contains(r.Id)).Select(r => new { r.Id, r.Name, r.Kind }).ToListAsync())
-                names[(MonitoringTargetType.Room, r.Id)] = r.Kind == RoomKind.LAF ? $"{r.Name} (LAF)" : r.Name;
-        if (machineIds.Count > 0)
-            foreach (var m in await _db.Machines.AsNoTracking().Where(m => machineIds.Contains(m.Id)).Select(m => new { m.Id, m.Name }).ToListAsync())
-                names[(MonitoringTargetType.Machine, m.Id)] = m.Name;
-        return names;
-    }
-
-    private async Task<Dictionary<int, string>> ItemLabelsAsync(List<MonitoringOccurrence> occurrences)
-    {
-        var labels = new Dictionary<int, string>();
-        var items = occurrences.SelectMany(o => o.Items).ToList();
-        var roomConfigIds = items.Where(i => i.RoomTestConfigurationId.HasValue).Select(i => i.RoomTestConfigurationId!.Value).Distinct().ToList();
-        var partConfigIds = items.Where(i => i.MachinePartConfigurationId.HasValue).Select(i => i.MachinePartConfigurationId!.Value).Distinct().ToList();
-
-        var roomConfigs = roomConfigIds.Count == 0
-            ? new Dictionary<int, string>()
-            : await _db.RoomTestConfigurations.AsNoTracking().Where(c => roomConfigIds.Contains(c.Id))
-                .ToDictionaryAsync(c => c.Id, c => c.TestCode);
-        var partConfigs = partConfigIds.Count == 0
-            ? new Dictionary<int, string>()
-            : await _db.MachinePartConfigurations.AsNoTracking().Where(c => partConfigIds.Contains(c.Id))
-                .ToDictionaryAsync(c => c.Id, c => c.MachinePart!.Name + " - " + c.TestCode);
-
-        foreach (var item in items)
-            labels[item.Id] = item.RoomTestConfigurationId is int r ? roomConfigs.GetValueOrDefault(r, "?")
-                : item.MachinePartConfigurationId is int m ? partConfigs.GetValueOrDefault(m, "?")
-                : item.TestCode ?? "?";
-        return labels;
-    }
 }

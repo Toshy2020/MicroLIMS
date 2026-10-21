@@ -318,6 +318,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         {
             e.HasOne(v => v.MonitoringOccurrence).WithMany().HasForeignKey(v => v.MonitoringOccurrenceId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(v => v.ElectronicSignature).WithMany().HasForeignKey(v => v.ElectronicSignatureId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.SecondElectronicSignature).WithMany().HasForeignKey(v => v.SecondElectronicSignatureId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(v => v.SecondElectronicSignatureId);
             e.HasIndex(v => v.MonitoringOccurrenceId);
         });
         modelBuilder.Entity<RoomTestConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();

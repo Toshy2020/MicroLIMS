@@ -44,7 +44,7 @@ public class OccurrenceStatusService
                 .Select(l => new LinkRow(
                     l.MonitoringOccurrenceId!.Value, l.RoomTestConfigurationId, l.MachinePartConfigurationId, l.WaterSamplingPointId,
                     l.TestOrder!.TestCode, l.TestOrder.Status, l.TestOrder.CurrentStep, l.TestOrder.IsSuperseded,
-                    l.Status, l.Sample!.ReceivedAt, l.Sample.ReferenceNumber))
+                    l.Status, l.Sample!.SampledAt ?? l.Sample.ReceivedAt, l.Sample.ReferenceNumber))
                 .ToListAsync())
             .ToLookup(l => l.OccurrenceId);
 

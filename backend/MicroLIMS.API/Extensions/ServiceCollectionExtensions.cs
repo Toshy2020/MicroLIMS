@@ -205,6 +205,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringPlanService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.OccurrenceStatusService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringLinkService>();
+        services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringOccurrenceService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
         services.AddScoped<ReferenceListMasterDataService>();

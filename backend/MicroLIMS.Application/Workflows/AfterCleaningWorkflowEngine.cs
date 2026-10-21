@@ -16,7 +16,8 @@ public record AfterCleaningReceiveRequest(
     string ControlNumber,
     int ReceivedByUserId,
     string PreviousProductName,
-    string PreviousProductBatchNumber
+    string PreviousProductBatchNumber,
+    DateTime? SampledAt = null
 );
 
 public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
@@ -75,9 +76,13 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             SampledBy = request.SampledBy,
             ControlNumber = request.ControlNumber,
             ReceivedByUserId = request.ReceivedByUserId,
+            SampledAt = request.SampledAt,
             Status = SampleStatus.Received,
             PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
+
+        if (sample.SampledAt > sample.ReceivedAt)
+            throw new InvalidOperationException("The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 

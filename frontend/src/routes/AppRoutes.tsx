@@ -72,6 +72,7 @@ const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
 const AuditSearchPage = lazy(() => import("../modules/auditSearch/AuditSearchPage").then((m) => ({ default: m.AuditSearchPage })));
+const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/MonitoringPlanPage").then((m) => ({ default: m.MonitoringPlanPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
@@ -262,6 +263,10 @@ export function AppRoutes() {
             {/* Old bookmarks: the approved lists now live as tabs on their host pages. */}
             <Route path="/inventory/approved-media" element={<Navigate to="/laboratory-configuration/media?tab=approved" replace />} />
             <Route path="/inventory/approved-cryovials" element={<Navigate to="/laboratory-configuration/cryovials?tab=approved" replace />} />
+
+            <Route element={<PermissionRoute code={PERMISSIONS.MONITORING_PLAN_VIEW} />}>
+              <Route path="/monitoring-plan" element={<MonitoringPlanPage />} />
+            </Route>
 
             <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
               <Route path="/error-monitoring" element={<ErrorMonitoringPage />} />

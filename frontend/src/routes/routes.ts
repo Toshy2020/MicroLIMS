@@ -48,6 +48,7 @@ const APP_ROUTES = {
   WATER: "/laboratory-configuration/water",
   ENVIRONMENTAL_MONITORING: "/laboratory-configuration/environmental-monitoring",
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
+  MONITORING_PLAN: "/monitoring-plan",
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
@@ -247,7 +248,10 @@ export const PERMISSIONS = {
   OOS_MANAGE: "Oos.Manage",
   SOLUTIONS_PREPARE: "Solutions.Prepare",
   WORKING_STANDARDS_QUALIFY: "WorkingStandards.Qualify",
-  HPLC_OPERATE: "Hplc.Operate"
+  HPLC_OPERATE: "Hplc.Operate",
+  MONITORING_PLAN_VIEW: "MonitoringPlan.View",
+  MONITORING_PLAN_MANAGE: "MonitoringPlan.Manage",
+  MONITORING_PLAN_APPROVE: "MonitoringPlan.Approve"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -14,4 +14,6 @@ public interface IHasFrequency
     DayOfWeek? SamplingWeekday { get; set; }
     // 1..12; only for every-N-months rules.
     int? FrequencyAnchorMonth { get; set; }
+    // 1..4; pins a monthly rule to the Nth lab week of the month.
+    int? FrequencyWeekOfMonth { get; set; }
 }

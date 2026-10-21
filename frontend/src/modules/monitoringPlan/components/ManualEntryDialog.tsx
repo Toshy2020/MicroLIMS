@@ -10,12 +10,14 @@ interface Part { id: number; name: string; configs: Config[] }
 interface Machine { id: number; name: string; parts?: { id: number; name: string }[] }
 
 // An After Cleaning occurrence is entered by hand when a machine is cleaned:
-// pick the machine, the date and the parts to be tested.
+// pick the machine, when it is due (a day, any day in a week, or any day in
+// a month) and the parts to be tested.
 export function ManualEntryDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [machineId, setMachineId] = useState<number | "">("");
   const [parts, setParts] = useState<Part[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [kind, setKind] = useState<"Day" | "Week" | "Month">("Day");
   const [date, setDate] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export function ManualEntryDialog({ open, onClose, onCreated }: { open: boolean;
     setError(null);
     try {
       await MonitoringPlanService.createManual({
-        machineId: machineId as number, targetDate: date, machinePartConfigurationIds: ids, reason: reason || undefined
+        machineId: machineId as number, targetDate: kind === "Month" ? `${date}-01` : date, kind, machinePartConfigurationIds: ids, reason: reason || undefined
       });
       onCreated();
       onClose();
@@ -67,7 +69,19 @@ export function ManualEntryDialog({ open, onClose, onCreated }: { open: boolean;
           <TextField select label="Machine" value={machineId} onChange={(e) => setMachineId(Number(e.target.value))}>
             {machines.map((m) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
           </TextField>
-          <TextField label="Target date" type="date" slotProps={{ inputLabel: { shrink: true } }} value={date} onChange={(e) => setDate(e.target.value)} />
+          <TextField select label="Due" value={kind} onChange={(e) => { setKind(e.target.value as "Day" | "Week" | "Month"); setDate(""); }}>
+            <MenuItem value="Day">On a specific day</MenuItem>
+            <MenuItem value="Week">Any day in a week</MenuItem>
+            <MenuItem value="Month">Any day in a month</MenuItem>
+          </TextField>
+          <TextField
+            label={kind === "Day" ? "Target date" : kind === "Week" ? "Any date in the week" : "Month"}
+            type={kind === "Month" ? "month" : "date"}
+            slotProps={{ inputLabel: { shrink: true } }}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            helperText={kind === "Week" ? "The lab week runs Sunday to Saturday." : undefined}
+          />
           {parts.length > 0 && <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Machine parts to test</Typography>}
           {parts.map((p) => (
             <FormControlLabel

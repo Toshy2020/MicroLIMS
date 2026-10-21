@@ -84,7 +84,7 @@ public class MonitoringReportService
         var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
 
         var rows = new List<SpacingRowResponse>();
-        // Weekly and monthly series are checked separately; manual entries have no cadence.
+        // Weekly and monthly series are checked separately; manual and daily entries have no cadence.
         foreach (var series in occurrences
                      .Select(o => (Occurrence: o, Kind: SeriesOf(o)))
                      .Where(x => x.Kind != null)
@@ -115,7 +115,7 @@ public class MonitoringReportService
             .OrderByDescending(r => r.Flagged).ThenBy(r => r.Category).ThenBy(r => r.Target).ThenBy(r => r.PreviousOn).ToList());
     }
 
-    // "2026-W43" is weekly, "2026-11" monthly; anything else (manual) has no cadence.
+    // "2026-W43" is weekly, "2026-11" monthly; anything else (manual, daily) has no cadence.
     private static string? SeriesOf(MonitoringOccurrence o)
     {
         if (o.PeriodKey.Contains("-W", StringComparison.Ordinal)) return "Weekly";

@@ -14,6 +14,7 @@ public class WaterSamplingPoint : IVersionedEntity, IHasFrequency
     public int? FrequencyInterval { get; set; }
     public DayOfWeek? SamplingWeekday { get; set; }
     public int? FrequencyAnchorMonth { get; set; }
+    public int? FrequencyWeekOfMonth { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string TestingFrequency { get; set; } = string.Empty;

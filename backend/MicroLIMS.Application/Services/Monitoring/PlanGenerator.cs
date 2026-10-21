@@ -76,7 +76,8 @@ public static class PlanGenerator
                 continue;
             }
 
-            var (early, late) = Tolerances(settings, target.Category);
+            // A daily occurrence is due on its own day only, so tolerances would overlap neighbours.
+            var (early, late) = target.Rule.Type == FrequencyType.Daily ? (0, 0) : Tolerances(settings, target.Category);
             var snapshot = $"{FrequencyRules.Describe(target.Rule)} ({target.RuleSource})";
 
             foreach (var period in PlanWindowCalculator.Calculate(target.Rule, year, settings, early, late, nonWorkingDates))

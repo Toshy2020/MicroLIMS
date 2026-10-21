@@ -1,0 +1,85 @@
+name: Add EF migration
+
+# Generates an EF Core migration on a claude/** branch so it never has to be
+# written by hand. Push a file named .github/migration-requests/<Name>.txt
+# (the content is ignored). This workflow runs `dotnet ef migrations add
+# <Name>`, removes the request file, commits both to the same branch and
+# starts CI on the result. Pushes made with GITHUB_TOKEN do not start CI
+# by themselves, hence the explicit dispatch.
+on:
+  push:
+    branches: ["claude/**"]
+    paths: [".github/migration-requests/*.txt"]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: add-migration-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  add-migration:
+    name: Generate migration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Find the requested migration name
+        id: req
+        run: |
+          FILE="$(git diff --name-only --diff-filter=A "${{ github.event.before }}" "${{ github.sha }}" -- '.github/migration-requests/*.txt' | head -n1)"
+          if [ -z "$FILE" ]; then echo "No request file added; nothing to do."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          NAME="$(basename "$FILE" .txt)"
+          if ! echo "$NAME" | grep -Eq '^[A-Za-z][A-Za-z0-9]{2,80}$'; then
+            echo "::error::Migration name '$NAME' must be letters and digits only."; exit 1
+          fi
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Set up .NET
+        if: steps.req.outputs.skip != 'true'
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install dotnet-ef
+        if: steps.req.outputs.skip != 'true'
+        run: dotnet tool install --global dotnet-ef --version 10.*
+
+      - name: Generate a throwaway JWT signing key
+        if: steps.req.outputs.skip != 'true'
+        run: |
+          KEY="$(openssl rand -base64 48)"
+          echo "::add-mask::${KEY}"
+          echo "Jwt__Key=${KEY}" >> "$GITHUB_ENV"
+
+      - name: Add the migration
+        if: steps.req.outputs.skip != 'true'
+        env:
+          # Design-time only: deliberately unreachable, never opens a database.
+          ConnectionStrings__Default: "Host=127.0.0.1;Port=1;Database=unused;Username=unused;Timeout=1"
+        run: |
+          dotnet ef migrations add "${{ steps.req.outputs.name }}" \
+            --project backend/MicroLIMS.Persistence \
+            --startup-project backend/MicroLIMS.API
+
+      - name: Commit the migration and start CI
+        if: steps.req.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git rm -q "${{ steps.req.outputs.file }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A backend/MicroLIMS.Persistence/Migrations
+          git commit -m "Add EF migration ${{ steps.req.outputs.name }}"
+          git push origin "HEAD:${{ github.ref_name }}"
+          gh workflow run ci.yml --ref "${{ github.ref_name }}"

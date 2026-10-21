@@ -9,6 +9,8 @@ import type {
   MonitoringChecklist,
   OccurrenceDetail,
   OccurrenceSummary,
+  PlanPreview,
+  PlanRevision,
   SignedChange,
   YearSummary
 } from "../types";
@@ -33,6 +35,18 @@ export const MonitoringSettingsApi = {
 };
 
 export const MonitoringPlanService = {
+  getRevisions: (year: number) =>
+    apiClient.get("/monitoring-plan/revisions", { params: { year } }).then((r) => r.data.data as PlanRevision[]),
+
+  generateDraft: (year: number) =>
+    apiClient.post("/monitoring-plan/revisions", { year }).then((r) => r.data.data as PlanPreview),
+
+  getPreview: (id: number) =>
+    apiClient.get(`/monitoring-plan/revisions/${id}/preview`).then((r) => r.data.data as PlanPreview),
+
+  approve: (id: number, password: string, reason?: string) =>
+    apiClient.post(`/monitoring-plan/revisions/${id}/approve`, { password, reason: reason || null }).then((r) => r.data.data as PlanRevision),
+
   getCoverage: (year: number, category?: MonitoringCategory) =>
     apiClient.get(`${REPORTS}/coverage`, { params: { year, category } }).then((r) => r.data.data as CoverageReport),
 

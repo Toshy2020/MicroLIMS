@@ -22,6 +22,13 @@ public class SampleLocation
     public WaterSamplingPoint? WaterSamplingPoint { get; set; }
     public int? SamplingConfigurationId { get; set; }   // count-test limits source; null for pathogen locations
     public SamplingConfiguration? SamplingConfiguration { get; set; }
+
+    // The Annual Monitoring Plan occurrence this location fulfils, if the
+    // session was started from the plan. A voided or cancelled test keeps
+    // its link as history but no longer counts as fulfilling it.
+    public int? MonitoringOccurrenceId { get; set; }
+    public MonitoringOccurrence? MonitoringOccurrence { get; set; }
+
     public string? RawReadings { get; set; }   // comma-joined plate readings (water count only)
 
     // Shared across every location in the batch - set once when the

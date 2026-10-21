@@ -18,9 +18,9 @@ public class AfterCleaningService
         return TestingWorkspaceService.ToDto(sample);
     }
 
-    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId)
+    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null)
     {
-        var sample = await _workflow.PrepareAsync(sampleId, machinePartConfigurationIds, userId);
+        var sample = await _workflow.PrepareAsync(sampleId, machinePartConfigurationIds, userId, monitoringOccurrenceIds);
         return TestingWorkspaceService.ToDto(sample);
     }
 }

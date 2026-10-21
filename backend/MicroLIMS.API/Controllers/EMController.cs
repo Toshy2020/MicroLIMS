@@ -8,7 +8,7 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 public record ReceiveEMRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber);
-public record PrepareEMRequest(int SampleId, List<int> RoomTestConfigurationIds);
+public record PrepareEMRequest(int SampleId, List<int> RoomTestConfigurationIds, List<int>? MonitoringOccurrenceIds = null);
 
 [ApiController]
 [Route("api/em")]
@@ -35,5 +35,5 @@ public class EMController : ControllerBase
     [HttpPost("prepare")]
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Prepare(PrepareEMRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _emService.PrepareAsync(request.SampleId, request.RoomTestConfigurationIds, CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _emService.PrepareAsync(request.SampleId, request.RoomTestConfigurationIds, CurrentUserId, request.MonitoringOccurrenceIds)));
 }

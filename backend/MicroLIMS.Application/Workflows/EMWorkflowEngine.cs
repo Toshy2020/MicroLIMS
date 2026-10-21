@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.Monitoring;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +21,7 @@ public interface IEMWorkflowEngine : IStatefulWorkflowEngine
     // monitoring session is what generates the TestOrders (one per
     // distinct TestCode across the selected rooms' configurations) and
     // the SampleLocation rows (one per selected RoomTestConfiguration).
-    Task<Sample> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId);
+    Task<Sample> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null);
 }
 
 public class EMWorkflowEngine : IEMWorkflowEngine
@@ -27,12 +29,14 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService? _scope;
+    private readonly MonitoringLinkService? _monitoring;
 
-    public EMWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
+    public EMWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null)
     {
         _db = db;
         _refNumbers = refNumbers;
         _scope = scope;
+        _monitoring = monitoring;
     }
 
     public async Task<Sample> ReceiveAsync(EMReceiveRequest request)
@@ -72,7 +76,12 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         return sample;
     }
 
-    public async Task<Sample> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId)
+    public Task<Sample> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null) =>
+        monitoringOccurrenceIds is { Count: > 0 }
+            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, roomTestConfigurationIds, userId, monitoringOccurrenceIds))
+            : PrepareCoreAsync(sampleId, roomTestConfigurationIds, userId, null);
+
+    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> roomTestConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
@@ -130,6 +139,13 @@ public class EMWorkflowEngine : IEMWorkflowEngine
                 LocationType = LocationType.Room,
                 RoomTestConfigurationId = config.Id
             });
+        }
+
+        if (monitoringOccurrenceIds is { Count: > 0 })
+        {
+            if (_monitoring is null)
+                throw new InvalidOperationException("Monitoring plan linking is not available.");
+            await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;

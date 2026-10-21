@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.Monitoring;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +27,7 @@ public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
     // in this batch is what generates the TestOrders (one per distinct
     // TestCode across the selected parts' configurations) and the
     // SampleLocation rows (one per selected MachinePartConfiguration).
-    Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId);
+    Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null);
 }
 
 public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
@@ -33,12 +35,14 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService? _scope;
+    private readonly MonitoringLinkService? _monitoring;
 
-    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
+    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null)
     {
         _db = db;
         _refNumbers = refNumbers;
         _scope = scope;
+        _monitoring = monitoring;
     }
 
     public async Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request)
@@ -92,7 +96,12 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         return sample;
     }
 
-    public async Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId)
+    public Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null) =>
+        monitoringOccurrenceIds is { Count: > 0 }
+            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, machinePartConfigurationIds, userId, monitoringOccurrenceIds))
+            : PrepareCoreAsync(sampleId, machinePartConfigurationIds, userId, null);
+
+    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
@@ -150,6 +159,13 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                 LocationType = LocationType.MachinePart,
                 MachinePartConfigurationId = config.Id
             });
+        }
+
+        if (monitoringOccurrenceIds is { Count: > 0 })
+        {
+            if (_monitoring is null)
+                throw new InvalidOperationException("Monitoring plan linking is not available.");
+            await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;

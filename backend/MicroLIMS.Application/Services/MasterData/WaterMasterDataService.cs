@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -25,9 +26,18 @@ public class WaterMasterDataService
     public async Task<List<WaterSamplingPointResponse>> GetWaterSamplingPointsAsync() =>
         (await _db.WaterSamplingPoints.AsNoTracking().ToListAsync()).Select(WaterSamplingPointResponse.From).ToList();
 
+    // A weekly Water point must say which weekday it is sampled on.
+    private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
+    {
+        if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
+            throw new BusinessRuleException(problem);
+        FrequencyRules.Apply(target, rule);
+    }
+
     public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(CreateWaterSamplingPointRequest request)
     {
         var point = new WaterSamplingPoint { Code = request.Code, Location = request.Location, TestingFrequency = request.TestingFrequency, AssignedTestCodes = request.AssignedTestCodes, WaterDepartmentId = request.WaterDepartmentId };
+        ApplyFrequency(point, request.Frequency);
         _db.WaterSamplingPoints.Add(point);
         await _db.SaveChangesAsync();
         return WaterSamplingPointResponse.From(point);
@@ -44,6 +54,7 @@ public class WaterMasterDataService
         point.TestingFrequency = request.TestingFrequency;
         point.AssignedTestCodes = request.AssignedTestCodes;
         point.WaterDepartmentId = request.WaterDepartmentId;
+        ApplyFrequency(point, request.Frequency);
         await _db.SaveChangesAsync();
         return WaterSamplingPointResponse.From(point);
     }
@@ -79,7 +90,7 @@ public class WaterMasterDataService
                 d.Id, d.Version, d.Name,
                 SamplingPoints = d.SamplingPoints.Select(p => new
                 {
-                    p.Id, p.Version, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes
+                    p.Id, p.Version, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes, p.IsActive, p.FrequencyType, p.FrequencyInterval, p.SamplingWeekday, p.FrequencyAnchorMonth
                 })
             })
             .ToListAsync();

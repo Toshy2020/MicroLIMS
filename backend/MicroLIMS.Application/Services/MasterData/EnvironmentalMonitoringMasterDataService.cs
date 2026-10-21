@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -28,7 +29,7 @@ public class EnvironmentalMonitoringMasterDataService
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query - same pattern as GetMachines.
         var departments = await _db.Departments
-            .Select(d => new { d.Id, d.Version, d.Name, d.Class, d.TestingFrequency, Rooms = d.Rooms.Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification }) })
+            .Select(d => new { d.Id, d.Version, d.Name, d.Class, d.TestingFrequency, d.IsActive, d.FrequencyType, d.FrequencyInterval, d.SamplingWeekday, d.FrequencyAnchorMonth, Rooms = d.Rooms.Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, r.IsActive, r.Kind, r.ParentRoomId, r.FrequencyType, r.FrequencyInterval, r.SamplingWeekday, r.FrequencyAnchorMonth }) })
             .ToListAsync();
         return departments;
     }
@@ -36,6 +37,7 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<EmDepartmentResponse> CreateDepartmentAsync(CreateDepartmentRequest request)
     {
         var dept = new Department { Name = request.Name, Class = request.Class, TestingFrequency = request.TestingFrequency };
+        ApplyFrequency(dept, request.Frequency);
         _db.Departments.Add(dept);
         await _db.SaveChangesAsync();
         return EmDepartmentResponse.From(dept);
@@ -50,6 +52,7 @@ public class EnvironmentalMonitoringMasterDataService
         dept.Name = request.Name;
         dept.Class = request.Class;
         dept.TestingFrequency = request.TestingFrequency;
+        ApplyFrequency(dept, request.Frequency);
         await _db.SaveChangesAsync();
         return EmDepartmentResponse.From(dept);
     }
@@ -70,6 +73,41 @@ public class EnvironmentalMonitoringMasterDataService
         return new { };
     }
 
+    private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
+    {
+        if (rule is not null && FrequencyRules.Validate(rule) is { } problem)
+            throw new BusinessRuleException(problem);
+        FrequencyRules.Apply(target, rule);
+    }
+
+    // A Room has no parent; an LAF must sit in a Room of the same department.
+    private async Task ApplyKindAsync(Room room, RoomKind kind, int? parentRoomId)
+    {
+        if (kind == RoomKind.Room)
+        {
+            room.Kind = RoomKind.Room;
+            room.ParentRoomId = null;
+            return;
+        }
+
+        if (parentRoomId is null)
+            throw new BusinessRuleException("An LAF must belong to a room.");
+        if (parentRoomId == room.Id)
+            throw new BusinessRuleException("An LAF cannot be its own parent.");
+        if (room.Id != 0 && await _db.Rooms.AnyAsync(r => r.ParentRoomId == room.Id))
+            throw new BusinessRuleException($"Cannot make '{room.Name}' an LAF - it already contains LAFs.");
+
+        var parent = await _db.Rooms.AsNoTracking().FirstOrDefaultAsync(r => r.Id == parentRoomId)
+            ?? throw new NotFoundException($"Room {parentRoomId} not found.");
+        if (parent.Kind != RoomKind.Room)
+            throw new BusinessRuleException("An LAF must sit in a room, not in another LAF.");
+        if (parent.DepartmentId != room.DepartmentId)
+            throw new BusinessRuleException("An LAF must be in the same department as its room.");
+
+        room.Kind = RoomKind.LAF;
+        room.ParentRoomId = parentRoomId;
+    }
+
     public async Task<object> GetRoomsAsync()
     {
         // Shaped to avoid the Department.Rooms <-> Room.Department
@@ -77,7 +115,7 @@ public class EnvironmentalMonitoringMasterDataService
         // sides are tracked in the same query (raw entities would crash
         // JSON serialization here).
         var rooms = await _db.Rooms
-            .Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
+            .Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, r.IsActive, r.Kind, r.ParentRoomId, r.FrequencyType, r.FrequencyInterval, r.SamplingWeekday, r.FrequencyAnchorMonth, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
             .ToListAsync();
         return rooms;
     }
@@ -85,6 +123,8 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request)
     {
         var room = new Room { Name = request.Name, DepartmentId = request.DepartmentId, GradeClassification = request.GradeClassification };
+        await ApplyKindAsync(room, request.Kind, request.ParentRoomId);
+        ApplyFrequency(room, request.Frequency);
         _db.Rooms.Add(room);
         await _db.SaveChangesAsync();
         return RoomResponse.From(room);
@@ -99,6 +139,8 @@ public class EnvironmentalMonitoringMasterDataService
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
         room.GradeClassification = request.GradeClassification;
+        await ApplyKindAsync(room, request.Kind ?? room.Kind, request.Kind is null && request.ParentRoomId is null ? room.ParentRoomId : request.ParentRoomId);
+        ApplyFrequency(room, request.Frequency);
         await _db.SaveChangesAsync();
         return RoomResponse.From(room);
     }

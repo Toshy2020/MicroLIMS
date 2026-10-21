@@ -48,6 +48,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<CountTestReading> CountTestReadings => Set<CountTestReading>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<LabCalendarDate> LabCalendarDates => Set<LabCalendarDate>();
+    public DbSet<MonitoringSettings> MonitoringSettings => Set<MonitoringSettings>();
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<MachinePart> MachineParts => Set<MachinePart>();
     public DbSet<WaterSamplingPoint> WaterSamplingPoints => Set<WaterSamplingPoint>();
@@ -260,6 +262,14 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         // column default.
         modelBuilder.Entity<Department>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<Room>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+
+        // An LAF's parent Room. Restrict: a Room with LAFs cannot be removed
+        // out from under them.
+        modelBuilder.Entity<Room>()
+            .HasOne(r => r.ParentRoom).WithMany()
+            .HasForeignKey(r => r.ParentRoomId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<LabCalendarDate>().HasIndex(d => d.Date).IsUnique();
         modelBuilder.Entity<RoomTestConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<WaterDepartment>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<WaterSamplingPoint>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();

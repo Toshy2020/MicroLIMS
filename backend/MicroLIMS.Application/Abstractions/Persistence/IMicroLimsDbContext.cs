@@ -52,6 +52,8 @@ public interface IMicroLimsDbContext
     DbSet<CountTestReading> CountTestReadings { get; }
     DbSet<Department> Departments { get; }
     DbSet<Room> Rooms { get; }
+    DbSet<LabCalendarDate> LabCalendarDates { get; }
+    DbSet<MonitoringSettings> MonitoringSettings { get; }
     DbSet<Machine> Machines { get; }
     DbSet<MachinePart> MachineParts { get; }
     DbSet<WaterSamplingPoint> WaterSamplingPoints { get; }

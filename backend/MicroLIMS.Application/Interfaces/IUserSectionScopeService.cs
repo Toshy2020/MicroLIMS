@@ -11,6 +11,8 @@ public interface IUserSectionScopeService
     Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default);
     Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default);
     Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default);
+    // Water/EM/After Cleaning Prepare: the sample has no test orders yet, so access follows the lab sections of the tests being assigned.
+    Task EnsureSectionsAccessAsync(int userId, IEnumerable<int> sectionIds, CancellationToken ct = default);
     Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default);
     Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default);
     Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default);

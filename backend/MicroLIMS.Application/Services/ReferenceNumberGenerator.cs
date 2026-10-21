@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Interfaces;
 
 namespace MicroLIMS.Application.Services;
 
@@ -21,23 +22,29 @@ public class ReferenceNumberGenerator
 
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
+    private readonly ILabClock _labClock;
 
-    public ReferenceNumberGenerator(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
+    public ReferenceNumberGenerator(IMicroLimsDbContext db, TimeProvider? timeProvider = null, ILabClock? labClock = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
+        _labClock = labClock ?? new LabClock(_time, LabClock.ResolveTimeZone("Africa/Cairo"));
     }
 
     public async Task<string> GenerateAsync(SampleCategory category)
     {
         var code = CategoryCodes.TryGetValue(category, out var c) ? c : "SM";
-        var now = _time.GetUtcNow().UtcDateTime;
-        var mm = now.ToString("MM");
-        var yy = now.ToString("yy");
+        // The month rolls over at lab midnight, not UTC midnight, so a
+        // sample received just after midnight in Cairo on the 1st is
+        // numbered in the new month.
+        var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
+        var mm = labNow.ToString("MM");
+        var yy = labNow.ToString("yy");
         var prefix = $"{code}{mm}{yy}";
 
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var monthEnd = monthStart.AddMonths(1);
+        var labMonthStart = new DateTime(labNow.Year, labNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        var monthStart = TimeZoneInfo.ConvertTimeToUtc(labMonthStart, _labClock.LabTimeZone);
+        var monthEnd = TimeZoneInfo.ConvertTimeToUtc(labMonthStart.AddMonths(1), _labClock.LabTimeZone);
 
         var countThisMonth = await _db.Samples.CountAsync(s =>
             s.Category == category && s.ReceivedAt >= monthStart && s.ReceivedAt < monthEnd);

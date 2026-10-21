@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
@@ -9,7 +10,7 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
     public void Configure(EntityTypeBuilder<Sample> builder)
     {
         builder.HasKey(s => s.Id);
-        builder.HasIndex(s => s.ReferenceNumber).IsUnique();
+        builder.HasIndex(s => s.ReferenceNumber).IsUnique().HasDatabaseName(UniqueIndexNames.SampleReferenceNumber);
         builder.Property(s => s.ReferenceNumber).IsRequired().HasMaxLength(20);
         builder.Property(s => s.ControlNumber).IsRequired().HasMaxLength(50);
         builder.Property(s => s.SampledBy).IsRequired().HasMaxLength(100);

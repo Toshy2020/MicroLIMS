@@ -9,21 +9,21 @@ namespace MicroLIMS.Application.DTOs;
 // The Application services take them directly.
 
 public record CreateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId);
-public record UpdateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId);
+public record UpdateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId, bool? IsActive = null);
 public record CreateWaterDepartmentRequest(string Name);
-public record UpdateWaterDepartmentRequest(string Name);
+public record UpdateWaterDepartmentRequest(string Name, bool? IsActive = null);
 public record CreateWaterSamplingConfigRequest(int WaterSamplingPointId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record UpdateWaterSamplingConfigRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateDepartmentRequest(string Name, string Class, string TestingFrequency);
 public record CreateRoomRequest(string Name, int DepartmentId, string GradeClassification);
-public record UpdateDepartmentRequest(string Name, string Class, string TestingFrequency);
-public record UpdateRoomRequest(string Name, int DepartmentId, string GradeClassification);
-public record UpdateRoomTestConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record UpdateDepartmentRequest(string Name, string Class, string TestingFrequency, bool? IsActive = null);
+public record UpdateRoomRequest(string Name, int DepartmentId, string GradeClassification, bool? IsActive = null);
+public record UpdateRoomTestConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, bool? IsActive = null);
 public record CreateMachineRequest(string Name);
-public record UpdateMachineRequest(string Name);
+public record UpdateMachineRequest(string Name, bool? IsActive = null);
 public record CreateMachinePartRequest(string Name, int MachineId);
-public record UpdateMachinePartRequest(string Name, int MachineId);
-public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
+public record UpdateMachinePartRequest(string Name, int MachineId, bool? IsActive = null);
+public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null, bool? IsActive = null);
 public record SpecificationStageDto(int? Id, int StageNumber, string StageLabel, string AcceptanceCriteriaText);
 public record CreateSpecificationRequest(
     int ItemId,

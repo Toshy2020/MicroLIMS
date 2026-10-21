@@ -16,6 +16,7 @@ internal sealed class StubSectionScope : IUserSectionScopeService
     public Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default) => throw new NotSupportedException();
     public Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task EnsureSectionsAccessAsync(int userId, IEnumerable<int> sectionIds, CancellationToken ct = default) => throw new NotSupportedException();
     public Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default) => throw new NotSupportedException();

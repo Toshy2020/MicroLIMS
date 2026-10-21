@@ -207,6 +207,17 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
+    public async Task EnsureSectionsAccessAsync(int userId, IEnumerable<int> sectionIds, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        if (!sectionIds.Any(s => scope.Contains(s)))
+        {
+            throw new UnauthorizedAccessException("These tests belong to a laboratory section you are not assigned to.");
+        }
+    }
+
     public async Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default)
     {
         var scope = await GetAccessibleSectionIdsAsync(userId, ct);

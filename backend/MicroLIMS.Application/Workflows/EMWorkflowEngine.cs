@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -25,17 +26,21 @@ public class EMWorkflowEngine : IEMWorkflowEngine
 {
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
+    private readonly IUserSectionScopeService? _scope;
 
-    public EMWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public EMWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
     {
         _db = db;
         _refNumbers = refNumbers;
+        _scope = scope;
     }
 
     public async Task<Sample> ReceiveAsync(EMReceiveRequest request)
     {
         var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId)
             ?? throw new InvalidOperationException($"Department {request.DepartmentId} not found.");
+        if (!department.IsActive)
+            throw new InvalidOperationException($"Department '{department.Name}' is inactive and cannot receive samples.");
 
         var sample = new Sample
         {
@@ -51,7 +56,19 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         };
 
         _db.Samples.Add(sample);
-        await _db.SaveChangesAsync();
+
+        // Two receipts at the same moment both pick the same next number.
+        // The unique index rejects the second save, which then takes the
+        // number after the one that won. A second clash in a row is
+        // reported rather than retried again.
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+        {
+            sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.EnvironmentalMonitoring);
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+                throw new InvalidOperationException(
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+        }
+
         return sample;
     }
 
@@ -75,6 +92,11 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         if (missing.Count > 0)
             throw new InvalidOperationException($"Room test configuration(s) not found: {string.Join(", ", missing)}.");
 
+        var inactive = configs.Where(c => !c.IsActive || c.Room?.IsActive == false).ToList();
+        if (inactive.Count > 0)
+            throw new InvalidOperationException(
+                $"Room(s) {string.Join(", ", inactive.Select(c => c.Room?.Name))} are inactive and cannot be prepared.");
+
         var wrongDepartment = configs.Where(c => c.Room?.DepartmentId != sample.DepartmentId).ToList();
         if (wrongDepartment.Count > 0)
             throw new InvalidOperationException(
@@ -83,6 +105,8 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         // One TestOrder per distinct TestCode across every selected room -
         // the whole batch shares a single incubation setup per test type.
         var testSections = await TestSectionLookup.ResolveAsync(_db, configs.Select(c => c.TestCode));
+        if (_scope is not null)
+            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
         {

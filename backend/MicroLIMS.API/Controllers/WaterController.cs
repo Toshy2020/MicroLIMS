@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -28,6 +29,7 @@ public class WaterController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost("receive")]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Receive(ReceiveWaterRequest request) =>
         Ok(ApiResponse<object>.Ok(await _waterService.ReceiveAsync(new WaterReceiveRequest(
             request.WaterDepartmentId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy, request.ControlNumber, CurrentUserId))));
@@ -35,6 +37,7 @@ public class WaterController : ControllerBase
     // The checklist screen - selecting which sampling points are included
     // in this batch generates the TestOrders + SampleLocations.
     [HttpPost("prepare")]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Prepare(PrepareWaterRequest request) =>
         Ok(ApiResponse<object>.Ok(await _waterService.PrepareAsync(
             request.SampleId, request.WaterSamplingPointIds, CurrentUserId, request.StorageCondition, request.StorageTimeHours)));

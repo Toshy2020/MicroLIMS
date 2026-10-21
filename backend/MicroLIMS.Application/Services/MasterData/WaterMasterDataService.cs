@@ -38,6 +38,7 @@ public class WaterMasterDataService
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
         RecordVersion.EnsureCurrent(_db, point);
+        if (request.IsActive.HasValue) point.IsActive = request.IsActive.Value;
         point.Code = request.Code;
         point.Location = request.Location;
         point.TestingFrequency = request.TestingFrequency;
@@ -47,7 +48,7 @@ public class WaterMasterDataService
         return WaterSamplingPointResponse.From(point);
     }
 
-    // Blocked if any Sample or SamplingConfiguration still references
+    // Blocked if any Sample, SampleLocation or SamplingConfiguration still references
     // this point - same "guard with a clear message" pattern as
     // ItemService.DeleteAsync.
     public async Task<object> DeleteWaterSamplingPointAsync(int id)
@@ -57,9 +58,10 @@ public class WaterMasterDataService
 
         var sampleCount = await _db.Samples.CountAsync(s => s.WaterSamplingPointId == id);
         var configCount = await _db.SamplingConfigurations.CountAsync(c => c.WaterSamplingPointId == id);
-        if (sampleCount > 0 || configCount > 0)
+        var locationCount = await _db.SampleLocations.CountAsync(l => l.WaterSamplingPointId == id);
+        if (sampleCount > 0 || locationCount > 0 || configCount > 0)
             throw new InvalidOperationException(
-                $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s) and {configCount} sampling configuration(s).");
+                $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s), {locationCount} sample location(s) and {configCount} sampling configuration(s).");
 
         _db.WaterSamplingPoints.Remove(point);
         await _db.SaveChangesAsync();
@@ -97,6 +99,7 @@ public class WaterMasterDataService
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Water department {id} not found.");
         RecordVersion.EnsureCurrent(_db, dept);
+        if (request.IsActive.HasValue) dept.IsActive = request.IsActive.Value;
         dept.Name = request.Name;
         await _db.SaveChangesAsync();
         return WaterDepartmentResponse.From(dept);

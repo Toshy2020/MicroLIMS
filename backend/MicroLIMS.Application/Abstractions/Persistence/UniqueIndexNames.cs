@@ -7,6 +7,7 @@ public static class UniqueIndexNames
 {
     public const string MediaLotNumber = "IX_Media_LotNumber";
     public const string CryovialCode = "IX_Cryovials_Code";
+    public const string SampleReferenceNumber = "IX_Samples_ReferenceNumber";
 
     // Unlike the codes above, a clash here is not retried with the next
     // number - SolutionPreparationService.CompleteAsync reports the clash

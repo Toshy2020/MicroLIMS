@@ -254,6 +254,18 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             .WithMany(d => d.SamplingPoints)
             .HasForeignKey(p => p.WaterDepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Existing rows become active. ValueGeneratedNever so an explicit
+        // IsActive = false is saved as false rather than replaced by the
+        // column default.
+        modelBuilder.Entity<Department>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<Room>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<RoomTestConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<WaterDepartment>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<WaterSamplingPoint>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<Machine>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<MachinePart>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+        modelBuilder.Entity<MachinePartConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
     }
 
     public Task<bool> TrySaveChangesAsync(string uniqueIndexName) =>

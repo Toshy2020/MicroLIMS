@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -39,17 +40,21 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 {
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
+    private readonly IUserSectionScopeService? _scope;
 
-    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
     {
         _db = db;
         _refNumbers = refNumbers;
+        _scope = scope;
     }
 
     public async Task<Sample> ReceiveAsync(WaterReceiveRequest request)
     {
         var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == request.WaterDepartmentId)
             ?? throw new InvalidOperationException($"Water department {request.WaterDepartmentId} not found.");
+        if (!department.IsActive)
+            throw new InvalidOperationException($"Water department '{department.Name}' is inactive and cannot receive samples.");
 
         var sample = new Sample
         {
@@ -66,7 +71,19 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         };
 
         _db.Samples.Add(sample);
-        await _db.SaveChangesAsync();
+
+        // Two receipts at the same moment both pick the same next number.
+        // The unique index rejects the second save, which then takes the
+        // number after the one that won. A second clash in a row is
+        // reported rather than retried again.
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+        {
+            sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.Water);
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+                throw new InvalidOperationException(
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+        }
+
         return sample;
     }
 
@@ -96,6 +113,11 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         if (missing.Count > 0)
             throw new InvalidOperationException($"Sampling point(s) not found: {string.Join(", ", missing)}.");
 
+        var inactive = points.Where(p => !p.IsActive).ToList();
+        if (inactive.Count > 0)
+            throw new InvalidOperationException(
+                $"Sampling point(s) {string.Join(", ", inactive.Select(p => p.Code))} are inactive and cannot be prepared.");
+
         var wrongDepartment = points.Where(p => p.WaterDepartmentId != sample.WaterDepartmentId).ToList();
         if (wrongDepartment.Count > 0)
             throw new InvalidOperationException(
@@ -116,6 +138,8 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         // the whole batch shares a single workflow per test type, same as
         // EMWorkflowEngine.PrepareAsync.
         var testSections = await TestSectionLookup.ResolveAsync(_db, allCodes);
+        if (_scope is not null)
+            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
         {

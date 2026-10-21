@@ -46,6 +46,7 @@ public class EnvironmentalMonitoringMasterDataService
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Department {id} not found.");
         RecordVersion.EnsureCurrent(_db, dept);
+        if (request.IsActive.HasValue) dept.IsActive = request.IsActive.Value;
         dept.Name = request.Name;
         dept.Class = request.Class;
         dept.TestingFrequency = request.TestingFrequency;
@@ -94,6 +95,7 @@ public class EnvironmentalMonitoringMasterDataService
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Room {id} not found.");
         RecordVersion.EnsureCurrent(_db, room);
+        if (request.IsActive.HasValue) room.IsActive = request.IsActive.Value;
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
         room.GradeClassification = request.GradeClassification;
@@ -157,6 +159,7 @@ public class EnvironmentalMonitoringMasterDataService
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
@@ -168,12 +171,18 @@ public class EnvironmentalMonitoringMasterDataService
         return RoomTestConfigurationResponse.From(entity);
     }
 
-    // No downstream dependents (TestOrder.TestCode is a copied string,
-    // not an FK to this row) - always safe to hard-delete.
+    // Blocked once any sample location has been recorded against this
+    // configuration, so results keep their link to the limits they used.
     public async Task<object> DeleteRoomTestConfigurationAsync(int id)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
+
+        var locationCount = await _db.SampleLocations.CountAsync(l => l.RoomTestConfigurationId == id);
+        if (locationCount > 0)
+            throw new InvalidOperationException(
+                $"Cannot delete this room test configuration - it is referenced by {locationCount} sample location(s).");
+
         _db.RoomTestConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return new { };

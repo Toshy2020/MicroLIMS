@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -31,17 +32,21 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
 {
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
+    private readonly IUserSectionScopeService? _scope;
 
-    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null)
     {
         _db = db;
         _refNumbers = refNumbers;
+        _scope = scope;
     }
 
     public async Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == request.MachineId)
             ?? throw new InvalidOperationException($"Machine {request.MachineId} not found.");
+        if (!machine.IsActive)
+            throw new InvalidOperationException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
 
         if (string.IsNullOrWhiteSpace(request.PreviousProductName))
         {
@@ -71,7 +76,19 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         };
 
         _db.Samples.Add(sample);
-        await _db.SaveChangesAsync();
+
+        // Two receipts at the same moment both pick the same next number.
+        // The unique index rejects the second save, which then takes the
+        // number after the one that won. A second clash in a row is
+        // reported rather than retried again.
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+        {
+            sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.AfterCleaning);
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+                throw new InvalidOperationException(
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+        }
+
         return sample;
     }
 
@@ -95,6 +112,11 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (missing.Count > 0)
             throw new InvalidOperationException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
 
+        var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
+        if (inactive.Count > 0)
+            throw new InvalidOperationException(
+                $"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive and cannot be prepared.");
+
         var wrongMachine = configs.Where(c => c.MachinePart?.MachineId != sample.MachineId).ToList();
         if (wrongMachine.Count > 0)
             throw new InvalidOperationException(
@@ -103,6 +125,8 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         // One TestOrder per distinct TestCode across every selected part -
         // the whole batch shares a single incubation setup per test type.
         var testSections = await TestSectionLookup.ResolveAsync(_db, configs.Select(c => c.TestCode));
+        if (_scope is not null)
+            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
         {

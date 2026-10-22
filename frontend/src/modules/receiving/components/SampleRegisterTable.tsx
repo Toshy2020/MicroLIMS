@@ -32,6 +32,7 @@ import { CategoryBadge, CauseBadge, categoryLabel } from "../../../components/St
 import { StatusTone } from "../../../theme/statusTokens";
 import { TestStatusSummaryCell } from "./TestStatusSummaryCell";
 import { SampleActionMenu } from "./SampleActionMenu";
+import { assignedAnalystsByTest, assignedAnalystsLabel } from "../utils/assignedAnalysts";
 import { tableHeadSx } from "../../../theme";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
@@ -369,9 +370,9 @@ export function SampleRegisterTable({
   };
 
   const renderSampleRow = (sample: SampleRecord, level = 0): React.ReactNode => {
-    const assignedAnalystName =
-      sample.assignedAnalystName ||
-      sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName;
+    // Each test has its own analyst: "Mona Ali +1" when there are several.
+    const assignedAnalystName = assignedAnalystsLabel(sample.assignedTests);
+    const analystsByTest = assignedAnalystsByTest(sample.assignedTests);
 
     const isSelected = selectedSampleId === sample.sampleId;
     const needsPreparation = sample.preparationStatus === "NeedsPreparation";
@@ -606,7 +607,7 @@ export function SampleRegisterTable({
           <TableCell>
             {assignedAnalystName ? (
               isAuthorizedToAssign && onAssignAnalyst ? (
-                <Tooltip title="Click to reassign analyst (Section Head)">
+                <Tooltip title={`${analystsByTest}. Click to reassign analysts (Section Head)`}>
                   <Chip
                     size="small"
                     data-no-row-click="true"
@@ -632,7 +633,7 @@ export function SampleRegisterTable({
                   />
                 </Tooltip>
               ) : (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }} title={analystsByTest}>
                   <Avatar sx={{ ...initialsSx, width: 22, height: 22 }}>{initialsOf(assignedAnalystName)}</Avatar>
                   <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }} noWrap>
                     {assignedAnalystName}

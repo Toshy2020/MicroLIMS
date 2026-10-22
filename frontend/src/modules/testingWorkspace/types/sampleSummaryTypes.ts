@@ -243,6 +243,8 @@ export interface SampleSummary {
   storageTimeHours: number | null;
   assignedAnalystId?: number | null;
   assignedAnalystName?: string | null;
+  // Every analyst on the sample's tests - each test can have its own.
+  assignedAnalystNames?: string[];
   reviewedByName: string | null;
   reviewedAt: string | null;
   approvedByName: string | null;

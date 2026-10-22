@@ -513,22 +513,42 @@ public class SampleReviewApprovalTests
     }
 
     [Fact]
-    public async Task DecideAsync_NewSampleRequest_NonAnalystRoleChosen_Throws()
+    public async Task DecideAsync_NewSampleRequest_ReviewerMayTakeANewSample()
     {
         await using var db = NewDb();
         await SeedUser(db, 1);
         await SeedUser(db, 2);
-        await SeedUser(db, 3);
+        await SeedUser(db, 3, RoleType.SectionHead);
         await SeedUser(db, 4, RoleType.Analyst);
-        await SeedUser(db, 6, RoleType.Reviewer); // not an Analyst - ineligible
+        await SeedUser(db, 6, RoleType.Reviewer);
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        await NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
+            null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 6);
+
+        var newSampleIds = await db.Samples.Where(s => s.OriginSampleId == sample.Id).Select(s => s.Id).ToListAsync();
+        var analysts = await db.TestOrders.Where(t => newSampleIds.Contains(t.SampleId)).Select(t => t.AssignedAnalystId).ToListAsync();
+        Assert.Equal(new int?[] { 4, 6 }, analysts.OrderBy(a => a));
+    }
+
+    [Fact]
+    public async Task DecideAsync_NewSampleRequest_AnotherSectionHeadChosen_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1);
+        await SeedUser(db, 2);
+        await SeedUser(db, 3, RoleType.SectionHead);
+        await SeedUser(db, 4, RoleType.Analyst);
+        await SeedUser(db, 7, RoleType.SectionHead); // only 7 may assign 7
         await SeedRetestCauseAsync(db);
         var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
 
         var approvalService = NewApprovalService(db);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
-                null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 6));
-        Assert.Contains("eligible Analyst-role users", ex.Message);
+                null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 7));
+        Assert.Contains("a Section Head can only assign themselves", ex.Message);
     }
 
     [Fact]

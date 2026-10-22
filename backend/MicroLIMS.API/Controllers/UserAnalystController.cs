@@ -18,7 +18,9 @@ public class UserAnalystController : ControllerBase
         _userService = userService;
     }
 
+    private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
     [HttpGet]
     public async Task<IActionResult> GetEligibleAnalysts() =>
-        Ok(ApiResponse<object>.Ok(await _userService.GetEligibleAnalystsAsync()));
+        Ok(ApiResponse<object>.Ok(await _userService.GetEligibleAnalystsAsync(CurrentUserId)));
 }

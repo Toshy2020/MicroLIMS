@@ -396,7 +396,12 @@ public class SampleCorrectionService
     // the database cascade - so the audit capture records every one.
     private async Task ApplyItemOrLocationChangeAsync(Sample sample, ItemOrLocationChange change)
     {
-        var assignedAnalystId = sample.TestOrders.FirstOrDefault(t => t.AssignedAnalystId != null)?.AssignedAnalystId;
+        // A new test inherits the analyst already on its laboratory section's
+        // tests - never one from another section, who may not belong to it.
+        var analystBySection = sample.TestOrders
+            .Where(t => t.AssignedAnalystId != null)
+            .GroupBy(t => t.SectionId)
+            .ToDictionary(g => g.Key, g => g.First().AssignedAnalystId);
 
         var requiredCodes = change.NewItem?.AssignedTests.Select(t => t.TestCode).ToHashSet() ?? new HashSet<string>();
         var removedOrders = sample.TestOrders.Where(t => !requiredCodes.Contains(t.TestCode)).ToList();
@@ -445,7 +450,7 @@ public class SampleCorrectionService
                     SectionId = testSections[test.TestCode],
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting,
-                    AssignedAnalystId = assignedAnalystId
+                    AssignedAnalystId = analystBySection.GetValueOrDefault(testSections[test.TestCode])
                 });
             }
         }

@@ -21,6 +21,10 @@
   "StorageTimeHours": 6,
   "AssignedAnalystId": 1,
   "AssignedAnalystName": "Alice Analyst",
+  "AssignedAnalystNames": [
+    "Alice Analyst",
+    "Carol Approver"
+  ],
   "ReviewedByName": "Bob Reviewer",
   "ReviewedAt": "2026-03-10T09:00:00Z",
   "ApprovedByName": "Carol Approver",

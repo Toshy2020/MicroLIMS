@@ -5,6 +5,7 @@ import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { brandColors } from "../../theme";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
 import { dueLabel } from "../receiving/components/SampleRegisterTable";
+import { assignedAnalystsLabel } from "../receiving/utils/assignedAnalysts";
 
 interface Props {
   samples: SampleCardType[];
@@ -126,7 +127,7 @@ export function SampleCardView({
                   alignItems: "center"
                 }}>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName ?? "Unassigned"}
+                  {assignedAnalystsLabel(sample.assignedTests) ?? "Unassigned"}
                 </Typography>
                 <SampleLifecycleBadge
                   status={sample.status}

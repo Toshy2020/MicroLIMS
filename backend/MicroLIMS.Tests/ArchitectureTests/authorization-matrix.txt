@@ -438,6 +438,8 @@ SampleApprovalController.CloseTesting(Int32, Int32, CloseSectionTestingRequest):
 SampleApprovalController.Decide(Int32, DecideSampleApprovalRequest): SystemAdministrator,SectionHead
 SampleController.AddLaboratory(Int32, AddLaboratoryRequest): SystemAdministrator,SectionHead
 SampleController.AssignAnalyst(Int32, AssignAnalystRequest): SystemAdministrator,SectionHead
+SampleController.AssignTestAnalysts(Int32, AssignTestAnalystsRequest): SystemAdministrator,SectionHead
+SampleController.AssignmentOptions(Int32): SystemAdministrator,SectionHead
 SampleController.Correct(Int32, CorrectSampleRequest): SystemAdministrator,SectionHead,Reviewer
 SampleController.ReceiptLabs(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SampleController.Receive(ReceiveItemBasedSampleRequest): SystemAdministrator,SectionHead,Reviewer,Analyst

@@ -44,6 +44,8 @@ public record CorrectSampleRequest(
 
 public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
 
+public record AssignTestAnalystsRequest(List<TestAnalystAssignment> Assignments, string? Reason);
+
 public record VoidSampleRequest(string Reason, string Password);
 
 public record AddLaboratoryRequest(int SectionId, string Password, string Reason);
@@ -129,6 +131,25 @@ public class SampleController : ControllerBase
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
         var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
+        return Ok(ApiResponse<object>.Ok(sample));
+    }
+
+    // Each test on the sample, who is on it, and who the caller may put on it.
+    [HttpGet("{id}/assignment-options")]
+    [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
+    public async Task<IActionResult> AssignmentOptions(int id)
+    {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _assignmentService.GetAssignmentOptionsAsync(id, CurrentUserId)));
+    }
+
+    // A different analyst per test, saved together.
+    [HttpPut("{id}/test-assignments")]
+    [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
+    public async Task<IActionResult> AssignTestAnalysts(int id, AssignTestAnalystsRequest request)
+    {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
+        var sample = await _assignmentService.AssignTestsAsync(id, request.Assignments ?? new(), CurrentUserId, request.Reason);
         return Ok(ApiResponse<object>.Ok(sample));
     }
 

@@ -35,6 +35,8 @@ public class SampleSummaryDto
 
     public int? AssignedAnalystId { get; set; }
     public string? AssignedAnalystName { get; set; }
+    // Every analyst on the sample's tests - each test can have its own.
+    public List<string> AssignedAnalystNames { get; set; } = new();
 
     public string? ReviewedByName { get; set; }
     public DateTime? ReviewedAt { get; set; }

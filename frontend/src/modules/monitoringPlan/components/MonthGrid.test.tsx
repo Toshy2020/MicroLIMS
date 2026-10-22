@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ThemeProvider, createTheme } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
+import { lightTheme } from "../../../theme";
 import { MonthGrid } from "./MonthGrid";
 import type { OccurrenceSummary } from "../types";
 
@@ -14,7 +15,7 @@ describe("MonthGrid", () => {
   it("starts the week on Sunday and shows the occurrence on its target day", () => {
     const onPick = vi.fn();
     render(
-      <ThemeProvider theme={createTheme()}>
+      <ThemeProvider theme={lightTheme}>
         <MonthGrid year={2026} month={9} occurrences={[occurrence]} today="2026-10-21" onPick={onPick} />
       </ThemeProvider>
     );
@@ -24,5 +25,20 @@ describe("MonthGrid", () => {
 
     fireEvent.click(screen.getByText("Room A"));
     expect(onPick).toHaveBeenCalledWith(occurrence);
+  });
+
+  it("lists the days beyond the second occurrence in a popover", () => {
+    const onPick = vi.fn();
+    const more = [1, 2, 3, 4].map((n) => ({ ...occurrence, id: n, target: `Point ${n}` }));
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <MonthGrid year={2026} month={9} occurrences={more} today="2026-10-21" onPick={onPick} />
+      </ThemeProvider>
+    );
+
+    expect(screen.queryByText("Point 4")).toBeNull();
+    fireEvent.click(screen.getByText("+2 more"));
+    fireEvent.click(screen.getByText("Point 4"));
+    expect(onPick).toHaveBeenCalledWith(more[3]);
   });
 });

@@ -194,6 +194,7 @@ ErrorMonitoringController.OverrideSeverity(Guid, SeverityOverrideRequest, Cancel
 ErrorMonitoringController.Reopen(Guid, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Resolve(Guid, ResolveIncidentRequest, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Search(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator
+GlobalSearchController.Search(String, String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcMethodController.Create(SaveHplcMethodRequest): SystemAdministrator,SectionHead
 HplcMethodController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 HplcMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

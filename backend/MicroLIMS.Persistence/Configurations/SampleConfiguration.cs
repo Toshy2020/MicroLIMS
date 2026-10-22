@@ -11,6 +11,8 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
     {
         builder.HasKey(s => s.Id);
         builder.HasIndex(s => s.ReferenceNumber).IsUnique().HasDatabaseName(UniqueIndexNames.SampleReferenceNumber);
+        builder.HasIndex(s => s.BatchNumber);
+        builder.HasIndex(s => s.ControlNumber);
         builder.Property(s => s.ReferenceNumber).IsRequired().HasMaxLength(20);
         builder.Property(s => s.ControlNumber).IsRequired().HasMaxLength(50);
         builder.Property(s => s.SampledBy).IsRequired().HasMaxLength(100);

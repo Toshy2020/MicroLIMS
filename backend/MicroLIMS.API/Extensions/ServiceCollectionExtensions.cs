@@ -135,6 +135,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ReferenceNumberGenerator>();
         services.AddScoped<AuditSearchService>();
         services.AddScoped<AuditTraceabilityService>();
+        services.AddScoped<IGlobalSearchService, GlobalSearchService>();
         services.AddScoped<IDatabaseSequenceHelper, DatabaseSequenceHelper>();
         services.AddScoped<IAuditEventService, AuditEventService>();
         services.AddScoped<IDocumentAuthorizationService, DocumentAuthorizationService>();

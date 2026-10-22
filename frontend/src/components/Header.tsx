@@ -14,10 +14,13 @@ import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutlined";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SearchIcon from "@mui/icons-material/Search";
 import { apiClient } from "../services/apiClient";
 import { useThemeMode } from "../theme/ThemeModeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { formatRoleFallback, userInitials } from "../utils/userDisplay";
+import { GlobalSearchDialog } from "./search/GlobalSearchDialog";
+import { useGlobalSearchShortcut } from "../hooks/useGlobalSearchShortcut";
 
 interface NotificationDto {
   id: number | null;
@@ -84,6 +87,9 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
   const [bellAnchor, setBellAnchor] = useState<HTMLElement | null>(null);
   const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
+
+  useGlobalSearchShortcut(() => setSearchOpen((prev) => !prev));
 
   const loadUnreadMessages = () => {
     apiClient.get("/messages/unread-count")
@@ -192,7 +198,43 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
         </Typography>
       </Box>
 
+      <ButtonBase
+        onClick={() => setSearchOpen(true)}
+        sx={{
+          display: { xs: "none", sm: "flex" },
+          alignItems: "center",
+          gap: 1.5,
+          px: 2,
+          py: 0.6,
+          bgcolor: "rgba(255,255,255,0.15)",
+          borderRadius: 2,
+          color: "common.white",
+          width: { sm: 240, md: 360 },
+          justifyContent: "space-between",
+          cursor: "pointer",
+          "&:hover": { bgcolor: "rgba(255,255,255,0.22)" }
+        }}
+        aria-label="Search MicroLIMS (Ctrl+K)"
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <SearchIcon sx={{ fontSize: 18, opacity: 0.8 }} />
+          <Typography sx={{ fontSize: 13, opacity: 0.85 }}>Search MicroLIMS...</Typography>
+        </Box>
+        <Box sx={{ fontSize: 11, bgcolor: "rgba(0,0,0,0.2)", px: 0.8, py: 0.2, borderRadius: 1 }}>
+          Ctrl+K
+        </Box>
+      </ButtonBase>
+
       <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 } }}>
+        <Tooltip title="Search MicroLIMS">
+          <IconButton
+            onClick={() => setSearchOpen(true)}
+            sx={{ color: "common.white", display: { sm: "none" } }}
+            aria-label="Search MicroLIMS"
+          >
+            <SearchIcon />
+          </IconButton>
+        </Tooltip>
         <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
           <Switch
             checked={mode === "dark"}
@@ -363,6 +405,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           </MenuItem>
         </Menu>
       </Box>
+      <GlobalSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </Box>
   );
 }

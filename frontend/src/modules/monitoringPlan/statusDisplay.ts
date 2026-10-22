@@ -1,3 +1,4 @@
+import type { StatusTone } from "../../theme/statusTokens";
 import type { MonitoringCategory, OccurrenceStatus } from "./types";
 
 export const STATUS_LABEL: Record<OccurrenceStatus, string> = {
@@ -16,22 +17,39 @@ export const STATUS_LABEL: Record<OccurrenceStatus, string> = {
   Retired: "Retired"
 };
 
-export type StatusTone = "success" | "warning" | "error" | "info" | "default";
-
-export const STATUS_TONE: Record<OccurrenceStatus, StatusTone> = {
-  Upcoming: "default",
+// Each status maps onto the app-wide status tokens (theme.custom.status), so
+// the colours follow light and dark mode like every other badge. The symbol
+// is a second, non-colour cue.
+export const STATUS_TOKEN: Record<OccurrenceStatus, StatusTone> = {
+  Upcoming: "pending",
   Open: "info",
-  DueToday: "warning",
+  DueToday: "inconclusive",
   PartlyPerformed: "info",
   InTesting: "info",
   AwaitingReview: "info",
   AwaitingApproval: "info",
-  Performed: "success",
-  PerformedExcursion: "warning",
-  Overdue: "error",
-  Missed: "error",
-  Skipped: "default",
-  Retired: "default"
+  Performed: "notDetected",
+  PerformedExcursion: "inconclusive",
+  Overdue: "detected",
+  Missed: "detected",
+  Skipped: "pending",
+  Retired: "pending"
+};
+
+export const STATUS_SYMBOL: Record<OccurrenceStatus, string> = {
+  Upcoming: "○",
+  Open: "◐",
+  DueToday: "●",
+  PartlyPerformed: "◑",
+  InTesting: "◐",
+  AwaitingReview: "◐",
+  AwaitingApproval: "◐",
+  Performed: "✓",
+  PerformedExcursion: "!",
+  Overdue: "▲",
+  Missed: "▲",
+  Skipped: "–",
+  Retired: "–"
 };
 
 export const CATEGORY_LABEL: Record<MonitoringCategory, string> = {

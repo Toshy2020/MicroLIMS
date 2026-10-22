@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Button, FormControlLabel, IconButton, MenuItem, Switch, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Box, Button, FormControlLabel, IconButton, LinearProgress, MenuItem, Switch, Tab, Tabs, TextField, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { PageHeader } from "../../components/PageHeader";
@@ -36,31 +36,54 @@ export function MonitoringPlanPage() {
   const [coverage, setCoverage] = useState<CoverageReport | null>(null);
   const [spacing, setSpacing] = useState<SpacingReport | null>(null);
   const [flaggedOnly, setFlaggedOnly] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const requestId = useRef(0);
 
   const cat = category || undefined;
 
+  // Only the latest request may touch state, so a slow answer for a month or
+  // tab already left cannot overwrite the one on screen.
   const load = useCallback(async () => {
+    if (tab === "settings" || tab === "plan") return;
+    const mine = ++requestId.current;
+    const latest = () => mine === requestId.current;
     setError(null);
+    setLoading(true);
     try {
-      if (tab === "settings" || tab === "plan") return;
-      if (tab === "coverage") { setCoverage(await MonitoringPlanService.getCoverage(year, cat)); return; }
-      if (tab === "spacing") { setSpacing(await MonitoringPlanService.getSpacing(year, cat, flaggedOnly)); return; }
+      if (tab === "coverage") {
+        const report = await MonitoringPlanService.getCoverage(year, cat);
+        if (latest()) setCoverage(report);
+        return;
+      }
+      if (tab === "spacing") {
+        const report = await MonitoringPlanService.getSpacing(year, cat, flaggedOnly);
+        if (latest()) setSpacing(report);
+        return;
+      }
       const [y, d] = await Promise.all([MonitoringPlanService.getYear(year, cat), MonitoringPlanService.getDue(cat)]);
-      setSummary(y);
-      setDue(d);
+      let calendarDays: OccurrenceSummary[] | null = null;
       if (month !== null) {
         const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-        setDays(await MonitoringPlanService.getCalendar(isoDate(year, month, 1), isoDate(year, month, last), cat));
+        calendarDays = await MonitoringPlanService.getCalendar(isoDate(year, month, 1), isoDate(year, month, last), cat);
       }
+      if (!latest()) return;
+      setSummary(y);
+      setDue(d);
+      if (calendarDays) setDays(calendarDays);
     } catch (e: any) {
+      if (!latest()) return;
       setError(e?.response?.data?.message ?? "Could not load the monitoring plan.");
+      if (tab === "coverage") setCoverage(null);
+      else if (tab === "spacing") setSpacing(null);
+      else { setSummary(null); setDue(null); setDays([]); }
+    } finally {
+      if (latest()) setLoading(false);
     }
   }, [year, month, cat, tab, flaggedOnly]);
 
   useEffect(() => { void load(); }, [load]);
 
   const today = due?.today ?? isoDate(now.getFullYear(), now.getMonth(), now.getDate());
-  const monthDays = useMemo(() => days, [days]);
 
   const step = (delta: number) => {
     if (tab !== "calendar" || month === null) { setYear(year + delta); return; }
@@ -69,6 +92,12 @@ export function MonitoringPlanPage() {
     else if (next > 11) { setYear(year + 1); setMonth(0); }
     else setMonth(next);
   };
+
+  const goToday = () => {
+    setYear(now.getFullYear());
+    if (tab === "calendar" && month !== null) setMonth(now.getMonth());
+  };
+  const showsData = tab === "calendar" || tab === "coverage" || tab === "spacing";
 
   return (
     <Box>
@@ -92,11 +121,12 @@ export function MonitoringPlanPage() {
           {tab !== "calendar" || month === null ? year : `${MONTH_NAMES[month]} ${year}`}
         </Typography>
         <IconButton onClick={() => step(1)} aria-label="Next"><ChevronRightIcon /></IconButton>
+        {showsData && <Button variant="outlined" onClick={goToday}>Today</Button>}
         {tab === "calendar" && month !== null && <Button onClick={() => setMonth(null)}>Back to year</Button>}
         {tab === "spacing" && (
           <FormControlLabel control={<Switch checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />} label="Only flagged gaps" />
         )}
-        <TextField
+        {showsData && <TextField
           select size="small" label="Area" value={category} sx={{ minWidth: 220, ml: "auto" }}
           onChange={(e) => setCategory(e.target.value as MonitoringCategory | "")}
         >
@@ -104,9 +134,11 @@ export function MonitoringPlanPage() {
           {(Object.keys(CATEGORY_LABEL) as MonitoringCategory[]).map((c) => (
             <MenuItem key={c} value={c}>{CATEGORY_LABEL[c]}</MenuItem>
           ))}
-        </TextField>
+        </TextField>}
       </Box>
+      {loading && showsData && <LinearProgress aria-label="Loading" sx={{ mb: 1 }} />}
 
+      <Box aria-busy={loading && showsData} sx={{ opacity: loading && showsData ? 0.55 : 1, transition: "opacity 120ms" }}>
       {tab === "plan" ? (
         <PlanRevisionsPanel year={year} onApproved={() => void load()} />
       ) : tab === "settings" ? (
@@ -116,10 +148,11 @@ export function MonitoringPlanPage() {
       ) : tab === "spacing" ? (
         <SpacingTable report={spacing} />
       ) : month === null ? (
-        <YearGrid summary={summary} onPick={setMonth} />
+        <YearGrid summary={summary} today={today} onPick={setMonth} />
       ) : (
-        <MonthGrid year={year} month={month} occurrences={monthDays} today={today} onPick={(o) => setOpenId(o.id)} />
+        <MonthGrid year={year} month={month} occurrences={days} today={today} onPick={(o) => setOpenId(o.id)} />
       )}
+      </Box>
 
       <OccurrenceDialog occurrenceId={openId} onClose={() => setOpenId(null)} onChanged={() => void load()} />
       <ManualEntryDialog open={manualOpen} onClose={() => setManualOpen(false)} onCreated={() => void load()} />

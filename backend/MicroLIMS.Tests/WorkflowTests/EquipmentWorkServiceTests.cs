@@ -253,6 +253,57 @@ public class EquipmentWorkServiceTests
     }
 
     [Fact]
+    public async Task Recording_ignores_draft_tasks()
+    {
+        var w = await BuildAsync();
+
+        var draftRev = new EquipmentPlanRevision
+        {
+            Year = 2026,
+            RevisionNumber = 1,
+            Status = PlanRevisionStatus.Draft,
+            EffectiveFrom = new DateOnly(2026, 1, 1),
+            GeneratedAt = Now.UtcDateTime,
+            GeneratedByUserId = w.Analyst.Id
+        };
+        w.Db.EquipmentPlanRevisions.Add(draftRev);
+        await w.Db.SaveChangesAsync();
+
+        var draftTask = new EquipmentTask
+        {
+            EquipmentInventoryId = w.Equipment.Id,
+            TaskType = EquipmentTaskType.Calibration,
+            Year = 2026,
+            Sequence = 1,
+            OriginalDueDate = new DateOnly(2026, 4, 10),
+            DueDate = new DateOnly(2026, 4, 10),
+            CreatedByRevisionId = draftRev.Id
+        };
+        w.Db.EquipmentTasks.Add(draftTask);
+        await w.Db.SaveChangesAsync();
+
+        var req = new RecordCalibrationRequest(w.Certificate.Id, new DateOnly(2026, 4, 14), null, Password);
+        await w.Service.RecordCalibrationAsync(w.Equipment.Id, req, w.Analyst.Id, null);
+
+        // The draft task should NOT have been completed
+        var reloadedDraft = await w.Db.EquipmentTasks.FindAsync(draftTask.Id);
+        Assert.NotNull(reloadedDraft);
+        Assert.Null(reloadedDraft!.CompletedOn);
+        Assert.Null(reloadedDraft.CalibrationDocumentId);
+
+        // A new unplanned task should have been created and completed
+        var unplannedTask = await w.Db.EquipmentTasks
+            .FirstOrDefaultAsync(t => t.EquipmentInventoryId == w.Equipment.Id
+                                   && t.Id != draftTask.Id
+                                   && t.TaskType == EquipmentTaskType.Calibration);
+
+        Assert.NotNull(unplannedTask);
+        Assert.True(unplannedTask!.IsUnplanned);
+        Assert.Equal(new DateOnly(2026, 4, 14), unplannedTask.CompletedOn);
+        Assert.Equal(w.Certificate.Id, unplannedTask.CalibrationDocumentId);
+    }
+
+    [Fact]
     public async Task Certificate_next_due_wins()
     {
         var w = await BuildAsync();

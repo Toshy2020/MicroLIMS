@@ -129,6 +129,14 @@ public class EquipmentInventoryLabTests
         var (microSec, fpSec, microUser, adminUser) = SeedBase(db);
 
         var microAsset = SeedAsset(db, microSec.Id, "INC-MICRO-01");
+        microAsset.CalibrationIntervalValue = 12;
+        microAsset.CalibrationIntervalUnit = IntervalUnit.Months;
+        microAsset.LastCalibratedOn = new DateOnly(2026, 1, 10);
+        microAsset.PmIntervalValue = 3;
+        microAsset.PmIntervalUnit = IntervalUnit.Months;
+        microAsset.LastPmOn = new DateOnly(2026, 2, 1);
+        await db.SaveChangesAsync();
+
         var fpAsset = SeedAsset(db, fpSec.Id, "INC-FP-01");
 
         var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
@@ -138,6 +146,12 @@ public class EquipmentInventoryLabTests
         var microList = await service.GetAllAsync(microScope);
         Assert.Single(microList);
         Assert.Equal(microAsset.Id, microList[0].Id);
+        Assert.Equal(12, microList[0].CalibrationIntervalValue);
+        Assert.Equal(IntervalUnit.Months, microList[0].CalibrationIntervalUnit);
+        Assert.Equal(new DateOnly(2026, 1, 10), microList[0].LastCalibratedOn);
+        Assert.Equal(3, microList[0].PmIntervalValue);
+        Assert.Equal(IntervalUnit.Months, microList[0].PmIntervalUnit);
+        Assert.Equal(new DateOnly(2026, 2, 1), microList[0].LastPmOn);
 
         var adminScope = await scopeService.GetAccessibleSectionIdsAsync(adminUser.Id);
         var adminList = await service.GetAllAsync(adminScope);
@@ -178,12 +192,25 @@ public class EquipmentInventoryLabTests
         await using var db = NewDb();
         var (_, fpSec, _, adminUser) = SeedBase(db);
         var fpAsset = SeedAsset(db, fpSec.Id, "INC-FP-03");
+        fpAsset.CalibrationIntervalValue = 12;
+        fpAsset.CalibrationIntervalUnit = IntervalUnit.Months;
+        fpAsset.LastCalibratedOn = new DateOnly(2026, 1, 15);
+        fpAsset.PmIntervalValue = 6;
+        fpAsset.PmIntervalUnit = IntervalUnit.Weeks;
+        fpAsset.LastPmOn = new DateOnly(2026, 2, 20);
+        await db.SaveChangesAsync();
 
         var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var found = await service.GetByIdAsync(fpAsset.Id, adminUser.Id);
         Assert.NotNull(found);
         Assert.Equal(fpAsset.Id, found!.Id);
+        Assert.Equal(12, found.CalibrationIntervalValue);
+        Assert.Equal(IntervalUnit.Months, found.CalibrationIntervalUnit);
+        Assert.Equal(new DateOnly(2026, 1, 15), found.LastCalibratedOn);
+        Assert.Equal(6, found.PmIntervalValue);
+        Assert.Equal(IntervalUnit.Weeks, found.PmIntervalUnit);
+        Assert.Equal(new DateOnly(2026, 2, 20), found.LastPmOn);
     }
 
     [Fact]

@@ -101,6 +101,7 @@ public class EquipmentWorkService
             throw new BusinessRuleException("Calibration date cannot be in the future.");
 
         var completedDates = await _db.EquipmentTasks
+            .LiveTasks()
             .Where(t => t.EquipmentInventoryId == equipmentId && t.TaskType == EquipmentTaskType.Calibration && t.CompletedOn != null)
             .Select(t => t.CompletedOn!.Value)
             .ToListAsync();
@@ -128,6 +129,7 @@ public class EquipmentWorkService
         return await UnitOfWork.RunAsync(_db, async () =>
         {
             var openTasks = await _db.EquipmentTasks
+                .LiveTasks()
                 .Where(t => t.EquipmentInventoryId == equipmentId &&
                             t.TaskType == EquipmentTaskType.Calibration &&
                             t.CompletedOn == null &&
@@ -367,6 +369,7 @@ public class EquipmentWorkService
             if (r.EntryType == MaintenanceEntryType.PreventiveMaintenance)
             {
                 var openPmTasks = await _db.EquipmentTasks
+                    .LiveTasks()
                     .Where(t => t.EquipmentInventoryId == equipmentId &&
                                 t.TaskType == EquipmentTaskType.PreventiveMaintenance &&
                                 t.CompletedOn == null &&

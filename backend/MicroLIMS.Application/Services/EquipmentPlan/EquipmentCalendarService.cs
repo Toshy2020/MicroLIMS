@@ -134,6 +134,7 @@ public class EquipmentCalendarService
         var today = _clock.LabToday;
 
         var tasks = await _db.EquipmentTasks
+            .LiveTasks()
             .Include(t => t.EquipmentInventory)
             .Include(t => t.CalibrationDocument)
             .Include(t => t.MaintenanceLogEntry)
@@ -173,6 +174,7 @@ public class EquipmentCalendarService
         var lastDay = new DateOnly(year, 12, 31);
 
         var tasks = await _db.EquipmentTasks
+            .LiveTasks()
             .Where(t => t.RetiredByRevisionId == null && t.DueDate >= firstDay && t.DueDate <= lastDay)
             .ToListAsync();
 
@@ -248,6 +250,7 @@ public class EquipmentCalendarService
             : null;
 
         var tasks = await _db.EquipmentTasks
+            .LiveTasks()
             .Include(t => t.EquipmentInventory)
             .Include(t => t.CalibrationDocument)
             .Include(t => t.MaintenanceLogEntry)
@@ -342,6 +345,7 @@ public class EquipmentCalendarService
         if (!nextCalDue.HasValue)
         {
             nextCalDue = await _db.EquipmentTasks
+                .LiveTasks()
                 .Where(t => t.EquipmentInventoryId == equipmentId && t.TaskType == EquipmentTaskType.Calibration && t.CompletedOn == null && t.RetiredByRevisionId == null)
                 .OrderBy(t => t.DueDate)
                 .Select(t => (DateOnly?)t.DueDate)
@@ -357,6 +361,7 @@ public class EquipmentCalendarService
         if (!nextPmDue.HasValue)
         {
             nextPmDue = await _db.EquipmentTasks
+                .LiveTasks()
                 .Where(t => t.EquipmentInventoryId == equipmentId && t.TaskType == EquipmentTaskType.PreventiveMaintenance && t.CompletedOn == null && t.RetiredByRevisionId == null)
                 .OrderBy(t => t.DueDate)
                 .Select(t => (DateOnly?)t.DueDate)
@@ -388,6 +393,7 @@ public class EquipmentCalendarService
         var today = _clock.LabToday;
 
         var tasks = await _db.EquipmentTasks
+            .LiveTasks()
             .Include(t => t.EquipmentInventory)
             .Include(t => t.CalibrationDocument)
             .Include(t => t.MaintenanceLogEntry)

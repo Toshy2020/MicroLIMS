@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.EquipmentPlan;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 
@@ -54,6 +55,7 @@ public class MonitoringReminderService
                 $"{stillDue} monitoring plan occurrence(s) are still to be done this month.", "warning"));
 
         var overdueCal = await _db.EquipmentTasks.AsNoTracking()
+            .LiveTasks()
             .CountAsync(t => t.TaskType == EquipmentTaskType.Calibration
                           && t.CompletedOn == null
                           && t.RetiredByRevisionId == null
@@ -63,6 +65,7 @@ public class MonitoringReminderService
                 $"{overdueCal} equipment calibration task(s) are overdue.", "warning"));
 
         var overduePm = await _db.EquipmentTasks.AsNoTracking()
+            .LiveTasks()
             .CountAsync(t => t.TaskType == EquipmentTaskType.PreventiveMaintenance
                           && t.CompletedOn == null
                           && t.RetiredByRevisionId == null

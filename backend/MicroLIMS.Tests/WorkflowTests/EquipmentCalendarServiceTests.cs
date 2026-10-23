@@ -213,6 +213,76 @@ public class EquipmentCalendarServiceTests
     }
 
     [Fact]
+    public async Task Draft_tasks_are_not_shown_until_approved()
+    {
+        var w = await BuildAsync();
+
+        // Clear CalibrationDueDate on Equipment so NextCalibrationDue falls back to tasks
+        w.Equipment.CalibrationDueDate = null;
+        await w.Db.SaveChangesAsync();
+
+        var draftRev = new EquipmentPlanRevision
+        {
+            Year = 2026,
+            RevisionNumber = 1,
+            Status = PlanRevisionStatus.Draft,
+            EffectiveFrom = new DateOnly(2026, 1, 1),
+            GeneratedAt = Now.UtcDateTime,
+            GeneratedByUserId = w.Analyst.Id
+        };
+        w.Db.EquipmentPlanRevisions.Add(draftRev);
+        await w.Db.SaveChangesAsync();
+
+        var draftTask = new EquipmentTask
+        {
+            EquipmentInventoryId = w.Equipment.Id,
+            TaskType = EquipmentTaskType.Calibration,
+            Year = 2026,
+            Sequence = 1,
+            OriginalDueDate = new DateOnly(2026, 4, 20),
+            DueDate = new DateOnly(2026, 4, 20),
+            CreatedByRevisionId = draftRev.Id
+        };
+        w.Db.EquipmentTasks.Add(draftTask);
+        await w.Db.SaveChangesAsync();
+
+        // 1. Calendar: draft task must not appear
+        var calendar = await w.Service.GetCalendarAsync(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
+        Assert.DoesNotContain(calendar.Tasks, t => t.Id == draftTask.Id);
+
+        // 2. Month summary: April (index 3) planned count should be 0
+        var yearSummary = await w.Service.GetYearAsync(2026);
+        Assert.Equal(0, yearSummary[3].Planned);
+
+        // 3. History: draft task must not appear in tasks or next due
+        var history = await w.Service.GetInstrumentHistoryAsync(w.Equipment.Id, 2026);
+        Assert.DoesNotContain(history.Tasks, t => t.Id == draftTask.Id);
+        Assert.Null(history.NextCalibrationDue);
+
+        // 4. Planned vs Done: draft task must not appear
+        var plannedVsDone = await w.Service.GetPlannedVsDoneAsync(2026, EquipmentTaskType.Calibration);
+        Assert.DoesNotContain(plannedVsDone, t => t.Id == draftTask.Id);
+
+        // Now approve the revision
+        draftRev.Status = PlanRevisionStatus.Approved;
+        await w.Db.SaveChangesAsync();
+
+        // All queries should now show the task
+        calendar = await w.Service.GetCalendarAsync(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
+        Assert.Contains(calendar.Tasks, t => t.Id == draftTask.Id);
+
+        yearSummary = await w.Service.GetYearAsync(2026);
+        Assert.Equal(1, yearSummary[3].Planned);
+
+        history = await w.Service.GetInstrumentHistoryAsync(w.Equipment.Id, 2026);
+        Assert.Contains(history.Tasks, t => t.Id == draftTask.Id);
+        Assert.Equal(draftTask.DueDate, history.NextCalibrationDue);
+
+        plannedVsDone = await w.Service.GetPlannedVsDoneAsync(2026, EquipmentTaskType.Calibration);
+        Assert.Contains(plannedVsDone, t => t.Id == draftTask.Id);
+    }
+
+    [Fact]
     public async Task Month_summary_counts_tasks_and_events()
     {
         var w = await BuildAsync();

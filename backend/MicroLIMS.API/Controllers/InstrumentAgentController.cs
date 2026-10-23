@@ -11,7 +11,7 @@ namespace MicroLIMS.API.Controllers;
 // register / rotate-key response and is never retrievable afterwards.
 [ApiController]
 [Route("api/instrument-agents")]
-[Authorize(Policy = PermissionConstants.EquipmentManage)]
+[Authorize(Policy = PermissionConstants.MasterDataManage)]
 public class InstrumentAgentController : ControllerBase
 {
     private readonly InstrumentAgentService _service;

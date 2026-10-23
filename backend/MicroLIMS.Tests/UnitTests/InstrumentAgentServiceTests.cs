@@ -74,7 +74,7 @@ public class InstrumentAgentServiceTests
 
         Assert.Equal("AGT-HPLC-01", agent.Code);
         Assert.StartsWith("lims_agent_AGT-HPLC-01_", key);
-        Assert.Equal(key[..12], agent.KeyPrefix);
+        Assert.Equal(key["lims_agent_AGT-HPLC-01_".Length..][..8], agent.KeyPrefix);
         Assert.Equal(w.Hplc.SectionId, agent.SectionId);
 
         var stored = await w.Db.InstrumentAgents.SingleAsync();
@@ -142,7 +142,8 @@ public class InstrumentAgentServiceTests
         var (rotated, newKey) = await w.Service.RotateKeyAsync(agent.Id, w.Admin.Id, default);
 
         Assert.NotEqual(oldKey, newKey);
-        Assert.Equal(newKey[..12], rotated.KeyPrefix);
+        Assert.Equal(newKey["lims_agent_AGT-HPLC-01_".Length..][..8], rotated.KeyPrefix);
+        Assert.NotEqual(agent.KeyPrefix, rotated.KeyPrefix);
         Assert.False(await w.Db.InstrumentAgents.AnyAsync(a => a.KeyHash == Sha256Hex(oldKey)));
         Assert.True(await w.Db.InstrumentAgents.AnyAsync(a => a.KeyHash == Sha256Hex(newKey)));
         Assert.Equal("INSTRUMENT_AGENT_KEY_ROTATED", w.Audit.Events[^1].Code);
@@ -219,6 +220,11 @@ public class InstrumentAgentServicePostgresTests
             Assert.True(found.IsActive);
             Assert.Equal(equipment.SectionId, found.SectionId);
         }
+        await using (var actor = _fixture.CreateDbContext())
+        {
+            var reg = await actor.AuditLogs.SingleAsync(l => l.ActionCode == "INSTRUMENT_AGENT_REGISTERED" && l.EntityId == agent.Id.ToString());
+            Assert.Equal(_fixture.SeededUserId, reg.UserId);
+        }
 
         await service.RevokeAsync(agent.Id, "test", _fixture.SeededUserId, default);
 
@@ -226,5 +232,34 @@ public class InstrumentAgentServicePostgresTests
         Assert.False((await after.InstrumentAgents.SingleAsync(a => a.KeyHash == hash)).IsActive);
         var events = await after.AuditLogs.Where(l => l.ActionCategory == AuditActionCategory.Security && l.EntityId == agent.Id.ToString()).Select(l => l.ActionCode).ToListAsync();
         Assert.Equal(new[] { "INSTRUMENT_AGENT_REGISTERED", "INSTRUMENT_AGENT_REVOKED" }, events.OrderBy(c => c == "INSTRUMENT_AGENT_REVOKED").ToArray());
+    }
+
+    private sealed class ThrowingAudit : IAuditEventService
+    {
+        public Task<AuditLog> RecordUserEventAsync(string actionCode, AuditActionCategory actionCategory, string recordType,
+            int? documentMasterId = null, int? documentRevisionId = null, string? reason = null, Guid? correlationId = null,
+            string? sourceContext = null, IEnumerable<AuditFieldChange>? changes = null, string? entityId = null,
+            CancellationToken cancellationToken = default, int? sampleId = null) => throw new InvalidOperationException("audit down");
+
+        public Task<AuditLog> RecordSystemEventAsync(string systemProcessName, string actionCode, AuditActionCategory actionCategory,
+            string recordType, int? documentMasterId = null, int? documentRevisionId = null, string? reason = null,
+            Guid? correlationId = null, string? sourceContext = null, IEnumerable<AuditFieldChange>? changes = null,
+            string? entityId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    [PostgresFact]
+    public async Task A_failed_audit_write_rolls_the_register_back()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..8];
+        await using var db = _fixture.CreateDbContext();
+        var equipment = new Equipment { Name = $"HPLC {uid}", Code = $"HPLC-RB-{uid}", Type = EquipmentType.Hplc, SectionId = _fixture.SeededSectionId };
+        db.Equipment.Add(equipment);
+        await db.SaveChangesAsync();
+
+        var service = new InstrumentAgentService(db, new UserSectionScopeService(db), new ThrowingAudit());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RegisterAsync(equipment.Id, "Lab PC", "Africa/Cairo", _fixture.SeededUserId, default));
+
+        await using var after = _fixture.CreateDbContext();
+        Assert.False(await after.InstrumentAgents.AnyAsync(a => a.EquipmentId == equipment.Id));
     }
 }

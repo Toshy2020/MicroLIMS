@@ -26,11 +26,9 @@ export function UploadItemDocumentDialog({
   open,
   itemId,
   itemName,
-  defaultDocType = ItemDocumentType.Sop,
   onClose,
   onSuccess,
 }: UploadItemDocumentDialogProps) {
-  const [docType, setDocType] = useState<ItemDocumentType>(defaultDocType);
   const [version, setVersion] = useState("Rev 01");
   const [effectiveDate, setEffectiveDate] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
@@ -39,13 +37,12 @@ export function UploadItemDocumentDialog({
 
   useEffect(() => {
     if (open) {
-      setDocType(defaultDocType);
       setVersion("Rev 01");
       setEffectiveDate(new Date().toISOString().split("T")[0]);
       setFile(null);
       setError(null);
     }
-  }, [open, defaultDocType]);
+  }, [open]);
 
   const handleUpload = async () => {
     if (!file) {
@@ -57,17 +54,27 @@ export function UploadItemDocumentDialog({
     setError(null);
 
     try {
-      await ItemDocumentService.uploadDocument(itemId, docType, version, effectiveDate || null, file);
+      await ItemDocumentService.uploadDocument(
+        itemId,
+        ItemDocumentType.VerificationReport,
+        version,
+        effectiveDate || null,
+        file
+      );
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to upload document.");
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : err instanceof Error
+          ? err.message
+          : "Failed to upload document.";
+      setError(msg || "Failed to upload document.");
     } finally {
       setUploading(false);
     }
   };
-
-  const docTypeName = docType === ItemDocumentType.Sop ? "SOP" : "Verification Report";
 
   return (
     <FloatingDialog
@@ -75,7 +82,7 @@ export function UploadItemDocumentDialog({
       onClose={onClose}
       maxWidth="xs"
       titleSx={{ fontWeight: 700, fontSize: 15 }}
-      title={`Upload Controlled ${docTypeName}`}
+      title="Upload Controlled Verification Report"
       actions={
         <>
           <Button onClick={onClose} disabled={uploading} color="inherit">
@@ -100,12 +107,11 @@ export function UploadItemDocumentDialog({
           </Typography>
           <Select
             size="small"
-            value={docType}
-            onChange={(e) => setDocType(e.target.value as ItemDocumentType)}
+            value={ItemDocumentType.VerificationReport}
+            disabled
             fullWidth
             inputProps={{ "aria-label": "Document Type" }}
           >
-            <MenuItem value={ItemDocumentType.Sop}>SOP</MenuItem>
             <MenuItem value={ItemDocumentType.VerificationReport}>Verification Report</MenuItem>
           </Select>
         </Box>

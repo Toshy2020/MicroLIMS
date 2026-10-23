@@ -11,13 +11,11 @@ import {
   Chip,
   Divider,
   Alert,
-  useTheme,
   Accordion,
   AccordionSummary,
   AccordionDetails,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import DescriptionIcon from "@mui/icons-material/Description";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
@@ -28,6 +26,7 @@ import { ItemDocumentService, ItemDocumentDto, ItemDocumentType, MaterialDocumen
 import { UploadItemDocumentDialog } from "./UploadItemDocumentDialog";
 import { AuditHistoryDialog } from "../../../../components/AuditHistoryDialog";
 import { ItemDocumentActionButtons } from "../../../../components/ItemDocumentActionButtons";
+import { ItemStmPanel } from "../../../../components/ItemStmPanel";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
 import { ItemPreparationConfigurationSection } from "./ItemPreparationConfigurationSection";
 import {
@@ -43,13 +42,11 @@ interface ItemWorkspaceProps {
 }
 
 export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspaceProps) {
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
-  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [_loadingDocs, setLoadingDocs] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadDocType, setUploadDocType] = useState<ItemDocumentType>(ItemDocumentType.Sop);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
 
   // Drives the Overview summary row; bumped by the tab when it saves or
@@ -71,7 +68,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
     try {
       const docs = await ItemDocumentService.getDocumentsForItem(item.id);
       setDocuments(docs);
-    } catch (err: any) {
+    } catch {
       setDocError("Failed to load documents.");
     } finally {
       setLoadingDocs(false);
@@ -80,20 +77,18 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
 
   useEffect(() => {
     loadDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id]);
 
-  const currentSop = documents.find((d) => d.documentType === ItemDocumentType.Sop && d.status === MaterialDocumentStatus.Current);
   const currentVr = documents.find(
     (d) => d.documentType === ItemDocumentType.VerificationReport && d.status === MaterialDocumentStatus.Current
   );
 
-  const historicalSops = documents.filter((d) => d.documentType === ItemDocumentType.Sop && d.status !== MaterialDocumentStatus.Current);
   const historicalVrs = documents.filter(
     (d) => d.documentType === ItemDocumentType.VerificationReport && d.status !== MaterialDocumentStatus.Current
   );
 
-  const openUploadDialog = (type: ItemDocumentType) => {
-    setUploadDocType(type);
+  const openUploadDialog = () => {
     setUploadDialogOpen(true);
   };
 
@@ -313,7 +308,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     Controlled Documents:
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
-                    {currentSop ? "SOP Available" : "No SOP"} • {currentVr ? "VR Available" : "No VR"} →
+                    {item.sopNumber ? `SOP: ${item.sopNumber}` : "No SOP"} • {currentVr ? "VR Available" : "No VR"} →
                   </Typography>
                 </Box>
 
@@ -403,63 +398,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
           <Stack spacing={3}>
             {docError && <Alert severity="error">{docError}</Alert>}
 
-            {/* SOP Section */}
-            <Box>
-              <Stack
-                direction="row"
-                sx={{
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  mb: 1.5
-                }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-                  <DescriptionIcon fontSize="small" sx={{ color: theme.custom.status.purple.text }} />
-                  SOP (Standard Operating Procedure)
-                </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<UploadFileIcon fontSize="small" />}
-                  onClick={() => openUploadDialog(ItemDocumentType.Sop)}
-                >
-                  + Upload SOP
-                </Button>
-              </Stack>
-
-              {currentSop ? (
-                <DocumentCard doc={currentSop} formatFileSize={formatFileSize} formatDate={formatDate} formatDateTime={formatDateTime} />
-              ) : (
-                <Paper sx={{ p: 2, textAlign: "center", border: "1px dashed", borderColor: "divider", bgcolor: "action.hover" }}>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    No current SOP uploaded for this item.
-                  </Typography>
-                </Paper>
-              )}
-
-              {historicalSops.length > 0 && (
-                <Accordion sx={{ mt: 1, border: "1px solid", borderColor: "divider", boxShadow: "none" }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Historical SOP Versions ({historicalSops.length})
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ pt: 0 }}>
-                    <Stack spacing={1}>
-                      {historicalSops.map((doc) => (
-                        <DocumentCard
-                          key={doc.id}
-                          doc={doc}
-                          formatFileSize={formatFileSize}
-                          formatDate={formatDate}
-                          formatDateTime={formatDateTime}
-                          isHistorical
-                        />
-                      ))}
-                    </Stack>
-                  </AccordionDetails>
-                </Accordion>
-              )}
-            </Box>
+            {/* Effective STM from Document Library */}
+            <ItemStmPanel itemId={item.id} />
 
             <Divider />
 
@@ -480,7 +420,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   size="small"
                   variant="outlined"
                   startIcon={<UploadFileIcon fontSize="small" />}
-                  onClick={() => openUploadDialog(ItemDocumentType.VerificationReport)}
+                  onClick={openUploadDialog}
                 >
                   + Upload Verification Report
                 </Button>
@@ -556,7 +496,6 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         open={uploadDialogOpen}
         itemId={item.id}
         itemName={item.name}
-        defaultDocType={uploadDocType}
         onClose={() => setUploadDialogOpen(false)}
         onSuccess={loadDocuments}
       />
@@ -586,8 +525,6 @@ function DocumentCard({
   formatDateTime: (d?: string | null) => string;
   isHistorical?: boolean;
 }) {
-  const theme = useTheme();
-
   return (
     <Paper
       sx={{

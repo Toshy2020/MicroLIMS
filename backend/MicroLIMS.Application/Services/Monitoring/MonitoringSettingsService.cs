@@ -15,7 +15,8 @@ public record MonitoringSettingsRequest(
     int AcEarlyToleranceDays, int AcLateToleranceDays,
     int WarningDayOfMonth, int GraceDays,
     int MonthlyMinGapDays, int MonthlyMaxGapDays,
-    int WeeklyMinGapDays, int WeeklyMaxGapDays);
+    int WeeklyMinGapDays, int WeeklyMaxGapDays,
+    int DeviationDueDays = 30, int FollowUpWindowDays = 5);
 
 public record MonitoringSettingsResponse(
     int Id, uint Version,
@@ -26,7 +27,8 @@ public record MonitoringSettingsResponse(
     int AcEarlyToleranceDays, int AcLateToleranceDays,
     int WarningDayOfMonth, int GraceDays,
     int MonthlyMinGapDays, int MonthlyMaxGapDays,
-    int WeeklyMinGapDays, int WeeklyMaxGapDays)
+    int WeeklyMinGapDays, int WeeklyMaxGapDays,
+    int DeviationDueDays, int FollowUpWindowDays)
 {
     public static MonitoringSettingsResponse From(MonitoringSettings s) => new(
         s.Id, s.Version, s.LabWeekStartDay, s.WorkingWeekdays,
@@ -35,7 +37,8 @@ public record MonitoringSettingsResponse(
         s.AcEarlyToleranceDays, s.AcLateToleranceDays,
         s.WarningDayOfMonth, s.GraceDays,
         s.MonthlyMinGapDays, s.MonthlyMaxGapDays,
-        s.WeeklyMinGapDays, s.WeeklyMaxGapDays);
+        s.WeeklyMinGapDays, s.WeeklyMaxGapDays,
+        s.DeviationDueDays, s.FollowUpWindowDays);
 }
 
 public record LabCalendarDateRequest(DateOnly Date, string Description);
@@ -87,6 +90,8 @@ public class MonitoringSettingsService
         row.MonthlyMaxGapDays = r.MonthlyMaxGapDays;
         row.WeeklyMinGapDays = r.WeeklyMinGapDays;
         row.WeeklyMaxGapDays = r.WeeklyMaxGapDays;
+        row.DeviationDueDays = r.DeviationDueDays;
+        row.FollowUpWindowDays = r.FollowUpWindowDays;
         row.UpdatedByUserId = userId;
         row.UpdatedAt = _clock.UtcNow.UtcDateTime;
         await _db.SaveChangesAsync();
@@ -110,6 +115,10 @@ public class MonitoringSettingsService
             throw new BusinessRuleException("The warning day of the month must be between 1 and 28.");
         if (r.GraceDays is < 0 or > 60)
             throw new BusinessRuleException("Grace days must be between 0 and 60.");
+        if (r.DeviationDueDays is < 1 or > 365)
+            throw new BusinessRuleException("Days to close a deviation must be between 1 and 365.");
+        if (r.FollowUpWindowDays is < 1 or > 30)
+            throw new BusinessRuleException("Follow-up sampling days must be between 1 and 30.");
         if (r.MonthlyMinGapDays < 1 || r.MonthlyMinGapDays > r.MonthlyMaxGapDays
             || r.WeeklyMinGapDays < 1 || r.WeeklyMinGapDays > r.WeeklyMaxGapDays)
             throw new BusinessRuleException("A minimum spacing must be at least 1 day and not exceed its maximum.");

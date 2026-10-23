@@ -113,7 +113,7 @@ export function DuePanel({ due, onPick }: { due: DueResult | null; onPick: (o: O
       <Typography sx={{ fontWeight: 600, mb: 1 }}>Due this month</Typography>
       {earlier.length > 0 && (
         <Alert severity="error" sx={{ mb: 1 }}>
-          {points.length} sampling point(s) have {earlier.length} occurrence(s) from earlier months that were not performed and need review.
+          {points.length} sampling point(s) have {earlier.length} occurrence(s) from earlier months that were not performed and need review. Track and close them on the Deviations tab.
         </Alert>
       )}
       {due.showWarning && current.length > 0 && (

@@ -23,6 +23,8 @@ const NUMBER_FIELDS: { key: keyof MonitoringSettings; label: string }[] = [
   { key: "acLateToleranceDays", label: "After Cleaning: days late allowed" },
   { key: "warningDayOfMonth", label: "Warn from day of month" },
   { key: "graceDays", label: "Grace days before Missed" },
+  { key: "deviationDueDays", label: "Days allowed to close a deviation" },
+  { key: "followUpWindowDays", label: "Working days for follow-up sampling" },
   { key: "monthlyMinGapDays", label: "Monthly: shortest gap (days)" },
   { key: "monthlyMaxGapDays", label: "Monthly: longest gap (days)" },
   { key: "weeklyMinGapDays", label: "Weekly: shortest gap (days)" },

@@ -26,6 +26,10 @@ export function ManualEntryDialog({ open, onClose, onCreated }: { open: boolean;
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setMachineId("");
+    setKind("Day");
+    setDate("");
+    setReason("");
     apiClient.get("/masterdata/machines").then((r) => setMachines(r.data.data)).catch(() => setError("Could not load machines."));
   }, [open]);
 
@@ -80,7 +84,7 @@ export function ManualEntryDialog({ open, onClose, onCreated }: { open: boolean;
             slotProps={{ inputLabel: { shrink: true } }}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            helperText={kind === "Week" ? "The lab week runs Sunday to Saturday." : undefined}
+            helperText={kind === "Week" ? "Due on any working day of that lab week." : kind === "Month" ? "Due on any working day of that month." : "Choose a working day."}
           />
           {parts.length > 0 && <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Machine parts to test</Typography>}
           {parts.map((p) => (

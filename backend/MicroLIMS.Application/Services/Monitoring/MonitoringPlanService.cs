@@ -36,16 +36,29 @@ public class MonitoringPlanService
     }
 
     // Builds (or rebuilds) the year's Draft. Occurrences already in force
-    // are not touched: a revision of an approved year only adds what is
-    // missing from now on.
-    public async Task<PlanPreviewResponse> GenerateDraftAsync(int year, int userId)
+    // keep their history: a revision of an approved year adds what is missing
+    // from now on, retires what no longer applies and moves occurrences that
+    // have not started to their new dates. The plan goes live on goLiveDate
+    // (default: today, or 1 January of a future year); nothing before it is
+    // planned, so approving late never creates a backlog of missed work.
+    public async Task<PlanPreviewResponse> GenerateDraftAsync(int year, int userId, DateOnly? goLiveDate = null)
     {
         ValidateYear(year);
         var today = _clock.LabToday;
+        var yearStart = new DateOnly(year, 1, 1);
+        var yearEnd = new DateOnly(year, 12, 31);
+
+        var earliest = today > yearStart ? today : yearStart;
+        if (earliest > yearEnd)
+            throw new BusinessRuleException($"The {year} plan year has already ended. Generate a plan for the current or a later year.");
+        var effectiveFrom = goLiveDate ?? earliest;
+        if (effectiveFrom < earliest)
+            throw new BusinessRuleException($"The go-live date cannot be before {earliest:yyyy-MM-dd}. Earlier dates would plan work that can no longer be done.");
+        if (effectiveFrom > yearEnd)
+            throw new BusinessRuleException($"The go-live date must fall inside {year}.");
 
         var approved = await _db.MonitoringPlanRevisions.AsNoTracking()
             .AnyAsync(r => r.Year == year && r.Status == PlanRevisionStatus.Approved);
-        var effectiveFrom = approved && today > new DateOnly(year, 1, 1) ? today : new DateOnly(year, 1, 1);
 
         var plan = await BuildPlanAsync(year, effectiveFrom);
         var existing = await LiveOccurrencesAsync(year);
@@ -53,7 +66,8 @@ public class MonitoringPlanService
 
         var toAdd = plan.Occurrences.Where(o => !existingKeys.Contains(KeyOf(o))).ToList();
         var toRetire = RetirementCandidates(existing, plan, today);
-        if (approved && toAdd.Count == 0 && toRetire.Count == 0)
+        var toReschedule = await RescheduleCandidatesAsync(existing, plan, today);
+        if (approved && toAdd.Count == 0 && toRetire.Count == 0 && toReschedule.Count == 0)
             throw new BusinessRuleException($"The approved plan for {year} already matches the master data. There is nothing to revise.");
 
         return await UnitOfWork.RunAsync(_db, async () =>
@@ -86,7 +100,7 @@ public class MonitoringPlanService
                 draft.CreatedOccurrences.Add(ToEntity(g));
 
             await _db.SaveChangesAsync();
-            return await PreviewAsync(draft, plan, toRetire);
+            return await PreviewAsync(draft, plan, toRetire, toReschedule);
         });
     }
 
@@ -96,11 +110,13 @@ public class MonitoringPlanService
             ?? throw new NotFoundException($"Plan revision {revisionId} not found.");
 
         if (revision.Status != PlanRevisionStatus.Draft)
-            return await PreviewAsync(revision, null, null);
+            return await PreviewAsync(revision, null, null, null);
 
         var plan = await BuildPlanAsync(revision.Year, revision.EffectiveFrom);
-        var toRetire = RetirementCandidates(await LiveOccurrencesAsync(revision.Year), plan, _clock.LabToday);
-        return await PreviewAsync(revision, plan, toRetire);
+        var live = await LiveOccurrencesAsync(revision.Year);
+        var toRetire = RetirementCandidates(live, plan, _clock.LabToday);
+        var toReschedule = await RescheduleCandidatesAsync(live, plan, _clock.LabToday);
+        return await PreviewAsync(revision, plan, toRetire, toReschedule);
     }
 
     public async Task<PlanRevisionResponse> ApproveAsync(int revisionId, ApprovePlanRequest request, int userId, string? ipAddress)
@@ -127,7 +143,9 @@ public class MonitoringPlanService
         if (!expectedAdds.SetEquals(draftKeys))
             throw new BusinessRuleException("The master data has changed since this draft was generated. Generate the draft again before approving it.");
 
-        var toRetire = RetirementCandidates(await LiveOccurrencesAsync(revision.Year), plan, today);
+        var live = await LiveOccurrencesAsync(revision.Year);
+        var toRetire = RetirementCandidates(live, plan, today);
+        var toReschedule = await RescheduleCandidatesAsync(live, plan, today);
 
         return await UnitOfWork.RunAsync(_db, async () =>
         {
@@ -159,6 +177,30 @@ public class MonitoringPlanService
                         PerformedAt = now,
                         ElectronicSignature = signature
                     });
+                }
+            }
+
+            if (toReschedule.Count > 0)
+            {
+                var ids = toReschedule.Select(c => c.Existing.Id).ToList();
+                var rows = await _db.MonitoringOccurrences.Where(o => ids.Contains(o.Id)).ToDictionaryAsync(o => o.Id);
+                foreach (var (existing, desired) in toReschedule)
+                {
+                    var row = rows[existing.Id];
+                    _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
+                    {
+                        MonitoringOccurrenceId = row.Id,
+                        EventType = OccurrenceEventType.Rescheduled,
+                        OldValue = DescribeDates(row.TargetDate, row.WindowStart, row.WindowEnd),
+                        NewValue = DescribeDates(desired.Period.TargetDate, desired.Period.WindowStart, desired.Period.WindowEnd),
+                        Reason = reason ?? $"Plan revision {revision.RevisionNumber}",
+                        PerformedByUserId = userId,
+                        PerformedAt = now,
+                        ElectronicSignature = signature
+                    });
+                    row.TargetDate = desired.Period.TargetDate;
+                    row.WindowStart = desired.Period.WindowStart;
+                    row.WindowEnd = desired.Period.WindowEnd;
                 }
             }
 
@@ -249,9 +291,9 @@ public class MonitoringPlanService
 
     private async Task<List<MonitoringOccurrence>> LiveOccurrencesAsync(int year)
     {
-        var prefix = $"{year}-";
+        var (prefix, dailyPrefix) = PlanKeyPrefixes(year);
         return await _db.MonitoringOccurrences.AsNoTracking()
-            .Where(o => o.PeriodKey.StartsWith(prefix)
+            .Where(o => (o.PeriodKey.StartsWith(prefix) || o.PeriodKey.StartsWith(dailyPrefix))
                         && o.TargetType != MonitoringTargetType.Machine
                         && o.RetiredByRevisionId == null
                         && o.ExceptionState == OccurrenceExceptionState.None
@@ -265,9 +307,9 @@ public class MonitoringPlanService
     // out: rebuilding a draft replaces its rows.
     private async Task<HashSet<(MonitoringTargetType, int, string, int)>> AllKeysAsync(int year)
     {
-        var prefix = $"{year}-";
+        var (prefix, dailyPrefix) = PlanKeyPrefixes(year);
         var rows = await _db.MonitoringOccurrences.AsNoTracking()
-            .Where(o => o.PeriodKey.StartsWith(prefix) && o.TargetType != MonitoringTargetType.Machine
+            .Where(o => (o.PeriodKey.StartsWith(prefix) || o.PeriodKey.StartsWith(dailyPrefix)) && o.TargetType != MonitoringTargetType.Machine
                         && o.CreatedByRevision!.Status != PlanRevisionStatus.Draft)
             .Select(o => new { o.TargetType, o.WaterSamplingPointId, o.RoomId, o.PeriodKey, o.Sequence })
             .ToListAsync();
@@ -281,6 +323,37 @@ public class MonitoringPlanService
         var desired = plan.Occurrences.Select(KeyOf).ToHashSet();
         return live.Where(o => o.WindowStart > today && !desired.Contains(KeyOf(o))).ToList();
     }
+
+    // Weekly and monthly keys start "2026-", daily ones "D2026"; manual and
+    // follow-up occurrences use other prefixes and are never part of the plan.
+    private static (string Periodic, string Daily) PlanKeyPrefixes(int year) => ($"{year}-", $"D{year}");
+
+    // Occurrences in force that the plan still wants but on other dates, so a
+    // revision can move them: not started (LiveOccurrencesAsync), still ahead of
+    // today both as they are and as they would become, and never one a person
+    // already changed with a signed window change.
+    private async Task<List<(MonitoringOccurrence Existing, GeneratedOccurrence Desired)>> RescheduleCandidatesAsync(
+        List<MonitoringOccurrence> live, GeneratedPlan plan, DateOnly today)
+    {
+        var desired = plan.Occurrences.GroupBy(KeyOf).ToDictionary(g => g.Key, g => g.First());
+        var candidates = live
+            .Where(o => o.WindowEnd >= today && desired.TryGetValue(KeyOf(o), out var d) && d.Period.WindowEnd >= today
+                        && (o.TargetDate != d.Period.TargetDate || o.WindowStart != d.Period.WindowStart || o.WindowEnd != d.Period.WindowEnd))
+            .ToList();
+        if (candidates.Count == 0) return new();
+
+        var ids = candidates.Select(o => o.Id).ToList();
+        var changedByPeople = (await _db.MonitoringOccurrenceEvents.AsNoTracking()
+                .Where(e => ids.Contains(e.MonitoringOccurrenceId)
+                            && (e.EventType == OccurrenceEventType.TargetDateChanged || e.EventType == OccurrenceEventType.WindowExtended))
+                .Select(e => e.MonitoringOccurrenceId).Distinct().ToListAsync())
+            .ToHashSet();
+
+        return candidates.Where(o => !changedByPeople.Contains(o.Id)).Select(o => (o, desired[KeyOf(o)])).ToList();
+    }
+
+    private static string DescribeDates(DateOnly? target, DateOnly start, DateOnly end) =>
+        $"{(target.HasValue ? $"target {target:yyyy-MM-dd}, " : string.Empty)}window {start:yyyy-MM-dd} to {end:yyyy-MM-dd}";
 
     private static (MonitoringTargetType, int, string, int) KeyOf(GeneratedOccurrence g) => g.Key;
 
@@ -322,7 +395,8 @@ public class MonitoringPlanService
                 .ToDictionaryAsync(x => x.Key, x => x.Count);
 
     private async Task<PlanPreviewResponse> PreviewAsync(
-        MonitoringPlanRevision revision, GeneratedPlan? plan, List<MonitoringOccurrence>? toRetire)
+        MonitoringPlanRevision revision, GeneratedPlan? plan, List<MonitoringOccurrence>? toRetire,
+        List<(MonitoringOccurrence Existing, GeneratedOccurrence Desired)>? toReschedule)
     {
         var totals = await _db.MonitoringOccurrences.AsNoTracking()
             .Where(o => o.CreatedByRevisionId == revision.Id)
@@ -334,7 +408,8 @@ public class MonitoringPlanService
 
         var retired = toRetire ?? await _db.MonitoringOccurrences.AsNoTracking()
             .Where(o => o.RetiredByRevisionId == revision.Id).ToListAsync();
-        var names = await TargetNamesAsync(retired);
+        var moved = toReschedule ?? new();
+        var names = await TargetNamesAsync(retired.Concat(moved.Select(m => m.Existing)).ToList());
         var retirements = retired
             .OrderBy(o => o.WindowStart)
             .Select(o => new PlanRetirementResponse(o.Id, o.Category, names.GetValueOrDefault(KeyOf(o).Item2 + ":" + o.TargetType, "?"), o.PeriodKey, o.WindowStart, o.WindowEnd))
@@ -343,7 +418,15 @@ public class MonitoringPlanService
         var exceptions = (plan?.Exceptions ?? new List<PlanException>())
             .Select(e => new PlanExceptionResponse(e.Kind, e.Category, e.Target, e.Message)).ToList();
 
-        return new PlanPreviewResponse(PlanRevisionResponse.From(revision, totals.Count), byCategory, retirements, exceptions);
+        var reschedules = moved
+            .OrderBy(m => m.Existing.WindowStart)
+            .Select(m => new PlanRescheduleResponse(
+                m.Existing.Id, m.Existing.Category, names.GetValueOrDefault(KeyOf(m.Existing).Item2 + ":" + m.Existing.TargetType, "?"), m.Existing.PeriodKey,
+                m.Existing.TargetDate, m.Existing.WindowStart, m.Existing.WindowEnd,
+                m.Desired.Period.TargetDate, m.Desired.Period.WindowStart, m.Desired.Period.WindowEnd))
+            .ToList();
+
+        return new PlanPreviewResponse(PlanRevisionResponse.From(revision, totals.Count), byCategory, retirements, reschedules, exceptions);
     }
 
     private async Task<Dictionary<string, string>> TargetNamesAsync(List<MonitoringOccurrence> occurrences)

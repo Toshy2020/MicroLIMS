@@ -13,7 +13,8 @@ public class MonitoringOccurrenceEvent
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public string? Reason { get; set; }
-    public int PerformedByUserId { get; set; }
+    // Null when the plan itself did it (for example opening follow-up sampling).
+    public int? PerformedByUserId { get; set; }
     public DateTime PerformedAt { get; set; }
     public int? ElectronicSignatureId { get; set; }
     public ElectronicSignature? ElectronicSignature { get; set; }

@@ -19,10 +19,17 @@ public record PlanCategoryTotal(MonitoringCategory Category, int Targets, int Oc
 public record PlanRetirementResponse(
     int OccurrenceId, MonitoringCategory Category, string Target, string PeriodKey, DateOnly WindowStart, DateOnly WindowEnd);
 
+// An occurrence not yet started that a revision moves to new dates.
+public record PlanRescheduleResponse(
+    int OccurrenceId, MonitoringCategory Category, string Target, string PeriodKey,
+    DateOnly? OldTargetDate, DateOnly OldWindowStart, DateOnly OldWindowEnd,
+    DateOnly? NewTargetDate, DateOnly NewWindowStart, DateOnly NewWindowEnd);
+
 public record PlanExceptionResponse(PlanExceptionKind Kind, MonitoringCategory Category, string Target, string Message);
 
 public record PlanPreviewResponse(
     PlanRevisionResponse Revision,
     List<PlanCategoryTotal> Totals,
     List<PlanRetirementResponse> ToRetire,
+    List<PlanRescheduleResponse> ToReschedule,
     List<PlanExceptionResponse> Exceptions);

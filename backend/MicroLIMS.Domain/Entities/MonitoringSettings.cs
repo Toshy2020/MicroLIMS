@@ -32,6 +32,11 @@ public class MonitoringSettings : IVersionedEntity
     public int WeeklyMinGapDays { get; set; } = 4;
     public int WeeklyMaxGapDays { get; set; } = 10;
 
+    // Days to close a deviation, and working days allowed for the extra
+    // sampling opened after an excursion.
+    public int DeviationDueDays { get; set; } = 30;
+    public int FollowUpWindowDays { get; set; } = 5;
+
     public int? UpdatedByUserId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

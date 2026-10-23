@@ -74,7 +74,8 @@ public class PlanWindowCalculatorTests
     {
         var first = Run(new FrequencyRuleDto(FrequencyType.Weekly, 1, DayOfWeek.Sunday), early: 1)[0];
 
-        Assert.Equal(new DateOnly(2026, 1, 3), first.WindowStart);
+        // One working day before Sunday 4 January is Thursday 1 January: Friday and Saturday are skipped.
+        Assert.Equal(new DateOnly(2026, 1, 1), first.WindowStart);
     }
 
     [Fact]
@@ -85,8 +86,9 @@ public class PlanWindowCalculatorTests
         var first = Run(new FrequencyRuleDto(FrequencyType.Weekly, 1), holidays)[0];
 
         Assert.Null(first.TargetDate);
+        // The lab week runs Sunday to Saturday, but only Sunday to Thursday are working days.
         Assert.Equal(new DateOnly(2026, 1, 4), first.WindowStart);
-        Assert.Equal(new DateOnly(2026, 1, 10), first.WindowEnd);
+        Assert.Equal(new DateOnly(2026, 1, 8), first.WindowEnd);
         Assert.Equal("2026-W01", first.PeriodKey);
     }
 
@@ -108,7 +110,8 @@ public class PlanWindowCalculatorTests
         Assert.Equal(12, periods.Count);
         Assert.Equal("2026-02", periods[1].PeriodKey);
         Assert.Equal(new DateOnly(2026, 2, 1), periods[1].WindowStart);
-        Assert.Equal(new DateOnly(2026, 2, 28), periods[1].WindowEnd);
+        // 28 February is a Saturday, so the window closes on Thursday the 26th.
+        Assert.Equal(new DateOnly(2026, 2, 26), periods[1].WindowEnd);
         Assert.Null(periods[1].TargetDate);
     }
 
@@ -182,8 +185,8 @@ public class PlanWindowCalculatorTests
     }
 
     [Theory]
-    [InlineData(2026, 1, 11, 17)]  // Jan 1 is a Thursday, so week 1 starts Sunday Jan 4
-    [InlineData(2026, 2, 8, 14)]   // Feb 1 is a Sunday
+    [InlineData(2026, 1, 11, 15)]  // Jan 1 is a Thursday, so week 1 starts Sunday Jan 4; the week's Saturday is not a working day
+    [InlineData(2026, 2, 8, 12)]   // Feb 1 is a Sunday
     public void MonthlyWithWeekOfMonth_IsDueInThatLabWeek_WithNoTargetDay(int year, int month, int startDay, int endDay)
     {
         var rule = new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 2);
@@ -203,5 +206,96 @@ public class PlanWindowCalculatorTests
         // Dec 2026: Dec 1 is a Tuesday, week 1 starts Dec 6, week 4 starts Dec 27 and would end Jan 2.
         Assert.Equal(new DateOnly(2026, 12, 27), period.WindowStart);
         Assert.Equal(new DateOnly(2026, 12, 31), period.WindowEnd);
+    }
+
+    [Fact]
+    public void LateTolerance_CountsWorkingDays_SoAThursdayTargetClosesOnMonday()
+    {
+        var first = Run(new FrequencyRuleDto(FrequencyType.Weekly, 1, DayOfWeek.Thursday))[0];
+
+        Assert.Equal(new DateOnly(2026, 1, 8), first.TargetDate);
+        // Friday and Saturday are skipped: Thursday + 2 working days is Monday.
+        Assert.Equal(new DateOnly(2026, 1, 12), first.WindowEnd);
+    }
+
+    [Fact]
+    public void MonthlyWithWeekAndWeekday_IsDueOnThatDayOfThePinnedWeek()
+    {
+        // October 2026: week 4 starts Sunday 25 October, so Thursday is the 29th.
+        var rule = new FrequencyRuleDto(FrequencyType.Monthly, 1, DayOfWeek.Thursday, null, 4);
+
+        var period = Run(rule).Single(p => p.PeriodKey == "2026-10");
+
+        Assert.Equal(new DateOnly(2026, 10, 29), period.TargetDate);
+        Assert.Equal(new DateOnly(2026, 10, 29), period.WindowStart);
+        Assert.Equal(new DateOnly(2026, 11, 2), period.WindowEnd);
+        Assert.False(period.MovedForNonWorkingDate);
+    }
+
+    [Fact]
+    public void MonthlyWithWeekAndAFridayWeekday_MovesToTheNextWorkingDay()
+    {
+        var rule = new FrequencyRuleDto(FrequencyType.Monthly, 1, DayOfWeek.Friday, null, 2);
+
+        var period = Run(rule).Single(p => p.PeriodKey == "2026-03");
+
+        // Week 2 of March 2026 starts Sunday 8 March; Friday the 13th is moved to Sunday the 15th.
+        Assert.Equal(new DateOnly(2026, 3, 13), period.OriginalTargetDate);
+        Assert.Equal(new DateOnly(2026, 3, 15), period.TargetDate);
+        Assert.True(period.MovedForNonWorkingDate);
+    }
+
+    [Fact]
+    public void MonthlyWithWeekAndAWeekdayAfterMonthEnd_LeavesTheWholePinnedWeekOpen()
+    {
+        // December 2026: week 4 starts Sunday 27 December and its Saturday would be 2 January.
+        var rule = new FrequencyRuleDto(FrequencyType.Monthly, 1, DayOfWeek.Saturday, null, 4);
+
+        var period = Run(rule).Single(p => p.PeriodKey == "2026-12");
+
+        Assert.Null(period.TargetDate);
+        Assert.Equal(new DateOnly(2026, 12, 27), period.WindowStart);
+        Assert.Equal(new DateOnly(2026, 12, 31), period.WindowEnd);
+    }
+
+    [Fact]
+    public void ANonWorkingDayAtTheEndOfAFlexibleWindow_ShortensIt()
+    {
+        var holidays = new HashSet<DateOnly> { new(2026, 1, 8) }; // the Thursday of week 1
+
+        var first = Run(new FrequencyRuleDto(FrequencyType.Weekly, 1), holidays)[0];
+
+        Assert.Equal(new DateOnly(2026, 1, 7), first.WindowEnd);
+    }
+
+    public static IEnumerable<object[]> EveryKindOfRule() => new[]
+    {
+        new object[] { new FrequencyRuleDto(FrequencyType.Weekly, 1) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Weekly, 1, DayOfWeek.Thursday) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Weekly, 2, DayOfWeek.Saturday) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Monthly, 1) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Monthly, 3, null, 2) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Monthly, 1, null, null, 3) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Monthly, 1, DayOfWeek.Thursday, null, 4) },
+        new object[] { new FrequencyRuleDto(FrequencyType.Daily) }
+    };
+
+    [Theory]
+    [MemberData(nameof(EveryKindOfRule))]
+    public void NoWindowOrTargetIsEverPlannedOnAWeekend(FrequencyRuleDto rule)
+    {
+        var holidays = new HashSet<DateOnly> { new(2026, 4, 12), new(2026, 10, 6) };
+
+        foreach (var p in Run(rule, holidays, early: 1, late: 2))
+        {
+            var days = new List<DateOnly> { p.WindowStart, p.WindowEnd };
+            if (p.TargetDate.HasValue) days.Add(p.TargetDate.Value);
+            foreach (var d in days)
+            {
+                Assert.True(d.DayOfWeek is not (DayOfWeek.Friday or DayOfWeek.Saturday), $"{p.PeriodKey}: {d} is a weekend day");
+                Assert.DoesNotContain(d, holidays);
+            }
+            Assert.True(p.WindowStart <= p.WindowEnd);
+        }
     }
 }

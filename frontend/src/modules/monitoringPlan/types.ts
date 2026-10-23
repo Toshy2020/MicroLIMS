@@ -151,6 +151,8 @@ export interface MonitoringSettings {
   monthlyMaxGapDays: number;
   weeklyMinGapDays: number;
   weeklyMaxGapDays: number;
+  deviationDueDays: number;
+  followUpWindowDays: number;
 }
 
 export interface LabCalendarDate { id: number; date: string; description: string }
@@ -168,9 +170,57 @@ export interface PlanRevision {
   occurrenceCount: number;
 }
 
+// An occurrence that has not started and that approving the revision moves to new dates.
+export interface PlanReschedule {
+  occurrenceId: number;
+  category: MonitoringCategory;
+  target: string;
+  periodKey: string;
+  oldTargetDate: string | null;
+  oldWindowStart: string;
+  oldWindowEnd: string;
+  newTargetDate: string | null;
+  newWindowStart: string;
+  newWindowEnd: string;
+}
+
 export interface PlanPreview {
   revision: PlanRevision;
   totals: { category: MonitoringCategory; targets: number; occurrences: number }[];
   toRetire: { occurrenceId: number; category: MonitoringCategory; target: string; periodKey: string; windowStart: string; windowEnd: string }[];
+  toReschedule: PlanReschedule[];
   exceptions: { kind: string; category: MonitoringCategory; target: string; message: string }[];
 }
+
+export type DeviationKind = "MissedOccurrence" | "ActionLimitExceeded";
+export type DeviationStatus = "Open" | "Closed";
+export type DeviationClosure = "NotApplicableBeforeGoLive" | "Justified" | "Investigated";
+
+// A tracked record of a missed occurrence or a result over its action limit.
+export interface Deviation {
+  id: number;
+  version: number;
+  number: string;
+  kind: DeviationKind;
+  status: DeviationStatus;
+  occurrenceId: number;
+  category: MonitoringCategory;
+  target: string;
+  group: string | null;
+  periodKey: string;
+  targetDate: string | null;
+  windowStart: string;
+  windowEnd: string;
+  description: string;
+  openedAt: string;
+  dueDate: string;
+  pastDue: boolean;
+  followUpOccurrenceId: number | null;
+  closure: DeviationClosure | null;
+  closureReason: string | null;
+  closedAt: string | null;
+}
+
+export interface DeviationList { openCount: number; pastDueCount: number; items: Deviation[] }
+
+export interface DeviationScan { missedOpened: number; excursionsOpened: number; followUpsCreated: number }

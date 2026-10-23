@@ -290,11 +290,14 @@ public class EquipmentPlanService
                 {
                     var completedCountThisYear = completedThisYearByInstrumentAndType.GetValueOrDefault((inst.Id, EquipmentTaskType.Calibration), 0);
                     var snapshot = EquipmentScheduleCalculator.Describe(inst.CalibrationIntervalValue!.Value, inst.CalibrationIntervalUnit!.Value);
+                    var certNextDue = inst.CalibrationDueDate is DateTime cd && DateOnly.FromDateTime(cd) > baseline.Value
+                        ? (DateOnly?)DateOnly.FromDateTime(cd)
+                        : null;
                     var dates = EquipmentScheduleCalculator.ProjectYear(
                         baseline.Value,
                         inst.CalibrationIntervalValue.Value,
                         inst.CalibrationIntervalUnit.Value,
-                        null,
+                        certNextDue,
                         year,
                         effectiveFrom,
                         today,

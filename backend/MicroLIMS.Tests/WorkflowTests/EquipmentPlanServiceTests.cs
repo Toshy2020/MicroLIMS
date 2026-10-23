@@ -331,4 +331,29 @@ public class EquipmentPlanServiceTests
         Assert.Equal(w.Approver.Id, evt.PerformedByUserId);
         Assert.NotNull(evt.ElectronicSignatureId);
     }
+
+    [Fact]
+    public async Task Draft_uses_register_due_date_from_certificate()
+    {
+        var w = await BuildAsync(new DateTimeOffset(2026, 10, 23, 8, 0, 0, TimeSpan.Zero));
+
+        var eq = new EquipmentInventory
+        {
+            Code = "EQ-CERT-DUE",
+            InstrumentType = "Spectrophotometer",
+            Status = EquipmentOperationalStatus.InService,
+            CalibrationIntervalValue = 12,
+            CalibrationIntervalUnit = IntervalUnit.Months,
+            LastCalibratedOn = new DateOnly(2026, 1, 12),
+            CalibrationDueDate = new DateTime(2026, 11, 16, 0, 0, 0, DateTimeKind.Utc)
+        };
+        w.Db.EquipmentInventories.Add(eq);
+        await w.Db.SaveChangesAsync();
+
+        var draft = await w.Service.GenerateDraftAsync(2026, w.Generator.Id, new DateOnly(2026, 10, 23));
+
+        var calTasks = draft.Tasks.Where(t => t.EquipmentInventoryId == eq.Id && t.TaskType == EquipmentTaskType.Calibration).ToList();
+        var calTask = Assert.Single(calTasks);
+        Assert.Equal(new DateOnly(2026, 11, 16), calTask.DueDate);
+    }
 }

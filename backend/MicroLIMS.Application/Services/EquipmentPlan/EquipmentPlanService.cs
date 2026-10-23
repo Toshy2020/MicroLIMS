@@ -245,7 +245,7 @@ public class EquipmentPlanService
 
         var duplicateGroups = instruments
             .Where(i => i.Status != EquipmentOperationalStatus.Retired &&
-                        !string.IsNullOrWhiteSpace(i.SerialNumber) &&
+                        EquipmentSerialHelper.HasMeaningfulSerial(i.SerialNumber) &&
                         !string.IsNullOrWhiteSpace(i.ManufacturerName))
             .GroupBy(i => (
                 Manufacturer: i.ManufacturerName.Trim().ToLowerInvariant(),

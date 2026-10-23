@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.EquipmentPlan;
 
 namespace MicroLIMS.Application.Services;
 
@@ -131,10 +132,10 @@ public class EquipmentInventoryService
 
     private async Task EnsureUniqueSerialNumberAsync(int? excludeId, string? serialNumber, string? manufacturerName)
     {
-        if (string.IsNullOrWhiteSpace(serialNumber) || string.IsNullOrWhiteSpace(manufacturerName))
+        if (EquipmentSerialHelper.IsPlaceholder(serialNumber) || string.IsNullOrWhiteSpace(manufacturerName))
             return;
 
-        var trimmedSerial = serialNumber.Trim();
+        var trimmedSerial = serialNumber!.Trim();
         var trimmedManufacturer = manufacturerName.Trim();
 
         var candidates = await _db.EquipmentInventories
@@ -147,6 +148,7 @@ public class EquipmentInventoryService
             .ToListAsync();
 
         var conflict = candidates.FirstOrDefault(e =>
+            !EquipmentSerialHelper.IsPlaceholder(e.SerialNumber) &&
             string.Equals(e.ManufacturerName.Trim(), trimmedManufacturer, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(e.SerialNumber!.Trim(), trimmedSerial, StringComparison.OrdinalIgnoreCase));
 

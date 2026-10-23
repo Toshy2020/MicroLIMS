@@ -139,4 +139,40 @@ public class EquipmentScheduleCalculatorTests
         Assert.Equal(new DateOnly(2026, 3, 10), due);
         Assert.Equal(DayOfWeek.Tuesday, due.DayOfWeek);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("n/a")]
+    [InlineData("N/A")]
+    [InlineData("na")]
+    [InlineData("NA")]
+    [InlineData("-")]
+    [InlineData("--")]
+    [InlineData("—")]
+    [InlineData("none")]
+    [InlineData("NONE")]
+    [InlineData("nil")]
+    [InlineData("NIL")]
+    [InlineData("0")]
+    [InlineData("unknown")]
+    [InlineData("UNKNOWN")]
+    [InlineData("  n/a  ")]
+    public void EquipmentSerialHelper_identifies_placeholders(string? serial)
+    {
+        Assert.True(EquipmentSerialHelper.IsPlaceholder(serial));
+        Assert.False(EquipmentSerialHelper.HasMeaningfulSerial(serial));
+    }
+
+    [Theory]
+    [InlineData("SN-12345")]
+    [InlineData("1")]
+    [InlineData("01")]
+    [InlineData("N/A-123")]
+    public void EquipmentSerialHelper_recognizes_meaningful_serials(string serial)
+    {
+        Assert.False(EquipmentSerialHelper.IsPlaceholder(serial));
+        Assert.True(EquipmentSerialHelper.HasMeaningfulSerial(serial));
+    }
 }

@@ -418,4 +418,44 @@ public class EquipmentPlanServiceTests
         var retiredEx = Assert.Single(draft.Exceptions, e => e.EquipmentInventoryId == eqRetired.Id);
         Assert.Equal(EquipmentPlanExceptionKind.RetiredInstrument, retiredEx.Kind);
     }
+
+    [Fact]
+    public async Task Draft_placeholder_serials_are_not_duplicates_and_both_are_planned()
+    {
+        var w = await BuildAsync();
+
+        var eq1 = new EquipmentInventory
+        {
+            Code = "LAF-01",
+            InstrumentType = "LAF Cabinet",
+            ManufacturerName = "Rich-Tek",
+            SerialNumber = "N/A",
+            Status = EquipmentOperationalStatus.InService,
+            CalibrationIntervalValue = 12,
+            CalibrationIntervalUnit = IntervalUnit.Months,
+            LastCalibratedOn = new DateOnly(2025, 6, 1)
+        };
+        var eq2 = new EquipmentInventory
+        {
+            Code = "LAF-02",
+            InstrumentType = "LAF Cabinet",
+            ManufacturerName = "Rich-Tek",
+            SerialNumber = "n/a",
+            Status = EquipmentOperationalStatus.InService,
+            CalibrationIntervalValue = 12,
+            CalibrationIntervalUnit = IntervalUnit.Months,
+            LastCalibratedOn = new DateOnly(2025, 6, 1)
+        };
+        w.Db.EquipmentInventories.AddRange(eq1, eq2);
+        await w.Db.SaveChangesAsync();
+
+        var draft = await w.Service.GenerateDraftAsync(2026, w.Generator.Id, new DateOnly(2026, 1, 1));
+
+        // Both should be planned
+        Assert.Contains(draft.Tasks, t => t.EquipmentInventoryId == eq1.Id);
+        Assert.Contains(draft.Tasks, t => t.EquipmentInventoryId == eq2.Id);
+
+        // Neither should have a PossibleDuplicate exception
+        Assert.DoesNotContain(draft.Exceptions, e => e.Kind == EquipmentPlanExceptionKind.PossibleDuplicate);
+    }
 }

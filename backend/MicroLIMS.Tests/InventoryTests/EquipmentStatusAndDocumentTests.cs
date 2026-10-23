@@ -513,4 +513,55 @@ public class EquipmentStatusAndDocumentTests
         var refreshed = await db.EquipmentInventories.FindAsync(eq1.Id);
         Assert.Equal("New Room 204", refreshed!.Location);
     }
+
+    [Fact]
+    public async Task Placeholder_serials_are_not_duplicates()
+    {
+        await using var db = NewDb();
+        var existing = await SeedEquipment(db, EquipmentOperationalStatus.InService, code: "LAF-01");
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+
+        var req1 = new SaveEquipmentInventoryRequest(
+            "LAF Cabinet",
+            "Rich-Tek",
+            "N/A",
+            null,
+            existing.Code,
+            "Cleanroom 1",
+            null,
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        await service.UpdateAsync(existing.Id, req1, 1);
+
+        // Second instrument from Rich-Tek with "n/a" should save fine
+        var req2 = new SaveEquipmentInventoryRequest(
+            "LAF Cabinet",
+            "Rich-Tek",
+            "n/a",
+            null,
+            "LAF-02",
+            "Cleanroom 2",
+            null,
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        var created = await service.CreateAsync(req2, 1);
+        Assert.NotNull(created);
+        Assert.Equal("n/a", created.SerialNumber);
+
+        // Updating the second instrument with another placeholder "-" should also save fine
+        var req2Update = new SaveEquipmentInventoryRequest(
+            "LAF Cabinet",
+            "Rich-Tek",
+            " - ",
+            null,
+            "LAF-02",
+            "Cleanroom 2",
+            null,
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        await service.UpdateAsync(created.Id, req2Update, 1);
+
+        var refreshed = await db.EquipmentInventories.FindAsync(created.Id);
+        Assert.Equal(" - ", refreshed!.SerialNumber);
+    }
 }

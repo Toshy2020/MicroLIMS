@@ -20,11 +20,31 @@ public sealed class PostgresFactAttribute : FactAttribute
 }
 
 // Theory equivalent - same rule.
+// Do NOT use with multiple data rows: CI's run-count check (verify_test_results.py)
+// fails because xUnit 2 reports a skipped theory as ONE test, so the run without
+// Postgres discovers fewer tests than the run with it. Prefer a [PostgresFact]
+// that iterates the cases through PostgresCases.RunAsync.
 public sealed class PostgresTheoryAttribute : TheoryAttribute
 {
     public PostgresTheoryAttribute()
     {
         if (!PostgresTestConfiguration.IsConfigured)
             Skip = PostgresTestConfiguration.SkipReason;
+    }
+}
+
+// Runs every case in turn and names the failing case in the failure message.
+public static class PostgresCases
+{
+    public static async Task RunAsync<T>(IEnumerable<T> cases, Func<T, Task> body)
+    {
+        foreach (var c in cases)
+        {
+            try { await body(c); }
+            catch (Exception ex)
+            {
+                throw new Xunit.Sdk.XunitException($"Case [{c}] failed: {ex.GetType().Name}: {ex.Message}", ex);
+            }
+        }
     }
 }

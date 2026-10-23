@@ -1,3 +1,4 @@
+using MicroLIMS.API.Authorization;
 using MicroLIMS.Persistence.DbContext;
 using System.Security.Claims;
 
@@ -21,6 +22,11 @@ public class AuditMiddleware
             var idClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(idClaim, out var userId))
                 db.CurrentUserId = userId;
+
+            // Instrument agents carry no NameIdentifier; attribute them by code.
+            var agentCode = context.User.FindFirst(AgentKeyDefaults.AgentCodeClaim)?.Value;
+            if (!string.IsNullOrEmpty(agentCode))
+                db.CurrentAgentCode = agentCode;
         }
 
         await _next(context);

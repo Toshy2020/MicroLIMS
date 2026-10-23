@@ -221,6 +221,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SpecificationMasterDataService>();
         services.AddScoped<ReferenceListMasterDataService>();
         services.AddScoped<EquipmentMasterDataService>();
+        services.AddScoped<InstrumentAgentService>();
+        services.AddScoped<InstrumentIngestService>();
         services.AddScoped<MediaMasterDataService>();
         services.AddScoped<OrganismMasterDataService>();
         services.AddScoped<TestDefinitionMasterDataService>();

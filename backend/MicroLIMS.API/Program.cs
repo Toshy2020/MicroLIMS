@@ -49,6 +49,9 @@ builder.Services.AddMicroLimsHealthChecks();
 // locked, re-roled or password changed means a 401, not the old access.
 builder.Services.AddMicroLimsJwtAuthentication(jwtSettings);
 
+// Edge-agent keys (X-Agent-Key): an extra scheme used only by the InstrumentAgent policy.
+builder.Services.AddMicroLimsAgentAuthentication();
+
 // Deny-by-default fallback + permission policies (see Extensions/AuthorizationExtensions.cs).
 builder.Services.AddMicroLimsAuthorization();
 builder.Services.AddControllers(options =>
@@ -194,6 +197,10 @@ app.UseCors("Frontend");
 app.UseMicroLimsEarlyPipeline();
 
 app.UseAuthentication();
+// Per-IP limit on requests carrying an X-Agent-Key, before the key is checked
+// (the AgentKey handler runs inside UseAuthorization). UseRateLimiter stays
+// after authentication: its per-user and per-agent partitions need the user.
+app.UseMicroLimsAgentPreAuthThrottle();
 app.UseAuthorization();
 
 // Stamps the current user onto the DbContext for audit trail capture -

@@ -271,6 +271,11 @@ IcpWorkspaceController.StartRun(StartIcpRunRequest): SystemAdministrator,Section
 IcpWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SystemAdministrator,SectionHead,Analyst
 IcpWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SystemAdministrator,SectionHead,Analyst
 IcpWorkspaceController.UploadEvidence(Int32, IFormFile, IcpEvidenceContext, IcpEvidenceKind, Nullable`1): SystemAdministrator,SectionHead,Analyst
+InstrumentAgentController.Register(RegisterInstrumentAgentRequest, CancellationToken): SystemAdministrator,SectionHead
+InstrumentAgentController.Revoke(Int32, RevokeInstrumentAgentRequest, CancellationToken): SystemAdministrator,SectionHead
+InstrumentAgentController.RotateKey(Int32, CancellationToken): SystemAdministrator,SectionHead
+InstrumentIngestController.GetReceipt(String, CancellationToken): (agent)
+InstrumentIngestController.Receive(): (agent)
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead

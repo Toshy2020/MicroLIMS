@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.RateLimiting;
+using MicroLIMS.API.Authorization;
 using MicroLIMS.Shared.Responses;
 using System.Threading.RateLimiting;
 
@@ -20,6 +21,10 @@ public static class RateLimitingPolicies
     // Authenticated password change - a stolen session must not become an
     // unlimited current-password guessing oracle.
     public const string PasswordChange = "password-change";
+
+    // Instrument-agent endpoints, per agent (not per address: several agents
+    // can share a lab's public IP).
+    public const string Agent = "agent";
 }
 
 public static class RateLimitingExtensions
@@ -39,6 +44,11 @@ public static class RateLimitingExtensions
     // Per signed-in user.
     public const int DefaultPasswordChangePerWindow = 5;
     public const int DefaultPasswordChangeWindowSeconds = 900;
+
+    // Per authenticated agent. An agent syncs in small batches, so this is
+    // far above normal use and only stops a runaway loop.
+    public const int DefaultAgentPerWindow = 120;
+    public const int DefaultAgentWindowSeconds = 60;
 
     public static IServiceCollection AddMicroLimsRateLimiting(
         this IServiceCollection services, IConfiguration config)
@@ -60,6 +70,9 @@ public static class RateLimitingExtensions
         var passwordChange = Window(config, "RateLimiting:PasswordChange", "PermitLimit",
             DefaultPasswordChangePerWindow, DefaultPasswordChangeWindowSeconds);
 
+        var agent = Window(config, "RateLimiting:Agent", "PermitLimit",
+            DefaultAgentPerWindow, DefaultAgentWindowSeconds);
+
         services.AddRateLimiter(options =>
         {
             options.AddPolicy(RateLimitingPolicies.ClientErrors, httpContext =>
@@ -80,6 +93,15 @@ public static class RateLimitingExtensions
                         : ClientIp(httpContext),
                     passwordChange));
 
+            // Runs after authentication, so the agent is known; a request
+            // that somehow has none falls back to the address.
+            options.AddPolicy(RateLimitingPolicies.Agent, httpContext =>
+                FixedWindow(
+                    httpContext.User.FindFirst(AgentKeyDefaults.AgentIdClaim)?.Value is { } agentId
+                        ? "agent:" + agentId
+                        : ClientIp(httpContext),
+                    agent));
+
             options.OnRejected = async (context, cancellationToken) =>
             {
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
@@ -99,10 +121,10 @@ public static class RateLimitingExtensions
     // has already resolved (see TrustedProxyConfiguration for which
     // proxies are trusted). Unknown addresses share one bucket rather than
     // getting a free pass each.
-    private static string ClientIp(HttpContext httpContext) =>
+    internal static string ClientIp(HttpContext httpContext) =>
         "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
-    private static RateLimitPartition<string> FixedWindow(string partitionKey, (int PermitLimit, TimeSpan Window) limits) =>
+    internal static RateLimitPartition<string> FixedWindow(string partitionKey, (int PermitLimit, TimeSpan Window) limits) =>
         RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = limits.PermitLimit,
@@ -112,7 +134,7 @@ public static class RateLimitingExtensions
             QueueLimit = 0
         });
 
-    private static (int PermitLimit, TimeSpan Window) Window(
+    internal static (int PermitLimit, TimeSpan Window) Window(
         IConfiguration config, string section, string permitKey, int defaultPermits, int defaultWindowSeconds) =>
         (Positive(config.GetValue<int?>($"{section}:{permitKey}"), defaultPermits),
          TimeSpan.FromSeconds(Positive(config.GetValue<int?>($"{section}:WindowSeconds"), defaultWindowSeconds)));

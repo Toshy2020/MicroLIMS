@@ -12,7 +12,7 @@ namespace MicroLIMS.Persistence.Helpers;
 // the caller can pick a fresh identifier and save again.
 public static class UniqueIndexSave
 {
-    public static async Task<bool> TrySaveChangesAsync(MicroLimsDbContext db, string uniqueIndexName)
+    public static async Task<bool> TrySaveChangesAsync(MicroLimsDbContext db, params string[] uniqueIndexNames)
     {
         var auditAlreadyPending = db.ChangeTracker.Entries<AuditLog>()
             .Where(e => e.State == EntityState.Added)
@@ -25,7 +25,7 @@ public static class UniqueIndexSave
             return true;
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgres
-                                           && postgres.ConstraintName == uniqueIndexName)
+                                           && uniqueIndexNames.Contains(postgres.ConstraintName))
         {
             // The automatic audit rows are only added once the data save
             // succeeds, so a rejected save leaves none behind. This still

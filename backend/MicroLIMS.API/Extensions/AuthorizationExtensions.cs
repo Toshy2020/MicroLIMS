@@ -17,6 +17,14 @@ public static class AuthorizationExtensions
             options.FallbackPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
                 .Build();
+
+            // Edge agents (X-Agent-Key). Names the scheme itself so a human
+            // JWT is never evaluated here and an agent key never reaches a
+            // JWT endpoint.
+            options.AddPolicy(AgentKeyDefaults.Policy, policy => policy
+                .AddAuthenticationSchemes(AgentKeyDefaults.Scheme)
+                .RequireAuthenticatedUser()
+                .RequireClaim(AgentKeyDefaults.AgentIdClaim));
         });
 
         // Permission-based authorization, running alongside the existing role-

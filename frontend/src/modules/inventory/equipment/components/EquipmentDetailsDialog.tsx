@@ -320,6 +320,7 @@ export function EquipmentDetailsDialog({
         {activeTab === 2 && (
           <MaintenanceLogSection
             equipmentId={equipment.id}
+            equipmentCode={equipment.code}
             onLogChanged={() => {
               onEquipmentUpdated();
             }}
@@ -348,6 +349,7 @@ export function EquipmentDetailsDialog({
       <RecordCalibrationDialog
         open={isRecordCalibrationOpen}
         equipmentId={equipment.id}
+        equipmentCode={equipment.code}
         onClose={() => setIsRecordCalibrationOpen(false)}
         onSuccess={() => {
           setIsRecordCalibrationOpen(false);

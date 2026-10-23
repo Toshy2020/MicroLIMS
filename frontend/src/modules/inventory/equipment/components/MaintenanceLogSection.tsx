@@ -21,6 +21,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import BlockIcon from "@mui/icons-material/Block";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { AddLogEntryDialog } from "./AddLogEntryDialog";
 import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
@@ -32,6 +33,7 @@ import { MAINTENANCE_ENTRY_TYPE_LABELS } from "../types/equipmentTypes";
 
 interface Props {
   equipmentId: number;
+  equipmentCode?: string;
   onLogChanged?: () => void;
 }
 
@@ -41,7 +43,7 @@ const TYPE_COLORS: Record<MaintenanceEntryType, "primary" | "warning" | "default
   Other: "default"
 };
 
-export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
+export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogChanged }: Props) {
   const [entries, setEntries] = useState<MaintenanceLogEntryResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +52,7 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
   // Voiding state
   const [voidTarget, setVoidTarget] = useState<MaintenanceLogEntryResponse | null>(null);
   const [voidReason, setVoidReason] = useState("");
-  const [voidPassword, setVoidPassword] = useState("");
-  const [voiding, setVoiding] = useState(false);
+  const [voidSigning, setVoidSigning] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
 
   const loadEntries = async () => {
@@ -71,38 +72,24 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
     loadEntries();
   }, [equipmentId]);
 
-  const handleVoidSubmit = async () => {
+  const handleVoidSign = async (password: string) => {
     if (!voidTarget) return;
-    if (!voidReason.trim()) {
-      setVoidError("Void reason is required.");
-      return;
-    }
-    if (!voidPassword) {
-      setVoidError("Password is required.");
-      return;
-    }
+    await EquipmentPlanService.voidLogEntry(voidTarget.id, {
+      reason: voidReason.trim(),
+      password
+    });
+    setVoidSigning(false);
+    setVoidTarget(null);
+    setVoidReason("");
+    await loadEntries();
+    onLogChanged?.();
+  };
 
-    setVoiding(true);
+  const handleVoidCancel = () => {
+    setVoidTarget(null);
+    setVoidReason("");
     setVoidError(null);
-    try {
-      await EquipmentPlanService.voidLogEntry(voidTarget.id, {
-        reason: voidReason.trim(),
-        password: voidPassword
-      });
-      setVoidTarget(null);
-      setVoidReason("");
-      setVoidPassword("");
-      await loadEntries();
-      onLogChanged?.();
-    } catch (err: any) {
-      setVoidError(
-        err?.response?.data?.message ??
-          err?.message ??
-          "Failed to void log entry."
-      );
-    } finally {
-      setVoiding(false);
-    }
+    setVoidSigning(false);
   };
 
   return (
@@ -236,7 +223,7 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
                             onClick={() => {
                               setVoidTarget(entry);
                               setVoidReason("");
-                              setVoidPassword("");
+                              setVoidSigning(false);
                               setVoidError(null);
                             }}
                           >
@@ -257,6 +244,7 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
       <AddLogEntryDialog
         open={isAddOpen}
         equipmentId={equipmentId}
+        equipmentCode={equipmentCode}
         onClose={() => setIsAddOpen(false)}
         onSuccess={() => {
           setIsAddOpen(false);
@@ -267,15 +255,14 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
 
       {/* Void Entry Dialog */}
       <FloatingDialog
-        open={Boolean(voidTarget)}
+        open={Boolean(voidTarget) && !voidSigning}
         title="Void Maintenance Log Entry"
-        onClose={voiding ? () => {} : () => setVoidTarget(null)}
+        onClose={handleVoidCancel}
         maxWidth="xs"
         actions={
           <>
             <Button
-              onClick={() => setVoidTarget(null)}
-              disabled={voiding}
+              onClick={handleVoidCancel}
               color="inherit"
             >
               Cancel
@@ -283,13 +270,16 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
             <Button
               variant="contained"
               color="error"
-              onClick={handleVoidSubmit}
-              disabled={voiding}
-              startIcon={
-                voiding ? <CircularProgress size={16} color="inherit" /> : <BlockIcon />
-              }
+              onClick={() => {
+                if (!voidReason.trim()) {
+                  setVoidError("Void reason is required.");
+                  return;
+                }
+                setVoidSigning(true);
+              }}
+              disabled={!voidReason.trim()}
             >
-              {voiding ? "Voiding..." : "Void Entry"}
+              Continue to sign
             </Button>
           </>
         }
@@ -328,20 +318,17 @@ export function MaintenanceLogSection({ equipmentId, onLogChanged }: Props) {
             onChange={(e) => setVoidReason(e.target.value)}
             placeholder="Explain why this entry is being voided"
           />
-
-          <TextField
-            id="void-log-password"
-            label="Password"
-            type="password"
-            size="small"
-            required
-            fullWidth
-            value={voidPassword}
-            onChange={(e) => setVoidPassword(e.target.value)}
-            helperText="Enter your login password to electronically sign the void"
-          />
         </Stack>
       </FloatingDialog>
+
+      {voidTarget && (
+        <SignatureDialog
+          open={voidSigning}
+          meaningStatement={`I am voiding logbook entry #${voidTarget.id} for ${equipmentCode}. Reason: ${voidReason.trim()}.`}
+          onCancel={() => setVoidSigning(false)}
+          onConfirm={handleVoidSign}
+        />
+      )}
     </Box>
   );
 }

@@ -3,6 +3,11 @@ import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/re
 import { AddLogEntryDialog } from "./AddLogEntryDialog";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 
+vi.mock("../../../../contexts/AuthContext", () => ({
+  useHasPermission: () => true,
+  useAuth: () => ({ fullName: "Alice", username: "alice", role: "Analyst" })
+}));
+
 vi.mock("../services/EquipmentPlanService", () => ({
   EquipmentPlanService: {
     addLogEntry: vi.fn()
@@ -15,30 +20,27 @@ afterEach(() => {
 });
 
 describe("AddLogEntryDialog", () => {
-  it("requires work done", async () => {
+  it("Continue to sign is disabled until required fields are filled", async () => {
     render(
       <AddLogEntryDialog
         open={true}
         equipmentId={1}
+        equipmentCode="EQ-001"
         onClose={vi.fn()}
         onSuccess={vi.fn()}
       />
     );
 
-    const passwordInput = screen.getByLabelText(/^Password/i);
-    fireEvent.change(passwordInput, { target: { value: "ValidPassword123!" } });
+    const continueBtn = screen.getByRole("button", { name: /Continue to sign/i }) as HTMLButtonElement;
+    expect(continueBtn.disabled).toBe(true);
 
-    const submitBtn = screen.getByRole("button", { name: /Save Log Entry/i });
-    fireEvent.click(submitBtn);
+    const workDoneInput = screen.getByLabelText(/Work Done/i);
+    fireEvent.change(workDoneInput, { target: { value: "Replaced filter" } });
 
-    await waitFor(() => {
-      expect(screen.getByText(/Work done is required/i)).toBeTruthy();
-    });
-
-    expect(EquipmentPlanService.addLogEntry).not.toHaveBeenCalled();
+    expect(continueBtn.disabled).toBe(false);
   });
 
-  it("submits log entry when all required fields are provided", async () => {
+  it("signing calls the API with the password", async () => {
     vi.mocked(EquipmentPlanService.addLogEntry).mockResolvedValue({
       id: 10,
       equipmentInventoryId: 1,
@@ -58,14 +60,19 @@ describe("AddLogEntryDialog", () => {
     });
 
     const onSuccess = vi.fn();
+    const onClose = vi.fn();
     render(
       <AddLogEntryDialog
         open={true}
         equipmentId={1}
-        onClose={vi.fn()}
+        equipmentCode="EQ-001"
+        onClose={onClose}
         onSuccess={onSuccess}
       />
     );
+
+    const dateInput = screen.getByLabelText(/Date Performed/i);
+    fireEvent.change(dateInput, { target: { value: "2026-04-14" } });
 
     const workDoneInput = screen.getByLabelText(/Work Done/i);
     fireEvent.change(workDoneInput, {
@@ -78,17 +85,28 @@ describe("AddLogEntryDialog", () => {
     const findingsInput = screen.getByLabelText(/Findings/i);
     fireEvent.change(findingsInput, { target: { value: "Normal operation restored" } });
 
+    const continueBtn = screen.getByRole("button", { name: /Continue to sign/i });
+    fireEvent.click(continueBtn);
+
+    expect(await screen.findByText("Electronic Signature")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "I confirm this preventive maintenance entry for EQ-001, performed on 2026-04-14, is accurate."
+      )
+    ).toBeTruthy();
+
     const passwordInput = screen.getByLabelText(/^Password/i);
     fireEvent.change(passwordInput, { target: { value: "ValidPassword123!" } });
 
-    const submitBtn = screen.getByRole("button", { name: /Save Log Entry/i });
-    fireEvent.click(submitBtn);
+    const signBtn = screen.getByRole("button", { name: "Sign" });
+    fireEvent.click(signBtn);
 
     await waitFor(() => {
       expect(EquipmentPlanService.addLogEntry).toHaveBeenCalledWith(
         1,
         expect.objectContaining({
           entryType: "PreventiveMaintenance",
+          performedOn: "2026-04-14",
           workDone: "Replaced HEPA filter and calibrated sensors",
           partsReplaced: "HEPA Filter",
           findings: "Normal operation restored",
@@ -96,6 +114,7 @@ describe("AddLogEntryDialog", () => {
         })
       );
       expect(onSuccess).toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
     });
   });
 });

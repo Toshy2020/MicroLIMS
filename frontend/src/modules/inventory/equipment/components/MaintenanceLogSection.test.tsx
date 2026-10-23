@@ -4,6 +4,11 @@ import { MaintenanceLogSection } from "./MaintenanceLogSection";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import type { MaintenanceLogEntryResponse } from "../types/equipmentTypes";
 
+vi.mock("../../../../contexts/AuthContext", () => ({
+  useHasPermission: () => true,
+  useAuth: () => ({ fullName: "Alice", username: "alice", role: "Analyst" })
+}));
+
 vi.mock("../services/EquipmentPlanService", () => ({
   EquipmentPlanService: {
     getMaintenanceLog: vi.fn(),
@@ -38,21 +43,44 @@ const mockEntries: MaintenanceLogEntryResponse[] = [
 ];
 
 describe("MaintenanceLogSection", () => {
-  it("renders log entries and handles void action with reason and password", async () => {
+  it("Continue to sign is disabled until required fields are filled", async () => {
     vi.mocked(EquipmentPlanService.getMaintenanceLog).mockResolvedValue(mockEntries);
-    vi.mocked(EquipmentPlanService.voidLogEntry).mockResolvedValue({ message: "Voided" });
 
-    render(<MaintenanceLogSection equipmentId={1} />);
+    render(<MaintenanceLogSection equipmentId={1} equipmentCode="EQ-001" />);
 
     await waitFor(() => {
       expect(screen.getByText("Filter change and lubrication")).toBeTruthy();
     });
 
-    // Click void button
     const voidBtn = screen.getByRole("button", { name: /Void this entry/i });
     fireEvent.click(voidBtn);
 
-    // Dialog opens
+    await waitFor(() => {
+      expect(screen.getByText(/Void Maintenance Log Entry/i)).toBeTruthy();
+    });
+
+    const continueBtn = screen.getByRole("button", { name: /Continue to sign/i }) as HTMLButtonElement;
+    expect(continueBtn.disabled).toBe(true);
+
+    const reasonInput = screen.getByLabelText(/Reason for Voiding/i);
+    fireEvent.change(reasonInput, { target: { value: "Logged on wrong instrument" } });
+
+    expect(continueBtn.disabled).toBe(false);
+  });
+
+  it("signing calls the API with the password", async () => {
+    vi.mocked(EquipmentPlanService.getMaintenanceLog).mockResolvedValue(mockEntries);
+    vi.mocked(EquipmentPlanService.voidLogEntry).mockResolvedValue({ message: "Voided" });
+
+    render(<MaintenanceLogSection equipmentId={1} equipmentCode="EQ-001" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Filter change and lubrication")).toBeTruthy();
+    });
+
+    const voidBtn = screen.getByRole("button", { name: /Void this entry/i });
+    fireEvent.click(voidBtn);
+
     await waitFor(() => {
       expect(screen.getByText(/Void Maintenance Log Entry/i)).toBeTruthy();
     });
@@ -60,11 +88,19 @@ describe("MaintenanceLogSection", () => {
     const reasonInput = screen.getByLabelText(/Reason for Voiding/i);
     fireEvent.change(reasonInput, { target: { value: "Logged on wrong instrument" } });
 
+    const continueBtn = screen.getByRole("button", { name: /Continue to sign/i });
+    fireEvent.click(continueBtn);
+
+    expect(await screen.findByText("Electronic Signature")).toBeTruthy();
+    expect(
+      screen.getByText("I am voiding logbook entry #1 for EQ-001. Reason: Logged on wrong instrument.")
+    ).toBeTruthy();
+
     const passwordInput = screen.getByLabelText(/^Password/i);
     fireEvent.change(passwordInput, { target: { value: "ValidPassword123!" } });
 
-    const submitVoidBtn = screen.getByRole("button", { name: /Void Entry/i });
-    fireEvent.click(submitVoidBtn);
+    const signBtn = screen.getByRole("button", { name: "Sign" });
+    fireEvent.click(signBtn);
 
     await waitFor(() => {
       expect(EquipmentPlanService.voidLogEntry).toHaveBeenCalledWith(1, {

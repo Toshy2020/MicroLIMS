@@ -9,12 +9,11 @@ import {
   TextField,
   Typography,
   Alert,
-  CircularProgress,
   Stack
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import VerifiedIcon from "@mui/icons-material/Verified";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { UploadEquipmentDocumentDialog } from "./UploadEquipmentDocumentDialog";
@@ -28,6 +27,7 @@ import type {
 interface Props {
   open: boolean;
   equipmentId: number;
+  equipmentCode?: string;
   onClose: () => void;
   onSuccess: (task: EquipmentTaskResponse) => void;
 }
@@ -35,6 +35,7 @@ interface Props {
 export function RecordCalibrationDialog({
   open,
   equipmentId,
+  equipmentCode = "",
   onClose,
   onSuccess
 }: Props) {
@@ -43,8 +44,7 @@ export function RecordCalibrationDialog({
   const [selectedDocId, setSelectedDocId] = useState<string>("");
   const [calibratedOn, setCalibratedOn] = useState<string>("");
   const [certificateNextDue, setCertificateNextDue] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
+  const [signing, setSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -76,12 +76,14 @@ export function RecordCalibrationDialog({
       setSelectedDocId("");
       setCalibratedOn("");
       setCertificateNextDue("");
-      setPassword("");
+      setSigning(false);
       setError(null);
     }
   }, [open, equipmentId]);
 
-  const handleSubmit = async () => {
+  const canContinue = Boolean(selectedDocId && calibratedOn);
+
+  const handleContinueToSign = () => {
     setError(null);
 
     if (!selectedDocId) {
@@ -92,10 +94,6 @@ export function RecordCalibrationDialog({
       setError("Calibration date is required.");
       return;
     }
-    if (!password) {
-      setError("Password is required.");
-      return;
-    }
 
     const today = new Date().toISOString().slice(0, 10);
     if (calibratedOn > today) {
@@ -103,55 +101,45 @@ export function RecordCalibrationDialog({
       return;
     }
 
+    setSigning(true);
+  };
+
+  const selectedDoc = documents.find((d) => d.id.toString() === selectedDocId);
+  const fileName = selectedDoc?.originalFileName ?? "";
+  const meaningStatement = `I confirm the calibration of ${equipmentCode} on ${calibratedOn} is recorded with certificate ${fileName}${certificateNextDue ? `, next due ${certificateNextDue}` : ""}.`;
+
+  const handleSignConfirm = async (password: string) => {
     const payload: RecordCalibrationRequest = {
       certificateDocumentId: Number(selectedDocId),
       calibratedOn,
       certificateNextDue: certificateNextDue || null,
       password
     };
-
-    setSubmitting(true);
-    try {
-      const task = await EquipmentPlanService.recordCalibration(equipmentId, payload);
-      onSuccess(task);
-      onClose();
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ??
-          err?.message ??
-          "Failed to record calibration."
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    const task = await EquipmentPlanService.recordCalibration(equipmentId, payload);
+    setSigning(false);
+    onSuccess(task);
+    onClose();
   };
 
   return (
     <>
       <FloatingDialog
-        open={open}
+        open={open && !signing}
         title="Record Calibration"
-        onClose={submitting ? () => {} : onClose}
+        onClose={onClose}
         maxWidth="sm"
         actions={
           <>
-            <Button onClick={onClose} disabled={submitting} color="inherit">
+            <Button onClick={onClose} color="inherit">
               Cancel
             </Button>
             <Button
               id="record-calibration-submit"
               variant="contained"
-              onClick={handleSubmit}
-              disabled={submitting}
-              startIcon={
-                submitting ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : (
-                  <VerifiedIcon />
-                )
-              }
+              onClick={handleContinueToSign}
+              disabled={!canContinue || loadingDocs}
             >
-              {submitting ? "Signing..." : "Record Calibration"}
+              Continue to sign
             </Button>
           </>
         }
@@ -236,21 +224,15 @@ export function RecordCalibrationDialog({
             onChange={(e) => setCertificateNextDue(e.target.value)}
             helperText="When specified on the vendor certificate, overrides the calculated interval due date"
           />
-
-          {/* Password (Electronic Signature) */}
-          <TextField
-            id="record-cal-password"
-            label="Password"
-            type="password"
-            size="small"
-            required
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            helperText="Enter your login password to electronically sign this calibration record"
-          />
         </Stack>
       </FloatingDialog>
+
+      <SignatureDialog
+        open={open && signing}
+        meaningStatement={meaningStatement}
+        onCancel={() => setSigning(false)}
+        onConfirm={handleSignConfirm}
+      />
 
       <UploadEquipmentDocumentDialog
         open={uploadOpen}

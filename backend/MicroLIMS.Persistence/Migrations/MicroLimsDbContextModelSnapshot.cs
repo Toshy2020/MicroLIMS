@@ -5121,6 +5121,166 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("InstrumentAgents");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AcquiredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EquipmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InjectionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InstrumentAgentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SequenceName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstrumentAgentId");
+
+                    b.HasIndex("EquipmentId", "SequenceName", "InjectionNumber", "AcquiredAtUtc")
+                        .IsUnique();
+
+                    b.ToTable("InstrumentIngests");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngestPayload", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("InstrumentIngestVersionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ParsedJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ParserVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstrumentIngestVersionId");
+
+                    b.ToTable("InstrumentIngestPayloads");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngestVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AcquiredAtLocalText")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ClockOffsetSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InstrumentIngestId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OperatorAsReported")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReportFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("ReportSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ReportStorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ResolvedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("TimeZoneIdUsed")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("VersionNo")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstrumentIngestId", "ReportSha256")
+                        .IsUnique();
+
+                    b.HasIndex("InstrumentIngestId", "VersionNo")
+                        .IsUnique();
+
+                    b.ToTable("InstrumentIngestVersions");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Item", b =>
                 {
                     b.Property<int>("Id")
@@ -12715,6 +12875,47 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Section");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngest", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.InstrumentAgent", "InstrumentAgent")
+                        .WithMany()
+                        .HasForeignKey("InstrumentAgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("InstrumentAgent");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngestPayload", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.InstrumentIngestVersion", "InstrumentIngestVersion")
+                        .WithMany("Payloads")
+                        .HasForeignKey("InstrumentIngestVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InstrumentIngestVersion");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngestVersion", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.InstrumentIngest", "InstrumentIngest")
+                        .WithMany("Versions")
+                        .HasForeignKey("InstrumentIngestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InstrumentIngest");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ItemDocument", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
@@ -14590,6 +14791,16 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Incident", b =>
                 {
                     b.Navigation("ErrorLogs");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngest", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.InstrumentIngestVersion", b =>
+                {
+                    b.Navigation("Payloads");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Item", b =>

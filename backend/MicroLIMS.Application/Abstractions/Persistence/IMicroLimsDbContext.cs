@@ -144,6 +144,9 @@ public interface IMicroLimsDbContext
     DbSet<WorkingStandardQualification> WorkingStandardQualifications { get; }
     DbSet<WorkingStandardDocument> WorkingStandardDocuments { get; }
     DbSet<InstrumentAgent> InstrumentAgents { get; }
+    DbSet<InstrumentIngest> InstrumentIngests { get; }
+    DbSet<InstrumentIngestVersion> InstrumentIngestVersions { get; }
+    DbSet<InstrumentIngestPayload> InstrumentIngestPayloads { get; }
     DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
     DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
     DbSet<HplcEvidence> HplcEvidences { get; }

@@ -46,4 +46,5 @@ public class DocumentMaster : IVersionedEntity
     public ICollection<DocumentRevision> Revisions { get; set; } = new List<DocumentRevision>();
     public ICollection<DocumentMasterAssignment> Assignments { get; set; } = new List<DocumentMasterAssignment>();
     public ICollection<DocumentKeyword> Keywords { get; set; } = new List<DocumentKeyword>();
+    public List<DocumentMasterSection> Sections { get; set; } = new();
 }

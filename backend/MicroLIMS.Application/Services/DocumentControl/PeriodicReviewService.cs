@@ -257,6 +257,7 @@ public class PeriodicReviewService : IPeriodicReviewService
             .Include(t => t.DocumentMaster).ThenInclude(m => m.DocumentType)
             .Include(t => t.DocumentMaster).ThenInclude(m => m.Department)
             .Include(t => t.DocumentMaster).ThenInclude(m => m.Section)
+            .Include(t => t.DocumentMaster).ThenInclude(m => m.Sections).ThenInclude(s => s.Section)
             .Include(t => t.DocumentMaster).ThenInclude(m => m.DocumentOwnerUser)
             .Include(t => t.DocumentRevision).ThenInclude(r => r.CreatedByUser)
             .Include(t => t.DocumentRevision).ThenInclude(r => r.Files).ThenInclude(f => f.UploadedByUser)
@@ -292,6 +293,7 @@ public class PeriodicReviewService : IPeriodicReviewService
             );
         }
 
+        var (sectionIds, sectionNames) = DocumentDtoMapper.MapSections(master);
         var masterSummary = new DocumentMasterSummaryDto(
             master.Id,
             master.MicroLimsDocumentId,
@@ -317,7 +319,9 @@ public class PeriodicReviewService : IPeriodicReviewService
             rev.NextReviewDate,
             pdfFile != null,
             rev.Files.Any(f => f.FileRole == FileRole.SourceFile && f.IsActive),
-            master.CreatedAt
+            master.CreatedAt,
+            sectionIds,
+            sectionNames
         );
 
         var revDto = new DocumentRevisionDto(

@@ -250,6 +250,9 @@ public class DocumentApprovalService : IDocumentApprovalService
                     .ThenInclude(m => m.Section)
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.DocumentMaster)
+                    .ThenInclude(m => m.Sections).ThenInclude(s => s.Section)
+            .Include(t => t.DocumentRevision)
+                .ThenInclude(r => r.DocumentMaster)
                     .ThenInclude(m => m.DocumentOwnerUser)
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.DocumentMaster)
@@ -816,6 +819,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             ? m.Revisions.FirstOrDefault(r => r.Id == m.CurrentEffectiveRevisionId.Value)
             : m.Revisions.OrderByDescending(r => r.RevisionSequence).FirstOrDefault();
 
+        var (sectionIds, sectionNames) = DocumentDtoMapper.MapSections(m);
         return new DocumentMasterDto(
             m.Id,
             m.MicroLimsDocumentId,
@@ -859,7 +863,9 @@ public class DocumentApprovalService : IDocumentApprovalService
                 a.AssignedByUserId,
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
-            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList()
+            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList(),
+            sectionIds,
+            sectionNames
         ) { Version = m.Version };
     }
 

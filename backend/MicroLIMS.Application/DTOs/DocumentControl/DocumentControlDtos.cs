@@ -35,7 +35,10 @@ public record DocumentMasterSummaryDto(
     DateTime? NextReviewDate,
     bool HasControlledPdf,
     bool HasSourceFile,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    // All the sections the document belongs to (primary first, then by name).
+    IReadOnlyList<int> SectionIds,
+    IReadOnlyList<string> SectionNames
 );
 
 public record DocumentMasterDto(
@@ -70,7 +73,10 @@ public record DocumentMasterDto(
     string? VoidReason,
     List<string> Keywords,
     List<DocumentMasterAssignmentDto> Assignments,
-    List<DocumentRevisionDto> Revisions
+    List<DocumentRevisionDto> Revisions,
+    // All the sections the document belongs to (primary first, then by name).
+    IReadOnlyList<int> SectionIds,
+    IReadOnlyList<string> SectionNames
 )
 {
     // The record's row version, sent back as If-Match with an edit.
@@ -144,7 +150,9 @@ public record RegisterDocumentMasterRequest(
     List<string>? Keywords = null,
     string InitialRevisionNumber = "01",
     int? ReviewCycleMonths = null,
-    List<CreateAssignmentRequest>? InitialAssignments = null
+    List<CreateAssignmentRequest>? InitialAssignments = null,
+    // Extra sections besides SectionId (the primary); the document belongs to the union.
+    List<int>? SectionIds = null
 );
 
 public record CreateAssignmentRequest(
@@ -161,7 +169,8 @@ public record UpdateDocumentMasterDraftRequest(
     int DocumentOwnerUserId,
     DocumentConfidentiality Confidentiality,
     string? Category = null,
-    List<string>? Keywords = null
+    List<string>? Keywords = null,
+    List<int>? SectionIds = null
 );
 
 public record VoidDocumentMasterRequest(

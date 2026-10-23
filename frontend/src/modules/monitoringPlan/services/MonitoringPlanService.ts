@@ -75,7 +75,7 @@ export const MonitoringPlanService = {
   getChecklist: (sampleId: number) =>
     apiClient.get(`${BASE}/for-session`, { params: { sampleId } }).then((r) => r.data.data as MonitoringChecklist),
 
-  createManual: (body: { machineId: number; targetDate: string; machinePartConfigurationIds: number[]; reason?: string; kind?: "Day" | "Week" | "Month" }) =>
+  createManual: (body: { machineId: number; targetDate: string; machinePartConfigurationIds?: number[]; reason?: string; kind?: "Day" | "Week" | "Month" }) =>
     apiClient.post(`${BASE}/manual`, body).then((r) => r.data.data as OccurrenceSummary),
 
   skip: (id: number, version: number, body: SignedChange) =>

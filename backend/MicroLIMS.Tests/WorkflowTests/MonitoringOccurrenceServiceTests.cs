@@ -183,7 +183,7 @@ public class MonitoringOccurrenceServiceTests
     }
 
     [Fact]
-    public async Task CreateManual_RefusesAPastDate_NoApprovedPlan_AndForeignParts()
+    public async Task CreateManual_RefusesAPastDate_NoApprovedPlan_AndForeignParts_ButNotAMissingPartList()
     {
         var w = await BuildAsync();
         var other = new Machine { Name = "Filler 2" };
@@ -196,8 +196,11 @@ public class MonitoringOccurrenceServiceTests
             new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2027, 1, 5), new List<int> { w.PartConfig.Id }, null), w.Head.Id));
         await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.CreateManualAsync(
             new CreateManualOccurrenceRequest(other.Id, new DateOnly(2026, 10, 28), new List<int> { w.PartConfig.Id }, null), w.Head.Id));
-        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.CreateManualAsync(
-            new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 10, 28), new List<int>(), null), w.Head.Id));
+
+        // No parts named is allowed: the entry is for the machine itself.
+        var forMachine = await w.Service.CreateManualAsync(
+            new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 10, 28), new List<int>(), null), w.Head.Id);
+        Assert.Equal(1, forMachine.ItemsTotal);
     }
 
     // ---- skip ----

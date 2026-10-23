@@ -152,6 +152,8 @@ BEGIN
        OR NEW.""VersionNo"" IS DISTINCT FROM OLD.""VersionNo""
        OR NEW.""ReportSha256"" IS DISTINCT FROM OLD.""ReportSha256""
        OR NEW.""ReportStorageKey"" IS DISTINCT FROM OLD.""ReportStorageKey""
+       OR NEW.""ReportFileName"" IS DISTINCT FROM OLD.""ReportFileName""
+       OR NEW.""OperatorAsReported"" IS DISTINCT FROM OLD.""OperatorAsReported""
        OR NEW.""AcquiredAtLocalText"" IS DISTINCT FROM OLD.""AcquiredAtLocalText""
        OR NEW.""ReceivedAt"" IS DISTINCT FROM OLD.""ReceivedAt""
        OR NEW.""TimeZoneIdUsed"" IS DISTINCT FROM OLD.""TimeZoneIdUsed""

@@ -132,6 +132,8 @@ public class InstrumentIngestModelTests
     [PostgresTheory]
     [InlineData("ReportSha256", "'changed'")]
     [InlineData("ReportStorageKey", "'ingest/changed.pdf'")]
+    [InlineData("ReportFileName", "'changed.pdf'")]
+    [InlineData("OperatorAsReported", "'someone else'")]
     [InlineData("AcquiredAtLocalText", "'02-Oct-26 10:00:00'")]
     [InlineData("ReceivedAt", "now() + interval '1 day'")]
     [InlineData("TimeZoneIdUsed", "'UTC'")]

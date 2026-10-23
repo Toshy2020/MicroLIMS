@@ -127,4 +127,98 @@ describe("EquipmentScheduleSection", () => {
     expect(screen.getByDisplayValue("24")).toBeTruthy();
     expect(screen.getByDisplayValue("2026-05-10")).toBeTruthy();
   });
+
+  it("renders the updated interval helper text including years", () => {
+    render(<EquipmentScheduleSection equipment={mockEquipment} />);
+    const helpers = screen.getAllByText("1-104 weeks, 1-60 months or 1-5 years");
+    expect(helpers.length).toBe(2);
+  });
+
+  it("validates calibration and maintenance interval range for Years (1-5)", async () => {
+    render(<EquipmentScheduleSection equipment={mockEquipment} />);
+
+    const calValueInput = screen.getByLabelText(/Calibration Interval/i);
+    fireEvent.change(calValueInput, { target: { value: "6" } });
+
+    const calUnitSelect = screen.getByLabelText(/Calibration Unit/i);
+    fireEvent.mouseDown(calUnitSelect);
+    const yearsOption = await screen.findByRole("option", { name: "Years" });
+    fireEvent.click(yearsOption);
+
+    const saveBtn = screen.getByRole("button", { name: /Save Schedule/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Calibration interval in years must be between 1 and 5.")
+      ).toBeTruthy();
+    });
+
+    // Valid calibration, invalid PM
+    fireEvent.change(calValueInput, { target: { value: "2" } });
+
+    const pmValueInput = screen.getByLabelText(/Preventive Maintenance Interval/i);
+    fireEvent.change(pmValueInput, { target: { value: "0" } });
+
+    const pmUnitSelect = screen.getByLabelText(/Maintenance Unit/i);
+    fireEvent.mouseDown(pmUnitSelect);
+    const pmYearsOption = await screen.findByRole("option", { name: "Years" });
+    fireEvent.click(pmYearsOption);
+
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Maintenance interval in years must be between 1 and 5.")
+      ).toBeTruthy();
+    });
+  });
+
+  it("saves successfully when interval unit is Years", async () => {
+    vi.mocked(EquipmentPlanService.saveSchedule).mockResolvedValue({
+      id: 1,
+      equipmentId: 1,
+      calibrationIntervalValue: 2,
+      calibrationIntervalUnit: "Years",
+      lastCalibratedOn: "2026-01-15",
+      pmIntervalValue: 1,
+      pmIntervalUnit: "Years",
+      lastPmOn: "2026-01-20",
+      version: 5
+    });
+
+    render(<EquipmentScheduleSection equipment={mockEquipment} />);
+
+    const calValueInput = screen.getByLabelText(/Calibration Interval/i);
+    fireEvent.change(calValueInput, { target: { value: "2" } });
+
+    const calUnitSelect = screen.getByLabelText(/Calibration Unit/i);
+    fireEvent.mouseDown(calUnitSelect);
+    const calYears = await screen.findByRole("option", { name: "Years" });
+    fireEvent.click(calYears);
+
+    const pmValueInput = screen.getByLabelText(/Preventive Maintenance Interval/i);
+    fireEvent.change(pmValueInput, { target: { value: "1" } });
+
+    const pmUnitSelect = screen.getByLabelText(/Maintenance Unit/i);
+    fireEvent.mouseDown(pmUnitSelect);
+    const pmYears = await screen.findByRole("option", { name: "Years" });
+    fireEvent.click(pmYears);
+
+    const saveBtn = screen.getByRole("button", { name: /Save Schedule/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(EquipmentPlanService.saveSchedule).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          calibrationIntervalValue: 2,
+          calibrationIntervalUnit: "Years",
+          pmIntervalValue: 1,
+          pmIntervalUnit: "Years"
+        }),
+        4
+      );
+    });
+  });
 });

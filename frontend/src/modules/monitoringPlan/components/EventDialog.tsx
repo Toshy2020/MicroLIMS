@@ -27,19 +27,26 @@ import { EquipmentInventoryService } from "../../inventory/equipment/services/Eq
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { EVENT_TYPE_LABEL } from "../statusDisplay";
 import type { CalendarEventResponse, CalendarEventType, UpdateCalendarEventRequest } from "../types";
+import { isDuplicateCalendarEvent } from "../eventDuplicates";
 
 export interface EventDialogProps {
   event: CalendarEventResponse | null;
   open: boolean;
   onClose: () => void;
   onChanged: () => void;
+  existingEvents?: CalendarEventResponse[];
+  events?: CalendarEventResponse[];
+  onSubmit?: (data: UpdateCalendarEventRequest) => Promise<void> | void;
 }
 
 export function EventDialog({
   event,
   open,
   onClose,
-  onChanged
+  onChanged,
+  existingEvents,
+  events,
+  onSubmit
 }: EventDialogProps) {
   const [currentEvent, setCurrentEvent] = useState<CalendarEventResponse | null>(event);
   const [type, setType] = useState<CalendarEventType>("VendorVisit");
@@ -55,6 +62,7 @@ export function EventDialog({
   const [cancelReason, setCancelReason] = useState("");
 
   const [error, setError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -77,6 +85,7 @@ export function EventDialog({
       setShowCancel(false);
       setCancelReason("");
       setError(null);
+      setDuplicateWarning(null);
       setBusy(false);
 
       if (event.equipmentInventoryId) {
@@ -106,29 +115,66 @@ export function EventDialog({
   const hasDocuments = currentEvent.documents && currentEvent.documents.length > 0;
   const isPtWithoutDocs = currentEvent.type === "ProficiencyTesting" && (!hasDocuments || currentEvent.reportPending);
 
-  const handleSave = async () => {
+  const handleSave = async (confirmDuplicateInput: boolean | React.MouseEvent = false) => {
+    const confirmDuplicate = typeof confirmDuplicateInput === "boolean" ? confirmDuplicateInput : false;
     if (!title.trim()) {
       setError("Title is required.");
       return;
     }
+
+    const targetDate = dateMode === "day" && date ? date : null;
+    const targetMonth = dateMode === "month" && month ? month : null;
+    const eqId = selectedEquipment ? selectedEquipment.id : null;
+
+    if (!confirmDuplicate) {
+      const isDup = (existingEvents ?? events ?? []).some((e) =>
+        isDuplicateCalendarEvent(e, {
+          id: currentEvent.id,
+          type,
+          title: title.trim(),
+          date: targetDate,
+          month: targetMonth,
+          equipmentInventoryId: eqId
+        })
+      );
+      if (isDup) {
+        const dateOrMonth = targetDate ?? targetMonth ?? "";
+        setError(null);
+        setDuplicateWarning(`A ${type} called "${title.trim()}" is already on ${dateOrMonth}.`);
+        return;
+      }
+    }
+
     setBusy(true);
     setError(null);
+    setDuplicateWarning(null);
     const body: UpdateCalendarEventRequest = {
       type,
       title: title.trim(),
-      date: dateMode === "day" && date ? date : null,
-      month: dateMode === "month" && month ? month : null,
+      date: targetDate,
+      month: targetMonth,
       note: note.trim() || null,
-      equipmentInventoryId: selectedEquipment ? selectedEquipment.id : null
+      equipmentInventoryId: eqId,
+      ...(confirmDuplicate ? { confirmDuplicate: true } : {})
     };
 
     try {
-      const updated = await EquipmentPlanService.updateEvent(currentEvent.id, currentEvent.version, body);
-      setCurrentEvent(updated);
+      if (onSubmit) {
+        await onSubmit(body);
+      } else {
+        const updated = await EquipmentPlanService.updateEvent(currentEvent.id, currentEvent.version, body);
+        setCurrentEvent(updated);
+      }
       onChanged();
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not update the event.");
+      const msg = err?.response?.data?.message ?? err?.message ?? "";
+      if (typeof msg === "string" && msg.startsWith("A matching event already exists")) {
+        const dateOrMonth = targetDate ?? targetMonth ?? "";
+        setDuplicateWarning(`A ${type} called "${title.trim()}" is already on ${dateOrMonth}.`);
+      } else {
+        setError(msg || "Could not update the event.");
+      }
     } finally {
       setBusy(false);
     }
@@ -190,6 +236,32 @@ export function EventDialog({
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
+          {duplicateWarning && (
+            <Alert severity="warning">
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  {duplicateWarning}
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => void handleSave(true)}
+                    disabled={busy}
+                  >
+                    Add anyway
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => setDuplicateWarning(null)}
+                    disabled={busy}
+                  >
+                    Back
+                  </Button>
+                </Box>
+              </Box>
+            </Alert>
+          )}
 
           {(currentEvent.equipmentCode || selectedEquipment?.code) && (
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
@@ -414,7 +486,7 @@ export function EventDialog({
         {!isCancelled && (
           <Button
             variant="contained"
-            onClick={handleSave}
+            onClick={() => void handleSave(false)}
             disabled={busy || !title.trim()}
           >
             Save changes

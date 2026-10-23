@@ -19,6 +19,7 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
   const [revisions, setRevisions] = useState<EquipmentPlanRevision[]>([]);
   const [preview, setPreview] = useState<EquipmentPlanPreview | null>(null);
   const [showNoInterval, setShowNoInterval] = useState(false);
+  const [showPossibleDuplicates, setShowPossibleDuplicates] = useState(true);
   const [signing, setSigning] = useState(false);
   const [reason, setReason] = useState("");
   const [goLive, setGoLive] = useState("");
@@ -138,11 +139,17 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
           )}
 
           {preview.exceptions.length > 0 && (() => {
+            const possibleDuplicates = preview.exceptions.filter(
+              (x) => x.kind === "PossibleDuplicate"
+            );
             const noIntervals = preview.exceptions.filter(
               (x) => x.kind === "NoInterval" || x.message?.toLowerCase().includes("no calibration or maintenance interval")
             );
             const otherExceptions = preview.exceptions.filter(
-              (x) => x.kind !== "NoInterval" && !x.message?.toLowerCase().includes("no calibration or maintenance interval")
+              (x) =>
+                x.kind !== "PossibleDuplicate" &&
+                x.kind !== "NoInterval" &&
+                !x.message?.toLowerCase().includes("no calibration or maintenance interval")
             );
 
             return (
@@ -150,6 +157,33 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
                 <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
                   Not planned, or adjusted ({preview.exceptions.length})
                 </Typography>
+
+                {possibleDuplicates.length > 0 && (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                        Possible duplicate instruments (not planned)
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowPossibleDuplicates((prev) => !prev)}
+                        sx={{ textTransform: "none", fontSize: 12, p: 0, minWidth: "auto" }}
+                      >
+                        {showPossibleDuplicates ? "Hide" : "Show"}
+                      </Button>
+                    </Box>
+                    {showPossibleDuplicates && (
+                      <Box sx={{ mt: 0.5 }}>
+                        {possibleDuplicates.map((x, i) => (
+                          <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", pl: 2 }}>
+                            {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
 
                 {noIntervals.length > 0 && (
                   <Box sx={{ mt: 0.5 }}>

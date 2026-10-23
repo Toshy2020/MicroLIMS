@@ -112,6 +112,12 @@ public static class PermissionConstants
     public const string MonitoringPlanManage = "MonitoringPlan.Manage";
     public const string MonitoringPlanApprove = "MonitoringPlan.Approve";
 
+    // Equipment Plan: manage schedules and revisions; sign a revision; record calibration and logbook; manage calendar events.
+    public const string EquipmentPlanManage = "EquipmentPlan.Manage";
+    public const string EquipmentPlanApprove = "EquipmentPlan.Approve";
+    public const string EquipmentWorkRecord = "EquipmentWork.Record";
+    public const string CalendarEventManage = "CalendarEvent.Manage";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -131,7 +137,8 @@ public static class PermissionConstants
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
-        MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove
+        MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -147,6 +154,7 @@ public static class PermissionConstants
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
-        MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove
+        MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
     };
 }

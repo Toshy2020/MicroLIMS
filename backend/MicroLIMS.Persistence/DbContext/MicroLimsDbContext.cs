@@ -55,6 +55,12 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MonitoringOccurrenceItem> MonitoringOccurrenceItems => Set<MonitoringOccurrenceItem>();
     public DbSet<MonitoringOccurrenceEvent> MonitoringOccurrenceEvents => Set<MonitoringOccurrenceEvent>();
     public DbSet<MonitoringDeviation> MonitoringDeviations => Set<MonitoringDeviation>();
+    public DbSet<EquipmentPlanRevision> EquipmentPlanRevisions => Set<EquipmentPlanRevision>();
+    public DbSet<EquipmentTask> EquipmentTasks => Set<EquipmentTask>();
+    public DbSet<EquipmentTaskEvent> EquipmentTaskEvents => Set<EquipmentTaskEvent>();
+    public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
+    public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    public DbSet<CalendarEventDocument> CalendarEventDocuments => Set<CalendarEventDocument>();
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<MachinePart> MachineParts => Set<MachinePart>();
     public DbSet<WaterSamplingPoint> WaterSamplingPoints => Set<WaterSamplingPoint>();
@@ -338,6 +344,89 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             e.HasIndex(d => d.FollowUpOccurrenceId);
             e.HasIndex(d => d.ClosureSignatureId);
             e.HasIndex(d => d.ClosureSecondSignatureId);
+        });
+
+        // Equipment Plan revisions, tasks, events, logbook, and calendar events.
+        modelBuilder.Entity<EquipmentPlanRevision>(e =>
+        {
+            e.HasIndex(r => new { r.Year, r.RevisionNumber }).IsUnique();
+            // At most one approved revision per year. 1 = PlanRevisionStatus.Approved.
+            e.HasIndex(r => r.Year).IsUnique().HasFilter("\"Status\" = 1").HasDatabaseName("IX_EquipmentPlanRevisions_Year_Approved");
+            e.HasOne(r => r.ApprovalSignature).WithMany().HasForeignKey(r => r.ApprovalSignatureId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<EquipmentTask>(e =>
+        {
+            e.HasIndex(t => new { t.EquipmentInventoryId, t.TaskType, t.Year, t.Sequence }).IsUnique();
+            e.HasOne(t => t.EquipmentInventory).WithMany().HasForeignKey(t => t.EquipmentInventoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.CreatedByRevision).WithMany(r => r.CreatedTasks).HasForeignKey(t => t.CreatedByRevisionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.RetiredByRevision).WithMany().HasForeignKey(t => t.RetiredByRevisionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.CalibrationDocument).WithMany().HasForeignKey(t => t.CalibrationDocumentId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.MaintenanceLogEntry).WithMany().HasForeignKey(t => t.MaintenanceLogEntryId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(t => t.IntervalSnapshot).HasMaxLength(200);
+            e.HasIndex(t => t.EquipmentInventoryId);
+            e.HasIndex(t => t.DueDate);
+            e.HasIndex(t => t.CreatedByRevisionId);
+            e.HasIndex(t => t.RetiredByRevisionId);
+            e.HasIndex(t => t.CalibrationDocumentId);
+            e.HasIndex(t => t.MaintenanceLogEntryId);
+        });
+        modelBuilder.Entity<EquipmentTaskEvent>(e =>
+        {
+            e.HasOne(v => v.EquipmentTask).WithMany(t => t.Events).HasForeignKey(v => v.EquipmentTaskId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.ElectronicSignature).WithMany().HasForeignKey(v => v.ElectronicSignatureId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(v => v.Reason).HasMaxLength(1000);
+            e.HasIndex(v => v.EquipmentTaskId);
+            e.HasIndex(v => v.ElectronicSignatureId);
+        });
+        modelBuilder.Entity<MaintenanceLogEntry>(e =>
+        {
+            e.HasOne(l => l.EquipmentInventory).WithMany().HasForeignKey(l => l.EquipmentInventoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.ElectronicSignature).WithMany().HasForeignKey(l => l.ElectronicSignatureId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.CalendarEvent).WithMany().HasForeignKey(l => l.CalendarEventId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(l => l.WorkDone).IsRequired().HasMaxLength(2000);
+            e.Property(l => l.PartsReplaced).HasMaxLength(1000);
+            e.Property(l => l.Findings).HasMaxLength(2000);
+            e.Property(l => l.VoidReason).HasMaxLength(1000);
+            e.HasIndex(l => l.EquipmentInventoryId);
+            e.HasIndex(l => l.PerformedOn);
+            e.HasIndex(l => l.ElectronicSignatureId);
+            e.HasIndex(l => l.CalendarEventId);
+        });
+        modelBuilder.Entity<CalendarEvent>(e =>
+        {
+            e.HasOne(c => c.EquipmentInventory).WithMany().HasForeignKey(c => c.EquipmentInventoryId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(c => c.Title).IsRequired().HasMaxLength(200);
+            e.Property(c => c.Month).HasMaxLength(7);
+            e.Property(c => c.Note).HasMaxLength(2000);
+            e.Property(c => c.CancelReason).HasMaxLength(1000);
+            e.HasIndex(c => c.Date);
+            e.HasIndex(c => c.Month);
+            e.HasIndex(c => c.EquipmentInventoryId);
+            e.HasIndex(c => c.Status);
+            e.ToTable(t => t.HasCheckConstraint("CK_CalendarEvents_DateOrMonth", "(\"Date\" IS NULL) <> (\"Month\" IS NULL)"));
+        });
+        modelBuilder.Entity<CalendarEventDocument>(e =>
+        {
+            e.Property(d => d.OriginalFileName).IsRequired().HasMaxLength(500);
+            e.Property(d => d.StorageKey).IsRequired().HasMaxLength(500);
+            e.Property(d => d.FileExtension).IsRequired().HasMaxLength(10);
+            e.Property(d => d.ContentType).IsRequired().HasMaxLength(100);
+            e.Property(d => d.ContentSha256).IsRequired().HasMaxLength(64);
+            e.Property(d => d.VoidReason).HasMaxLength(1000);
+
+            e.HasOne(d => d.CalendarEvent)
+                .WithMany(c => c.Documents)
+                .HasForeignKey(d => d.CalendarEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(d => d.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.UploadedByUserId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(d => d.CalendarEventId);
+            e.HasIndex(d => new { d.CalendarEventId, d.Status });
         });
         modelBuilder.Entity<RoomTestConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<WaterDepartment>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();

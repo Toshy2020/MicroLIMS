@@ -112,10 +112,11 @@ public class RolePermissionSeedDataTests
             // Working standard qualification.
             PermissionConstants.WorkingStandardsQualify,
             // Annual Monitoring Plan.
-            PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove
+            PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
+            PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
         };
 
-        Assert.Equal(46, codes.Count);
+        Assert.Equal(50, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -199,7 +200,7 @@ public class RolePermissionSeedDataTests
         // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123. MonitoringPlan.View (all four roles) +4, Manage and Approve (SystemAdministrator, SectionHead) +4, for 131.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(131, total);
+        Assert.Equal(139, total);
     }
 
     [Fact]
@@ -209,7 +210,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(131, await db.RolePermissions.CountAsync());
+        Assert.Equal(139, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

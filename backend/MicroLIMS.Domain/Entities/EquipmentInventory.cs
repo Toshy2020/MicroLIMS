@@ -35,6 +35,16 @@ public class EquipmentInventory : IVersionedEntity
     public int? SectionId { get; set; }
     public DocumentSection? Section { get; set; }
 
+    public int? CalibrationIntervalValue { get; set; }
+    public IntervalUnit? CalibrationIntervalUnit { get; set; }
+    public DateOnly? LastCalibratedOn { get; set; }
+
+    public int? PmIntervalValue { get; set; }
+    public IntervalUnit? PmIntervalUnit { get; set; }
+    public DateOnly? LastPmOn { get; set; }
+
+    public DateOnly? AutoOutOfServiceSince { get; set; }
+
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int LastModifiedByUserId { get; set; }

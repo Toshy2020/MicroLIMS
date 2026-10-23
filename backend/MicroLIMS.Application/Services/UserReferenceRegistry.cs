@@ -246,5 +246,15 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(MonitoringDeviation), nameof(MonitoringDeviation.ClosedByUserId), UserReferenceDisposition.Blocks, "No DB FK - signed closure of a monitoring deviation (GMP record)"),
         new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.UserId), UserReferenceDisposition.Blocks, "Analyst availability history; DB FK Restrict"),
         new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - availability entry provenance"),
+
+        // Equipment Plan
+        new UserReferenceEntry(typeof(EquipmentPlanRevision), nameof(EquipmentPlanRevision.GeneratedByUserId), UserReferenceDisposition.Blocks, "No DB FK - equipment plan revision provenance"),
+        new UserReferenceEntry(typeof(EquipmentTaskEvent), nameof(EquipmentTaskEvent.PerformedByUserId), UserReferenceDisposition.Blocks, "No DB FK - equipment task history"),
+        new UserReferenceEntry(typeof(MaintenanceLogEntry), nameof(MaintenanceLogEntry.PerformedByUserId), UserReferenceDisposition.Blocks, "No DB FK - maintenance log entry performer"),
+        new UserReferenceEntry(typeof(MaintenanceLogEntry), nameof(MaintenanceLogEntry.VoidedByUserId), UserReferenceDisposition.Blocks, "No DB FK - maintenance log entry void provenance"),
+        new UserReferenceEntry(typeof(CalendarEvent), nameof(CalendarEvent.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - calendar event creator"),
+        new UserReferenceEntry(typeof(CalendarEvent), nameof(CalendarEvent.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - calendar event last modifier"),
+        new UserReferenceEntry(typeof(CalendarEventDocument), nameof(CalendarEventDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - uploaded a calendar event document"),
+        new UserReferenceEntry(typeof(CalendarEventDocument), nameof(CalendarEventDocument.VoidedByUserId), UserReferenceDisposition.Blocks, "No DB FK - calendar event document void provenance"),
     };
 }

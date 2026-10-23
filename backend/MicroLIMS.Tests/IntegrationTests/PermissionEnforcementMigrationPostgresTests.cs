@@ -34,7 +34,11 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.KpiViewTeam,
         PermissionConstants.MonitoringPlanView,
         PermissionConstants.MonitoringPlanManage,
-        PermissionConstants.MonitoringPlanApprove
+        PermissionConstants.MonitoringPlanApprove,
+        PermissionConstants.EquipmentPlanManage,
+        PermissionConstants.EquipmentPlanApprove,
+        PermissionConstants.EquipmentWorkRecord,
+        PermissionConstants.CalendarEventManage
     };
 
     private readonly PostgresTestFixture _fixture;

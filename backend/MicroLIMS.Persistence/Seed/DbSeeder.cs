@@ -502,6 +502,10 @@ public static class DbSeeder
             (PermissionConstants.MonitoringPlanView, "View the Annual Monitoring Plan, its calendar and occurrences."),
             (PermissionConstants.MonitoringPlanManage, "Generate monitoring plan revisions, keep the lab calendar and monitoring settings, add manual entries and request skips or window changes."),
             (PermissionConstants.MonitoringPlanApprove, "Sign a monitoring plan revision into force and sign skips and window changes."),
+            (PermissionConstants.EquipmentPlanManage, "Generate equipment plan revisions, preview and keep instrument schedules."),
+            (PermissionConstants.EquipmentPlanApprove, "Sign an equipment plan revision into force."),
+            (PermissionConstants.EquipmentWorkRecord, "Record and sign calibrations and maintenance logbook entries."),
+            (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -546,7 +550,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
-                    PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
+                    PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
                 }),
                 (RoleType.Reviewer, new[]
                 {

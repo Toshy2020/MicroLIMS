@@ -144,7 +144,7 @@ Panel copy, exact:
 
 Script content, in this order:
 1. `SELECT "Id","ItemId","OriginalFileName","StorageKey","Status" FROM "ItemDocuments" WHERE "DocumentType" = 0;` (show the user first)
-2. `BEGIN; DELETE FROM "ItemDocumentAccessLogs" WHERE "ItemDocumentId" IN (SELECT "Id" FROM "ItemDocuments" WHERE "DocumentType" = 0);` (check the real FK column name with `\d "ItemDocumentAccessLogs"` first). Before deleting the documents, null out `SupersededByDocumentId` on any row pointing at them, then `DELETE FROM "ItemDocuments" WHERE "DocumentType" = 0; COMMIT;`
+2. `BEGIN; DELETE FROM "ItemDocumentAccessLogs" WHERE "DocumentId" IN (SELECT "Id" FROM "ItemDocuments" WHERE "DocumentType" = 0);`. Before deleting the documents, null out `SupersededByDocumentId` on any row pointing at them, then `DELETE FROM "ItemDocuments" WHERE "DocumentType" = 0; COMMIT;`
 
 - [ ] **Step 1: Write the script** and dry-run step 1 against local LIMSV2 (`psql -h localhost -U postgres -d LIMSV2`). Expected: 4 rows.
 - [ ] **Step 2: Show the rows to the user and get a go-ahead**, then run the transaction locally. Delete the local stored files by their `StorageKey` under the local storage base path (`Storage:BasePath`, default `storage` under the API content root). Expected: 0 SOP rows left; the files are gone.

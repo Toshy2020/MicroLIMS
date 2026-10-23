@@ -8,6 +8,8 @@ import {
   CircularProgress,
   Stack,
   Tooltip,
+  Tabs,
+  Tab,
   useTheme
 } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -22,13 +24,16 @@ import type {
   EquipmentStatusHistoryItem
 } from "../types/equipmentTypes";
 
-
 import {
   isEquipmentCalibrationDueSoon,
   isEquipmentCalibrationOverdue
 } from "./EquipmentKpiCards";
 import { EquipmentDocumentList } from "./EquipmentDocumentList";
 import { UploadEquipmentDocumentDialog } from "./UploadEquipmentDocumentDialog";
+import { EquipmentScheduleSection } from "./EquipmentScheduleSection";
+import { RecordCalibrationDialog } from "./RecordCalibrationDialog";
+import { MaintenanceLogSection } from "./MaintenanceLogSection";
+import { EquipmentHistoryPrint } from "./EquipmentHistoryPrint";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface Props {
@@ -60,10 +65,12 @@ export function EquipmentDetailsDialog({
   onEquipmentUpdated
 }: Props) {
   const theme = useTheme();
+  const [activeTab, setActiveTab] = useState<number>(0);
   const [statusHistory, setStatusHistory] = useState<EquipmentStatusHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [docRefreshKey, setDocRefreshKey] = useState(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isRecordCalibrationOpen, setIsRecordCalibrationOpen] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const loadStatusHistory = async (id: number) => {
@@ -82,6 +89,7 @@ export function EquipmentDetailsDialog({
     if (equipment && open) {
       loadStatusHistory(equipment.id);
       setMessage(null);
+      setActiveTab(0);
     }
   }, [equipment, open]);
 
@@ -114,174 +122,213 @@ export function EquipmentDetailsDialog({
           </Button>
         }
       >
-          {message && (
-            <Alert
-              severity={message.ok ? "success" : "error"}
-              onClose={() => setMessage(null)}
-              sx={{ mb: 2 }}
-            >
-              {message.text}
-            </Alert>
-          )}
-
-          {/* SECTION 1 — Equipment Specifications & Status */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-              Instrument Information
-            </Typography>
-            <Tooltip title="Edit Equipment Specifications & Status">
-              <Button
-                id="equip-details-edit-btn"
-                size="small"
-                variant="outlined"
-                startIcon={<EditOutlinedIcon fontSize="small" />}
-                onClick={() => {
-                  onClose();
-                  onEditEquipment(equipment);
-                }}
-                sx={{ textTransform: "none", fontSize: 12 }}
-              >
-                Edit / Change Status
-              </Button>
-            </Tooltip>
-          </Box>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-              gap: 2,
-              bgcolor: "background.default",
-              p: 2,
-              borderRadius: 1.5,
-              border: "1px solid",
-              borderColor: "divider",
-              mb: 3
-            }}
+        {message && (
+          <Alert
+            severity={message.ok ? "success" : "error"}
+            onClose={() => setMessage(null)}
+            sx={{ mb: 2 }}
           >
-            <Box>
-              <MetaRow label="Instrument Type" value={equipment.instrumentType} />
-              <MetaRow label="Manufacturer" value={equipment.manufacturerName || "—"} />
-              <MetaRow label="Serial Number" value={equipment.serialNumber || "—"} />
-              <MetaRow label="Firmware Version" value={equipment.firmwareVersion || "—"} />
-            </Box>
-            <Box>
-              <MetaRow label="Equipment Code" value={equipment.code} />
-              <MetaRow label="Location" value={equipment.location} />
-              <MetaRow
-                label="Calibration Due"
-                value={
-                  <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
-                    <span
-                      style={{
-                        fontWeight: isOverdue || isDueSoon ? 600 : "normal",
-                        color: isOverdue
-                          ? theme.custom.status.detected.text
-                          : isDueSoon
-                          ? theme.custom.status.inconclusive.text
-                          : "inherit"
-                      }}
-                    >
-                      {equipment.calibrationDueDate ? formatLabDate(equipment.calibrationDueDate) : "—"}
-                    </span>
-                    {isOverdue && <StatusBadge status="Overdue" />}
-                    {isDueSoon && <StatusBadge status="Due Soon" />}
-                  </Box>
-                }
-              />
-              <MetaRow
-                label="Operational Status"
-                value={<StatusBadge status={equipment.status} />}
-              />
-            </Box>
-          </Box>
+            {message.text}
+          </Alert>
+        )}
 
-          <Divider sx={{ my: 2.5 }} />
+        <Tabs
+          value={activeTab}
+          onChange={(_, val) => setActiveTab(val)}
+          sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }}
+        >
+          <Tab label="Details" />
+          <Tab label="Schedule" />
+          <Tab label="Logbook" />
+          <Tab label="History" />
+        </Tabs>
 
-          {/* SECTION 2 — Status History */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <HistoryIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+        {activeTab === 0 && (
+          <>
+            {/* SECTION 1 — Equipment Specifications & Status */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-                Operational Status History
+                Instrument Information
               </Typography>
+              <Tooltip title="Edit Equipment Specifications & Status">
+                <Button
+                  id="equip-details-edit-btn"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<EditOutlinedIcon fontSize="small" />}
+                  onClick={() => {
+                    onClose();
+                    onEditEquipment(equipment);
+                  }}
+                  sx={{ textTransform: "none", fontSize: 12 }}
+                >
+                  Edit / Change Status
+                </Button>
+              </Tooltip>
             </Box>
-          </Box>
 
-          <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2, mb: 3 }}>
-            {loadingHistory ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                <CircularProgress size={20} />
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+                gap: 2,
+                bgcolor: "background.default",
+                p: 2,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                mb: 3
+              }}
+            >
+              <Box>
+                <MetaRow label="Instrument Type" value={equipment.instrumentType} />
+                <MetaRow label="Manufacturer" value={equipment.manufacturerName || "—"} />
+                <MetaRow label="Serial Number" value={equipment.serialNumber || "—"} />
+                <MetaRow label="Firmware Version" value={equipment.firmwareVersion || "—"} />
               </Box>
-            ) : statusHistory.length === 0 ? (
-              <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-                No operational status changes have been recorded for this equipment.
-              </Typography>
-            ) : (
-              <Stack divider={<Divider sx={{ my: 1 }} />} spacing={1}>
-                {statusHistory.map((h) => (
-                  <Box key={h.id} sx={{ fontSize: 12 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <StatusBadge status={h.previousStatus} />
-                        <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
-                          →
+              <Box>
+                <MetaRow label="Equipment Code" value={equipment.code} />
+                <MetaRow label="Location" value={equipment.location} />
+                <MetaRow
+                  label="Calibration Due"
+                  value={
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                      <span
+                        style={{
+                          fontWeight: isOverdue || isDueSoon ? 600 : "normal",
+                          color: isOverdue
+                            ? theme.custom.status.detected.text
+                            : isDueSoon
+                            ? theme.custom.status.inconclusive.text
+                            : "inherit"
+                        }}
+                      >
+                        {equipment.calibrationDueDate ? formatLabDate(equipment.calibrationDueDate) : "—"}
+                      </span>
+                      {isOverdue && <StatusBadge status="Overdue" />}
+                      {isDueSoon && <StatusBadge status="Due Soon" />}
+                    </Box>
+                  }
+                />
+                <MetaRow
+                  label="Operational Status"
+                  value={<StatusBadge status={equipment.status} />}
+                />
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 2.5 }} />
+
+            {/* SECTION 2 — Status History */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <HistoryIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
+                  Operational Status History
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2, mb: 3 }}>
+              {loadingHistory ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                  <CircularProgress size={20} />
+                </Box>
+              ) : statusHistory.length === 0 ? (
+                <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
+                  No operational status changes have been recorded for this equipment.
+                </Typography>
+              ) : (
+                <Stack divider={<Divider sx={{ my: 1 }} />} spacing={1}>
+                  {statusHistory.map((h) => (
+                    <Box key={h.id} sx={{ fontSize: 12 }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <StatusBadge status={h.previousStatus} />
+                          <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
+                            →
+                          </Typography>
+                          <StatusBadge status={h.newStatus} />
+                        </Box>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                          {formatLabDateTime(h.changedAt)}
                         </Typography>
-                        <StatusBadge status={h.newStatus} />
                       </Box>
-                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                        {formatLabDateTime(h.changedAt)}
+                      <Typography sx={{ fontSize: 12, fontWeight: 500, color: "text.primary", mt: 0.5 }}>
+                        {h.comment}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
+                        Changed by: <strong>{h.changedByName}</strong>
                       </Typography>
                     </Box>
-                    <Typography sx={{ fontSize: 12, fontWeight: 500, color: "text.primary", mt: 0.5 }}>
-                      {h.comment}
-                    </Typography>
-                    <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-                      Changed by: <strong>{h.changedByName}</strong>
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </Box>
-
-          <Divider sx={{ my: 2.5 }} />
-
-          {/* SECTION 3 — Calibration Certificates */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <UploadFileIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-                Calibration Certificates
-              </Typography>
+                  ))}
+                </Stack>
+              )}
             </Box>
-            <Button
-              id="equip-details-upload-doc-btn"
-              size="small"
-              variant="contained"
-              startIcon={<UploadFileIcon fontSize="small" />}
-              onClick={() => setIsUploadOpen(true)}
-              sx={{
-                textTransform: "none",
-                fontSize: 12,
-                bgcolor: brandColors.sectionTitle,
-                "&:hover": { bgcolor: brandColors.pageTitle }
-              }}
-            >
-              Upload Certificate
-            </Button>
-          </Box>
 
-          <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2 }}>
-            <EquipmentDocumentList
-              equipmentId={equipment.id}
-              refreshKey={docRefreshKey}
-              onDocumentChanged={() => {
-                setDocRefreshKey((k) => k + 1);
-                onEquipmentUpdated();
-              }}
-            />
-          </Box>
+            <Divider sx={{ my: 2.5 }} />
+
+            {/* SECTION 3 — Calibration Certificates */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <UploadFileIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
+                  Calibration Certificates
+                </Typography>
+              </Box>
+              <Button
+                id="equip-details-upload-doc-btn"
+                size="small"
+                variant="contained"
+                startIcon={<UploadFileIcon fontSize="small" />}
+                onClick={() => setIsUploadOpen(true)}
+                sx={{
+                  textTransform: "none",
+                  fontSize: 12,
+                  bgcolor: brandColors.sectionTitle,
+                  "&:hover": { bgcolor: brandColors.pageTitle }
+                }}
+              >
+                Upload Certificate
+              </Button>
+            </Box>
+
+            <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2 }}>
+              <EquipmentDocumentList
+                equipmentId={equipment.id}
+                refreshKey={docRefreshKey}
+                onDocumentChanged={() => {
+                  setDocRefreshKey((k) => k + 1);
+                  onEquipmentUpdated();
+                }}
+              />
+            </Box>
+          </>
+        )}
+
+        {activeTab === 1 && (
+          <EquipmentScheduleSection
+            equipment={equipment}
+            onSaved={() => {
+              setMessage({ text: "Schedule saved successfully.", ok: true });
+              onEquipmentUpdated();
+            }}
+            onRecordCalibrationClick={() => setIsRecordCalibrationOpen(true)}
+          />
+        )}
+
+        {activeTab === 2 && (
+          <MaintenanceLogSection
+            equipmentId={equipment.id}
+            onLogChanged={() => {
+              onEquipmentUpdated();
+            }}
+          />
+        )}
+
+        {activeTab === 3 && (
+          <EquipmentHistoryPrint equipmentId={equipment.id} />
+        )}
       </FloatingDialog>
 
       {/* Upload Certificate Dialog */}
@@ -293,6 +340,19 @@ export function EquipmentDetailsDialog({
           setIsUploadOpen(false);
           setDocRefreshKey((k) => k + 1);
           setMessage({ text: "Calibration certificate uploaded successfully.", ok: true });
+          onEquipmentUpdated();
+        }}
+      />
+
+      {/* Record Calibration Dialog */}
+      <RecordCalibrationDialog
+        open={isRecordCalibrationOpen}
+        equipmentId={equipment.id}
+        onClose={() => setIsRecordCalibrationOpen(false)}
+        onSuccess={() => {
+          setIsRecordCalibrationOpen(false);
+          setDocRefreshKey((k) => k + 1);
+          setMessage({ text: "Calibration recorded successfully.", ok: true });
           onEquipmentUpdated();
         }}
       />

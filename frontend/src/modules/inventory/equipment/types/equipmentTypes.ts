@@ -96,3 +96,165 @@ export interface EquipmentFilterState {
   location: string;
   calibrationRange: string;
 }
+
+export type IntervalUnit = "Weeks" | "Months";
+
+export const INTERVAL_UNIT_LABELS: Record<IntervalUnit, string> = {
+  Weeks: "Weeks",
+  Months: "Months"
+};
+
+export interface SaveEquipmentScheduleRequest {
+  calibrationIntervalValue: number | null;
+  calibrationIntervalUnit: IntervalUnit | null;
+  lastCalibratedOn: string | null;
+  pmIntervalValue: number | null;
+  pmIntervalUnit: IntervalUnit | null;
+  lastPmOn: string | null;
+}
+
+export interface EquipmentScheduleResponse {
+  id: number;
+  equipmentId: number;
+  calibrationIntervalValue: number | null;
+  calibrationIntervalUnit: IntervalUnit | null;
+  lastCalibratedOn: string | null;
+  pmIntervalValue: number | null;
+  pmIntervalUnit: IntervalUnit | null;
+  lastPmOn: string | null;
+  version: number;
+}
+
+export type EquipmentTaskType = "Calibration" | "PreventiveMaintenance";
+
+export const EQUIPMENT_TASK_TYPE_LABELS: Record<EquipmentTaskType, string> = {
+  Calibration: "Calibration",
+  PreventiveMaintenance: "Preventive Maintenance"
+};
+
+export type EquipmentTaskStatus = "Upcoming" | "Due" | "Overdue" | "Done" | "Retired";
+
+export interface EquipmentTaskItem {
+  id: number;
+  equipmentId: number;
+  equipmentCode: string;
+  instrumentType: string;
+  type: EquipmentTaskType;
+  originalDueDate: string;
+  dueDate: string;
+  completedOn: string | null;
+  status: EquipmentTaskStatus;
+  evidenceLabel: string | null;
+}
+
+export interface EquipmentTaskResponse {
+  id: number;
+  equipmentInventoryId: number;
+  taskType: EquipmentTaskType;
+  year: number;
+  sequence: number;
+  isUnplanned: boolean;
+  createdByRevisionId: number | null;
+  retiredByRevisionId: number | null;
+  originalDueDate: string;
+  dueDate: string;
+  completedOn: string | null;
+  calibrationDocumentId: number | null;
+  maintenanceLogEntryId: number | null;
+  intervalSnapshot: string;
+  version: number;
+}
+
+export type MaintenanceEntryType = "PreventiveMaintenance" | "BreakdownRepair" | "Other";
+
+export const MAINTENANCE_ENTRY_TYPE_LABELS: Record<MaintenanceEntryType, string> = {
+  PreventiveMaintenance: "Preventive Maintenance",
+  BreakdownRepair: "Breakdown Repair",
+  Other: "Other"
+};
+
+export interface MaintenanceLogEntryResponse {
+  id: number;
+  equipmentInventoryId: number;
+  entryType: MaintenanceEntryType;
+  performedOn: string;
+  performedByUserId: number;
+  performedByUserName: string | null;
+  workDone: string;
+  partsReplaced: string | null;
+  findings: string | null;
+  calendarEventId: number | null;
+  recordedAt: string;
+  voidedAt: string | null;
+  voidedByUserId: number | null;
+  voidReason: string | null;
+  electronicSignatureId: number;
+}
+
+export interface AddLogEntryRequest {
+  entryType: MaintenanceEntryType;
+  performedOn: string;
+  workDone: string;
+  partsReplaced: string | null;
+  findings: string | null;
+  calendarEventId: number | null;
+  password: string;
+}
+
+export interface VoidLogEntryRequest {
+  reason: string;
+  password: string;
+}
+
+export interface RecordCalibrationRequest {
+  certificateDocumentId: number;
+  calibratedOn: string;
+  certificateNextDue: string | null;
+  password: string;
+}
+
+export interface TaskEventLine {
+  taskId: number;
+  taskType: EquipmentTaskType;
+  oldValue: string | null;
+  newValue: string | null;
+  reason: string | null;
+  performedAt: string;
+  performedByUserId: number | null;
+  performedByName: string | null;
+}
+
+export interface StatusLine {
+  id: number;
+  previousStatus: EquipmentOperationalStatus;
+  newStatus: EquipmentOperationalStatus;
+  comment: string;
+  changedAt: string;
+  changedByUserId: number;
+  changedByName: string | null;
+}
+
+export interface BaselineLine {
+  date: string;
+  label: string;
+}
+
+export interface InstrumentHistoryResponse {
+  equipmentId: number;
+  equipmentCode: string;
+  instrumentType: string;
+  manufacturerName: string;
+  serialNumber: string | null;
+  location: string;
+  status: EquipmentOperationalStatus;
+  calibrationIntervalDescription: string | null;
+  pmIntervalDescription: string | null;
+  tasks: EquipmentTaskItem[];
+  reschedules: TaskEventLine[];
+  statusChanges: StatusLine[];
+  logbook: MaintenanceLogEntryResponse[];
+  calibrationBaseline: BaselineLine | null;
+  pmBaseline: BaselineLine | null;
+  nextCalibrationDue: string | null;
+  nextPmDue: string | null;
+}

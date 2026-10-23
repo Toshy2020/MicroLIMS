@@ -11,6 +11,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // Set by JwtMiddleware from the authenticated token so SaveChanges can
     // stamp the audit trail with who made the change.
     public int? CurrentUserId { get; set; }
+
+    // Set by AuditMiddleware for an instrument agent (AgentKey scheme), which
+    // has no user id. Only used when CurrentUserId is null: a user always wins.
+    public string? CurrentAgentCode { get; set; }
     public uint? ExpectedVersion { get; set; }
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
@@ -539,6 +543,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     {
         var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
 
+        // An instrument agent has no user id: record it as the System actor
+        // with the agent's code, and no user. If a user id is also present the
+        // user wins and the agent code is ignored.
+        var byAgent = CurrentUserId is null && !string.IsNullOrEmpty(CurrentAgentCode);
+
         return new AuditLog
         {
             EntityName = entry.Entity.GetType().Name,
@@ -546,7 +555,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             Action = action,
             PreviousValue = previousValue,
             NewValue = newValue,
-            UserId = CurrentUserId ?? 0,
+            UserId = byAgent ? null : CurrentUserId ?? 0,
+            ActorType = byAgent ? Domain.Enums.ActorType.System : null,
+            SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : null,
             Timestamp = DateTime.UtcNow,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),

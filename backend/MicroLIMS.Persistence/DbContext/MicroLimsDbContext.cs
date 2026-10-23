@@ -197,6 +197,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<DocumentRevision> DocumentRevisions => Set<DocumentRevision>();
     public DbSet<DocumentMasterAssignment> DocumentMasterAssignments => Set<DocumentMasterAssignment>();
     public DbSet<DocumentKeyword> DocumentKeywords => Set<DocumentKeyword>();
+    public DbSet<DocumentMasterSection> DocumentMasterSections => Set<DocumentMasterSection>();
     public DbSet<RevisionFile> RevisionFiles => Set<RevisionFile>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();

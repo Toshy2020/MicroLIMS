@@ -187,6 +187,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentRevision> DocumentRevisions { get; }
     DbSet<DocumentMasterAssignment> DocumentMasterAssignments { get; }
     DbSet<DocumentKeyword> DocumentKeywords { get; }
+    DbSet<DocumentMasterSection> DocumentMasterSections { get; }
     DbSet<RevisionFile> RevisionFiles { get; }
     DbSet<DocumentType> DocumentTypes { get; }
     DbSet<DocumentDepartment> DocumentDepartments { get; }

@@ -8,6 +8,19 @@ namespace MicroLIMS.Application.Services.DocumentControl;
 // Callers must Include those navigations; a missing creator maps to "".
 public static class DocumentDtoMapper
 {
+    // The master's sections, primary first then by name. Falls back to the primary
+    // alone when Sections (and Sections.Section) were not loaded.
+    public static (IReadOnlyList<int> Ids, IReadOnlyList<string> Names) MapSections(DocumentMaster m)
+    {
+        var rows = m.Sections
+            .Where(s => s.SectionId != m.SectionId)
+            .Select(s => (s.SectionId, Name: s.Section?.Name ?? ""))
+            .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .Prepend((m.SectionId, Name: m.Section?.Name ?? ""))
+            .ToList();
+        return (rows.Select(r => r.SectionId).ToList(), rows.Select(r => r.Name).ToList());
+    }
+
     public static DocumentRevisionDto MapRevision(DocumentRevision r)
     {
         return new DocumentRevisionDto(

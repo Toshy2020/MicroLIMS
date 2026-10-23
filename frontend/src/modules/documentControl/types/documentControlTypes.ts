@@ -125,6 +125,8 @@ export interface DocumentMasterDto {
   departmentName: string;
   sectionId: number;
   sectionName: string;
+  sectionIds: number[];
+  sectionNames: string[];
   documentOwnerUserId: number;
   documentOwnerUserName: string;
   documentOwnerName?: string;
@@ -164,6 +166,8 @@ export interface DocumentMasterSummaryDto {
   departmentName: string;
   sectionId: number;
   sectionName: string;
+  sectionIds: number[];
+  sectionNames: string[];
   documentOwnerUserId: number;
   documentOwnerUserName: string;
   confidentiality: DocumentConfidentiality;
@@ -216,6 +220,7 @@ export interface RegisterDocumentMasterRequest {
   documentTypeId: number;
   departmentId: number;
   sectionId: number;
+  sectionIds?: number[];
   documentOwnerUserId: number;
   confidentiality?: DocumentConfidentiality;
   category?: string;
@@ -231,6 +236,7 @@ export interface UpdateDocumentMasterDraftRequest {
   documentTypeId: number;
   departmentId: number;
   sectionId: number;
+  sectionIds?: number[];
   documentOwnerUserId: number;
   confidentiality?: DocumentConfidentiality;
   category?: string;

@@ -80,6 +80,8 @@ public class DocumentMasterService : IDocumentMasterService
         if (section.DepartmentId != dept.Id)
             throw new InvalidOperationException($"Section '{section.Name}' does not belong to department '{dept.Name}'.");
 
+        var sectionIds = await ResolveSectionIdsAsync(request.SectionId, request.SectionIds, dept);
+
         var ownerUser = await _db.Users.FindAsync(request.DocumentOwnerUserId)
             ?? throw new InvalidOperationException($"Owner user {request.DocumentOwnerUserId} not found.");
         if (!ownerUser.IsActive)
@@ -116,7 +118,8 @@ public class DocumentMasterService : IDocumentMasterService
             RecordStatus = DocumentRecordStatus.Active,
             CurrentEffectiveRevisionId = null,
             CreatedAt = now,
-            CreatedByUserId = userId
+            CreatedByUserId = userId,
+            Sections = sectionIds.Select(id => new DocumentMasterSection { SectionId = id }).ToList()
         };
         _db.DocumentMasters.Add(master);
         await _db.SaveChangesAsync(); // Generates master.Id
@@ -183,6 +186,7 @@ public class DocumentMasterService : IDocumentMasterService
             new("DocumentTypeId", null, master.DocumentTypeId.ToString()),
             new("DepartmentId", null, master.DepartmentId.ToString()),
             new("SectionId", null, master.SectionId.ToString()),
+            new("SectionIds", null, string.Join(",", sectionIds.OrderBy(i => i))),
             new("DocumentOwnerUserId", null, master.DocumentOwnerUserId.ToString()),
             new("Confidentiality", null, master.Confidentiality.ToString()),
             new("RecordOrigin", null, master.RecordOrigin.ToString()),
@@ -212,6 +216,7 @@ public class DocumentMasterService : IDocumentMasterService
             .Include(d => d.DocumentType)
             .Include(d => d.Department)
             .Include(d => d.Section)
+            .Include(d => d.Sections).ThenInclude(s => s.Section)
             .Include(d => d.DocumentOwnerUser)
             .Include(d => d.CreatedByUser)
             .Include(d => d.ModifiedByUser)
@@ -235,6 +240,7 @@ public class DocumentMasterService : IDocumentMasterService
             .Include(d => d.DocumentType)
             .Include(d => d.Department)
             .Include(d => d.Section)
+            .Include(d => d.Sections).ThenInclude(s => s.Section)
             .Include(d => d.DocumentOwnerUser)
             .Include(d => d.Keywords)
             .Include(d => d.Revisions).ThenInclude(r => r.Files)
@@ -265,7 +271,8 @@ public class DocumentMasterService : IDocumentMasterService
             query = query.Where(d => d.DepartmentId == filter.DepartmentId.Value);
 
         if (filter.SectionId.HasValue)
-            query = query.Where(d => d.SectionId == filter.SectionId.Value);
+            query = query.Where(d => d.SectionId == filter.SectionId.Value ||
+                                     d.Sections.Any(s => s.SectionId == filter.SectionId.Value));
 
         if (filter.OwnerUserId.HasValue)
             query = query.Where(d => d.DocumentOwnerUserId == filter.OwnerUserId.Value);
@@ -329,6 +336,7 @@ public class DocumentMasterService : IDocumentMasterService
             var hasPdf = curRev?.Files.Any(f => f.FileRole == FileRole.ControlledPdf && f.IsActive) ?? false;
             var hasDocx = curRev?.Files.Any(f => f.FileRole == FileRole.SourceFile && f.IsActive) ?? false;
 
+            var (sectionIds, sectionNames) = DocumentDtoMapper.MapSections(m);
             return new DocumentMasterSummaryDto(
                 m.Id,
                 m.MicroLimsDocumentId,
@@ -354,7 +362,9 @@ public class DocumentMasterService : IDocumentMasterService
                 curRev?.NextReviewDate,
                 hasPdf,
                 hasDocx,
-                m.CreatedAt
+                m.CreatedAt,
+                sectionIds,
+                sectionNames
             );
         }).ToList();
 
@@ -374,6 +384,7 @@ public class DocumentMasterService : IDocumentMasterService
         var master = await _db.DocumentMasters
             .Include(d => d.Revisions)
             .Include(d => d.Keywords)
+            .Include(d => d.Sections)
             .FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new KeyNotFoundException($"Document Master {id} not found.");
 
@@ -420,6 +431,8 @@ public class DocumentMasterService : IDocumentMasterService
         if (section.DepartmentId != dept.Id)
             throw new InvalidOperationException($"Section '{section.Name}' does not belong to department '{dept.Name}'.");
 
+        var newSectionIds = await ResolveSectionIdsAsync(request.SectionId, request.SectionIds, dept);
+
         var ownerUser = await _db.Users.FindAsync(request.DocumentOwnerUserId)
             ?? throw new InvalidOperationException($"Owner user {request.DocumentOwnerUserId} not found.");
         if (!ownerUser.IsActive)
@@ -454,6 +467,16 @@ public class DocumentMasterService : IDocumentMasterService
         {
             changes.Add(new("SectionId", master.SectionId.ToString(), request.SectionId.ToString()));
             master.SectionId = request.SectionId;
+        }
+
+        var oldSectionIds = master.Sections.Select(x => x.SectionId).OrderBy(i => i).ToList();
+        if (!oldSectionIds.SequenceEqual(newSectionIds.OrderBy(i => i)))
+        {
+            changes.Add(new("SectionIds", string.Join(",", oldSectionIds), string.Join(",", newSectionIds.OrderBy(i => i))));
+            foreach (var row in master.Sections.Where(x => !newSectionIds.Contains(x.SectionId)).ToList())
+                master.Sections.Remove(row);
+            foreach (var sid in newSectionIds.Except(oldSectionIds))
+                master.Sections.Add(new DocumentMasterSection { DocumentMasterId = master.Id, SectionId = sid });
         }
 
         if (master.DocumentOwnerUserId != request.DocumentOwnerUserId)
@@ -735,12 +758,32 @@ public class DocumentMasterService : IDocumentMasterService
             entityId: assignment.Id.ToString());
     }
 
+    // Effective section set = primary + extras (distinct). Every extra must exist, be
+    // active and belong to the document's department (the primary is checked by the caller).
+    private async Task<List<int>> ResolveSectionIdsAsync(int primaryId, List<int>? extraIds, DocumentDepartment dept)
+    {
+        var ids = new List<int> { primaryId };
+        ids.AddRange((extraIds ?? new()).Where(i => i != primaryId).Distinct());
+        var found = await _db.DocumentSections.Where(x => ids.Contains(x.Id)).ToListAsync();
+        foreach (var id in ids.Skip(1))
+        {
+            var sec = found.FirstOrDefault(x => x.Id == id)
+                ?? throw new InvalidOperationException($"Section {id} not found.");
+            if (!sec.IsActive)
+                throw new InvalidOperationException($"Section '{sec.Name}' is deactivated.");
+            if (sec.DepartmentId != dept.Id)
+                throw new InvalidOperationException($"Section '{sec.Name}' does not belong to department '{dept.Name}'.");
+        }
+        return ids;
+    }
+
     private static DocumentMasterDto MapToDto(DocumentMaster m)
     {
         var curRev = m.CurrentEffectiveRevisionId.HasValue
             ? m.Revisions.FirstOrDefault(r => r.Id == m.CurrentEffectiveRevisionId.Value)
             : m.Revisions.OrderByDescending(r => r.RevisionSequence).FirstOrDefault();
 
+        var (sectionIds, sectionNames) = DocumentDtoMapper.MapSections(m);
         return new DocumentMasterDto(
             m.Id,
             m.MicroLimsDocumentId,
@@ -784,7 +827,9 @@ public class DocumentMasterService : IDocumentMasterService
                 a.AssignedByUserId,
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
-            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList()
+            m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList(),
+            sectionIds,
+            sectionNames
         ) { Version = m.Version };
     }
 }

@@ -2119,6 +2119,27 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("DocumentMasterAssignments", (string)null);
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.DocumentMasterSection", b =>
+                {
+                    b.Property<int>("DocumentMasterId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("DocumentMasterId", "SectionId");
+
+                    b.HasIndex("SectionId");
+
+                    b.ToTable("DocumentMasterSections", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DocumentNumberingConfiguration", b =>
                 {
                     b.Property<int>("Id")
@@ -11895,6 +11916,25 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.DocumentMasterSection", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentMaster", "DocumentMaster")
+                        .WithMany("Sections")
+                        .HasForeignKey("DocumentMasterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DocumentMaster");
+
+                    b.Navigation("Section");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DocumentNumberingConfiguration", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.User", "ModifiedByUser")
@@ -14675,6 +14715,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Keywords");
 
                     b.Navigation("Revisions");
+
+                    b.Navigation("Sections");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DocumentReviewTask", b =>

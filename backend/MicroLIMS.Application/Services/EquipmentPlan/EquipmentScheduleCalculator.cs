@@ -47,17 +47,16 @@ public static class EquipmentScheduleCalculator
         var yearEnd = new DateOnly(year, 12, 31);
         var result = new List<DateOnly>();
 
-        var raw = certificateNextDue ?? AddInterval(lastActual, value, unit);
+        var first = certificateNextDue ?? AddInterval(lastActual, value, unit);
 
-        while (raw <= yearEnd)
+        // Each step counts from the first raw date, so a month-end clamp (31 Jan -> 28 Feb) never drifts the series.
+        for (var k = 0; ; k++)
         {
+            var raw = AddInterval(first, k * value, unit);
+            if (raw > yearEnd) break;
             var dueDate = AdjustWorkingDay(raw, lastActual, today, workingWeekdays, nonWorking);
             if (dueDate >= from && dueDate <= yearEnd)
-            {
                 result.Add(dueDate);
-            }
-
-            raw = AddInterval(raw, value, unit);
         }
 
         return result;

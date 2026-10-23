@@ -90,6 +90,17 @@ public class EquipmentScheduleCalculatorTests
     }
 
     [Fact]
+    public void ProjectYear_monthly_does_not_drift_after_short_month()
+    {
+        var dates = EquipmentScheduleCalculator.ProjectYear(
+            new DateOnly(2025, 12, 31), 1, IntervalUnit.Months, null, 2026,
+            new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 1), WorkingWeekdays, NoHolidays);
+
+        Assert.Contains(new DateOnly(2026, 3, 31), dates); // Tuesday; would be 28 Mar after a Feb clamp
+        Assert.Contains(new DateOnly(2026, 2, 26), dates); // 28 Feb is a Saturday, moved back to Thursday
+    }
+
+    [Fact]
     public void Describe_texts()
     {
         Assert.Equal("Weekly", EquipmentScheduleCalculator.Describe(1, IntervalUnit.Weeks));

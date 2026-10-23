@@ -403,11 +403,37 @@ namespace MicroLIMS.Persistence.Migrations
                 name: "IX_MaintenanceLogEntries_PerformedOn",
                 table: "MaintenanceLogEntries",
                 column: "PerformedOn");
+
+            // Permission catalog and grants for existing databases (DbSeeder covers fresh ones).
+            // RoleType: 0 = SystemAdministrator, 1 = SectionHead, 2 = Reviewer, 3 = Analyst.
+            migrationBuilder.Sql(@"
+                INSERT INTO ""Permissions"" (""Code"", ""Description"", ""IsEnforced"")
+                SELECT v.code, v.descr, TRUE
+                FROM (VALUES
+                    ('EquipmentPlan.Manage', 'Generate equipment plan revisions, preview and keep instrument schedules.'),
+                    ('EquipmentPlan.Approve', 'Sign an equipment plan revision into force.'),
+                    ('EquipmentWork.Record', 'Record and sign calibrations and maintenance logbook entries.'),
+                    ('CalendarEvent.Manage', 'Create, edit, cancel and attach documents to calendar events.')
+                ) AS v(code, descr)
+                WHERE NOT EXISTS (SELECT 1 FROM ""Permissions"" p WHERE p.""Code"" = v.code);");
+            migrationBuilder.Sql(@"
+                INSERT INTO ""RolePermissions"" (""RoleId"", ""PermissionId"")
+                SELECT r.""Id"", p.""Id""
+                FROM ""Roles"" r CROSS JOIN ""Permissions"" p
+                WHERE ((p.""Code"" IN ('EquipmentPlan.Manage', 'EquipmentPlan.Approve') AND r.""Type"" IN (0, 1))
+                    OR (p.""Code"" = 'CalendarEvent.Manage' AND r.""Type"" IN (0, 1, 2))
+                    OR (p.""Code"" = 'EquipmentWork.Record' AND r.""Type"" IN (0, 1, 2, 3)))
+                  AND NOT EXISTS (SELECT 1 FROM ""RolePermissions"" rp
+                                  WHERE rp.""RoleId"" = r.""Id"" AND rp.""PermissionId"" = p.""Id"");");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(@"DELETE FROM ""RolePermissions"" WHERE ""PermissionId"" IN
+                (SELECT ""Id"" FROM ""Permissions"" WHERE ""Code"" IN ('EquipmentPlan.Manage', 'EquipmentPlan.Approve', 'EquipmentWork.Record', 'CalendarEvent.Manage'));");
+            migrationBuilder.Sql(@"DELETE FROM ""Permissions"" WHERE ""Code"" IN ('EquipmentPlan.Manage', 'EquipmentPlan.Approve', 'EquipmentWork.Record', 'CalendarEvent.Manage');");
+
             migrationBuilder.DropTable(
                 name: "CalendarEventDocuments");
 

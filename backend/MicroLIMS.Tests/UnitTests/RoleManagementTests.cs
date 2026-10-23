@@ -84,7 +84,7 @@ public class RoleManagementTests
         // replaced role-only gates (review dashboard, media preparation,
         // receiving for their own lab, correcting a sample), and
         // MonitoringPlan.View.
-        Assert.Equal(16, reviewer!.PermissionCodes.Count);
+        Assert.Equal(18, reviewer!.PermissionCodes.Count);
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }

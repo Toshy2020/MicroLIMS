@@ -565,7 +565,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
-                    PermissionConstants.MonitoringPlanView
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -583,7 +583,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate,
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
-                    PermissionConstants.MonitoringPlanView
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord
                 })
             };
 

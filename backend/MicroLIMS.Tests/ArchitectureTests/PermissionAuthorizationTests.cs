@@ -39,7 +39,7 @@ public class PermissionAuthorizationTests
     {
         // The edge-agent policy is not a user permission; it is guarded by the AgentKey scheme.
         var used = AuthorizeAttributes()
-            .Where(x => x.Attribute.AuthenticationSchemes != MicroLIMS.API.Authorization.AgentKeyDefaults.Scheme)
+            .Where(x => x.Attribute.Policy != MicroLIMS.API.Authorization.AgentKeyDefaults.Policy)
             .Select(x => x.Attribute.Policy).OfType<string>().ToHashSet();
         Assert.Empty(used.Except(PermissionConstants.Enforced));
     }

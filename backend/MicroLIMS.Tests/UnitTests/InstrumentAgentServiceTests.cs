@@ -135,6 +135,27 @@ public class InstrumentAgentServiceTests
     }
 
     [Fact]
+    public async Task Register_rejects_an_agent_code_longer_than_the_column_including_the_replacement_suffix()
+    {
+        var w = NewWorld();
+        // "AGT-" + 46 chars = 50: fits. Its replacement would be "...-2" = 52: does not.
+        w.Hplc.Code = new string('X', 46);
+        w.OtherSectionHplc.Code = new string('Y', 47); // "AGT-" + 47 = 51
+        await w.Db.SaveChangesAsync();
+        var (first, _) = await w.Service.RegisterAsync(w.Hplc.Id, "a", "Africa/Cairo", w.Admin.Id, default);
+        Assert.Equal(50, first.Code.Length);
+
+        await w.Service.RevokeAsync(first.Id, "decommissioned", w.Admin.Id, default);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.Hplc.Id, "b", "Africa/Cairo", w.Admin.Id, default));
+        Assert.Contains("too long", ex.Message);
+        Assert.Contains("52", ex.Message);
+
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.OtherSectionHplc.Id, "c", "Africa/Cairo", w.Admin.Id, default));
+        Assert.Contains("too long", ex2.Message);
+        Assert.False(await w.Db.InstrumentAgents.AnyAsync(a => a.EquipmentId == w.OtherSectionHplc.Id));
+    }
+
+    [Fact]
     public async Task Rotate_replaces_the_hash_and_the_old_key_no_longer_matches()
     {
         var w = NewWorld();

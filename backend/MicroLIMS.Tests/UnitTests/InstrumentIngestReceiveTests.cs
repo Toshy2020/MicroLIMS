@@ -73,6 +73,10 @@ public class InstrumentIngestReceiveTests
 
     private static byte[] Bytes(string s) => Encoding.UTF8.GetBytes(s);
 
+    // xUnit's data round trip alters a lone surrogate or NUL in InlineData, so
+    // those characters are written as tokens and built here.
+    internal static string Real(string s) => s.Replace("{LONE}", "\uD800").Replace("{NUL}", "\0");
+
     [Fact]
     public async Task Rejects_when_server_hash_differs()
     {
@@ -267,6 +271,87 @@ public class InstrumentIngestReceiveTests
         var payload = Assert.Single(version.Payloads);
         // Stored as JSON: the original when it was JSON, otherwise the raw text as a JSON string.
         using var _ = System.Text.Json.JsonDocument.Parse(payload.ManifestJson);
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("  [ ]  ")]
+    public async Task Empty_manifest_quarantines(string manifest)
+    {
+        var w = NewWorld();
+        var receipt = await w.Service.ReceiveAsync(w.Agent, Request(Bytes("x"), manifest: manifest), default);
+
+        Assert.Equal(InstrumentIngestStatus.Quarantined, receipt.Status);
+        var version = await w.Db.InstrumentIngestVersions.SingleAsync();
+        Assert.Equal("invalid manifest: manifest is empty", version.StatusReason);
+        Assert.Equal(manifest, (await w.Db.InstrumentIngestPayloads.SingleAsync()).ManifestJson);
+    }
+
+    [Theory]
+    [InlineData("[{\"path\":\"a\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // lone high escape
+    [InlineData("[{\"path\":\"a\\udc00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // lone low escape
+    [InlineData("[{\"path\":\"a\\uD800\\u0041\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // high not followed by low
+    [InlineData("[{\"path\":\"a\\udc00\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // reversed pair
+    [InlineData("[{\"path\":\"a{LONE}b\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // raw lone surrogate
+    [InlineData("{LONE}")]
+    public async Task Manifest_with_an_unpaired_surrogate_is_quarantined_and_kept_as_a_json_string(string manifest)
+    {
+        var w = NewWorld();
+        var receipt = await w.Service.ReceiveAsync(w.Agent, Request(Bytes("x"), manifest: Real(manifest)), default);
+
+        Assert.Equal(InstrumentIngestStatus.Quarantined, receipt.Status);
+        Assert.StartsWith("invalid manifest: ", (await w.Db.InstrumentIngestVersions.SingleAsync()).StatusReason);
+        using var stored = System.Text.Json.JsonDocument.Parse((await w.Db.InstrumentIngestPayloads.SingleAsync()).ManifestJson);
+        Assert.Equal(System.Text.Json.JsonValueKind.String, stored.RootElement.ValueKind);
+    }
+
+    [Fact]
+    public async Task Manifest_with_a_valid_surrogate_pair_is_accepted()
+    {
+        var w = NewWorld();
+        var content = Bytes("x");
+        var manifest = $"[{{\"path\":\"a\\ud83d\\ude00\",\"sha256\":\"{Sha(content)}\",\"bytes\":1}}]";
+        var receipt = await w.Service.ReceiveAsync(w.Agent, Request(content, manifest: manifest), default);
+
+        Assert.Equal(InstrumentIngestStatus.PendingReview, receipt.Status);
+        Assert.Equal(manifest, (await w.Db.InstrumentIngestPayloads.SingleAsync()).ManifestJson);
+    }
+
+    [Theory]
+    [InlineData("0001-01-01 00:00:00")]
+    [InlineData("9999-12-31 23:59:59")]
+    [InlineData("1999-12-31 23:59:59")]
+    [InlineData("2101-01-01 00:00:00")]
+    public async Task Acquisition_years_outside_2000_to_2100_are_rejected_before_anything_is_written(string local)
+    {
+        var w = NewWorld();
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.ReceiveAsync(w.Agent, Request(Bytes("x"), local: local), default));
+
+        Assert.Empty(w.Storage.Files);
+        Assert.Empty(w.Db.InstrumentIngests);
+    }
+
+    [Theory]
+    [InlineData("2000-01-01 00:00:00")]
+    [InlineData("2100-12-31 23:59:59")]
+    public async Task Acquisition_years_2000_and_2100_are_accepted(string local)
+    {
+        var w = NewWorld();
+        var receipt = await w.Service.ReceiveAsync(w.Agent, Request(Bytes("x"), local: local), default);
+        Assert.False(receipt.AlreadyReceived);
+    }
+
+    [Fact]
+    public async Task Uppercase_hex_request_hash_is_accepted_and_the_lowercase_hash_is_stored()
+    {
+        var w = NewWorld();
+        var content = Bytes("report body");
+        var receipt = await w.Service.ReceiveAsync(w.Agent, Request(content, sha: Sha(content).ToUpperInvariant()), default);
+
+        Assert.Equal(Sha(content), (await w.Db.InstrumentIngestVersions.SingleAsync(v => v.Id == receipt.VersionId)).ReportSha256);
+        // The same bytes sent with the lowercase hash are the same report.
+        Assert.True((await w.Service.ReceiveAsync(w.Agent, Request(content), default)).AlreadyReceived);
     }
 
     [Fact]

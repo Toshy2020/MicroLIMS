@@ -30,6 +30,8 @@ public class InstrumentIngestService
     public const string MaxClockDriftSettingKey = "InstrumentIngest.MaxClockDriftSeconds";
     public const int DefaultMaxClockDriftSeconds = 120;
     public const string LocalTimeFormat = "yyyy-MM-dd HH:mm:ss";
+    public const int MinAcquisitionYear = 2000;
+    public const int MaxAcquisitionYear = 2100;
     public const string UnparsedParserVersion = "unparsed";
     public const string SupersededReason = "Newer report received before adoption";
 
@@ -63,7 +65,7 @@ public class InstrumentIngestService
         if (content.Length > MaxReportBytes)
             throw new BusinessRuleException($"The report file is larger than the {MaxReportBytes / (1024 * 1024)} MB limit.");
         var sha256 = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
-        if (!string.Equals(sha256, request.ReportSha256?.Trim(), StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(sha256, request.ReportSha256?.Trim().ToLowerInvariant(), StringComparison.Ordinal))
             throw new BusinessRuleException("The report hash does not match the received bytes; the report was not stored.");
         if (string.IsNullOrWhiteSpace(request.SequenceName) || request.SequenceName.Length > 200)
             throw new BusinessRuleException("The sequence name is required and must be at most 200 characters.");
@@ -267,6 +269,9 @@ public class InstrumentIngestService
     {
         if (!DateTime.TryParseExact(localText, LocalTimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local))
             throw new BusinessRuleException($"The acquisition time must be written as {LocalTimeFormat} (instrument local time).");
+        // Extreme years would overflow the offset arithmetic below and are never real.
+        if (local.Year is < MinAcquisitionYear or > MaxAcquisitionYear)
+            throw new BusinessRuleException($"The acquisition year must be between {MinAcquisitionYear} and {MaxAcquisitionYear}.");
 
         TimeZoneInfo zone;
         try { zone = TimeZoneInfo.FindSystemTimeZoneById(agent.TimeZoneId ?? string.Empty); }
@@ -291,12 +296,13 @@ public class InstrumentIngestService
     private static Manifest ReadManifest(string? text)
     {
         text ??= string.Empty;
-        var wrapped = JsonSerializer.Serialize(text.Replace('\0', '�'));
+        var wrapped = JsonSerializer.Serialize(ReplaceUnstorable(text));
         try
         {
-            // jsonb cannot hold a \u0000 escape; such text is stored as a string instead.
-            if (text.Contains('\0') || text.Contains("\\u0000", StringComparison.OrdinalIgnoreCase))
-                return new Manifest(wrapped, "manifest contains a NUL character");
+            // jsonb cannot hold U+0000 or a lone surrogate, raw or as a \u
+            // escape; such text is stored as a plain JSON string instead.
+            if (HasUnstorableCharacters(text))
+                return new Manifest(wrapped, "manifest contains a NUL character or an unpaired surrogate");
 
             using var doc = JsonDocument.Parse(text);
             var problem = Validate(doc.RootElement);
@@ -308,9 +314,49 @@ public class InstrumentIngestService
         }
     }
 
+    private static readonly Regex UnicodeEscape = new(@"\\u([0-9a-fA-F]{4})", RegexOptions.Compiled);
+
+    private static bool HasUnstorableCharacters(string text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '\0') return true;
+            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])) { i++; continue; }
+            if (char.IsSurrogate(text[i])) return true;
+        }
+
+        // Escapes: U+0000, a high surrogate not followed directly by a low
+        // one, or a low surrogate not preceded by a high one. (A literal
+        // backslash before "u0000" is flagged too; that only quarantines.)
+        var escapes = UnicodeEscape.Matches(text).Select(m => (m.Index, Code: Convert.ToInt32(m.Groups[1].Value, 16))).ToList();
+        foreach (var (index, code) in escapes)
+        {
+            if (code == 0) return true;
+            if (code is >= 0xD800 and <= 0xDBFF && !escapes.Any(e => e.Index == index + 6 && e.Code is >= 0xDC00 and <= 0xDFFF)) return true;
+            if (code is >= 0xDC00 and <= 0xDFFF && !escapes.Any(e => e.Index == index - 6 && e.Code is >= 0xD800 and <= 0xDBFF)) return true;
+        }
+        return false;
+    }
+
+    private static string ReplaceUnstorable(string text)
+    {
+        var sb = new StringBuilder(text.Length);
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+            {
+                sb.Append(text[i]).Append(text[i + 1]);
+                i++;
+            }
+            else sb.Append(text[i] == '\0' || char.IsSurrogate(text[i]) ? '�' : text[i]);
+        }
+        return sb.ToString();
+    }
+
     private static string? Validate(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Array) return "manifest is not a JSON array";
+        if (root.GetArrayLength() == 0) return "manifest is empty";
         var i = 0;
         foreach (var e in root.EnumerateArray())
         {

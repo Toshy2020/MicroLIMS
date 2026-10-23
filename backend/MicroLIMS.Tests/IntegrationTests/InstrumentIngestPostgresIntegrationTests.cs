@@ -169,4 +169,30 @@ public class InstrumentIngestPostgresIntegrationTests
         Assert.NotEmpty(generic);
         Assert.All(generic, a => { Assert.Null(a.UserId); Assert.Equal(ActorType.System, a.ActorType); });
     }
+
+    // jsonb rejects U+0000 and unpaired surrogates; the manifest must be
+    // stored (as a JSON string) and quarantined instead of failing the receipt.
+    [PostgresTheory]
+    [InlineData("[{\"path\":\"a\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a\\udc00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a\\uD800\\u0041\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a\\u0000\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a{LONE}b\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("a{NUL}b", false)]
+    [InlineData("[]", false)]
+    [InlineData("[{\"path\":\"a\\ud83d\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
+    public async Task Manifests_jsonb_cannot_hold_are_stored_and_quarantined_not_a_server_error(string manifest, bool valid)
+    {
+        var agent = await SeedAgentAsync();
+        var (db, service) = NewService();
+        await using var _ = db;
+        var content = System.Text.Encoding.UTF8.GetBytes($"report {Guid.NewGuid()}");
+
+        var receipt = await service.ReceiveAsync(agent,
+            InstrumentIngestReceiveTests.Request(content, "SEQ-MANIFEST", manifest: InstrumentIngestReceiveTests.Real(manifest), agentClock: DateTime.UtcNow), default);
+
+        Assert.Equal(valid ? InstrumentIngestStatus.PendingReview : InstrumentIngestStatus.Quarantined, receipt.Status);
+        await using var check = _fixture.CreateDbContext();
+        Assert.Single(await check.InstrumentIngestPayloads.Where(p => p.InstrumentIngestVersionId == receipt.VersionId).ToListAsync());
+    }
 }

@@ -121,10 +121,10 @@ public static class RateLimitingExtensions
     // has already resolved (see TrustedProxyConfiguration for which
     // proxies are trusted). Unknown addresses share one bucket rather than
     // getting a free pass each.
-    private static string ClientIp(HttpContext httpContext) =>
+    internal static string ClientIp(HttpContext httpContext) =>
         "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
-    private static RateLimitPartition<string> FixedWindow(string partitionKey, (int PermitLimit, TimeSpan Window) limits) =>
+    internal static RateLimitPartition<string> FixedWindow(string partitionKey, (int PermitLimit, TimeSpan Window) limits) =>
         RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = limits.PermitLimit,
@@ -134,7 +134,7 @@ public static class RateLimitingExtensions
             QueueLimit = 0
         });
 
-    private static (int PermitLimit, TimeSpan Window) Window(
+    internal static (int PermitLimit, TimeSpan Window) Window(
         IConfiguration config, string section, string permitKey, int defaultPermits, int defaultWindowSeconds) =>
         (Positive(config.GetValue<int?>($"{section}:{permitKey}"), defaultPermits),
          TimeSpan.FromSeconds(Positive(config.GetValue<int?>($"{section}:WindowSeconds"), defaultWindowSeconds)));

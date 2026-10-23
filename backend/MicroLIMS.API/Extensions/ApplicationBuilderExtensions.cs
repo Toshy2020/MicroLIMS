@@ -15,6 +15,14 @@ public static class ApplicationBuilderExtensions
         return app;
     }
 
+    // Between UseAuthentication and UseAuthorization: the X-Agent-Key check
+    // happens inside UseAuthorization, so the throttle must precede it.
+    public static IApplicationBuilder UseMicroLimsAgentPreAuthThrottle(this IApplicationBuilder app)
+    {
+        app.UseMiddleware<AgentKeyPreAuthThrottleMiddleware>();
+        return app;
+    }
+
     // Must run AFTER UseAuthentication/UseAuthorization - it reads
     // HttpContext.User, which is only populated once auth has run.
     public static IApplicationBuilder UseMicroLimsAuditPipeline(this IApplicationBuilder app)

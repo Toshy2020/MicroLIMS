@@ -197,6 +197,10 @@ app.UseCors("Frontend");
 app.UseMicroLimsEarlyPipeline();
 
 app.UseAuthentication();
+// Per-IP limit on requests carrying an X-Agent-Key, before the key is checked
+// (the AgentKey handler runs inside UseAuthorization). UseRateLimiter stays
+// after authentication: its per-user and per-agent partitions need the user.
+app.UseMicroLimsAgentPreAuthThrottle();
 app.UseAuthorization();
 
 // Stamps the current user onto the DbContext for audit trail capture -

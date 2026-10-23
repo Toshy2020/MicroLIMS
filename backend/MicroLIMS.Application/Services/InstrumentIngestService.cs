@@ -27,6 +27,7 @@ namespace MicroLIMS.Application.Services;
 public class InstrumentIngestService
 {
     public const int MaxReportBytes = 26_214_400; // 25 MB
+    public const int MaxManifestChars = 2_097_152; // 2 MB of text
     public const string MaxClockDriftSettingKey = "InstrumentIngest.MaxClockDriftSeconds";
     public const int DefaultMaxClockDriftSeconds = 120;
     public const string LocalTimeFormat = "yyyy-MM-dd HH:mm:ss";
@@ -74,10 +75,42 @@ public class InstrumentIngestService
         if (request.OperatorAsReported is { Length: > 200 })
             throw new BusinessRuleException("The operator name is longer than 200 characters.");
 
+        if (request.ManifestJson is { Length: > MaxManifestChars })
+            throw new BusinessRuleException($"The manifest is larger than the {MaxManifestChars / (1024 * 1024)} MB limit.");
+
         var acquisition = ConvertAcquisitionTime(agent, request.AcquiredAtLocalText);
         var manifest = ReadManifest(request.ManifestJson);
 
         return UnitOfWork.RunAsync(_db, () => ReceiveCoreAsync(agent, request, content, sha256, acquisition, manifest, ct));
+    }
+
+    // The sender, read fresh from its row (the time zone is not in the key's
+    // claims). The authenticator already refuses a revoked agent; this closes
+    // the window between that check and the receipt.
+    public async Task<InstrumentAgentContext> ResolveAgentAsync(int agentId, CancellationToken ct) =>
+        await _db.InstrumentAgents.AsNoTracking()
+            .Where(a => a.Id == agentId && a.IsActive)
+            .Select(a => new InstrumentAgentContext(a.Id, a.Code, a.EquipmentId, a.SectionId, a.TimeZoneId))
+            .FirstOrDefaultAsync(ct)
+        ?? throw new UnauthorizedAccessException("The agent is not active.");
+
+    // Receipts of one report for the agent's own equipment, so an agent can
+    // confirm an upload. Another equipment's report is indistinguishable
+    // from an unknown one.
+    public async Task<IReadOnlyList<IngestReceipt>> GetReceiptsAsync(int equipmentId, string reportSha256, CancellationToken ct)
+    {
+        var sha256 = reportSha256?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (!Sha256Pattern.IsMatch(sha256))
+            throw new BusinessRuleException("The report hash must be 64 hexadecimal characters.");
+
+        var versions = await _db.InstrumentIngestVersions.AsNoTracking()
+            .Where(v => v.ReportSha256 == sha256
+                        && _db.InstrumentIngests.Any(i => i.Id == v.InstrumentIngestId && i.EquipmentId == equipmentId))
+            .OrderBy(v => v.InstrumentIngestId).ThenBy(v => v.VersionNo)
+            .ToListAsync(ct);
+        if (versions.Count == 0)
+            throw new NotFoundException("No report with that hash was received for this instrument.");
+        return versions.Select(v => Receipt(v, alreadyReceived: true)).ToList();
     }
 
     private async Task<IngestReceipt> ReceiveCoreAsync(
@@ -163,7 +196,7 @@ public class InstrumentIngestService
             var winner = await FindByHashAsync(ingest.Id, sha256, ct);
             if (winner is not null) return Receipt(winner, alreadyReceived: true);
             if (attempt >= 1)
-                throw new InvalidOperationException(
+                throw new IngestRetryableException(
                     "Another report for this injection was received at the same moment. Nothing was saved - send the report again.");
         }
     }
@@ -194,7 +227,7 @@ public class InstrumentIngestService
         // Another receipt created it first: use theirs.
         _db.Entry(ingest).State = EntityState.Detached;
         return await Find()
-            ?? throw new InvalidOperationException("The injection could not be recorded; send the report again.");
+            ?? throw new IngestRetryableException("The injection could not be recorded; send the report again.");
     }
 
     private Task<InstrumentIngestVersion?> FindByHashAsync(int ingestId, string sha256, CancellationToken ct) =>

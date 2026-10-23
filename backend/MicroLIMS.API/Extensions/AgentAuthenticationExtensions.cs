@@ -12,6 +12,7 @@ public static class AgentAuthenticationExtensions
     public static IServiceCollection AddMicroLimsAgentAuthentication(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<AgentAuthFailureAuditLimiter>();
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, AgentKeyAuthenticationHandler>(AgentKeyDefaults.Scheme, null);
         return services;

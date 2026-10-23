@@ -46,6 +46,12 @@ public class AuthorizationMatrixTests
 
     private static readonly Lazy<Dictionary<string, HashSet<RoleType>>> Grants = new(DefaultGrants);
 
+    // Actions guarded by the AgentKey scheme are for edge agents: no built-in
+    // human role (not even through a JWT) can reach them.
+    private static bool IsAgentAction(Type controller, MethodInfo action) =>
+        controller.GetCustomAttributes<AuthorizeAttribute>(inherit: true).Concat(action.GetCustomAttributes<AuthorizeAttribute>())
+            .Any(a => a.AuthenticationSchemes?.Split(',').Select(s => s.Trim()).Contains(MicroLIMS.API.Authorization.AgentKeyDefaults.Scheme) == true);
+
     // The built-in roles that may call this action on a default installation;
     // null when it is anonymous.
     public static HashSet<RoleType>? AllowedRoles(Type controller, MethodInfo action)
@@ -53,6 +59,8 @@ public class AuthorizationMatrixTests
         if (action.GetCustomAttribute<AllowAnonymousAttribute>() is not null
             || controller.GetCustomAttribute<AllowAnonymousAttribute>(inherit: true) is not null)
             return null;
+
+        if (IsAgentAction(controller, action)) return new HashSet<RoleType>();
 
         var allowed = Enum.GetValues<RoleType>().ToHashSet();
         var attributes = controller.GetCustomAttributes<AuthorizeAttribute>(inherit: true)
@@ -85,7 +93,9 @@ public class AuthorizationMatrixTests
         {
             var signature = $"{controller.Name}.{action.Name}({string.Join(", ", action.GetParameters().Select(p => p.ParameterType.Name))})";
             var allowed = AllowedRoles(controller, action);
-            lines.Add(allowed is null ? $"{signature}: anonymous" : $"{signature}: {string.Join(",", allowed.OrderBy(r => r))}");
+            lines.Add(allowed is null ? $"{signature}: anonymous"
+                : IsAgentAction(controller, action) ? $"{signature}: (agent)"
+                : $"{signature}: {string.Join(",", allowed.OrderBy(r => r))}");
         }
 
         return lines.OrderBy(l => l, StringComparer.Ordinal).ToList();

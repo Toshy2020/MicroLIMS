@@ -117,4 +117,47 @@ describe("AddLogEntryDialog", () => {
       expect(onClose).toHaveBeenCalled();
     });
   });
+
+  it("shows API error message when adding duplicate logbook entry fails", async () => {
+    vi.mocked(EquipmentPlanService.addLogEntry).mockRejectedValue({
+      response: {
+        data: {
+          message: "A logbook entry already exists for this equipment on this date and type."
+        }
+      }
+    });
+
+    render(
+      <AddLogEntryDialog
+        open={true}
+        equipmentId={1}
+        equipmentCode="EQ-001"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const dateInput = screen.getByLabelText(/Date Performed/i);
+    fireEvent.change(dateInput, { target: { value: "2026-04-14" } });
+
+    const workDoneInput = screen.getByLabelText(/Work Done/i);
+    fireEvent.change(workDoneInput, { target: { value: "Routine inspection" } });
+
+    const continueBtn = screen.getByRole("button", { name: /Continue to sign/i });
+    fireEvent.click(continueBtn);
+
+    expect(await screen.findByText("Electronic Signature")).toBeTruthy();
+
+    const passwordInput = screen.getByLabelText(/^Password/i);
+    fireEvent.change(passwordInput, { target: { value: "ValidPassword123!" } });
+
+    const signBtn = screen.getByRole("button", { name: "Sign" });
+    fireEvent.click(signBtn);
+
+    expect(
+      await screen.findByText(
+        "A logbook entry already exists for this equipment on this date and type."
+      )
+    ).toBeTruthy();
+  });
 });

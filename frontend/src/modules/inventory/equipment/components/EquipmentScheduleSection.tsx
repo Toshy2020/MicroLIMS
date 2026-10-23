@@ -131,6 +131,10 @@ export function EquipmentScheduleSection({
         setError("Calibration interval in months must be between 1 and 60.");
         return;
       }
+      if (calUnit === "Years" && (num < 1 || num > 5)) {
+        setError("Calibration interval in years must be between 1 and 5.");
+        return;
+      }
     }
 
     if (hasPmVal && hasPmUnit) {
@@ -141,6 +145,10 @@ export function EquipmentScheduleSection({
       }
       if (pmUnit === "Months" && (num < 1 || num > 60)) {
         setError("Maintenance interval in months must be between 1 and 60.");
+        return;
+      }
+      if (pmUnit === "Years" && (num < 1 || num > 5)) {
+        setError("Maintenance interval in years must be between 1 and 5.");
         return;
       }
     }
@@ -234,7 +242,7 @@ export function EquipmentScheduleSection({
               value={calValue}
               onChange={(e) => setCalValue(e.target.value)}
               placeholder="e.g. 6 or 12"
-              helperText="Frequency value (1-104 weeks, 1-60 months)"
+              helperText="1-104 weeks, 1-60 months or 1-5 years"
               slotProps={{ htmlInput: { min: 1 } }}
             />
             <FormControl size="small" fullWidth>
@@ -251,6 +259,7 @@ export function EquipmentScheduleSection({
                 </MenuItem>
                 <MenuItem value="Weeks">Weeks</MenuItem>
                 <MenuItem value="Months">Months</MenuItem>
+                <MenuItem value="Years">Years</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -282,7 +291,7 @@ export function EquipmentScheduleSection({
               value={pmValue}
               onChange={(e) => setPmValue(e.target.value)}
               placeholder="e.g. 1 or 3"
-              helperText="Frequency value (1-104 weeks, 1-60 months)"
+              helperText="1-104 weeks, 1-60 months or 1-5 years"
               slotProps={{ htmlInput: { min: 1 } }}
             />
             <FormControl size="small" fullWidth>
@@ -299,6 +308,7 @@ export function EquipmentScheduleSection({
                 </MenuItem>
                 <MenuItem value="Weeks">Weeks</MenuItem>
                 <MenuItem value="Months">Months</MenuItem>
+                <MenuItem value="Years">Years</MenuItem>
               </Select>
             </FormControl>
           </Box>

@@ -15,13 +15,15 @@ import {
   Stack,
   TextField,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Typography
 } from "@mui/material";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { EVENT_TYPE_LABEL } from "../statusDisplay";
-import type { CalendarEventType, CreateCalendarEventRequest } from "../types";
+import type { CalendarEventResponse, CalendarEventType, CreateCalendarEventRequest } from "../types";
+import { isDuplicateCalendarEvent } from "../eventDuplicates";
 
 export interface AddEventDialogProps {
   open: boolean;
@@ -30,6 +32,8 @@ export interface AddEventDialogProps {
   initialDate?: string | null;
   initialMonth?: string | null;
   onSubmit?: (data: CreateCalendarEventRequest) => Promise<void> | void;
+  existingEvents?: CalendarEventResponse[];
+  events?: CalendarEventResponse[];
 }
 
 export function AddEventDialog({
@@ -38,7 +42,9 @@ export function AddEventDialog({
   onCreated,
   initialDate,
   initialMonth,
-  onSubmit
+  onSubmit,
+  existingEvents,
+  events
 }: AddEventDialogProps) {
   const [type, setType] = useState<CalendarEventType>("VendorVisit");
   const [title, setTitle] = useState("");
@@ -51,6 +57,7 @@ export function AddEventDialog({
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -63,6 +70,7 @@ export function AddEventDialog({
       setSelectedEquipment(null);
       setNote("");
       setError(null);
+      setDuplicateWarning(null);
       setBusy(false);
       EquipmentInventoryService.getAll()
         .then((items) => setEquipmentList(items || []))
@@ -70,22 +78,46 @@ export function AddEventDialog({
     }
   }, [open, initialDate, initialMonth]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitWithData = async (confirmDuplicate = false) => {
     if (!title.trim()) {
       setError("Title is required.");
       return;
     }
 
+    const targetDate = dateMode === "day" && date ? date : null;
+    const targetMonth = dateMode === "month" && month ? month : null;
+    const eqId = selectedEquipment ? selectedEquipment.id : null;
+
+    if (!confirmDuplicate) {
+      const isDup = (existingEvents ?? events ?? []).some((e) =>
+        isDuplicateCalendarEvent(e, {
+          type,
+          title: title.trim(),
+          date: targetDate,
+          month: targetMonth,
+          equipmentInventoryId: eqId
+        })
+      );
+      if (isDup) {
+        const dateOrMonth = targetDate ?? targetMonth ?? "";
+        setError(null);
+        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
+        return;
+      }
+    }
+
     setBusy(true);
     setError(null);
+    setDuplicateWarning(null);
+
     const payload: CreateCalendarEventRequest = {
       type,
       title: title.trim(),
-      date: dateMode === "day" && date ? date : null,
-      month: dateMode === "month" && month ? month : null,
+      date: targetDate,
+      month: targetMonth,
       note: note.trim() || null,
-      equipmentInventoryId: selectedEquipment ? selectedEquipment.id : null
+      equipmentInventoryId: eqId,
+      ...(confirmDuplicate ? { confirmDuplicate: true } : {})
     };
 
     try {
@@ -97,10 +129,29 @@ export function AddEventDialog({
       onCreated?.();
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not create the event.");
+      const msg = err?.response?.data?.message ?? err?.message ?? "";
+      if (typeof msg === "string" && msg.startsWith("A matching event already exists")) {
+        const dateOrMonth = targetDate ?? targetMonth ?? "";
+        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
+      } else {
+        setError(msg || "Could not create the event.");
+      }
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void submitWithData(false);
+  };
+
+  const handleAddAnyway = () => {
+    void submitWithData(true);
+  };
+
+  const handleBack = () => {
+    setDuplicateWarning(null);
   };
 
   return (
@@ -110,6 +161,32 @@ export function AddEventDialog({
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
+            {duplicateWarning && (
+              <Alert severity="warning">
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    {duplicateWarning}
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={handleAddAnyway}
+                      disabled={busy}
+                    >
+                      Add anyway
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={handleBack}
+                      disabled={busy}
+                    >
+                      Back
+                    </Button>
+                  </Box>
+                </Box>
+              </Alert>
+            )}
 
             <FormControl fullWidth size="small">
               <InputLabel id="event-type-label">Event type</InputLabel>

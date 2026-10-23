@@ -43,7 +43,8 @@ public record CreateCalendarEventRequest(
     DateOnly? Date,
     string? Month,
     string? Note,
-    int? EquipmentInventoryId);
+    int? EquipmentInventoryId,
+    bool ConfirmDuplicate = false);
 
 public record UpdateCalendarEventRequest(
     CalendarEventType Type,
@@ -51,7 +52,8 @@ public record UpdateCalendarEventRequest(
     DateOnly? Date,
     string? Month,
     string? Note,
-    int? EquipmentInventoryId);
+    int? EquipmentInventoryId,
+    bool ConfirmDuplicate = false);
 
 public record CancelCalendarEventRequest(string Reason);
 
@@ -85,6 +87,17 @@ public class CalendarEventService
     public async Task<CalendarEventResponse> CreateAsync(CreateCalendarEventRequest request, int userId)
     {
         ValidateEventFields(request.Title, request.Date, request.Month);
+
+        if (!request.ConfirmDuplicate)
+        {
+            await CheckDuplicateEventAsync(
+                excludeId: null,
+                request.Type,
+                request.Date,
+                !string.IsNullOrWhiteSpace(request.Month) ? request.Month.Trim() : null,
+                request.EquipmentInventoryId,
+                request.Title);
+        }
 
         if (request.EquipmentInventoryId.HasValue)
         {
@@ -134,6 +147,17 @@ public class CalendarEventService
         RecordVersion.EnsureCurrent(_db, entity);
 
         ValidateEventFields(request.Title, request.Date, request.Month);
+
+        if (!request.ConfirmDuplicate)
+        {
+            await CheckDuplicateEventAsync(
+                excludeId: id,
+                request.Type,
+                request.Date,
+                !string.IsNullOrWhiteSpace(request.Month) ? request.Month.Trim() : null,
+                request.EquipmentInventoryId,
+                request.Title);
+        }
 
         if (request.EquipmentInventoryId.HasValue && request.EquipmentInventoryId != entity.EquipmentInventoryId)
         {
@@ -353,6 +377,44 @@ public class CalendarEventService
             var trimmedMonth = month!.Trim();
             if (!DateTime.TryParseExact(trimmedMonth, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
                 throw new BusinessRuleException("Month must be in 'yyyy-MM' format.");
+        }
+    }
+
+    private async Task CheckDuplicateEventAsync(
+        int? excludeId,
+        CalendarEventType type,
+        DateOnly? date,
+        string? month,
+        int? equipmentInventoryId,
+        string title)
+    {
+        var trimmedTitle = title.Trim();
+
+        var query = _db.CalendarEvents
+            .AsNoTracking()
+            .Where(e => e.Status == CalendarEventStatus.Active &&
+                        e.EventType == type &&
+                        e.EquipmentInventoryId == equipmentInventoryId);
+
+        if (excludeId.HasValue)
+        {
+            query = query.Where(e => e.Id != excludeId.Value);
+        }
+
+        if (date.HasValue)
+        {
+            query = query.Where(e => e.Date == date.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(month))
+        {
+            query = query.Where(e => e.Month == month);
+        }
+
+        var existingTitles = await query.Select(e => e.Title).ToListAsync();
+
+        if (existingTitles.Any(t => string.Equals(t.Trim(), trimmedTitle, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new BusinessRuleException("A matching event already exists.");
         }
     }
 

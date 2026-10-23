@@ -275,4 +275,34 @@ public class EquipmentBaselineServiceTests
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             w.Service.SaveScheduleAsync(w.Equipment.Id, req, version: 4, UserId));
     }
+
+    [Fact]
+    public async Task Baseline_rejects_6_years()
+    {
+        var w = await BuildAsync();
+
+        var reqCal = new SaveEquipmentScheduleRequest(
+            CalibrationIntervalValue: 6,
+            CalibrationIntervalUnit: IntervalUnit.Years,
+            LastCalibratedOn: null,
+            PmIntervalValue: null,
+            PmIntervalUnit: null,
+            LastPmOn: null);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.SaveScheduleAsync(w.Equipment.Id, reqCal, w.Equipment.Version, UserId));
+        Assert.Equal("Calibration interval in years must be between 1 and 5.", ex.Message);
+
+        var reqPm = new SaveEquipmentScheduleRequest(
+            CalibrationIntervalValue: null,
+            CalibrationIntervalUnit: null,
+            LastCalibratedOn: null,
+            PmIntervalValue: 6,
+            PmIntervalUnit: IntervalUnit.Years,
+            LastPmOn: null);
+
+        var exPm = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.SaveScheduleAsync(w.Equipment.Id, reqPm, w.Equipment.Version, UserId));
+        Assert.Equal("Maintenance interval in years must be between 1 and 5.", exPm.Message);
+    }
 }

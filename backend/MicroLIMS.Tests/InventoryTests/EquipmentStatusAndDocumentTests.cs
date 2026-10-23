@@ -384,4 +384,184 @@ public class EquipmentStatusAndDocumentTests
         await Assert.ThrowsAsync<NotFoundException>(() =>
             docService.GetContentAsync(doc.Id, eq2.Id, 1));
     }
+
+    [Fact]
+    public async Task CreateAsync_Refuses_Duplicate_SerialNumber_From_Same_Manufacturer()
+    {
+        await using var db = NewDb();
+        var existing = await SeedEquipment(db, EquipmentOperationalStatus.InService, code: "EQ-EXISTING");
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+
+        var reqDup = new SaveEquipmentInventoryRequest(
+            "Incubator",
+            "  memmert  ",
+            "  sn-10023  ",
+            "v1.0.0",
+            "EQ-NEW",
+            "Lab 2",
+            DateTime.UtcNow.AddMonths(6),
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateAsync(reqDup, 1));
+        Assert.Equal($"Instrument {existing.Code} already has serial number sn-10023 from memmert.", ex.Message);
+
+        // Different manufacturer with same serial is allowed
+        var reqDiffMan = new SaveEquipmentInventoryRequest(
+            "Incubator",
+            "Binder",
+            "SN-10023",
+            "v1.0.0",
+            "EQ-DIFF-MAN",
+            "Lab 2",
+            DateTime.UtcNow.AddMonths(6),
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        var createdDiff = await service.CreateAsync(reqDiffMan, 1);
+        Assert.NotNull(createdDiff);
+
+        // Empty serial is allowed
+        var reqEmptySerial = new SaveEquipmentInventoryRequest(
+            "Incubator",
+            "Memmert",
+            "",
+            "v1.0.0",
+            "EQ-NO-SERIAL",
+            "Lab 2",
+            DateTime.UtcNow.AddMonths(6),
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        var createdEmpty = await service.CreateAsync(reqEmptySerial, 1);
+        Assert.NotNull(createdEmpty);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Allows_Duplicate_SerialNumber_If_Other_Is_Retired()
+    {
+        await using var db = NewDb();
+        var retired = await SeedEquipment(db, EquipmentOperationalStatus.Retired, code: "EQ-RETIRED");
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+
+        var req = new SaveEquipmentInventoryRequest(
+            "Incubator",
+            "Memmert",
+            "SN-10023",
+            "v1.0.0",
+            "EQ-REPLACEMENT",
+            "Lab 2",
+            DateTime.UtcNow.AddMonths(6),
+            EquipmentOperationalStatus.InService,
+            SectionId: retired.SectionId);
+
+        var created = await service.CreateAsync(req, 1);
+        Assert.NotNull(created);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Refuses_Duplicate_SerialNumber_From_Same_Manufacturer()
+    {
+        await using var db = NewDb();
+        var eq1 = await SeedEquipment(db, EquipmentOperationalStatus.InService, code: "EQ-001");
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        var eq2 = new EquipmentInventory
+        {
+            InstrumentType = "Incubator",
+            ManufacturerName = "Memmert",
+            SerialNumber = "SN-UNIQUE-999",
+            Code = "EQ-002",
+            Location = "Microbiology Lab",
+            Status = EquipmentOperationalStatus.InService,
+            SectionId = section.Id,
+            CreatedByUserId = 1,
+            LastModifiedByUserId = 1
+        };
+        db.EquipmentInventories.Add(eq2);
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+
+        // Updating eq2 to eq1's serial should be refused
+        var reqDup = new SaveEquipmentInventoryRequest(
+            eq2.InstrumentType,
+            "Memmert",
+            "SN-10023",
+            eq2.FirmwareVersion,
+            eq2.Code,
+            eq2.Location,
+            eq2.CalibrationDueDate,
+            eq2.Status,
+            SectionId: eq2.SectionId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateAsync(eq2.Id, reqDup, 1));
+        Assert.Equal($"Instrument {eq1.Code} already has serial number SN-10023 from Memmert.", ex.Message);
+
+        // Updating eq1 keeping its own serial should succeed (ignores itself)
+        var reqSelf = new SaveEquipmentInventoryRequest(
+            eq1.InstrumentType,
+            eq1.ManufacturerName,
+            eq1.SerialNumber,
+            eq1.FirmwareVersion,
+            eq1.Code,
+            "New Room 204",
+            eq1.CalibrationDueDate,
+            eq1.Status,
+            SectionId: eq1.SectionId);
+
+        await service.UpdateAsync(eq1.Id, reqSelf, 1);
+        var refreshed = await db.EquipmentInventories.FindAsync(eq1.Id);
+        Assert.Equal("New Room 204", refreshed!.Location);
+    }
+
+    [Fact]
+    public async Task Placeholder_serials_are_not_duplicates()
+    {
+        await using var db = NewDb();
+        var existing = await SeedEquipment(db, EquipmentOperationalStatus.InService, code: "LAF-01");
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+
+        var req1 = new SaveEquipmentInventoryRequest(
+            "LAF Cabinet",
+            "Rich-Tek",
+            "N/A",
+            null,
+            existing.Code,
+            "Cleanroom 1",
+            null,
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        await service.UpdateAsync(existing.Id, req1, 1);
+
+        // Second instrument from Rich-Tek with "n/a" should save fine
+        var req2 = new SaveEquipmentInventoryRequest(
+            "LAF Cabinet",
+            "Rich-Tek",
+            "n/a",
+            null,
+            "LAF-02",
+            "Cleanroom 2",
+            null,
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        var created = await service.CreateAsync(req2, 1);
+        Assert.NotNull(created);
+        Assert.Equal("n/a", created.SerialNumber);
+
+        // Updating the second instrument with another placeholder "-" should also save fine
+        var req2Update = new SaveEquipmentInventoryRequest(
+            "LAF Cabinet",
+            "Rich-Tek",
+            " - ",
+            null,
+            "LAF-02",
+            "Cleanroom 2",
+            null,
+            EquipmentOperationalStatus.InService,
+            SectionId: existing.SectionId);
+        await service.UpdateAsync(created.Id, req2Update, 1);
+
+        var refreshed = await db.EquipmentInventories.FindAsync(created.Id);
+        Assert.Equal(" - ", refreshed!.SerialNumber);
+    }
 }

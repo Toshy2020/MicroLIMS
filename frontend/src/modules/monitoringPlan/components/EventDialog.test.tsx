@@ -197,4 +197,141 @@ describe("EventDialog", () => {
     expect(onChanged).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("warns when updating event to match an existing event, allows Back, and Add anyway submits with confirmDuplicate", async () => {
+    const existingEvents: CalendarEventResponse[] = [
+      vendorEvent,
+      {
+        id: 99,
+        type: "VendorVisit",
+        title: "Annual Calibration Visit",
+        date: "2026-11-05",
+        month: null,
+        note: null,
+        equipmentInventoryId: 3,
+        equipmentCode: "EQ-BAL-01",
+        status: "Active",
+        reportPending: false,
+        documents: [],
+        version: 1
+      }
+    ];
+
+    vi.mocked(EquipmentPlanService.updateEvent).mockResolvedValue({
+      ...vendorEvent,
+      title: "Annual Calibration Visit",
+      version: 2
+    });
+
+    const onChanged = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <EventDialog
+        event={vendorEvent}
+        open={true}
+        onClose={onClose}
+        onChanged={onChanged}
+        existingEvents={existingEvents}
+      />
+    );
+
+    // Change title to match event 99
+    fireEvent.change(screen.getByLabelText(/^Title/), {
+      target: { value: "Annual Calibration Visit" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    // Warning alert appears
+    expect(
+      await screen.findByText(
+        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
+      )
+    ).toBeTruthy();
+    expect(EquipmentPlanService.updateEvent).not.toHaveBeenCalled();
+
+    // Clicking Back dismisses alert
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(
+      screen.queryByText(
+        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
+      )
+    ).toBeNull();
+
+    // Click Save changes again and then Add anyway
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(
+      await screen.findByText(
+        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
+      )
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add anyway" }));
+
+    await waitFor(() => {
+      expect(EquipmentPlanService.updateEvent).toHaveBeenCalledWith(
+        11,
+        1,
+        expect.objectContaining({
+          type: "VendorVisit",
+          title: "Annual Calibration Visit",
+          date: "2026-11-05",
+          confirmDuplicate: true
+        })
+      );
+    });
+    expect(onChanged).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("shows duplicate alert when server rejects update with 'A matching event already exists' and allows Add anyway", async () => {
+    vi.mocked(EquipmentPlanService.updateEvent)
+      .mockRejectedValueOnce({
+        response: {
+          data: {
+            message: "A matching event already exists for this date."
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        ...vendorEvent,
+        version: 2
+      });
+
+    const onChanged = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <EventDialog
+        event={vendorEvent}
+        open={true}
+        onClose={onClose}
+        onChanged={onChanged}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    // Duplicate alert is displayed
+    expect(
+      await screen.findByText(
+        'An event "Service engineer visit" (Vendor visit) is already on 2026-11-05.'
+      )
+    ).toBeTruthy();
+
+    // Click Add anyway
+    fireEvent.click(screen.getByRole("button", { name: "Add anyway" }));
+
+    await waitFor(() => {
+      expect(EquipmentPlanService.updateEvent).toHaveBeenLastCalledWith(
+        11,
+        1,
+        expect.objectContaining({
+          confirmDuplicate: true
+        })
+      );
+    });
+    expect(onChanged).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
 });

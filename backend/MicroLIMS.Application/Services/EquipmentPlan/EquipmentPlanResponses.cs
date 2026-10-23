@@ -65,7 +65,8 @@ public enum EquipmentPlanExceptionKind
 {
     NoBaseline,
     NoInterval,
-    RetiredInstrument
+    RetiredInstrument,
+    PossibleDuplicate
 }
 
 public record EquipmentPlanExceptionResponse(

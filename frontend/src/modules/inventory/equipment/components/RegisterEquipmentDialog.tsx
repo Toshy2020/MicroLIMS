@@ -134,7 +134,7 @@ export function RegisterEquipmentDialog({
       }
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not save equipment.");
+      setError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? "Could not save equipment.");
     } finally {
       setSaving(false);
     }

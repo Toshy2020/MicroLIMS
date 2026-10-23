@@ -285,6 +285,7 @@ export interface CreateCalendarEventRequest {
   month?: string | null;
   note?: string | null;
   equipmentInventoryId?: number | null;
+  confirmDuplicate?: boolean;
 }
 
 export interface UpdateCalendarEventRequest {
@@ -294,6 +295,7 @@ export interface UpdateCalendarEventRequest {
   month?: string | null;
   note?: string | null;
   equipmentInventoryId?: number | null;
+  confirmDuplicate?: boolean;
 }
 
 export interface EquipmentCalendarResponse {
@@ -356,7 +358,7 @@ export interface EquipmentTaskReschedule {
 }
 
 export interface EquipmentPlanException {
-  kind: "NoBaseline" | "NoInterval" | "RetiredInstrument";
+  kind: "NoBaseline" | "NoInterval" | "RetiredInstrument" | "PossibleDuplicate";
   taskType: EquipmentTaskType | null;
   equipmentInventoryId: number;
   equipmentCode: string;

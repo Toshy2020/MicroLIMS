@@ -243,6 +243,26 @@ public class EquipmentPlanService
         var tasks = new List<GeneratedEquipmentTask>();
         var exceptions = new List<EquipmentPlanExceptionResponse>();
 
+        var duplicateGroups = instruments
+            .Where(i => i.Status != EquipmentOperationalStatus.Retired &&
+                        EquipmentSerialHelper.HasMeaningfulSerial(i.SerialNumber) &&
+                        !string.IsNullOrWhiteSpace(i.ManufacturerName))
+            .GroupBy(i => (
+                Manufacturer: i.ManufacturerName.Trim().ToLowerInvariant(),
+                Serial: i.SerialNumber!.Trim().ToLowerInvariant()))
+            .Where(g => g.Count() > 1);
+
+        var duplicateSkipMap = new Dictionary<int, EquipmentInventory>();
+        foreach (var group in duplicateGroups)
+        {
+            var sorted = group.OrderBy(i => i.Id).ToList();
+            var winner = sorted[0];
+            foreach (var duplicate in sorted.Skip(1))
+            {
+                duplicateSkipMap[duplicate.Id] = winner;
+            }
+        }
+
         foreach (var inst in instruments)
         {
             if (inst.Status == EquipmentOperationalStatus.Retired)
@@ -253,6 +273,17 @@ public class EquipmentPlanService
                     inst.Id,
                     inst.Code,
                     $"Instrument {inst.Code} is retired."));
+                continue;
+            }
+
+            if (duplicateSkipMap.TryGetValue(inst.Id, out var winner))
+            {
+                exceptions.Add(new EquipmentPlanExceptionResponse(
+                    EquipmentPlanExceptionKind.PossibleDuplicate,
+                    null,
+                    inst.Id,
+                    inst.Code,
+                    $"Same manufacturer and serial number as {winner.Code}; not planned. Check the register."));
                 continue;
             }
 

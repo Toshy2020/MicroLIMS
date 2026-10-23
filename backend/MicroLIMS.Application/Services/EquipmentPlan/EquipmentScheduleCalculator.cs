@@ -12,6 +12,7 @@ public static class EquipmentScheduleCalculator
         {
             IntervalUnit.Weeks => from.AddDays(7 * value),
             IntervalUnit.Months => from.AddMonths(value),
+            IntervalUnit.Years => from.AddYears(value),
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unknown interval unit.")
         };
 
@@ -67,6 +68,7 @@ public static class EquipmentScheduleCalculator
         {
             IntervalUnit.Weeks => value == 1 ? "Weekly" : $"Every {value} weeks",
             IntervalUnit.Months => value == 1 ? "Monthly" : $"Every {value} months",
+            IntervalUnit.Years => value == 1 ? "Yearly" : $"Every {value} years",
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unknown interval unit.")
         };
 

@@ -386,6 +386,8 @@ export function MonitoringPlanPage() {
         onCreated={() => void load()}
         initialDate={addEventDate}
         initialMonth={addEventMonth}
+        existingEvents={calendarEvents}
+        events={calendarEvents}
       />
 
       <EventDialog
@@ -396,6 +398,8 @@ export function MonitoringPlanPage() {
           setSelectedEvent(null);
         }}
         onChanged={() => void load()}
+        existingEvents={calendarEvents}
+        events={calendarEvents}
       />
     </Box>
   );

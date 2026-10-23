@@ -103,11 +103,12 @@ export interface EquipmentFilterState {
   calibrationRange: string;
 }
 
-export type IntervalUnit = "Weeks" | "Months";
+export type IntervalUnit = "Weeks" | "Months" | "Years";
 
 export const INTERVAL_UNIT_LABELS: Record<IntervalUnit, string> = {
   Weeks: "Weeks",
-  Months: "Months"
+  Months: "Months",
+  Years: "Years"
 };
 
 export interface SaveEquipmentScheduleRequest {

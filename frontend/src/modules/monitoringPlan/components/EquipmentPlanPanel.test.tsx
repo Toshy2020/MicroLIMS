@@ -151,4 +151,44 @@ describe("EquipmentPlanPanel", () => {
     expect(screen.getByText("EQ-002 · Instrument: No calibration or maintenance interval configured.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Hide" })).toBeTruthy();
   });
+
+  it("renders PossibleDuplicate group labeled 'Possible duplicate instruments (not planned)' expanded by default", async () => {
+    const previewWithDuplicates: EquipmentPlanPreview = {
+      ...preview,
+      exceptions: [
+        {
+          kind: "PossibleDuplicate",
+          taskType: "Calibration",
+          equipmentInventoryId: 201,
+          equipmentCode: "EQ-DUP-01",
+          message: "Possible duplicate of EQ-001 (same type, model and serial).",
+          target: "EQ-DUP-01"
+        }
+      ]
+    };
+
+    vi.mocked(EquipmentPlanService.getPreview).mockResolvedValue(previewWithDuplicates);
+
+    render(<EquipmentPlanPanel year={2026} onApproved={vi.fn()} />);
+
+    // Group header is rendered
+    expect(
+      await screen.findByText("Possible duplicate instruments (not planned)")
+    ).toBeTruthy();
+
+    // Expanded by default
+    expect(
+      screen.getByText("EQ-DUP-01 · Calibration: Possible duplicate of EQ-001 (same type, model and serial).")
+    ).toBeTruthy();
+
+    // Has a Hide button
+    const hideBtn = screen.getByRole("button", { name: "Hide" });
+    fireEvent.click(hideBtn);
+
+    // Now hidden
+    expect(
+      screen.queryByText("EQ-DUP-01 · Calibration: Possible duplicate of EQ-001 (same type, model and serial).")
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Show" })).toBeTruthy();
+  });
 });

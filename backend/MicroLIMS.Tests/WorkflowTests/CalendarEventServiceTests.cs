@@ -353,4 +353,130 @@ public class CalendarEventServiceTests
                 null,
                 null), w.Analyst.Id));
     }
+
+    [Fact]
+    public async Task Create_and_update_duplicate_detection_rules()
+    {
+        var w = await BuildAsync();
+
+        // 1. Create active event
+        var ev1 = await w.Service.CreateAsync(new CreateCalendarEventRequest(
+            CalendarEventType.VendorVisit,
+            "Waters Maintenance",
+            Date: new DateOnly(2026, 10, 28),
+            Month: null,
+            Note: "Initial",
+            EquipmentInventoryId: w.Equipment.Id), w.Analyst.Id);
+
+        // 2. Update ignores itself when no other duplicate exists
+        var selfUpdate = await w.Service.UpdateAsync(ev1.Id, new UpdateCalendarEventRequest(
+            CalendarEventType.VendorVisit,
+            "Waters Maintenance",
+            Date: new DateOnly(2026, 10, 28),
+            Month: null,
+            Note: "Updated note on self",
+            EquipmentInventoryId: w.Equipment.Id,
+            ConfirmDuplicate: false), w.Analyst.Id);
+        Assert.Equal("Updated note on self", selfUpdate.Note);
+
+        // 3. Refuse duplicate on create without confirm (same type, same date, same equipment, trimmed case-insensitive title)
+        var createDupReq = new CreateCalendarEventRequest(
+            CalendarEventType.VendorVisit,
+            "  waters maintenance  ",
+            Date: new DateOnly(2026, 10, 28),
+            Month: null,
+            Note: "Duplicate attempt",
+            EquipmentInventoryId: w.Equipment.Id,
+            ConfirmDuplicate: false);
+
+        var exCreate = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.CreateAsync(createDupReq, w.Analyst.Id));
+        Assert.StartsWith("A matching event already exists", exCreate.Message);
+
+        // 4. Update refuses duplicate of another event without confirm
+        var evOther = await w.Service.CreateAsync(new CreateCalendarEventRequest(
+            CalendarEventType.VendorVisit,
+            "Other Instrument Visit",
+            Date: new DateOnly(2026, 10, 30),
+            Month: null,
+            Note: null,
+            EquipmentInventoryId: null), w.Analyst.Id);
+
+        var updateDupReq = new UpdateCalendarEventRequest(
+            CalendarEventType.VendorVisit,
+            "WATERS MAINTENANCE",
+            Date: new DateOnly(2026, 10, 28),
+            Month: null,
+            Note: null,
+            EquipmentInventoryId: w.Equipment.Id,
+            ConfirmDuplicate: false);
+
+        var exUpdate = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.UpdateAsync(evOther.Id, updateDupReq, w.Analyst.Id));
+        Assert.StartsWith("A matching event already exists", exUpdate.Message);
+
+        // 5. Update saves duplicate with confirm
+        var evOtherUpdated = await w.Service.UpdateAsync(
+            evOther.Id, updateDupReq with { ConfirmDuplicate = true }, w.Analyst.Id);
+        Assert.Equal("WATERS MAINTENANCE", evOtherUpdated.Title);
+
+        // 6. Confirm on create saves the duplicate
+        var evDupConfirmed = await w.Service.CreateAsync(
+            createDupReq with { ConfirmDuplicate = true }, w.Analyst.Id);
+        Assert.NotNull(evDupConfirmed);
+        Assert.NotEqual(ev1.Id, evDupConfirmed.Id);
+
+        // 7. Cancelled events are not counted as duplicates
+        await w.Service.CancelAsync(ev1.Id, "Not needed anymore", w.Analyst.Id);
+        await w.Service.CancelAsync(evDupConfirmed.Id, "Clean up", w.Analyst.Id);
+        await w.Service.CancelAsync(evOther.Id, "Clean up", w.Analyst.Id);
+
+        var evAfterCancel = await w.Service.CreateAsync(new CreateCalendarEventRequest(
+            CalendarEventType.VendorVisit,
+            "Waters Maintenance",
+            Date: new DateOnly(2026, 10, 28),
+            Month: null,
+            Note: null,
+            EquipmentInventoryId: w.Equipment.Id,
+            ConfirmDuplicate: false), w.Analyst.Id);
+        Assert.NotNull(evAfterCancel);
+    }
+
+    [Fact]
+    public async Task Duplicate_detection_works_for_month_and_null_equipment()
+    {
+        var w = await BuildAsync();
+
+        // Month-based event with null equipment
+        await w.Service.CreateAsync(new CreateCalendarEventRequest(
+            CalendarEventType.Audit,
+            "ISO 17025 Audit",
+            Date: null,
+            Month: "2026-11",
+            Note: null,
+            EquipmentInventoryId: null), w.Analyst.Id);
+
+        // Same type, month, null equipment, title case variation
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.CreateAsync(new CreateCalendarEventRequest(
+                CalendarEventType.Audit,
+                "  iso 17025 audit  ",
+                Date: null,
+                Month: "2026-11",
+                Note: null,
+                EquipmentInventoryId: null,
+                ConfirmDuplicate: false), w.Analyst.Id));
+        Assert.StartsWith("A matching event already exists", ex.Message);
+
+        // Different equipment (w.Equipment.Id vs null) is not a duplicate
+        var diffEq = await w.Service.CreateAsync(new CreateCalendarEventRequest(
+            CalendarEventType.Audit,
+            "ISO 17025 Audit",
+            Date: null,
+            Month: "2026-11",
+            Note: null,
+            EquipmentInventoryId: w.Equipment.Id,
+            ConfirmDuplicate: false), w.Analyst.Id);
+        Assert.NotNull(diffEq);
+    }
 }

@@ -335,6 +335,38 @@ public class EquipmentWorkService
                 throw new BusinessRuleException("The calendar event belongs to a different instrument.");
         }
 
+        if (r.EntryType == MaintenanceEntryType.PreventiveMaintenance)
+        {
+            var pmExists = await _db.MaintenanceLogEntries
+                .AsNoTracking()
+                .AnyAsync(m => m.EquipmentInventoryId == equipmentId &&
+                               m.VoidedAt == null &&
+                               m.PerformedOn == r.PerformedOn &&
+                               m.EntryType == MaintenanceEntryType.PreventiveMaintenance);
+
+            if (pmExists)
+            {
+                throw new BusinessRuleException($"A preventive maintenance entry for {equipment.Code} on {r.PerformedOn:yyyy-MM-dd} is already recorded.");
+            }
+        }
+        else
+        {
+            var trimmedWork = r.WorkDone.Trim();
+            var existingWorkEntries = await _db.MaintenanceLogEntries
+                .AsNoTracking()
+                .Where(m => m.EquipmentInventoryId == equipmentId &&
+                            m.VoidedAt == null &&
+                            m.PerformedOn == r.PerformedOn &&
+                            m.EntryType == r.EntryType)
+                .Select(m => m.WorkDone)
+                .ToListAsync();
+
+            if (existingWorkEntries.Any(w => string.Equals(w.Trim(), trimmedWork, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new BusinessRuleException($"This entry is already recorded for {equipment.Code} on {r.PerformedOn:yyyy-MM-dd}.");
+            }
+        }
+
         return await UnitOfWork.RunAsync(_db, async () =>
         {
             var signature = await _signatures.SignAsync(

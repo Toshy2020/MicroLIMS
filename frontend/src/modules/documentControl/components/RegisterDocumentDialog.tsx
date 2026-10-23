@@ -11,7 +11,8 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Chip
+  Chip,
+  Autocomplete
 } from "@mui/material";
 import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
 import { documentControlService } from "../services/documentControlService";
@@ -47,6 +48,7 @@ export function RegisterDocumentDialog({
   const [documentTypeId, setDocumentTypeId] = useState<number>(0);
   const [departmentId, setDepartmentId] = useState<number>(0);
   const [sectionId, setSectionId] = useState<number>(0);
+  const [additionalSectionIds, setAdditionalSectionIds] = useState<number[]>([]);
   const [ownerUserId, setOwnerUserId] = useState<number>(userId || 1);
   const [confidentiality, setConfidentiality] = useState<DocumentConfidentiality>("Internal");
   const [category, setCategory] = useState("");
@@ -67,6 +69,7 @@ export function RegisterDocumentDialog({
     setDocumentTypeId(0);
     setDepartmentId(0);
     setSectionId(0);
+    setAdditionalSectionIds([]);
     setOwnerUserId(userId || 1);
     setConfidentiality("Internal");
     setCategory("");
@@ -120,6 +123,12 @@ export function RegisterDocumentDialog({
     } else {
       setSectionId(0);
     }
+    setAdditionalSectionIds([]);
+  };
+
+  const handlePrimarySectionChange = (newPrimaryId: number) => {
+    setSectionId(newPrimaryId);
+    setAdditionalSectionIds((prev) => prev.filter((id) => id !== newPrimaryId));
   };
 
   const handleAddKeyword = () => {
@@ -152,6 +161,7 @@ export function RegisterDocumentDialog({
       documentTypeId,
       departmentId,
       sectionId,
+      sectionIds: additionalSectionIds,
       documentOwnerUserId: ownerUserId,
       confidentiality,
       category: category.trim() || undefined,
@@ -261,9 +271,9 @@ export function RegisterDocumentDialog({
 
             <TextField
               select
-              label="Section *"
+              label="Primary Section *"
               value={sectionId}
-              onChange={(e) => setSectionId(Number(e.target.value))}
+              onChange={(e) => handlePrimarySectionChange(Number(e.target.value))}
               disabled={saving || sections.length === 0}
             >
               {sections.map((s) => (
@@ -272,6 +282,27 @@ export function RegisterDocumentDialog({
                 </MenuItem>
               ))}
             </TextField>
+
+            <Autocomplete
+              multiple
+              options={sections.filter((s) => s.isActive !== false && s.id !== sectionId)}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={sections.filter((s) => additionalSectionIds.includes(s.id) && s.id !== sectionId)}
+              onChange={(_event, newValue) => {
+                setAdditionalSectionIds(newValue.map((s) => s.id));
+              }}
+              disabled={saving || !departmentId || sections.length === 0}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Additional Sections"
+                  placeholder={additionalSectionIds.length === 0 ? "Select additional sections..." : undefined}
+                  helperText="Optional laboratory sections this document also applies to"
+                />
+              )}
+              sx={{ gridColumn: { xs: "1fr", sm: "1 / -1" } }}
+            />
 
             <TextField
               label="Initial Revision Number"

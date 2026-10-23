@@ -465,7 +465,7 @@ export function DocumentLibraryPage() {
                     <Typography variant="caption" sx={{
                       color: "text.secondary"
                     }}>
-                      {doc.sectionName}
+                      {doc.sectionNames && doc.sectionNames.length > 0 ? doc.sectionNames.join(", ") : doc.sectionName}
                     </Typography>
                   </TableCell>
                   <TableCell>

@@ -442,7 +442,7 @@ export function DocumentDetailPage() {
                 MicroLIMS ID: <strong style={{ fontFamily: monospaceFontFamily }}>{document.microLimsDocumentId}</strong>
               </Typography>
               <Typography variant="caption">
-                Department: <strong>{document.departmentName}</strong> ({document.sectionName})
+                Department: <strong>{document.departmentName}</strong> ({document.sectionNames && document.sectionNames.length > 0 ? document.sectionNames.join(", ") : document.sectionName})
               </Typography>
               <Typography variant="caption">
                 Current Revision: <strong>{currentRevision?.revisionNumber || "01"}</strong> ({currentRevision?.revisionStatus})
@@ -612,7 +612,7 @@ export function DocumentDetailPage() {
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>Department & Section</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} / {document.sectionName}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} / {document.sectionNames && document.sectionNames.length > 0 ? document.sectionNames.join(", ") : document.sectionName}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{

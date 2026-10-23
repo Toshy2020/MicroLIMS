@@ -11,7 +11,8 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Chip
+  Chip,
+  Autocomplete
 } from "@mui/material";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import { documentControlService } from "../services/documentControlService";
@@ -47,6 +48,9 @@ export function DraftMetadataDialog({
   const [documentTypeId, setDocumentTypeId] = useState<number>(document.documentTypeId);
   const [departmentId, setDepartmentId] = useState<number>(document.departmentId);
   const [sectionId, setSectionId] = useState<number>(document.sectionId);
+  const [additionalSectionIds, setAdditionalSectionIds] = useState<number[]>(() =>
+    (document.sectionIds || []).filter((id) => id !== document.sectionId)
+  );
   const [ownerUserId, setOwnerUserId] = useState<number>(document.documentOwnerUserId);
   const [confidentiality, setConfidentiality] = useState<DocumentConfidentiality>(document.confidentiality);
   const [category, setCategory] = useState(document.category || "");
@@ -65,6 +69,9 @@ export function DraftMetadataDialog({
     setDocumentTypeId(document.documentTypeId);
     setDepartmentId(document.departmentId);
     setSectionId(document.sectionId);
+    setAdditionalSectionIds(
+      (document.sectionIds || []).filter((id) => id !== document.sectionId)
+    );
     setOwnerUserId(document.documentOwnerUserId);
     setConfidentiality(document.confidentiality);
     setCategory(document.category || "");
@@ -103,6 +110,12 @@ export function DraftMetadataDialog({
     } else {
       setSectionId(0);
     }
+    setAdditionalSectionIds([]);
+  };
+
+  const handlePrimarySectionChange = (newPrimaryId: number) => {
+    setSectionId(newPrimaryId);
+    setAdditionalSectionIds((prev) => prev.filter((id) => id !== newPrimaryId));
   };
 
   const handleAddKeyword = () => {
@@ -135,6 +148,7 @@ export function DraftMetadataDialog({
       documentTypeId,
       departmentId,
       sectionId,
+      sectionIds: additionalSectionIds,
       documentOwnerUserId: ownerUserId,
       confidentiality,
       category: category.trim() || undefined,
@@ -236,9 +250,9 @@ export function DraftMetadataDialog({
 
             <TextField
               select
-              label="Section *"
+              label="Primary Section *"
               value={sectionId}
-              onChange={(e) => setSectionId(Number(e.target.value))}
+              onChange={(e) => handlePrimarySectionChange(Number(e.target.value))}
               disabled={saving || sections.length === 0}
             >
               {sections.map((s) => (
@@ -247,6 +261,27 @@ export function DraftMetadataDialog({
                 </MenuItem>
               ))}
             </TextField>
+
+            <Autocomplete
+              multiple
+              options={sections.filter((s) => (s.isActive !== false || additionalSectionIds.includes(s.id)) && s.id !== sectionId)}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              value={sections.filter((s) => additionalSectionIds.includes(s.id) && s.id !== sectionId)}
+              onChange={(_event, newValue) => {
+                setAdditionalSectionIds(newValue.map((s) => s.id));
+              }}
+              disabled={saving || !departmentId || sections.length === 0}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Additional Sections"
+                  placeholder={additionalSectionIds.length === 0 ? "Select additional sections..." : undefined}
+                  helperText="Optional laboratory sections this document also applies to"
+                />
+              )}
+              sx={{ gridColumn: { xs: "1fr", sm: "1 / -1" } }}
+            />
 
             <TextField
               label="Category"

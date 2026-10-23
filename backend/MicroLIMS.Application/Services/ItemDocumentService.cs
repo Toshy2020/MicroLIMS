@@ -68,6 +68,9 @@ public class ItemDocumentService
         long fileLength,
         int userId)
     {
+        if (documentType == ItemDocumentType.Sop)
+            throw new InvalidOperationException("STMs are managed in the Document Library. Link the item's SOP number to its library document instead of uploading a file.");
+
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId)
             ?? throw new NotFoundException($"Item {itemId} not found.");
 

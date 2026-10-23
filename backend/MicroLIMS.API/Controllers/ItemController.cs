@@ -15,10 +15,28 @@ namespace MicroLIMS.API.Controllers;
 public class ItemController : ControllerBase
 {
     private readonly ItemService _itemService;
+    private readonly ItemStmService _stmService;
 
-    public ItemController(ItemService itemService)
+    public ItemController(ItemService itemService, ItemStmService stmService)
     {
         _itemService = itemService;
+        _stmService = stmService;
+    }
+
+    // The item's STM as resolved from the Document Library (effective revision only).
+    [HttpGet("{itemId:int}/stm")]
+    public async Task<IActionResult> GetStm(int itemId)
+    {
+        try
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var userId = claim != null ? int.Parse(claim.Value) : 1;
+            return Ok(ApiResponse<ItemStmResponse>.Ok(await _stmService.GetForItemAsync(itemId, userId)));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
     }
 
     [HttpGet]

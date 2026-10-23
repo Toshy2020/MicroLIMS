@@ -36,7 +36,7 @@ public class ItemDocumentTests
     }
 
     [Fact]
-    public async Task UploadSopDocument_Succeeds_AndReplacesPreviousVersion()
+    public async Task UploadVerificationReport_Succeeds_AndReplacesPreviousVersion()
     {
         var (db, tempDir) = CreateContext();
         try
@@ -55,11 +55,11 @@ public class ItemDocumentTests
             var storage = new LocalFileStorageService(tempDir);
             var service = new ItemDocumentService(db, storage, NullLogger<ItemDocumentService>.Instance);
 
-            // 1. Upload Rev 01 SOP
+            // 1. Upload Rev 01
             using var stream1 = new MemoryStream("SOP content v1"u8.ToArray());
             var doc1 = await service.UploadDocumentAsync(
                 itemId: 1,
-                documentType: ItemDocumentType.Sop,
+                documentType: ItemDocumentType.VerificationReport,
                 version: "Rev 01",
                 effectiveDate: DateTime.UtcNow.AddDays(-30),
                 fileStream: stream1,
@@ -71,11 +71,11 @@ public class ItemDocumentTests
             Assert.Equal("Rev 01", doc1.Version);
             Assert.Equal(MaterialDocumentStatus.Current, doc1.Status);
 
-            // 2. Upload Rev 02 SOP
+            // 2. Upload Rev 02
             using var stream2 = new MemoryStream("SOP content v2"u8.ToArray());
             var doc2 = await service.UploadDocumentAsync(
                 itemId: 1,
-                documentType: ItemDocumentType.Sop,
+                documentType: ItemDocumentType.VerificationReport,
                 version: "Rev 02",
                 effectiveDate: DateTime.UtcNow,
                 fileStream: stream2,
@@ -97,6 +97,49 @@ public class ItemDocumentTests
 
             var currentDoc = Assert.Single(allDocs, d => d.Id == doc2.Id);
             Assert.Equal(MaterialDocumentStatus.Current, currentDoc.Status);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task UploadSop_IsRejected_AndNothingStored()
+    {
+        var (db, tempDir) = CreateContext();
+        try
+        {
+            db.Items.Add(new Item
+            {
+                Id = 1,
+                Name = "Osteocare Liquid",
+                Code = "ost.liq",
+                Category = SampleCategory.FinishedProduct,
+                SopNumber = "C2I-SOP-001"
+            });
+            await db.SaveChangesAsync();
+
+            var service = new ItemDocumentService(db, new LocalFileStorageService(tempDir), NullLogger<ItemDocumentService>.Instance);
+
+            using var stream = new MemoryStream("SOP content"u8.ToArray());
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadDocumentAsync(
+                itemId: 1,
+                documentType: ItemDocumentType.Sop,
+                version: "Rev 01",
+                effectiveDate: DateTime.UtcNow,
+                fileStream: stream,
+                originalFileName: "SOP.pdf",
+                contentType: "application/pdf",
+                fileLength: 11,
+                userId: 1));
+
+            Assert.Equal("STMs are managed in the Document Library. Link the item's SOP number to its library document instead of uploading a file.", ex.Message);
+            Assert.Equal(0, await db.ItemDocuments.CountAsync());
+            Assert.Empty(Directory.GetFiles(tempDir, "*", SearchOption.AllDirectories));
         }
         finally
         {

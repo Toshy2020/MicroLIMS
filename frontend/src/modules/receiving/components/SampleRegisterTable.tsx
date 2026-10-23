@@ -36,6 +36,7 @@ import { assignedAnalystsByTest, assignedAnalystsLabel } from "../utils/assigned
 import { tableHeadSx } from "../../../theme";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
+import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { isInteractiveElement } from "../../../utils/isInteractiveElement";
@@ -934,13 +935,21 @@ export function SampleRegisterTable({
 // and reused for a few minutes instead of once per row on every render.
 const DOC_COUNT_TTL_MS = 5 * 60 * 1000;
 const docCountRequests = new Map<number, { at: number; request: Promise<number> }>();
+export function clearSampleDocCountCache() {
+  docCountRequests.clear();
+}
 function getDocCount(itemId: number): Promise<number> {
   const cached = docCountRequests.get(itemId);
   if (cached && Date.now() - cached.at < DOC_COUNT_TTL_MS) return cached.request;
-  const request = ItemDocumentService.getDocumentCountForItem(itemId).catch(() => {
-    docCountRequests.delete(itemId);
-    return 0;
-  });
+  const request = Promise.all([
+    ItemDocumentService.getDocumentCountForItem(itemId).catch(() => 0),
+    ItemStmService.getForItem(itemId).catch(() => null),
+  ])
+    .then(([vrCount, stm]) => vrCount + (stm?.status === "Effective" ? 1 : 0))
+    .catch(() => {
+      docCountRequests.delete(itemId);
+      return 0;
+    });
   docCountRequests.set(itemId, { at: Date.now(), request });
   return request;
 }

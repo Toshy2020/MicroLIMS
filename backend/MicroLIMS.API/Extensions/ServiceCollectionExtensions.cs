@@ -126,6 +126,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AfterCleaningService>();
         services.AddScoped<MediaEvaluationService>();
         services.AddScoped<ItemService>();
+        services.AddScoped<ItemStmService>();
         services.AddScoped<SpecificationService>();
         services.AddScoped<UserService>();
         services.AddScoped<UserDeletionService>();

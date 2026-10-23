@@ -24,6 +24,7 @@ public enum SignatureMeaning
     BiologicalWasteDestroyed,
     MonitoringPlanApproved,
     MonitoringOccurrenceSkipped,
-    MonitoringOccurrenceWindowChanged
+    MonitoringOccurrenceWindowChanged,
+    MonitoringDeviationClosed
 }
 

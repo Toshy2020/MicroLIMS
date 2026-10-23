@@ -6,7 +6,8 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record GeneratePlanRequest(int Year);
+// GoLiveDate: when the plan starts. Omitted means today (or 1 January of a future year).
+public record GeneratePlanRequest(int Year, DateOnly? GoLiveDate = null);
 
 // Annual Monitoring Plan: yearly revisions. The rules live in
 // MonitoringPlanService; this only maps HTTP to it.
@@ -32,7 +33,7 @@ public class MonitoringPlanController : ControllerBase
     [Authorize(Policy = PermissionConstants.MonitoringPlanManage)]
     [HttpPost("revisions")]
     public async Task<IActionResult> GenerateRevision(GeneratePlanRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.GenerateDraftAsync(request.Year, CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _service.GenerateDraftAsync(request.Year, CurrentUserId, request.GoLiveDate)));
 
     [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("revisions/{id}/preview")]

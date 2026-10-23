@@ -159,12 +159,20 @@ public class MonitoringReportTests
     }
 
     [Fact]
-    public async Task Reminders_OnlyForPeopleWhoCanViewThePlan_AndTellOverdueAndStillDue()
+    public async Task Reminders_OnlyForPeopleWhoCanViewThePlan_AndTellOverdueOpenDeviationsAndStillDue()
     {
         var w = await BuildAsync();
-        w.Db.MonitoringOccurrences.AddRange(
-            Occurrence(w, "2026-W41", new DateOnly(2026, 10, 4), new DateOnly(2026, 10, 8)),
-            Occurrence(w, "2026-W43", new DateOnly(2026, 10, 25), new DateOnly(2026, 10, 29)));
+        var missed = Occurrence(w, "2026-W41", new DateOnly(2026, 10, 4), new DateOnly(2026, 10, 8));    // past its grace: missed
+        var overdue = Occurrence(w, "2026-W42", new DateOnly(2026, 10, 11), new DateOnly(2026, 10, 15)); // still inside its grace
+        w.Db.MonitoringOccurrences.AddRange(missed, overdue, Occurrence(w, "2026-W43", new DateOnly(2026, 10, 25), new DateOnly(2026, 10, 29)));
+        await w.Db.SaveChangesAsync();
+        // A missed occurrence is tracked by its deviation, not counted as overdue.
+        w.Db.MonitoringDeviations.Add(new MonitoringDeviation
+        {
+            Number = "MD-2026-00001", Kind = DeviationKind.MissedOccurrence, MonitoringOccurrenceId = missed.Id,
+            Description = "Room A: nothing was sampled.", OpenedAt = new DateTime(2026, 10, 19, 6, 0, 0, DateTimeKind.Utc),
+            DueDate = new DateOnly(2026, 10, 20)
+        });
         await w.Db.SaveChangesAsync();
 
         var forViewer = await w.Reminders.GetForUserAsync(w.Viewer.Id);
@@ -172,6 +180,7 @@ public class MonitoringReportTests
 
         Assert.Empty(forOutsider);
         Assert.Contains(forViewer, r => r.Type == "MonitoringOverdue" && r.Message.StartsWith("1 "));
+        Assert.Contains(forViewer, r => r.Type == "MonitoringDeviationsOpen" && r.Message.StartsWith("1 ") && r.Message.Contains("1 past their due date"));
         // The settings default warning day (20) has passed on the 21st.
         Assert.Contains(forViewer, r => r.Type == "MonitoringDueThisMonth" && r.Message.StartsWith("1 "));
     }

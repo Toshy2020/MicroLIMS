@@ -243,6 +243,7 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(MonitoringSettings), nameof(MonitoringSettings.UpdatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - monitoring plan settings provenance"),
         new UserReferenceEntry(typeof(MonitoringPlanRevision), nameof(MonitoringPlanRevision.GeneratedByUserId), UserReferenceDisposition.Blocks, "No DB FK - monitoring plan revision provenance"),
         new UserReferenceEntry(typeof(MonitoringOccurrenceEvent), nameof(MonitoringOccurrenceEvent.PerformedByUserId), UserReferenceDisposition.Blocks, "No DB FK - monitoring occurrence history"),
+        new UserReferenceEntry(typeof(MonitoringDeviation), nameof(MonitoringDeviation.ClosedByUserId), UserReferenceDisposition.Blocks, "No DB FK - signed closure of a monitoring deviation (GMP record)"),
         new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.UserId), UserReferenceDisposition.Blocks, "Analyst availability history; DB FK Restrict"),
         new UserReferenceEntry(typeof(AnalystAvailability), nameof(AnalystAvailability.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - availability entry provenance"),
     };

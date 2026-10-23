@@ -58,6 +58,7 @@ public interface IMicroLimsDbContext
     DbSet<MonitoringOccurrence> MonitoringOccurrences { get; }
     DbSet<MonitoringOccurrenceItem> MonitoringOccurrenceItems { get; }
     DbSet<MonitoringOccurrenceEvent> MonitoringOccurrenceEvents { get; }
+    DbSet<MonitoringDeviation> MonitoringDeviations { get; }
     DbSet<Machine> Machines { get; }
     DbSet<MachinePart> MachineParts { get; }
     DbSet<WaterSamplingPoint> WaterSamplingPoints { get; }

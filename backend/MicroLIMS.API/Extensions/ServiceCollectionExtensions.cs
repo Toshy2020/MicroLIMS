@@ -157,6 +157,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>();
         services.AddScoped<IUserSectionScopeService, UserSectionScopeService>();
         services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
@@ -208,6 +209,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringLinkService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringOccurrenceService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringReportService>();
+        services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringDeviationService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringReminderService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();

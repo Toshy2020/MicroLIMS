@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services.Monitoring;
@@ -32,11 +33,22 @@ public class MonitoringReminderService
         if (!canView) return reminders;
 
         var due = await _occurrences.GetDueAsync(null);
-        var overdue = due.Items.Count(i => i.Status is OccurrenceStatus.Overdue or OccurrenceStatus.Missed);
+        // Missed occurrences are tracked as deviations below; only those still inside their grace period are "overdue".
+        var late = due.Items.Count(i => i.Status is OccurrenceStatus.Overdue or OccurrenceStatus.Missed);
+        var overdue = due.Items.Count(i => i.Status == OccurrenceStatus.Overdue);
         if (overdue > 0)
             reminders.Add(new MonitoringReminder("MonitoringOverdue", $"{overdue} monitoring plan occurrence(s) are overdue.", "warning"));
 
-        var stillDue = due.Items.Count - overdue;
+        var openDeviations = await _db.MonitoringDeviations.AsNoTracking().CountAsync(d => d.Status == DeviationStatus.Open);
+        if (openDeviations > 0)
+        {
+            var pastDue = await _db.MonitoringDeviations.AsNoTracking()
+                .CountAsync(d => d.Status == DeviationStatus.Open && d.DueDate < due.Today);
+            reminders.Add(new MonitoringReminder("MonitoringDeviationsOpen",
+                $"{openDeviations} monitoring deviation(s) are open{(pastDue > 0 ? $", {pastDue} past their due date" : string.Empty)}.", "warning"));
+        }
+
+        var stillDue = due.Items.Count - late;
         if (due.ShowWarning && stillDue > 0)
             reminders.Add(new MonitoringReminder("MonitoringDueThisMonth",
                 $"{stillDue} monitoring plan occurrence(s) are still to be done this month.", "warning"));

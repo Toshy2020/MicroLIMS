@@ -6,6 +6,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { useHasPermission } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { CoverageTable } from "./components/CoverageTable";
+import { DeviationsPanel } from "./components/DeviationsPanel";
 import { DuePanel } from "./components/DuePanel";
 import { ManualEntryDialog } from "./components/ManualEntryDialog";
 import { MonthGrid } from "./components/MonthGrid";
@@ -32,7 +33,7 @@ export function MonitoringPlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
-  const [tab, setTab] = useState<"calendar" | "coverage" | "spacing" | "plan" | "settings">("calendar");
+  const [tab, setTab] = useState<"calendar" | "coverage" | "spacing" | "deviations" | "plan" | "settings">("calendar");
   const [coverage, setCoverage] = useState<CoverageReport | null>(null);
   const [spacing, setSpacing] = useState<SpacingReport | null>(null);
   const [flaggedOnly, setFlaggedOnly] = useState(true);
@@ -44,7 +45,7 @@ export function MonitoringPlanPage() {
   // Only the latest request may touch state, so a slow answer for a month or
   // tab already left cannot overwrite the one on screen.
   const load = useCallback(async () => {
-    if (tab === "settings" || tab === "plan") return;
+    if (tab === "settings" || tab === "plan" || tab === "deviations") return;
     const mine = ++requestId.current;
     const latest = () => mine === requestId.current;
     setError(null);
@@ -110,12 +111,13 @@ export function MonitoringPlanPage() {
         <Tab value="calendar" label="Calendar" />
         <Tab value="coverage" label="Coverage" />
         <Tab value="spacing" label="Spacing" />
+        <Tab value="deviations" label="Deviations" />
         <Tab value="plan" label="Plan" />
         <Tab value="settings" label="Settings" />
       </Tabs>
       {tab === "calendar" && <DuePanel due={due} onPick={(o) => setOpenId(o.id)} />}
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2, flexWrap: "wrap" }}>
+      {tab !== "deviations" && <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2, flexWrap: "wrap" }}>
         <IconButton onClick={() => step(-1)} aria-label="Previous"><ChevronLeftIcon /></IconButton>
         <Typography sx={{ fontWeight: 600, minWidth: 160, textAlign: "center" }}>
           {tab !== "calendar" || month === null ? year : `${MONTH_NAMES[month]} ${year}`}
@@ -135,11 +137,13 @@ export function MonitoringPlanPage() {
             <MenuItem key={c} value={c}>{CATEGORY_LABEL[c]}</MenuItem>
           ))}
         </TextField>}
-      </Box>
+      </Box>}
       {loading && showsData && <LinearProgress aria-label="Loading" sx={{ mb: 1 }} />}
 
       <Box aria-busy={loading && showsData} sx={{ opacity: loading && showsData ? 0.55 : 1, transition: "opacity 120ms" }}>
-      {tab === "plan" ? (
+      {tab === "deviations" ? (
+        <DeviationsPanel onPick={setOpenId} />
+      ) : tab === "plan" ? (
         <PlanRevisionsPanel year={year} onApproved={() => void load()} />
       ) : tab === "settings" ? (
         <SettingsPanel year={year} />

@@ -1,6 +1,12 @@
 import { apiClient } from "../../../services/apiClient";
 import type {
   CoverageReport,
+  Deviation,
+  DeviationClosure,
+  DeviationKind,
+  DeviationList,
+  DeviationScan,
+  DeviationStatus,
   LabCalendarDate,
   MonitoringSettings,
   SpacingReport,
@@ -38,8 +44,9 @@ export const MonitoringPlanService = {
   getRevisions: (year: number) =>
     apiClient.get("/monitoring-plan/revisions", { params: { year } }).then((r) => r.data.data as PlanRevision[]),
 
-  generateDraft: (year: number) =>
-    apiClient.post("/monitoring-plan/revisions", { year }).then((r) => r.data.data as PlanPreview),
+  // goLiveDate: when the plan starts. Omitted means today (or 1 January of a future year).
+  generateDraft: (year: number, goLiveDate?: string) =>
+    apiClient.post("/monitoring-plan/revisions", { year, goLiveDate: goLiveDate || null }).then((r) => r.data.data as PlanPreview),
 
   getPreview: (id: number) =>
     apiClient.get(`/monitoring-plan/revisions/${id}/preview`).then((r) => r.data.data as PlanPreview),
@@ -77,3 +84,15 @@ export const MonitoringPlanService = {
   changeWindow: (id: number, version: number, body: SignedChange & { newTargetDate: string | null; newWindowEnd: string }) =>
     apiClient.post(`${BASE}/${id}/change-window`, body, ifMatch(version)).then((r) => r.data.data as OccurrenceSummary)
 };
+
+export const MonitoringDeviationApi = {
+  list: (status?: DeviationStatus, kind?: DeviationKind) =>
+    apiClient.get("/monitoring-deviations", { params: { status, kind } }).then((r) => r.data.data as DeviationList),
+
+  scan: () => apiClient.post("/monitoring-deviations/scan").then((r) => r.data.data as DeviationScan),
+
+  close: (deviationIds: number[], closure: DeviationClosure, body: SignedChange) =>
+    apiClient.post("/monitoring-deviations/close", { deviationIds, closure, ...body }).then((r) => r.data.data as number)
+};
+
+export type { Deviation };

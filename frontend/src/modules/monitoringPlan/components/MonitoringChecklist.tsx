@@ -3,6 +3,7 @@ import { Box, Checkbox, FormControlLabel, Paper, Typography } from "@mui/materia
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
+import { periodLabel } from "../statusDisplay";
 import type { MonitoringChecklist as Checklist } from "../types";
 
 // Shown on the prepare screens: what the plan expects from this session.
@@ -57,7 +58,7 @@ export function MonitoringChecklist({ sampleId, onChange }: { sampleId: number; 
               control={<Checkbox size="small" checked={!!ticked[o.occurrenceId]} onChange={() => toggle(o.occurrenceId)} />}
               label={
                 <Box>
-                  <Typography sx={{ fontSize: 14 }}>{o.target} · {o.periodKey} (window ends {o.windowEnd})</Typography>
+                  <Typography sx={{ fontSize: 14 }}>{o.target} · {periodLabel(o.periodKey)} (window ends {o.windowEnd})</Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     {o.remainingItems.map((i) => i.label).join(", ")}
                   </Typography>

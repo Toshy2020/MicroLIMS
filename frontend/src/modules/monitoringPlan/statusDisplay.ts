@@ -70,3 +70,16 @@ export const isWeekend = (dayOfWeek: number) => dayOfWeek === 5 || dayOfWeek ===
 export function isoDate(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
+
+// A period key as people say it: "2026-W43" is "Week 43, 2026", "D20261022" is "22 October 2026".
+export function periodLabel(key: string): string {
+  let m = /^(\d{4})-W(\d{2})$/.exec(key);
+  if (m) return `Week ${Number(m[2])}, ${m[1]}`;
+  m = /^(\d{4})-(\d{2})$/.exec(key);
+  if (m) return `${MONTH_NAMES[Number(m[2]) - 1]} ${m[1]}`;
+  m = /^D(\d{4})(\d{2})(\d{2})$/.exec(key);
+  if (m) return `${Number(m[3])} ${MONTH_NAMES[Number(m[2]) - 1]} ${m[1]}`;
+  if (key.startsWith("resp-")) return "Follow-up sampling";
+  if (key.startsWith("manual-")) return "Manual entry";
+  return key;
+}

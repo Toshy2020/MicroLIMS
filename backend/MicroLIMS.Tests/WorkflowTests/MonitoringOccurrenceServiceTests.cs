@@ -114,7 +114,8 @@ public class MonitoringOccurrenceServiceTests
         Assert.Equal(MonitoringCategory.AfterCleaning, created.Category);
         Assert.Equal("Filler 1", created.Target);
         Assert.True(created.Manual);
-        Assert.Equal(new DateOnly(2026, 10, 30), created.WindowEnd);
+        // Wednesday 28 October plus two working days: Thursday, then Sunday (Friday and Saturday are not working days).
+        Assert.Equal(new DateOnly(2026, 11, 1), created.WindowEnd);
         Assert.Equal(OccurrenceStatus.Upcoming, created.Status);
         var ev = await w.Db.MonitoringOccurrenceEvents.SingleAsync();
         Assert.Equal(OccurrenceEventType.Created, ev.EventType);
@@ -133,11 +134,40 @@ public class MonitoringOccurrenceServiceTests
 
         Assert.Null(week.TargetDate);
         Assert.Equal(new DateOnly(2026, 10, 25), week.WindowStart);
-        Assert.Equal(new DateOnly(2026, 10, 31), week.WindowEnd);
+        // The lab week ends on Saturday 31 October, but Thursday the 29th is its last working day.
+        Assert.Equal(new DateOnly(2026, 10, 29), week.WindowEnd);
         Assert.True(week.Manual);
         Assert.Null(month.TargetDate);
         Assert.Equal(new DateOnly(2026, 11, 1), month.WindowStart);
         Assert.Equal(new DateOnly(2026, 11, 30), month.WindowEnd);
+    }
+
+    [Fact]
+    public async Task CreateManual_OnAWeekend_IsRefused()
+    {
+        var w = await BuildAsync();
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.CreateManualAsync(
+            new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 10, 30), new List<int> { w.PartConfig.Id }, null), w.Head.Id));
+
+        Assert.Contains("not a working day", ex.Message);
+    }
+
+    [Fact]
+    public async Task ChangeWindow_ToAWeekend_IsRefused_AndToAWorkingDayIsAllowed()
+    {
+        var w = await BuildAsync();
+        var occurrence = RoomOccurrence(w, "2026-W43", new DateOnly(2026, 10, 25), new DateOnly(2026, 10, 29));
+        w.Db.MonitoringOccurrences.Add(occurrence);
+        await w.Db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.ChangeWindowAsync(occurrence.Id,
+            new ChangeWindowRequest(null, new DateOnly(2026, 10, 31), "Room busy on Thursday", Password, "approver", Password), w.Head.Id, null));
+        Assert.Contains("not a working day", ex.Message);
+
+        var changed = await w.Service.ChangeWindowAsync(occurrence.Id,
+            new ChangeWindowRequest(null, new DateOnly(2026, 11, 1), "Room busy on Thursday", Password, "approver", Password), w.Head.Id, null);
+        Assert.Equal(new DateOnly(2026, 11, 1), changed.WindowEnd);
     }
 
     [Fact]
@@ -301,7 +331,7 @@ public class MonitoringOccurrenceServiceTests
         w.Db.MonitoringOccurrences.Add(occurrence);
         await w.Db.SaveChangesAsync();
         await w.Service.ChangeWindowAsync(occurrence.Id,
-            new ChangeWindowRequest(null, new DateOnly(2026, 10, 31), "Room busy on Thursday", Password, "approver", Password), w.Head.Id, null);
+            new ChangeWindowRequest(null, new DateOnly(2026, 11, 1), "Room busy on Thursday", Password, "approver", Password), w.Head.Id, null);
 
         var detail = await w.Service.GetDetailAsync(occurrence.Id);
 

@@ -6137,6 +6137,83 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("MediaUsages");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringDeviation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ClosedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Closure")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ClosureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("ClosureSecondSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ClosureSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("FollowUpOccurrenceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonitoringOccurrenceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosureSecondSignatureId");
+
+                    b.HasIndex("ClosureSignatureId");
+
+                    b.HasIndex("FollowUpOccurrenceId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("MonitoringOccurrenceId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("MonitoringDeviations");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrence", b =>
                 {
                     b.Property<int>("Id")
@@ -6257,7 +6334,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("PerformedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PerformedByUserId")
+                    b.Property<int?>("PerformedByUserId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Reason")
@@ -6387,10 +6464,16 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("AcLateToleranceDays")
                         .HasColumnType("integer");
 
+                    b.Property<int>("DeviationDueDays")
+                        .HasColumnType("integer");
+
                     b.Property<int>("EmEarlyToleranceDays")
                         .HasColumnType("integer");
 
                     b.Property<int>("EmLateToleranceDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FollowUpWindowDays")
                         .HasColumnType("integer");
 
                     b.Property<int>("GraceDays")
@@ -12398,6 +12481,38 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Media");
 
                     b.Navigation("TestOrder");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringDeviation", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ClosureSecondSignature")
+                        .WithMany()
+                        .HasForeignKey("ClosureSecondSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ClosureSignature")
+                        .WithMany()
+                        .HasForeignKey("ClosureSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringOccurrence", "FollowUpOccurrence")
+                        .WithMany()
+                        .HasForeignKey("FollowUpOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MonitoringOccurrence", "MonitoringOccurrence")
+                        .WithMany()
+                        .HasForeignKey("MonitoringOccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosureSecondSignature");
+
+                    b.Navigation("ClosureSignature");
+
+                    b.Navigation("FollowUpOccurrence");
+
+                    b.Navigation("MonitoringOccurrence");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringOccurrence", b =>

@@ -3,8 +3,11 @@ import { Alert, Box, Button, Paper, Stack, TextField, Typography } from "@mui/ma
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
-import { CATEGORY_LABEL } from "../statusDisplay";
+import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
 import type { PlanPreview, PlanRevision } from "../types";
+
+const dates = (target: string | null, start: string, end: string) =>
+  `${target ? `target ${target}, ` : ""}${start} to ${end}`;
 
 // Generates the year's plan from the master data, shows what it would
 // contain and approves it. Occurrences, manual entries and the calendar only
@@ -16,6 +19,7 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
   const [preview, setPreview] = useState<PlanPreview | null>(null);
   const [password, setPassword] = useState("");
   const [reason, setReason] = useState("");
+  const [goLive, setGoLive] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -61,10 +65,16 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
       </Alert>
 
       {canManage && (
-        <Box>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <TextField
+            size="small" type="date" label="Go-live date (optional)" value={goLive}
+            onChange={(e) => setGoLive(e.target.value)} slotProps={{ inputLabel: { shrink: true } }}
+            helperText="The plan starts on this date. Nothing before it is planned. Empty means today."
+            sx={{ minWidth: 260 }}
+          />
           <Button
-            variant="outlined" disabled={busy}
-            onClick={() => void run(() => MonitoringPlanService.generateDraft(year), "Could not generate the draft.")}
+            variant="outlined" disabled={busy} sx={{ mt: 0.25 }}
+            onClick={() => void run(() => MonitoringPlanService.generateDraft(year, goLive || undefined), "Could not generate the draft.")}
           >
             {draft ? "Regenerate draft" : approved ? "Generate revision" : "Generate draft"}
           </Button>
@@ -81,6 +91,21 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
               {CATEGORY_LABEL[t.category]}: {t.targets} targets, {t.occurrences} occurrences
             </Typography>
           ))}
+          {preview.toReschedule.length > 0 && (
+            <Box sx={{ mt: 1 }}>
+              <Typography sx={{ fontSize: 14 }}>
+                Approving moves {preview.toReschedule.length} occurrence(s) that have not started to new dates, for example away from days the lab does not work.
+              </Typography>
+              {preview.toReschedule.slice(0, 8).map((m) => (
+                <Typography key={m.occurrenceId} sx={{ fontSize: 13, color: "text.secondary" }}>
+                  {CATEGORY_LABEL[m.category]} · {m.target} · {periodLabel(m.periodKey)}: {dates(m.oldTargetDate, m.oldWindowStart, m.oldWindowEnd)} → {dates(m.newTargetDate, m.newWindowStart, m.newWindowEnd)}
+                </Typography>
+              ))}
+              {preview.toReschedule.length > 8 && (
+                <Typography sx={{ fontSize: 13, color: "text.secondary" }}>…and {preview.toReschedule.length - 8} more.</Typography>
+              )}
+            </Box>
+          )}
           {preview.toRetire.length > 0 && (
             <Typography sx={{ fontSize: 14, mt: 1 }}>
               Approving retires {preview.toRetire.length} existing occurrence(s) that no longer match the master data.

@@ -143,8 +143,13 @@ public class MonitoringOccurrenceService
         var occurrences = await query.Include(o => o.Items).AsNoTracking().ToListAsync();
 
         var details = await _status.ComputeAsync(occurrences);
+        // A missed occurrence whose deviation has been closed has been dealt with; it is not work to do.
+        var dealtWith = (await _db.MonitoringDeviations.AsNoTracking()
+                .Where(d => d.Kind == DeviationKind.MissedOccurrence && d.Status == DeviationStatus.Closed)
+                .Select(d => d.MonitoringOccurrenceId).ToListAsync())
+            .ToHashSet();
         var open = occurrences
-            .Where(o => details[o.Id].Items.Any(i => i.Progress == ItemProgress.None))
+            .Where(o => !dealtWith.Contains(o.Id) && details[o.Id].Items.Any(i => i.Progress == ItemProgress.None))
             .OrderBy(o => o.WindowEnd).ThenBy(o => o.Id)
             .ToList();
 
@@ -169,7 +174,7 @@ public class MonitoringOccurrenceService
             .Where(e => e.MonitoringOccurrenceId == id)
             .OrderBy(e => e.PerformedAt).ThenBy(e => e.Id)
             .ToListAsync();
-        var userIds = events.Select(e => e.PerformedByUserId).Distinct().ToList();
+        var userIds = events.Where(e => e.PerformedByUserId.HasValue).Select(e => e.PerformedByUserId!.Value).Distinct().ToList();
         var secondIds = events.Where(e => e.SecondElectronicSignatureId.HasValue).Select(e => e.SecondElectronicSignatureId!.Value).ToList();
         var users = await _db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Username);
         var secondSigners = secondIds.Count == 0
@@ -178,7 +183,7 @@ public class MonitoringOccurrenceService
                 .Select(s => new { s.Id, s.User!.Username }).ToDictionaryAsync(s => s.Id, s => s.Username);
 
         var history = events.Select(e => new OccurrenceEventResponse(
-            e.Id, e.EventType, e.OldValue, e.NewValue, e.Reason, users.GetValueOrDefault(e.PerformedByUserId, "?"),
+            e.Id, e.EventType, e.OldValue, e.NewValue, e.Reason, e.PerformedByUserId is int by ? users.GetValueOrDefault(by, "?") : "System",
             e.PerformedAt, e.ElectronicSignatureId.HasValue,
             e.SecondElectronicSignatureId is int sid ? secondSigners.GetValueOrDefault(sid) : null)).ToList();
 
@@ -210,30 +215,36 @@ public class MonitoringOccurrenceService
 
         var today = _clock.LabToday;
         var date = request.TargetDate;
+        var nonWorking = await NonWorkingDatesAsync(date.AddDays(-45), date.AddDays(75));
         DateOnly? targetDate;
         DateOnly windowStart, windowEnd;
         string period, snapshot, described;
         switch (request.Kind)
         {
             case ManualWindowKind.Week:
-                windowStart = PlanWindowCalculator.WeekStart(date, settings.LabWeekStartDay);
-                windowEnd = windowStart.AddDays(6);
+                var labWeekStart = PlanWindowCalculator.WeekStart(date, settings.LabWeekStartDay);
+                (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
+                    labWeekStart, labWeekStart.AddDays(6), settings.WorkingWeekdays, nonWorking);
                 targetDate = null;
-                period = $"manual-W{windowStart:yyyyMMdd}";
+                period = $"manual-W{labWeekStart:yyyyMMdd}";
                 snapshot = "Manual entry, any day in the week";
                 described = $"the week {windowStart:yyyy-MM-dd} to {windowEnd:yyyy-MM-dd}";
                 break;
             case ManualWindowKind.Month:
-                windowStart = new DateOnly(date.Year, date.Month, 1);
-                windowEnd = new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
+                (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
+                    new DateOnly(date.Year, date.Month, 1),
+                    new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month)),
+                    settings.WorkingWeekdays, nonWorking);
                 targetDate = null;
                 period = $"manual-M{date:yyyyMM}";
                 snapshot = "Manual entry, any day in the month";
                 described = date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
                 break;
             default:
-                windowStart = date.AddDays(-settings.AcEarlyToleranceDays);
-                windowEnd = date.AddDays(settings.AcLateToleranceDays);
+                if (!PlanWindowCalculator.IsWorkingDay(date, settings.WorkingWeekdays, nonWorking))
+                    throw new BusinessRuleException($"{date:yyyy-MM-dd} is not a working day. Choose a working day.");
+                windowStart = PlanWindowCalculator.AddWorkingDays(date, -settings.AcEarlyToleranceDays, settings.WorkingWeekdays, nonWorking);
+                windowEnd = PlanWindowCalculator.AddWorkingDays(date, settings.AcLateToleranceDays, settings.WorkingWeekdays, nonWorking);
                 targetDate = date;
                 period = $"manual-{date:yyyyMMdd}";
                 snapshot = "Manual entry";
@@ -322,6 +333,17 @@ public class MonitoringOccurrenceService
         if (newTarget == occurrence.TargetDate && request.NewWindowEnd == occurrence.WindowEnd)
             throw new BusinessRuleException("Nothing is changing: the target date and the end of the window are the same.");
 
+        // Work is never planned on a day the lab does not work.
+        var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
+        var lowest = newTarget.HasValue && newTarget < request.NewWindowEnd ? newTarget.Value : request.NewWindowEnd;
+        var nonWorking = await NonWorkingDatesAsync(lowest.AddDays(-45), request.NewWindowEnd.AddDays(45));
+        if (request.NewWindowEnd != occurrence.WindowEnd
+            && !PlanWindowCalculator.IsWorkingDay(request.NewWindowEnd, settings.WorkingWeekdays, nonWorking))
+            throw new BusinessRuleException($"{request.NewWindowEnd:yyyy-MM-dd} is not a working day. Choose a working day for the end of the window.");
+        if (newTarget.HasValue && newTarget != occurrence.TargetDate
+            && !PlanWindowCalculator.IsWorkingDay(newTarget.Value, settings.WorkingWeekdays, nonWorking))
+            throw new BusinessRuleException($"{newTarget:yyyy-MM-dd} is not a working day. Choose a working day for the target date.");
+
         await UnitOfWork.RunAsync(_db, async () =>
         {
             var (first, second, secondUserId) = await SignBothAsync(
@@ -348,6 +370,10 @@ public class MonitoringOccurrenceService
     }
 
     // ---- helpers ----
+
+    private async Task<IReadOnlySet<DateOnly>> NonWorkingDatesAsync(DateOnly from, DateOnly to) =>
+        (await _db.LabCalendarDates.AsNoTracking().Where(d => d.Date >= from && d.Date <= to).Select(d => d.Date).ToListAsync())
+            .ToHashSet();
 
     private IQueryable<MonitoringOccurrence> LiveQuery() =>
         _db.MonitoringOccurrences.Where(o => o.CreatedByRevision!.Status != PlanRevisionStatus.Draft);
@@ -381,32 +407,11 @@ public class MonitoringOccurrenceService
         return detail.Items.Any(i => i.Progress != ItemProgress.None);
     }
 
-    // Signs as the acting user and as a second, different person who holds
-    // the approve permission. A wrong second password gives the same generic
-    // refusal as any failed signature.
-    private async Task<(ElectronicSignature First, ElectronicSignature Second, int SecondUserId)> SignBothAsync(
+    private Task<(ElectronicSignature First, ElectronicSignature Second, int SecondUserId)> SignBothAsync(
         SignatureMeaning meaning, int occurrenceId, string reason, int userId, string password,
-        string secondUsername, string secondPassword, string? ipAddress)
-    {
-        if (string.IsNullOrWhiteSpace(secondUsername))
-            throw new BusinessRuleException("A second person must sign as well. Enter their username and password.");
-
-        var second = await _db.Users.AsNoTracking().Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Username == secondUsername.Trim());
-        if (second is null || !second.IsActive)
-            throw new SignatureVerificationException("The second signature could not be verified. Nothing was changed.");
-        if (second.Id == userId)
-            throw new BusinessRuleException("The second signature must come from a different person.");
-
-        var mayApprove = await _db.RolePermissions
-            .AnyAsync(rp => rp.RoleId == second.RoleId && rp.Permission!.Code == PermissionConstants.MonitoringPlanApprove);
-        if (!mayApprove)
-            throw new BusinessRuleException($"{second.Username} does not hold the permission to sign monitoring plan changes.");
-
-        var first = await _signatures.SignAsync(userId, password, meaning, nameof(MonitoringOccurrence), occurrenceId, reason, ipAddress);
-        var other = await _signatures.SignAsync(second.Id, secondPassword, meaning, nameof(MonitoringOccurrence), occurrenceId, reason, ipAddress);
-        return (first, other, second.Id);
-    }
+        string secondUsername, string secondPassword, string? ipAddress) =>
+        DualSignature.SignAsync(_db, _signatures, meaning, nameof(MonitoringOccurrence), occurrenceId, reason, userId, password,
+            secondUsername, secondPassword, ipAddress);
 
     private MonitoringOccurrenceEvent NewEvent(
         int occurrenceId, OccurrenceEventType type, string? oldValue, string? newValue, string reason, int userId,

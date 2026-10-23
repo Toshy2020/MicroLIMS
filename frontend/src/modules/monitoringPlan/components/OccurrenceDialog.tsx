@@ -5,7 +5,7 @@ import {
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
-import { CATEGORY_LABEL } from "../statusDisplay";
+import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
 import type { OccurrenceDetail, SignedChange } from "../types";
 import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
 import { EMPTY_SIGNED_CHANGE, SignedChangeFields, isSignedChangeComplete } from "./SignedChangeFields";
@@ -40,6 +40,8 @@ export function OccurrenceDialog({
     setDetail(null);
     setMode("view");
     setSigned(EMPTY_SIGNED_CHANGE);
+    setNewTarget("");
+    setNewEnd("");
     setError(null);
     if (occurrenceId !== null) void load(occurrenceId);
   }, [occurrenceId, load]);
@@ -70,7 +72,7 @@ export function OccurrenceDialog({
 
   return (
     <Dialog open={occurrenceId !== null} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{summary ? `${summary.target} – ${summary.periodKey}` : "Occurrence"}</DialogTitle>
+      <DialogTitle>{summary ? `${summary.target} – ${periodLabel(summary.periodKey)}` : "Occurrence"}</DialogTitle>
       <DialogContent dividers>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {!summary && !error && <Typography>Loading…</Typography>}
@@ -125,7 +127,11 @@ export function OccurrenceDialog({
       <DialogActions>
         {mode === "view" ? (
           <>
-            {actionable && <Button onClick={() => setMode("window")}>Change window</Button>}
+            {actionable && (
+              <Button onClick={() => { setNewTarget(summary.targetDate ?? ""); setNewEnd(summary.windowEnd); setMode("window"); }}>
+                Change window
+              </Button>
+            )}
             {actionable && <Button color="error" onClick={() => setMode("skip")}>Skip</Button>}
             <Button onClick={onClose}>Close</Button>
           </>

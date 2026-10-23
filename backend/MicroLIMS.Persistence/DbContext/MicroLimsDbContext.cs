@@ -54,6 +54,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MonitoringOccurrence> MonitoringOccurrences => Set<MonitoringOccurrence>();
     public DbSet<MonitoringOccurrenceItem> MonitoringOccurrenceItems => Set<MonitoringOccurrenceItem>();
     public DbSet<MonitoringOccurrenceEvent> MonitoringOccurrenceEvents => Set<MonitoringOccurrenceEvent>();
+    public DbSet<MonitoringDeviation> MonitoringDeviations => Set<MonitoringDeviation>();
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<MachinePart> MachineParts => Set<MachinePart>();
     public DbSet<WaterSamplingPoint> WaterSamplingPoints => Set<WaterSamplingPoint>();
@@ -321,6 +322,22 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             e.HasOne(v => v.SecondElectronicSignature).WithMany().HasForeignKey(v => v.SecondElectronicSignatureId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(v => v.SecondElectronicSignatureId);
             e.HasIndex(v => v.MonitoringOccurrenceId);
+        });
+        modelBuilder.Entity<MonitoringDeviation>(e =>
+        {
+            e.Property(d => d.Number).HasMaxLength(30);
+            e.Property(d => d.Description).HasMaxLength(500);
+            e.Property(d => d.ClosureReason).HasMaxLength(1000);
+            e.HasOne(d => d.MonitoringOccurrence).WithMany().HasForeignKey(d => d.MonitoringOccurrenceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.FollowUpOccurrence).WithMany().HasForeignKey(d => d.FollowUpOccurrenceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.ClosureSignature).WithMany().HasForeignKey(d => d.ClosureSignatureId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.ClosureSecondSignature).WithMany().HasForeignKey(d => d.ClosureSecondSignatureId).OnDelete(DeleteBehavior.Restrict);
+            // One deviation of each kind per occurrence, so a scan can run again and again.
+            e.HasIndex(d => new { d.MonitoringOccurrenceId, d.Kind }).IsUnique();
+            e.HasIndex(d => d.Status);
+            e.HasIndex(d => d.FollowUpOccurrenceId);
+            e.HasIndex(d => d.ClosureSignatureId);
+            e.HasIndex(d => d.ClosureSecondSignatureId);
         });
         modelBuilder.Entity<RoomTestConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<WaterDepartment>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();

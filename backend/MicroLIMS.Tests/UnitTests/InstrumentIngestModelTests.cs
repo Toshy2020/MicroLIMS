@@ -129,17 +129,22 @@ public class InstrumentIngestModelTests
         await ok.SaveChangesAsync();
     }
 
-    [PostgresTheory]
-    [InlineData("ReportSha256", "'changed'")]
-    [InlineData("ReportStorageKey", "'ingest/changed.pdf'")]
-    [InlineData("ReportFileName", "'changed.pdf'")]
-    [InlineData("OperatorAsReported", "'someone else'")]
-    [InlineData("AcquiredAtLocalText", "'02-Oct-26 10:00:00'")]
-    [InlineData("ReceivedAt", "now() + interval '1 day'")]
-    [InlineData("TimeZoneIdUsed", "'UTC'")]
-    [InlineData("ClockOffsetSeconds", "42")]
-    [InlineData("VersionNo", "99")]
-    public async Task Version_evidence_columns_cannot_be_updated(string column, string newValue)
+    [PostgresFact]
+    public Task Version_evidence_columns_cannot_be_updated() =>
+        PostgresCases.RunAsync(new (string Column, string NewValue)[]
+        {
+            ("ReportSha256", "'changed'"),
+            ("ReportStorageKey", "'ingest/changed.pdf'"),
+            ("ReportFileName", "'changed.pdf'"),
+            ("OperatorAsReported", "'someone else'"),
+            ("AcquiredAtLocalText", "'02-Oct-26 10:00:00'"),
+            ("ReceivedAt", "now() + interval '1 day'"),
+            ("TimeZoneIdUsed", "'UTC'"),
+            ("ClockOffsetSeconds", "42"),
+            ("VersionNo", "99"),
+        }, c => Version_evidence_case(c.Column, c.NewValue));
+
+    private async Task Version_evidence_case(string column, string newValue)
     {
         var s = await SeedAsync();
         var ex = await RawFailsAsync(
@@ -199,12 +204,17 @@ public class InstrumentIngestModelTests
         Assert.Equal(RaiseException, ex.SqlState);
     }
 
-    [PostgresTheory]
-    [InlineData("ParserVersion", "'2.0'")]
-    [InlineData("ManifestJson", "'[1]'::jsonb")]
-    [InlineData("ParsedJson", "'[2]'::jsonb")]
-    [InlineData("CreatedAt", "now() + interval '1 day'")]
-    public async Task Payload_cannot_be_updated(string column, string newValue)
+    [PostgresFact]
+    public Task Payload_cannot_be_updated() =>
+        PostgresCases.RunAsync(new (string Column, string NewValue)[]
+        {
+            ("ParserVersion", "'2.0'"),
+            ("ManifestJson", "'[1]'::jsonb"),
+            ("ParsedJson", "'[2]'::jsonb"),
+            ("CreatedAt", "now() + interval '1 day'"),
+        }, c => Payload_update_case(c.Column, c.NewValue));
+
+    private async Task Payload_update_case(string column, string newValue)
     {
         var s = await SeedAsync();
         var ex = await RawFailsAsync(
@@ -238,11 +248,16 @@ public class InstrumentIngestModelTests
         Assert.Equal(RaiseException, ex.SqlState);
     }
 
-    [PostgresTheory]
-    [InlineData("SequenceName", "'renamed'")]
-    [InlineData("InjectionNumber", "7")]
-    [InlineData("AcquiredAtUtc", "now()")]
-    public async Task Ingest_identity_columns_cannot_be_updated(string column, string newValue)
+    [PostgresFact]
+    public Task Ingest_identity_columns_cannot_be_updated() =>
+        PostgresCases.RunAsync(new (string Column, string NewValue)[]
+        {
+            ("SequenceName", "'renamed'"),
+            ("InjectionNumber", "7"),
+            ("AcquiredAtUtc", "now()"),
+        }, c => Ingest_identity_case(c.Column, c.NewValue));
+
+    private async Task Ingest_identity_case(string column, string newValue)
     {
         var s = await SeedAsync();
         var ex = await RawFailsAsync(

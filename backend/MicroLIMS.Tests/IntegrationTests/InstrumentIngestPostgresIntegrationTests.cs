@@ -76,10 +76,11 @@ public class InstrumentIngestPostgresIntegrationTests
         return 1;
     }
 
-    [PostgresTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Concurrent_same_hash_creates_one_version(bool preexisting)
+    [PostgresFact]
+    public Task Concurrent_same_hash_creates_one_version() =>
+        PostgresCases.RunAsync(new[] { false, true }, Concurrent_same_hash_case);
+
+    private async Task Concurrent_same_hash_case(bool preexisting)
     {
         for (var round = 0; round < 5; round++)
         {
@@ -111,10 +112,11 @@ public class InstrumentIngestPostgresIntegrationTests
         }
     }
 
-    [PostgresTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Concurrent_different_hashes_get_consecutive_versions_and_only_the_newest_is_pending(bool preexisting)
+    [PostgresFact]
+    public Task Concurrent_different_hashes_get_consecutive_versions_and_only_the_newest_is_pending() =>
+        PostgresCases.RunAsync(new[] { false, true }, Concurrent_different_hashes_case);
+
+    private async Task Concurrent_different_hashes_case(bool preexisting)
     {
         for (var round = 0; round < 5; round++)
         {
@@ -172,23 +174,28 @@ public class InstrumentIngestPostgresIntegrationTests
 
     // jsonb rejects U+0000 and unpaired surrogates; the manifest must be
     // stored (as a JSON string) and quarantined instead of failing the receipt.
-    [PostgresTheory]
-    [InlineData("[{\"path\":\"a\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a\\udc00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a\\uD800\\u0041\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a\\u0000\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a{LONE}b\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("a{NUL}b", false)]
-    [InlineData("[]", false)]
-    [InlineData("[{\"path\":\"a\\\\ud800\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)] // escaped backslash + literal "ud800", then a REAL lone low escape
-    [InlineData("[{\"a\\\\ud800\\ude00\":1,\"path\":\"a\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a\\ud83d\",\"x\":\"\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a\\ud83d{LOW}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
-    [InlineData("[{\"path\":\"a\\\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)] // escaped backslash + literal text only
-    [InlineData("[{\"path\":\"a\\\\\\\\ud800\\\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
-    [InlineData("[{\"path\":\"a{PAIR}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
-    [InlineData("[{\"path\":\"a\\ud83d\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
-    public async Task Manifests_jsonb_cannot_hold_are_stored_and_quarantined_not_a_server_error(string manifest, bool valid)
+    [PostgresFact]
+    public Task Manifests_jsonb_cannot_hold_are_stored_and_quarantined_not_a_server_error() =>
+        PostgresCases.RunAsync(new (string Manifest, bool Valid)[]
+        {
+            ("[{\"path\":\"a\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a\\udc00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a\\uD800\\u0041\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a\\u0000\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a{LONE}b\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("a{NUL}b", false),
+            ("[]", false),
+            ("[{\"path\":\"a\\\\ud800\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false), // escaped backslash + literal "ud800", then a REAL lone low escape
+            ("[{\"a\\\\ud800\\ude00\":1,\"path\":\"a\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a\\ud83d\",\"x\":\"\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a\\ud83d{LOW}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false),
+            ("[{\"path\":\"a\\\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true), // escaped backslash + literal text only
+            ("[{\"path\":\"a\\\\\\\\ud800\\\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true),
+            ("[{\"path\":\"a{PAIR}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true),
+            ("[{\"path\":\"a\\ud83d\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true),
+        }, c => Manifest_case(c.Manifest, c.Valid));
+
+    private async Task Manifest_case(string manifest, bool valid)
     {
         var agent = await SeedAgentAsync();
         var (db, service) = NewService();

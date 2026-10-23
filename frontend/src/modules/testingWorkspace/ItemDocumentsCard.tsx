@@ -9,13 +9,14 @@ import {
   MaterialDocumentStatus,
 } from "../laboratoryConfiguration/items/services/ItemDocumentService";
 import { ItemDocumentActionButtons } from "../../components/ItemDocumentActionButtons";
+import { ItemStmPanel } from "../../components/ItemStmPanel";
 
 interface ItemDocumentsCardProps {
   itemId: number;
   itemName: string;
 }
 
-export function ItemDocumentsCard({ itemId, itemName }: ItemDocumentsCardProps) {
+export function ItemDocumentsCard({ itemId }: ItemDocumentsCardProps) {
   const theme = useTheme();
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,6 @@ export function ItemDocumentsCard({ itemId, itemName }: ItemDocumentsCardProps) 
     }
   }, [itemId]);
 
-  const currentSop = documents.find((d) => d.documentType === ItemDocumentType.Sop && d.status === MaterialDocumentStatus.Current);
   const currentVr = documents.find(
     (d) => d.documentType === ItemDocumentType.VerificationReport && d.status === MaterialDocumentStatus.Current
   );
@@ -74,19 +74,9 @@ export function ItemDocumentsCard({ itemId, itemName }: ItemDocumentsCardProps) 
         <Typography variant="caption" role="alert" sx={{ color: "error.main" }}>
           The controlled documents for this item could not be loaded. Reopen this record to try again.
         </Typography>
-      ) : !currentSop && !currentVr ? (
-        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          No controlled SOP or Verification Report attached to this item.
-        </Typography>
       ) : (
         <Stack spacing={1.25}>
-          {currentSop && (
-            <ItemDocRow
-              title="SOP"
-              doc={currentSop}
-              icon={<DescriptionIcon fontSize="small" sx={{ color: theme.custom.status.purple.text }} />}
-            />
-          )}
+          <ItemStmPanel itemId={itemId} />
 
           {currentVr && (
             <ItemDocRow
@@ -125,9 +115,7 @@ function ItemDocRow({
       }}
     >
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Stack direction="row" spacing={0.75} sx={{
-          alignItems: "center"
-        }}>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
           {icon}
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12, color: "text.primary" }}>
             {title}

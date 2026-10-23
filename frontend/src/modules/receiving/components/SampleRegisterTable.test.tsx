@@ -1,16 +1,25 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../theme";
-import { SampleRegisterTable, dueLabel } from "./SampleRegisterTable";
+import { SampleRegisterTable, dueLabel, clearSampleDocCountCache } from "./SampleRegisterTable";
 import type { SampleRecord } from "../types/receivingTypes";
+import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
+import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 
 vi.mock("../../../contexts/AuthContext", () => ({ useAuth: () => ({ permissions: [] }) }));
 vi.mock("../../laboratoryConfiguration/items/services/ItemDocumentService", () => ({
   ItemDocumentService: { getDocumentCountForItem: vi.fn().mockResolvedValue(0) }
 }));
+vi.mock("../../laboratoryConfiguration/items/services/ItemStmService", () => ({
+  ItemStmService: { getForItem: vi.fn().mockResolvedValue({ status: "NotLinked" }) }
+}));
 
-beforeEach(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+beforeEach(() => {
+  try { localStorage.clear(); } catch { /* ignore */ }
+  clearSampleDocCountCache();
+  vi.clearAllMocks();
+});
 afterEach(() => cleanup());
 
 const sample = (over: Partial<SampleRecord>): SampleRecord => ({
@@ -74,7 +83,7 @@ describe("SampleRegisterTable", () => {
     const now = Date.now();
     renderTable([
       sample({ sampleId: 91, dueAt: new Date(now - 3 * 3600e3).toISOString(), isOverdue: true }),
-      sample({ sampleId: 92, referenceNumber: "FP0926015", dueAt: new Date(now + 5.5 * 3600e3).toISOString(), isOverdue: false })
+      sample({ sampleId: 92, referenceNumber: "FP09260145", dueAt: new Date(now + 5.5 * 3600e3).toISOString(), isOverdue: false })
     ]);
     expect(screen.getByRole("columnheader", { name: "Due" })).toBeTruthy();
     expect(screen.getByText("Overdue by 3 h")).toBeTruthy();
@@ -102,6 +111,54 @@ describe("SampleRegisterTable row edge", () => {
     );
     const firstCell = screen.getByText("Osteocare Liquid").closest("td") as HTMLElement;
     expect(getComputedStyle(firstCell).boxShadow.toLowerCase()).toContain(lightTheme.custom.status.detected.text.toLowerCase());
+  });
+});
+
+describe("SampleRegisterTable document badge", () => {
+  it("shows badge with verification count + 1 when STM status is Effective", async () => {
+    vi.mocked(ItemDocumentService.getDocumentCountForItem).mockResolvedValue(1);
+    vi.mocked(ItemStmService.getForItem).mockResolvedValue({
+      status: "Effective",
+      sopNumber: "STM-RM-102",
+      documentMasterId: 42,
+      companyDocumentCode: "STM-RM-102",
+      title: "Spec",
+      documentTypeCode: "STM",
+      revisionNumber: "01",
+      effectiveDate: "2026-10-15T12:00:00Z",
+      controlledPdfFileId: 101,
+      controlledPdfFileName: "STM-RM-102_rev01.pdf",
+      canDownload: true,
+    });
+
+    renderTable([sample({ itemId: 101 })]);
+
+    await waitFor(() => {
+      expect(screen.getByText("2 Docs")).toBeTruthy();
+    });
+  });
+
+  it("shows badge with only verification count when STM status is not Effective", async () => {
+    vi.mocked(ItemDocumentService.getDocumentCountForItem).mockResolvedValue(1);
+    vi.mocked(ItemStmService.getForItem).mockResolvedValue({
+      status: "NotFound",
+      sopNumber: "STM-999",
+      documentMasterId: null,
+      companyDocumentCode: null,
+      title: null,
+      documentTypeCode: null,
+      revisionNumber: null,
+      effectiveDate: null,
+      controlledPdfFileId: null,
+      controlledPdfFileName: null,
+      canDownload: false,
+    });
+
+    renderTable([sample({ itemId: 102 })]);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 Docs")).toBeTruthy();
+    });
   });
 });
 

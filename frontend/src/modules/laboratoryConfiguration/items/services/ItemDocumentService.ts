@@ -86,9 +86,14 @@ export const ItemDocumentService = {
     // Named rather than `this` so a destructured reference still works.
     const request = ItemDocumentService.getDocumentsForItem(itemId)
       .then((docs) => {
-        documentCountCache.set(itemId, { count: docs.length, timestamp: Date.now() });
+        const count = docs.filter(
+          (d) =>
+            d.documentType === ItemDocumentType.VerificationReport &&
+            d.status === MaterialDocumentStatus.Current
+        ).length;
+        documentCountCache.set(itemId, { count, timestamp: Date.now() });
         documentCountInFlight.delete(itemId);
-        return docs.length;
+        return count;
       })
       .catch((err) => {
         documentCountInFlight.delete(itemId);

@@ -114,13 +114,13 @@ public sealed class AgentKeyAuthenticationHandler : AuthenticationHandler<Authen
     {
         try
         {
-            // At most 10 audit rows per client address per minute; the rest
-            // are only logged, so a key-guessing flood cannot fill the table.
+            // Capped per client address and across all addresses per minute;
+            // the rest are only logged, so a key-guessing flood cannot fill the table.
             var clientIp = Context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             if (!Context.RequestServices.GetRequiredService<AgentAuthFailureAuditLimiter>().TryAcquire(clientIp))
             {
-                Logger.LogWarning("Agent authentication failed from {ClientIp} ({Reason}); audit row suppressed after {Max} per minute.",
-                    clientIp, reason, AgentAuthFailureAuditLimiter.MaxPerWindow);
+                Logger.LogWarning("Agent authentication failed from {ClientIp} ({Reason}); audit row suppressed (per-address or global cap reached).",
+                    clientIp, reason);
                 return AuthenticateResult.Fail(reason);
             }
 

@@ -350,6 +350,83 @@ public class InstrumentIngestControllerTests
     }
 
     [Fact]
+    public void AuthFailureAuditCap_HasAGlobalCeilingAcrossAddresses_AndResetsWithTheWindow()
+    {
+        var time = new FixedTimeProvider(Now);
+        var limiter = new AgentAuthFailureAuditLimiter(time);
+
+        // 10 addresses x 10 = 100 rows: each within its own cap, together at the global ceiling.
+        for (var ip = 0; ip < 10; ip++)
+            for (var i = 0; i < AgentAuthFailureAuditLimiter.MaxPerWindow; i++)
+                Assert.True(limiter.TryAcquire($"10.0.0.{ip}"));
+        Assert.False(limiter.TryAcquire("10.0.1.1"));
+        Assert.False(limiter.TryAcquire("10.0.0.0"));
+
+        time.SetUtcNow(Now.AddSeconds(61));
+        Assert.True(limiter.TryAcquire("10.0.1.1"));
+    }
+
+    [Fact]
+    public void AuthFailureAuditCap_StopsTrackingNewAddressesAtTheHardCap_AndPrunesOncePerWindow()
+    {
+        var time = new FixedTimeProvider(Now);
+        var limiter = new AgentAuthFailureAuditLimiter(time, perIp: 10, global: 1000, maxTrackedIps: 3);
+
+        Assert.True(limiter.TryAcquire("1.1.1.1"));
+        Assert.True(limiter.TryAcquire("2.2.2.2"));
+        Assert.True(limiter.TryAcquire("3.3.3.3"));
+        Assert.False(limiter.TryAcquire("4.4.4.4")); // untracked and no room: treated as over the cap
+        Assert.True(limiter.TryAcquire("1.1.1.1"));  // tracked addresses are unaffected
+
+        time.SetUtcNow(Now.AddSeconds(61));          // stale entries pruned, room again
+        Assert.True(limiter.TryAcquire("4.4.4.4"));
+    }
+
+    [Fact]
+    public async Task BadKeysFromManyAddresses_StopAtTheConfiguredGlobalAuditCeiling()
+    {
+        var dbName = SeedAgents();
+        var (app, client) = await StartAsync(dbName, null,
+            ("RateLimiting:AgentAuthAudit:GlobalPerWindow", "3"));
+        await using var _ = app;
+        const string bad = "lims_agent_AGT-HPLC-01_notTheRealKeyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+
+        for (var ip = 1; ip <= 8; ip++)
+            Assert.Equal(HttpStatusCode.Unauthorized,
+                (await Send(client, HttpMethod.Get, "/api/instrument-ingest/receipt/x", bad, ip: $"203.0.113.{ip}")).StatusCode);
+
+        Assert.Equal(3, FailureRows(dbName));
+    }
+
+    [Fact]
+    public async Task RotatedOutKey_Gets401_AndTheNewKeyWorks()
+    {
+        var dbName = SeedAgents();
+        string newKey;
+        await using (var setup = NewDb(dbName))
+        {
+            var role = new Role { Name = "Admin", Type = RoleType.SystemAdministrator, IsActive = true };
+            setup.Roles.Add(role);
+            setup.SaveChanges();
+            setup.Users.Add(new User { Id = 7, Username = "adm", FullName = "Admin", RoleId = role.Id, Role = role, IsActive = true });
+            setup.SaveChanges();
+        }
+        var (app, client) = await StartAsync(dbName);
+        await using var _ = app;
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, Form(), KeyA)).StatusCode);
+
+        await using (var db = NewDb(dbName))
+        {
+            var service = new InstrumentAgentService(db, new UserSectionScopeService(db),
+                new AuditEventService(db, new DatabaseSequenceHelper(db)));
+            newKey = (await service.RotateKeyAsync(1, 7, default)).PlainKey;
+        }
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Post(client, Form(sequence: "SEQ-2"), KeyA)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, Form(sequence: "SEQ-2"), newKey)).StatusCode);
+    }
+
+    [Fact]
     public async Task Receipt_IsVisibleToTheOwningAgentOnly()
     {
         var dbName = SeedAgents();

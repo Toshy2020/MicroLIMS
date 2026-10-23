@@ -12,7 +12,14 @@ public static class AgentAuthenticationExtensions
     public static IServiceCollection AddMicroLimsAgentAuthentication(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton<AgentAuthFailureAuditLimiter>();
+        services.TryAddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            return new AgentAuthFailureAuditLimiter(
+                sp.GetRequiredService<TimeProvider>(),
+                config.GetValue("RateLimiting:AgentAuthAudit:PerIpPerWindow", AgentAuthFailureAuditLimiter.MaxPerWindow),
+                config.GetValue("RateLimiting:AgentAuthAudit:GlobalPerWindow", AgentAuthFailureAuditLimiter.MaxGlobalPerWindow));
+        });
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, AgentKeyAuthenticationHandler>(AgentKeyDefaults.Scheme, null);
         return services;

@@ -16,6 +16,7 @@ namespace MicroLIMS.Application.Services;
 // register/rotate; the database holds its SHA-256 hex.
 public class InstrumentAgentService
 {
+    private const int MaxCodeLength = 50; // InstrumentAgents.Code column width
     private const int KeyPrefixLength = 8; // first chars of the random part (the "lims_agent_" label is identical for every agent)
 
     private readonly IMicroLimsDbContext _db;
@@ -61,6 +62,8 @@ public class InstrumentAgentService
 
         // A revoked agent keeps its code (deactivate, never delete), so a replacement gets the next suffix.
         var code = existing.Count == 0 ? $"AGT-{equipment.Code}" : $"AGT-{equipment.Code}-{existing.Count + 1}";
+        if (code.Length > MaxCodeLength)
+            throw new InvalidOperationException($"Equipment code {equipment.Code} is too long for an agent code ({code.Length} characters, the limit is {MaxCodeLength}). Shorten the equipment code first.");
         var (plainKey, keyPrefix) = NewKey(code);
 
         var agent = new InstrumentAgent

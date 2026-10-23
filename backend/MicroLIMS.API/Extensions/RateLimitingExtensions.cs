@@ -102,7 +102,7 @@ public static class RateLimitingExtensions
                         : ClientIp(httpContext),
                     agent));
 
-            options.OnRejected =async (context, cancellationToken) =>
+            options.OnRejected = async (context, cancellationToken) =>
             {
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))

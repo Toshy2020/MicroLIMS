@@ -229,7 +229,7 @@ public interface IMicroLimsDbContext
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     // Saves a record whose generated identifier is guarded by the named
-    // unique index (see UniqueIndexNames). False when another user took the
+    // unique index(es) (see UniqueIndexNames). False when another user took the
     // same identifier first, so the caller can pick a fresh one and retry.
-    Task<bool> TrySaveChangesAsync(string uniqueIndexName);
+    Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames);
 }

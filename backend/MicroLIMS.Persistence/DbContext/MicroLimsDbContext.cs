@@ -444,8 +444,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         modelBuilder.Entity<MachinePartConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
     }
 
-    public Task<bool> TrySaveChangesAsync(string uniqueIndexName) =>
-        UniqueIndexSave.TrySaveChangesAsync(this, uniqueIndexName);
+    public Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames) =>
+        UniqueIndexSave.TrySaveChangesAsync(this, uniqueIndexNames);
 
     // Frozen Principle #5 - Traceability. Captures every insert/update/
     // delete automatically so no service can forget to log a change.

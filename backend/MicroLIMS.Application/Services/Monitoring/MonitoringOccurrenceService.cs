@@ -40,7 +40,7 @@ public enum ManualWindowKind
 }
 
 public record CreateManualOccurrenceRequest(
-    int MachineId, DateOnly TargetDate, List<int> MachinePartConfigurationIds, string? Reason,
+    int MachineId, DateOnly TargetDate, List<int>? MachinePartConfigurationIds, string? Reason,
     ManualWindowKind Kind = ManualWindowKind.Day);
 
 // A skip or a window change is signed by the person making it and by a
@@ -202,16 +202,21 @@ public class MonitoringOccurrenceService
             ?? throw new NotFoundException($"Machine {request.MachineId} not found.");
         if (!machine.IsActive) throw new BusinessRuleException($"Machine '{machine.Name}' is inactive.");
 
+        // The occurrence is for the machine itself: whichever parts are cleaned and sampled at the
+        // session fulfil it. Naming parts is optional and only for entries that must cover exactly those.
         var partIds = (request.MachinePartConfigurationIds ?? new List<int>()).Distinct().ToList();
-        if (partIds.Count == 0) throw new BusinessRuleException("Choose at least one machine part to sample.");
-        var configs = await _db.MachinePartConfigurations.AsNoTracking().Include(c => c.MachinePart)
-            .Where(c => partIds.Contains(c.Id)).ToListAsync();
-        var missing = partIds.Except(configs.Select(c => c.Id)).ToList();
-        if (missing.Count > 0) throw new NotFoundException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
-        var wrong = configs.Where(c => c.MachinePart?.MachineId != machine.Id).ToList();
-        if (wrong.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", wrong.Select(c => c.MachinePart?.Name))} do not belong to machine '{machine.Name}'.");
-        var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
-        if (inactive.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive.");
+        var configs = new List<MachinePartConfiguration>();
+        if (partIds.Count > 0)
+        {
+            configs = await _db.MachinePartConfigurations.AsNoTracking().Include(c => c.MachinePart)
+                .Where(c => partIds.Contains(c.Id)).ToListAsync();
+            var missing = partIds.Except(configs.Select(c => c.Id)).ToList();
+            if (missing.Count > 0) throw new NotFoundException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+            var wrong = configs.Where(c => c.MachinePart?.MachineId != machine.Id).ToList();
+            if (wrong.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", wrong.Select(c => c.MachinePart?.Name))} do not belong to machine '{machine.Name}'.");
+            var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
+            if (inactive.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive.");
+        }
 
         var today = _clock.LabToday;
         var date = request.TargetDate;
@@ -277,7 +282,10 @@ public class MonitoringOccurrenceService
             WindowStart = windowStart,
             WindowEnd = windowEnd,
             OriginalWindowEnd = windowEnd,
-            Items = configs.Select(c => new MonitoringOccurrenceItem { MachinePartConfigurationId = c.Id }).ToList()
+            // No parts named: one item for the machine itself.
+            Items = configs.Count == 0
+                ? new List<MonitoringOccurrenceItem> { new() }
+                : configs.Select(c => new MonitoringOccurrenceItem { MachinePartConfigurationId = c.Id }).ToList()
         };
         _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
         {

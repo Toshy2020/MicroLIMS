@@ -57,20 +57,40 @@ public class OccurrenceStatusService
 
             foreach (var item in occurrence.Items)
             {
-                var best = ItemProgress.None;
-                string? reference = null;
+                // "The machine itself": every part sampled counts, and the slowest one decides how far it has got.
+                var machineLevel = occurrence.TargetType == Domain.Enums.MonitoringTargetType.Machine && item.MachinePartConfigurationId is null;
+                var matched = new List<(ItemProgress Progress, string Reference)>();
                 foreach (var row in rows)
                 {
                     var facts = new LocationFacts(row.RoomTestConfigurationId, row.MachinePartConfigurationId, row.WaterSamplingPointId, row.TestCode);
                     if (!OccurrenceItemMatcher.Matches(occurrence, item, facts)) continue;
 
                     var progress = OccurrenceProgressRules.For(row.Status, row.Step, row.Superseded, row.Result);
-                    if (progress == ItemProgress.None || progress <= best) continue;
-                    best = progress;
-                    reference = row.Reference;
+                    if (progress == ItemProgress.None) continue;
+                    matched.Add((progress, row.Reference));
 
                     var on = DateOnly.FromDateTime(_clock.ToLabLocal(row.ReceivedAt));
                     if (latest is null || on > latest) latest = on;
+                }
+
+                var best = ItemProgress.None;
+                string? reference = null;
+                if (matched.Count > 0)
+                {
+                    if (machineLevel)
+                    {
+                        var slowest = matched.Min(m => m.Progress);
+                        best = slowest >= ItemProgress.Performed && matched.Any(m => m.Progress == ItemProgress.PerformedExcursion)
+                            ? ItemProgress.PerformedExcursion
+                            : slowest;
+                        reference = string.Join(", ", matched.Select(m => m.Reference).Distinct());
+                    }
+                    else
+                    {
+                        var top = matched.OrderByDescending(m => m.Progress).First();
+                        best = top.Progress;
+                        reference = top.Reference;
+                    }
                 }
                 items.Add(new OccurrenceItemState(item.Id, best, reference));
             }

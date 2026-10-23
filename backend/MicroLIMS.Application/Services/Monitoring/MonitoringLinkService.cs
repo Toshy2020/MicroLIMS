@@ -170,20 +170,28 @@ public class MonitoringLinkService
         {
             var label = $"{names.GetValueOrDefault(OccurrenceNameResolver.TargetKey(occurrence), "?")} ({occurrence.PeriodKey})";
             var linked = 0;
+            var machineLevel = false;
             foreach (var item in occurrence.Items)
             {
                 var state = details[occurrence.Id].Items.First(s => s.ItemId == item.Id);
-                var location = fresh.FirstOrDefault(l => l.MonitoringOccurrenceId == null
+                var matches = fresh.Where(l => l.MonitoringOccurrenceId == null
                     && OccurrenceItemMatcher.Matches(occurrence, item,
-                        new LocationFacts(l.RoomTestConfigurationId, l.MachinePartConfigurationId, l.WaterSamplingPointId, l.TestOrder?.TestCode ?? string.Empty)));
-                if (location is null) continue;
+                        new LocationFacts(l.RoomTestConfigurationId, l.MachinePartConfigurationId, l.WaterSamplingPointId, l.TestOrder?.TestCode ?? string.Empty)))
+                    .ToList();
+                if (matches.Count == 0) continue;
 
                 if (state.Progress != ItemProgress.None)
                     throw new BusinessRuleException(
                         $"{label} already has this test fulfilled by sample {state.SampleReference}. Untick it, or void that sample first.");
 
-                location.MonitoringOccurrenceId = occurrence.Id;
-                linked++;
+                // "The machine itself" takes every part sampled at this session; any other item takes one location.
+                var isMachine = occurrence.TargetType == MonitoringTargetType.Machine && item.MachinePartConfigurationId is null;
+                machineLevel |= isMachine;
+                foreach (var location in isMachine ? matches : matches.Take(1))
+                {
+                    location.MonitoringOccurrenceId = occurrence.Id;
+                    linked++;
+                }
             }
 
             if (linked == 0)
@@ -194,7 +202,9 @@ public class MonitoringLinkService
             {
                 MonitoringOccurrenceId = occurrence.Id,
                 EventType = OccurrenceEventType.Linked,
-                NewValue = $"{sample.ReferenceNumber}: {linked} of {occurrence.Items.Count} test(s)",
+                NewValue = machineLevel
+                    ? $"{sample.ReferenceNumber}: {linked} part(s) sampled"
+                    : $"{sample.ReferenceNumber}: {linked} of {occurrence.Items.Count} test(s)",
                 PerformedByUserId = userId,
                 PerformedAt = now
             });

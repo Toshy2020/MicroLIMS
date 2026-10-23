@@ -42,13 +42,15 @@ public static class OccurrenceNameResolver
                 .ToDictionaryAsync(c => c.Id, c => c.TestCode);
         var partConfigs = partConfigIds.Count == 0
             ? new Dictionary<int, string>()
-            : await _db.MachinePartConfigurations.AsNoTracking().Where(c => partConfigIds.Contains(c.Id))
-                .ToDictionaryAsync(c => c.Id, c => c.MachinePart!.Name + " - " + c.TestCode);
+            // Projected in the query: the part is not loaded with the configuration.
+            : (await _db.MachinePartConfigurations.AsNoTracking().Where(c => partConfigIds.Contains(c.Id))
+                    .Select(c => new { c.Id, Part = c.MachinePart!.Name, c.TestCode }).ToListAsync())
+                .ToDictionary(c => c.Id, c => c.Part + " - " + c.TestCode);
 
         foreach (var item in items)
             labels[item.Id] = item.RoomTestConfigurationId is int r ? roomConfigs.GetValueOrDefault(r, "?")
                 : item.MachinePartConfigurationId is int m ? partConfigs.GetValueOrDefault(m, "?")
-                : item.TestCode ?? "?";
+                : item.TestCode ?? "Machine: the parts sampled at the session";
         return labels;
     }
 

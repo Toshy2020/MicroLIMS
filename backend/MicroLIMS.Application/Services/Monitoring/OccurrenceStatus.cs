@@ -103,8 +103,11 @@ public static class OccurrenceItemMatcher
         {
             MonitoringTargetType.Room =>
                 item.RoomTestConfigurationId.HasValue && item.RoomTestConfigurationId == location.RoomTestConfigurationId,
+            // An item with no part is "the machine itself": any part sampled at the session fulfils it.
             MonitoringTargetType.Machine =>
-                item.MachinePartConfigurationId.HasValue && item.MachinePartConfigurationId == location.MachinePartConfigurationId,
+                item.MachinePartConfigurationId.HasValue
+                    ? item.MachinePartConfigurationId == location.MachinePartConfigurationId
+                    : location.MachinePartConfigurationId.HasValue,
             _ =>
                 location.WaterSamplingPointId.HasValue && location.WaterSamplingPointId == occurrence.WaterSamplingPointId
                 && item.TestCode != null && item.TestCode == location.TestCode

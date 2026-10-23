@@ -245,7 +245,7 @@ describe("EventDialog", () => {
     // Warning alert appears
     expect(
       await screen.findByText(
-        'A VendorVisit called "Annual Calibration Visit" is already on 2026-11-05.'
+        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
       )
     ).toBeTruthy();
     expect(EquipmentPlanService.updateEvent).not.toHaveBeenCalled();
@@ -254,7 +254,7 @@ describe("EventDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(
       screen.queryByText(
-        'A VendorVisit called "Annual Calibration Visit" is already on 2026-11-05.'
+        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
       )
     ).toBeNull();
 
@@ -262,7 +262,7 @@ describe("EventDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     expect(
       await screen.findByText(
-        'A VendorVisit called "Annual Calibration Visit" is already on 2026-11-05.'
+        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
       )
     ).toBeTruthy();
 
@@ -315,7 +315,7 @@ describe("EventDialog", () => {
     // Duplicate alert is displayed
     expect(
       await screen.findByText(
-        'A VendorVisit called "Service engineer visit" is already on 2026-11-05.'
+        'An event "Service engineer visit" (Vendor visit) is already on 2026-11-05.'
       )
     ).toBeTruthy();
 

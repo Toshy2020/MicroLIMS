@@ -213,7 +213,7 @@ describe("AddEventDialog", () => {
     // Warning alert appears
     expect(
       await screen.findByText(
-        'A VendorVisit called "vendor service visit" is already on 2026-10-25.'
+        'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.'
       )
     ).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -223,7 +223,7 @@ describe("AddEventDialog", () => {
     fireEvent.click(backBtn);
     expect(
       screen.queryByText(
-        'A VendorVisit called "vendor service visit" is already on 2026-10-25.'
+        'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.'
       )
     ).toBeNull();
 
@@ -231,7 +231,7 @@ describe("AddEventDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add event" }));
     expect(
       await screen.findByText(
-        'A VendorVisit called "vendor service visit" is already on 2026-10-25.'
+        'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.'
       )
     ).toBeTruthy();
 
@@ -282,7 +282,7 @@ describe("AddEventDialog", () => {
 
     // API error starting with 'A matching event already exists' triggers the duplicate warning alert
     expect(
-      await screen.findByText('A VendorVisit called "Annual Audit" is already on 2026-11.')
+      await screen.findByText('An event "Annual Audit" (Vendor visit) is already on 2026-11.')
     ).toBeTruthy();
 
     // Click Add anyway

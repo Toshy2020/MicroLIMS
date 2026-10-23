@@ -140,7 +140,7 @@ export function EventDialog({
       if (isDup) {
         const dateOrMonth = targetDate ?? targetMonth ?? "";
         setError(null);
-        setDuplicateWarning(`A ${type} called "${title.trim()}" is already on ${dateOrMonth}.`);
+        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
         return;
       }
     }
@@ -171,7 +171,7 @@ export function EventDialog({
       const msg = err?.response?.data?.message ?? err?.message ?? "";
       if (typeof msg === "string" && msg.startsWith("A matching event already exists")) {
         const dateOrMonth = targetDate ?? targetMonth ?? "";
-        setDuplicateWarning(`A ${type} called "${title.trim()}" is already on ${dateOrMonth}.`);
+        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
       } else {
         setError(msg || "Could not update the event.");
       }

@@ -180,6 +180,13 @@ public class InstrumentIngestPostgresIntegrationTests
     [InlineData("[{\"path\":\"a{LONE}b\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
     [InlineData("a{NUL}b", false)]
     [InlineData("[]", false)]
+    [InlineData("[{\"path\":\"a\\\\ud800\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)] // escaped backslash + literal "ud800", then a REAL lone low escape
+    [InlineData("[{\"a\\\\ud800\\ude00\":1,\"path\":\"a\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a\\ud83d\",\"x\":\"\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a\\ud83d{LOW}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", false)]
+    [InlineData("[{\"path\":\"a\\\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)] // escaped backslash + literal text only
+    [InlineData("[{\"path\":\"a\\\\\\\\ud800\\\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
+    [InlineData("[{\"path\":\"a{PAIR}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
     [InlineData("[{\"path\":\"a\\ud83d\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]", true)]
     public async Task Manifests_jsonb_cannot_hold_are_stored_and_quarantined_not_a_server_error(string manifest, bool valid)
     {

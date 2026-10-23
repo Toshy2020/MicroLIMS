@@ -314,28 +314,36 @@ public class InstrumentIngestService
         }
     }
 
-    private static readonly Regex UnicodeEscape = new(@"\\u([0-9a-fA-F]{4})", RegexOptions.Compiled);
-
+    // jsonb rejects U+0000 and unpaired surrogates in the DECODED strings, so
+    // the text is read like the JSON parser reads it: inside a string token a
+    // backslash consumes the next character and \uXXXX becomes one UTF-16
+    // unit. Each string token is followed by a newline so a pair cannot span
+    // two tokens; raw characters are checked as they stand.
     private static bool HasUnstorableCharacters(string text)
     {
+        // Raw U+0000 / lone surrogates anywhere. A raw half never pairs with
+        // an escaped half (the parser would see an invalid UTF-16 string).
+        if (ReplaceUnstorable(text) != text) return true;
+
+        var decoded = new StringBuilder(text.Length);
+        var inString = false;
         for (var i = 0; i < text.Length; i++)
         {
-            if (text[i] == '\0') return true;
-            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])) { i++; continue; }
-            if (char.IsSurrogate(text[i])) return true;
+            var c = text[i];
+            if (!inString) { decoded.Append(c); inString = c == '"'; continue; }
+            if (c == '"') { decoded.Append('\n'); inString = false; }
+            else if (c != (char)92 || i + 1 >= text.Length) decoded.Append(c); // 92 is the backslash
+            else if (text[++i] == 'u' && i + 4 < text.Length
+                     && int.TryParse(text.AsSpan(i + 1, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var unit))
+            {
+                decoded.Append((char)unit);
+                i += 4;
+            }
+            else decoded.Append(text[i]); // any other escaped character stands for itself here
         }
 
-        // Escapes: U+0000, a high surrogate not followed directly by a low
-        // one, or a low surrogate not preceded by a high one. (A literal
-        // backslash before "u0000" is flagged too; that only quarantines.)
-        var escapes = UnicodeEscape.Matches(text).Select(m => (m.Index, Code: Convert.ToInt32(m.Groups[1].Value, 16))).ToList();
-        foreach (var (index, code) in escapes)
-        {
-            if (code == 0) return true;
-            if (code is >= 0xD800 and <= 0xDBFF && !escapes.Any(e => e.Index == index + 6 && e.Code is >= 0xDC00 and <= 0xDFFF)) return true;
-            if (code is >= 0xDC00 and <= 0xDFFF && !escapes.Any(e => e.Index == index - 6 && e.Code is >= 0xD800 and <= 0xDBFF)) return true;
-        }
-        return false;
+        var s = decoded.ToString();
+        return ReplaceUnstorable(s) != s;
     }
 
     private static string ReplaceUnstorable(string text)

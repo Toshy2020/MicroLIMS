@@ -75,7 +75,8 @@ public class InstrumentIngestReceiveTests
 
     // xUnit's data round trip alters a lone surrogate or NUL in InlineData, so
     // those characters are written as tokens and built here.
-    internal static string Real(string s) => s.Replace("{LONE}", "\uD800").Replace("{NUL}", "\0");
+    internal static string Real(string s) => s.Replace("{LONE}", "\uD800").Replace("{NUL}", "\0")
+        .Replace("{PAIR}", "😀").Replace("{HIGH}", "\uD83D").Replace("{LOW}", "\uDE00");
 
     [Fact]
     public async Task Rejects_when_server_hash_differs()
@@ -293,6 +294,12 @@ public class InstrumentIngestReceiveTests
     [InlineData("[{\"path\":\"a\\uD800\\u0041\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // high not followed by low
     [InlineData("[{\"path\":\"a\\udc00\\ud800\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // reversed pair
     [InlineData("[{\"path\":\"a{LONE}b\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // raw lone surrogate
+    [InlineData("[{\"path\":\"a\\\\ud800\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // escaped backslash + literal "ud800", then a REAL lone low escape
+    [InlineData("[{\"a\\\\ud800\\ude00\":1,\"path\":\"a\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // the same in a key
+    [InlineData("[{\"path\":\"a\\ud83d\",\"x\":\"\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // halves in different tokens
+    [InlineData("[{\"path\":\"a\\ud83d{LONE}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // escaped high + raw lone high
+    [InlineData("[{\"path\":\"a\\ud83d{LOW}\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // escaped high + raw low: halves never mix
+    [InlineData("[{\"path\":\"a{HIGH}\\ude00\",\"sha256\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"bytes\":1}]")] // raw high + escaped low
     [InlineData("{LONE}")]
     public async Task Manifest_with_an_unpaired_surrogate_is_quarantined_and_kept_as_a_json_string(string manifest)
     {
@@ -305,12 +312,17 @@ public class InstrumentIngestReceiveTests
         Assert.Equal(System.Text.Json.JsonValueKind.String, stored.RootElement.ValueKind);
     }
 
-    [Fact]
-    public async Task Manifest_with_a_valid_surrogate_pair_is_accepted()
+    [Theory]
+    [InlineData("a\\ud83d\\ude00")]   // escaped pair
+    [InlineData("a{PAIR}")]           // raw pair
+    [InlineData("a\\\\ud800")]        // escaped backslash + literal text "ud800": no escape at all
+    [InlineData("a\\\\\\\\ud800")]    // two escaped backslashes + literal text
+    [InlineData("a\\\\u0000")]        // escaped backslash + literal text "u0000"
+    public async Task Manifest_with_valid_pairs_or_only_literal_escape_text_is_accepted(string path)
     {
         var w = NewWorld();
         var content = Bytes("x");
-        var manifest = $"[{{\"path\":\"a\\ud83d\\ude00\",\"sha256\":\"{Sha(content)}\",\"bytes\":1}}]";
+        var manifest = $"[{{\"path\":\"{Real(path)}\",\"sha256\":\"{Sha(content)}\",\"bytes\":1}}]";
         var receipt = await w.Service.ReceiveAsync(w.Agent, Request(content, manifest: manifest), default);
 
         Assert.Equal(InstrumentIngestStatus.PendingReview, receipt.Status);

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert, Box, Button, ButtonBase, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
-  Paper, Radio, RadioGroup, Stack, ToggleButton, ToggleButtonGroup, Typography, useTheme
+  Alert, Box, Button, ButtonBase, Checkbox, FormControlLabel,
+  Paper, Radio, RadioGroup, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography, useTheme
 } from "@mui/material";
+import { FloatingDialog } from "../../../components/FloatingDialog";
+import { SignatureDialog } from "../../../components/SignatureDialog";
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringDeviationApi } from "../services/MonitoringPlanService";
 import { CATEGORY_LABEL, MONTH_NAMES } from "../statusDisplay";
 import type { Deviation, DeviationClosure, DeviationList } from "../types";
-import { EMPTY_SIGNED_CHANGE, SignedChangeFields, isSignedChangeComplete } from "./SignedChangeFields";
 import { StatusPill } from "./StatusPill";
 
 const occurrenceDate = (d: Deviation) => d.targetDate ?? d.windowEnd;
@@ -53,7 +54,8 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
   const [busy, setBusy] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closure, setClosure] = useState<DeviationClosure>("Justified");
-  const [signed, setSigned] = useState(EMPTY_SIGNED_CHANGE);
+  const [reason, setReason] = useState("");
+  const [signing, setSigning] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -103,17 +105,25 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
       : `Opened ${r.missedOpened} for missed occurrences and ${r.excursionsOpened} for results over the action limit.`;
   }, "The scan failed.");
 
-  const submitClose = async () => {
-    await run(async () => {
-      const n = await MonitoringDeviationApi.close([...selected], closure, signed);
-      setClosing(false);
-      setSigned(EMPTY_SIGNED_CHANGE);
-      return `Closed ${n} deviation(s).`;
-    }, "The deviations were not closed.");
+  const trimmedReason = reason.trim();
+  const closureMeaning = `I am closing ${chosen.length} monitoring deviation(s) as "${CLOSURE_LABEL[closure]}". Reason: ${trimmedReason}`;
+
+  // Errors propagate to SignatureDialog, which shows them and stays open.
+  const sign = async (password: string, second?: { username: string; password: string }) => {
+    if (!second) return;
+    const n = await MonitoringDeviationApi.close([...selected], closure, {
+      reason: trimmedReason, password, secondSignerUsername: second.username, secondSignerPassword: second.password
+    });
+    setSigning(false);
+    setClosing(false);
+    setReason("");
+    setMessage(`Closed ${n} deviation(s).`);
+    await load();
   };
 
   const openClose = () => {
     setClosure(closureOptions[0] === "NotApplicableBeforeGoLive" ? "Justified" : closureOptions[0]);
+    setReason("");
     setClosing(true);
   };
 
@@ -229,26 +239,40 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
         </Paper>
       )}
 
-      <Dialog open={closing} onClose={() => !busy && setClosing(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Close {chosen.length} deviation(s)</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2}>
-            <RadioGroup value={closure} onChange={(e) => setClosure(e.target.value as DeviationClosure)}>
-              {closureOptions.map((c) => <FormControlLabel key={c} value={c} control={<Radio />} label={CLOSURE_LABEL[c]} />)}
-            </RadioGroup>
-            {closure === "NotApplicableBeforeGoLive" && (
-              <Alert severity="warning">The missed occurrences are skipped, so they stop counting against the plan. This cannot be undone.</Alert>
-            )}
-            <SignedChangeFields value={signed} onChange={setSigned} />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setClosing(false)} disabled={busy}>Cancel</Button>
-          <Button variant="contained" disabled={busy || !isSignedChangeComplete(signed)} onClick={() => void submitClose()}>
-            Sign and close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={closing && !signing}
+        title={`Close ${chosen.length} deviation(s)`}
+        onClose={() => setClosing(false)}
+        maxWidth="sm"
+        actions={
+          <>
+            <Button onClick={() => setClosing(false)}>Cancel</Button>
+            <Button variant="contained" disabled={trimmedReason.length < 5} onClick={() => setSigning(true)}>Continue to sign</Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <RadioGroup value={closure} onChange={(e) => setClosure(e.target.value as DeviationClosure)}>
+            {closureOptions.map((c) => <FormControlLabel key={c} value={c} control={<Radio />} label={CLOSURE_LABEL[c]} />)}
+          </RadioGroup>
+          {closure === "NotApplicableBeforeGoLive" && (
+            <Alert severity="warning">The missed occurrences are skipped, so they stop counting against the plan. This cannot be undone.</Alert>
+          )}
+          <TextField
+            label="Reason" required multiline minRows={2} value={reason}
+            onChange={(e) => setReason(e.target.value)} helperText="At least 5 characters."
+          />
+        </Stack>
+      </FloatingDialog>
+
+      <SignatureDialog
+        open={signing}
+        meaningStatement={closureMeaning}
+        requireSecondSigner
+        secondSignerHint="A different person who is allowed to approve monitoring plan changes signs as well."
+        onCancel={() => setSigning(false)}
+        onConfirm={sign}
+      />
     </Stack>
   );
 }

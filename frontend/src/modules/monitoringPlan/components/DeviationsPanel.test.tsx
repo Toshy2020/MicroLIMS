@@ -6,7 +6,10 @@ import { DeviationsPanel } from "./DeviationsPanel";
 import { MonitoringDeviationApi } from "../services/MonitoringPlanService";
 import type { Deviation, DeviationList } from "../types";
 
-vi.mock("../../../contexts/AuthContext", () => ({ useHasPermission: () => true }));
+vi.mock("../../../contexts/AuthContext", () => ({
+  useHasPermission: () => true,
+  useAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead" })
+}));
 vi.mock("../services/MonitoringPlanService", () => ({
   MonitoringDeviationApi: { list: vi.fn(), scan: vi.fn(), close: vi.fn() }
 }));
@@ -49,7 +52,7 @@ describe("DeviationsPanel", () => {
     expect(onPick).toHaveBeenCalledWith(500);
   });
 
-  it("closes the selected group with the chosen reason and signatures", async () => {
+  it("closes the selected group: the details first, then the signature dialog with both signatures", async () => {
     vi.mocked(MonitoringDeviationApi.close).mockResolvedValue(2);
     renderPanel();
     await screen.findByText("Missed occurrences · 2 sampling point(s)");
@@ -57,16 +60,25 @@ describe("DeviationsPanel", () => {
     fireEvent.click(screen.getByLabelText("Select SP 206"));
     fireEvent.click(screen.getByText("Close selected (2)"));
     fireEvent.click(screen.getByLabelText("Not applicable: it was before the plan went live"));
+    const next = screen.getByRole("button", { name: "Continue to sign" }) as HTMLButtonElement;
+    expect(next.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText(/^Reason/), { target: { value: "The plan went live in October" } });
-    fireEvent.change(screen.getByLabelText(/^Your password/), { target: { value: "pw-1" } });
+    fireEvent.click(next);
+
+    // The shared signature dialog: who signs, what it means, then the passwords.
+    expect(await screen.findByText("Electronic Signature")).toBeTruthy();
+    expect(screen.getByText(/I am closing 2 monitoring deviation\(s\)/)).toBeTruthy();
+    expect(screen.getByText(/Reason: The plan went live in October/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "pw-1" } });
     fireEvent.change(screen.getByLabelText(/^Second signer username/), { target: { value: "approver" } });
     fireEvent.change(screen.getByLabelText(/^Second signer password/), { target: { value: "pw-2" } });
-    fireEvent.click(screen.getByText("Sign and close"));
+    fireEvent.click(screen.getByRole("button", { name: "Sign" }));
 
     await waitFor(() => expect(MonitoringDeviationApi.close).toHaveBeenCalledTimes(1));
     expect(MonitoringDeviationApi.close).toHaveBeenCalledWith([1, 2], "NotApplicableBeforeGoLive", {
       reason: "The plan went live in October", password: "pw-1", secondSignerUsername: "approver", secondSignerPassword: "pw-2"
     });
+    expect(await screen.findByText("Closed 2 deviation(s).")).toBeTruthy();
   });
 
   it("does not let missed occurrences and excursions be closed together", async () => {

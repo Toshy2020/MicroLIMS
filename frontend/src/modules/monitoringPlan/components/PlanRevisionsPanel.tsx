@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useHasPermission } from "../../../contexts/AuthContext";
+import { SignatureDialog } from "../../../components/SignatureDialog";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
@@ -17,7 +18,7 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
   const canApprove = useHasPermission(PERMISSIONS.MONITORING_PLAN_APPROVE);
   const [revisions, setRevisions] = useState<PlanRevision[]>([]);
   const [preview, setPreview] = useState<PlanPreview | null>(null);
-  const [password, setPassword] = useState("");
+  const [signing, setSigning] = useState(false);
   const [reason, setReason] = useState("");
   const [goLive, setGoLive] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,6 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
     setError(null);
     try {
       await action();
-      setPassword("");
       setReason("");
       await load();
     } catch (e: any) {
@@ -126,24 +126,32 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
               {approved && (
                 <TextField label="Reason for the revision" required value={reason} onChange={(e) => setReason(e.target.value)} />
               )}
-              <TextField
-                label="Your password" type="password" autoComplete="current-password"
-                value={password} onChange={(e) => setPassword(e.target.value)}
-              />
               <Box>
                 <Button
-                  variant="contained" disabled={busy || !password || (!!approved && reason.trim().length < 5)}
-                  onClick={() => void run(async () => {
-                    await MonitoringPlanService.approve(draft.id, password, reason.trim() || undefined);
-                    onApproved();
-                  }, "Could not approve the plan.")}
+                  variant="contained" disabled={busy || (!!approved && reason.trim().length < 5)}
+                  onClick={() => setSigning(true)}
                 >
-                  Approve plan
+                  Continue to sign
                 </Button>
               </Box>
             </Stack>
           )}
         </Paper>
+      )}
+
+      {draft && (
+        <SignatureDialog
+          open={signing}
+          meaningStatement={`I am approving the ${year} monitoring plan (revision ${draft.revisionNumber}), which starts on ${draft.effectiveFrom} with ${draft.occurrenceCount} new occurrence(s).${reason.trim() ? ` Reason: ${reason.trim()}` : ""}`}
+          onCancel={() => setSigning(false)}
+          onConfirm={async (password) => {
+            await MonitoringPlanService.approve(draft.id, password, reason.trim() || undefined);
+            setSigning(false);
+            setReason("");
+            onApproved();
+            await load();
+          }}
+        />
       )}
     </Stack>
   );

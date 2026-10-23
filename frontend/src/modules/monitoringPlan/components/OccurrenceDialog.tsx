@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, TextField, Typography
-} from "@mui/material";
+import { Alert, Box, Button, Divider, Stack, TextField, Typography } from "@mui/material";
+import { FloatingDialog } from "../../../components/FloatingDialog";
+import { SignatureDialog } from "../../../components/SignatureDialog";
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
-import type { OccurrenceDetail, SignedChange } from "../types";
+import type { OccurrenceDetail } from "../types";
 import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
-import { EMPTY_SIGNED_CHANGE, SignedChangeFields, isSignedChangeComplete } from "./SignedChangeFields";
 
 type Mode = "view" | "skip" | "window";
 
+const MIN_REASON = 5;
+
+// One occurrence of the plan: what it needs, how far it has got, and its
+// history. Skipping it or changing its window is a change two people sign:
+// the form collects the details, then the shared signature dialog asks for
+// both signatures.
 export function OccurrenceDialog({
   occurrenceId, onClose, onChanged
 }: {
@@ -22,10 +27,10 @@ export function OccurrenceDialog({
   const canManage = useHasPermission(PERMISSIONS.MONITORING_PLAN_MANAGE);
   const [detail, setDetail] = useState<OccurrenceDetail | null>(null);
   const [mode, setMode] = useState<Mode>("view");
-  const [signed, setSigned] = useState<SignedChange>(EMPTY_SIGNED_CHANGE);
+  const [reason, setReason] = useState("");
   const [newTarget, setNewTarget] = useState("");
   const [newEnd, setNewEnd] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [signing, setSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (id: number) => {
@@ -39,41 +44,69 @@ export function OccurrenceDialog({
   useEffect(() => {
     setDetail(null);
     setMode("view");
-    setSigned(EMPTY_SIGNED_CHANGE);
+    setReason("");
     setNewTarget("");
     setNewEnd("");
+    setSigning(false);
     setError(null);
     if (occurrenceId !== null) void load(occurrenceId);
   }, [occurrenceId, load]);
 
   const summary = detail?.summary;
   const actionable = !!summary && canManage && !["Skipped", "Retired", "Performed", "PerformedExcursion"].includes(summary.status);
+  const trimmedReason = reason.trim();
+  const formComplete = trimmedReason.length >= MIN_REASON && (mode !== "window" || !!newEnd);
 
-  const submit = async () => {
-    if (!summary) return;
-    setBusy(true);
-    setError(null);
-    try {
-      if (mode === "skip") {
-        await MonitoringPlanService.skip(summary.id, summary.version, signed);
-      } else {
-        await MonitoringPlanService.changeWindow(summary.id, summary.version, {
-          ...signed, newTargetDate: newTarget || null, newWindowEnd: newEnd
-        });
-      }
-      onChanged();
-      onClose();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "The change was not saved.");
-    } finally {
-      setBusy(false);
+  const meaning = summary
+    ? mode === "skip"
+      ? `I am skipping ${summary.target} (${periodLabel(summary.periodKey)}). It will be removed from the work due and cannot be undone. Reason: ${trimmedReason}`
+      : `I am changing the window of ${summary.target} (${periodLabel(summary.periodKey)})${newTarget ? ` so that it is due on ${newTarget}` : ""} and ends on ${newEnd}. Reason: ${trimmedReason}`
+    : "";
+
+  // Errors propagate to SignatureDialog, which shows them and stays open.
+  const sign = async (password: string, second?: { username: string; password: string }) => {
+    if (!summary || !second) return;
+    const signed = {
+      reason: trimmedReason, password, secondSignerUsername: second.username, secondSignerPassword: second.password
+    };
+    if (mode === "skip") {
+      await MonitoringPlanService.skip(summary.id, summary.version, signed);
+    } else {
+      await MonitoringPlanService.changeWindow(summary.id, summary.version, {
+        ...signed, newTargetDate: newTarget || null, newWindowEnd: newEnd
+      });
     }
+    setSigning(false);
+    onChanged();
+    onClose();
   };
 
   return (
-    <Dialog open={occurrenceId !== null} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{summary ? `${summary.target} – ${periodLabel(summary.periodKey)}` : "Occurrence"}</DialogTitle>
-      <DialogContent dividers>
+    <>
+      <FloatingDialog
+        open={occurrenceId !== null && !signing}
+        title={summary ? `${summary.target} – ${periodLabel(summary.periodKey)}` : "Occurrence"}
+        onClose={onClose}
+        maxWidth="sm"
+        actions={
+          mode === "view" ? (
+            <>
+              {actionable && (
+                <Button onClick={() => { setNewTarget(summary.targetDate ?? ""); setNewEnd(summary.windowEnd); setMode("window"); }}>
+                  Change window
+                </Button>
+              )}
+              {actionable && <Button color="error" onClick={() => setMode("skip")}>Skip</Button>}
+              <Button onClick={onClose}>Close</Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => setMode("view")}>Back</Button>
+              <Button variant="contained" disabled={!formComplete} onClick={() => setSigning(true)}>Continue to sign</Button>
+            </>
+          )
+        }
+      >
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {!summary && !error && <Typography>Loading…</Typography>}
         {summary && detail && mode === "view" && (
@@ -112,41 +145,33 @@ export function OccurrenceDialog({
           </Stack>
         )}
         {summary && mode !== "view" && (
-          <Stack spacing={2}>
+          <Stack spacing={2} sx={{ mt: 1 }}>
             {mode === "window" && (
               <>
                 <TextField label="New target date" type="date" slotProps={{ inputLabel: { shrink: true } }} value={newTarget} onChange={(e) => setNewTarget(e.target.value)} />
-                <TextField label="New window end" type="date" required slotProps={{ inputLabel: { shrink: true } }} value={newEnd} onChange={(e) => setNewEnd(e.target.value)} />
+                <TextField
+                  label="New window end" type="date" required slotProps={{ inputLabel: { shrink: true } }} value={newEnd}
+                  onChange={(e) => setNewEnd(e.target.value)} helperText="Choose a working day."
+                />
               </>
             )}
             {mode === "skip" && <Alert severity="warning">Skipping removes this occurrence from the work due. It cannot be undone.</Alert>}
-            <SignedChangeFields value={signed} onChange={setSigned} />
+            <TextField
+              label="Reason" required multiline minRows={2} value={reason}
+              onChange={(e) => setReason(e.target.value)} helperText={`At least ${MIN_REASON} characters.`}
+            />
           </Stack>
         )}
-      </DialogContent>
-      <DialogActions>
-        {mode === "view" ? (
-          <>
-            {actionable && (
-              <Button onClick={() => { setNewTarget(summary.targetDate ?? ""); setNewEnd(summary.windowEnd); setMode("window"); }}>
-                Change window
-              </Button>
-            )}
-            {actionable && <Button color="error" onClick={() => setMode("skip")}>Skip</Button>}
-            <Button onClick={onClose}>Close</Button>
-          </>
-        ) : (
-          <>
-            <Button onClick={() => setMode("view")} disabled={busy}>Back</Button>
-            <Button
-              variant="contained" onClick={submit}
-              disabled={busy || !isSignedChangeComplete(signed) || (mode === "window" && !newEnd)}
-            >
-              {mode === "skip" ? "Sign and skip" : "Sign and change window"}
-            </Button>
-          </>
-        )}
-      </DialogActions>
-    </Dialog>
+      </FloatingDialog>
+
+      <SignatureDialog
+        open={signing}
+        meaningStatement={meaning}
+        requireSecondSigner
+        secondSignerHint="A different person who is allowed to approve monitoring plan changes signs as well."
+        onCancel={() => setSigning(false)}
+        onConfirm={sign}
+      />
+    </>
   );
 }

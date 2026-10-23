@@ -88,4 +88,67 @@ describe("EquipmentPlanPanel", () => {
       expect(onApproved).toHaveBeenCalled();
     });
   });
+
+  it("groups no-interval exceptions under a summary line with Show toggle while keeping other exception kinds visible", async () => {
+    const previewWithExceptions: EquipmentPlanPreview = {
+      ...preview,
+      exceptions: [
+        {
+          kind: "NoInterval",
+          taskType: null,
+          equipmentInventoryId: 101,
+          equipmentCode: "EQ-001",
+          message: "No calibration or maintenance interval configured.",
+          target: "EQ-001"
+        },
+        {
+          kind: "NoInterval",
+          taskType: null,
+          equipmentInventoryId: 102,
+          equipmentCode: "EQ-002",
+          message: "No calibration or maintenance interval configured.",
+          target: "EQ-002"
+        },
+        {
+          kind: "NoBaseline",
+          taskType: "Calibration",
+          equipmentInventoryId: 103,
+          equipmentCode: "EQ-003",
+          message: "No baseline calibration date entered.",
+          target: "EQ-003"
+        },
+        {
+          kind: "RetiredInstrument",
+          taskType: null,
+          equipmentInventoryId: 104,
+          equipmentCode: "EQ-004",
+          message: "Instrument EQ-004 is retired.",
+          target: "EQ-004"
+        }
+      ]
+    };
+
+    vi.mocked(EquipmentPlanService.getPreview).mockResolvedValue(previewWithExceptions);
+
+    render(<EquipmentPlanPanel year={2026} onApproved={vi.fn()} />);
+
+    // Non-interval exceptions are visible directly
+    expect(await screen.findByText("EQ-003 · Calibration: No baseline calibration date entered.")).toBeTruthy();
+    expect(screen.getByText("EQ-004 · Instrument: Instrument EQ-004 is retired.")).toBeTruthy();
+
+    // Summary line for no-interval exceptions
+    expect(screen.getByText("2 instruments have no calibration or maintenance interval")).toBeTruthy();
+
+    // Initially collapsed: EQ-001 and EQ-002 are not visible
+    expect(screen.queryByText("EQ-001 · Instrument: No calibration or maintenance interval configured.")).toBeNull();
+
+    // Click "Show"
+    const showToggle = screen.getByRole("button", { name: "Show" });
+    fireEvent.click(showToggle);
+
+    // Now expanded
+    expect(screen.getByText("EQ-001 · Instrument: No calibration or maintenance interval configured.")).toBeTruthy();
+    expect(screen.getByText("EQ-002 · Instrument: No calibration or maintenance interval configured.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Hide" })).toBeTruthy();
+  });
 });

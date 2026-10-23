@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -16,10 +17,14 @@ import {
   Select,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
+import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { EVENT_TYPE_LABEL } from "../statusDisplay";
 import type { CalendarEventResponse, CalendarEventType, UpdateCalendarEventRequest } from "../types";
 
@@ -39,9 +44,12 @@ export function EventDialog({
   const [currentEvent, setCurrentEvent] = useState<CalendarEventResponse | null>(event);
   const [type, setType] = useState<CalendarEventType>("VendorVisit");
   const [title, setTitle] = useState("");
+  const [dateMode, setDateMode] = useState<"day" | "month">("day");
   const [date, setDate] = useState("");
   const [month, setMonth] = useState("");
   const [note, setNote] = useState("");
+  const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
 
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -50,19 +58,47 @@ export function EventDialog({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (open) {
+      EquipmentInventoryService.getAll()
+        .then((items) => setEquipmentList(items || []))
+        .catch(() => setEquipmentList([]));
+    }
+  }, [open]);
+
+  useEffect(() => {
     setCurrentEvent(event);
     if (event) {
       setType(event.type);
       setTitle(event.title);
       setDate(event.date ?? "");
       setMonth(event.month ?? "");
+      setDateMode(event.month && !event.date ? "month" : "day");
       setNote(event.note ?? "");
       setShowCancel(false);
       setCancelReason("");
       setError(null);
       setBusy(false);
+
+      if (event.equipmentInventoryId) {
+        setSelectedEquipment({
+          id: event.equipmentInventoryId,
+          code: event.equipmentCode ?? "",
+          instrumentType: ""
+        } as EquipmentItem);
+      } else {
+        setSelectedEquipment(null);
+      }
     }
   }, [event]);
+
+  useEffect(() => {
+    if (currentEvent?.equipmentInventoryId && equipmentList.length > 0) {
+      const match = equipmentList.find((e) => e.id === currentEvent.equipmentInventoryId);
+      if (match) {
+        setSelectedEquipment((prev) => (prev?.id === match.id ? match : prev));
+      }
+    }
+  }, [equipmentList, currentEvent?.equipmentInventoryId]);
 
   if (!currentEvent) return null;
 
@@ -80,10 +116,10 @@ export function EventDialog({
     const body: UpdateCalendarEventRequest = {
       type,
       title: title.trim(),
-      date: date ? date : null,
-      month: month && !date ? month : null,
+      date: dateMode === "day" && date ? date : null,
+      month: dateMode === "month" && month ? month : null,
       note: note.trim() || null,
-      equipmentInventoryId: currentEvent.equipmentInventoryId
+      equipmentInventoryId: selectedEquipment ? selectedEquipment.id : null
     };
 
     try {
@@ -155,11 +191,28 @@ export function EventDialog({
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          {currentEvent.equipmentCode && (
+          {(currentEvent.equipmentCode || selectedEquipment?.code) && (
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Instrument: <strong>{currentEvent.equipmentCode}</strong>
+              Instrument: <strong>{selectedEquipment?.code ?? currentEvent.equipmentCode}</strong>
             </Typography>
           )}
+
+          <Autocomplete
+            size="small"
+            disabled={isCancelled}
+            options={equipmentList}
+            value={selectedEquipment}
+            onChange={(_, val) => setSelectedEquipment(val)}
+            getOptionLabel={(o) => `${o.code} — ${o.instrumentType}`}
+            isOptionEqualToValue={(o, v) => o.id === v.id}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Instrument (optional)"
+                placeholder="Search equipment register..."
+              />
+            )}
+          />
 
           <FormControl fullWidth size="small" disabled={isCancelled}>
             <InputLabel id="edit-event-type-label">Event type</InputLabel>
@@ -187,32 +240,55 @@ export function EventDialog({
             onChange={(e) => setTitle(e.target.value)}
           />
 
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+          <Box>
+            <ToggleButtonGroup
+              value={dateMode}
+              exclusive
+              size="small"
+              disabled={isCancelled}
+              onChange={(_, val) => {
+                if (val) {
+                  setDateMode(val);
+                  if (val === "day") {
+                    setMonth("");
+                  } else {
+                    setDate("");
+                  }
+                }
+              }}
+            >
+              <ToggleButton value="day" sx={{ textTransform: "none" }}>
+                On a day
+              </ToggleButton>
+              <ToggleButton value="month" sx={{ textTransform: "none" }}>
+                Whole month
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {dateMode === "day" ? (
             <TextField
               label="Specific date"
               type="date"
               size="small"
+              fullWidth
               disabled={isCancelled}
               value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                if (e.target.value) setMonth("");
-              }}
+              onChange={(e) => setDate(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
             />
+          ) : (
             <TextField
               label="Whole month"
               type="month"
               size="small"
+              fullWidth
               disabled={isCancelled}
               value={month}
-              onChange={(e) => {
-                setMonth(e.target.value);
-                if (e.target.value) setDate("");
-              }}
+              onChange={(e) => setMonth(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
             />
-          </Box>
+          )}
 
           <TextField
             label="Note"

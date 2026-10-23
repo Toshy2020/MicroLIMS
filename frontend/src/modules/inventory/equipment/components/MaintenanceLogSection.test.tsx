@@ -43,6 +43,14 @@ const mockEntries: MaintenanceLogEntryResponse[] = [
 ];
 
 describe("MaintenanceLogSection", () => {
+  it("renders the updated subtitle copy", () => {
+    vi.mocked(EquipmentPlanService.getMaintenanceLog).mockResolvedValue([]);
+    render(<MaintenanceLogSection equipmentId={1} equipmentCode="EQ-001" />);
+    expect(
+      screen.getByText("Every entry is signed and kept. A wrong entry is voided with a reason, never deleted.")
+    ).toBeTruthy();
+  });
+
   it("Continue to sign is disabled until required fields are filled", async () => {
     vi.mocked(EquipmentPlanService.getMaintenanceLog).mockResolvedValue(mockEntries);
 

@@ -38,33 +38,33 @@ export function EquipmentScheduleSection({
 }: Props) {
   const [calValue, setCalValue] = useState<string>(
     initialSchedule?.calibrationIntervalValue?.toString() ??
-      (equipment as any).calibrationIntervalValue?.toString() ??
+      equipment.calibrationIntervalValue?.toString() ??
       ""
   );
   const [calUnit, setCalUnit] = useState<string>(
     initialSchedule?.calibrationIntervalUnit ??
-      (equipment as any).calibrationIntervalUnit ??
+      equipment.calibrationIntervalUnit ??
       ""
   );
   const [lastCalibratedOn, setLastCalibratedOn] = useState<string>(
     initialSchedule?.lastCalibratedOn ??
-      (equipment as any).lastCalibratedOn ??
+      equipment.lastCalibratedOn ??
       ""
   );
 
   const [pmValue, setPmValue] = useState<string>(
     initialSchedule?.pmIntervalValue?.toString() ??
-      (equipment as any).pmIntervalValue?.toString() ??
+      equipment.pmIntervalValue?.toString() ??
       ""
   );
   const [pmUnit, setPmUnit] = useState<string>(
     initialSchedule?.pmIntervalUnit ??
-      (equipment as any).pmIntervalUnit ??
+      equipment.pmIntervalUnit ??
       ""
   );
   const [lastPmOn, setLastPmOn] = useState<string>(
     initialSchedule?.lastPmOn ??
-      (equipment as any).lastPmOn ??
+      equipment.lastPmOn ??
       ""
   );
 
@@ -84,8 +84,16 @@ export function EquipmentScheduleSection({
       setPmUnit(initialSchedule.pmIntervalUnit ?? "");
       setLastPmOn(initialSchedule.lastPmOn ?? "");
       setVersion(initialSchedule.version);
+    } else if (equipment) {
+      setCalValue(equipment.calibrationIntervalValue?.toString() ?? "");
+      setCalUnit(equipment.calibrationIntervalUnit ?? "");
+      setLastCalibratedOn(equipment.lastCalibratedOn ?? "");
+      setPmValue(equipment.pmIntervalValue?.toString() ?? "");
+      setPmUnit(equipment.pmIntervalUnit ?? "");
+      setLastPmOn(equipment.lastPmOn ?? "");
+      setVersion(equipment.version);
     }
-  }, [initialSchedule]);
+  }, [initialSchedule, equipment]);
 
   const handleSave = async () => {
     setError(null);
@@ -160,7 +168,9 @@ export function EquipmentScheduleSection({
     try {
       const res = await EquipmentPlanService.saveSchedule(equipment.id, payload, version);
       setVersion(res.version);
-      setSuccess("Schedule saved successfully.");
+      if (!onSaved) {
+        setSuccess("Schedule saved successfully.");
+      }
       onSaved?.(res);
     } catch (err: any) {
       setError(
@@ -301,7 +311,7 @@ export function EquipmentScheduleSection({
               slotProps={{ inputLabel: { shrink: true } }}
               value={lastPmOn}
               onChange={(e) => setLastPmOn(e.target.value)}
-              helperText="Audited baseline date from existing maintenance log records."
+              helperText="Last maintenance date from the paper logbook. Kept in the audit trail; not signed."
             />
           </Box>
         </Box>

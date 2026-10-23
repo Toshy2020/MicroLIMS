@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -12,9 +13,13 @@ import {
   MenuItem,
   Select,
   Stack,
-  TextField
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup
 } from "@mui/material";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
+import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { EVENT_TYPE_LABEL } from "../statusDisplay";
 import type { CalendarEventType, CreateCalendarEventRequest } from "../types";
 
@@ -37,9 +42,14 @@ export function AddEventDialog({
 }: AddEventDialogProps) {
   const [type, setType] = useState<CalendarEventType>("VendorVisit");
   const [title, setTitle] = useState("");
+  const [dateMode, setDateMode] = useState<"day" | "month">(
+    initialMonth && !initialDate ? "month" : "day"
+  );
   const [date, setDate] = useState("");
   const [month, setMonth] = useState("");
   const [note, setNote] = useState("");
+  const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -49,9 +59,14 @@ export function AddEventDialog({
       setTitle("");
       setDate(initialDate ?? "");
       setMonth(initialMonth ?? "");
+      setDateMode(initialMonth && !initialDate ? "month" : "day");
+      setSelectedEquipment(null);
       setNote("");
       setError(null);
       setBusy(false);
+      EquipmentInventoryService.getAll()
+        .then((items) => setEquipmentList(items || []))
+        .catch(() => setEquipmentList([]));
     }
   }, [open, initialDate, initialMonth]);
 
@@ -67,9 +82,10 @@ export function AddEventDialog({
     const payload: CreateCalendarEventRequest = {
       type,
       title: title.trim(),
-      date: date ? date : null,
-      month: month && !date ? month : null,
-      note: note.trim() || null
+      date: dateMode === "day" && date ? date : null,
+      month: dateMode === "month" && month ? month : null,
+      note: note.trim() || null,
+      equipmentInventoryId: selectedEquipment ? selectedEquipment.id : null
     };
 
     try {
@@ -121,31 +137,68 @@ export function AddEventDialog({
               placeholder="e.g. Annual balance calibration"
             />
 
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+            <Box>
+              <ToggleButtonGroup
+                value={dateMode}
+                exclusive
+                size="small"
+                onChange={(_, val) => {
+                  if (val) {
+                    setDateMode(val);
+                    if (val === "day") {
+                      setMonth("");
+                    } else {
+                      setDate("");
+                    }
+                  }
+                }}
+              >
+                <ToggleButton value="day" sx={{ textTransform: "none" }}>
+                  On a day
+                </ToggleButton>
+                <ToggleButton value="month" sx={{ textTransform: "none" }}>
+                  Whole month
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {dateMode === "day" ? (
               <TextField
                 label="Specific date"
                 type="date"
                 size="small"
+                fullWidth
                 value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  if (e.target.value) setMonth("");
-                }}
+                onChange={(e) => setDate(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
+            ) : (
               <TextField
                 label="Whole month"
                 type="month"
                 size="small"
+                fullWidth
                 value={month}
-                onChange={(e) => {
-                  setMonth(e.target.value);
-                  if (e.target.value) setDate("");
-                }}
+                onChange={(e) => setMonth(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
-                helperText="Use date OR month"
               />
-            </Box>
+            )}
+
+            <Autocomplete
+              size="small"
+              options={equipmentList}
+              value={selectedEquipment}
+              onChange={(_, val) => setSelectedEquipment(val)}
+              getOptionLabel={(o) => `${o.code} — ${o.instrumentType}`}
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Instrument (optional)"
+                  placeholder="Search equipment register..."
+                />
+              )}
+            />
 
             <TextField
               label="Note"

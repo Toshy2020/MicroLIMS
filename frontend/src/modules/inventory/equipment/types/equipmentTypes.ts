@@ -24,6 +24,12 @@ export interface EquipmentItem {
   // becomes required). Section navigation isn't eager-loaded by the API,
   // so the name is resolved client-side via useLaboratorySections.
   sectionId: number | null;
+  calibrationIntervalValue?: number | null;
+  calibrationIntervalUnit?: IntervalUnit | null;
+  lastCalibratedOn?: string | null;
+  pmIntervalValue?: number | null;
+  pmIntervalUnit?: IntervalUnit | null;
+  lastPmOn?: string | null;
 }
 
 export interface EquipmentStatusHistoryItem {

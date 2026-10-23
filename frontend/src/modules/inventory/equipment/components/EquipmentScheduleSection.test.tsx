@@ -41,8 +41,7 @@ describe("EquipmentScheduleSection", () => {
     render(<EquipmentScheduleSection equipment={mockEquipment} />);
 
     const calValueInput = screen.getByLabelText(/Calibration Interval/i);
-    await userEvent.clear(calValueInput);
-    await userEvent.type(calValueInput, "6");
+    fireEvent.change(calValueInput, { target: { value: "6" } });
 
     const saveBtn = screen.getByRole("button", { name: /Save Schedule/i });
     fireEvent.click(saveBtn);
@@ -72,8 +71,7 @@ describe("EquipmentScheduleSection", () => {
     render(<EquipmentScheduleSection equipment={mockEquipment} />);
 
     const calValueInput = screen.getByLabelText(/Calibration Interval/i);
-    await userEvent.clear(calValueInput);
-    await userEvent.type(calValueInput, "6");
+    fireEvent.change(calValueInput, { target: { value: "6" } });
 
     // Select Calibration Unit: "Months"
     const calUnitSelect = screen.getByLabelText(/Calibration Unit/i);
@@ -94,5 +92,39 @@ describe("EquipmentScheduleSection", () => {
         4
       );
     });
+  });
+
+  it("renders the updated maintenance baseline helper text", () => {
+    render(<EquipmentScheduleSection equipment={mockEquipment} />);
+    expect(
+      screen.getByText("Last maintenance date from the paper logbook. Kept in the audit trail; not signed.")
+    ).toBeTruthy();
+  });
+
+  it("initializes from equipment fields without as any and updates when reloaded equipment is passed", () => {
+    const equipWithSchedule: EquipmentItem = {
+      ...mockEquipment,
+      calibrationIntervalValue: 12,
+      calibrationIntervalUnit: "Months",
+      lastCalibratedOn: "2026-02-01",
+      pmIntervalValue: 3,
+      pmIntervalUnit: "Months",
+      lastPmOn: "2026-02-15"
+    };
+
+    const { rerender } = render(<EquipmentScheduleSection equipment={equipWithSchedule} />);
+    expect(screen.getByDisplayValue("12")).toBeTruthy();
+    expect(screen.getByDisplayValue("2026-02-01")).toBeTruthy();
+    expect(screen.getByDisplayValue("3")).toBeTruthy();
+    expect(screen.getByDisplayValue("2026-02-15")).toBeTruthy();
+
+    const reloaded: EquipmentItem = {
+      ...equipWithSchedule,
+      calibrationIntervalValue: 24,
+      lastCalibratedOn: "2026-05-10"
+    };
+    rerender(<EquipmentScheduleSection equipment={reloaded} />);
+    expect(screen.getByDisplayValue("24")).toBeTruthy();
+    expect(screen.getByDisplayValue("2026-05-10")).toBeTruthy();
   });
 });

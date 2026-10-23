@@ -100,7 +100,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
             Equipment Maintenance Logbook
           </Typography>
           <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.25 }}>
-            Append-only in-app maintenance history for preventive maintenance, repairs, and vendor servicing.
+            Every entry is signed and kept. A wrong entry is voided with a reason, never deleted.
           </Typography>
         </Box>
         <Button

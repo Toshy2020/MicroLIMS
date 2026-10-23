@@ -18,6 +18,7 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
 
   const [revisions, setRevisions] = useState<EquipmentPlanRevision[]>([]);
   const [preview, setPreview] = useState<EquipmentPlanPreview | null>(null);
+  const [showNoInterval, setShowNoInterval] = useState(false);
   const [signing, setSigning] = useState(false);
   const [reason, setReason] = useState("");
   const [goLive, setGoLive] = useState("");
@@ -136,18 +137,55 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
             </Typography>
           )}
 
-          {preview.exceptions.length > 0 && (
-            <Box sx={{ mt: 1.5 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-                Not planned, or adjusted ({preview.exceptions.length})
-              </Typography>
-              {preview.exceptions.map((x, i) => (
-                <Typography key={i} sx={{ fontSize: 13, color: "text.secondary" }}>
-                  {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
+          {preview.exceptions.length > 0 && (() => {
+            const noIntervals = preview.exceptions.filter(
+              (x) => x.kind === "NoInterval" || x.message?.toLowerCase().includes("no calibration or maintenance interval")
+            );
+            const otherExceptions = preview.exceptions.filter(
+              (x) => x.kind !== "NoInterval" && !x.message?.toLowerCase().includes("no calibration or maintenance interval")
+            );
+
+            return (
+              <Box sx={{ mt: 1.5 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                  Not planned, or adjusted ({preview.exceptions.length})
                 </Typography>
-              ))}
-            </Box>
-          )}
+
+                {noIntervals.length > 0 && (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                        {noIntervals.length} {noIntervals.length === 1 ? "instrument has" : "instruments have"} no calibration or maintenance interval
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowNoInterval((prev) => !prev)}
+                        sx={{ textTransform: "none", fontSize: 12, p: 0, minWidth: "auto" }}
+                      >
+                        {showNoInterval ? "Hide" : "Show"}
+                      </Button>
+                    </Box>
+                    {showNoInterval && (
+                      <Box sx={{ mt: 0.5 }}>
+                        {noIntervals.map((x, i) => (
+                          <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", pl: 2 }}>
+                            {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {otherExceptions.map((x, i) => (
+                  <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
+                    {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
+                  </Typography>
+                ))}
+              </Box>
+            );
+          })()}
 
           {isGeneratingUser && (
             <Alert severity="warning" sx={{ mt: 2 }}>

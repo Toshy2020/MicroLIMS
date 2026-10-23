@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Box,
@@ -10,6 +10,7 @@ import {
   Tooltip,
   Tabs,
   Tab,
+  Snackbar,
   useTheme
 } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -72,6 +73,10 @@ export function EquipmentDetailsDialog({
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRecordCalibrationOpen, setIsRecordCalibrationOpen] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" } | null>(null);
+
+  const prevOpenRef = useRef(false);
+  const prevIdRef = useRef<number | null>(null);
 
   const loadStatusHistory = async (id: number) => {
     try {
@@ -87,9 +92,19 @@ export function EquipmentDetailsDialog({
 
   useEffect(() => {
     if (equipment && open) {
+      const isNewOpen = !prevOpenRef.current;
+      const isDifferentEquipment = prevIdRef.current !== equipment.id;
+      if (isNewOpen || isDifferentEquipment) {
+        setActiveTab(0);
+        setMessage(null);
+        setNotification(null);
+      }
       loadStatusHistory(equipment.id);
-      setMessage(null);
-      setActiveTab(0);
+      prevOpenRef.current = true;
+      prevIdRef.current = equipment.id;
+    } else if (!open) {
+      prevOpenRef.current = false;
+      prevIdRef.current = null;
     }
   }, [equipment, open]);
 
@@ -143,9 +158,10 @@ export function EquipmentDetailsDialog({
           <Tab label="History" />
         </Tabs>
 
-        {activeTab === 0 && (
-          <>
-            {/* SECTION 1 — Equipment Specifications & Status */}
+        <Box sx={{ minHeight: { xs: "auto", sm: 420 } }}>
+          {activeTab === 0 && (
+            <>
+              {/* SECTION 1 — Equipment Specifications & Status */}
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
                 Instrument Information
@@ -310,7 +326,7 @@ export function EquipmentDetailsDialog({
           <EquipmentScheduleSection
             equipment={equipment}
             onSaved={() => {
-              setMessage({ text: "Schedule saved successfully.", ok: true });
+              setNotification({ text: "Schedule saved successfully.", severity: "success" });
               onEquipmentUpdated();
             }}
             onRecordCalibrationClick={() => setIsRecordCalibrationOpen(true)}
@@ -330,7 +346,21 @@ export function EquipmentDetailsDialog({
         {activeTab === 3 && (
           <EquipmentHistoryPrint equipmentId={equipment.id} />
         )}
+        </Box>
       </FloatingDialog>
+
+      <Snackbar
+        open={Boolean(notification)}
+        autoHideDuration={5000}
+        onClose={() => setNotification(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        {notification ? (
+          <Alert severity={notification.severity} onClose={() => setNotification(null)} sx={{ borderRadius: 1.5 }}>
+            {notification.text}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
 
       {/* Upload Certificate Dialog */}
       <UploadEquipmentDocumentDialog

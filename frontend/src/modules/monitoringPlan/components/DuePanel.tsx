@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Alert, Box, ButtonBase, Paper, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
 import { CATEGORY_LABEL, MONTH_NAMES } from "../statusDisplay";
-import type { DueResult, OccurrenceSummary } from "../types";
+import type { DueResult, EquipmentTaskItem, OccurrenceSummary } from "../types";
 import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
 import { StatusPill } from "./StatusPill";
 
@@ -72,29 +72,51 @@ function MissedPointRow({ point, thisYear, onPick }: { point: MissedPoint; thisY
   );
 }
 
+export interface DuePanelProps {
+  due: DueResult | null;
+  equipmentTasks?: EquipmentTaskItem[];
+  onPick: (o: OccurrenceSummary) => void;
+  onPickTask?: (t: EquipmentTaskItem) => void;
+}
+
 // What is still to do this month, kept apart from what was left over from
-// earlier months. Those are listed per sampling point with the dates they
-// were missed, so a long backlog stays short and does not bury this month.
-// From the warning day of the month on it opens with a notice.
-export function DuePanel({ due, onPick }: { due: DueResult | null; onPick: (o: OccurrenceSummary) => void }) {
+// earlier months. Shows occurrences and equipment tasks.
+export function DuePanel({
+  due,
+  equipmentTasks = [],
+  onPick,
+  onPickTask
+}: DuePanelProps) {
   const [picked, setPicked] = useState<Filter | null>(null);
 
-  const { current, earlier, points } = useMemo(() => {
+  const { current, earlier, points, earlierEq, currentEq, totalCount } = useMemo(() => {
     const thisMonth = due?.today.slice(0, 7) ?? "";
     const items = due?.items ?? [];
     const earlierItems = items.filter((o) => o.windowEnd.slice(0, 7) < thisMonth);
+
+    // Active equipment tasks
+    const activeEq = equipmentTasks.filter((t) => !t.completedOn && t.status !== "Done" && t.status !== "Retired");
+    const eEq = activeEq.filter((t) => t.dueDate.slice(0, 7) < thisMonth && t.status === "Overdue");
+    const cEq = activeEq.filter((t) => !eEq.includes(t));
+
     return {
       current: items.filter((o) => o.windowEnd.slice(0, 7) >= thisMonth),
       earlier: earlierItems,
-      points: groupByPoint(earlierItems)
+      points: groupByPoint(earlierItems),
+      earlierEq: eEq,
+      currentEq: cEq,
+      totalCount: items.length + activeEq.length
     };
-  }, [due]);
+  }, [due, equipmentTasks]);
 
   if (!due) return null;
 
-  const filter: Filter = picked ?? (current.length > 0 || earlier.length === 0 ? "month" : "earlier");
-  const showEarlier = filter !== "month" && points.length > 0;
-  const showCurrent = filter !== "earlier" && current.length > 0;
+  const currentTotal = current.length + currentEq.length;
+  const earlierTotal = earlier.length + earlierEq.length;
+
+  const filter: Filter = picked ?? (currentTotal > 0 || earlierTotal === 0 ? "month" : "earlier");
+  const showEarlier = filter !== "month" && (points.length > 0 || earlierEq.length > 0);
+  const showCurrent = filter !== "earlier" && currentTotal > 0;
   const thisYear = due.today.slice(0, 4);
 
   const sectionHeading = (text: string) => (
@@ -116,6 +138,11 @@ export function DuePanel({ due, onPick }: { due: DueResult | null; onPick: (o: O
           {points.length} sampling point(s) have {earlier.length} occurrence(s) from earlier months that were not performed and need review. Track and close them on the Deviations tab.
         </Alert>
       )}
+      {earlierEq.length > 0 && (
+        <Alert severity="error" sx={{ mb: 1 }}>
+          {earlierEq.length} equipment task(s) from earlier months are overdue and need attention.
+        </Alert>
+      )}
       {due.showWarning && current.length > 0 && (
         <Alert severity="warning" sx={{ mb: 1 }}>
           It is day {Number(due.today.slice(8))} of the month and {current.length} occurrence(s) this month are still not performed.
@@ -125,22 +152,46 @@ export function DuePanel({ due, onPick }: { due: DueResult | null; onPick: (o: O
         exclusive size="small" value={filter} aria-label="Filter the due list" sx={{ mb: 1 }}
         onChange={(_, v: Filter | null) => { if (v) setPicked(v); }}
       >
-        <ToggleButton value="month">This month ({current.length})</ToggleButton>
-        <ToggleButton value="earlier">Earlier months ({earlier.length})</ToggleButton>
-        <ToggleButton value="all">All ({due.items.length})</ToggleButton>
+        <ToggleButton value="month">This month ({currentTotal})</ToggleButton>
+        <ToggleButton value="earlier">Earlier months ({earlierTotal})</ToggleButton>
+        <ToggleButton value="all">All ({totalCount})</ToggleButton>
       </ToggleButtonGroup>
 
       {!showEarlier && !showCurrent && <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Nothing outstanding.</Typography>}
       <Box sx={{ maxHeight: 320, overflowY: "auto" }} tabIndex={0} aria-label="Due occurrences">
         {showEarlier && (
           <Box>
-            {sectionHeading(`Earlier months · ${points.length} sampling point(s)`)}
-            {points.map((p) => <MissedPointRow key={p.key} point={p} thisYear={thisYear} onPick={onPick} />)}
+            {points.length > 0 && (
+              <>
+                {sectionHeading(`Earlier months · ${points.length} sampling point(s)`)}
+                {points.map((p) => <MissedPointRow key={p.key} point={p} thisYear={thisYear} onPick={onPick} />)}
+              </>
+            )}
+            {earlierEq.length > 0 && (
+              <>
+                {sectionHeading(`Earlier months · ${earlierEq.length} equipment task(s)`)}
+                {earlierEq.map((t) => (
+                  <ButtonBase
+                    key={`eq-${t.id}`}
+                    onClick={() => onPickTask?.(t)}
+                    sx={{ display: "flex", width: "100%", justifyContent: "space-between", py: 0.5, px: 0.75, textAlign: "left", borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
+                  >
+                    <Box>
+                      <Typography sx={{ fontSize: 14 }}>{t.equipmentCode}</Typography>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                        {t.type === "Calibration" ? "Calibration" : "Preventive maintenance"} · due {t.dueDate}
+                      </Typography>
+                    </Box>
+                    <StatusPill tone="detected" symbol="▲" size="small">Overdue</StatusPill>
+                  </ButtonBase>
+                ))}
+              </>
+            )}
           </Box>
         )}
         {showCurrent && (
           <Box>
-            {sectionHeading(`This month · ${current.length}`)}
+            {sectionHeading(`This month · ${currentTotal}`)}
             {current.map((o) => (
               <ButtonBase
                 key={o.id}
@@ -156,6 +207,25 @@ export function DuePanel({ due, onPick }: { due: DueResult | null; onPick: (o: O
                 <OccurrenceStatusChip status={o.status} late={o.late} />
               </ButtonBase>
             ))}
+            {currentEq.map((t) => {
+              const tone = t.status === "Overdue" ? "detected" : t.status === "Due" ? "inconclusive" : "pending";
+              const symbol = t.status === "Overdue" ? "▲" : t.status === "Due" ? "●" : "○";
+              return (
+                <ButtonBase
+                  key={`eq-${t.id}`}
+                  onClick={() => onPickTask?.(t)}
+                  sx={{ display: "flex", width: "100%", justifyContent: "space-between", py: 0.5, px: 0.75, textAlign: "left", borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
+                >
+                  <Box>
+                    <Typography sx={{ fontSize: 14 }}>{t.equipmentCode}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                      {t.type === "Calibration" ? "Calibration" : "Preventive maintenance"} · due {t.dueDate}
+                    </Typography>
+                  </Box>
+                  <StatusPill tone={tone} symbol={symbol} size="small">{t.status}</StatusPill>
+                </ButtonBase>
+              );
+            })}
           </Box>
         )}
       </Box>

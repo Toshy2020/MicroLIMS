@@ -280,6 +280,7 @@ ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead
 ItemController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
+ItemController.GetStm(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 ItemController.Unfreeze(Int32): SystemAdministrator,SectionHead
 ItemController.Update(Int32, ItemSaveRequest): SystemAdministrator,SectionHead
 ItemDocumentController.GetContent(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst

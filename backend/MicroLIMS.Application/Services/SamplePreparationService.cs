@@ -31,15 +31,18 @@ public class SamplePreparationService
     private readonly IMicroLimsDbContext _db;
     private readonly PreparationParameterValidator _validator;
     private readonly IElectronicSignatureService _signatures;
+    private readonly IUserSectionScopeService _scope;
 
     public SamplePreparationService(
         IMicroLimsDbContext db,
         PreparationParameterValidator validator,
-        IElectronicSignatureService signatures)
+        IElectronicSignatureService signatures,
+        IUserSectionScopeService scope)
     {
         _db = db;
         _validator = validator;
         _signatures = signatures;
+        _scope = scope;
     }
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
@@ -153,17 +156,22 @@ public class SamplePreparationService
         if (await _db.SamplePreparations.AnyAsync(p => p.SampleId == sampleId))
             throw new InvalidOperationException("This sample has already been prepared.");
 
-        // Ownership Rule: If an analyst was already assigned by the Section Head,
-        // only that assigned analyst may prepare the sample unless reassigned.
-        var assignedAnalystId = await _db.TestOrders
+        // Ownership Rule: once analysts are assigned to the sample's tests,
+        // only one of them may prepare the sample unless reassigned.
+        var assignedAnalystIds = await _db.TestOrders
             .Where(t => t.SampleId == sampleId && t.AssignedAnalystId != null && !t.IsSuperseded)
-            .Select(t => t.AssignedAnalystId)
-            .FirstOrDefaultAsync();
+            .Select(t => t.AssignedAnalystId!.Value)
+            .Distinct()
+            .ToListAsync();
 
-        if (assignedAnalystId != null && assignedAnalystId.Value != userId)
+        if (assignedAnalystIds.Count > 0 && !assignedAnalystIds.Contains(userId))
         {
-            var assignedUser = await _db.Users.FirstOrDefaultAsync(u => u.Id == assignedAnalystId.Value);
-            var assignedName = assignedUser?.FullName ?? $"User #{assignedAnalystId}";
+            var assignedNames = await _db.Users
+                .Where(u => assignedAnalystIds.Contains(u.Id))
+                .OrderBy(u => u.FullName)
+                .Select(u => u.FullName)
+                .ToListAsync();
+            var assignedName = assignedNames.Count > 0 ? string.Join(", ", assignedNames) : $"User #{assignedAnalystIds[0]}";
             throw new InvalidOperationException(
                 $"This sample is assigned to {assignedName}. Only the assigned analyst may perform sample preparation, unless reassigned by an authorized Section Head.");
         }
@@ -190,13 +198,16 @@ public class SamplePreparationService
 
         await _db.SaveChangesAsync();
 
-        // "Start Testing" - the person who completes preparation is
-        // assigned as the analyst for every test on this sample that
-        // hasn't started yet. Tests already past Waiting keep whoever's
-        // already on them.
-        var waitingOrders = await _db.TestOrders
-            .Where(t => t.SampleId == sample.Id && t.CurrentStep == WorkflowStep.Waiting)
-            .ToListAsync();
+        // "Start Testing" - the person who completes preparation takes every
+        // unassigned test on this sample that hasn't started yet, in the
+        // laboratory sections they belong to. Tests already assigned, or past
+        // Waiting, keep whoever's already on them.
+        var memberOf = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var waitingOrders = (await _db.TestOrders
+            .Where(t => t.SampleId == sample.Id && t.CurrentStep == WorkflowStep.Waiting && t.AssignedAnalystId == null)
+            .ToListAsync())
+            .Where(t => memberOf is null || memberOf.Contains(t.SectionId))
+            .ToList();
         foreach (var order in waitingOrders)
             order.AssignedAnalystId = userId;
         if (waitingOrders.Count > 0)
@@ -248,9 +259,9 @@ public class SamplePreparationService
 
         var assignedBySample = assignments
             .GroupBy(a => a.SampleId)
-            .ToDictionary(g => g.Key, g => g.First().AnalystId);
+            .ToDictionary(g => g.Key, g => g.Select(a => a.AnalystId).ToList());
 
-        var assignedAnalystIds = assignedBySample.Values.Distinct().ToList();
+        var assignedAnalystIds = assignments.Select(a => a.AnalystId).Distinct().ToList();
         var analystNames = await _db.Users
             .Where(u => assignedAnalystIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName ?? u.Username, ct);
@@ -294,14 +305,18 @@ public class SamplePreparationService
                 continue;
             }
 
-            var hasAssignment = assignedBySample.TryGetValue(sample.Id, out var assignedId);
-            var assignedName = hasAssignment && analystNames.TryGetValue(assignedId, out var an) ? an : null;
+            // Any of the sample's assigned analysts may prepare it.
+            var hasAssignment = assignedBySample.TryGetValue(sample.Id, out var assignedIds);
+            string NameOf(int id) => analystNames.TryGetValue(id, out var an) ? an : "User #" + id;
 
-            if (hasAssignment && assignedId != userId)
+            if (hasAssignment && !assignedIds!.Contains(userId))
             {
-                Exclude($"Assigned to {assignedName ?? ("User #" + assignedId)} - only the assigned analyst may prepare this sample.");
+                Exclude($"Assigned to {string.Join(", ", assignedIds!.Select(NameOf))} - only an assigned analyst may prepare this sample.");
                 continue;
             }
+
+            var assignedId = hasAssignment ? userId : 0;
+            var assignedName = hasAssignment ? NameOf(userId) : null;
 
             eligible.Add((sample, config, hasAssignment ? assignedId : null, assignedName));
         }

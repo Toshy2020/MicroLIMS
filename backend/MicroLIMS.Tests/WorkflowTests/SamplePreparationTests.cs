@@ -59,11 +59,13 @@ public class SamplePreparationTests
     {
         await using var db = NewDb();
         db.Users.Add(NewUser(db, 5, "Analyst Five"));
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        TestServiceFactory.AssignUserToMicroSection(db, 5);
         var item = await SeedMasterDataAsync(db);
 
         var sample = new Sample { Category = SampleCategory.FinishedProduct, ItemId = item.Id, ControlNumber = "CTRL-1", Status = SampleStatus.Received };
-        var waitingOrder1 = new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
-        var waitingOrder2 = new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
+        var waitingOrder1 = new TestOrder { TestCode = "TAMC", SectionId = micro.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
+        var waitingOrder2 = new TestOrder { TestCode = "TYMC", SectionId = micro.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
         sample.TestOrders.Add(waitingOrder1);
         sample.TestOrders.Add(waitingOrder2);
         db.Samples.Add(sample);
@@ -78,6 +80,42 @@ public class SamplePreparationTests
 
         Assert.Equal(5, reloadedWaiting1.AssignedAnalystId);
         Assert.Equal(5, reloadedWaiting2.AssignedAnalystId);
+    }
+
+    // A sample can have a different analyst per test: any of them may
+    // prepare it, and preparing never takes a test from its analyst or
+    // hands the preparer a test outside their laboratory section.
+    [Fact]
+    public async Task PrepareAsync_WithAnalystPerTest_AnyAssignedAnalystMayPrepare_AndOnlyUnassignedTestsInTheirSectionAreTaken()
+    {
+        await using var db = NewDb();
+        db.Users.AddRange(NewUser(db, 10, "Analyst X"), NewUser(db, 20, "Analyst Y"));
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, 10);
+        TestServiceFactory.AssignUserToMicroSection(db, 20);
+        var item = await SeedMasterDataAsync(db);
+
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ItemId = item.Id, ControlNumber = "CTRL-4", Status = SampleStatus.Received };
+        var tamc = new TestOrder { TestCode = "TAMC", SectionId = micro.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = 10 };
+        var tymc = new TestOrder { TestCode = "TYMC", SectionId = micro.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = 20 };
+        var ecoli = new TestOrder { TestCode = "EC", SectionId = micro.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
+        var assay = new TestOrder { TestCode = "ASSAY", SectionId = fp.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
+        sample.TestOrders.AddRange(new[] { tamc, tymc, ecoli, assay });
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.SamplePreparation(db);
+        var prep = await service.PrepareAsync(new PrepareSampleRequest(
+            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 20, Password));
+
+        Assert.Equal(20, prep.PreparedByUserId);
+        Assert.Equal(10, tamc.AssignedAnalystId);
+        Assert.Equal(20, tymc.AssignedAnalystId);
+        Assert.Equal(20, ecoli.AssignedAnalystId);
+        Assert.Null(assay.AssignedAnalystId);
     }
 
     [Fact]

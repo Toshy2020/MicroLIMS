@@ -9,8 +9,9 @@ import type { ItemPreparationConfiguration } from "./services/ItemPreparationCon
 interface Props {
   sample: {
     sampleId: number;
-    assignedAnalystId?: number | null;
-    assignedAnalystName?: string | null;
+    // Every analyst on the sample's tests - any of them may prepare it.
+    assignedAnalystIds?: number[];
+    assignedAnalystNames?: string[];
   };
   config: ItemPreparationConfiguration;
   onSaved: () => void;
@@ -23,9 +24,10 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
   const { userId, role } = useAuth();
   const [signing, setSigning] = useState(false);
 
+  const assignedIds = sample.assignedAnalystIds ?? [];
   const isAssignedToOther =
-    Boolean(sample.assignedAnalystId) &&
-    sample.assignedAnalystId !== userId &&
+    assignedIds.length > 0 &&
+    !assignedIds.includes(userId as number) &&
     role !== "SectionHead" &&
     role !== "SystemAdministrator";
 
@@ -42,8 +44,8 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
       {isAssignedToOther && (
         <Alert severity="warning" sx={{ mb: 2, fontSize: 13 }}>
           <strong>Sample Assignment Rule:</strong> This sample is currently assigned to{" "}
-          <strong>{sample.assignedAnalystName || `User #${sample.assignedAnalystId}`}</strong>.
-          Only the designated analyst may prepare this sample, unless reassigned by an authorized Section Head.
+          <strong>{sample.assignedAnalystNames?.length ? sample.assignedAnalystNames.join(", ") : `User #${assignedIds[0]}`}</strong>.
+          Only an assigned analyst may prepare this sample, unless reassigned by an authorized Section Head.
         </Alert>
       )}
 

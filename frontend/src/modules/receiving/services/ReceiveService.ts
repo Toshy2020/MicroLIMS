@@ -6,7 +6,9 @@ import {
   AfterCleaningReceiveRequest,
   SampleCorrectionPayload,
   SampleRecord,
-  ReceiptLabOption
+  ReceiptLabOption,
+  SampleAssignmentOptions,
+  TestAnalystAssignment
 } from "../types/receivingTypes";
 
 export interface TestingWorkspaceFilter {
@@ -126,6 +128,17 @@ export const ReceiveService = {
 
   async assignAnalyst(sampleId: number, analystUserId: number | null, reason?: string): Promise<SampleRecord> {
     const res = await apiClient.put(`/samples/${sampleId}/assign-analyst`, { analystUserId, reason });
+    return res.data.data;
+  },
+
+  async getAssignmentOptions(sampleId: number): Promise<SampleAssignmentOptions> {
+    const res = await apiClient.get(`/samples/${sampleId}/assignment-options`);
+    return res.data.data;
+  },
+
+  // A different analyst per test, saved together in one request.
+  async assignTestAnalysts(sampleId: number, assignments: TestAnalystAssignment[], reason?: string): Promise<SampleRecord> {
+    const res = await apiClient.put(`/samples/${sampleId}/test-assignments`, { assignments, reason });
     return res.data.data;
   },
 

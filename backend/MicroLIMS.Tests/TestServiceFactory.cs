@@ -92,7 +92,7 @@ public static class TestServiceFactory
         new(db, WorkflowProfile(db, time), new UserSectionScopeService(db), time);
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
-        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db));
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db));
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator());

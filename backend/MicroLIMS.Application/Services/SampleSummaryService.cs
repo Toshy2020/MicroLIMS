@@ -272,6 +272,12 @@ public class SampleSummaryService
         var assignedOrder = effectiveTestOrders.FirstOrDefault(o => o.AssignedAnalystId.HasValue);
         int? assignedAnalystId = assignedOrder?.AssignedAnalystId;
         string? assignedAnalystName = assignedAnalystId.HasValue ? NameOf(assignedAnalystId.Value) : null;
+        var assignedAnalystNames = effectiveTestOrders
+            .Where(o => o.AssignedAnalystId.HasValue)
+            .Select(o => o.AssignedAnalystId!.Value)
+            .Distinct()
+            .Select(NameOf)
+            .ToList();
 
         string summaryDisplayName = sample.Category switch
         {
@@ -294,6 +300,7 @@ public class SampleSummaryService
             Status = sample.Status.ToString(),
             AssignedAnalystId = assignedAnalystId,
             AssignedAnalystName = assignedAnalystName,
+            AssignedAnalystNames = assignedAnalystNames,
             ReceivedByName = NameOf(sample.ReceivedByUserId),
             ReceivedAt = sample.ReceivedAt,
             SampledBy = sample.SampledBy,

@@ -21,8 +21,9 @@ interface Props {
     departmentId?: number | null;
     machineId?: number | null;
     waterDepartmentId?: number | null;
-    assignedAnalystId?: number | null;
-    assignedAnalystName?: string | null;
+    // Every analyst on the sample's tests - any of them may prepare it.
+    assignedAnalystIds?: number[];
+    assignedAnalystNames?: string[];
   } | null;
   onClose: () => void;
 }

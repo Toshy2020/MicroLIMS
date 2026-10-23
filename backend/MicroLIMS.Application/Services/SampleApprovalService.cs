@@ -268,13 +268,12 @@ public class SampleApprovalService
             if (newSampleAnalystOneId == newSampleAnalystTwoId)
                 throw new InvalidOperationException("The two new samples must be assigned to two different analysts.");
 
+            // Each new sample carries the selected tests, so each analyst must
+            // be assignable in every one of their sections.
             var now = _time.GetUtcNow().UtcDateTime;
-            newAnalysts = await _db.Users.Include(u => u.Role)
-                .Where(u => (u.Id == newSampleAnalystOneId || u.Id == newSampleAnalystTwoId)
-                    && u.IsActive && (u.LockedUntil == null || u.LockedUntil <= now) && u.Role != null && u.Role.Type == RoleType.Analyst)
-                .ToListAsync();
-            if (newAnalysts.Count != 2)
-                throw new InvalidOperationException("Both retest analysts must be active, eligible Analyst-role users.");
+            var retestSectionIds = selectedOrders.Select(o => o.SectionId).Distinct().ToList();
+            foreach (var analystId in new[] { newSampleAnalystOneId.Value, newSampleAnalystTwoId.Value })
+                newAnalysts.Add(await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, analystId, sectionHeadUserId, retestSectionIds, now));
 
             foreach (var order in selectedOrders)
             {

@@ -81,12 +81,12 @@ public class UserService
         )).ToList();
     }
 
-    public async Task<List<UserDto>> GetEligibleAnalystsAsync()
+    // Everyone the acting user may assign to tests (AnalystAssignmentRules):
+    // Analysts, Reviewers, and the acting user themselves if a Section Head.
+    public async Task<List<UserDto>> GetEligibleAnalystsAsync(int actingUserId)
     {
         var now = _time.GetUtcNow().UtcDateTime;
-        var users = await _db.Users
-            .Include(u => u.Role)
-            .Where(u => u.IsActive && (u.LockedUntil == null || u.LockedUntil <= now) && u.Role != null && u.Role.Type == RoleType.Analyst)
+        var users = await AnalystAssignmentRules.Candidates(_db, actingUserId, now)
             .OrderBy(u => u.FullName)
             .ToListAsync();
 

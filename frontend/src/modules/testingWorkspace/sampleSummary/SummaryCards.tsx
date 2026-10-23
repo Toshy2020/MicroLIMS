@@ -76,7 +76,11 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         <SummaryField label="Mfg Date" value={formatDate(s.mfgDate)} />
 
         <SummaryField label="Cause of Testing" value={s.causeOfTesting} />
-        <SummaryField label="Assigned Analyst" value={s.assignedAnalystName ?? "Unassigned"} highlight={Boolean(s.assignedAnalystName)} />
+        <SummaryField
+          label={(s.assignedAnalystNames?.length ?? 0) > 1 ? "Assigned Analysts" : "Assigned Analyst"}
+          value={s.assignedAnalystNames?.length ? s.assignedAnalystNames.join(", ") : (s.assignedAnalystName ?? "Unassigned")}
+          highlight={Boolean(s.assignedAnalystNames?.length || s.assignedAnalystName)}
+        />
         {s.category === "AfterCleaning" && (
           <>
             <SummaryField label="Previous Product" value={s.previousProductName || "—"} highlight />

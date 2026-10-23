@@ -44,6 +44,7 @@ import { SampleRegisterTable } from "../receiving/components/SampleRegisterTable
 import { NewSampleDialog } from "../receiving/dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "../receiving/dialogs/EditSampleDetailsDialog";
 import { AssignAnalystDialog } from "../receiving/dialogs/AssignAnalystDialog";
+import { assignedAnalystNames } from "../receiving/utils/assignedAnalysts";
 
 // Testing Workspace Components & Dialogs
 import { SampleCard as WorkspaceSampleCard, TestOrderSummary as WorkspaceTestOrderSummary } from "../testingWorkspace/types/workspaceTypes";
@@ -1117,8 +1118,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           departmentId: preparingSample.departmentId,
           machineId: preparingSample.machineId,
           waterDepartmentId: preparingSample.waterDepartmentId,
-          assignedAnalystId: preparingSample.assignedAnalystId || preparingSample.assignedTests?.find((t) => t.assignedAnalystId != null)?.assignedAnalystId,
-          assignedAnalystName: preparingSample.assignedAnalystName || preparingSample.assignedTests?.find((t) => t.assignedAnalystName)?.assignedAnalystName
+          assignedAnalystIds: Array.from(new Set((preparingSample.assignedTests ?? [])
+            .map((t) => t.assignedAnalystId)
+            .filter((id): id is number => id != null))),
+          assignedAnalystNames: assignedAnalystNames(preparingSample.assignedTests ?? [])
         } : null}
         onClose={() => {
           setPreparingSample(null);

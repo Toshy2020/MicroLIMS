@@ -17,6 +17,41 @@ export interface TestOrderSummary {
   assignedAnalystName: string | null;
 }
 
+// Mirrors backend SampleAssignmentOptionsDto: each test on the sample, who
+// is on it, and who the signed-in user may put on it. The backend applies
+// every assignment rule (section membership, Section Heads assign only
+// themselves); the dialog only offers what it returned.
+export interface AssignableUser {
+  id: number;
+  fullName: string;
+  username: string;
+  roleName: string;
+  roleType: string;
+}
+
+export interface AssignableTest {
+  testOrderId: number;
+  testCode: string;
+  sectionId: number;
+  sectionName: string;
+  status: string;
+  assignedAnalystId: number | null;
+  assignedAnalystName: string | null;
+  canAssign: boolean;
+  eligibleUserIds: number[];
+}
+
+export interface SampleAssignmentOptions {
+  sampleId: number;
+  tests: AssignableTest[];
+  users: AssignableUser[];
+}
+
+export interface TestAnalystAssignment {
+  testOrderId: number;
+  analystUserId: number | null;
+}
+
 // Mirrors backend SampleDto exactly.
 export interface SampleRecord {
   sampleId: number;

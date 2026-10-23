@@ -213,6 +213,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringDeviationService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringReminderService>();
         services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentWorkService>();
+        services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentBaselineService>();
+        services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentPlanService>();
+        services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.CalendarEventService>();
+        services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentCalendarService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
         services.AddScoped<ReferenceListMasterDataService>();

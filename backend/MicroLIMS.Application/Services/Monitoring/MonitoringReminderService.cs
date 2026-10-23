@@ -52,6 +52,25 @@ public class MonitoringReminderService
         if (due.ShowWarning && stillDue > 0)
             reminders.Add(new MonitoringReminder("MonitoringDueThisMonth",
                 $"{stillDue} monitoring plan occurrence(s) are still to be done this month.", "warning"));
+
+        var overdueCal = await _db.EquipmentTasks.AsNoTracking()
+            .CountAsync(t => t.TaskType == EquipmentTaskType.Calibration
+                          && t.CompletedOn == null
+                          && t.RetiredByRevisionId == null
+                          && t.DueDate < due.Today);
+        if (overdueCal > 0)
+            reminders.Add(new MonitoringReminder("EquipmentCalibrationOverdue",
+                $"{overdueCal} equipment calibration task(s) are overdue.", "warning"));
+
+        var overduePm = await _db.EquipmentTasks.AsNoTracking()
+            .CountAsync(t => t.TaskType == EquipmentTaskType.PreventiveMaintenance
+                          && t.CompletedOn == null
+                          && t.RetiredByRevisionId == null
+                          && t.DueDate < due.Today);
+        if (overduePm > 0)
+            reminders.Add(new MonitoringReminder("EquipmentPmOverdue",
+                $"{overduePm} equipment preventive maintenance task(s) are overdue.", "warning"));
+
         return reminders;
     }
 }

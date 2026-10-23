@@ -573,4 +573,64 @@ public class EquipmentWorkService
 
         return entries.Select(e => MaintenanceLogEntryResponse.From(e, users.GetValueOrDefault(e.PerformedByUserId))).ToList();
     }
+
+    public async Task<int> ApplyOverdueAsync(DateOnly today)
+    {
+        var todayUtc = today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var candidates = await _db.EquipmentInventories
+            .Where(e => e.Status == EquipmentOperationalStatus.InService
+                     && e.CalibrationDueDate != null
+                     && e.CalibrationDueDate.Value < todayUtc)
+            .ToListAsync();
+
+        var overdue = candidates
+            .Where(e => DateOnly.FromDateTime(e.CalibrationDueDate!.Value) < today)
+            .ToList();
+
+        if (overdue.Count == 0) return 0;
+
+        var systemUserId = await ResolveSystemUserIdAsync();
+        var now = _clock.UtcNow.UtcDateTime;
+
+        await UnitOfWork.RunAsync(_db, async () =>
+        {
+            foreach (var inst in overdue)
+            {
+                var due = DateOnly.FromDateTime(inst.CalibrationDueDate!.Value);
+                var prevStatus = inst.Status;
+                inst.Status = EquipmentOperationalStatus.OutOfService;
+                inst.AutoOutOfServiceSince = today;
+                inst.LastModifiedAt = now;
+                inst.LastModifiedByUserId = systemUserId;
+
+                _db.EquipmentStatusHistories.Add(new EquipmentStatusHistory
+                {
+                    EquipmentInventoryId = inst.Id,
+                    PreviousStatus = prevStatus,
+                    NewStatus = EquipmentOperationalStatus.OutOfService,
+                    Comment = $"Calibration overdue since {due:yyyy-MM-dd} (automatic)",
+                    ChangedByUserId = systemUserId,
+                    ChangedAt = now
+                });
+            }
+
+            await _db.SaveChangesAsync();
+        });
+
+        return overdue.Count;
+    }
+
+    private async Task<int> ResolveSystemUserIdAsync()
+    {
+        var adminId = await _db.Users
+            .Where(u => (u.Role != null && u.Role.Type == RoleType.SystemAdministrator) || u.Username == "admin" || u.Username == "system")
+            .OrderBy(u => u.Id)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+
+        if (adminId != 0) return adminId;
+
+        var fallbackId = await _db.Users.OrderBy(u => u.Id).Select(u => u.Id).FirstOrDefaultAsync();
+        return fallbackId != 0 ? fallbackId : 1;
+    }
 }

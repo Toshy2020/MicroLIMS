@@ -170,7 +170,10 @@ public class EquipmentInventoryService
 
         var sectionId = await ResolveInventorySectionAsync(currentUserId, r.SectionId);
 
-        if (r.Status != entity.Status)
+        var statusChanged = r.Status != entity.Status;
+        var manualConfirmWithAuto = entity.AutoOutOfServiceSince != null && !string.IsNullOrWhiteSpace(r.StatusChangeComment);
+
+        if (statusChanged || manualConfirmWithAuto)
         {
             if (string.IsNullOrWhiteSpace(r.StatusChangeComment))
                 throw new InvalidOperationException("A comment explaining the reason for changing the operational status is required.");
@@ -186,6 +189,7 @@ public class EquipmentInventoryService
             };
             _db.EquipmentStatusHistories.Add(history);
             entity.Status = r.Status;
+            entity.AutoOutOfServiceSince = null;
         }
 
         entity.InstrumentType = r.InstrumentType;

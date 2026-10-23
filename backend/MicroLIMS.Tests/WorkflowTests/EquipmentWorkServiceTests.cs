@@ -74,6 +74,14 @@ public class EquipmentWorkServiceTests
         db.DocumentSections.Add(section);
         await db.SaveChangesAsync();
 
+        db.UserOrgMemberships.Add(new UserOrgMembership
+        {
+            UserId = analyst.Id,
+            DepartmentId = section.DepartmentId,
+            SectionId = section.Id
+        });
+        await db.SaveChangesAsync();
+
         var eq = new EquipmentInventory
         {
             Code = "INC-01",
@@ -464,5 +472,116 @@ public class EquipmentWorkServiceTests
         Assert.NotNull(reloadedTask);
         Assert.Null(reloadedTask.CompletedOn);
         Assert.Null(reloadedTask.MaintenanceLogEntryId);
+    }
+
+    [Fact]
+    public async Task Overdue_calibration_sets_out_of_service_once()
+    {
+        var w = await BuildAsync();
+        var today = w.Clock.LabToday; // 2026-04-15
+
+        var changed = await w.Service.ApplyOverdueAsync(today);
+        Assert.Equal(1, changed);
+
+        var eq = await w.Db.EquipmentInventories.FindAsync(w.Equipment.Id);
+        Assert.NotNull(eq);
+        Assert.Equal(EquipmentOperationalStatus.OutOfService, eq.Status);
+        Assert.Equal(today, eq.AutoOutOfServiceSince);
+
+        var history = await w.Db.EquipmentStatusHistories
+            .Where(h => h.EquipmentInventoryId == w.Equipment.Id)
+            .OrderByDescending(h => h.ChangedAt)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(history);
+        Assert.Equal(EquipmentOperationalStatus.InService, history.PreviousStatus);
+        Assert.Equal(EquipmentOperationalStatus.OutOfService, history.NewStatus);
+        Assert.Equal("Calibration overdue since 2026-03-10 (automatic)", history.Comment);
+        Assert.True(history.ChangedByUserId > 0);
+
+        // Second call is idempotent and changes nothing
+        var changedSecond = await w.Service.ApplyOverdueAsync(today);
+        Assert.Equal(0, changedSecond);
+    }
+
+    [Fact]
+    public async Task Manual_status_change_clears_auto_flag_so_certificate_does_not_restore()
+    {
+        var w = await BuildAsync();
+        var today = w.Clock.LabToday; // 2026-04-15
+
+        // Automatic overdue sets it out of service and sets AutoOutOfServiceSince
+        var changed = await w.Service.ApplyOverdueAsync(today);
+        Assert.Equal(1, changed);
+
+        var eq = await w.Db.EquipmentInventories.FindAsync(w.Equipment.Id);
+        Assert.NotNull(eq);
+        Assert.Equal(today, eq.AutoOutOfServiceSince);
+
+        // Manual status update through EquipmentInventoryService.UpdateAsync
+        var inventoryService = new EquipmentInventoryService(w.Db, new UserSectionScopeService(w.Db));
+        var updateRequest = new SaveEquipmentInventoryRequest(
+            eq.InstrumentType,
+            eq.ManufacturerName,
+            eq.SerialNumber,
+            eq.FirmwareVersion,
+            eq.Code,
+            eq.Location,
+            eq.CalibrationDueDate,
+            EquipmentOperationalStatus.OutOfService,
+            StatusChangeComment: "Manual confirmation: keeping out of service for repair",
+            SectionId: eq.SectionId);
+        await inventoryService.UpdateAsync(eq.Id, updateRequest, w.Analyst.Id);
+
+        // AutoOutOfServiceSince is now cleared
+        eq = await w.Db.EquipmentInventories.FindAsync(w.Equipment.Id);
+        Assert.NotNull(eq);
+        Assert.Null(eq.AutoOutOfServiceSince);
+
+        // Record calibration with certificate
+        var calRequest = new RecordCalibrationRequest(
+            w.Certificate.Id,
+            new DateOnly(2026, 4, 15),
+            null,
+            Password);
+        await w.Service.RecordCalibrationAsync(eq.Id, calRequest, w.Analyst.Id, "127.0.0.1");
+
+        // Status is STILL OutOfService (certificate did not restore it)
+        eq = await w.Db.EquipmentInventories.FindAsync(w.Equipment.Id);
+        Assert.NotNull(eq);
+        Assert.Equal(EquipmentOperationalStatus.OutOfService, eq.Status);
+    }
+
+    [Fact]
+    public async Task Overdue_pm_does_not_change_status()
+    {
+        var w = await BuildAsync();
+        var today = w.Clock.LabToday; // 2026-04-15
+
+        // Set calibration due date in the future so calibration is not overdue
+        w.Equipment.CalibrationDueDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+        w.Equipment.Status = EquipmentOperationalStatus.InService;
+        w.Equipment.AutoOutOfServiceSince = null;
+
+        // Add an overdue PM task
+        var overduePmTask = new EquipmentTask
+        {
+            EquipmentInventoryId = w.Equipment.Id,
+            TaskType = EquipmentTaskType.PreventiveMaintenance,
+            Year = 2026,
+            Sequence = 1,
+            OriginalDueDate = new DateOnly(2026, 3, 15),
+            DueDate = new DateOnly(2026, 3, 15),
+            CompletedOn = null
+        };
+        w.Db.EquipmentTasks.Add(overduePmTask);
+        await w.Db.SaveChangesAsync();
+
+        var changed = await w.Service.ApplyOverdueAsync(today);
+        Assert.Equal(0, changed);
+
+        var eq = await w.Db.EquipmentInventories.FindAsync(w.Equipment.Id);
+        Assert.NotNull(eq);
+        Assert.Equal(EquipmentOperationalStatus.InService, eq.Status);
+        Assert.Null(eq.AutoOutOfServiceSince);
     }
 }

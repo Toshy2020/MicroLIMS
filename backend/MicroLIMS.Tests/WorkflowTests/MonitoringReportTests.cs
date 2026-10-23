@@ -173,6 +173,27 @@ public class MonitoringReportTests
             Description = "Room A: nothing was sampled.", OpenedAt = new DateTime(2026, 10, 19, 6, 0, 0, DateTimeKind.Utc),
             DueDate = new DateOnly(2026, 10, 20)
         });
+        w.Db.EquipmentTasks.AddRange(
+            new EquipmentTask
+            {
+                EquipmentInventoryId = 1,
+                TaskType = EquipmentTaskType.Calibration,
+                Year = 2026,
+                Sequence = 1,
+                OriginalDueDate = new DateOnly(2026, 10, 1),
+                DueDate = new DateOnly(2026, 10, 1),
+                CompletedOn = null
+            },
+            new EquipmentTask
+            {
+                EquipmentInventoryId = 1,
+                TaskType = EquipmentTaskType.PreventiveMaintenance,
+                Year = 2026,
+                Sequence = 1,
+                OriginalDueDate = new DateOnly(2026, 10, 5),
+                DueDate = new DateOnly(2026, 10, 5),
+                CompletedOn = null
+            });
         await w.Db.SaveChangesAsync();
 
         var forViewer = await w.Reminders.GetForUserAsync(w.Viewer.Id);
@@ -183,5 +204,7 @@ public class MonitoringReportTests
         Assert.Contains(forViewer, r => r.Type == "MonitoringDeviationsOpen" && r.Message.StartsWith("1 ") && r.Message.Contains("1 past their due date"));
         // The settings default warning day (20) has passed on the 21st.
         Assert.Contains(forViewer, r => r.Type == "MonitoringDueThisMonth" && r.Message.StartsWith("1 "));
+        Assert.Contains(forViewer, r => r.Type == "EquipmentCalibrationOverdue" && r.Message.StartsWith("1 "));
+        Assert.Contains(forViewer, r => r.Type == "EquipmentPmOverdue" && r.Message.StartsWith("1 "));
     }
 }

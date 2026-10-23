@@ -13,6 +13,7 @@ public class InstrumentAgent : IVersionedEntity
     public int EquipmentId { get; set; }
     public Equipment? Equipment { get; set; }
     public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
 
     // IANA zone of the instrument PC; instrument timestamps are local.
     public string TimeZoneId { get; set; } = string.Empty;

@@ -60,5 +60,14 @@ public class InstrumentAgentModelTests
             var ex = await Assert.ThrowsAsync<DbUpdateException>(() => noEquipment.SaveChangesAsync());
             Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, ((PostgresException)ex.InnerException!).SqlState);
         }
+
+        await using (var noSection = _fixture.CreateDbContext())
+        {
+            var orphan = Agent($"AG4-{uid}", $"{uid}d-hash", equipment.Id);
+            orphan.SectionId = 0;
+            noSection.InstrumentAgents.Add(orphan);
+            var ex = await Assert.ThrowsAsync<DbUpdateException>(() => noSection.SaveChangesAsync());
+            Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, ((PostgresException)ex.InnerException!).SqlState);
+        }
     }
 }

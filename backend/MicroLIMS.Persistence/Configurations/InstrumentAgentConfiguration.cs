@@ -21,8 +21,14 @@ public class InstrumentAgentConfiguration : IEntityTypeConfiguration<InstrumentA
             .HasForeignKey(a => a.EquipmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(a => a.Section)
+            .WithMany()
+            .HasForeignKey(a => a.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(a => a.Code).IsUnique();
         builder.HasIndex(a => a.KeyHash).IsUnique();
         builder.HasIndex(a => a.EquipmentId);
+        builder.HasIndex(a => a.SectionId);
     }
 }

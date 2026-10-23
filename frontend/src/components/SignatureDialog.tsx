@@ -50,7 +50,7 @@ export function SignatureDialog({
       setPassword("");
       setSecondPassword("");
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? "Signature failed.");
+      setError(e?.response?.data?.message ?? "Signature failed.");
       setPassword("");
       setSecondPassword("");
     } finally {

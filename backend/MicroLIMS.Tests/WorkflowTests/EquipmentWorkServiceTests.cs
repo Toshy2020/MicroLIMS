@@ -635,4 +635,179 @@ public class EquipmentWorkServiceTests
         Assert.Equal(EquipmentOperationalStatus.InService, eq.Status);
         Assert.Null(eq.AutoOutOfServiceSince);
     }
+
+    [Fact]
+    public async Task AddLogEntryAsync_refuses_duplicate_pm_on_same_date()
+    {
+        var w = await BuildAsync();
+        var performedOn = new DateOnly(2026, 4, 10);
+
+        var req1 = new AddLogEntryRequest(
+            MaintenanceEntryType.PreventiveMaintenance,
+            performedOn,
+            "First maintenance check",
+            null,
+            null,
+            null,
+            Password);
+        await w.Service.AddLogEntryAsync(w.Equipment.Id, req1, w.Analyst.Id, null);
+
+        var req2 = new AddLogEntryRequest(
+            MaintenanceEntryType.PreventiveMaintenance,
+            performedOn,
+            "Second maintenance check",
+            null,
+            null,
+            null,
+            Password);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.AddLogEntryAsync(w.Equipment.Id, req2, w.Analyst.Id, null));
+        Assert.Equal($"A preventive maintenance entry for {w.Equipment.Code} on 2026-04-10 is already recorded.", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddLogEntryAsync_allows_pm_if_previous_was_voided()
+    {
+        var w = await BuildAsync();
+        var performedOn = new DateOnly(2026, 4, 10);
+
+        var req1 = new AddLogEntryRequest(
+            MaintenanceEntryType.PreventiveMaintenance,
+            performedOn,
+            "First maintenance check",
+            null,
+            null,
+            null,
+            Password);
+        var entry1 = await w.Service.AddLogEntryAsync(w.Equipment.Id, req1, w.Analyst.Id, null);
+
+        await w.Service.VoidLogEntryAsync(entry1.Id, "Mistake entered", Password, w.Analyst.Id, null);
+
+        var req2 = new AddLogEntryRequest(
+            MaintenanceEntryType.PreventiveMaintenance,
+            performedOn,
+            "Re-done maintenance check",
+            null,
+            null,
+            null,
+            Password);
+        var entry2 = await w.Service.AddLogEntryAsync(w.Equipment.Id, req2, w.Analyst.Id, null);
+        Assert.NotNull(entry2);
+    }
+
+    [Fact]
+    public async Task AddLogEntryAsync_refuses_exact_repeat_breakdown_or_other()
+    {
+        var w = await BuildAsync();
+        var performedOn = new DateOnly(2026, 4, 10);
+
+        var req1 = new AddLogEntryRequest(
+            MaintenanceEntryType.BreakdownRepair,
+            performedOn,
+            "Replaced heating element",
+            null,
+            null,
+            null,
+            Password);
+        await w.Service.AddLogEntryAsync(w.Equipment.Id, req1, w.Analyst.Id, null);
+
+        var reqRepeat = new AddLogEntryRequest(
+            MaintenanceEntryType.BreakdownRepair,
+            performedOn,
+            "  replaced HEATING element  ",
+            null,
+            null,
+            null,
+            Password);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.AddLogEntryAsync(w.Equipment.Id, reqRepeat, w.Analyst.Id, null));
+        Assert.Equal($"This entry is already recorded for {w.Equipment.Code} on 2026-04-10.", ex.Message);
+
+        // Different work on same date should succeed
+        var reqDifferentWork = new AddLogEntryRequest(
+            MaintenanceEntryType.BreakdownRepair,
+            performedOn,
+            "Replaced power cord",
+            null,
+            null,
+            null,
+            Password);
+        var resultDifferent = await w.Service.AddLogEntryAsync(w.Equipment.Id, reqDifferentWork, w.Analyst.Id, null);
+        Assert.NotNull(resultDifferent);
+
+        // Same work with Other type should succeed (different type)
+        var reqOther = new AddLogEntryRequest(
+            MaintenanceEntryType.Other,
+            performedOn,
+            "Replaced heating element",
+            null,
+            null,
+            null,
+            Password);
+        var resultOther = await w.Service.AddLogEntryAsync(w.Equipment.Id, reqOther, w.Analyst.Id, null);
+        Assert.NotNull(resultOther);
+
+        // Repeat of Other should be refused
+        var reqOtherRepeat = new AddLogEntryRequest(
+            MaintenanceEntryType.Other,
+            performedOn,
+            "replaced heating element",
+            null,
+            null,
+            null,
+            Password);
+        var exOther = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.AddLogEntryAsync(w.Equipment.Id, reqOtherRepeat, w.Analyst.Id, null));
+        Assert.Equal($"This entry is already recorded for {w.Equipment.Code} on 2026-04-10.", exOther.Message);
+    }
+
+    [Fact]
+    public async Task AddLogEntryAsync_allows_breakdown_repeat_if_previous_voided()
+    {
+        var w = await BuildAsync();
+        var performedOn = new DateOnly(2026, 4, 10);
+
+        var req1 = new AddLogEntryRequest(
+            MaintenanceEntryType.BreakdownRepair,
+            performedOn,
+            "Replaced fuse",
+            null,
+            null,
+            null,
+            Password);
+        var entry1 = await w.Service.AddLogEntryAsync(w.Equipment.Id, req1, w.Analyst.Id, null);
+
+        await w.Service.VoidLogEntryAsync(entry1.Id, "Wrong part name", Password, w.Analyst.Id, null);
+
+        var req2 = new AddLogEntryRequest(
+            MaintenanceEntryType.BreakdownRepair,
+            performedOn,
+            "Replaced fuse",
+            null,
+            null,
+            null,
+            Password);
+        var entry2 = await w.Service.AddLogEntryAsync(w.Equipment.Id, req2, w.Analyst.Id, null);
+        Assert.NotNull(entry2);
+    }
+
+    [Fact]
+    public async Task RecordCalibration_refuses_same_date_as_previous_actual_with_clear_message()
+    {
+        var w = await BuildAsync();
+        // w.Equipment.LastCalibratedOn is 2025-03-10
+
+        var req = new RecordCalibrationRequest(
+            w.Certificate.Id,
+            new DateOnly(2025, 3, 10), // Same date as previous actual
+            null,
+            Password);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            w.Service.RecordCalibrationAsync(w.Equipment.Id, req, w.Analyst.Id, null));
+
+        Assert.Equal("Calibration date must be after the previous actual date (2025-03-10).", ex.Message);
+    }
 }

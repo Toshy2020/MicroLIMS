@@ -129,10 +129,39 @@ public class EquipmentInventoryService
         return sectionId;
     }
 
+    private async Task EnsureUniqueSerialNumberAsync(int? excludeId, string? serialNumber, string? manufacturerName)
+    {
+        if (string.IsNullOrWhiteSpace(serialNumber) || string.IsNullOrWhiteSpace(manufacturerName))
+            return;
+
+        var trimmedSerial = serialNumber.Trim();
+        var trimmedManufacturer = manufacturerName.Trim();
+
+        var candidates = await _db.EquipmentInventories
+            .AsNoTracking()
+            .Where(e => (excludeId == null || e.Id != excludeId.Value) &&
+                        e.Status != EquipmentOperationalStatus.Retired &&
+                        e.SerialNumber != null &&
+                        e.SerialNumber != "")
+            .Select(e => new { e.Code, e.SerialNumber, e.ManufacturerName })
+            .ToListAsync();
+
+        var conflict = candidates.FirstOrDefault(e =>
+            string.Equals(e.ManufacturerName.Trim(), trimmedManufacturer, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(e.SerialNumber!.Trim(), trimmedSerial, StringComparison.OrdinalIgnoreCase));
+
+        if (conflict != null)
+        {
+            throw new InvalidOperationException($"Instrument {conflict.Code} already has serial number {trimmedSerial} from {trimmedManufacturer}.");
+        }
+    }
+
     public async Task<EquipmentInventoryResponse> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId)
     {
         if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
+
+        await EnsureUniqueSerialNumberAsync(excludeId: null, r.SerialNumber, r.ManufacturerName);
 
         var sectionId = await ResolveInventorySectionAsync(currentUserId, r.SectionId);
 
@@ -167,6 +196,8 @@ public class EquipmentInventoryService
 
         if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
+
+        await EnsureUniqueSerialNumberAsync(excludeId: id, r.SerialNumber, r.ManufacturerName);
 
         var sectionId = await ResolveInventorySectionAsync(currentUserId, r.SectionId);
 

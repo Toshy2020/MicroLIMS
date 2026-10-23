@@ -108,4 +108,35 @@ public class EquipmentScheduleCalculatorTests
         Assert.Equal("Monthly", EquipmentScheduleCalculator.Describe(1, IntervalUnit.Months));
         Assert.Equal("Every 6 months", EquipmentScheduleCalculator.Describe(6, IntervalUnit.Months));
     }
+
+    [Fact]
+    public void AddInterval_years()
+    {
+        var resultNormal = EquipmentScheduleCalculator.AddInterval(new DateOnly(2025, 3, 10), 1, IntervalUnit.Years);
+        Assert.Equal(new DateOnly(2026, 3, 10), resultNormal);
+
+        var resultClamp = EquipmentScheduleCalculator.AddInterval(new DateOnly(2024, 2, 29), 1, IntervalUnit.Years);
+        Assert.Equal(new DateOnly(2025, 2, 28), resultClamp);
+    }
+
+    [Fact]
+    public void Describe_years()
+    {
+        Assert.Equal("Yearly", EquipmentScheduleCalculator.Describe(1, IntervalUnit.Years));
+        Assert.Equal("Every 2 years", EquipmentScheduleCalculator.Describe(2, IntervalUnit.Years));
+        Assert.Equal("Every 3 years", EquipmentScheduleCalculator.Describe(3, IntervalUnit.Years));
+    }
+
+    [Fact]
+    public void ProjectYear_with_1_years_from_2025_03_10_gives_2026_03_10_a_Tuesday()
+    {
+        var lastActual = new DateOnly(2025, 3, 10);
+        var dates = EquipmentScheduleCalculator.ProjectYear(
+            lastActual, 1, IntervalUnit.Years, null, 2026,
+            new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 1), WorkingWeekdays, NoHolidays);
+
+        var due = Assert.Single(dates);
+        Assert.Equal(new DateOnly(2026, 3, 10), due);
+        Assert.Equal(DayOfWeek.Tuesday, due.DayOfWeek);
+    }
 }

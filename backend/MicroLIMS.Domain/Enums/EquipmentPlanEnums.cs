@@ -3,7 +3,8 @@ namespace MicroLIMS.Domain.Enums;
 public enum IntervalUnit
 {
     Weeks,
-    Months
+    Months,
+    Years
 }
 
 public enum EquipmentTaskType

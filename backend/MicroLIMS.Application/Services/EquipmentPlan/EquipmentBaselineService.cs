@@ -176,6 +176,12 @@ public class EquipmentBaselineService
                     throw new BusinessRuleException($"{intervalName} interval in months must be between 1 and 60.");
                 }
                 break;
+            case IntervalUnit.Years:
+                if (value is < 1 or > 5)
+                {
+                    throw new BusinessRuleException($"{intervalName} interval in years must be between 1 and 5.");
+                }
+                break;
             default:
                 throw new BusinessRuleException($"Unsupported interval unit: {unit}.");
         }
@@ -190,6 +196,8 @@ public class EquipmentBaselineService
             (IntervalUnit.Weeks, var v) => $"Every {v} weeks",
             (IntervalUnit.Months, 1) => "Monthly",
             (IntervalUnit.Months, var v) => $"Every {v} months",
+            (IntervalUnit.Years, 1) => "Yearly",
+            (IntervalUnit.Years, var v) => $"Every {v} years",
             _ => $"{value} {unit}"
         };
     }

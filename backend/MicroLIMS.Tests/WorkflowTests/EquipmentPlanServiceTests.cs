@@ -356,4 +356,66 @@ public class EquipmentPlanServiceTests
         var calTask = Assert.Single(calTasks);
         Assert.Equal(new DateOnly(2026, 11, 16), calTask.DueDate);
     }
+
+    [Fact]
+    public async Task Draft_among_non_retired_sharing_manufacturer_and_serial_plans_lowest_id_and_reports_exception()
+    {
+        var w = await BuildAsync();
+
+        var eqLow = new EquipmentInventory
+        {
+            Code = "EQ-LOW",
+            InstrumentType = "Balance",
+            ManufacturerName = "Mettler",
+            SerialNumber = "SN-5555",
+            Status = EquipmentOperationalStatus.InService,
+            CalibrationIntervalValue = 12,
+            CalibrationIntervalUnit = IntervalUnit.Months,
+            LastCalibratedOn = new DateOnly(2025, 6, 1)
+        };
+        w.Db.EquipmentInventories.Add(eqLow);
+        await w.Db.SaveChangesAsync();
+
+        var eqHigh = new EquipmentInventory
+        {
+            Code = "EQ-HIGH",
+            InstrumentType = "Balance",
+            ManufacturerName = "  mettler  ",
+            SerialNumber = "  sn-5555  ",
+            Status = EquipmentOperationalStatus.InService,
+            CalibrationIntervalValue = 12,
+            CalibrationIntervalUnit = IntervalUnit.Months,
+            LastCalibratedOn = new DateOnly(2025, 6, 1)
+        };
+        w.Db.EquipmentInventories.Add(eqHigh);
+        await w.Db.SaveChangesAsync();
+
+        var eqRetired = new EquipmentInventory
+        {
+            Code = "EQ-RETIRED",
+            InstrumentType = "Balance",
+            ManufacturerName = "Mettler",
+            SerialNumber = "SN-5555",
+            Status = EquipmentOperationalStatus.Retired
+        };
+        w.Db.EquipmentInventories.Add(eqRetired);
+        await w.Db.SaveChangesAsync();
+
+        var draft = await w.Service.GenerateDraftAsync(2026, w.Generator.Id, new DateOnly(2026, 1, 1));
+
+        // Lowest Id (EQ-LOW) is planned
+        Assert.Contains(draft.Tasks, t => t.EquipmentInventoryId == eqLow.Id);
+
+        // Higher Id (EQ-HIGH) is not planned
+        Assert.DoesNotContain(draft.Tasks, t => t.EquipmentInventoryId == eqHigh.Id);
+
+        // Exception reported for EQ-HIGH
+        var dupEx = Assert.Single(draft.Exceptions, e => e.EquipmentInventoryId == eqHigh.Id);
+        Assert.Equal(EquipmentPlanExceptionKind.PossibleDuplicate, dupEx.Kind);
+        Assert.Equal($"Same manufacturer and serial number as {eqLow.Code}; not planned. Check the register.", dupEx.Message);
+
+        // Retired instrument gets RetiredInstrument exception
+        var retiredEx = Assert.Single(draft.Exceptions, e => e.EquipmentInventoryId == eqRetired.Id);
+        Assert.Equal(EquipmentPlanExceptionKind.RetiredInstrument, retiredEx.Kind);
+    }
 }

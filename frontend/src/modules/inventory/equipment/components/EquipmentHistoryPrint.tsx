@@ -102,7 +102,7 @@ export function EquipmentHistoryPrint({
     <Box
       sx={{
         p: { xs: 2, sm: 3 },
-        color: "#111827",
+        color: "text.primary",
         fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
       }}
     >
@@ -142,19 +142,19 @@ export function EquipmentHistoryPrint({
       </Box>
 
       {/* Printable Report Header */}
-      <Box sx={{ mb: 2.5, pb: 2, borderBottom: "2px solid #374151" }}>
+      <Box sx={{ mb: 2.5, pb: 2, borderBottom: 2, borderColor: "text.secondary" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
-          <Typography sx={{ fontSize: "16pt", fontWeight: 800, color: "#111827", letterSpacing: "-0.5px" }}>
+          <Typography sx={{ fontSize: "16pt", fontWeight: 800, color: "text.primary", letterSpacing: "-0.5px" }}>
             MicroLIMS
           </Typography>
-          <Typography sx={{ fontSize: "9pt", color: "#6b7280" }}>
+          <Typography sx={{ fontSize: "9pt", color: "text.secondary" }}>
             Printed: {new Date().toLocaleString()}
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: "13pt", fontWeight: 700, color: "#1f2937", mb: 0.25 }}>
+        <Typography sx={{ fontSize: "13pt", fontWeight: 700, color: "text.primary", mb: 0.25 }}>
           Equipment History & Maintenance Record
         </Typography>
-        <Typography sx={{ fontSize: "9.5pt", color: "#4b5563" }}>
+        <Typography sx={{ fontSize: "9.5pt", color: "text.secondary" }}>
           Approved plan, actual task executions, evidence, reschedules, status changes, and logbook entries.
         </Typography>
       </Box>
@@ -162,8 +162,8 @@ export function EquipmentHistoryPrint({
       {/* Instrument Overview Card */}
       <Box
         sx={{
-          bgcolor: "#f9fafb",
-          border: "1px solid #e5e7eb",
+          bgcolor: "action.hover",
+          border: 1, borderColor: "divider",
           borderRadius: 1.5,
           p: 2,
           mb: 3
@@ -220,7 +220,7 @@ export function EquipmentHistoryPrint({
                   <Chip
                     label={history.calibrationBaseline.label || "Baseline"}
                     size="small"
-                    sx={{ height: 18, fontSize: "8pt", bgcolor: "#e0e7ff", color: "#3730a3" }}
+                    sx={{ height: 18, fontSize: "8pt", bgcolor: "action.selected", color: "primary.main" }}
                   />
                 </span>
               ) : (
@@ -235,7 +235,7 @@ export function EquipmentHistoryPrint({
                   <Chip
                     label={history.pmBaseline.label || "Baseline"}
                     size="small"
-                    sx={{ height: 18, fontSize: "8pt", bgcolor: "#e0e7ff", color: "#3730a3" }}
+                    sx={{ height: 18, fontSize: "8pt", bgcolor: "action.selected", color: "primary.main" }}
                   />
                 </span>
               ) : (
@@ -248,17 +248,17 @@ export function EquipmentHistoryPrint({
 
       {/* SECTION 1 — Planned vs Done Tasks */}
       <Box sx={{ mb: 3 }}>
-        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "#1f2937", mb: 1, textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "text.primary", mb: 1, textTransform: "uppercase" }}>
           Planned vs Actual Tasks
         </Typography>
         {history.tasks.length === 0 ? (
-          <Typography sx={{ fontSize: "9pt", color: "#6b7280", fontStyle: "italic" }}>
+          <Typography sx={{ fontSize: "9pt", color: "text.secondary", fontStyle: "italic" }}>
             No planned tasks recorded for this period.
           </Typography>
         ) : (
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
-              <TableHead sx={{ bgcolor: "#f3f4f6" }}>
+              <TableHead sx={{ bgcolor: "action.hover" }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Task Type</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Schedule & Completion</TableCell>
@@ -287,7 +287,7 @@ export function EquipmentHistoryPrint({
                           sx={{ fontSize: "8pt", height: 20 }}
                         />
                       </TableCell>
-                      <TableCell sx={{ fontSize: "9pt", color: "#4b5563" }}>
+                      <TableCell sx={{ fontSize: "9pt", color: "text.secondary" }}>
                         {t.evidenceLabel || "—"}
                       </TableCell>
                     </TableRow>
@@ -301,17 +301,17 @@ export function EquipmentHistoryPrint({
 
       {/* SECTION 2 — Task Reschedules */}
       <Box sx={{ mb: 3 }}>
-        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "#1f2937", mb: 1, textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "text.primary", mb: 1, textTransform: "uppercase" }}>
           Task Reschedules
         </Typography>
         {history.reschedules.length === 0 ? (
-          <Typography sx={{ fontSize: "9pt", color: "#6b7280", fontStyle: "italic" }}>
+          <Typography sx={{ fontSize: "9pt", color: "text.secondary", fontStyle: "italic" }}>
             No task reschedules recorded.
           </Typography>
         ) : (
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
-              <TableHead sx={{ bgcolor: "#f3f4f6" }}>
+              <TableHead sx={{ bgcolor: "action.hover" }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Task Type</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Previous Due</TableCell>
@@ -342,17 +342,17 @@ export function EquipmentHistoryPrint({
 
       {/* SECTION 3 — Operational Status Changes */}
       <Box sx={{ mb: 3 }}>
-        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "#1f2937", mb: 1, textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "text.primary", mb: 1, textTransform: "uppercase" }}>
           Operational Status History
         </Typography>
         {history.statusChanges.length === 0 ? (
-          <Typography sx={{ fontSize: "9pt", color: "#6b7280", fontStyle: "italic" }}>
+          <Typography sx={{ fontSize: "9pt", color: "text.secondary", fontStyle: "italic" }}>
             No operational status changes recorded.
           </Typography>
         ) : (
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
-              <TableHead sx={{ bgcolor: "#f3f4f6" }}>
+              <TableHead sx={{ bgcolor: "action.hover" }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Change</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Comment / Reason</TableCell>
@@ -382,17 +382,17 @@ export function EquipmentHistoryPrint({
 
       {/* SECTION 4 — Maintenance Logbook Entries */}
       <Box sx={{ mb: 2 }}>
-        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "#1f2937", mb: 1, textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: "11pt", fontWeight: 700, color: "text.primary", mb: 1, textTransform: "uppercase" }}>
           Maintenance Logbook Entries
         </Typography>
         {history.logbook.length === 0 ? (
-          <Typography sx={{ fontSize: "9pt", color: "#6b7280", fontStyle: "italic" }}>
+          <Typography sx={{ fontSize: "9pt", color: "text.secondary", fontStyle: "italic" }}>
             No maintenance logbook entries recorded for this period.
           </Typography>
         ) : (
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
-              <TableHead sx={{ bgcolor: "#f3f4f6" }}>
+              <TableHead sx={{ bgcolor: "action.hover" }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Date</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: "8.5pt" }}>Type</TableCell>
@@ -413,10 +413,10 @@ export function EquipmentHistoryPrint({
                       {MAINTENANCE_ENTRY_TYPE_LABELS[e.entryType] ?? e.entryType}
                     </TableCell>
                     <TableCell sx={{ fontSize: "9pt" }}>{e.workDone}</TableCell>
-                    <TableCell sx={{ fontSize: "9pt", color: "#4b5563" }}>
+                    <TableCell sx={{ fontSize: "9pt", color: "text.secondary" }}>
                       {e.partsReplaced || "—"}
                     </TableCell>
-                    <TableCell sx={{ fontSize: "9pt", color: "#4b5563" }}>
+                    <TableCell sx={{ fontSize: "9pt", color: "text.secondary" }}>
                       {e.findings || "—"}
                     </TableCell>
                     <TableCell sx={{ fontSize: "9pt" }}>

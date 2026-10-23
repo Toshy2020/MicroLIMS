@@ -112,5 +112,13 @@ describe("MonthGrid", () => {
     // Day 25 has no items, clicking it calls onAddEvent("2026-10-25")
     fireEvent.click(screen.getByText("25"));
     expect(onAddEvent).toHaveBeenCalledWith("2026-10-25");
+
+    // A busy day still takes an event through its labelled + button (keyboard path)
+    fireEvent.click(screen.getByRole("button", { name: "Add event on 15 October" }));
+    expect(onAddEvent).toHaveBeenCalledWith("2026-10-15");
+    // Clicking a chip opens it and does not add an event
+    onAddEvent.mockClear();
+    fireEvent.click(screen.getByText(/EQ-BAL-01/));
+    expect(onAddEvent).not.toHaveBeenCalled();
   });
 });

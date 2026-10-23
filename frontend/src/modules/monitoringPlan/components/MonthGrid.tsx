@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Box, ButtonBase, Popover, Typography, useTheme } from "@mui/material";
+import { Box, ButtonBase, IconButton, Popover, Typography, useTheme } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import {
   EQUIPMENT_STATUS_LABEL,
   EQUIPMENT_STATUS_SYMBOL,
@@ -222,27 +223,42 @@ export function MonthGrid({
               key={iso}
               role="group"
               aria-label={`${day} ${MONTH_NAMES[month]}${isToday ? ", today" : ""}, ${items.length} item(s)`}
-              onClick={() => {
-                if (isEmpty && onAddEvent) {
-                  onAddEvent(iso);
-                }
-              }}
+              // Any day takes an event: click the free space of the cell, or its + button
+              // (the keyboard path). Chips and "+N more" stop propagation.
+              onClick={() => onAddEvent?.(iso)}
               sx={{
                 minHeight: { xs: 64, sm: 104 }, p: 0.5, border: isToday ? 2 : 1, borderRadius: 1,
                 borderColor: isToday ? "primary.main" : "divider",
                 bgcolor: isWeekend(i % 7) ? "action.hover" : "transparent",
-                cursor: isEmpty && onAddEvent ? "pointer" : "default"
+                cursor: onAddEvent ? "pointer" : "default",
+                "&:hover .add-event, & .add-event:focus-visible": { opacity: 1 }
               }}
             >
-              <Box
-                component="span"
-                sx={{
-                  display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 22, height: 22, px: 0.5, borderRadius: 11,
-                  fontSize: 12, fontWeight: isToday ? 700 : 400,
-                  ...(isToday && { bgcolor: "primary.main", color: "primary.contrastText" })
-                }}
-              >
-                {day}
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 22, height: 22, px: 0.5, borderRadius: 11,
+                    fontSize: 12, fontWeight: isToday ? 700 : 400,
+                    ...(isToday && { bgcolor: "primary.main", color: "primary.contrastText" })
+                  }}
+                >
+                  {day}
+                </Box>
+                {onAddEvent && (
+                  <IconButton
+                    className="add-event"
+                    size="small"
+                    aria-label={`Add event on ${day} ${MONTH_NAMES[month]}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddEvent(iso);
+                    }}
+                    sx={{ p: 0.25, opacity: isEmpty ? 0.6 : 0, transition: "opacity 150ms" }}
+                  >
+                    <AddIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
               </Box>
               {items.slice(0, VISIBLE_PER_DAY).map((item) => {
                 if (item.kind === "occurrence") {

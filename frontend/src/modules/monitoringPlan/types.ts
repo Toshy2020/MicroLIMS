@@ -224,3 +224,157 @@ export interface Deviation {
 export interface DeviationList { openCount: number; pastDueCount: number; items: Deviation[] }
 
 export interface DeviationScan { missedOpened: number; excursionsOpened: number; followUpsCreated: number }
+
+export type EquipmentTaskType = "Calibration" | "PreventiveMaintenance";
+
+export type EquipmentTaskStatus = "Upcoming" | "Due" | "Overdue" | "Done" | "Retired";
+
+export interface EquipmentTaskItem {
+  id: number;
+  equipmentId: number;
+  equipmentCode: string;
+  instrumentType: string;
+  type: EquipmentTaskType;
+  originalDueDate: string;
+  dueDate: string;
+  completedOn: string | null;
+  status: EquipmentTaskStatus;
+  evidenceLabel: string | null;
+}
+
+export type CalendarEventType =
+  | "VendorVisit"
+  | "BreakdownRepair"
+  | "Audit"
+  | "ProficiencyTesting"
+  | "Other";
+
+export type CalendarEventStatus = "Active" | "Cancelled";
+
+export interface DocumentSummary {
+  id: number;
+  originalFileName: string;
+  fileExtension: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedAt: string;
+  uploadedByUserId: number;
+  uploadedByName: string;
+  status: string;
+}
+
+export interface CalendarEventResponse {
+  id: number;
+  type: CalendarEventType;
+  title: string;
+  date: string | null;
+  month: string | null;
+  note: string | null;
+  equipmentInventoryId: number | null;
+  equipmentCode: string | null;
+  status: CalendarEventStatus;
+  reportPending: boolean;
+  documents: DocumentSummary[];
+  version: number;
+}
+
+export interface CreateCalendarEventRequest {
+  type: CalendarEventType;
+  title: string;
+  date?: string | null;
+  month?: string | null;
+  note?: string | null;
+  equipmentInventoryId?: number | null;
+}
+
+export interface UpdateCalendarEventRequest {
+  type: CalendarEventType;
+  title: string;
+  date?: string | null;
+  month?: string | null;
+  note?: string | null;
+  equipmentInventoryId?: number | null;
+}
+
+export interface EquipmentCalendarResponse {
+  tasks: EquipmentTaskItem[];
+  events: CalendarEventResponse[];
+}
+
+export interface EquipmentMonthSummary {
+  month: number;
+  planned: number;
+  done: number;
+  overdue: number;
+  upcoming: number;
+  events: number;
+}
+
+export interface EquipmentPlanRevision {
+  id: number;
+  version: number;
+  year: number;
+  revisionNumber: number;
+  status: "Draft" | "Approved" | "Superseded";
+  reason: string | null;
+  effectiveFrom: string;
+  generatedAt: string;
+  generatedByUserId: number;
+  approvedAt: string | null;
+  taskCount: number;
+}
+
+export interface EquipmentPlanTypeTotal {
+  taskType: EquipmentTaskType;
+  instruments: number;
+  tasks: number;
+}
+
+export interface EquipmentTaskRetirement {
+  taskId: number;
+  equipmentInventoryId: number;
+  equipmentCode: string;
+  taskType: EquipmentTaskType;
+  sequence: number;
+  dueDate: string;
+  occurrenceId: number;
+  target: string;
+}
+
+export interface EquipmentTaskReschedule {
+  taskId: number;
+  equipmentInventoryId: number;
+  equipmentCode: string;
+  taskType: EquipmentTaskType;
+  sequence: number;
+  oldDueDate: string;
+  newDueDate: string;
+  occurrenceId: number;
+  target: string;
+  oldTargetDate: string;
+  newTargetDate: string;
+}
+
+export interface EquipmentPlanException {
+  kind: "NoBaseline" | "NoInterval" | "RetiredInstrument";
+  taskType: EquipmentTaskType | null;
+  equipmentInventoryId: number;
+  equipmentCode: string;
+  message: string;
+  target: string;
+}
+
+export interface EquipmentPlanPreview {
+  revision: EquipmentPlanRevision;
+  totals: EquipmentPlanTypeTotal[];
+  toRetire: EquipmentTaskRetirement[];
+  toReschedule: EquipmentTaskReschedule[];
+  exceptions: EquipmentPlanException[];
+  tasks: any[];
+}
+
+export type CalendarArea =
+  | MonitoringCategory
+  | "Calibration"
+  | "PreventiveMaintenance"
+  | "Events";

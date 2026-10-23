@@ -25,6 +25,9 @@ public enum SignatureMeaning
     MonitoringPlanApproved,
     MonitoringOccurrenceSkipped,
     MonitoringOccurrenceWindowChanged,
-    MonitoringDeviationClosed
+    MonitoringDeviationClosed,
+    EquipmentPlanApproved,
+    CalibrationRecorded,
+    MaintenanceEntryRecorded,
+    MaintenanceEntryVoided
 }
-

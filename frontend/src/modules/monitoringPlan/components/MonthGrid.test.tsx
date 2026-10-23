@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../theme";
 import { MonthGrid } from "./MonthGrid";
-import type { OccurrenceSummary } from "../types";
+import type { CalendarEventResponse, EquipmentTaskItem, OccurrenceSummary } from "../types";
 
 const occurrence: OccurrenceSummary = {
   id: 7, version: 1, category: "EnvironmentalMonitoring", target: "Room A", group: "Filling", periodKey: "2026-W43",
@@ -11,7 +11,39 @@ const occurrence: OccurrenceSummary = {
   status: "Upcoming", late: false, itemsTotal: 1, itemsPerformed: 0, manual: false
 };
 
+const task: EquipmentTaskItem = {
+  id: 1,
+  equipmentId: 10,
+  equipmentCode: "EQ-BAL-01",
+  instrumentType: "Balance",
+  type: "Calibration",
+  originalDueDate: "2026-10-15",
+  dueDate: "2026-10-15",
+  completedOn: null,
+  status: "Due",
+  evidenceLabel: null
+};
+
+const calEvent: CalendarEventResponse = {
+  id: 2,
+  type: "Audit",
+  title: "ISO Internal Audit",
+  date: "2026-10-20",
+  month: null,
+  note: null,
+  equipmentInventoryId: null,
+  equipmentCode: null,
+  status: "Active",
+  reportPending: false,
+  documents: [],
+  version: 1
+};
+
 describe("MonthGrid", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("starts the week on Sunday and shows the occurrence on its target day", () => {
     const onPick = vi.fn();
     render(
@@ -40,5 +72,53 @@ describe("MonthGrid", () => {
     fireEvent.click(screen.getByText("+2 more"));
     fireEvent.click(screen.getByText("Point 4"));
     expect(onPick).toHaveBeenCalledWith(more[3]);
+  });
+
+  it("renders an equipment task and an event on their dates; clicking an empty day calls onAddEvent(\"2026-10-25\")", () => {
+    const onPickTask = vi.fn();
+    const onPickEvent = vi.fn();
+    const onAddEvent = vi.fn();
+
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <MonthGrid
+          year={2026}
+          month={9} // October (0-indexed 9)
+          occurrences={[]}
+          tasks={[task]}
+          events={[calEvent]}
+          today="2026-10-21"
+          onPick={vi.fn()}
+          onPickTask={onPickTask}
+          onPickEvent={onPickEvent}
+          onAddEvent={onAddEvent}
+        />
+      </ThemeProvider>
+    );
+
+    // Verify task is rendered
+    expect(screen.getByText(/EQ-BAL-01/)).toBeTruthy();
+    // Verify event is rendered
+    expect(screen.getByText("ISO Internal Audit")).toBeTruthy();
+
+    // Clicking task calls onPickTask
+    fireEvent.click(screen.getByText(/EQ-BAL-01/));
+    expect(onPickTask).toHaveBeenCalledWith(task);
+
+    // Clicking event calls onPickEvent
+    fireEvent.click(screen.getByText("ISO Internal Audit"));
+    expect(onPickEvent).toHaveBeenCalledWith(calEvent);
+
+    // Day 25 has no items, clicking it calls onAddEvent("2026-10-25")
+    fireEvent.click(screen.getByText("25"));
+    expect(onAddEvent).toHaveBeenCalledWith("2026-10-25");
+
+    // A busy day still takes an event through its labelled + button (keyboard path)
+    fireEvent.click(screen.getByRole("button", { name: "Add event on 15 October" }));
+    expect(onAddEvent).toHaveBeenCalledWith("2026-10-15");
+    // Clicking a chip opens it and does not add an event
+    onAddEvent.mockClear();
+    fireEvent.click(screen.getByText(/EQ-BAL-01/));
+    expect(onAddEvent).not.toHaveBeenCalled();
   });
 });

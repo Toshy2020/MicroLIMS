@@ -1,5 +1,12 @@
 import type { StatusTone } from "../../theme/statusTokens";
-import type { MonitoringCategory, OccurrenceStatus } from "./types";
+import type {
+  CalendarArea,
+  CalendarEventType,
+  EquipmentTaskStatus,
+  EquipmentTaskType,
+  MonitoringCategory,
+  OccurrenceStatus
+} from "./types";
 
 export const STATUS_LABEL: Record<OccurrenceStatus, string> = {
   Upcoming: "Upcoming",
@@ -56,6 +63,52 @@ export const CATEGORY_LABEL: Record<MonitoringCategory, string> = {
   Water: "Water",
   EnvironmentalMonitoring: "Environmental Monitoring",
   AfterCleaning: "After Cleaning"
+};
+
+export const CALENDAR_AREA_LABEL: Record<CalendarArea, string> = {
+  Water: "Water",
+  EnvironmentalMonitoring: "Environmental Monitoring",
+  AfterCleaning: "After Cleaning",
+  Calibration: "Calibration",
+  PreventiveMaintenance: "Preventive maintenance",
+  Events: "Events"
+};
+
+export const EVENT_TYPE_LABEL: Record<CalendarEventType, string> = {
+  VendorVisit: "Vendor visit",
+  BreakdownRepair: "Equipment breakdown repair",
+  Audit: "Audit",
+  ProficiencyTesting: "Proficiency testing",
+  Other: "Other"
+};
+
+export const EQUIPMENT_TASK_LABEL: Record<EquipmentTaskType, string> = {
+  Calibration: "Calibration",
+  PreventiveMaintenance: "Preventive maintenance"
+};
+
+export const EQUIPMENT_STATUS_LABEL: Record<EquipmentTaskStatus, string> = {
+  Upcoming: "Upcoming",
+  Due: "Due",
+  Overdue: "Overdue",
+  Done: "Done",
+  Retired: "Retired"
+};
+
+export const EQUIPMENT_STATUS_TOKEN: Record<EquipmentTaskStatus, StatusTone> = {
+  Upcoming: "pending",
+  Due: "inconclusive",
+  Overdue: "detected",
+  Done: "notDetected",
+  Retired: "pending"
+};
+
+export const EQUIPMENT_STATUS_SYMBOL: Record<EquipmentTaskStatus, string> = {
+  Upcoming: "○",
+  Due: "●",
+  Overdue: "▲",
+  Done: "✓",
+  Retired: "–"
 };
 
 export const MONTH_NAMES = [

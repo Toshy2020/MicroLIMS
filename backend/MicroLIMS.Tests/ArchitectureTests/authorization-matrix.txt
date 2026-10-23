@@ -30,6 +30,12 @@ BiologicalWasteDestructionController.GetAll(): SystemAdministrator,SectionHead,R
 BiologicalWasteDestructionController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.GetEligible(): SystemAdministrator,SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.Record(RecordBiologicalWasteDestructionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+CalendarEventsController.Cancel(Int32, CancelCalendarEventRequest): SystemAdministrator,SectionHead,Reviewer
+CalendarEventsController.Create(CreateCalendarEventRequest): SystemAdministrator,SectionHead,Reviewer
+CalendarEventsController.GetDocumentContent(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+CalendarEventsController.GetEvents(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst
+CalendarEventsController.Update(Int32, UpdateCalendarEventRequest): SystemAdministrator,SectionHead,Reviewer
+CalendarEventsController.UploadDocument(Int32, IFormFile): SystemAdministrator,SectionHead,Reviewer
 CryovialController.Approve(Int32, ApproveRequest): SystemAdministrator,SectionHead
 CryovialController.Destroy(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -154,6 +160,10 @@ EnvironmentalMonitoringMasterDataController.GetRooms(): SystemAdministrator,Sect
 EnvironmentalMonitoringMasterDataController.UpdateDepartment(Int32, UpdateDepartmentRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoom(Int32, UpdateRoomRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoomTestConfiguration(Int32, UpdateRoomTestConfigRequest): SystemAdministrator,SectionHead
+EquipmentCalendarController.GetCalendar(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentCalendarController.GetInstrumentHistory(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentCalendarController.GetPlannedVsDone(Int32, EquipmentTaskType): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentCalendarController.GetYear(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 EquipmentDocumentController.GetContent(Int32, Int32): SystemAdministrator,SectionHead,Analyst
 EquipmentDocumentController.GetDocuments(Int32): SystemAdministrator,SectionHead,Analyst
 EquipmentDocumentController.Supersede(Int32, Int32, IFormFile, String): SystemAdministrator,SectionHead
@@ -188,6 +198,15 @@ EquipmentMasterDataController.UpdateAutoclaveProgram(Int32, SaveAutoclaveProgram
 EquipmentMasterDataController.UpdateColumn(Int32, UpdateChromatographyColumnRequest): SystemAdministrator,SectionHead,Analyst
 EquipmentMasterDataController.UpdateEquipment(Int32, UpdateEquipmentRequest): SystemAdministrator,SectionHead
 EquipmentMasterDataController.UpdateSetPoint(Int32, UpdateIncubatorSetPointRequest): SystemAdministrator,SectionHead
+EquipmentPlanController.SaveSchedule(Int32, SaveEquipmentScheduleRequest, String): SystemAdministrator,SectionHead
+EquipmentPlanRevisionsController.ApproveRevision(Int32, ApprovePlanRequest): SystemAdministrator,SectionHead
+EquipmentPlanRevisionsController.GenerateDraft(GenerateEquipmentDraftRequest): SystemAdministrator,SectionHead
+EquipmentPlanRevisionsController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentPlanRevisionsController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentWorkController.AddLogEntry(Int32, AddLogEntryRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentWorkController.GetMaintenanceLog(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentWorkController.RecordCalibration(Int32, RecordCalibrationRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
+EquipmentWorkController.VoidLogEntry(Int32, VoidLogEntryRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 ErrorMonitoringController.Export(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Get(Guid, CancellationToken): SystemAdministrator
 ErrorMonitoringController.OverrideSeverity(Guid, SeverityOverrideRequest, CancellationToken): SystemAdministrator

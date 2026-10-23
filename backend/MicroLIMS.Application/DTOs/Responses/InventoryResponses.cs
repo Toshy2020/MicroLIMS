@@ -138,6 +138,12 @@ public class EquipmentInventoryResponse
     public int LastModifiedByUserId { get; init; }
     public DateTime LastModifiedAt { get; init; }
     public bool IsCalibrationOverdue { get; init; }
+    public int? CalibrationIntervalValue { get; init; }
+    public IntervalUnit? CalibrationIntervalUnit { get; init; }
+    public DateOnly? LastCalibratedOn { get; init; }
+    public int? PmIntervalValue { get; init; }
+    public IntervalUnit? PmIntervalUnit { get; init; }
+    public DateOnly? LastPmOn { get; init; }
 
     public static EquipmentInventoryResponse From(EquipmentInventory e) => new()
     {
@@ -158,5 +164,11 @@ public class EquipmentInventoryResponse
         LastModifiedByUserId = e.LastModifiedByUserId,
         LastModifiedAt = e.LastModifiedAt,
         IsCalibrationOverdue = e.IsCalibrationOverdue,
+        CalibrationIntervalValue = e.CalibrationIntervalValue,
+        CalibrationIntervalUnit = e.CalibrationIntervalUnit,
+        LastCalibratedOn = e.LastCalibratedOn,
+        PmIntervalValue = e.PmIntervalValue,
+        PmIntervalUnit = e.PmIntervalUnit,
+        LastPmOn = e.LastPmOn,
     };
 }

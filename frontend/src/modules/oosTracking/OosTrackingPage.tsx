@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Paper,
@@ -40,6 +40,7 @@ import {
   OosInvestigationDocument
 } from "./services/OosTrackingService";
 import { tableHeadSx } from "../../theme";
+import { FileDropZone } from "../../components/FileDropZone";
 
 const RETEST_TYPE_LABELS: Record<string, string> = {
   RetestRetainedSample: "Retest Retained Sample",
@@ -54,6 +55,11 @@ const formatDate = (d: string) =>
     hour: "2-digit",
     minute: "2-digit"
   });
+
+// Mirrors MaterialDocumentFileValidator (the server is authoritative) and the
+// 25 MB MaterialDocuments:MaxFileSizeBytes default in appsettings.json.
+const INVESTIGATION_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.tiff";
+const INVESTIGATION_FORMATS_HINT = "PDF or image (JPG, PNG, WEBP, TIFF), up to 25 MB";
 
 const formatBytes = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -393,12 +399,10 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
   const [submitting, setSubmitting] = useState(false);
 
   // Upload state
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Supersede state
   const [supersedingDoc, setSupersedingDoc] = useState<OosInvestigationDocument | null>(null);
-  const supersedeFileRef = useRef<HTMLInputElement>(null);
   const [supersedeFile, setSupersedeFile] = useState<File | null>(null);
   const [supersedeReason, setSupersedeReason] = useState("");
 
@@ -429,7 +433,6 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
     try {
       await OosTrackingService.uploadDocument(group.oosGroupCode, selectedFile);
       setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
       loadDocuments();
       onChanged();
     } catch (e: any) {
@@ -502,43 +505,26 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
 
       {/* Upload new document section if no Current document exists */}
       {!currentDoc && !loading && (
-        <Paper elevation={0} sx={{ p: 2, mb: 3, border: "1px dashed", borderColor: "primary.main", borderRadius: 1.5, bgcolor: "action.hover" }}>
+        <Box sx={{ mb: 3 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
             Upload Initial Investigation Report
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff"
-              style={{ display: "none" }}
-              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-            />
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<FileUploadOutlinedIcon />}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Select File
-            </Button>
-            {selectedFile && (
-              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                {selectedFile.name} ({formatBytes(selectedFile.size)})
-              </Typography>
-            )}
-            {selectedFile && (
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleUpload}
-                disabled={submitting}
-              >
+          <FileDropZone
+            file={selectedFile}
+            onFile={setSelectedFile}
+            accept={INVESTIGATION_ACCEPT}
+            formatsHint={INVESTIGATION_FORMATS_HINT}
+            note="Recorded in the audit trail"
+            disabled={submitting}
+          />
+          {selectedFile && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
+              <Button variant="contained" size="small" startIcon={<FileUploadOutlinedIcon />} onClick={handleUpload} disabled={submitting}>
                 Upload
               </Button>
-            )}
-          </Box>
-        </Paper>
+            </Box>
+          )}
+        </Box>
       )}
 
       {/* Supersede Panel */}
@@ -562,27 +548,15 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
             sx={{ mb: 1.5 }}
           />
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <input
-              ref={supersedeFileRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff"
-              style={{ display: "none" }}
-              onChange={(e) => setSupersedeFile(e.target.files?.[0] ?? null)}
-            />
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<FileUploadOutlinedIcon />}
-              onClick={() => supersedeFileRef.current?.click()}
-            >
-              Choose Replacement File
-            </Button>
-            {supersedeFile && (
-              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                {supersedeFile.name} ({formatBytes(supersedeFile.size)})
-              </Typography>
-            )}
+          <FileDropZone
+            file={supersedeFile}
+            onFile={setSupersedeFile}
+            accept={INVESTIGATION_ACCEPT}
+            formatsHint={INVESTIGATION_FORMATS_HINT}
+            note="Recorded in the audit trail"
+            disabled={submitting}
+          />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 1.5 }}>
             <Box sx={{ ml: "auto", display: "flex", gap: 1 }}>
               <Button size="small" onClick={() => setSupersedingDoc(null)} disabled={submitting}>
                 Cancel

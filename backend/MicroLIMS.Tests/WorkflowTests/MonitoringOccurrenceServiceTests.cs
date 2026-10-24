@@ -206,7 +206,7 @@ public class MonitoringOccurrenceServiceTests
     // ---- skip ----
 
     [Fact]
-    public async Task Skip_NeedsTwoSignaturesAndAReason_AndRecordsBoth()
+    public async Task Skip_NeedsOneSectionHeadSignatureAndAReason()
     {
         var w = await BuildAsync();
         var occurrence = RoomOccurrence(w, "2026-W43", new DateOnly(2026, 10, 25), new DateOnly(2026, 10, 29));
@@ -214,19 +214,19 @@ public class MonitoringOccurrenceServiceTests
         await w.Db.SaveChangesAsync();
 
         var result = await w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("Room closed for validation", Password, "approver", Password), w.Head.Id, "10.0.0.1");
+            new SkipOccurrenceRequest("Room closed for validation", Password), w.Head.Id, "10.0.0.1");
 
         Assert.Equal(OccurrenceStatus.Skipped, result.Status);
         var ev = await w.Db.MonitoringOccurrenceEvents.SingleAsync();
         Assert.Equal(OccurrenceEventType.Skipped, ev.EventType);
         Assert.Equal("Room closed for validation", ev.Reason);
         Assert.NotNull(ev.ElectronicSignatureId);
-        Assert.NotNull(ev.SecondElectronicSignatureId);
-        Assert.Equal(2, await w.Db.ElectronicSignatures.CountAsync());
+        Assert.Null(ev.SecondElectronicSignatureId);
+        Assert.Equal(1, await w.Db.ElectronicSignatures.CountAsync());
     }
 
     [Fact]
-    public async Task Skip_RefusesTheSamePersonTwice_AndAnApproverWithoutPermission_AndAShortReason()
+    public async Task Skip_RefusesSomeoneWhoIsNotASectionHead_AndAShortReason()
     {
         var w = await BuildAsync();
         var occurrence = RoomOccurrence(w, "2026-W43", new DateOnly(2026, 10, 25), new DateOnly(2026, 10, 29));
@@ -234,13 +234,9 @@ public class MonitoringOccurrenceServiceTests
         await w.Db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("Room closed for validation", Password, "head", Password), w.Head.Id, null));
+            new SkipOccurrenceRequest("Room closed for validation", Password), w.Analyst.Id, null));
         await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("Room closed for validation", Password, "analyst", Password), w.Head.Id, null));
-        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("no", Password, "approver", Password), w.Head.Id, null));
-        await Assert.ThrowsAsync<SignatureVerificationException>(() => w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("Room closed for validation", Password, "nobody", Password), w.Head.Id, null));
+            new SkipOccurrenceRequest("no", Password), w.Head.Id, null));
 
         Assert.Equal(OccurrenceExceptionState.None, (await w.Db.MonitoringOccurrences.AsNoTracking().SingleAsync()).ExceptionState);
         Assert.Empty(w.Db.MonitoringOccurrenceEvents);
@@ -255,9 +251,7 @@ public class MonitoringOccurrenceServiceTests
         await w.Db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<SignatureVerificationException>(() => w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("Room closed for validation", "wrong", "approver", Password), w.Head.Id, null));
-        await Assert.ThrowsAsync<SignatureVerificationException>(() => w.Service.SkipAsync(occurrence.Id,
-            new SkipOccurrenceRequest("Room closed for validation", Password, "approver", "wrong"), w.Head.Id, null));
+            new SkipOccurrenceRequest("Room closed for validation", "wrong"), w.Head.Id, null));
 
         Assert.Equal(OccurrenceExceptionState.None, (await w.Db.MonitoringOccurrences.AsNoTracking().SingleAsync()).ExceptionState);
     }
@@ -281,7 +275,7 @@ public class MonitoringOccurrenceServiceTests
         });
         await w.Db.SaveChangesAsync();
 
-        var request = new SkipOccurrenceRequest("Room closed for validation", Password, "approver", Password);
+        var request = new SkipOccurrenceRequest("Room closed for validation", Password);
         await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.SkipAsync(skipped.Id, request, w.Head.Id, null));
         await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.SkipAsync(started.Id, request, w.Head.Id, null));
     }

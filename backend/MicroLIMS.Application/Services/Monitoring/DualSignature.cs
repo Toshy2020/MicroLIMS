@@ -11,7 +11,7 @@ namespace MicroLIMS.Application.Services.Monitoring;
 // Signs as the acting user and as a second, different person who holds the
 // monitoring plan approve permission. A wrong second password gives the same
 // generic refusal as any failed signature. Shared by every change to the plan
-// that two people must sign (skip, window change, closing a deviation).
+// that two people must sign (window change, closing a deviation).
 public static class DualSignature
 {
     public static async Task<(ElectronicSignature First, ElectronicSignature Second, int SecondUserId)> SignAsync(

@@ -32,7 +32,7 @@ describe("OccurrenceDialog", () => {
   beforeEach(() => { vi.mocked(MonitoringPlanService.getDetail).mockResolvedValue(detail); });
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-  it("skips an occurrence through the shared signature dialog with both signatures", async () => {
+  it("skips an occurrence through the shared signature dialog with one signature", async () => {
     vi.mocked(MonitoringPlanService.skip).mockResolvedValue({} as never);
     const onChanged = vi.fn();
     renderDialog(onChanged);
@@ -44,13 +44,12 @@ describe("OccurrenceDialog", () => {
 
     expect(await screen.findByText("Electronic Signature")).toBeTruthy();
     expect(screen.getByText(/I am skipping SP 206 \(Week 43, 2026\)/)).toBeTruthy();
+    expect(screen.queryByLabelText(/^Second signer username/)).toBeNull();
     fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "pw-1" } });
-    fireEvent.change(screen.getByLabelText(/^Second signer username/), { target: { value: "approver" } });
-    fireEvent.change(screen.getByLabelText(/^Second signer password/), { target: { value: "pw-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign" }));
 
     await waitFor(() => expect(MonitoringPlanService.skip).toHaveBeenCalledWith(5, 3, {
-      reason: "Room closed for validation", password: "pw-1", secondSignerUsername: "approver", secondSignerPassword: "pw-2"
+      reason: "Room closed for validation", password: "pw-1"
     }));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });

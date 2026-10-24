@@ -43,9 +43,9 @@ public record CreateManualOccurrenceRequest(
     int MachineId, DateOnly TargetDate, List<int>? MachinePartConfigurationIds, string? Reason,
     ManualWindowKind Kind = ManualWindowKind.Day);
 
-// A skip or a window change is signed by the person making it and by a
-// second person who holds the approve permission.
-public record SkipOccurrenceRequest(string Reason, string Password, string SecondSignerUsername, string SecondSignerPassword);
+// A skip is signed once, by a Section Head. A window change is signed by the
+// person making it and by a second person who holds the approve permission.
+public record SkipOccurrenceRequest(string Reason, string Password);
 
 public record ChangeWindowRequest(
     DateOnly? NewTargetDate, DateOnly NewWindowEnd, string Reason, string Password,
@@ -312,17 +312,19 @@ public class MonitoringOccurrenceService
         if (await HasActiveLinksAsync(id))
             throw new BusinessRuleException("A test has already been started for this occurrence, so it cannot be skipped.");
 
+        var role = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => (RoleType?)u.Role!.Type).FirstOrDefaultAsync();
+        if (role != RoleType.SectionHead)
+            throw new BusinessRuleException("Only a Section Head can skip an occurrence of the monitoring plan.");
+
         await UnitOfWork.RunAsync(_db, async () =>
         {
-            var (first, second, secondUserId) = await SignBothAsync(
-                SignatureMeaning.MonitoringOccurrenceSkipped, id, reason, userId, request.Password,
-                request.SecondSignerUsername, request.SecondSignerPassword, ipAddress);
+            var signature = await _signatures.SignAsync(userId, request.Password,
+                SignatureMeaning.MonitoringOccurrenceSkipped, nameof(MonitoringOccurrence), id, reason, ipAddress);
 
             occurrence.ExceptionState = OccurrenceExceptionState.Skipped;
             _db.MonitoringOccurrenceEvents.Add(NewEvent(id, OccurrenceEventType.Skipped,
-                Describe(occurrence.TargetDate, occurrence.WindowStart, occurrence.WindowEnd), "Skipped", reason, userId, first, second));
+                Describe(occurrence.TargetDate, occurrence.WindowStart, occurrence.WindowEnd), "Skipped", reason, userId, signature, null));
             await _db.SaveChangesAsync();
-            return secondUserId;
         });
 
         return await SummaryOfAsync(id);
@@ -423,7 +425,7 @@ public class MonitoringOccurrenceService
 
     private MonitoringOccurrenceEvent NewEvent(
         int occurrenceId, OccurrenceEventType type, string? oldValue, string? newValue, string reason, int userId,
-        ElectronicSignature first, ElectronicSignature second) => new()
+        ElectronicSignature first, ElectronicSignature? second) => new()
     {
         MonitoringOccurrenceId = occurrenceId,
         EventType = type,

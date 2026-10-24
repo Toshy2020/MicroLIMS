@@ -239,10 +239,12 @@ export function ControlChartTab() {
       .catch(() => setOptionsFailed(true));
   }, []);
 
-  const query = useDebounced({ criteria, settings, view }, 350);
+  // Debounce a string: a fresh object every render never settles, so each
+  // finished fetch re-rendered, re-armed the timer and fetched again forever.
+  const query = useDebounced(JSON.stringify({ criteria, settings, view }), 350);
 
   useEffect(() => {
-    const { criteria: c, settings: s, view: v } = query;
+    const { criteria: c, settings: s, view: v } = JSON.parse(query) as { criteria: ControlChartCriteria; settings: ControlChartSettings; view: View };
     if (!c.category || !c.testCode || (v === "chart" && !c.subjectName)) return;
     let cancelled = false;
     setLoading(true);

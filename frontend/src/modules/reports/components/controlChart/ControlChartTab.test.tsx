@@ -22,12 +22,17 @@ const stored = () => JSON.parse(sessionStorage.getItem("microlims.controlCharts.
 describe("ControlChartTab session state", () => {
   it("reopens on the criteria kept for the session, and Reset clears them", async () => {
     presetControlChart({ category: "FinishedProduct", testCode: "TAMC", subjectName: "Osteocare Liquid" });
-    render(<ControlChartTab />);
+    const { rerender } = render(<ControlChartTab />);
 
     await waitFor(() => expect(ControlChartService.getChart).toHaveBeenCalledWith(
       expect.objectContaining({ category: "FinishedProduct", testCode: "TAMC", subjectName: "Osteocare Liquid" }),
       expect.anything()
     ));
+
+    // A re-render with unchanged criteria must not fetch again (it used to loop).
+    rerender(<ControlChartTab />);
+    await new Promise((r) => setTimeout(r, 600));
+    expect(ControlChartService.getChart).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: /Reset/ }));
 

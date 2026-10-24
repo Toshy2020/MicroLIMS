@@ -50,6 +50,23 @@ export function RoleDetailPage() {
   const usersFailed = failedLists.includes("the users holding this role");
   const assignedUsers = useMemo(() => users.filter((u) => u.roleId === roleId), [users, roleId]);
 
+  // Unsaved edits, compared against the role as last loaded - drives the
+  // sticky action bar so Save/Discard stay in reach below a long matrix.
+  const isDirty = useMemo(() => {
+    if (!role) return false;
+    if (name !== role.name || description !== (role.description ?? "")) return true;
+    if (checkedCodes.size !== role.permissionCodes.length) return true;
+    return role.permissionCodes.some((c) => !checkedCodes.has(c));
+  }, [role, name, description, checkedCodes]);
+
+  const handleDiscard = () => {
+    if (!role) return;
+    setName(role.name);
+    setDescription(role.description ?? "");
+    setCheckedCodes(new Set(role.permissionCodes));
+    setMessage(null);
+  };
+
   const handleToggle = (code: string, checked: boolean) => {
     setCheckedCodes((prev) => {
       const next = new Set(prev);
@@ -155,8 +172,20 @@ export function RoleDetailPage() {
       <SectionTitle>Permissions</SectionTitle>
       <PermissionMatrix permissions={permissions} checkedCodes={checkedCodes} onToggle={handleToggle} />
 
-      <Box sx={{ mt: 3 }}>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
+      <Box
+        sx={{
+          position: "sticky", bottom: 0, zIndex: 2, mt: 3, py: 1.25, px: 2,
+          display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1.5,
+          bgcolor: "background.paper", borderTop: "1px solid", borderColor: "divider"
+        }}
+      >
+        <Typography role="status" sx={{ fontSize: 13, color: "text.secondary", mr: "auto" }}>
+          {isDirty ? "You have unsaved changes." : "No unsaved changes."}
+        </Typography>
+        <Button variant="outlined" color="inherit" onClick={handleDiscard} disabled={!isDirty || saving}>
+          Discard Changes
+        </Button>
+        <Button variant="contained" onClick={handleSave} disabled={!isDirty || saving}>
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </Box>

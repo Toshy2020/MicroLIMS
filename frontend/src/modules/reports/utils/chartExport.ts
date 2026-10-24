@@ -40,3 +40,34 @@ export async function captureSvgAsPng(svg: SVGSVGElement, scale = 2): Promise<st
     img.src = svgDataUrl;
   });
 }
+
+// Every Recharts plot inside `container`, stacked top to bottom into one
+// PNG - the I-MR view is two charts that belong in one figure. Only the
+// plot surface of each chart is taken (see TrendingTab's export: legend
+// icons are svg.recharts-surface too, but never a direct wrapper child).
+export async function captureChartsAsPng(container: HTMLElement, scale = 2): Promise<string> {
+  const svgs = Array.from(container.querySelectorAll<SVGSVGElement>(".recharts-wrapper > svg.recharts-surface"));
+  if (svgs.length === 0) throw new Error("No chart is currently rendered to capture.");
+  if (svgs.length === 1) return captureSvgAsPng(svgs[0], scale);
+
+  const parts = await Promise.all(svgs.map((svg) => captureSvgAsPng(svg, scale)));
+  const images = await Promise.all(parts.map((src) => new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to combine chart images."));
+    img.src = src;
+  })));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(...images.map((i) => i.width));
+  canvas.height = images.reduce((h, i) => h + i.height, 0);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable.");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let y = 0;
+  for (const img of images) {
+    ctx.drawImage(img, 0, y);
+    y += img.height;
+  }
+  return canvas.toDataURL("image/png");
+}

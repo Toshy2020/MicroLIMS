@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.Abstractions.Word;
 namespace MicroLIMS.Infrastructure.Word;
 
@@ -8,4 +9,7 @@ public class WordGenerator : IWordGenerator
 {
     public Task<byte[]> GenerateFromLinesAsync(string title, IEnumerable<string> lines) =>
         Task.FromResult(SimpleDocxWriter.WriteTextDocument(title, lines));
+
+    public Task<byte[]> GenerateReportAsync(ReportDocument document) =>
+        Task.FromResult(new DocxReportRenderer().Render(document));
 }

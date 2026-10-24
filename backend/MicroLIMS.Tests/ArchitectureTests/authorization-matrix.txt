@@ -37,6 +37,7 @@ CalendarEventsController.GetEvents(DateOnly, DateOnly): SystemAdministrator,Sect
 CalendarEventsController.Update(Int32, UpdateCalendarEventRequest): SystemAdministrator,SectionHead,Reviewer
 CalendarEventsController.UploadDocument(Int32, IFormFile): SystemAdministrator,SectionHead,Reviewer
 ControlChartController.ApplyLimits(ApplyTrendLimitsRequest): SystemAdministrator,SectionHead
+ControlChartController.GenerateReport(ControlChartReportRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 ControlChartController.GetChart(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Boolean, SettingsParameters, CapabilityBasis, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 ControlChartController.GetLimitReview(String, SampleCategory, Nullable`1, Nullable`1, Boolean, SettingsParameters): SystemAdministrator,SectionHead,Reviewer,Analyst
 CryovialController.Approve(Int32, ApproveRequest): SystemAdministrator,SectionHead

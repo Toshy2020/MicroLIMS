@@ -248,3 +248,22 @@ export const CHART_KINDS: { value: ChartKind; label: string; description: string
   { value: "boxplot", label: "Box plot by month", description: "Median, quartiles and outliers per month" },
   { value: "monthly", label: "Monthly summary", description: "Monthly mean and maximum with the configured limits" }
 ];
+
+// ---- Combined report ------------------------------------------------------
+
+export type ReportFormat = "Pdf" | "Word";
+
+// One chart queued for the combined report: the exact query and settings
+// it was drawn from (the server recomputes every figure from these) and
+// the picture of it.
+export interface ReportItem {
+  id: string;
+  title: string;
+  chartKind: ChartKind;
+  chartLabel: string;
+  subjectName: string;
+  testDisplayName: string;
+  criteria: ControlChartCriteria;
+  settings: ControlChartSettings;
+  image: string; // PNG data URL
+}

@@ -14,7 +14,7 @@ public class ControlChartServiceTests
     private const string Password = "Correct-Password-1!";
     private static readonly DateTime Start = new(2026, 1, 5, 9, 0, 0, DateTimeKind.Utc);
 
-    private static MicroLimsDbContext NewDb()
+    internal static MicroLimsDbContext NewDb()
     {
         var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -22,11 +22,11 @@ public class ControlChartServiceTests
         return new MicroLimsDbContext(options) { CurrentUserId = 1 };
     }
 
-    private static ControlChartService NewService(MicroLimsDbContext db) =>
+    internal static ControlChartService NewService(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
-    private static async Task<User> SeedUserAsync(MicroLimsDbContext db)
+    internal static async Task<User> SeedUserAsync(MicroLimsDbContext db)
     {
         var role = new Role { Type = RoleType.SectionHead, Name = "Section Head" };
         db.Roles.Add(role);
@@ -37,7 +37,7 @@ public class ControlChartServiceTests
         return user;
     }
 
-    private static async Task<RoomTestConfiguration> SeedRoomAsync(MicroLimsDbContext db, string room = "Filling Room",
+    internal static async Task<RoomTestConfiguration> SeedRoomAsync(MicroLimsDbContext db, string room = "Filling Room",
         string alert = "10", string action = "20", string spec = "50")
     {
         if (!await db.TestDefinitions.AnyAsync(t => t.Code == "EM_TAMC"))
@@ -70,7 +70,7 @@ public class ControlChartServiceTests
         return config;
     }
 
-    private static async Task SeedResultsAsync(MicroLimsDbContext db, string subject, string testCode, SampleCategory category,
+    internal static async Task SeedResultsAsync(MicroLimsDbContext db, string subject, string testCode, SampleCategory category,
         params double[] values)
     {
         var offset = await db.ResultRecords.CountAsync();
@@ -91,7 +91,7 @@ public class ControlChartServiceTests
         await db.SaveChangesAsync();
     }
 
-    private static readonly double[] Counts = { 1, 3, 2, 4, 3, 2, 1, 2, 3, 2 };
+    internal static readonly double[] Counts = { 1, 3, 2, 4, 3, 2, 1, 2, 3, 2 };
 
     private static ControlChartQuery Query(string subject = "Filling Room", ControlChartSettings? settings = null,
         CapabilityBasis basis = CapabilityBasis.SpecLimit) =>

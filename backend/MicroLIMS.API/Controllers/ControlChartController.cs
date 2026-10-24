@@ -20,12 +20,17 @@ namespace MicroLIMS.API.Controllers;
 [Authorize]
 public class ControlChartController : ControllerBase
 {
+    // 60 charts at a few hundred KB of PNG each, base64-encoded.
+    private const long MaxReportRequestBytes = 120L * 1024 * 1024;
+
     private readonly ControlChartService _service;
+    private readonly ControlChartReportService _reports;
     private readonly IUserSectionScopeService _scopeService;
 
-    public ControlChartController(ControlChartService service, IUserSectionScopeService scopeService)
+    public ControlChartController(ControlChartService service, ControlChartReportService reports, IUserSectionScopeService scopeService)
     {
         _service = service;
+        _reports = reports;
         _scopeService = scopeService;
     }
 
@@ -68,6 +73,16 @@ public class ControlChartController : ControllerBase
     [HttpPost("apply-limits")]
     public async Task<IActionResult> ApplyLimits([FromBody] ApplyTrendLimitsRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.ApplyLimitsAsync(request, CurrentUserId, ClientIp, await Scope())));
+
+    // One PDF or Word document from many charts. Read-only on the data
+    // (same scope as the charts themselves), logged as a data export.
+    [HttpPost("report")]
+    [RequestSizeLimit(MaxReportRequestBytes)]
+    public async Task<IActionResult> GenerateReport([FromBody] ControlChartReportRequest request)
+    {
+        var report = await _reports.GenerateAsync(request, CurrentUserId, await Scope());
+        return File(report.Content, report.ContentType, report.FileName);
+    }
 
     // Flat query-string form of ControlChartSettings; rules as "1,2,5".
     public class SettingsParameters

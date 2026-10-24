@@ -1,13 +1,16 @@
 import { Box, ButtonBase, Typography, alpha } from "@mui/material";
 import { Link } from "react-router-dom";
 import type { MenuItem } from "../routes/menuConfig";
+import type { SectionCounter } from "../services/sectionCountersService";
 
 // A link to a page, drawn as a card with its icon and one-line description.
 // Section and group landing pages and the admin dashboard use it; a
 // featured card (a lab's sample workspace) is wider, with a brand accent
 // edge and a filled icon tile. It keeps the same white surface as the
 // others: a solid purple card made its plain neighbours look disabled.
-export function PageCard({ page }: { page: MenuItem }) {
+// `counters`: live figures for the page ("3 overdue"), drawn under the
+// description; a figure that needs attention takes its tone's colour.
+export function PageCard({ page, counters }: { page: MenuItem; counters?: SectionCounter[] }) {
   const Icon = page.icon;
   const featured = !!page.featured;
 
@@ -72,6 +75,25 @@ export function PageCard({ page }: { page: MenuItem }) {
           >
             {page.description}
           </Typography>
+        )}
+        {counters && counters.length > 0 && (
+          <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 1.5, rowGap: 0.25, mt: 1 }}>
+            {counters.map((c) => (
+              <Typography key={c.label} component="span" sx={{ fontSize: 13, color: "text.secondary", whiteSpace: "nowrap" }}>
+                <Box
+                  component="span"
+                  sx={(t) => ({
+                    fontWeight: 700,
+                    fontVariantNumeric: "tabular-nums",
+                    color: c.value > 0 && c.tone !== "pending" ? t.custom.status[c.tone].text : "text.primary"
+                  })}
+                >
+                  {c.value}
+                </Box>{" "}
+                {c.label}
+              </Typography>
+            ))}
+          </Box>
         )}
       </Box>
     </ButtonBase>

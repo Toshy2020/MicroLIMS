@@ -1,8 +1,9 @@
 import { Box } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { PageCard } from "../components/PageCard";
 import { PageHeader } from "../components/PageHeader";
 import { useMenuGroups } from "../hooks/useMenuGroups";
+import { useSectionCounters } from "../hooks/useSectionCounters";
 import { groupLabel, groupPath } from "../routes/navigation";
 
 // Landing page of a sidebar section or menu group: one card per page the user may open in
@@ -13,6 +14,10 @@ export function SectionPage() {
   const groups = useMenuGroups();
   const section = groups.flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
   const group = section ? undefined : groups.find((g) => groupPath(g.groupName) === pathname);
+
+  // Hooks run before the early return below; a non-laboratory page passes
+  // no lab and gets no figures.
+  const counters = useSectionCounters(section?.counterLab);
 
   if (!section && !group) return <PageHeader title="Section not available" subtitle="You have no pages in this section." />;
 
@@ -47,7 +52,7 @@ export function SectionPage() {
       >
         {pages.map((page) => (
           <Box component="li" key={page.path} sx={{ display: "flex", gridColumn: page.featured ? { sm: "span 2" } : undefined }}>
-            <PageCard page={page} />
+            <PageCard page={page} counters={page.counterKey ? counters[page.counterKey] : undefined} />
           </Box>
         ))}
       </Box>

@@ -9,29 +9,31 @@ import { OverviewTab } from "../modules/reports/components/OverviewTab";
 import { RecordSearchTab } from "../modules/reports/RecordSearchTab";
 import { MediaGptReportTab } from "../modules/reports/MediaGptReportTab";
 import { ReferenceStrainReportTab } from "../modules/reports/ReferenceStrainReportTab";
-import { TrendingTab } from "../modules/reports/components/TrendingTab";
-import { ControlChartTab } from "../modules/reports/components/controlChart/ControlChartTab";
+import { ControlChartTab, presetControlChart } from "../modules/reports/components/controlChart/ControlChartTab";
 import { KpiPerformanceTab } from "../modules/kpi/components/KpiPerformanceTab";
 import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modules/reports/utils/dateRange";
+import { SampleCategory } from "../modules/reports/types/reportingTypes";
 
 const TABS = [
   "Overview",
   "Record Search",
   "Media / GPT",
   "Reference Strains",
-  "Trending & Analysis",
-  "Control Charts & Limits",
+  "Trending & Control Charts",
   "KPI / Performance"
 ] as const;
 
-const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "trending", "control-charts", "performance"] as const;
+const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "control-charts", "performance"] as const;
 
 // The KPI tab is the last entry. It owns its filters, so the page-level period selector is hidden there.
-const PERFORMANCE_TAB = 6;
+const PERFORMANCE_TAB = 5;
+const CONTROL_CHARTS_TAB = 4;
 
 export function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get("tab")?.toLowerCase();
+  // Trending was merged into Control Charts; old links still land there.
+  const rawTab = searchParams.get("tab")?.toLowerCase();
+  const tabParam = rawTab === "trending" ? "control-charts" : rawTab;
 
   // Without Kpi.View the KPI tab is dropped from both lists, so a link to
   // ?tab=performance falls back to Overview. The server enforces the permission too.
@@ -74,9 +76,6 @@ export function ReportsPage() {
   const [customFrom, setCustomFrom] = useState(toDateInputValue(new Date(Date.now() - 30 * 86400000)));
   const [customTo, setCustomTo] = useState(toDateInputValue(new Date()));
 
-  // Cross-tab interaction state for Trending drill-down
-  const [trendParams, setTrendParams] = useState<{ testCode?: string; subjectName?: string }>({});
-
   const range = useMemo(() => {
     if (period === "custom") {
       return { fromDate: customFrom ? `${customFrom}T00:00:00.000Z` : undefined, toDate: customTo ? `${customTo}T23:59:59.999Z` : undefined };
@@ -84,9 +83,9 @@ export function ReportsPage() {
     return computeQuickPeriodRange(period);
   }, [period, customFrom, customTo, defaultRange]);
 
-  const handleAnalyzeTrend = (testCode: string, subjectName: string) => {
-    setTrendParams({ testCode, subjectName });
-    handleTabChange(4); // Switch to Trending & Analysis
+  const handleAnalyzeTrend = (testCode: string, subjectName: string, category: SampleCategory) => {
+    presetControlChart({ category, testCode, subjectName });
+    handleTabChange(CONTROL_CHARTS_TAB);
   };
 
   return (
@@ -144,14 +143,7 @@ export function ReportsPage() {
         <ReferenceStrainReportTab />
       )}
 
-      {tab === 4 && (
-        <TrendingTab
-          initialTestCode={trendParams.testCode}
-          initialSubjectName={trendParams.subjectName}
-        />
-      )}
-
-      {tab === 5 && (
+      {tab === CONTROL_CHARTS_TAB && (
         <ControlChartTab />
       )}
 

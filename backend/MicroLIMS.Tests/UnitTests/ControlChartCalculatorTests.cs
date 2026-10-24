@@ -19,7 +19,7 @@ public class ControlChartCalculatorTests
         Assert.Equal(1.5 / 1.128, r.SigmaWithin!.Value, 6);
         Assert.Equal(Math.Round(2.6 + 2 * 1.5 / 1.128, 4), r.Limits.AlertUpper);
         Assert.Equal(Math.Round(2.6 + 3 * 1.5 / 1.128, 4), r.Limits.ActionUpper);
-        Assert.Equal(Math.Round(2.6 - 3 * 1.5 / 1.128, 4), r.Limits.ActionLower);
+        Assert.Equal(0, r.Limits.ActionLower); // 2.6 - 3σ = -1.39, floored for non-negative results
         Assert.Equal(3.267 * 1.5, r.MovingRangeUcl!.Value, 6);
         Assert.Equal(0, r.MovingRangeLcl!.Value, 6);
     }
@@ -65,7 +65,7 @@ public class ControlChartCalculatorTests
 
         Assert.Equal(6, r.Limits.AlertUpper);  // 5.26
         Assert.Equal(7, r.Limits.ActionUpper); // 6.59
-        Assert.Equal(-2, r.Limits.ActionLower); // -1.39
+        Assert.Equal(0, r.Limits.ActionLower); // -1.39, floored: the results are all non-negative
     }
 
     [Fact]

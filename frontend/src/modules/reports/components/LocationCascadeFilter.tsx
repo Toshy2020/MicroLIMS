@@ -70,6 +70,8 @@ interface LocationCascadeFilterProps {
   category: LocationHierarchyCategory;
   subjectName: string;
   onSubjectNameChange: (name: string) => void;
+  // false leaves both selects empty until the user picks them.
+  autoSelect?: boolean;
 }
 
 // Two cascading selects (Level 2 -> Level 3) sourced from the existing
@@ -78,7 +80,7 @@ interface LocationCascadeFilterProps {
 // client-side, no new endpoints. The Level 3 selection's name becomes
 // the caller's subjectName, the same value the flat Product/Item picker
 // sets for categories that don't have this hierarchy.
-export function LocationCascadeFilter({ category, subjectName, onSubjectNameChange }: LocationCascadeFilterProps) {
+export function LocationCascadeFilter({ category, subjectName, onSubjectNameChange, autoSelect = true }: LocationCascadeFilterProps) {
   const [groups, setGroups] = useState<Level2Group[]>([]);
   // An empty location picker otherwise reads as "nothing configured".
   const [loadFailed, setLoadFailed] = useState(false);
@@ -108,7 +110,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
         // configured, same "default to first option" pattern the
         // Parameter/Test and Product/Item pickers already use.
         const firstWithItems = loaded.find((g) => g.items.length > 0);
-        if (firstWithItems) {
+        if (firstWithItems && autoSelect) {
           setLevel2Id(firstWithItems.id);
           onSubjectNameChange(firstWithItems.items[0].name);
         }
@@ -140,7 +142,8 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
             const id = Number(e.target.value);
             setLevel2Id(id);
             const group = groups.find((g) => g.id === id);
-            if (group && group.items[0]) onSubjectNameChange(group.items[0].name);
+            if (!autoSelect) onSubjectNameChange("");
+            else if (group && group.items[0]) onSubjectNameChange(group.items[0].name);
           }}
           inputProps={{ "aria-label": labels.level2 }}
         >

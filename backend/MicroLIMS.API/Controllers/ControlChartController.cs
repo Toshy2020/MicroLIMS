@@ -96,6 +96,7 @@ public class ControlChartController : ControllerBase
         public LimitRounding Rounding { get; set; } = LimitRounding.None;
         public int MinimumPoints { get; set; } = 30;
         public string? Rules { get; set; }
+        public bool ExcludeOutOfSpec { get; set; } = true;
 
         public ControlChartSettings ToSettings()
         {
@@ -110,7 +111,7 @@ public class ControlChartController : ControllerBase
                     .ToArray();
             }
             return new ControlChartSettings(Method, AlertK, ActionK, AlertPercentile, ActionPercentile, MovingRangeLength,
-                Rounding, MinimumPoints, rules);
+                Rounding, MinimumPoints, rules, ExcludeOutOfSpec);
         }
     }
 }

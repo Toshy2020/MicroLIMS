@@ -500,7 +500,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                 onClick={() => onNavigateTab(4)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
-                Trending & Analysis
+                Trending & Control Charts
               </Button>
               {canViewKpi && (
               <Button

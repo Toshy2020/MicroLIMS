@@ -48,8 +48,7 @@ public class ControlChartService
         var targets = category is null ? new List<LimitTarget>() : await FindTargetsAsync(category.Value, q.TestCode, new[] { q.SubjectName }, ct);
         var current = CurrentLimitsFor(targets, series);
 
-        var inCalc = series.Select(p =>
-            (q.CalculationFrom is null || p.Date >= q.CalculationFrom) && (q.CalculationTo is null || p.Date <= q.CalculationTo)).ToList();
+        var inCalc = InCalculation(series, q.Settings, q.CalculationFrom, q.CalculationTo);
         var values = series.Select(p => p.Value).ToList();
 
         var spec = q.CapabilityBasis switch
@@ -106,7 +105,7 @@ public class ControlChartService
             var subjectTargets = targetsBySubject.TryGetValue(subject, out var t) ? t : new List<LimitTarget>();
             var current = CurrentLimitsFor(subjectTargets, pts);
             var stats = ControlChartCalculator.Compute(pts.Select(p => p.Value).ToList(), q.Settings,
-                new CapabilitySpec(current.SpecLower, current.SpecUpper));
+                new CapabilitySpec(current.SpecLower, current.SpecUpper), InCalculation(pts, q.Settings));
             return new LimitReviewRow(
                 subject, stats.Count, stats.BelowMinimumPoints, stats.Mean, stats.StandardDeviation, stats.SigmaUsed,
                 stats.Limits.AlertUpper, stats.Limits.ActionUpper, current.Alert, current.Action,
@@ -141,7 +140,7 @@ public class ControlChartService
         var test = await RequireNumericTestAsync(r.TestCode, ct);
 
         var (series, _) = await LoadSeriesAsync(r.TestCode, null, r.Category, r.FromDate, r.ToDate, r.ApprovedOnly, sectionIds, ct);
-        var bySubject = series.GroupBy(p => p.SubjectName).ToDictionary(g => g.Key, g => g.Select(p => p.Value).ToList());
+        var bySubject = series.GroupBy(p => p.SubjectName).ToDictionary(g => g.Key, g => g.ToList());
 
         _db.CurrentUserId = userId;
         var applied = new List<AppliedLimit>();
@@ -159,8 +158,8 @@ public class ControlChartService
             if (specMax.HasValue && item.ActionLimit > specMax.Value)
                 throw new InvalidOperationException($"{location}: the action limit {Fmt(item.ActionLimit)} is above the specification limit {spec}.");
 
-            var values = bySubject.TryGetValue(location, out var v) ? v : new List<double>();
-            var stats = ControlChartCalculator.Compute(values, r.Settings);
+            var pts = bySubject.TryGetValue(location, out var v) ? v : new List<SeriesPoint>();
+            var stats = ControlChartCalculator.Compute(pts.Select(p => p.Value).ToList(), r.Settings, null, InCalculation(pts, r.Settings));
             var overridden = !Same(stats.Limits.AlertUpper, item.AlertLimit) || !Same(stats.Limits.ActionUpper, item.ActionLimit);
 
             var (previousAlert, previousAction) = Limits(entity);
@@ -357,7 +356,14 @@ public class ControlChartService
         LimitMethod.Percentile => $"percentiles P{s.AlertPercentile:0.##}/P{s.ActionPercentile:0.##}",
         LimitMethod.StandardDeviation => $"mean ± {s.AlertK:0.##}/{s.ActionK:0.##} SD",
         _ => $"mean ± {s.AlertK:0.##}/{s.ActionK:0.##}σ (MR span {s.MovingRangeLength})"
-    };
+    } + (s.ExcludeOutOfSpec ? ", out-of-spec results excluded" : "");
+
+    // Which points the limits are estimated from: inside the calculation
+    // window and, unless switched off, not out of specification. The chart,
+    // the review and apply all use this, so applied limits match the shown ones.
+    private static List<bool> InCalculation(IReadOnlyList<SeriesPoint> series, ControlChartSettings s, DateTime? from = null, DateTime? to = null) =>
+        series.Select(p => (from is null || p.Date >= from) && (to is null || p.Date <= to)
+            && !(s.ExcludeOutOfSpec && p.ResultLevel == ResultLevel.OutOfSpecification)).ToList();
 
     private static string Period(ApplyTrendLimitsRequest r) =>
         $"{r.FromDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "start"} to {r.ToDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "now"}";

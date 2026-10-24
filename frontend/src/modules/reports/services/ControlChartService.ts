@@ -25,7 +25,8 @@ function settingsParams(s: ControlChartSettings) {
     movingRangeLength: s.movingRangeLength,
     rounding: s.rounding,
     minimumPoints: s.minimumPoints,
-    rules: s.rules.join(",")
+    rules: s.rules.join(","),
+    excludeOutOfSpec: s.excludeOutOfSpec
   };
 }
 

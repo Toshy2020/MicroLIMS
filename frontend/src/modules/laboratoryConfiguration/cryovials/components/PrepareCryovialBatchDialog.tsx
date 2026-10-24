@@ -35,6 +35,7 @@ import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { DateField } from "../../../../components/DateField";
 
 interface PrepareCryovialBatchDialogProps {
   open: boolean;
@@ -317,16 +318,11 @@ export function PrepareCryovialBatchDialog({
                 htmlInput: { min: 0 }
               }}
             />
-            <TextField
-              size="small"
-              type="date"
+            <DateField
               label="Expiry Date *"
               value={form.expiryDate ?? ""}
-              onChange={(e) => setField("expiryDate", e.target.value)}
+              onChange={(v) => setField("expiryDate", v)}
               required
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
             <FormControl size="small" required sx={{ gridColumn: { sm: "span 2", md: "span 3" } }}>
               <InputLabel id="storage-equipment-label">Storage Equipment *</InputLabel>
@@ -509,23 +505,19 @@ export function PrepareCryovialBatchDialog({
                       </Select>
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
-                      <TextField
-                        size="small"
-                        type="date"
+                      <DateField
                         value={row.incubationStart}
-                        onChange={(e) => updateRow(i, "incubationStart", e.target.value)}
+                        onChange={(v) => updateRow(i, "incubationStart", v)}
                         fullWidth
-                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation start` } }}
+                        ariaLabel={`Row ${i + 1} incubation start`}
                       />
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
-                      <TextField
-                        size="small"
-                        type="date"
+                      <DateField
                         value={row.incubationEnd}
-                        onChange={(e) => updateRow(i, "incubationEnd", e.target.value)}
+                        onChange={(v) => updateRow(i, "incubationEnd", v)}
                         fullWidth
-                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} incubation end` } }}
+                        ariaLabel={`Row ${i + 1} incubation end`}
                       />
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>

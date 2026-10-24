@@ -4,6 +4,7 @@ import {
   Autocomplete,
   Box,
   Button,
+  InputAdornment,
   MenuItem,
   TextField,
   Typography,
@@ -14,6 +15,8 @@ import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { DateField } from "../../../components/DateField";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 interface Props {
   open: boolean;
@@ -264,7 +267,30 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
         )}
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, pt: 1 }}>
-          {locationField && (
+          {locationField && (!canEdit || !canChangeLocation) && (
+            // Locked: shown as a read-only value with a lock, not a disabled
+            // dropdown whose chevron still suggests it can be opened.
+            <TextField
+              label={locationField.label}
+              size="small"
+              fullWidth
+              value={locationOptions.find((o) => o.id === form.locationId)?.name ?? ""}
+              helperText={canChangeLocation ? undefined : "Locked: testing has started for this sample"}
+              sx={{ gridColumn: "1 / -1" }}
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <LockOutlinedIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess="Locked" />
+                    </InputAdornment>
+                  )
+                },
+                inputLabel: { shrink: true }
+              }}
+            />
+          )}
+          {locationField && canEdit && canChangeLocation && (
             <TextField
               select
               label={locationField.label}
@@ -272,8 +298,6 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               fullWidth
               value={locationValue}
               onChange={(e) => set("locationId", Number(e.target.value))}
-              disabled={!canEdit || !canChangeLocation}
-              helperText={canChangeLocation ? undefined : "Locked: testing has started for this sample"}
               sx={{ gridColumn: "1 / -1" }}
             >
               {locationOptions.map((o) => (
@@ -372,25 +396,19 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
 
           {isProductLike && (
             <>
-              <TextField
+              <DateField
                 label="Mfg Date"
-                type="date"
-                size="small"
                 fullWidth
                 value={form.mfgDate}
-                onChange={(e) => set("mfgDate", e.target.value)}
+                onChange={(v) => set("mfgDate", v)}
                 disabled={!canEdit}
-                slotProps={{ inputLabel: { shrink: true } }}
               />
-              <TextField
+              <DateField
                 label="Exp Date"
-                type="date"
-                size="small"
                 fullWidth
                 value={form.expDate}
-                onChange={(e) => set("expDate", e.target.value)}
+                onChange={(v) => set("expDate", v)}
                 disabled={!canEdit}
-                slotProps={{ inputLabel: { shrink: true } }}
               />
             </>
           )}

@@ -18,6 +18,7 @@ import {
 import { documentApprovalService } from "../services/documentApprovalService";
 import { apiClient } from "../../../services/apiClient";
 import type { DocumentApprovalTaskDto } from "../types/documentControlTypes";
+import { DateField } from "../../../components/DateField";
 
 interface AssignApproverDialogProps {
   open: boolean;
@@ -162,29 +163,19 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
               </Select>
             </FormControl>
 
-            <TextField
+            <DateField
               label="Target Effective Date (Optional)"
-              type="date"
-              size="small"
               value={targetEffectiveDate}
-              onChange={(e) => setTargetEffectiveDate(e.target.value)}
+              onChange={(v) => setTargetEffectiveDate(v)}
               helperText="If set to a future date, document will be approved in Future Effective state until activation."
               fullWidth
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
 
-            <TextField
+            <DateField
               label="Approval Due Date (Optional)"
-              type="date"
-              size="small"
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(v) => setDueDate(v)}
               fullWidth
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
 
             <TextField

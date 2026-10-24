@@ -5,6 +5,7 @@ import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import type { CalendarEventResponse } from "../types";
+import { getDateField } from "../../../components/DateField.testUtils";
 
 vi.mock("../services/EquipmentPlanService", () => ({
   EquipmentPlanService: {
@@ -58,7 +59,7 @@ describe("AddEventDialog", () => {
     expect(submitBtn.disabled).toBe(true);
 
     // On a day is selected by default when initialDate is passed
-    expect(screen.getByLabelText("Specific date")).toBeTruthy();
+    expect(getDateField("Specific date")).toBeTruthy();
     expect(screen.queryByLabelText("Whole month")).toBeNull();
 
     // Type a title

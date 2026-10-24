@@ -18,6 +18,7 @@ import {
 } from "../services/EquipmentInventoryService";
 import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
 import { clickable } from "../../../../utils/clickable";
+import { DateField } from "../../../../components/DateField";
 
 interface ActiveEquipmentViewProps {
   onOpenDetails: (equipmentId: number) => void;
@@ -557,16 +558,11 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           xs: 6,
                           sm: 3
                         }}>
-                        <TextField
-                          size="small"
+                        <DateField
                           label="From Date"
-                          type="date"
                           value={historyFromDate}
-                          onChange={(e) => setHistoryFromDate(e.target.value)}
+                          onChange={(v) => setHistoryFromDate(v)}
                           fullWidth
-                          slotProps={{
-                            inputLabel: { shrink: true }
-                          }}
                         />
                       </Grid>
                       <Grid
@@ -574,16 +570,11 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           xs: 6,
                           sm: 3
                         }}>
-                        <TextField
-                          size="small"
+                        <DateField
                           label="To Date"
-                          type="date"
                           value={historyToDate}
-                          onChange={(e) => setHistoryToDate(e.target.value)}
+                          onChange={(v) => setHistoryToDate(v)}
                           fullWidth
-                          slotProps={{
-                            inputLabel: { shrink: true }
-                          }}
                         />
                       </Grid>
                       <Grid

@@ -19,6 +19,7 @@ import type {
   MaintenanceLogEntryResponse
 } from "../types/equipmentTypes";
 import { MAINTENANCE_ENTRY_TYPE_LABELS } from "../types/equipmentTypes";
+import { DateField } from "../../../../components/DateField";
 
 interface Props {
   open: boolean;
@@ -146,16 +147,12 @@ export function AddLogEntryDialog({
             </Select>
           </FormControl>
 
-          <TextField
-            id="log-entry-date"
+          <DateField
             label="Date Performed"
-            type="date"
-            size="small"
             required
             fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
             value={performedOn}
-            onChange={(e) => setPerformedOn(e.target.value)}
+            onChange={(v) => setPerformedOn(v)}
             helperText="Date when work was performed"
           />
 

@@ -44,6 +44,7 @@ import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import { Role } from "../modules/authentication/types/authTypes";
 import { PERMISSIONS } from "./routes";
+import type { CounterSource } from "../services/sectionCountersService";
 
 export interface MenuItem {
   label: string;
@@ -60,6 +61,12 @@ export interface MenuItem {
   // page's route guard and its main endpoint check, so a link never leads
   // to a page that bounces the user or answers 403.
   permission?: string | string[];
+  // On a section: where its landing page's live card figures come from -
+  // a laboratory (GET /api/section-counters?lab=...) or Document Control.
+  counterSource?: CounterSource;
+  // On a page inside such a section: which of those figures its card shows
+  // (SectionCardKeys on the server).
+  counterKey?: string;
 }
 
 export interface MenuGroup {
@@ -110,11 +117,12 @@ function documentControlItem(role: Role | null): MenuItem {
     label: "Document Control",
     description: "Controlled documents, reading lists and training.",
     path: "/sections/document-control",
+    counterSource: "document-control",
     icon: DescriptionOutlinedIcon,
     group: "DOCUMENT CONTROL",
     children: [
       { label: "Dashboard", path: "/document-control", icon: DashboardOutlinedIcon, description: "Overview of documents due for review, approval and training." },
-      { label: "My Reading List", path: "/document-control/my-reading-list", icon: MenuBookOutlinedIcon, description: "SOPs and documents you must read and acknowledge." },
+      { label: "My Reading List", path: "/document-control/my-reading-list", icon: MenuBookOutlinedIcon, counterKey: "reading-list", description: "SOPs and documents you must read and acknowledge." },
       { label: "Training Matrix", path: "/document-control/training-matrix", icon: SchoolOutlinedIcon, description: "Who is trained on which document, and what is outstanding." },
       { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", icon: InsightsOutlinedIcon, description: "Training and document compliance across sections." },
       { label: "Document Library", path: "/document-control/library", icon: LocalLibraryOutlinedIcon, description: "Search and open every controlled document and its versions." },
@@ -132,15 +140,16 @@ const microArea: MenuItem = {
   label: "Microbiology Laboratory",
   description: "Sample testing, media, cryovials and lab stock.",
   path: "/sections/microbiology-laboratory",
+  counterSource: "MICRO",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
   children: [
-    { label: "Workspace", path: "/microbiology/workspace", icon: BiotechOutlinedIcon, featured: true, description: "Receive, test, review and approve microbiology samples." },
-    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: ScienceOutlinedIcon, permission: PERMISSIONS.MEDIA_PREPARE, description: "Prepare media lots and record growth promotion and sterility checks." },
-    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Reference strain cryovials: preparation, use and stock." },
+    { label: "Workspace", path: "/microbiology/workspace", icon: BiotechOutlinedIcon, featured: true, counterKey: "workspace", description: "Receive, test, review and approve microbiology samples." },
+    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: ScienceOutlinedIcon, permission: PERMISSIONS.MEDIA_PREPARE, counterKey: "media", description: "Prepare media lots and record growth promotion and sterility checks." },
+    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, counterKey: "cryovials", description: "Reference strain cryovials: preparation, use and stock." },
     { label: "Biological Waste Destruction", path: "/laboratory-configuration/biological-waste", icon: DeleteSweepOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Autoclave destruction of used cryovial vials and other biological waste." },
-    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, description: "Receive and track microbiology reagents and consumables." },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Microbiology instruments, calibration and maintenance status." }
+    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, counterKey: "materials", description: "Receive and track microbiology reagents and consumables." },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, counterKey: "equipment", description: "Microbiology instruments, calibration and maintenance status." }
   ]
 };
 
@@ -165,25 +174,26 @@ const microConfigArea: MenuItem = {
 function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
   const children: MenuItem[] = [];
   if (physchemAreas.includes("fp")) {
-    children.push({ label: "FP Workspace", path: "/physicochemical/workspace", icon: MedicationOutlinedIcon, featured: true, description: "Receive and test finished product samples." });
+    children.push({ label: "FP Workspace", path: "/physicochemical/workspace", icon: MedicationOutlinedIcon, featured: true, counterKey: "fp-workspace", description: "Receive and test finished product samples." });
   }
   if (physchemAreas.includes("rmpm")) {
-    children.push({ label: "RM & PM Workspace", path: "/physicochemical/rm-pm-workspace", icon: LocalShippingOutlinedIcon, featured: true, description: "Receive and test raw material and packaging samples." });
+    children.push({ label: "RM & PM Workspace", path: "/physicochemical/rm-pm-workspace", icon: LocalShippingOutlinedIcon, featured: true, counterKey: "rmpm-workspace", description: "Receive and test raw material and packaging samples." });
   }
   children.push(
-    { label: "Solution Preparation", path: "/preparation", icon: OpacityOutlinedIcon, permission: PERMISSIONS.SOLUTIONS_PREPARE, description: "Prepare and standardize reagent and volumetric solutions." },
-    { label: "Working Standards", path: "/working-standards", icon: WorkspacePremiumOutlinedIcon, description: "Qualify and track in-house working standards." },
-    { label: "HPLC Workspace", path: "/hplc-workspace", icon: ViewColumnOutlinedIcon, description: "HPLC runs: sequences, system suitability and results." },
-    { label: "GC Workspace", path: "/gc-workspace", icon: WhatshotOutlinedIcon, description: "GC runs: sequences, system suitability and results." },
-    { label: "ICP Workspace", path: "/icp-workspace", icon: BlurOnOutlinedIcon, description: "ICP runs: calibration, samples and results." },
-    { label: "Materials Stock", path: "/inventory/materials?lab=FP", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, description: "Receive and track physicochemical reagents and standards." },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, description: "Physicochemical instruments, calibration and maintenance status." }
+    { label: "Solution Preparation", path: "/preparation", icon: OpacityOutlinedIcon, permission: PERMISSIONS.SOLUTIONS_PREPARE, counterKey: "solutions", description: "Prepare and standardize reagent and volumetric solutions." },
+    { label: "Working Standards", path: "/working-standards", icon: WorkspacePremiumOutlinedIcon, counterKey: "working-standards", description: "Qualify and track in-house working standards." },
+    { label: "HPLC Workspace", path: "/hplc-workspace", icon: ViewColumnOutlinedIcon, counterKey: "hplc", description: "HPLC runs: sequences, system suitability and results." },
+    { label: "GC Workspace", path: "/gc-workspace", icon: WhatshotOutlinedIcon, counterKey: "gc", description: "GC runs: sequences, system suitability and results." },
+    { label: "ICP Workspace", path: "/icp-workspace", icon: BlurOnOutlinedIcon, counterKey: "icp", description: "ICP runs: calibration, samples and results." },
+    { label: "Materials Stock", path: "/inventory/materials?lab=FP", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, counterKey: "materials", description: "Receive and track physicochemical reagents and standards." },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", icon: PrecisionManufacturingOutlinedIcon, permission: PERMISSIONS.EQUIPMENT_MANAGE, counterKey: "equipment", description: "Physicochemical instruments, calibration and maintenance status." }
   );
 
   return {
     label: "Physicochemical Laboratory",
     description: "Sample testing, instruments, solutions and lab stock.",
     path: "/sections/physicochemical-laboratory",
+    counterSource: "FP",
     icon: MedicationOutlinedIcon,
     group: "LABORATORIES",
     children

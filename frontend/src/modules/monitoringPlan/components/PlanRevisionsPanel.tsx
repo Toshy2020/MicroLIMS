@@ -6,6 +6,7 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
 import type { PlanPreview, PlanRevision } from "../types";
+import { DateField } from "../../../components/DateField";
 
 const dates = (target: string | null, start: string, end: string) =>
   `${target ? `target ${target}, ` : ""}${start} to ${end}`;
@@ -66,9 +67,10 @@ export function PlanRevisionsPanel({ year, onApproved }: { year: number; onAppro
 
       {canManage && (
         <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <TextField
-            size="small" type="date" label="Go-live date (optional)" value={goLive}
-            onChange={(e) => setGoLive(e.target.value)} slotProps={{ inputLabel: { shrink: true } }}
+          <DateField
+            label="Go-live date (optional)"
+            value={goLive}
+            onChange={(v) => setGoLive(v)}
             helperText="The plan starts on this date. Nothing before it is planned. Empty means today."
             sx={{ minWidth: 260 }}
           />

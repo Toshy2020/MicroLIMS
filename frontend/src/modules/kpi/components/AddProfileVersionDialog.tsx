@@ -4,6 +4,7 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { workflowProfileService } from "../services/workflowProfileService";
 import { workflowTypeLabel, type LiveWorkflowType, type WorkflowProfileVersion } from "../types/workflowProfileTypes";
+import { DateField } from "../../../components/DateField";
 
 interface AddProfileVersionDialogProps {
   open: boolean;
@@ -119,14 +120,11 @@ export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, t
             helperText="Analyst-stage deadline, from assignment to submission for review"
             slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
           />
-          <TextField
+          <DateField
             label="Effective from"
-            type="date"
-            size="small"
             value={effectiveFrom}
-            onChange={(e) => setEffectiveFrom(e.target.value)}
+            onChange={(v) => setEffectiveFrom(v)}
             helperText="Cannot be in the past, except for the first version of this profile"
-            slotProps={{ inputLabel: { shrink: true } }}
           />
           <TextField
             label="Reason for change"

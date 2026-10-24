@@ -18,6 +18,7 @@ import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
+import { DateField } from "../../../../components/DateField";
 
 const STATUS_OPTIONS: { label: string; value: EquipmentStatus }[] = [
   { label: "In Service", value: "InService" },
@@ -265,15 +266,10 @@ export function RegisterEquipmentDialog({
         2. Calibration & Operational Status
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: isStatusChanged ? 2 : 0 }}>
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label="Calibration Due Date"
           value={form.calibrationDueDate}
-          onChange={(e) => setForm({ ...form, calibrationDueDate: e.target.value })}
-          slotProps={{
-            inputLabel: { shrink: true }
-          }}
+          onChange={(v) => setForm({ ...form, calibrationDueDate: v })}
         />
 
         <FormControl size="small" fullWidth required>

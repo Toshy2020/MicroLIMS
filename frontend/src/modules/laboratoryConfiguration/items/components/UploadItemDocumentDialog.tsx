@@ -12,6 +12,7 @@ import {
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { ItemDocumentType, ItemDocumentService } from "../services/ItemDocumentService";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { DateField } from "../../../../components/DateField";
 
 interface UploadItemDocumentDialogProps {
   open: boolean;
@@ -126,16 +127,11 @@ export function UploadItemDocumentDialog({
             sx={{ flex: 1 }}
             required
           />
-          <TextField
-            size="small"
+          <DateField
             label="Effective Date"
-            type="date"
             value={effectiveDate}
-            onChange={(e) => setEffectiveDate(e.target.value)}
+            onChange={(v) => setEffectiveDate(v)}
             sx={{ flex: 1 }}
-            slotProps={{
-              inputLabel: { shrink: true }
-            }}
           />
         </Stack>
 

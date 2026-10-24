@@ -14,6 +14,7 @@ import type { IcpMethodMode } from "../services/IcpMethodService";
 import type { LaboratorySection } from "../../../../services/laboratorySectionService";
 import { ICP_MODE_OPTIONS } from "./icpMethodForm";
 import type { IcpMethodErrors } from "./icpMethodValidation";
+import { DateField } from "../../../../components/DateField";
 
 export interface IcpGeneralSectionProps {
   name: string;
@@ -129,16 +130,13 @@ export function IcpGeneralSection({
           slotProps={{ htmlInput: { maxLength: 20 } }}
           fullWidth
         />
-        <TextField
-          size="small"
+        <DateField
           label="Effective Date *"
-          type="date"
           value={effectiveDate}
-          onChange={(e) => onEffectiveDateChange(e.target.value)}
+          onChange={(v) => onEffectiveDateChange(v)}
           required
           error={Boolean(errors.effectiveDate)}
           helperText={errors.effectiveDate}
-          slotProps={{ inputLabel: { shrink: true } }}
           fullWidth
         />
       </Box>

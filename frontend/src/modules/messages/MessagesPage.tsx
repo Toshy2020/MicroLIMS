@@ -68,7 +68,7 @@ export function MessagesPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", pb: 4, height: "calc(100vh - 120px)", display: "flex", flexDirection: "column" }}>
+    <Box sx={{ pb: 4, height: "calc(100vh - 120px)", display: "flex", flexDirection: "column" }}>
       {/* Top Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5, flexShrink: 0 }}>
         <PageHeader
@@ -162,17 +162,11 @@ export function MessagesPage() {
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                     Select a conversation
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 2, textAlign: "center", maxWidth: 300 }}>
-                    Choose a conversation from the list or start a new message.
+                  {/* No second New Message button here - the one in the page
+                      header is the single place to start a conversation. */}
+                  <Typography variant="body2" sx={{ textAlign: "center", maxWidth: 300 }}>
+                    Choose a conversation from the list, or use New Message above to start one.
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    onClick={() => setNewDialogOpen(true)}
-                  >
-                    New Message
-                  </Button>
                 </Box>
               )}
             </Box>

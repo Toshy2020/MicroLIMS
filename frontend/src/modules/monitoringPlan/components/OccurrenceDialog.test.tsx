@@ -5,6 +5,7 @@ import { lightTheme } from "../../../theme";
 import { OccurrenceDialog } from "./OccurrenceDialog";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import type { OccurrenceDetail } from "../types";
+import { dateFieldValue } from "../../../components/DateField.testUtils";
 
 vi.mock("../../../contexts/AuthContext", () => ({
   useHasPermission: () => true,
@@ -60,7 +61,7 @@ describe("OccurrenceDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Change window" }));
 
-    expect((screen.getByLabelText(/^New window end/) as HTMLInputElement).value).toBe("2026-10-29");
+    expect(dateFieldValue(/^New window end/)).toBe("2026-10-29");
     expect((screen.getByRole("button", { name: "Continue to sign" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

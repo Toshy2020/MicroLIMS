@@ -95,6 +95,7 @@ export function LoginPage() {
               <Alert severity="info">{resetMessage}</Alert>
             ) : (
               <>
+                <Typography sx={{ fontSize: 15, fontWeight: 600 }}>Need help signing in?</Typography>
                 <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                   Enter your username and we'll generate a password reset request.
                 </Typography>
@@ -116,13 +117,8 @@ export function LoginPage() {
               >
                 Back to login
               </Link>
-              <Link
-                component={RouterLink}
-                to="/admin-recovery"
-                underline="hover"
-                sx={{ fontSize: 13, color: theme.palette.mode === "dark" ? "warning.light" : "warning.dark" }}
-              >
-                Have a recovery code from your admin?
+              <Link component={RouterLink} to="/admin-recovery" underline="hover" sx={{ fontSize: 13 }}>
+                Have a recovery code from your administrator?
               </Link>
             </Stack>
           </Box>
@@ -170,21 +166,14 @@ export function LoginPage() {
             >
               {isSubmitting ? "Signing in…" : "Sign In"}
             </Button>
-            <Stack spacing={1} sx={{
-              textAlign: "center"
-            }}>
+            {/* One way into recovery: the help screen offers both a reset
+                request and the administrator recovery-code route, instead of
+                two competing links (one of them orange) under Sign In. */}
+            <Box sx={{ textAlign: "center" }}>
               <Link component="button" type="button" underline="hover" sx={{ fontSize: 13 }} onClick={() => setForgotMode(true)}>
-                Forgot password?
+                Need help signing in?
               </Link>
-              <Link
-                component={RouterLink}
-                to="/admin-recovery"
-                underline="hover"
-                sx={{ fontSize: 13, color: theme.palette.mode === "dark" ? "warning.light" : "warning.dark" }}
-              >
-                Admin-Assisted Password Recovery
-              </Link>
-            </Stack>
+            </Box>
           </Box>
         )}
         <Typography

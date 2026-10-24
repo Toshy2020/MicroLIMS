@@ -5,6 +5,7 @@ import { AddProfileVersionDialog } from "./AddProfileVersionDialog";
 import { workflowProfileService } from "../services/workflowProfileService";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import type { WorkflowProfileVersion } from "../types/workflowProfileTypes";
+import { dateFieldValue } from "../../../components/DateField.testUtils";
 
 vi.mock("../services/workflowProfileService", () => ({
   workflowProfileService: { create: vi.fn(), signDraft: vi.fn() }
@@ -83,17 +84,17 @@ describe("AddProfileVersionDialog", () => {
 
   it("defaults a new version to today", () => {
     renderDialog();
-    expect((screen.getByLabelText(/Effective from/i) as HTMLInputElement).value).toBe("2026-10-11");
+    expect(dateFieldValue(/Effective from/i)).toBe("2026-10-11");
   });
 
   it("prefills today when the draft date is in the past", () => {
     renderDialog({ draft: draft({ effectiveFrom: "2026-10-01" }), testCode: "TAMC" });
-    expect((screen.getByLabelText(/Effective from/i) as HTMLInputElement).value).toBe("2026-10-11");
+    expect(dateFieldValue(/Effective from/i)).toBe("2026-10-11");
   });
 
   it("keeps a draft date that is still in the future", () => {
     renderDialog({ draft: draft({ effectiveFrom: "2026-10-20" }), testCode: "TAMC" });
-    expect((screen.getByLabelText(/Effective from/i) as HTMLInputElement).value).toBe("2026-10-20");
+    expect(dateFieldValue(/Effective from/i)).toBe("2026-10-20");
   });
 
   it("creates a version after the signature step and reports done", async () => {

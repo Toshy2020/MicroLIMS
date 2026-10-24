@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, TextField, Button, Typography, Alert, Paper, List, ListItem, ListItemIcon, ListItemText, CircularProgress } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import CancelIcon from "@mui/icons-material/Cancel";
+import RemoveIcon from "@mui/icons-material/Remove";
 import { PageHeader } from "../components/PageHeader";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { useAuth } from "../contexts/AuthContext";
@@ -21,6 +22,10 @@ export function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // Unmet rules only turn red once the user has left the field - flagging
+  // them while the first characters are still being typed reads as an error
+  // the user has not made yet.
+  const [newPasswordBlurred, setNewPasswordBlurred] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -74,6 +79,7 @@ export function ChangePasswordPage() {
             <TextField
               label="New Password" type="password" value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)} required
+              onBlur={() => setNewPasswordBlurred(true)}
             />
             <TextField
               label="Confirm New Password" type="password" value={confirmPassword}
@@ -87,13 +93,18 @@ export function ChangePasswordPage() {
               <List dense disablePadding>
                 {POLICY_RULES.map((rule) => {
                   const met = rule.test(newPassword);
+                  // A dash until there is something to judge, rather than a
+                  // hollow circle that reads as an unselected radio button.
+                  const state = met ? "met" : newPasswordBlurred && newPassword ? "failed" : "pending";
                   return (
                     <ListItem key={rule.label} disableGutters disablePadding>
                       <ListItemIcon sx={{ minWidth: 28 }}>
-                        {met ? <CheckCircleIcon fontSize="small" color="success" /> : <RadioButtonUncheckedIcon fontSize="small" color="disabled" />}
+                        {state === "met" && <CheckCircleIcon fontSize="small" color="success" titleAccess="Met" />}
+                        {state === "failed" && <CancelIcon fontSize="small" color="error" titleAccess="Not met" />}
+                        {state === "pending" && <RemoveIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess="Not met yet" />}
                       </ListItemIcon>
                       <ListItemText primary={rule.label} slotProps={{
-                        primary: { sx: { fontSize: 13, color: met ? "text.primary" : "text.secondary" } }
+                        primary: { sx: { fontSize: 13, color: state === "failed" ? "error.main" : met ? "text.primary" : "text.secondary" } }
                       }} />
                     </ListItem>
                   );

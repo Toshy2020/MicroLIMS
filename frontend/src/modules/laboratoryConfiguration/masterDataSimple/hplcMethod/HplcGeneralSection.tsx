@@ -13,6 +13,7 @@ import {
 import { HplcTechnique, HplcResultMode } from "../services/HplcMethodService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
 import { HplcMethodErrors } from "./hplcMethodValidation";
+import { DateField } from "../../../../components/DateField";
 
 export interface HplcGeneralSectionProps {
   technique?: HplcTechnique;
@@ -145,16 +146,13 @@ export function HplcGeneralSection({
           slotProps={{ htmlInput: { maxLength: 20 } }}
           fullWidth
         />
-        <TextField
-          size="small"
+        <DateField
           label="Effective Date *"
-          type="date"
           value={effectiveDate}
-          onChange={(e) => onEffectiveDateChange(e.target.value)}
+          onChange={(v) => onEffectiveDateChange(v)}
           required
           error={Boolean(errors.effectiveDate)}
           helperText={errors.effectiveDate}
-          slotProps={{ inputLabel: { shrink: true } }}
           fullWidth
         />
       </Box>

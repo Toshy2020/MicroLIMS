@@ -5,6 +5,7 @@ import { RecordCalibrationDialog } from "./RecordCalibrationDialog";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type { EquipmentDocument } from "../types/equipmentTypes";
+import { changeDateField } from "../../../../components/DateField.testUtils";
 
 vi.mock("../../../../contexts/AuthContext", () => ({
   useHasPermission: () => true,
@@ -81,8 +82,7 @@ describe("RecordCalibrationDialog", () => {
     expect(continueBtn.disabled).toBe(true);
 
     // Enter Calibration Date
-    const dateInput = screen.getByLabelText(/Calibration Date/i);
-    await userEvent.type(dateInput, "2026-04-14");
+    changeDateField(/Calibration Date/i, "2026-04-14");
 
     // Enabled now that certificate and date are provided
     expect(continueBtn.disabled).toBe(false);
@@ -131,8 +131,7 @@ describe("RecordCalibrationDialog", () => {
     fireEvent.click(docOption);
 
     // Enter Calibration Date
-    const dateInput = screen.getByLabelText(/Calibration Date/i);
-    await userEvent.type(dateInput, "2026-04-14");
+    changeDateField(/Calibration Date/i, "2026-04-14");
 
     // Click Continue to sign
     const continueBtn = screen.getByRole("button", { name: /Continue to sign/i });
@@ -187,11 +186,9 @@ describe("RecordCalibrationDialog", () => {
     const docOption = await screen.findByRole("option", { name: /cert_2026\.pdf/i });
     fireEvent.click(docOption);
 
-    const dateInput = screen.getByLabelText(/Calibration Date/i);
-    await userEvent.type(dateInput, "2026-04-14");
+    changeDateField(/Calibration Date/i, "2026-04-14");
 
-    const nextDueInput = screen.getByLabelText(/Certificate Next-Due Date/i);
-    await userEvent.type(nextDueInput, "2027-04-14");
+    changeDateField(/Certificate Next-Due Date/i, "2027-04-14");
 
     const continueBtn = screen.getByRole("button", { name: /Continue to sign/i });
     fireEvent.click(continueBtn);

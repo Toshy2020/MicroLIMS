@@ -5,6 +5,7 @@ import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import type { CalendarEventResponse } from "../types";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
+import { getDateField } from "../../../components/DateField.testUtils";
 
 vi.mock("../services/EquipmentPlanService", () => ({
   EquipmentPlanService: {
@@ -160,7 +161,7 @@ describe("EventDialog", () => {
     expect(screen.getByText("EQ-BAL-01")).toBeTruthy();
 
     // Specific date is shown, whole month is not
-    expect(screen.getByLabelText("Specific date")).toBeTruthy();
+    expect(getDateField("Specific date")).toBeTruthy();
     expect(screen.queryByLabelText("Whole month")).toBeNull();
 
     // Switch date mode to Whole month

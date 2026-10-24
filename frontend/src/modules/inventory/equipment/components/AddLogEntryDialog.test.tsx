@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AddLogEntryDialog } from "./AddLogEntryDialog";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { changeDateField } from "../../../../components/DateField.testUtils";
 
 vi.mock("../../../../contexts/AuthContext", () => ({
   useHasPermission: () => true,
@@ -71,8 +72,7 @@ describe("AddLogEntryDialog", () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Date Performed/i);
-    fireEvent.change(dateInput, { target: { value: "2026-04-14" } });
+    changeDateField(/Date Performed/i, "2026-04-14");
 
     const workDoneInput = screen.getByLabelText(/Work Done/i);
     fireEvent.change(workDoneInput, {
@@ -137,8 +137,7 @@ describe("AddLogEntryDialog", () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Date Performed/i);
-    fireEvent.change(dateInput, { target: { value: "2026-04-14" } });
+    changeDateField(/Date Performed/i, "2026-04-14");
 
     const workDoneInput = screen.getByLabelText(/Work Done/i);
     fireEvent.change(workDoneInput, { target: { value: "Routine inspection" } });

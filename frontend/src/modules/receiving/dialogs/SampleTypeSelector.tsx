@@ -20,12 +20,12 @@ interface Props {
 }
 
 const CATEGORY_ICONS: Record<SampleCategoryKey, React.ReactNode> = {
-  product: <MedicationOutlinedIcon sx={{ fontSize: 28 }} />,
-  rm: <Inventory2OutlinedIcon sx={{ fontSize: 28 }} />,
-  pm: <AllInboxOutlinedIcon sx={{ fontSize: 28 }} />,
-  water: <WaterDropOutlinedIcon sx={{ fontSize: 28 }} />,
-  em: <NatureOutlinedIcon sx={{ fontSize: 28 }} />,
-  ac: <CleaningServicesOutlinedIcon sx={{ fontSize: 28 }} />
+  product: <MedicationOutlinedIcon sx={{ fontSize: 22 }} />,
+  rm: <Inventory2OutlinedIcon sx={{ fontSize: 22 }} />,
+  pm: <AllInboxOutlinedIcon sx={{ fontSize: 22 }} />,
+  water: <WaterDropOutlinedIcon sx={{ fontSize: 22 }} />,
+  em: <NatureOutlinedIcon sx={{ fontSize: 22 }} />,
+  ac: <CleaningServicesOutlinedIcon sx={{ fontSize: 22 }} />
 };
 
 export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowedCategories }: Props) {
@@ -37,7 +37,7 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowed
         Select the type of sample you want to receive. The selected category will apply to all sample rows in this batch.
       </Typography>
 
-      <Grid container spacing={2}>
+      <Grid container spacing={1.5}>
         {availableCategories.map((cat) => {
           const isSelected = selectedCategory === cat.key;
           return (
@@ -48,79 +48,67 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowed
                 sm: 6,
                 md: 4
               }}>
+              {/* Compact horizontal card: six tall stacked cards pushed the
+                  dialog's Next button below the fold on laptop screens. */}
               <Paper
                 elevation={0}
                 onClick={() => onSelectCategory(cat.key)}
                 sx={{
-                  p: 2.25,
+                  p: 1.5,
                   borderRadius: 2,
                   cursor: "pointer",
                   border: isSelected
                     ? `2px solid ${brandColors.sectionTitle}`
-                    : `1.5px solid ${theme.palette.divider}`,
+                    : `1px solid ${theme.palette.divider}`,
+                  // Keeps the text from shifting by the 1px border difference.
+                  m: isSelected ? 0 : "1px",
                   bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
-                  transition: "all 0.18s ease-in-out",
+                  transition: "border-color 0.15s ease, background-color 0.15s ease",
                   height: "100%",
+                  minHeight: 72,
                   display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  position: "relative",
-                  boxShadow: isSelected
-                    ? theme.palette.mode === "dark"
-                      ? "0 4px 14px rgba(192, 132, 200, 0.25)"
-                      : "0 4px 14px rgba(123, 45, 142, 0.12)"
-                    : "none",
+                  alignItems: "center",
+                  gap: 1.5,
                   "&:hover": {
                     borderColor: theme.palette.primary.main,
-                    bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover",
-                    transform: "translateY(-2px)",
-                    boxShadow:
-                      theme.palette.mode === "dark"
-                        ? "0 4px 12px rgba(0,0,0,0.4)"
-                        : "0 4px 12px rgba(0,0,0,0.06)"
+                    bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover"
                   }
                 }}
-                {...clickable(() => onSelectCategory(cat.key))}
+                {...clickable(() => onSelectCategory(cat.key), { pressed: isSelected })}
               >
-                {/* Header with Icon and Selection Check */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
-                  <Box
-                    sx={{
-                      color: isSelected ? brandColors.sectionTitle : "text.secondary",
-                      bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default",
-                      width: 44,
-                      height: 44,
-                      borderRadius: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "all 0.15s ease"
-                    }}
-                  >
-                    {CATEGORY_ICONS[cat.key]}
-                  </Box>
-
-                  {isSelected && (
-                    <CheckCircleIcon sx={{ color: theme.palette.primary.main, fontSize: 22 }} />
-                  )}
+                <Box
+                  sx={{
+                    color: isSelected ? brandColors.sectionTitle : "text.secondary",
+                    bgcolor: isSelected ? "background.paper" : "background.default",
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                    borderRadius: 1.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  {CATEGORY_ICONS[cat.key]}
                 </Box>
-
-                {/* Title & Description */}
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography
                     sx={{
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: 700,
                       color: isSelected ? brandColors.pageTitle : "text.primary",
-                      mb: 0.5
+                      lineHeight: 1.3
                     }}
                   >
                     {cat.label}
                   </Typography>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.4 }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.35 }}>
                     {cat.description}
                   </Typography>
                 </Box>
+                {isSelected && (
+                  <CheckCircleIcon sx={{ color: theme.palette.primary.main, fontSize: 20, flexShrink: 0 }} />
+                )}
               </Paper>
             </Grid>
           );

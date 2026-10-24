@@ -49,6 +49,7 @@ import { EquipmentInventoryService } from "../../inventory/equipment/services/Eq
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import { clickable } from "../../../utils/clickable";
+import { DateField } from "../../../components/DateField";
 
 export const EQUIPMENT_TYPES = [
   { value: "Incubator", label: "Incubator" },
@@ -1314,12 +1315,11 @@ export function EquipmentPage() {
               onChange={(e) => setEquipmentForm({ ...equipmentForm, setPointTemperature: e.target.value })}
               slotProps={{ htmlInput: { step: "0.1" } }}
             />
-            <TextField
+            <DateField
               label="Calibration Due Date"
-              type="date"
               value={equipmentForm.calibrationDueDate}
-              onChange={(e) => setEquipmentForm({ ...equipmentForm, calibrationDueDate: e.target.value })}
-              slotProps={{ inputLabel: { shrink: true } }}
+              onChange={(v) => setEquipmentForm({ ...equipmentForm, calibrationDueDate: v })}
+              size="medium"
             />
           </Box>
         </Stack>

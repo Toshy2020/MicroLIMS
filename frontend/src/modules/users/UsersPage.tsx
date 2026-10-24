@@ -13,7 +13,6 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import SecurityIcon from "@mui/icons-material/Security";
 import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import KeyIcon from "@mui/icons-material/Key";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -29,6 +28,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
+import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
 
 export function UsersPage() {
   const theme = useTheme();
@@ -398,19 +398,19 @@ export function UsersPage() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={u.role?.name ?? "No role"} size="small" color={u.role?.type === "SystemAdministrator" ? "secondary" : "default"} />
+                    <MetaBadge label={u.role?.name ?? "No role"} />
                   </TableCell>
                   <TableCell>
                     {u.isActive ? (
-                      <Chip label="Active" size="small" color="success" icon={<CheckCircleOutlineIcon fontSize="small" />} />
+                      <ToneBadge tone="notDetected" label="Active" />
                     ) : (
-                      <Chip label="Disabled" size="small" color="error" icon={<BlockIcon fontSize="small" />} />
+                      <ToneBadge tone="detected" label="Disabled" />
                     )}
                   </TableCell>
                   <TableCell>
                     <Stack direction="column" spacing={0.5}>
-                      {u.isLocked && <Chip label="Account Locked" size="small" color="warning" icon={<SecurityIcon fontSize="small" />} />}
-                      {u.mustChangePassword && <Chip label="Must Change Password" size="small" color="info" />}
+                      {u.isLocked && <Box><ToneBadge tone="action" label="Account Locked" /></Box>}
+                      {u.mustChangePassword && <Box><ToneBadge tone="info" label="Must Change Password" /></Box>}
                       {!u.isLocked && !u.mustChangePassword && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Normal</Typography>}
                     </Stack>
                   </TableCell>

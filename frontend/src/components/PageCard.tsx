@@ -1,11 +1,16 @@
 import { Box, ButtonBase, Typography, alpha } from "@mui/material";
 import { Link } from "react-router-dom";
 import type { MenuItem } from "../routes/menuConfig";
+import type { SectionCounter } from "../services/sectionCountersService";
 
 // A link to a page, drawn as a card with its icon and one-line description.
 // Section and group landing pages and the admin dashboard use it; a
-// featured card (a lab's sample workspace) is filled and wider.
-export function PageCard({ page }: { page: MenuItem }) {
+// featured card (a lab's sample workspace) is wider, with a brand accent
+// edge and a filled icon tile. It keeps the same white surface as the
+// others: a solid purple card made its plain neighbours look disabled.
+// `counters`: live figures for the page ("3 overdue"), drawn under the
+// description; a figure that needs attention takes its tone's colour.
+export function PageCard({ page, counters }: { page: MenuItem; counters?: SectionCounter[] }) {
   const Icon = page.icon;
   const featured = !!page.featured;
 
@@ -24,20 +29,19 @@ export function PageCard({ page }: { page: MenuItem }) {
         p: featured ? 2.75 : 2.25,
         borderRadius: 3,
         border: "1px solid",
-        borderColor: featured ? "primary.main" : "divider",
-        bgcolor: featured ? "primary.main" : "background.paper",
-        color: featured ? "primary.contrastText" : "text.primary",
+        borderColor: featured ? alpha(t.palette.primary.main, 0.45) : "divider",
+        borderLeft: featured ? `4px solid ${t.palette.primary.main}` : undefined,
+        bgcolor: "background.paper",
+        color: "text.primary",
         transition: t.transitions.create(["border-color", "background-color", "box-shadow"], { duration: 180 }),
         "& .page-card-tile": {
           transition: t.transitions.create(["background-color", "color"], { duration: 180 })
         },
-        "&:hover, &.Mui-focusVisible": featured
-          ? { bgcolor: "primary.dark", boxShadow: `0 6px 18px ${alpha(t.palette.primary.main, 0.3)}` }
-          : {
-              borderColor: alpha(t.palette.primary.main, 0.55),
-              boxShadow: `0 4px 14px ${alpha(t.palette.primary.main, 0.12)}`,
-              "& .page-card-tile": { bgcolor: "primary.main", color: "primary.contrastText" }
-            },
+        "&:hover, &.Mui-focusVisible": {
+          borderColor: alpha(t.palette.primary.main, 0.55),
+          boxShadow: `0 4px 14px ${alpha(t.palette.primary.main, 0.12)}`,
+          "& .page-card-tile": { bgcolor: "primary.main", color: "primary.contrastText" }
+        },
         "&.Mui-focusVisible": { outline: `2px solid ${t.palette.primary.main}`, outlineOffset: 2 },
         "@media (prefers-reduced-motion: reduce)": { transition: "none", "& .page-card-tile": { transition: "none" } }
       })}
@@ -53,8 +57,8 @@ export function PageCard({ page }: { page: MenuItem }) {
             borderRadius: 2,
             display: "grid",
             placeItems: "center",
-            bgcolor: featured ? alpha(t.palette.common.white, 0.16) : alpha(t.palette.primary.main, 0.09),
-            color: featured ? "common.white" : "primary.main"
+            bgcolor: featured ? "primary.main" : alpha(t.palette.primary.main, 0.09),
+            color: featured ? "primary.contrastText" : "primary.main"
           })}
         >
           <Icon fontSize={featured ? "large" : "medium"} />
@@ -67,10 +71,29 @@ export function PageCard({ page }: { page: MenuItem }) {
         {page.description && (
           <Typography
             variant="body2"
-            sx={{ mt: 0.5, lineHeight: 1.5, color: featured ? alpha("#fff", 0.85) : "text.secondary" }}
+            sx={{ mt: 0.5, lineHeight: 1.5, color: "text.secondary" }}
           >
             {page.description}
           </Typography>
+        )}
+        {counters && counters.length > 0 && (
+          <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 1.5, rowGap: 0.25, mt: 1 }}>
+            {counters.map((c) => (
+              <Typography key={c.label} component="span" sx={{ fontSize: 13, color: "text.secondary", whiteSpace: "nowrap" }}>
+                <Box
+                  component="span"
+                  sx={(t) => ({
+                    fontWeight: 700,
+                    fontVariantNumeric: "tabular-nums",
+                    color: c.value > 0 && c.tone !== "pending" ? t.custom.status[c.tone].text : "text.primary"
+                  })}
+                >
+                  {c.value}
+                </Box>{" "}
+                {c.label}
+              </Typography>
+            ))}
+          </Box>
         )}
       </Box>
     </ButtonBase>

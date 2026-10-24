@@ -160,6 +160,7 @@ public class ControlChartServiceTests
         Assert.Equal(Counts.Length, chart.Statistics.Count);
         Assert.Equal(Counts.Average(), chart.Statistics.Mean!.Value, 6);
         Assert.Equal(chart.Statistics.Limits.ActionUpper, review.Rows.Single(r => r.SubjectName == "Filling Room").ProposedAction);
+        Assert.Equal(100.0 / (Counts.Length + 1), chart.Statistics.Capability.ObservedPercentOutside!.Value, 6); // the OOS result still counts as outside
         Assert.Equal(Counts.Length + 1, included.Statistics.Count);
     }
 

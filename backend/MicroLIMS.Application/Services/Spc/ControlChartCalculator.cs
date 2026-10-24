@@ -83,7 +83,9 @@ public static class ControlChartCalculator
             Limits: limits,
             MovingRanges: movingRanges,
             RuleViolations: violations,
-            Capability: Capability(calc, mean, sd, sigmaWithin, spec),
+            // Indices describe the in-control process; the observed share
+            // outside counts every charted result, excluded OOS ones included.
+            Capability: Capability(calc, mean, sd, sigmaWithin, spec, values),
             Histogram: Histogram(sorted, mean, sd),
             Box: Box(sorted));
     }
@@ -231,8 +233,10 @@ public static class ControlChartCalculator
     // Cp/Cpk use the within (moving range) σ, Pp/Ppk the overall standard
     // deviation. With only an upper limit - the usual case for microbial
     // counts - Cp/Pp are undefined and Cpk = Cpu.
-    public static CapabilityIndices Capability(IReadOnlyList<double> values, double mean, double overallSd, double? sigmaWithin, CapabilitySpec? spec)
+    public static CapabilityIndices Capability(IReadOnlyList<double> values, double mean, double overallSd, double? sigmaWithin, CapabilitySpec? spec,
+        IReadOnlyList<double>? observed = null)
     {
+        observed ??= values;
         var lsl = spec?.Lsl;
         var usl = spec?.Usl;
         if (lsl is null && usl is null || values.Count == 0)
@@ -248,7 +252,7 @@ public static class ControlChartCalculator
         var ppu = Ratio(usl - mean, overallSd, 3);
         var ppl = Ratio(mean - lsl, overallSd, 3);
 
-        var outside = values.Count(x => (usl.HasValue && x > usl) || (lsl.HasValue && x < lsl));
+        var outside = observed.Count(x => (usl.HasValue && x > usl) || (lsl.HasValue && x < lsl));
         double? expected = null;
         if (overallSd > 0)
         {
@@ -261,7 +265,7 @@ public static class ControlChartCalculator
             lsl, usl,
             Cp: cp, Cpk: MinOf(cpu, cpl), Cpu: cpu, Cpl: cpl,
             Pp: pp, Ppk: MinOf(ppu, ppl),
-            ObservedPercentOutside: 100.0 * outside / values.Count,
+            ObservedPercentOutside: 100.0 * outside / observed.Count,
             ExpectedPercentOutside: expected);
     }
 

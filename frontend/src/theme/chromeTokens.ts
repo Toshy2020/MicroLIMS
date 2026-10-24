@@ -11,9 +11,18 @@ export interface ChromeTokens {
   topbarSwitchTrack: string;
   brandAccent: string;
   // The purple brand band, now used only where the brand is the point (the
-  // sign-in card header) rather than as the whole application chrome.
+  // sign-in page's brand panel) rather than as the whole application chrome.
+  // brandBandBg layers several shades (a lighter corner, a deeper corner, a
+  // diagonal ramp) so the panel has depth rather than one flat colour.
   brandBandBg: string;
   brandBandAccent: string;
+  brandBandMuted: string;
+  // Line drawings of laboratory equipment on the band - a few shades off the
+  // background, texture rather than something to read.
+  brandBandArt: string;
+  brandBandChipBg: string;
+  brandBandChipBorder: string;
+  brandBandGlow: string;
   sidebarBg: string;
   sidebarText: string;
   sidebarActiveBg: string;
@@ -45,8 +54,17 @@ export const chromeTokensByMode: Record<"light" | "dark", ChromeTokens> = {
     topbarControlHoverBg: "#E2E8F0",
     topbarSwitchTrack: "#94A3B8",
     brandAccent: "#7b2d8e",
-    brandBandBg: "linear-gradient(90deg, #7b2d8e, #9b3fa8)",
+    brandBandBg: [
+      "radial-gradient(120% 80% at 0% 0%, #a64bb5 0%, rgba(166,75,181,0) 55%)",
+      "radial-gradient(90% 70% at 100% 100%, #4a1a55 0%, rgba(74,26,85,0) 60%)",
+      "linear-gradient(155deg, #8a35a0 0%, #7b2d8e 40%, #62206f 75%, #4f1a5c 100%)"
+    ].join(", "),
     brandBandAccent: "rgba(255,255,255,0.85)",
+    brandBandMuted: "rgba(255,255,255,0.82)",
+    brandBandArt: "rgba(255,255,255,0.13)",
+    brandBandChipBg: "rgba(255,255,255,0.14)",
+    brandBandChipBorder: "rgba(255,255,255,0.28)",
+    brandBandGlow: "rgba(233,213,255,0.22)",
     sidebarBg: "#1E293B",
     sidebarText: "#CBD5E1",
     sidebarActiveBg: "rgba(255,255,255,0.08)",
@@ -66,8 +84,17 @@ export const chromeTokensByMode: Record<"light" | "dark", ChromeTokens> = {
     topbarControlHoverBg: "rgba(255,255,255,0.1)",
     topbarSwitchTrack: "#4B5563",
     brandAccent: "#c084c8",
-    brandBandBg: "linear-gradient(90deg, #1E1229, #2A1740)",
+    brandBandBg: [
+      "radial-gradient(120% 80% at 0% 0%, #3b1f52 0%, rgba(59,31,82,0) 55%)",
+      "radial-gradient(90% 70% at 100% 100%, #0f0816 0%, rgba(15,8,22,0) 60%)",
+      "linear-gradient(155deg, #2c1840 0%, #23132f 45%, #1a0f24 80%, #140b1c 100%)"
+    ].join(", "),
     brandBandAccent: "#c084c8",
+    brandBandMuted: "#B9A8CC",
+    brandBandArt: "rgba(192,132,200,0.16)",
+    brandBandChipBg: "rgba(192,132,200,0.12)",
+    brandBandChipBorder: "rgba(192,132,200,0.35)",
+    brandBandGlow: "rgba(192,132,200,0.14)",
     sidebarBg: "#0F1217",
     sidebarText: "#99A3B0",
     sidebarActiveBg: "#232A35",

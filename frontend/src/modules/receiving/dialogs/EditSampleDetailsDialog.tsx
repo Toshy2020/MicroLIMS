@@ -172,6 +172,16 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     (isAfterCleaning && (!form.previousProductName.trim() || !form.previousProductBatchNumber.trim())) ||
     (hasStorage && form.storageCondition === "Refrigerator" && form.storageTimeHours === "");
   const canSave = canEdit && !missingRequired && reason.trim().length > 0;
+  // Says why Sign & Save is disabled - a greyed-out signature button with no
+  // explanation leaves the analyst guessing. A locked sample is already
+  // explained by the alert at the top of the form.
+  const signHint = !canEdit
+    ? null
+    : missingRequired
+      ? "Complete the required fields to sign."
+      : !reason.trim()
+        ? "Enter a reason for correction to sign."
+        : null;
 
   // A failure (wrong password, locked record, validation) is thrown back to
   // the signature dialog, which shows the server's message and stays open.
@@ -222,6 +232,11 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
         }
         actions={
           <>
+            {signHint && (
+              <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", mr: "auto", pl: 1 }}>
+                {signHint}
+              </Typography>
+            )}
             <Button onClick={onClose} color="inherit">
               Cancel
             </Button>

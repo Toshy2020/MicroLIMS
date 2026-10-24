@@ -7,7 +7,7 @@ import { groupLabel, groupPath } from "../routes/navigation";
 
 // Landing page of a sidebar section or menu group: one card per page the user may open in
 // it, read from the same permission-filtered menu as the sidebar. The lab's
-// sample workspaces (featured) lead, drawn wider and filled.
+// sample workspaces (featured) lead, drawn wider with a brand accent.
 export function SectionPage() {
   const { pathname } = useLocation();
   const groups = useMenuGroups();

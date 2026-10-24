@@ -21,6 +21,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { formatRoleFallback, userInitials } from "../utils/userDisplay";
 import { GlobalSearchDialog } from "./search/GlobalSearchDialog";
 import { useGlobalSearchShortcut } from "../hooks/useGlobalSearchShortcut";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { visuallyHidden } from "@mui/utils";
 
 interface NotificationDto {
   id: number | null;
@@ -114,6 +117,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const [notificationFilter, setNotificationFilter] = useState<"all" | "unread">("all");
+  const visibleNotifications = notificationFilter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
 
   // Set while the latest poll failed and nothing has loaded since. Without it
   // the bell said "No notifications - you are up to date" during an outage.
@@ -270,11 +275,22 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           anchorEl={bellAnchor}
           open={Boolean(bellAnchor)}
           onClose={() => setBellAnchor(null)}
-          slotProps={{ paper: { sx: { width: { xs: "calc(100vw - 24px)", sm: 360 }, maxWidth: 360, maxHeight: 420 } } }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+          slotProps={{
+            paper: {
+              sx: {
+                width: { xs: "calc(100vw - 24px)", sm: 380 }, maxWidth: 380, maxHeight: 460, mt: 0.75,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.12)", border: "1px solid", borderColor: "divider"
+              }
+            }
+          }}
         >
-          {notifications.length > 0 && (
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2, py: 0.75 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Notifications</Typography>
+          {/* Header and filter sit outside the menu's item navigation: keys
+              typed here are theirs, not the menu's type-ahead. */}
+          <Box onKeyDown={(e) => e.stopPropagation()} sx={{ px: 2, pt: 1, pb: 0.75 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700 }}>Notifications</Typography>
               <Button
                 size="small"
                 onClick={handleMarkAllRead}
@@ -284,8 +300,25 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
                 Mark all as read
               </Button>
             </Box>
-          )}
-          {notifications.length > 0 && <Divider />}
+            <Box role="group" aria-label="Show notifications" sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
+              {(["all", "unread"] as const).map((f) => (
+                <Button
+                  key={f}
+                  size="small"
+                  aria-pressed={notificationFilter === f}
+                  onClick={() => setNotificationFilter(f)}
+                  sx={{
+                    fontSize: 12, textTransform: "none", minWidth: 0, px: 1.25, py: 0.25, borderRadius: 5,
+                    color: notificationFilter === f ? "primary.main" : "text.secondary",
+                    bgcolor: notificationFilter === f ? "action.selected" : "transparent"
+                  }}
+                >
+                  {f === "all" ? "All" : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
+                </Button>
+              ))}
+            </Box>
+          </Box>
+          <Divider />
           {notificationsFailed && (
             <MenuItem disabled sx={{ whiteSpace: "normal", "&.Mui-disabled": { opacity: 1 } }}>
               <ListItemText
@@ -295,27 +328,44 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
               />
             </MenuItem>
           )}
-          {notifications.length === 0 && !notificationsFailed && (
-            <MenuItem disabled>
-              <ListItemText primary="No notifications" secondary="You are up to date - nothing needs your attention." />
+          {visibleNotifications.length === 0 && !notificationsFailed && (
+            <MenuItem disabled sx={{ whiteSpace: "normal" }}>
+              <ListItemText
+                primary={notificationFilter === "unread" && notifications.length > 0 ? "No unread notifications" : "No notifications"}
+                secondary="You are up to date - nothing needs your attention."
+              />
             </MenuItem>
           )}
-          {notifications.map((n, i) => {
+          {visibleNotifications.map((n, i) => {
             const target = notificationTarget(n);
+            const warning = n.severity === "warning" || n.severity === "error";
             return (
               <MenuItem
                 key={n.id ?? i}
                 {...(target ? { component: Link, to: target } : {})}
                 onClick={() => handleNotificationClick(n)}
-                sx={{ whiteSpace: "normal", alignItems: "flex-start" }}
+                sx={{ whiteSpace: "normal", alignItems: "flex-start", gap: 1.25, py: 1 }}
               >
+                {warning
+                  ? <WarningAmberOutlinedIcon fontSize="small" sx={{ color: "warning.main", mt: 0.25 }} titleAccess="Warning" />
+                  : <InfoOutlinedIcon fontSize="small" sx={{ color: "info.main", mt: 0.25 }} titleAccess="Information" />}
                 <ListItemText
+                  sx={{ m: 0 }}
                   primary={n.message}
                   secondary={new Date(n.timestamp).toLocaleString()}
                   slotProps={{
                     primary: { sx: { fontWeight: n.isRead ? 400 : 700, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
                   }} />
+                {!n.isRead && (
+                  <Box
+                    component="span"
+                    title="Unread"
+                    sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "primary.main", flexShrink: 0, mt: 0.75 }}
+                  >
+                    <Box component="span" sx={visuallyHidden}>Unread</Box>
+                  </Box>
+                )}
               </MenuItem>
             );
           })}

@@ -10,6 +10,7 @@ import { RecordSearchTab } from "../modules/reports/RecordSearchTab";
 import { MediaGptReportTab } from "../modules/reports/MediaGptReportTab";
 import { ReferenceStrainReportTab } from "../modules/reports/ReferenceStrainReportTab";
 import { TrendingTab } from "../modules/reports/components/TrendingTab";
+import { ControlChartTab } from "../modules/reports/components/controlChart/ControlChartTab";
 import { KpiPerformanceTab } from "../modules/kpi/components/KpiPerformanceTab";
 import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modules/reports/utils/dateRange";
 
@@ -19,13 +20,14 @@ const TABS = [
   "Media / GPT",
   "Reference Strains",
   "Trending & Analysis",
+  "Control Charts & Limits",
   "KPI / Performance"
 ] as const;
 
-const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "trending", "performance"] as const;
+const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "trending", "control-charts", "performance"] as const;
 
 // The KPI tab is the last entry. It owns its filters, so the page-level period selector is hidden there.
-const PERFORMANCE_TAB = 5;
+const PERFORMANCE_TAB = 6;
 
 export function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -147,6 +149,10 @@ export function ReportsPage() {
           initialTestCode={trendParams.testCode}
           initialSubjectName={trendParams.subjectName}
         />
+      )}
+
+      {tab === 5 && (
+        <ControlChartTab />
       )}
 
       {tab === PERFORMANCE_TAB && canViewKpi && (

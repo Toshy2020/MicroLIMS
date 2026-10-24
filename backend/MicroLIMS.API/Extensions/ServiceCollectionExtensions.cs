@@ -199,6 +199,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IncubatorEligibilityService>();
         services.AddScoped<MediaAppearanceSnapshotService>();
         services.AddScoped<ReportingQueryService>();
+        services.AddScoped<MicroLIMS.Application.Services.Spc.ControlChartService>();
         services.AddScoped<MediaGptReportService>();
         services.AddScoped<ReferenceStrainReportService>();
         services.AddScoped<DataExportAuditService>();

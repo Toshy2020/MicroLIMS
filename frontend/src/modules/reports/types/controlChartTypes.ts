@@ -188,7 +188,7 @@ export interface LimitReviewResult {
 }
 
 export interface ControlChartCriteria {
-  category: SampleCategory;
+  category: SampleCategory | "";
   testCode: string;
   subjectName: string;
   fromDate: string;

@@ -91,7 +91,7 @@ function defaultCriteria(): ControlChartCriteria {
   const from = new Date(to);
   from.setFullYear(from.getFullYear() - 1);
   return {
-    category: "EnvironmentalMonitoring",
+    category: "",
     testCode: "",
     subjectName: "",
     fromDate: toDateInputValue(from),
@@ -170,7 +170,6 @@ export function ControlChartTab() {
         setTestCodes(opts?.testCodes ?? []);
         setSubjectNames(opts?.subjectNames ?? []);
         setCategories((opts?.categories ?? []) as SampleCategory[]);
-        setCriteria((c) => (c.testCode || !opts?.testCodes?.length ? c : { ...c, testCode: opts.testCodes[0].testCode }));
       })
       .catch(() => setOptionsFailed(true));
   }, []);
@@ -179,7 +178,7 @@ export function ControlChartTab() {
 
   useEffect(() => {
     const { criteria: c, settings: s, view: v } = query;
-    if (!c.testCode || (v === "chart" && !c.subjectName)) return;
+    if (!c.category || !c.testCode || (v === "chart" && !c.subjectName)) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -204,7 +203,7 @@ export function ControlChartTab() {
     () => Array.from(new Set<SampleCategory>([...LIMIT_CATEGORIES, ...categories])).filter((c) => c !== "GPT"),
     [categories]
   );
-  const canApplyCategory = LIMIT_CATEGORIES.includes(criteria.category);
+  const canApplyCategory = criteria.category !== "" && LIMIT_CATEGORIES.includes(criteria.category);
 
   const handlePointClick = async (p: ControlChartPoint) => {
     try {
@@ -371,7 +370,7 @@ export function ControlChartTab() {
 
   const submitApply = (items: Parameters<typeof ControlChartService.applyLimits>[2], reason: string, password: string) =>
     ControlChartService.applyLimits(
-      { testCode: criteria.testCode, category: criteria.category, approvedOnly: criteria.approvedOnly, ...applyPeriod },
+      { testCode: criteria.testCode, category: criteria.category as SampleCategory, approvedOnly: criteria.approvedOnly, ...applyPeriod },
       settings, items, reason, password);
 
   const onApplied = (applied: AppliedLimit[]) => {
@@ -415,7 +414,7 @@ export function ControlChartTab() {
             </Select>
           </FormControl>
           {view === "chart" && (hasLocationHierarchy(criteria.category) ? (
-            <LocationCascadeFilter category={criteria.category} subjectName={criteria.subjectName}
+            <LocationCascadeFilter category={criteria.category} subjectName={criteria.subjectName} autoSelect={false}
               onSubjectNameChange={(name) => set("subjectName", name)} />
           ) : (
             <FormControl fullWidth size="small">
@@ -518,8 +517,8 @@ export function ControlChartTab() {
         </Paper>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {!criteria.testCode && <Alert severity="info">Choose a test to analyse.</Alert>}
-        {view === "chart" && criteria.testCode && !criteria.subjectName && <Alert severity="info">Choose a location or product to chart.</Alert>}
+        {(!criteria.category || !criteria.testCode) && <Alert severity="info">Choose a sample category and a test to analyse.</Alert>}
+        {view === "chart" && criteria.category && criteria.testCode && !criteria.subjectName && <Alert severity="info">Choose a location or product to chart.</Alert>}
 
         {view === "chart" && chart && criteria.subjectName && (
           <Stack spacing={2}>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Paper, TextField, Button, Stack, Typography, Alert, Chip, Box,
+  Paper, TextField, Button, Stack, Typography, Alert, Box,
   List, ListItem, ListItemText, Divider
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -14,6 +14,7 @@ import { UserService, UserRecord } from "../users/services/UserService";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { PermissionMatrix } from "./components/PermissionMatrix";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
+import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
 
 export function RoleDetailPage() {
   const { id } = useParams();
@@ -153,8 +154,8 @@ export function RoleDetailPage() {
             alignItems: "center",
             mb: 2
           }}>
-          {role.isSystemRole && <Chip label="System Role" size="small" color="secondary" />}
-          <Chip label={`Base Type: ${role.type}`} size="small" variant="outlined" />
+          {role.isSystemRole && <MetaBadge label="System Role" locked />}
+          <MetaBadge label={`Base Type: ${role.type}`} />
         </Stack>
         <Stack spacing={2}>
           <TextField label="Name" size="small" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
@@ -206,7 +207,7 @@ export function RoleDetailPage() {
                     primary={u.fullName}
                     secondary={`@${u.username}${u.email ? ` · ${u.email}` : ""}`}
                   />
-                  <Chip label={u.isActive ? "Active" : "Disabled"} size="small" color={u.isActive ? "success" : "default"} />
+                  <ToneBadge tone={u.isActive ? "notDetected" : "pending"} label={u.isActive ? "Active" : "Disabled"} />
                 </ListItem>
               </Box>
             ))}

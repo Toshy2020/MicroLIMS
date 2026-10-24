@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
 import { Theme } from "@mui/material/styles";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { statusTone, StatusTone } from "../theme/statusTokens";
 
 const statusLabelMap: Record<string, string> = {
@@ -94,6 +95,33 @@ function Pill({ tone, children }: { tone: StatusTone; children: string }) {
 // values are dedicated tokens, not one color faded for the other mode.
 export function StatusBadge({ status, label }: { status: string; label?: string }) {
   return <Pill tone={statusTone(status)}>{label ?? statusLabelMap[status] ?? status}</Pill>;
+}
+
+// An explicit tone for statuses that have no entry in the status map
+// ("Disabled", "Current", "Legacy-only"): same pill, chosen meaning.
+export function ToneBadge({ tone, label }: { tone: StatusTone; label: string }) {
+  return <Pill tone={tone}>{label}</Pill>;
+}
+
+// Type and configuration facts - a role's type, "System", "Enforced" -
+// describe what a record is, not where it stands, so they get a neutral
+// outline rather than a status colour. Sharing the green of "Active" or
+// "Approved" made a system role and an approved test look alike.
+// `locked` adds a lock for records the user cannot change.
+export function MetaBadge({ label, locked }: { label: string; locked?: boolean }) {
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex", alignItems: "center", gap: 0.5, px: 1, py: 0.125, borderRadius: 5,
+        fontSize: 12, fontWeight: 600, lineHeight: 1.5, whiteSpace: "nowrap", verticalAlign: "middle",
+        color: "text.secondary", bgcolor: "transparent", border: "1px solid", borderColor: "divider"
+      }}
+    >
+      {locked && <LockOutlinedIcon sx={{ fontSize: 13 }} aria-hidden="true" />}
+      {label}
+    </Box>
+  );
 }
 
 // .cause-badge pill from the design (purple tone).

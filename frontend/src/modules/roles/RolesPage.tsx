@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Paper, TextField, Button, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Chip, Typography, InputAdornment, Alert
+  TableHead, TableRow, Typography, InputAdornment, Alert, IconButton, Tooltip
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -11,6 +11,8 @@ import { RoleService, RoleRecord } from "./services/RoleService";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { MetaBadge, StatusBadge } from "../../components/StatusBadge";
 
 export function RolesPage() {
   const navigate = useNavigate();
@@ -70,6 +72,7 @@ export function RolesPage() {
               <TableCell>Type</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Users</TableCell>
+              <TableCell align="right" sx={{ width: 64 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -80,22 +83,30 @@ export function RolesPage() {
                   {r.description && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.description}</Typography>}
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    label={r.isSystemRole ? "System" : "Custom"}
-                    size="small"
-                    color={r.isSystemRole ? "secondary" : "default"}
-                    variant={r.isSystemRole ? "filled" : "outlined"}
-                  />
+                  <MetaBadge label={r.isSystemRole ? "System" : "Custom"} locked={r.isSystemRole} />
                 </TableCell>
                 <TableCell>
-                  <Chip label={r.isActive ? "Active" : "Inactive"} size="small" color={r.isActive ? "success" : "default"} />
+                  <StatusBadge status={r.isActive ? "Active" : "Inactive"} />
                 </TableCell>
                 <TableCell align="right">{failedLists.some((f) => f.startsWith("users")) ? "—" : userCountByRoleId.get(r.id) ?? 0}</TableCell>
+                <TableCell align="right">
+                  {/* The whole row opens the role too; this makes the action
+                      visible and gives keyboard users a real target. */}
+                  <Tooltip title="Edit role">
+                    <IconButton
+                      size="small"
+                      aria-label={`Edit ${r.name}`}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/roles/${r.id}`); }}
+                    >
+                      <EditOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={5}>
                   <Typography sx={{ fontSize: 13, color: "text.secondary", textAlign: "center", py: 2 }}>
                     No roles match "{search}".
                   </Typography>

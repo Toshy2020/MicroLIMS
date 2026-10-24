@@ -1,5 +1,6 @@
-import { Box, Paper, Typography, Checkbox, FormControlLabel, Chip, Tooltip, Stack } from "@mui/material";
+import { Box, Paper, Typography, Checkbox, FormControlLabel, Tooltip, Stack } from "@mui/material";
 import { PermissionRecord } from "../services/RoleService";
+import { MetaBadge, ToneBadge } from "../../../components/StatusBadge";
 
 // "TestWorkflow.Execute" -> module "TestWorkflow", tier "Execute". Module
 // grouping per the spec: everything before the first ".".
@@ -72,17 +73,10 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle }: Permis
                       : "Access on screens covered by this permission still follows the role's underlying base type, not this checkbox, until that screen is migrated to the new permission system."
                   }
                 >
-                  <Chip
-                    label={p.isEnforced ? "Enforced" : "Legacy-only"}
-                    size="small"
-                    sx={{
-                      flexShrink: 0,
-                      fontWeight: 700,
-                      fontSize: 12,
-                      bgcolor: p.isEnforced ? "success.main" : "warning.main",
-                      color: p.isEnforced ? "success.contrastText" : "warning.contrastText"
-                    }}
-                  />
+                  {/* Span wrapper: Tooltip needs a child that holds a ref. */}
+                  <Box component="span" sx={{ flexShrink: 0 }}>
+                    {p.isEnforced ? <MetaBadge label="Enforced" /> : <ToneBadge tone="action" label="Legacy-only" />}
+                  </Box>
                 </Tooltip>
               </Box>
             ))}

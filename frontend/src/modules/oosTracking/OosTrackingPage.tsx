@@ -31,7 +31,7 @@ import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
-import { StatusBadge, CategoryBadge } from "../../components/StatusBadge";
+import { StatusBadge, CategoryBadge, ToneBadge } from "../../components/StatusBadge";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import {
@@ -637,13 +637,13 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                   <TableRow key={doc.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                     <TableCell>
                       {isCurrent && (
-                        <Chip size="small" label="Current" color="success" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
+                        <ToneBadge tone="notDetected" label="Current" />
                       )}
                       {isSuperseded && (
-                        <Chip size="small" label="Superseded" sx={{ height: 20, fontSize: 12, bgcolor: "action.selected" }} />
+                        <ToneBadge tone="pending" label="Superseded" />
                       )}
                       {(!isCurrent && !isSuperseded) && (
-                        <Chip size="small" label="Voided" color="error" variant="outlined" sx={{ height: 20, fontSize: 12 }} />
+                        <ToneBadge tone="detected" label="Voided" />
                       )}
                     </TableCell>
                     <TableCell>

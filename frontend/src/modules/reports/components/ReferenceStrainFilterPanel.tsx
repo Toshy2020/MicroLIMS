@@ -4,6 +4,7 @@ import {
   Button, Link, Typography, Stack, useTheme
 } from "@mui/material";
 import { ReferenceStrainFilterOptions, ReferenceStrainSearchParams } from "../types/referenceStrainTypes";
+import { DateField } from "../../../components/DateField";
 
 interface ReferenceStrainFilterPanelProps {
   filterOptions: ReferenceStrainFilterOptions | null;
@@ -97,27 +98,19 @@ export function ReferenceStrainFilterPanel({
             Material Receipt Date Range
           </Typography>
           <Stack direction="row" spacing={1}>
-            <TextField
-              size="small"
-              type="date"
+            <DateField
               label="From"
               value={draft.receiptFromDate?.slice(0, 10) ?? ""}
-              onChange={(e) => onChange({ receiptFromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
+              onChange={(v) => onChange({ receiptFromDate: v ? `${v}T00:00:00.000Z` : undefined })}
+              max={draft.receiptToDate?.slice(0, 10)}
               fullWidth
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
-            <TextField
-              size="small"
-              type="date"
+            <DateField
               label="To"
               value={draft.receiptToDate?.slice(0, 10) ?? ""}
-              onChange={(e) => onChange({ receiptToDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
+              onChange={(v) => onChange({ receiptToDate: v ? `${v}T23:59:59.999Z` : undefined })}
+              min={draft.receiptFromDate?.slice(0, 10)}
               fullWidth
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
           </Stack>
         </Box>
@@ -127,27 +120,19 @@ export function ReferenceStrainFilterPanel({
             GPT Usage Date Range
           </Typography>
           <Stack direction="row" spacing={1}>
-            <TextField
-              size="small"
-              type="date"
+            <DateField
               label="From"
               value={draft.usageFromDate?.slice(0, 10) ?? ""}
-              onChange={(e) => onChange({ usageFromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
+              onChange={(v) => onChange({ usageFromDate: v ? `${v}T00:00:00.000Z` : undefined })}
+              max={draft.usageToDate?.slice(0, 10)}
               fullWidth
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
-            <TextField
-              size="small"
-              type="date"
+            <DateField
               label="To"
               value={draft.usageToDate?.slice(0, 10) ?? ""}
-              onChange={(e) => onChange({ usageToDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
+              onChange={(v) => onChange({ usageToDate: v ? `${v}T23:59:59.999Z` : undefined })}
+              min={draft.usageFromDate?.slice(0, 10)}
               fullWidth
-              slotProps={{
-                inputLabel: { shrink: true }
-              }}
             />
           </Stack>
         </Box>

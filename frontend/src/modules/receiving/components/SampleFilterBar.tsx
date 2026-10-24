@@ -10,6 +10,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { RECEIVING_CATEGORIES, SAMPLE_STATUS_OPTIONS, TEST_STATUS_OPTIONS } from "../constants/receivingConstants";
+import { DateField } from "../../../components/DateField";
 
 export type SampleFilterBarViewMode = "table" | "card" | "kanban";
 
@@ -240,24 +241,8 @@ export function SampleFilterBar({
         </FormControl>
 
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
-          <TextField
-            size="small"
-            type="date"
-            label="Received From"
-            value={fromDate}
-            onChange={(e) => onFromDateChange(e.target.value)}
-            fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <TextField
-            size="small"
-            type="date"
-            label="Received To"
-            value={toDate}
-            onChange={(e) => onToDateChange(e.target.value)}
-            fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          <DateField label="Received From" value={fromDate} onChange={onFromDateChange} max={toDate} fullWidth />
+          <DateField label="Received To" value={toDate} onChange={onToDateChange} min={fromDate} fullWidth />
         </Box>
 
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>

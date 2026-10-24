@@ -3,6 +3,7 @@ import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import type { IncidentFilterState } from "../types/errorMonitoringTypes";
 import { SEVERITIES, SOURCES, STATUSES } from "../types/errorMonitoringTypes";
+import { DateField } from "../../../components/DateField";
 
 interface Props {
   filters: IncidentFilterState;
@@ -54,18 +55,8 @@ export function IncidentFilterBar({ filters, onChange, onReset, onExport, export
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </TextField>
 
-        <TextField
-          size="small" type="date" label="Active from" value={filters.fromDate}
-          onChange={(e) => set("fromDate", e.target.value)} slotProps={{
-          inputLabel: { shrink: true }
-        }}
-        />
-        <TextField
-          size="small" type="date" label="Active to" value={filters.toDate}
-          onChange={(e) => set("toDate", e.target.value)} slotProps={{
-          inputLabel: { shrink: true }
-        }}
-        />
+        <DateField label="Active from" value={filters.fromDate} onChange={(v) => set("fromDate", v)} max={filters.toDate} />
+        <DateField label="Active to" value={filters.toDate} onChange={(v) => set("toDate", v)} min={filters.fromDate} />
 
         <TextField
           size="small" label="Search summary or correlation id" sx={{ minWidth: 280, flexGrow: 1 }}

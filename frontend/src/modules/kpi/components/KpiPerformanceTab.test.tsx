@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { ReportingService } from "../../reports/services/ReportingService";
@@ -8,6 +8,7 @@ import { kpiWorkloadService } from "../services/kpiWorkloadService";
 import { dashboard, entry, headlineEntries, point, workload, workloadRow } from "../kpiFixtures";
 import type { KpiRecordPage } from "../types/kpiTypes";
 import { KpiPerformanceTab } from "./KpiPerformanceTab";
+import { changeDateField } from "../../../components/DateField.testUtils";
 
 vi.mock("../services/kpiDashboardService", () => ({
   kpiDashboardService: { dashboard: vi.fn(), records: vi.fn(), definitions: vi.fn() }
@@ -130,7 +131,7 @@ describe("KpiPerformanceTab", () => {
   it("fetches again when the period changes", async () => {
     renderTab();
     await screen.findByRole("button", { name: /^Sample TAT: / });
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2020-01-01" } });
+    changeDateField("From", "01/01/2020");
     await waitFor(() => expect(kpiDashboardService.dashboard).toHaveBeenCalledTimes(2));
     expect(vi.mocked(kpiDashboardService.dashboard).mock.calls[1][0]).toEqual(expect.objectContaining({ from: "2020-01-01" }));
     expect(vi.mocked(kpiWorkloadService.workload).mock.calls[1][0]).toEqual(expect.objectContaining({ from: "2020-01-01" }));

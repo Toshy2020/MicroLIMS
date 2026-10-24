@@ -4,6 +4,7 @@ import { brandColors } from "../../../theme";
 import { statusTone } from "../../../theme/statusTokens";
 import { categoryLabel } from "../../../components/StatusBadge";
 import { FilterOptionsResponse, ResultLevel, ResultRecordSearchParams } from "../types/reportingTypes";
+import { DateField } from "../../../components/DateField";
 
 const RESULT_LEVEL_SEGMENTS: { value: ResultLevel | ""; label: string }[] = [
   { value: "", label: "All" },
@@ -146,19 +147,15 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
         <Box>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>Date Range</Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <TextField
-              size="small" type="date" fullWidth value={isoToDateInput(draft.fromDate)}
-              onChange={(e) => onChange({ fromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
-              slotProps={{ htmlInput: { "aria-label": "From date" },
-                inputLabel: { shrink: true }
-              }}
+            <DateField
+              fullWidth label="From date" value={isoToDateInput(draft.fromDate)}
+              max={isoToDateInput(draft.toDate)}
+              onChange={(v) => onChange({ fromDate: v ? `${v}T00:00:00.000Z` : undefined })}
             />
-            <TextField
-              size="small" type="date" fullWidth value={isoToDateInput(draft.toDate)}
-              onChange={(e) => onChange({ toDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
-              slotProps={{ htmlInput: { "aria-label": "To date" },
-                inputLabel: { shrink: true }
-              }}
+            <DateField
+              fullWidth label="To date" value={isoToDateInput(draft.toDate)}
+              min={isoToDateInput(draft.fromDate)}
+              onChange={(v) => onChange({ toDate: v ? `${v}T23:59:59.999Z` : undefined })}
             />
           </Box>
         </Box>

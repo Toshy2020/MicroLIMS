@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { ReportingService } from "../../reports/services/ReportingService";
 import type { KpiFiltersValue } from "../utils/kpiFilters";
 import { KpiFilters } from "./KpiFilters";
+import { changeDateField } from "../../../components/DateField.testUtils";
 
 vi.mock("../../reports/services/ReportingService", () => ({
   ReportingService: { getFilterOptions: vi.fn() }
@@ -43,15 +44,15 @@ function renderFilters(over: {
 describe("KpiFilters", () => {
   it("reports a valid new range", () => {
     const { onChange } = renderFilters();
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-20" } });
+    changeDateField("From", "20/09/2026");
     expect(onChange).toHaveBeenCalledWith({ ...value, from: "2026-09-20" });
   });
 
   it("does not call onChange for an inverted or empty range", () => {
     const { onChange } = renderFilters();
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-20" } });
+    changeDateField("From", "20/10/2026");
     expect(screen.getByText("The start date must not be after the end date.")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "" } });
+    changeDateField("From", "");
     expect(screen.getByText("Choose both dates.")).toBeTruthy();
     expect(onChange).not.toHaveBeenCalled();
   });

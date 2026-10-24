@@ -32,6 +32,7 @@ import type {
   DocumentAuditItemDto,
   AuditActionCategory
 } from "../types/documentControlTypes";
+import { DateField } from "../../../components/DateField";
 
 export function DocumentAuditPage() {
   const theme = useTheme();
@@ -156,32 +157,24 @@ export function DocumentAuditPage() {
             <MenuItem value="System">System</MenuItem>
           </TextField>
 
-          <TextField
-            size="small"
+          <DateField
             label="Date From"
-            type="date"
             value={dateFrom}
-            onChange={(e) => {
-              setDateFrom(e.target.value);
+            onChange={(v) => {
+              setDateFrom(v);
               setPage(0);
             }}
-            slotProps={{
-              inputLabel: { shrink: true }
-            }}
+            max={dateTo}
           />
 
-          <TextField
-            size="small"
+          <DateField
             label="Date To"
-            type="date"
             value={dateTo}
-            onChange={(e) => {
-              setDateTo(e.target.value);
+            onChange={(v) => {
+              setDateTo(v);
               setPage(0);
             }}
-            slotProps={{
-              inputLabel: { shrink: true }
-            }}
+            min={dateFrom}
           />
 
           <Button

@@ -14,6 +14,7 @@ import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { DateField } from "../../../components/DateField";
 
 interface Props {
   open: boolean;
@@ -372,25 +373,19 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
 
           {isProductLike && (
             <>
-              <TextField
+              <DateField
                 label="Mfg Date"
-                type="date"
-                size="small"
                 fullWidth
                 value={form.mfgDate}
-                onChange={(e) => set("mfgDate", e.target.value)}
+                onChange={(v) => set("mfgDate", v)}
                 disabled={!canEdit}
-                slotProps={{ inputLabel: { shrink: true } }}
               />
-              <TextField
+              <DateField
                 label="Exp Date"
-                type="date"
-                size="small"
                 fullWidth
                 value={form.expDate}
-                onChange={(e) => set("expDate", e.target.value)}
+                onChange={(v) => set("expDate", v)}
                 disabled={!canEdit}
-                slotProps={{ inputLabel: { shrink: true } }}
               />
             </>
           )}

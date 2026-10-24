@@ -33,6 +33,7 @@ import {
   MaterialMasterEntry,
   MaterialMasterCategory
 } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
+import { DateField } from "../../../../components/DateField";
 
 interface MaterialTypeOption {
   label: string;
@@ -1245,27 +1246,17 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         3. Dates & Traceability
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
-        <TextField
-          size="small"
+        <DateField
           required
-          type="date"
           label="Receiving Date"
           value={form.receivingDate}
-          onChange={(e) => setForm({ ...form, receivingDate: e.target.value })}
-          slotProps={{
-            inputLabel: { shrink: true }
-          }}
+          onChange={(v) => setForm({ ...form, receivingDate: v })}
         />
 
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label="Expiry Date"
           value={form.expiryDate}
-          onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-          slotProps={{
-            inputLabel: { shrink: true }
-          }}
+          onChange={(v) => setForm({ ...form, expiryDate: v })}
         />
       </Box>
 

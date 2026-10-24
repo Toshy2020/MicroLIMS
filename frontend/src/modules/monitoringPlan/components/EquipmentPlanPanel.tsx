@@ -5,6 +5,7 @@ import { SignatureDialog } from "../../../components/SignatureDialog";
 import { PERMISSIONS } from "../../../routes/routes";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import type { EquipmentPlanPreview, EquipmentPlanRevision } from "../types";
+import { DateField } from "../../../components/DateField";
 
 export function EquipmentPlanPanel({ year, onApproved }: { year: number; onApproved: () => void }) {
   const { userId } = useAuth();
@@ -76,13 +77,10 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
 
       {canManage && (
         <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <TextField
-            size="small"
-            type="date"
+          <DateField
             label="Go-live date (optional)"
             value={goLive}
-            onChange={(e) => setGoLive(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
+            onChange={(v) => setGoLive(v)}
             helperText="The equipment plan starts on this date. Empty means today."
             sx={{ minWidth: 260 }}
           />

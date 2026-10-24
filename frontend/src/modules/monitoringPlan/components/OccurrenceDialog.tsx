@@ -8,6 +8,7 @@ import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
 import type { OccurrenceDetail } from "../types";
 import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
+import { DateField } from "../../../components/DateField";
 
 type Mode = "view" | "skip" | "window";
 
@@ -148,10 +149,14 @@ export function OccurrenceDialog({
           <Stack spacing={2} sx={{ mt: 1 }}>
             {mode === "window" && (
               <>
-                <TextField label="New target date" type="date" slotProps={{ inputLabel: { shrink: true } }} value={newTarget} onChange={(e) => setNewTarget(e.target.value)} />
-                <TextField
-                  label="New window end" type="date" required slotProps={{ inputLabel: { shrink: true } }} value={newEnd}
-                  onChange={(e) => setNewEnd(e.target.value)} helperText="Choose a working day."
+                <DateField label="New target date" value={newTarget} onChange={(v) => setNewTarget(v)} size="medium" />
+                <DateField
+                  label="New window end"
+                  required
+                  value={newEnd}
+                  onChange={(v) => setNewEnd(v)}
+                  helperText="Choose a working day."
+                  size="medium"
                 />
               </>
             )}

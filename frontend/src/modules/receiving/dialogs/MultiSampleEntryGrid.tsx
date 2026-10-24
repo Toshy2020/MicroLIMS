@@ -27,6 +27,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { ReceiveRowItem, SampleCategoryKey, ReceiptLabOption } from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";
 import { tableHeadSx } from "../../../theme";
+import { DateField } from "../../../components/DateField";
 
 // The two laboratories always shown in the Laboratories column, even when
 // the item has no tests for one of them - so the receiver sees a disabled
@@ -580,28 +581,20 @@ export function MultiSampleEntryGrid({
                     {isItemBased && (
                       <>
                         <TableCell>
-                          <TextField
-                            type="date"
-                            size="small"
+                          <DateField
                             fullWidth
                             value={row.mfgDate ?? ""}
-                            onChange={(e) => onChangeRow(idx, "mfgDate", e.target.value)}
-                            slotProps={{
-                              htmlInput: { "aria-label": `Sample ${idx + 1} manufacturing date`, style: { fontSize: 12 } }
-                            }}
+                            onChange={(v) => onChangeRow(idx, "mfgDate", v)}
+                            ariaLabel={`Sample ${idx + 1} manufacturing date`}
                           />
                         </TableCell>
                         <TableCell>
-                          <TextField
-                            type="date"
-                            size="small"
+                          <DateField
                             fullWidth
                             value={row.expDate ?? ""}
                             error={Boolean(errors.expDate)}
-                            onChange={(e) => onChangeRow(idx, "expDate", e.target.value)}
-                            slotProps={{
-                              htmlInput: { "aria-label": `Sample ${idx + 1} expiry date`, style: { fontSize: 12 } }
-                            }}
+                            onChange={(v) => onChangeRow(idx, "expDate", v)}
+                            ariaLabel={`Sample ${idx + 1} expiry date`}
                           />
                         </TableCell>
                       </>

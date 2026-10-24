@@ -22,6 +22,7 @@ import type {
   IntervalUnit,
   SaveEquipmentScheduleRequest
 } from "../types/equipmentTypes";
+import { DateField } from "../../../../components/DateField";
 
 interface Props {
   equipment: EquipmentItem;
@@ -264,14 +265,11 @@ export function EquipmentScheduleSection({
             </FormControl>
           </Box>
           <Box sx={{ mt: 2 }}>
-            <TextField
+            <DateField
               label="Last Calibration Date (Baseline)"
-              type="date"
-              size="small"
               fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
               value={lastCalibratedOn}
-              onChange={(e) => setLastCalibratedOn(e.target.value)}
+              onChange={(v) => setLastCalibratedOn(v)}
               helperText="Baseline date. Once calibrations are completed, future dates update from records."
             />
           </Box>
@@ -313,14 +311,11 @@ export function EquipmentScheduleSection({
             </FormControl>
           </Box>
           <Box sx={{ mt: 2 }}>
-            <TextField
+            <DateField
               label="Last Maintenance Date (Baseline)"
-              type="date"
-              size="small"
               fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
               value={lastPmOn}
-              onChange={(e) => setLastPmOn(e.target.value)}
+              onChange={(v) => setLastPmOn(v)}
               helperText="Last maintenance date from the paper logbook. Kept in the audit trail; not signed."
             />
           </Box>

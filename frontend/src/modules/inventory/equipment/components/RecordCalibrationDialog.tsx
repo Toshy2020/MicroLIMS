@@ -6,7 +6,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
   Typography,
   Alert,
   Stack
@@ -23,6 +22,7 @@ import type {
   EquipmentTaskResponse,
   RecordCalibrationRequest
 } from "../types/equipmentTypes";
+import { DateField } from "../../../../components/DateField";
 
 interface Props {
   open: boolean;
@@ -199,29 +199,21 @@ export function RecordCalibrationDialog({
           </Box>
 
           {/* Calibration Date */}
-          <TextField
-            id="record-cal-date"
+          <DateField
             label="Calibration Date"
-            type="date"
-            size="small"
             required
             fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
             value={calibratedOn}
-            onChange={(e) => setCalibratedOn(e.target.value)}
+            onChange={(v) => setCalibratedOn(v)}
             helperText="Date when calibration was performed (cannot be in the future)"
           />
 
           {/* Certificate Next-Due Date (Optional) */}
-          <TextField
-            id="record-cal-next-due"
+          <DateField
             label="Certificate Next-Due Date (Optional)"
-            type="date"
-            size="small"
             fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
             value={certificateNextDue}
-            onChange={(e) => setCertificateNextDue(e.target.value)}
+            onChange={(v) => setCertificateNextDue(v)}
             helperText="When specified on the vendor certificate, overrides the calculated interval due date"
           />
         </Stack>

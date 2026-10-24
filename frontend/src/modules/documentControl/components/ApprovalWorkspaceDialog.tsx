@@ -48,6 +48,7 @@ import type {
   DocumentApprovalTaskDto
 } from "../types/documentControlTypes";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { DateField } from "../../../components/DateField";
 
 interface ApprovalWorkspaceDialogProps {
   open: boolean;
@@ -824,18 +825,13 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                         : "Document will transition to Effective immediately. The prior effective revision will be superseded in the same transaction."}
                     </Typography>
 
-                    <TextField
+                    <DateField
                       label="Effective Date"
-                      type="date"
-                      size="small"
                       value={effectiveDateOverride}
-                      onChange={(e) => setEffectiveDateOverride(e.target.value)}
+                      onChange={(v) => setEffectiveDateOverride(v)}
                       helperText="Leave blank or select today for immediate activation; select a future date for deferred activation."
                       fullWidth
                       sx={{ mb: 2 }}
-                      slotProps={{
-                        inputLabel: { shrink: true }
-                      }}
                     />
 
                     <TextField

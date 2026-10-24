@@ -24,6 +24,12 @@ interface DateFieldProps {
   error?: boolean;
   helperText?: string;
   fullWidth?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  /** Defaults to "small" - the size of the filter bars and most forms. */
+  size?: "small" | "medium";
+  /** Accessible name for a field with no visible label (a table cell). */
+  ariaLabel?: string;
   sx?: SxProps<Theme>;
 }
 
@@ -33,10 +39,12 @@ function parse(value: string | undefined): Dayjs | null {
   return d.isValid() ? d : null;
 }
 
-// Calendar date picker for filter bars: a DD/MM/YYYY field with a calendar
-// button, at the same small height as the TextFields and Selects beside it,
-// replacing the browser's own "dd----yyyy" placeholder rendering.
-export function DateField({ label, value, onChange, min, max, error, helperText, fullWidth, sx }: DateFieldProps) {
+// Calendar date picker: a DD/MM/YYYY field with a calendar button, at the
+// same height as the TextFields and Selects beside it, replacing the
+// browser's own "dd----yyyy" placeholder rendering.
+export function DateField({
+  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, sx
+}: DateFieldProps) {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DatePicker
@@ -46,14 +54,17 @@ export function DateField({ label, value, onChange, min, max, error, helperText,
         format={DISPLAY_FORMAT}
         minDate={parse(min) ?? undefined}
         maxDate={parse(max) ?? undefined}
+        disabled={disabled}
         sx={sx}
         slotProps={{
           field: { clearable: true },
           textField: {
-            size: "small",
+            size,
             fullWidth,
+            required,
             error,
-            helperText
+            helperText,
+            slotProps: ariaLabel ? { input: { "aria-label": ariaLabel } } : undefined
           }
         }}
       />

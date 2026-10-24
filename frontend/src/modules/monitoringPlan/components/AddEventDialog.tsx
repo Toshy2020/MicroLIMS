@@ -24,6 +24,7 @@ import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTyp
 import { EVENT_TYPE_LABEL } from "../statusDisplay";
 import type { CalendarEventResponse, CalendarEventType, CreateCalendarEventRequest } from "../types";
 import { isDuplicateCalendarEvent } from "../eventDuplicates";
+import { DateField } from "../../../components/DateField";
 
 export interface AddEventDialogProps {
   open: boolean;
@@ -240,14 +241,11 @@ export function AddEventDialog({
             </Box>
 
             {dateMode === "day" ? (
-              <TextField
+              <DateField
                 label="Specific date"
-                type="date"
-                size="small"
                 fullWidth
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
+                onChange={(v) => setDate(v)}
               />
             ) : (
               <TextField

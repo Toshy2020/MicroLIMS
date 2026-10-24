@@ -7,6 +7,7 @@ import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringSettingsApi } from "../services/MonitoringPlanService";
 import type { LabCalendarDate, MonitoringSettings } from "../types";
+import { DateField } from "../../../components/DateField";
 
 // bit0 = Monday ... bit6 = Sunday, shown in the lab's Sunday-first order.
 const WEEKDAYS: { label: string; bit: number }[] = [
@@ -117,7 +118,7 @@ export function SettingsPanel({ year }: { year: number }) {
         ))}
         {canManage && (
           <Box sx={{ display: "flex", gap: 1, mt: 1.5, flexWrap: "wrap" }}>
-            <TextField size="small" type="date" label="Date" slotProps={{ inputLabel: { shrink: true } }} value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+            <DateField label="Date" value={newDate} onChange={(v) => setNewDate(v)} />
             <TextField size="small" label="Description" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
             <Button
               variant="outlined" disabled={!newDate || !newDescription.trim()}

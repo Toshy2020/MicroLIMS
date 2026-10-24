@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { EquipmentScheduleSection } from "./EquipmentScheduleSection";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import type { EquipmentItem } from "../types/equipmentTypes";
+import { dateFieldValue } from "../../../../components/DateField.testUtils";
 
 vi.mock("../services/EquipmentPlanService", () => ({
   EquipmentPlanService: {
@@ -114,9 +115,9 @@ describe("EquipmentScheduleSection", () => {
 
     const { rerender } = render(<EquipmentScheduleSection equipment={equipWithSchedule} />);
     expect(screen.getByDisplayValue("12")).toBeTruthy();
-    expect(screen.getByDisplayValue("2026-02-01")).toBeTruthy();
+    expect(dateFieldValue(/Last Calibration Date/)).toBe("2026-02-01");
     expect(screen.getByDisplayValue("3")).toBeTruthy();
-    expect(screen.getByDisplayValue("2026-02-15")).toBeTruthy();
+    expect(dateFieldValue(/Last Maintenance Date/)).toBe("2026-02-15");
 
     const reloaded: EquipmentItem = {
       ...equipWithSchedule,
@@ -125,7 +126,7 @@ describe("EquipmentScheduleSection", () => {
     };
     rerender(<EquipmentScheduleSection equipment={reloaded} />);
     expect(screen.getByDisplayValue("24")).toBeTruthy();
-    expect(screen.getByDisplayValue("2026-05-10")).toBeTruthy();
+    expect(dateFieldValue(/Last Calibration Date/)).toBe("2026-05-10");
   });
 
   it("renders the updated interval helper text including years", () => {

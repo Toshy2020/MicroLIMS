@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { documentReviewService } from "../services/documentReviewService";
 import { apiClient } from "../../../services/apiClient";
+import { DateField } from "../../../components/DateField";
 
 interface SubmitForReviewDialogProps {
   open: boolean;
@@ -138,15 +139,12 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
             </FormControl>
           )}
 
-          <TextField
+          <DateField
             label="Review Due Date"
-            type="date"
             value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+            onChange={(v) => setDueDate(v)}
             fullWidth
-            slotProps={{
-              inputLabel: { shrink: true }
-            }}
+            size="medium"
           />
 
           <TextField

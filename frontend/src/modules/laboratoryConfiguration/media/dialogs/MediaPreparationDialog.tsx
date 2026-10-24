@@ -23,6 +23,7 @@ import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDat
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { useLoadFailures } from "../../../../hooks/useLoadFailures";
+import { DateField } from "../../../../components/DateField";
 
 interface Props {
   open: boolean;
@@ -380,15 +381,10 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   }}
                 />
 
-                <TextField
-                  size="small"
+                <DateField
                   label="Expiry Date *"
-                  type="date"
                   value={form.expiryDate ?? ""}
-                  onChange={(e) => setField("expiryDate", e.target.value)}
-                  slotProps={{
-                    inputLabel: { shrink: true }
-                  }}
+                  onChange={(v) => setField("expiryDate", v)}
                 />
               </Box>
             </Box>

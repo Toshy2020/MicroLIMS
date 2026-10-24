@@ -28,6 +28,7 @@ import { masterDataOptions } from "../../services/masterDataOptions";
 import { TrackingService, TrackingRow } from "./services/TrackingService";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { DateField } from "../../components/DateField";
+import { visuallyHidden } from "@mui/utils";
 
 // Matched on section Code, never Id: Ids are database-assigned and differ
 // between installations. Codes are never renamed, only labels can change
@@ -66,14 +67,14 @@ function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: str
   const theme = useTheme();
   const lab = row.labs.find((l) => l.sectionCode.toUpperCase() === sectionCode);
   if (!lab) {
-    const neutral = theme.custom.status.pending;
+    // A lab the sample never went to is an absence, not an event: a quiet
+    // dash keeps whole columns of it from out-shouting the real stages.
+    // The words stay available to screen readers and on hover.
     return (
-      <Chip
-        size="small"
-        label="Not requested"
-        variant="outlined"
-        sx={{ fontSize: 12, color: neutral.text, borderColor: neutral.border }}
-      />
+      <Box component="span" title="Not requested" sx={{ color: "text.disabled", fontSize: 14 }}>
+        <span aria-hidden="true">—</span>
+        <Box component="span" sx={visuallyHidden}>Not requested</Box>
+      </Box>
     );
   }
   const tone =

@@ -82,9 +82,9 @@ export function LoginPage() {
               : "0 4px 20px rgba(0,0,0,0.12)"
         }}
       >
-        <Box sx={{ background: theme.custom.chrome.topbarBg, color: "common.white", px: 3, py: 2.5, textAlign: "center" }}>
+        <Box sx={{ background: theme.custom.chrome.brandBandBg, color: "common.white", px: 3, py: 2.5, textAlign: "center" }}>
           <Typography component="h1" sx={{ fontSize: 22, fontWeight: 700 }}>
-            Micro<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandAccent }}>LIMS</Box>
+            Micro<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandBandAccent }}>LIMS</Box>
             <Box component="span" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}> sign in</Box>
           </Typography>
         </Box>

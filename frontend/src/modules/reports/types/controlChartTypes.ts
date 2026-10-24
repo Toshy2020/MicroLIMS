@@ -17,6 +17,7 @@ export interface ControlChartSettings {
   rounding: LimitRounding;
   minimumPoints: number;
   rules: number[];
+  excludeOutOfSpec: boolean;
 }
 
 export const DEFAULT_SETTINGS: ControlChartSettings = {
@@ -28,7 +29,8 @@ export const DEFAULT_SETTINGS: ControlChartSettings = {
   movingRangeLength: 2,
   rounding: "UpToWholeNumber",
   minimumPoints: 30,
-  rules: [1, 2]
+  rules: [1, 2],
+  excludeOutOfSpec: true
 };
 
 export const RULE_LABELS: Record<number, string> = {

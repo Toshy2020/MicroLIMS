@@ -166,9 +166,9 @@ function defaultCriteria(): ControlChartCriteria {
 }
 
 function methodSummary(s: ControlChartSettings): string {
-  if (s.method === "Percentile") return `P${s.alertPercentile} / P${s.actionPercentile} of the results`;
+  if (s.method === "Percentile") return `P${s.alertPercentile} / P${s.actionPercentile} of the results${s.excludeOutOfSpec ? ", OOS excluded" : ""}`;
   const sigma = s.method === "StandardDeviation" ? "SD" : `σ (MR span ${s.movingRangeLength})`;
-  return `mean + ${s.alertK} / ${s.actionK} ${sigma}`;
+  return `mean + ${s.alertK} / ${s.actionK} ${sigma}${s.excludeOutOfSpec ? ", OOS excluded" : ""}`;
 }
 
 function capabilityTone(v: number | null): "success" | "warning" | "error" | "default" {
@@ -549,6 +549,9 @@ export function ControlChartTab() {
               {(Object.keys(ROUNDING_LABELS) as LimitRounding[]).map((r) => <MenuItem key={r} value={r}>{ROUNDING_LABELS[r]}</MenuItem>)}
             </Select>
           </FormControl>
+          <FormControlLabel
+            control={<Checkbox size="small" checked={settings.excludeOutOfSpec} onChange={(e) => setS("excludeOutOfSpec", e.target.checked)} />}
+            label={<Typography sx={{ fontSize: 13 }}>Exclude out-of-spec results from the limits</Typography>} />
           {view === "chart" && (
             <>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Estimate limits from (blank = whole period)</Typography>

@@ -29,7 +29,10 @@ public record ControlChartSettings(
     int MovingRangeLength = 2,
     LimitRounding Rounding = LimitRounding.None,
     int MinimumPoints = 30,
-    IReadOnlyCollection<int>? Rules = null)
+    IReadOnlyCollection<int>? Rules = null,
+    // Out-of-specification results are special causes; left in, a single
+    // gross OOS count inflates σ and the proposed limits many times over.
+    bool ExcludeOutOfSpec = true)
 {
     public static readonly IReadOnlyCollection<int> DefaultRules = new[] { 1, 2 };
     public IReadOnlyCollection<int> EnabledRules => Rules ?? DefaultRules;

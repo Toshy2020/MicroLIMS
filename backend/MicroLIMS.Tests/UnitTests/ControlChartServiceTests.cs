@@ -140,6 +140,30 @@ public class ControlChartServiceTests
     }
 
     [Fact]
+    public async Task OutOfSpecResults_AreChartedButLeftOutOfTheLimits_InChartAndReview()
+    {
+        var db = NewDb();
+        await SeedRoomAsync(db);
+        await SeedResultsAsync(db, "Filling Room", "EM_TAMC", SampleCategory.EnvironmentalMonitoring, Counts.Append(1250).ToArray());
+        var oos = await db.ResultRecords.SingleAsync(r => r.NumericValue == 1250);
+        oos.ResultLevel = ResultLevel.OutOfSpecification;
+        await db.SaveChangesAsync();
+        var service = NewService(db);
+
+        var chart = await service.GetChartAsync(Query());
+        var review = await service.GetLimitReviewAsync(
+            new LimitReviewQuery("EM_TAMC", SampleCategory.EnvironmentalMonitoring, null, null, false, new ControlChartSettings()));
+        var included = await service.GetChartAsync(Query(settings: new ControlChartSettings(ExcludeOutOfSpec: false)));
+
+        Assert.Equal(Counts.Length + 1, chart.Points.Count);
+        Assert.False(chart.Points.Last().InCalculation);
+        Assert.Equal(Counts.Length, chart.Statistics.Count);
+        Assert.Equal(Counts.Average(), chart.Statistics.Mean!.Value, 6);
+        Assert.Equal(chart.Statistics.Limits.ActionUpper, review.Rows.Single(r => r.SubjectName == "Filling Room").ProposedAction);
+        Assert.Equal(Counts.Length + 1, included.Statistics.Count);
+    }
+
+    [Fact]
     public async Task GetChart_BelowDetectionLimit_IsPlottedAtHalfTheLimit()
     {
         var db = NewDb();

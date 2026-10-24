@@ -57,6 +57,10 @@ public static class ControlChartCalculator
 
         var sorted = calc.OrderBy(v => v).ToList();
         var limits = ProposeLimits(settings, mean, sigmaUsed, sorted);
+        // Counts and other non-negative results can't fall below zero, so
+        // neither can their lower limits.
+        if (values.All(v => v >= 0))
+            limits = limits with { AlertLower = Floor0(limits.AlertLower), ActionLower = Floor0(limits.ActionLower) };
 
         // Rules 2-8 need a spread: the chosen σ, or the moving-range σ for
         // the percentile method (which has no σ of its own).
@@ -150,6 +154,8 @@ public static class ControlChartCalculator
             _ => Math.Round(v, 4, MidpointRounding.AwayFromZero)
         };
     }
+
+    private static double? Floor0(double? v) => v is null ? null : Math.Max(0, v.Value);
 
     private static ProposedLimits ProposeLimits(ControlChartSettings s, double mean, double? sigma, IReadOnlyList<double> sorted)
     {

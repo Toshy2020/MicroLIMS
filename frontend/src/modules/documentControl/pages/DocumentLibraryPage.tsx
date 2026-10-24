@@ -20,8 +20,7 @@ import {
   IconButton,
   Tooltip,
   Chip,
-  FormControlLabel,
-  Switch,
+  ToggleButton,
   Alert,
   CircularProgress,
   useTheme
@@ -318,34 +317,35 @@ export function DocumentLibraryPage() {
             <MenuItem value="Cancelled">Cancelled</MenuItem>
           </TextField>
 
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={includeCancelledVoided}
-                onChange={(e) => {
-                  setIncludeCancelledVoided(e.target.checked);
-                  setPage(0);
-                }}
-              />
-            }
-            label={<Typography variant="caption">Show Voided</Typography>}
-          />
-
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                color="error"
-                checked={showOverdueOnly}
-                onChange={(e) => {
-                  setShowOverdueOnly(e.target.checked);
-                  setPage(0);
-                }}
-              />
-            }
-            label={<Typography variant="caption" sx={{ color: showOverdueOnly ? "error.main" : "inherit", fontWeight: showOverdueOnly ? 700 : 400 }}>Review Overdue Only</Typography>}
-          />
+          {/* Toggle buttons at the height of the selects beside them, in
+              place of two loose switches that sat lower than the row. */}
+          <Box role="group" aria-label="Show" sx={{ display: "flex", gap: 1 }}>
+            <ToggleButton
+              value="voided"
+              size="small"
+              selected={includeCancelledVoided}
+              onChange={() => {
+                setIncludeCancelledVoided((v) => !v);
+                setPage(0);
+              }}
+              sx={{ height: 40, px: 1.5, textTransform: "none", fontSize: 13, whiteSpace: "nowrap" }}
+            >
+              Show voided
+            </ToggleButton>
+            <ToggleButton
+              value="overdue"
+              size="small"
+              color="error"
+              selected={showOverdueOnly}
+              onChange={() => {
+                setShowOverdueOnly((v) => !v);
+                setPage(0);
+              }}
+              sx={{ height: 40, px: 1.5, textTransform: "none", fontSize: 13, whiteSpace: "nowrap" }}
+            >
+              Review overdue only
+            </ToggleButton>
+          </Box>
 
           <Button
             size="small"

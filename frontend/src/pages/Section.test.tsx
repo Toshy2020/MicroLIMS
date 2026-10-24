@@ -11,12 +11,15 @@ vi.mock("../hooks/useMenuGroups", () => ({
     groupName: "LABORATORIES",
     items: [
       {
-        label: "Microbiology Laboratory", path: "/sections/microbiology-laboratory", counterLab: "MICRO",
+        label: "Microbiology Laboratory", path: "/sections/microbiology-laboratory", counterSource: "MICRO",
         children: [
           { label: "Workspace", path: "/microbiology/workspace", featured: true, counterKey: "workspace", icon: ScienceOutlinedIcon },
           { label: "Biological Waste Destruction", path: "/laboratory-configuration/biological-waste", icon: ScienceOutlinedIcon }
         ]
       },
+      { label: "Document Control", path: "/sections/document-control", counterSource: "document-control", children: [
+        { label: "My Reading List", path: "/document-control/my-reading-list", counterKey: "reading-list", icon: ScienceOutlinedIcon }
+      ] },
       { label: "Microbiology Configuration", path: "/sections/microbiology-configuration", children: [
         { label: "Organisms", path: "/laboratory-configuration/organisms", icon: ScienceOutlinedIcon }
       ] }
@@ -59,7 +62,20 @@ describe("SectionPage live counters", () => {
     expect(screen.queryByText("overdue")).toBeNull();
   });
 
-  it("asks for no figures on a section that is not a laboratory", () => {
+  it("shows the reading list figures on the Document Control page", async () => {
+    vi.mocked(sectionCountersService.get).mockResolvedValue([
+      { card: "reading-list", counters: [{ label: "to read", value: 3, tone: "info" }, { label: "overdue", value: 1, tone: "detected" }] }
+    ]);
+    renderAt("/sections/document-control");
+
+    const card = (await screen.findByText("to read")).closest("a")!;
+    expect(sectionCountersService.get).toHaveBeenCalledWith("document-control");
+    expect(card.textContent).toContain("My Reading List");
+    expect(card.textContent).toContain("3 to read");
+    expect(card.textContent).toContain("1 overdue");
+  });
+
+  it("asks for no figures on a section without a counter source", () => {
     renderAt("/sections/microbiology-configuration");
 
     expect(screen.getByText("Organisms")).toBeTruthy();

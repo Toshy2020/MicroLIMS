@@ -34,4 +34,5 @@ public static class SectionCardKeys
     public const string Hplc = "hplc";
     public const string Gc = "gc";
     public const string Icp = "icp";
+    public const string ReadingList = "reading-list";
 }

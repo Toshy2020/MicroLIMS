@@ -15,9 +15,9 @@ export function SectionPage() {
   const section = groups.flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
   const group = section ? undefined : groups.find((g) => groupPath(g.groupName) === pathname);
 
-  // Hooks run before the early return below; a non-laboratory page passes
-  // no lab and gets no figures.
-  const counters = useSectionCounters(section?.counterLab);
+  // Hooks run before the early return below; a section without a counter
+  // source (or a group page) gets no figures.
+  const counters = useSectionCounters(section?.counterSource);
 
   if (!section && !group) return <PageHeader title="Section not available" subtitle="You have no pages in this section." />;
 

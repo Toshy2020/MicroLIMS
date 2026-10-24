@@ -197,4 +197,31 @@ public class SectionCountersServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.GetAsync(f.MicroAnalyst.Id, "FP", AllCards));
     }
+    [Fact]
+    public async Task DocumentControl_CountsTheCallersReadingList_AsTheReadingListTabsDo()
+    {
+        var f = await SeedAsync();
+        DocumentTrainingAssignment Assignment(TrainingAssignmentStatus status, int dueInDays, User? user = null) => new()
+        {
+            AssignedUserId = (user ?? f.MicroAnalyst).Id, Status = status, DueDateUtc = Now.UtcDateTime.AddDays(dueInDays)
+        };
+        f.Db.DocumentTrainingAssignments.AddRange(
+            Assignment(TrainingAssignmentStatus.Assigned, 5),                 // to read
+            Assignment(TrainingAssignmentStatus.Reading, 1),                  // to read
+            Assignment(TrainingAssignmentStatus.Reading, -1),                 // overdue: past due, not "to read" as well
+            Assignment(TrainingAssignmentStatus.Overdue, 3),                  // overdue by status
+            Assignment(TrainingAssignmentStatus.Acknowledged, -10),           // completed
+            Assignment(TrainingAssignmentStatus.SupersededIncomplete, -10),   // superseded
+            Assignment(TrainingAssignmentStatus.Cancelled, -10),              // neither
+            Assignment(TrainingAssignmentStatus.Failed, 5),                   // neither ("Other")
+            Assignment(TrainingAssignmentStatus.Assigned, 5, f.FpAnalyst));   // someone else's
+        await f.Db.SaveChangesAsync();
+
+        var cards = await f.Service.GetDocumentControlAsync(f.MicroAnalyst.Id);
+
+        Assert.Equal("reading-list", cards.Single().Card);
+        Assert.Equal(2, Figure(cards, "reading-list", "to read"));
+        Assert.Equal(2, Figure(cards, "reading-list", "overdue"));
+        Assert.Equal("detected", cards.Single().Counters.Single(c => c.Label == "overdue").Tone);
+    }
 }

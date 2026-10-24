@@ -92,6 +92,39 @@ public class SectionCountersService
         return cards;
     }
 
+    // The Document Control section page: the caller's own reading list. Every
+    // signed-in user has one, so no laboratory scope or page policy applies.
+    public async Task<IReadOnlyList<SectionCardCountersDto>> GetDocumentControlAsync(int userId, CancellationToken ct = default)
+    {
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        var mine = _db.DocumentTrainingAssignments.AsNoTracking().Where(a => a.AssignedUserId == userId);
+
+        // My Reading List's tabs (categoryOf in MyReadingListPage.tsx, per
+        // ML-DC-FRS-1C-001 section 2): Completed and Superseded first, then
+        // Overdue - past its due date (TrainingAssignmentService's isOverdue)
+        // or marked Overdue - and only then To read, so nothing counts twice.
+        var open = mine.Where(a =>
+            a.Status != TrainingAssignmentStatus.Acknowledged
+            && a.Status != TrainingAssignmentStatus.CompletedPassed
+            && a.Status != TrainingAssignmentStatus.SupersededIncomplete
+            && a.Status != TrainingAssignmentStatus.TrainedOnSupersededOnly);
+        var overdue = await open.CountAsync(a =>
+            a.Status == TrainingAssignmentStatus.Overdue
+            || (a.DueDateUtc < nowUtc && a.Status != TrainingAssignmentStatus.Cancelled), ct);
+        var toRead = await open.CountAsync(a =>
+            (a.Status == TrainingAssignmentStatus.Assigned || a.Status == TrainingAssignmentStatus.Reading)
+            && a.DueDateUtc >= nowUtc, ct);
+
+        return new[]
+        {
+            new SectionCardCountersDto(SectionCardKeys.ReadingList, new[]
+            {
+                new SectionCounterDto("to read", toRead, toRead > 0 ? "info" : "pending"),
+                new SectionCounterDto("overdue", overdue, overdue > 0 ? "detected" : "pending")
+            })
+        };
+    }
+
     // The same queues as the workspace's own tabs (GET /api/testorders/counts).
     // One active section exists per laboratory code, so the first is the lab.
     private async Task<SectionCardCountersDto> WorkspaceCardAsync(string key, int userId, int labSectionId, string? area)

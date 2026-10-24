@@ -1,21 +1,21 @@
 import { useEffect, useState } from "react";
-import { sectionCountersService, SectionCounter } from "../services/sectionCountersService";
+import { sectionCountersService, SectionCounter, CounterSource } from "../services/sectionCountersService";
 
 const REFRESH_MS = 60_000;
 
-// Live figures for a laboratory section page's cards, keyed by card, refreshed
+// Live figures for a section page's cards, keyed by card, refreshed
 // every minute while the page is open. The figures are a convenience on a
 // navigation page: if they cannot be loaded the cards simply show none, and
 // every card still links to its page.
-export function useSectionCounters(lab: "MICRO" | "FP" | undefined): Record<string, SectionCounter[]> {
+export function useSectionCounters(source: CounterSource | undefined): Record<string, SectionCounter[]> {
   const [byCard, setByCard] = useState<Record<string, SectionCounter[]>>({});
 
   useEffect(() => {
     setByCard({});
-    if (!lab) return;
+    if (!source) return;
     let live = true;
     const load = () => {
-      sectionCountersService.get(lab)
+      sectionCountersService.get(source)
         .then((cards) => {
           if (live) setByCard(Object.fromEntries(cards.map((c) => [c.card, c.counters])));
         })
@@ -24,7 +24,7 @@ export function useSectionCounters(lab: "MICRO" | "FP" | undefined): Record<stri
     load();
     const timer = setInterval(load, REFRESH_MS);
     return () => { live = false; clearInterval(timer); };
-  }, [lab]);
+  }, [source]);
 
   return byCard;
 }

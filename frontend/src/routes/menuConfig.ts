@@ -44,6 +44,7 @@ import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import { Role } from "../modules/authentication/types/authTypes";
 import { PERMISSIONS } from "./routes";
+import type { CounterSource } from "../services/sectionCountersService";
 
 export interface MenuItem {
   label: string;
@@ -60,9 +61,9 @@ export interface MenuItem {
   // page's route guard and its main endpoint check, so a link never leads
   // to a page that bounces the user or answers 403.
   permission?: string | string[];
-  // On a laboratory section: the lab whose live card figures its landing
-  // page shows (GET /api/section-counters?lab=...).
-  counterLab?: "MICRO" | "FP";
+  // On a section: where its landing page's live card figures come from -
+  // a laboratory (GET /api/section-counters?lab=...) or Document Control.
+  counterSource?: CounterSource;
   // On a page inside such a section: which of those figures its card shows
   // (SectionCardKeys on the server).
   counterKey?: string;
@@ -116,11 +117,12 @@ function documentControlItem(role: Role | null): MenuItem {
     label: "Document Control",
     description: "Controlled documents, reading lists and training.",
     path: "/sections/document-control",
+    counterSource: "document-control",
     icon: DescriptionOutlinedIcon,
     group: "DOCUMENT CONTROL",
     children: [
       { label: "Dashboard", path: "/document-control", icon: DashboardOutlinedIcon, description: "Overview of documents due for review, approval and training." },
-      { label: "My Reading List", path: "/document-control/my-reading-list", icon: MenuBookOutlinedIcon, description: "SOPs and documents you must read and acknowledge." },
+      { label: "My Reading List", path: "/document-control/my-reading-list", icon: MenuBookOutlinedIcon, counterKey: "reading-list", description: "SOPs and documents you must read and acknowledge." },
       { label: "Training Matrix", path: "/document-control/training-matrix", icon: SchoolOutlinedIcon, description: "Who is trained on which document, and what is outstanding." },
       { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", icon: InsightsOutlinedIcon, description: "Training and document compliance across sections." },
       { label: "Document Library", path: "/document-control/library", icon: LocalLibraryOutlinedIcon, description: "Search and open every controlled document and its versions." },
@@ -138,7 +140,7 @@ const microArea: MenuItem = {
   label: "Microbiology Laboratory",
   description: "Sample testing, media, cryovials and lab stock.",
   path: "/sections/microbiology-laboratory",
-  counterLab: "MICRO",
+  counterSource: "MICRO",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
   children: [
@@ -191,7 +193,7 @@ function buildPhyschemArea(physchemAreas: ("fp" | "rmpm")[]): MenuItem {
     label: "Physicochemical Laboratory",
     description: "Sample testing, instruments, solutions and lab stock.",
     path: "/sections/physicochemical-laboratory",
-    counterLab: "FP",
+    counterSource: "FP",
     icon: MedicationOutlinedIcon,
     group: "LABORATORIES",
     children

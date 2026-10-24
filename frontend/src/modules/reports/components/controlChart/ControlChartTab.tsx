@@ -9,6 +9,8 @@ import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import PostAddIcon from "@mui/icons-material/PostAdd";
 import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
 import ArticleIcon from "@mui/icons-material/Article";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { toast } from "sonner";
 import { DateField } from "../../../../components/DateField";
 import { useHasPermission } from "../../../../contexts/AuthContext";
@@ -17,11 +19,11 @@ import { ReportingService } from "../../services/ReportingService";
 import { ControlChartService } from "../../services/ControlChartService";
 import { LocationCascadeFilter, hasLocationHierarchy } from "../LocationCascadeFilter";
 import { RecordDetailDialog } from "../RecordDetailDialog";
-import { captureChartsAsPng } from "../../utils/chartExport";
+import { CompareDialog } from "../CompareDialog";
+import { captureChartsAsPng, downloadCsv } from "../../utils/chartExport";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
-import { downloadCsv } from "../../utils/exportTrend";
 import { toDateInputValue } from "../../utils/dateRange";
-import { ResultRecordItem, SampleCategory, TestCodeOption } from "../../types/reportingTypes";
+import { QualitativeEventItem, ResultRecordItem, SampleCategory, TestCodeOption } from "../../types/reportingTypes";
 import {
   AppliedLimit, CHART_KINDS, CapabilityBasis, ChartKind, ControlChartCriteria, ControlChartPoint, ControlChartResult,
   ControlChartSettings, DEFAULT_SETTINGS, LimitMethod, LimitReviewResult, LimitRounding, ReportFormat, ReportItem, RULE_LABELS
@@ -34,9 +36,67 @@ import { ReportBuilderDrawer } from "./ReportBuilderDrawer";
 // every figure in a report has the same proportions and text size.
 const CAPTURE_WIDTH = 960;
 
-// The queued report outlives the tab: switching to another Reports tab
-// unmounts this one, and the charts should still be there on return.
-let persistedReportItems: ReportItem[] = [];
+type View = "chart" | "review" | "events";
+
+const DEFAULT_OPTIONS: SpcChartOptions = {
+  showLowerLimits: false, showConfiguredLimits: true, showRuleNumbers: true, showValueLabels: true
+};
+
+// The page keeps its criteria, settings and report queue for the whole
+// browser session (tab switches, navigation, reloads) until the user
+// presses Reset. Storage can be blocked or full, so every access is guarded
+// and the page still works without it.
+const SESSION_KEY = "microlims.controlCharts.session";
+const REPORT_KEY = "microlims.controlCharts.report";
+
+interface SessionState {
+  criteria: ControlChartCriteria;
+  settings: ControlChartSettings;
+  view: View;
+  chartKind: ChartKind;
+  options: SpcChartOptions;
+}
+
+function readStored<T>(key: string): T | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: unknown) {
+  try {
+    if (value === null) sessionStorage.removeItem(key);
+    else sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Quota or blocked storage - the in-memory copy still holds it; drop
+    // the stored one so a reload can't bring back an older version.
+    try { sessionStorage.removeItem(key); } catch { /* blocked */ }
+  }
+}
+
+function readSession(): SessionState {
+  const s = readStored<Partial<SessionState>>(SESSION_KEY) ?? {};
+  return {
+    criteria: { ...defaultCriteria(), ...s.criteria },
+    settings: { ...DEFAULT_SETTINGS, ...s.settings },
+    view: s.view ?? "chart",
+    chartKind: s.chartKind ?? "imr",
+    options: { ...DEFAULT_OPTIONS, ...s.options }
+  };
+}
+
+// Opens the page on one test and subject (e.g. "Analyze trend" from Record
+// Search), keeping the user's other settings.
+export function presetControlChart(p: { category: SampleCategory; testCode: string; subjectName: string }) {
+  const s = readSession();
+  writeStored(SESSION_KEY, { ...s, criteria: { ...s.criteria, ...p }, view: "chart" });
+}
+
+// Module copy too, so a queue too large for sessionStorage still survives tab switches.
+let persistedReportItems: ReportItem[] = readStored<ReportItem[]>(REPORT_KEY) ?? [];
 
 const chartLabel = (kind: ChartKind) => CHART_KINDS.find((k) => k.value === kind)?.label ?? kind;
 
@@ -136,13 +196,16 @@ export function ControlChartTab() {
   const [categories, setCategories] = useState<SampleCategory[]>([]);
   const [optionsFailed, setOptionsFailed] = useState(false);
 
-  const [criteria, setCriteria] = useState<ControlChartCriteria>(defaultCriteria);
-  const [settings, setSettings] = useState<ControlChartSettings>(DEFAULT_SETTINGS);
-  const [view, setView] = useState<"chart" | "review">("chart");
-  const [chartKind, setChartKind] = useState<ChartKind>("imr");
-  const [options, setOptions] = useState<SpcChartOptions>({
-    showLowerLimits: false, showConfiguredLimits: true, showRuleNumbers: true, showValueLabels: true
-  });
+  const [initial] = useState(readSession);
+  const [criteria, setCriteria] = useState<ControlChartCriteria>(initial.criteria);
+  const [settings, setSettings] = useState<ControlChartSettings>(initial.settings);
+  const [view, setView] = useState<View>(initial.view);
+  const [chartKind, setChartKind] = useState<ChartKind>(initial.chartKind);
+  const [options, setOptions] = useState<SpcChartOptions>(initial.options);
+
+  useEffect(() => {
+    writeStored(SESSION_KEY, { criteria, settings, view, chartKind, options });
+  }, [criteria, settings, view, chartKind, options]);
 
   const [chart, setChart] = useState<ControlChartResult | null>(null);
   // The criteria and settings the displayed chart was actually drawn from
@@ -155,6 +218,8 @@ export function ControlChartTab() {
   const offscreenRef = useRef<HTMLDivElement>(null);
   const offscreenDone = useRef<((el: HTMLElement) => void) | null>(null);
   const [review, setReview] = useState<LimitReviewResult | null>(null);
+  const [events, setEvents] = useState<QualitativeEventItem[] | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -184,7 +249,12 @@ export function ControlChartTab() {
     setError(null);
     const request = v === "chart"
       ? ControlChartService.getChart(c, s).then((r) => { if (!cancelled) { setChart(r); setChartSource({ criteria: c, settings: s }); } })
-      : ControlChartService.getLimitReview(c, s).then((r) => { if (!cancelled) { setReview(r); setSelected(new Set()); } });
+      : v === "review"
+        ? ControlChartService.getLimitReview(c, s).then((r) => { if (!cancelled) { setReview(r); setSelected(new Set()); } })
+        : ReportingService.getQualitativeEvents({
+          testCode: c.testCode, subjectName: c.subjectName || undefined, category: c.category,
+          fromDate: c.fromDate ? `${c.fromDate}T00:00:00.000Z` : undefined, toDate: c.toDate ? `${c.toDate}T23:59:59.999Z` : undefined
+        }).then((r) => { if (!cancelled) setEvents(r.events); });
     request
       .catch((e: any) => { if (!cancelled) setError(e?.response?.data?.message ?? "The analysis could not be loaded."); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -205,18 +275,35 @@ export function ControlChartTab() {
   );
   const canApplyCategory = criteria.category !== "" && LIMIT_CATEGORIES.includes(criteria.category);
 
-  const handlePointClick = async (p: ControlChartPoint) => {
+  const openRecord = async (recordId: number) => {
     try {
-      setDrillDown(await ReportingService.getResultById(p.recordId));
+      setDrillDown(await ReportingService.getResultById(recordId));
     } catch {
       toast.error("The source record could not be loaded.");
     }
+  };
+  const handlePointClick = (p: ControlChartPoint) => openRecord(p.recordId);
+
+  const resetAll = () => {
+    setCriteria(defaultCriteria());
+    setSettings(DEFAULT_SETTINGS);
+    setView("chart");
+    setChartKind("imr");
+    setOptions(DEFAULT_OPTIONS);
+    setChart(null);
+    setChartSource(null);
+    setReview(null);
+    setEvents(null);
+    setSelected(new Set());
+    setError(null);
+    setReportItems([]);
   };
 
   // ---- Capture & report ----------------------------------------------
 
   const setReportItems = (items: ReportItem[]) => {
     persistedReportItems = items;
+    writeStored(REPORT_KEY, items.length ? items : null);
     setReportItemsState(items);
   };
 
@@ -413,7 +500,7 @@ export function ControlChartTab() {
               {testCodes.map((t) => <MenuItem key={t.testCode} value={t.testCode}>{t.testDisplayName || t.testCode}</MenuItem>)}
             </Select>
           </FormControl>
-          {view === "chart" && (hasLocationHierarchy(criteria.category) ? (
+          {view !== "review" && (hasLocationHierarchy(criteria.category) ? (
             <LocationCascadeFilter category={criteria.category} subjectName={criteria.subjectName} autoSelect={false}
               onSubjectNameChange={(name) => set("subjectName", name)} />
           ) : (
@@ -431,6 +518,7 @@ export function ControlChartTab() {
           <FormControlLabel control={<Checkbox size="small" checked={criteria.approvedOnly} onChange={(e) => set("approvedOnly", e.target.checked)} />}
             label={<Typography sx={{ fontSize: 13 }}>Approved results only</Typography>} />
 
+          {view !== "events" && (<>
           <Divider />
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Limit calculation</Typography>
           <FormControl fullWidth size="small">
@@ -482,6 +570,7 @@ export function ControlChartTab() {
               );
             })}
           </Box>
+          </>)}
 
           {view === "chart" && (
             <>
@@ -507,13 +596,23 @@ export function ControlChartTab() {
       {/* ---------------- Results ---------------- */}
       <Box sx={{ minWidth: 0 }}>
         <Paper sx={{ px: 2, mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-          <Tabs value={view} onChange={(_, v) => setView(v)}>
+          <Tabs value={view} onChange={(_, v) => setView(v)} variant="scrollable" scrollButtons="auto">
             <Tab value="chart" label="Control chart & capability" />
             <Tab value="review" label="Limit review (all locations)" />
+            <Tab value="events" label="Detection events" />
           </Tabs>
-          <Button size="small" variant="outlined" startIcon={<ArticleIcon />} onClick={() => setReportOpen(true)}>
-            Report ({reportItems.length})
-          </Button>
+          <Stack direction="row" spacing={1} sx={{ py: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<CompareArrowsIcon />}
+              disabled={!criteria.category || !criteria.testCode} onClick={() => setCompareOpen(true)}>
+              Compare
+            </Button>
+            <Button size="small" variant="outlined" startIcon={<ArticleIcon />} onClick={() => setReportOpen(true)}>
+              Report ({reportItems.length})
+            </Button>
+            <Tooltip describeChild title="Clear the criteria, settings, results and report queue">
+              <Button size="small" color="inherit" startIcon={<RestartAltIcon />} onClick={resetAll}>Reset</Button>
+            </Tooltip>
+          </Stack>
         </Paper>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -558,6 +657,11 @@ export function ControlChartTab() {
               {stats?.belowMinimumPoints && (
                 <Alert severity="warning" sx={{ mb: 1 }}>
                   Only {stats.count} result(s) in the calculation window - fewer than the minimum of {settings.minimumPoints} for a statistically based limit.
+                </Alert>
+              )}
+              {chart.points.length === 0 && !loading && (
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  No numeric results for this test and subject in the period. For detected / not detected tests use Detection events.
                 </Alert>
               )}
               {chart.imputedPointCount > 0 && (
@@ -756,6 +860,46 @@ export function ControlChartTab() {
             </Typography>
           </Paper>
         )}
+
+        {view === "events" && events && criteria.category && criteria.testCode && (
+          <Paper sx={{ p: 2, opacity: loading ? 0.5 : 1 }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
+              Detected results · {criteria.subjectName || "all subjects"} ({events.length})
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
+              Qualitative results reported as Detected, by result entry date. Click a row to open the record.
+            </Typography>
+            {events.length === 0 ? (
+              <Alert severity="success">No detections recorded for this test in the selected period.</Alert>
+            ) : (
+              <Box sx={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date entered</TableCell><TableCell>Reference</TableCell><TableCell>Item / location</TableCell>
+                      <TableCell>Test</TableCell><TableCell>Result</TableCell><TableCell>Entered by</TableCell><TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {events.map((ev) => (
+                      <TableRow key={ev.id} hover sx={{ cursor: "pointer" }} onClick={() => openRecord(ev.id)}>
+                        <TableCell>{new Date(ev.resultEnteredAt).toLocaleDateString("en-GB")}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{ev.referenceNumber}</TableCell>
+                        <TableCell>{ev.subjectName}{ev.subjectDetail ? ` (${ev.subjectDetail})` : ""}</TableCell>
+                        <TableCell>{ev.testDisplayName}</TableCell>
+                        <TableCell sx={{ color: "error.main", fontWeight: 700 }}>{ev.reportedValue}</TableCell>
+                        <TableCell>{ev.resultEnteredByName}</TableCell>
+                        <TableCell>
+                          <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </Paper>
+        )}
       </Box>
 
       <ApplyLimitsDialog
@@ -767,6 +911,11 @@ export function ControlChartTab() {
         onApplied={onApplied}
       />
       <RecordDetailDialog open={!!drillDown} record={drillDown} onClose={() => setDrillDown(null)} />
+      <CompareDialog open={compareOpen} onClose={() => setCompareOpen(false)}
+        initialMode={hasLocationHierarchy(criteria.category) ? "locations" : "products"}
+        testCode={criteria.testCode} category={criteria.category}
+        fromDate={criteria.fromDate ? `${criteria.fromDate}T00:00:00.000Z` : ""}
+        toDate={criteria.toDate ? `${criteria.toDate}T23:59:59.999Z` : ""} />
       <ReportBuilderDrawer open={reportOpen} items={reportItems} onClose={() => setReportOpen(false)}
         onChange={setReportItems} onGenerate={generateReport} />
       {offscreen && (

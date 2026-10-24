@@ -27,9 +27,9 @@ vi.mock("../modules/reports/ReferenceStrainReportTab", async () => {
   const { createElement } = await import("react");
   return { ReferenceStrainReportTab: () => createElement("div", null, "strain tab") };
 });
-vi.mock("../modules/reports/components/TrendingTab", async () => {
+vi.mock("../modules/reports/components/controlChart/ControlChartTab", async () => {
   const { createElement } = await import("react");
-  return { TrendingTab: () => createElement("div", null, "trending tab") };
+  return { ControlChartTab: () => createElement("div", null, "control chart tab"), presetControlChart: vi.fn() };
 });
 vi.mock("../modules/kpi/components/KpiPerformanceTab", async () => {
   const { createElement } = await import("react");
@@ -45,6 +45,15 @@ function renderAt(url: string) {
     </PinnedLightTheme>
   );
 }
+
+describe("ReportsPage trending link", () => {
+  it("sends the retired ?tab=trending link to the merged control charts tab", () => {
+    state.canViewKpi = true;
+    renderAt("/reports?tab=trending");
+    expect(screen.getByText("control chart tab")).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Trending & Analysis" })).toBeNull();
+  });
+});
 
 describe("ReportsPage KPI tab", () => {
   it("offers and mounts the KPI / Performance tab to a holder of Kpi.View", () => {

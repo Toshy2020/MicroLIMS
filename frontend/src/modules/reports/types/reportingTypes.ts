@@ -170,84 +170,8 @@ export interface OverviewDashboardData {
   qualitySignals: QualitySignalSummary;
 }
 
-// ---------------------------------------------------------------------------
-// Trending & Analysis Types
-// ---------------------------------------------------------------------------
-
-export type TrendComparisonMode = "None" | "Previous Period" | "Product Comparison" | "Location Comparison";
-
-export interface TrendingCriteria {
-  testCode: string;
-  subjectName: string;
-  category?: SampleCategory | "";
-  dateRange: "7d" | "30d" | "3m" | "6m" | "12m" | "custom";
-  customFrom?: string;
-  customTo?: string;
-  compareWith: TrendComparisonMode;
-  showMode: "All" | "ApprovedOnly" | "OutOfTrendOnly";
-}
-
-export interface NumericTrendPoint {
-  date: string;
-  label: string;
-  value: number | null;
-  reportedValue: string;
-  mean: number | null;
-  upperLimit: number | null;
-  lowerLimit: number | null;
-  alertLevel: number | null;
-  actionLevel: number | null;
-  resultLevel: ResultLevel;
-  referenceNumber: string;
-  recordId: number;
-}
-
-export interface QualitativeTrendPoint {
-  date: string;
-  label: string;
-  detectedCount: number;
-  absentCount: number;
-  totalCount: number;
-  referenceNumbers: string[];
-}
-
-export interface NumericStatisticsSummary {
-  numberOfResults: number;
-  minimum: string;
-  maximum: string;
-  mean: number | string;
-  median: number | string;
-  standardDeviation: number | string;
-  percentWithinSpec: number;
-  percentAlertLevel: number;
-  percentActionLevel: number;
-  outOfSpecCount: number;
-}
-
-export interface QualitativeStatisticsSummary {
-  numberOfResults: number;
-  conformCount: number;
-  nonConformCount: number;
-  detectedCount: number;
-  absentCount: number;
-  percentConform: number;
-  percentDetected: number;
-}
-
-export interface TrendAnalysisResult {
-  isNumeric: boolean;
-  testCode: string;
-  testDisplayName: string;
-  subjectName: string;
-  unit: string | null;
-  numericPoints?: NumericTrendPoint[];
-  qualitativePoints?: QualitativeTrendPoint[];
-  numericStats?: NumericStatisticsSummary;
-  qualitativeStats?: QualitativeStatisticsSummary;
-}
-
 // One product/item or location/point's aggregate stats for a single test
-// code, over the Trending panel's own criteria (category + date range) -
+// code, over the Control Charts criteria (category + date range) -
 // backs the Quick Compare dialog. meanValue is populated only for a
 // numeric (CountTest) testCode; percentDetected only for a qualitative
 // one - a row only ever carries the field matching CompareResult.isNumeric.

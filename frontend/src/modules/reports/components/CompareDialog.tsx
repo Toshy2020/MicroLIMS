@@ -16,7 +16,7 @@ interface CompareDialogProps {
 }
 
 // Real per-subject comparison for the currently-selected Test Code +
-// Category + date range (the same criteria the Trending panel itself
+// Category + date range (the same criteria the Control Charts page itself
 // uses) - one shared query (ReportingQueryService.GetCompareBySubjectAsync),
 // not per-row mock data. "products" vs "locations" only changes the
 // leading column's label: SubjectName plays the product/item role for flat

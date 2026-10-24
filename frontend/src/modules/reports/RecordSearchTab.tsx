@@ -10,7 +10,7 @@ import { LoadErrorAlert } from "../../components/LoadErrorAlert";
 interface RecordSearchTabProps {
   fromDate: string | undefined;
   toDate: string | undefined;
-  onAnalyzeTrend?: (testCode: string, subjectName: string) => void;
+  onAnalyzeTrend?: (testCode: string, subjectName: string, category: SampleCategory) => void;
   onNavigateTab?: (tabIndex: number) => void;
 }
 

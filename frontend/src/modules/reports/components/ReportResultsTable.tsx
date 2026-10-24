@@ -18,7 +18,7 @@ import { RecordDetailDialog } from "./RecordDetailDialog";
 import { ReportingService } from "../services/ReportingService";
 import { exportResultsPdf } from "../utils/exportPdf";
 import { useAuth } from "../../../contexts/AuthContext";
-import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse } from "../types/reportingTypes";
+import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "../types/reportingTypes";
 import { DataTable, Column } from "../../../components/DataTable";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -77,7 +77,7 @@ interface ReportResultsTableProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onClearFilters: () => void;
-  onAnalyzeTrend?: (testCode: string, subjectName: string) => void;
+  onAnalyzeTrend?: (testCode: string, subjectName: string, category: SampleCategory) => void;
 }
 
 export function ReportResultsTable({
@@ -387,7 +387,7 @@ export function ReportResultsTable({
                 startIcon={<ShowChartIcon />}
                 onClick={() => {
                   const target = selectedRecords[0] ?? items[0];
-                  if (target && onAnalyzeTrend) onAnalyzeTrend(target.testCode, target.subjectName);
+                  if (target && onAnalyzeTrend) onAnalyzeTrend(target.testCode, target.subjectName, target.category);
                 }}
               >
                 Analyze Selected
@@ -440,7 +440,7 @@ export function ReportResultsTable({
             {onAnalyzeTrend && (
               <MenuItem
                 onClick={() => {
-                  if (rowMenu && onAnalyzeTrend) onAnalyzeTrend(rowMenu.row.testCode, rowMenu.row.subjectName);
+                  if (rowMenu && onAnalyzeTrend) onAnalyzeTrend(rowMenu.row.testCode, rowMenu.row.subjectName, rowMenu.row.category);
                   setRowMenu(null);
                 }}
               >

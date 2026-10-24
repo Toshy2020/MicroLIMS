@@ -78,7 +78,7 @@ export const MonitoringPlanService = {
   createManual: (body: { machineId: number; targetDate: string; machinePartConfigurationIds?: number[]; reason?: string; kind?: "Day" | "Week" | "Month" }) =>
     apiClient.post(`${BASE}/manual`, body).then((r) => r.data.data as OccurrenceSummary),
 
-  skip: (id: number, version: number, body: SignedChange) =>
+  skip: (id: number, version: number, body: { reason: string; password: string }) =>
     apiClient.post(`${BASE}/${id}/skip`, body, ifMatch(version)).then((r) => r.data.data as OccurrenceSummary),
 
   changeWindow: (id: number, version: number, body: SignedChange & { newTargetDate: string | null; newWindowEnd: string }) =>

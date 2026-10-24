@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Divider, Stack, TextField, Typography } from "@mui/material";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
-import { useHasPermission } from "../../../contexts/AuthContext";
+import { useAuth, useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
@@ -15,9 +15,9 @@ type Mode = "view" | "skip" | "window";
 const MIN_REASON = 5;
 
 // One occurrence of the plan: what it needs, how far it has got, and its
-// history. Skipping it or changing its window is a change two people sign:
-// the form collects the details, then the shared signature dialog asks for
-// both signatures.
+// history. Skipping it is signed once, by a Section Head; changing its window
+// is a change two people sign. The form collects the details, then the shared
+// signature dialog asks for the signature(s).
 export function OccurrenceDialog({
   occurrenceId, onClose, onChanged
 }: {
@@ -26,6 +26,7 @@ export function OccurrenceDialog({
   onChanged: () => void;
 }) {
   const canManage = useHasPermission(PERMISSIONS.MONITORING_PLAN_MANAGE);
+  const { role } = useAuth();
   const [detail, setDetail] = useState<OccurrenceDetail | null>(null);
   const [mode, setMode] = useState<Mode>("view");
   const [reason, setReason] = useState("");
@@ -66,15 +67,14 @@ export function OccurrenceDialog({
 
   // Errors propagate to SignatureDialog, which shows them and stays open.
   const sign = async (password: string, second?: { username: string; password: string }) => {
-    if (!summary || !second) return;
-    const signed = {
-      reason: trimmedReason, password, secondSignerUsername: second.username, secondSignerPassword: second.password
-    };
+    if (!summary) return;
     if (mode === "skip") {
-      await MonitoringPlanService.skip(summary.id, summary.version, signed);
+      await MonitoringPlanService.skip(summary.id, summary.version, { reason: trimmedReason, password });
     } else {
+      if (!second) return;
       await MonitoringPlanService.changeWindow(summary.id, summary.version, {
-        ...signed, newTargetDate: newTarget || null, newWindowEnd: newEnd
+        reason: trimmedReason, password, secondSignerUsername: second.username, secondSignerPassword: second.password,
+        newTargetDate: newTarget || null, newWindowEnd: newEnd
       });
     }
     setSigning(false);
@@ -97,7 +97,7 @@ export function OccurrenceDialog({
                   Change window
                 </Button>
               )}
-              {actionable && <Button color="error" onClick={() => setMode("skip")}>Skip</Button>}
+              {actionable && role === "SectionHead" && <Button color="error" onClick={() => setMode("skip")}>Skip</Button>}
               <Button onClick={onClose}>Close</Button>
             </>
           ) : (
@@ -172,7 +172,7 @@ export function OccurrenceDialog({
       <SignatureDialog
         open={signing}
         meaningStatement={meaning}
-        requireSecondSigner
+        requireSecondSigner={mode === "window"}
         secondSignerHint="A different person who is allowed to approve monitoring plan changes signs as well."
         onCancel={() => setSigning(false)}
         onConfirm={sign}

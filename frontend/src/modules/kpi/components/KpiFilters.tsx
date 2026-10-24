@@ -7,6 +7,7 @@ import { ReportingService } from "../../reports/services/ReportingService";
 import { CATEGORY_LABELS } from "../../reports/services/OverviewService";
 import { filtersError } from "../utils/kpiFilters";
 import type { KpiFiltersValue } from "../utils/kpiFilters";
+import { DateField } from "../../../components/DateField";
 
 interface KpiFiltersProps {
   value: KpiFiltersValue;
@@ -53,15 +54,10 @@ export function KpiFilters({ value, onChange, onOpenDefinitions, onOpenProfiles,
   return (
     <Paper sx={{ p: 2, mb: 2.5 }}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", alignItems: { md: "flex-start" } }}>
-        <TextField
-          size="small" type="date" label="From" value={from}
-          onChange={(e) => changeDates(e.target.value, to)}
-          slotProps={{ inputLabel: { shrink: true } }} error={!!dateError}
-        />
-        <TextField
-          size="small" type="date" label="To" value={to}
-          onChange={(e) => changeDates(from, e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }} error={!!dateError} helperText={dateError ?? undefined}
+        <DateField label="From" value={from} onChange={(v) => changeDates(v, to)} error={!!dateError} />
+        <DateField
+          label="To" value={to} onChange={(v) => changeDates(from, v)}
+          error={!!dateError} helperText={dateError ?? undefined}
         />
         <TextField
           select size="small" label="Category" value={value.category ?? ""} sx={{ minWidth: 180 }}

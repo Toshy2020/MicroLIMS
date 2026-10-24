@@ -94,6 +94,11 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
         }
         actions={
           <>
+            {!reason.trim() && (
+              <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", mr: "auto", pl: 1 }}>
+                Enter a reason for voiding to sign.
+              </Typography>
+            )}
             <Button onClick={handleCancel} color="inherit">
               Cancel
             </Button>

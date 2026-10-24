@@ -27,6 +27,7 @@ import { tableHeadSx } from "../../theme";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { TrackingService, TrackingRow } from "./services/TrackingService";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
+import { DateField } from "../../components/DateField";
 
 // Matched on section Code, never Id: Ids are database-assigned and differ
 // between installations. Codes are never renamed, only labels can change
@@ -232,24 +233,20 @@ export function TrackingBoardPage() {
             )}
           />
 
-          <TextField
-            size="small"
-            type="date"
+          <DateField
             label="Received From"
             value={fromDate}
-            onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+            onChange={(v) => { setFromDate(v); setPage(0); }}
+            max={toDate}
             fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <TextField
-            size="small"
-            type="date"
+          <DateField
             label="Received To"
             value={toDate}
-            onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+            onChange={(v) => { setToDate(v); setPage(0); }}
+            min={fromDate}
             fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
           />
 
           {hasActiveFilters && (

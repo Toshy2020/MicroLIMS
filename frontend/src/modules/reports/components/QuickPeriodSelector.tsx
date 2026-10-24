@@ -1,5 +1,6 @@
-import { Box, Button, TextField, Paper , useTheme} from "@mui/material";
+import { Box, Button, Paper, useTheme } from "@mui/material";
 import { QUICK_PERIOD_OPTIONS, QuickPeriod, toDateInputValue } from "../utils/dateRange";
+import { DateField } from "../../../components/DateField";
 
 interface QuickPeriodSelectorProps {
   period: QuickPeriod;
@@ -32,26 +33,17 @@ export function QuickPeriodSelector({ period, customFrom, customTo, onPeriodChan
 
       {period === "custom" && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 1 }}>
-          <TextField
-            size="small"
-            type="date"
+          <DateField
             label="From"
             value={customFrom}
-            onChange={(e) => onCustomChange(e.target.value, customTo)}
-            slotProps={{
-              htmlInput: { max: customTo || today },
-              inputLabel: { shrink: true }
-            }} />
-          <TextField
-            size="small"
-            type="date"
+            onChange={(v) => onCustomChange(v, customTo)}
+            max={customTo || today} />
+          <DateField
             label="To"
             value={customTo}
-            onChange={(e) => onCustomChange(customFrom, e.target.value)}
-            slotProps={{
-              htmlInput: { min: customFrom, max: today },
-              inputLabel: { shrink: true }
-            }} />
+            onChange={(v) => onCustomChange(customFrom, v)}
+            min={customFrom}
+            max={today} />
         </Box>
       )}
     </Paper>

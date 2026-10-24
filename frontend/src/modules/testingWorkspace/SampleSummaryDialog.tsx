@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Typography, Stack, Button, Alert, Paper, Chip, useTheme } from "@mui/material";
+import { Box, Typography, Stack, Button, Alert, Paper, Chip, useTheme, alpha } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -13,6 +13,7 @@ import { ReturnToAnalystDialog } from "../../components/ReturnToAnalystDialog";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors } from "../../theme";
+import { workflowEventLabel } from "../../utils/workflowEventLabel";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
@@ -50,7 +51,26 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
       {summary.timeline.length === 0 ? (
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No lifecycle events yet.</Typography>
       ) : (
-        <Stack direction="row" spacing={0} sx={{ overflowX: "auto", pb: 0.5 }}>
+        <Stack
+          direction="row"
+          spacing={0}
+          role="region"
+          aria-label="Workflow history events"
+          tabIndex={0}
+          sx={{
+            overflowX: "auto",
+            pb: 0.5,
+            // Scroll shadows: the "local" covers travel with the content and
+            // hide the fixed "scroll" shadows only at an edge with nothing
+            // more to show, so a timeline wider than the dialog visibly
+            // continues instead of looking cut off at the edge.
+            background: `
+              linear-gradient(to right, ${theme.palette.background.paper} 30%, transparent) left / 40px 100% no-repeat local,
+              linear-gradient(to left, ${theme.palette.background.paper} 30%, transparent) right / 40px 100% no-repeat local,
+              radial-gradient(farthest-side at 0 50%, ${alpha(theme.palette.text.primary, 0.18)}, transparent) left / 14px 100% no-repeat scroll,
+              radial-gradient(farthest-side at 100% 50%, ${alpha(theme.palette.text.primary, 0.18)}, transparent) right / 14px 100% no-repeat scroll`
+          }}
+        >
           {summary.timeline.map((e, idx) => (
             <Box key={idx} sx={{ display: "flex", alignItems: "flex-start", flexShrink: 0 }}>
               {idx > 0 && (
@@ -67,7 +87,7 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
                   <CheckCircleOutlineIcon sx={{ fontSize: 18 }} />
                 </Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary", mt: 0.5 }}>
-                  {e.eventType}{e.decision ? ` (${e.decision})` : ""}
+                  {workflowEventLabel(e.eventType, e.decision)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {e.performedByName}

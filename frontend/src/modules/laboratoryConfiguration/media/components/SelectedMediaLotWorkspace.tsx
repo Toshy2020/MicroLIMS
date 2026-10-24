@@ -28,6 +28,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { evaluationTypeLabel } from "../../../../services/masterDataOptions";
+import { workflowEventLabel } from "../../../../utils/workflowEventLabel";
 import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
@@ -709,7 +710,7 @@ export function SelectedMediaLotWorkspace({
                     </Typography>
                     <Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                        {ev.eventType} by {ev.performedByName || "System"}
+                        {workflowEventLabel(ev.eventType, ev.decision)} by {ev.performedByName || "System"}
                       </Typography>
                       {ev.comment && (
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>

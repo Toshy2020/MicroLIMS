@@ -15,6 +15,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import type { AuditSearchFilterState } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
+import { DateField } from "../../../components/DateField";
 
 interface Props {
   filters: AuditSearchFilterState;
@@ -67,26 +68,18 @@ export function AuditFilterBar({
         }}
         onKeyDown={handleKeyDown}
       >
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label="From Date"
           value={filters.fromDate}
-          onChange={(e) => handleChange("fromDate", e.target.value)}
-          slotProps={{
-            inputLabel: { shrink: true }
-          }}
+          onChange={(v) => handleChange("fromDate", v)}
+          max={filters.toDate}
         />
 
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label="To Date"
           value={filters.toDate}
-          onChange={(e) => handleChange("toDate", e.target.value)}
-          slotProps={{
-            inputLabel: { shrink: true }
-          }}
+          onChange={(v) => handleChange("toDate", v)}
+          min={filters.fromDate}
         />
 
         <FormControl size="small" fullWidth>

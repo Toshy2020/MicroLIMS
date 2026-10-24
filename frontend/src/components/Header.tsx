@@ -167,7 +167,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
       className="no-print"
       sx={{
         background: theme.custom.chrome.topbarBg,
-        color: "common.white",
+        color: theme.custom.chrome.topbarText,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -176,7 +176,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
         minHeight: 56,
         maxHeight: 56,
         flexShrink: 0,
-        boxShadow: "0 2px 4px rgba(0,0,0,0.12)",
+        borderBottom: `1px solid ${theme.custom.chrome.topbarBorder}`,
         position: "relative",
         zIndex: 1100
       }}
@@ -186,7 +186,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           <Tooltip title={isMobile ? "Toggle navigation menu" : (sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")}>
             <IconButton
               onClick={onToggleSidebar}
-              sx={{ color: "common.white", p: 0.75, mr: 0.5 }}
+              sx={{ color: "inherit", p: 0.75, mr: 0.5 }}
               aria-label="Toggle navigation menu"
             >
               <MenuIcon />
@@ -206,13 +206,13 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           gap: 1.5,
           px: 2,
           py: 0.6,
-          bgcolor: "rgba(255,255,255,0.15)",
+          bgcolor: theme.custom.chrome.topbarControlBg,
           borderRadius: 2,
-          color: "common.white",
+          color: theme.custom.chrome.topbarMutedText,
           width: { sm: 240, md: 360 },
           justifyContent: "space-between",
           cursor: "pointer",
-          "&:hover": { bgcolor: "rgba(255,255,255,0.22)" }
+          "&:hover": { bgcolor: theme.custom.chrome.topbarControlHoverBg }
         }}
         aria-label="Search MicroLIMS (Ctrl+K)"
       >
@@ -220,7 +220,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           <SearchIcon sx={{ fontSize: 18, opacity: 0.8 }} />
           <Typography sx={{ fontSize: 13, opacity: 0.85 }}>Search MicroLIMS...</Typography>
         </Box>
-        <Box sx={{ fontSize: 11, bgcolor: "rgba(0,0,0,0.2)", px: 0.8, py: 0.2, borderRadius: 1 }}>
+        <Box sx={{ fontSize: 11, border: `1px solid ${theme.custom.chrome.topbarBorder}`, bgcolor: theme.custom.chrome.topbarBg, px: 0.8, py: 0.2, borderRadius: 1 }}>
           Ctrl+K
         </Box>
       </ButtonBase>
@@ -229,7 +229,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
         <Tooltip title="Search MicroLIMS">
           <IconButton
             onClick={() => setSearchOpen(true)}
-            sx={{ color: "common.white", display: { sm: "none" } }}
+            sx={{ color: "inherit", display: { sm: "none" } }}
             aria-label="Search MicroLIMS"
           >
             <SearchIcon />
@@ -240,11 +240,11 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             checked={mode === "dark"}
             onChange={toggleMode}
             icon={<LightModeIcon sx={{ fontSize: 15, color: "#f2b705", p: "1.5px" }} />}
-            checkedIcon={<DarkModeIcon sx={{ fontSize: 15, color: "#2E3542", p: "1.5px" }} />}
+            checkedIcon={<DarkModeIcon sx={{ fontSize: 15, color: "#E7EBF0", p: "1.5px" }} />}
             sx={{
-              "& .MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28)", opacity: 1 },
-              "& .MuiSwitch-thumb": { backgroundColor: "common.white" },
-              "& .Mui-checked+.MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28) !important", opacity: 1 }
+              "& .MuiSwitch-track": { backgroundColor: theme.custom.chrome.topbarSwitchTrack, opacity: 1 },
+              "& .MuiSwitch-thumb": { backgroundColor: "common.white", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" },
+              "& .Mui-checked+.MuiSwitch-track": { backgroundColor: `${theme.custom.chrome.topbarSwitchTrack} !important`, opacity: 1 }
             }}
             slotProps={{
               input: { "aria-label": mode === "dark" ? "Switch to light mode" : "Switch to dark mode" }
@@ -254,7 +254,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
         <Tooltip title="Notifications">
           <IconButton
             onClick={(e) => setBellAnchor(e.currentTarget)}
-            sx={{ color: "common.white" }}
+            sx={{ color: "inherit" }}
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-controls={bellAnchor ? "header-notifications-menu" : undefined}
             aria-haspopup="true"
@@ -337,27 +337,27 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
               py: 0.5,
               ml: 0.5,
               borderRadius: 2,
-              color: "common.white",
+              color: "inherit",
               textAlign: "left",
-              bgcolor: profileAnchor ? "rgba(255,255,255,0.14)" : "transparent",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-              "&.Mui-focusVisible": { outline: "2px solid #fff", outlineOffset: 2 }
+              bgcolor: profileAnchor ? theme.custom.chrome.topbarControlHoverBg : "transparent",
+              "&:hover": { bgcolor: theme.custom.chrome.topbarControlBg },
+              "&.Mui-focusVisible": { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 }
             }}
           >
             <Badge badgeContent={unreadMessages} color="error" overlap="circular">
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "common.white", color: "primary.main", fontWeight: 700, fontSize: 13 }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", color: "primary.contrastText", fontWeight: 700, fontSize: 13 }}>
                 {userInitials(fullName, username)}
               </Avatar>
             </Badge>
             {showIdentityText && (
               <Box sx={{ minWidth: 0, maxWidth: 220 }}>
                 <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{displayName}</Typography>
-                <Typography noWrap sx={{ fontSize: 12, lineHeight: 1.25, color: "rgba(255,255,255,0.82)" }}>
+                <Typography noWrap sx={{ fontSize: 12, lineHeight: 1.25, color: theme.custom.chrome.topbarMutedText }}>
                   {username ? `${username} · ${displayTitle}` : displayTitle}
                 </Typography>
               </Box>
             )}
-            {showIdentityText && <ExpandMoreIcon sx={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />}
+            {showIdentityText && <ExpandMoreIcon sx={{ fontSize: 18, color: theme.custom.chrome.topbarMutedText }} />}
           </ButtonBase>
         </Tooltip>
         <Menu

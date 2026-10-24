@@ -1,5 +1,6 @@
 using MicroLIMS.Application.Abstractions.Pdf;
 using System.Globalization;
+using System.IO.Compression;
 using System.Text;
 
 namespace MicroLIMS.Infrastructure.Pdf;
@@ -45,6 +46,7 @@ public class PdfCanvas
 
     private readonly List<StringBuilder> _pages = new();
     private StringBuilder _current = null!;
+    private readonly List<(int Width, int Height, byte[] Deflated)> _images = new();
 
     public PdfCanvas() => NewPage();
 
@@ -63,6 +65,28 @@ public class PdfCanvas
 
     private static string N(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
     private static double ToPdfY(double top) => PageHeight - top;
+
+    // Registers an 8-bit RGB raster (3 bytes per pixel, row-major) as an
+    // image XObject and returns its handle for DrawImage. Stored deflated
+    // (FlateDecode) - chart images are mostly flat colour and shrink well.
+    public int AddImage(int width, int height, byte[] rgb)
+    {
+        if (width <= 0 || height <= 0 || rgb.Length != width * height * 3)
+            throw new ArgumentException("RGB data does not match the image size.", nameof(rgb));
+        using var ms = new MemoryStream();
+        using (var z = new ZLibStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+            z.Write(rgb);
+        _images.Add((width, height, ms.ToArray()));
+        return _images.Count - 1;
+    }
+
+    public void DrawImage(int image, double x, double top, double w, double h)
+    {
+        _current.AppendLine("q");
+        _current.AppendLine($"{N(w)} 0 0 {N(h)} {N(x)} {N(ToPdfY(top + h))} cm");
+        _current.AppendLine($"/Im{image} Do");
+        _current.AppendLine("Q");
+    }
 
     public void FillRect(double x, double top, double w, double h, PdfColor fill)
     {
@@ -230,6 +254,19 @@ public class PdfCanvas
         var fontRegularIdx = objects.Count; objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
         var fontBoldIdx = objects.Count; objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
 
+        // Every image is listed in every page's resources: simpler than
+        // tracking which page draws which, and costs only a few bytes.
+        var xObjects = new StringBuilder();
+        foreach (var (img, i) in _images.Select((img, i) => (img, i)))
+        {
+            var imageIdx = objects.Count;
+            objects.Add($"<< /Type /XObject /Subtype /Image /Width {img.Width} /Height {img.Height} " +
+                        $"/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length {img.Deflated.Length} >>");
+            streams[imageIdx] = img.Deflated;
+            xObjects.Append($"/Im{i} {imageIdx + 1} 0 R ");
+        }
+        var xObjectResource = _images.Count > 0 ? $" /XObject << {xObjects}>>" : string.Empty;
+
         var pageIds = new List<int>();
         foreach (var page in _pages)
         {
@@ -240,7 +277,7 @@ public class PdfCanvas
 
             objects[pageIdx] =
                 $"<< /Type /Page /Parent {pagesIdx + 1} 0 R /MediaBox [0 0 {N(PageWidth)} {N(PageHeight)}] " +
-                $"/Resources << /Font << /F1 {fontRegularIdx + 1} 0 R /F2 {fontBoldIdx + 1} 0 R >> >> " +
+                $"/Resources << /Font << /F1 {fontRegularIdx + 1} 0 R /F2 {fontBoldIdx + 1} 0 R >>{xObjectResource} >> " +
                 $"/Contents {contentIdx + 1} 0 R >>";
             pageIds.Add(pageIdx + 1);
         }

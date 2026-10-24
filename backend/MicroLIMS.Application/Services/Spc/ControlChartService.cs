@@ -352,7 +352,7 @@ public class ControlChartService
     private static string Fmt(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
     private static string Fmt(double? value) => value?.ToString("0.####", CultureInfo.InvariantCulture) ?? "n/a";
 
-    private static string MethodLabel(ControlChartSettings s) => s.Method switch
+    public static string MethodLabel(ControlChartSettings s) => s.Method switch
     {
         LimitMethod.Percentile => $"percentiles P{s.AlertPercentile:0.##}/P{s.ActionPercentile:0.##}",
         LimitMethod.StandardDeviation => $"mean ± {s.AlertK:0.##}/{s.ActionK:0.##} SD",

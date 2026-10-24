@@ -1,6 +1,7 @@
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Infrastructure.Imaging;
 namespace MicroLIMS.Infrastructure.Pdf;
 
 // Draws a ReportDocument onto a PdfCanvas in the approved report layout:
@@ -83,6 +84,9 @@ public class ReportPdfRenderer
     private void EnsureSpace(double height)
     {
         if (_y + height <= PageBottom) return;
+        // Already at the top of a fresh page: a forced break (or a block
+        // taller than a page) must not leave a blank page behind.
+        if (_y <= PdfCanvas.MarginTop + 14 && _c.PageCount > 1) return;
         _c.NewPage();
         _y = PdfCanvas.MarginTop;
         _c.Text($"{_documentId} (continued)", Left, _y, 7.5, PdfFont.Regular, TextQuaternary);
@@ -150,7 +154,35 @@ public class ReportPdfRenderer
             case ListBlock b: DrawList(b); break;
             case SignatureBlock b: DrawSignatures(b); break;
             case TableBlock b: DrawTableBlock(b); break;
+            case ImageBlock b: DrawImage(b); break;
+            case PageBreakBlock: EnsureSpace(double.MaxValue / 2); break;
         }
+    }
+
+    // Scaled to the content width (never enlarged past its pixel size at
+    // 2 px/pt) and capped at most of a page, so a tall chart is shrunk to
+    // fit rather than split.
+    private void DrawImage(ImageBlock b)
+    {
+        var (pxW, pxH, rgb) = PngRaster.DecodeToRgb(b.Png);
+        var id = _c.AddImage(pxW, pxH, rgb);
+        var captionH = string.IsNullOrWhiteSpace(b.Caption) ? 0 : 12.0;
+        var maxH = PageBottom - PdfCanvas.MarginTop - 14 - captionH - BlockGap;
+        var w = Math.Min(Width, pxW / 2.0);
+        var h = w * pxH / pxW;
+        if (h > maxH) { h = maxH; w = h * pxW / pxH; }
+
+        EnsureSpace(h + captionH + 2);
+        var x = Left + (Width - w) / 2;
+        _c.DrawImage(id, x, _y, w, h);
+        _c.StrokeRect(x, _y, w, h, Border, 0.5);
+        _y += h + 2;
+        if (captionH > 0)
+        {
+            _c.Text(_c.Ellipsize(b.Caption!, Width, 7.5, PdfFont.Regular), Left, _y + 1, 7.5, PdfFont.Regular, TextTertiary, PdfAlign.Center, Width);
+            _y += captionH;
+        }
+        _y += BlockGap;
     }
 
     private void DrawTwoColumn(TwoColumnBlock b)

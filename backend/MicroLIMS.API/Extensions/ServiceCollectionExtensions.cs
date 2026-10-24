@@ -200,6 +200,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaAppearanceSnapshotService>();
         services.AddScoped<ReportingQueryService>();
         services.AddScoped<MicroLIMS.Application.Services.Spc.ControlChartService>();
+        services.AddScoped<MicroLIMS.Application.Services.Spc.ControlChartReportService>();
         services.AddScoped<MediaGptReportService>();
         services.AddScoped<ReferenceStrainReportService>();
         services.AddScoped<DataExportAuditService>();

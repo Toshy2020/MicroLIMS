@@ -84,8 +84,9 @@ builder.Services.AddCors(options =>
               // AllowAnyHeader covers request headers only. Without this
               // the browser hides X-Correlation-Id from JS entirely, and
               // client-side error reports cannot be tied to the backend
-              // error from the same action.
-              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName));
+              // error from the same action. Content-Disposition carries
+              // the server's name for a downloaded file (exports, reports).
+              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition"));
 });
 
 var app = builder.Build();

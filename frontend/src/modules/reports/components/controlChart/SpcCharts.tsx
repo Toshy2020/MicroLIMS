@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { cloneElement, useMemo } from "react";
 import { Box, Paper, Typography, useTheme } from "@mui/material";
 import {
   Area, Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer,
@@ -22,6 +22,9 @@ interface SpcChartProps {
   result: ControlChartResult;
   options: SpcChartOptions;
   height?: number;
+  // A fixed pixel width renders without ResponsiveContainer, synchronously -
+  // used to capture charts off-screen for a report.
+  width?: number;
   onPointClick?: (point: ControlChartPoint) => void;
 }
 
@@ -126,7 +129,8 @@ function makeDot(c: Colors, opts: SpcChartOptions, onClick?: (p: ControlChartPoi
   };
 }
 
-function ChartFrame({ children, height }: { children: React.ReactElement; height: number }) {
+function ChartFrame({ children, height, width }: { children: React.ReactElement<{ width?: number; height?: number }>; height: number; width?: number }) {
+  if (width) return <Box sx={{ width, height }}>{cloneElement(children, { width, height })}</Box>;
   return (
     <Box sx={{ width: "100%", height }}>
       <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
@@ -134,7 +138,7 @@ function ChartFrame({ children, height }: { children: React.ReactElement; height
   );
 }
 
-export function SpcChart({ kind, result, options, height = 360, onPointClick }: SpcChartProps) {
+export function SpcChart({ kind, result, options, height = 360, width, onPointClick }: SpcChartProps) {
   const c = useSpcColors();
   const rows: Row[] = useMemo(
     () => result.points.map((p, index) => ({ ...p, index, label: dateLabel(p.date), flagged: p.rules.length > 0 })),
@@ -177,7 +181,7 @@ export function SpcChart({ kind, result, options, height = 360, onPointClick }: 
   switch (kind) {
     case "individuals":
       return (
-        <ChartFrame height={height}>
+        <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
             <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
@@ -194,7 +198,7 @@ export function SpcChart({ kind, result, options, height = 360, onPointClick }: 
 
     case "movingRange":
       return (
-        <ChartFrame height={height}>
+        <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
             <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
@@ -214,7 +218,7 @@ export function SpcChart({ kind, result, options, height = 360, onPointClick }: 
     case "scatter":
     case "area":
       return (
-        <ChartFrame height={height}>
+        <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
             <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
@@ -237,7 +241,7 @@ export function SpcChart({ kind, result, options, height = 360, onPointClick }: 
 
     case "bar":
       return (
-        <ChartFrame height={height}>
+        <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
             <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
@@ -256,24 +260,24 @@ export function SpcChart({ kind, result, options, height = 360, onPointClick }: 
       );
 
     case "histogram":
-      return <HistogramChart result={result} colors={c} height={height} showLabel={showLabel} />;
+      return <HistogramChart result={result} colors={c} height={height} width={width} showLabel={showLabel} />;
 
     case "boxplot":
-      return <MonthlyBoxPlot result={result} colors={c} height={height} options={options} />;
+      return <MonthlyBoxPlot result={result} colors={c} height={height} width={width} options={options} />;
 
     case "monthly":
-      return <MonthlySummaryChart result={result} colors={c} height={height} options={options} />;
+      return <MonthlySummaryChart result={result} colors={c} height={height} width={width} options={options} />;
   }
 }
 
 // ---- Capability histogram ------------------------------------------------
 
-function HistogramChart({ result, colors: c, height, showLabel }: { result: ControlChartResult; colors: Colors; height: number; showLabel: boolean }) {
+function HistogramChart({ result, colors: c, height, width, showLabel }: { result: ControlChartResult; colors: Colors; height: number; width?: number; showLabel: boolean }) {
   const bins = result.statistics.histogram;
   const cap = result.statistics.capability;
   const data = bins.map((b) => ({ ...b, mid: (b.from + b.to) / 2, range: `${fmt(b.from)} – ${fmt(b.to)}` }));
   if (data.length === 0) return null;
-  const width = bins[0].to - bins[0].from;
+  const binWidth = bins[0].to - bins[0].from;
   const lo = Math.min(bins[0].from, cap.lsl ?? Infinity);
   const hi = Math.max(bins[bins.length - 1].to, cap.usl ?? -Infinity);
   const ref = (x: number | null, color: string, text: string, dashed = false) =>
@@ -283,11 +287,10 @@ function HistogramChart({ result, colors: c, height, showLabel }: { result: Cont
     );
 
   return (
-    <Box sx={{ width: "100%", height }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <ChartFrame height={height} width={width}>
         <ComposedChart data={data} margin={{ top: 24, right: 24, left: 8, bottom: 8 }} barCategoryGap={1}>
           <CartesianGrid vertical={false} stroke={c.grid} />
-          <XAxis dataKey="mid" type="number" domain={[lo - width / 2, hi + width / 2]} tick={{ fontSize: 11, fill: c.muted }}
+          <XAxis dataKey="mid" type="number" domain={[lo - binWidth / 2, hi + binWidth / 2]} tick={{ fontSize: 11, fill: c.muted }}
             tickFormatter={(v) => fmt(v, 1)} label={{ value: result.unit ?? "", position: "insideBottom", offset: -2, fontSize: 12, fill: c.muted }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: c.muted }} label={{ value: "Frequency", angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
           <RechartsTooltip
@@ -310,14 +313,13 @@ function HistogramChart({ result, colors: c, height, showLabel }: { result: Cont
           {ref(cap.usl, c.spec, "USL")}
           {ref(result.statistics.mean, c.mean, "Mean", true)}
         </ComposedChart>
-      </ResponsiveContainer>
-    </Box>
+    </ChartFrame>
   );
 }
 
 // ---- Box plot by month -----------------------------------------------------
 
-function MonthlyBoxPlot({ result, colors: c, height, options }: { result: ControlChartResult; colors: Colors; height: number; options: SpcChartOptions }) {
+function MonthlyBoxPlot({ result, colors: c, height, width, options }: { result: ControlChartResult; colors: Colors; height: number; width?: number; options: SpcChartOptions }) {
   // The bar spans min..max of the month; the shape maps quartiles into it
   // with the same linear scale, so whiskers, box and outliers line up.
   const data = result.monthly.map((m) => ({ ...m, span: [m.box.min, m.box.max] as [number, number] }));
@@ -346,8 +348,7 @@ function MonthlyBoxPlot({ result, colors: c, height, options }: { result: Contro
   };
 
   return (
-    <Box sx={{ width: "100%", height }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <ChartFrame height={height} width={width}>
         <ComposedChart data={data} margin={{ top: 16, right: showLabel ? 92 : 24, left: 8, bottom: 8 }}>
           <CartesianGrid vertical={false} stroke={c.grid} />
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: c.muted }} />
@@ -370,19 +371,17 @@ function MonthlyBoxPlot({ result, colors: c, height, options }: { result: Contro
           {options.showConfiguredLimits && limitLine(result.currentLimits.action, c.configuredAction, "Action", { dashed: true, showLabel })}
           <Bar dataKey="span" name="Monthly distribution" shape={shape} isAnimationActive={false} />
         </ComposedChart>
-      </ResponsiveContainer>
-    </Box>
+    </ChartFrame>
   );
 }
 
 // ---- Monthly summary -------------------------------------------------------
 
-function MonthlySummaryChart({ result, colors: c, height, options }: { result: ControlChartResult; colors: Colors; height: number; options: SpcChartOptions }) {
+function MonthlySummaryChart({ result, colors: c, height, width, options }: { result: ControlChartResult; colors: Colors; height: number; width?: number; options: SpcChartOptions }) {
   const data = result.monthly.map((m) => ({ month: m.month, mean: m.mean, max: m.box.max, median: m.box.median, count: m.count }));
   const showLabel = options.showValueLabels;
   return (
-    <Box sx={{ width: "100%", height }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <ChartFrame height={height} width={width}>
         <ComposedChart data={data} margin={{ top: 16, right: showLabel ? 92 : 24, left: 8, bottom: 8 }}>
           <CartesianGrid vertical={false} stroke={c.grid} />
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: c.muted }} />
@@ -395,7 +394,6 @@ function MonthlySummaryChart({ result, colors: c, height, options }: { result: C
           {options.showConfiguredLimits && limitLine(result.currentLimits.alert, c.configuredAlert, "Alert", { dashed: true, showLabel })}
           {options.showConfiguredLimits && limitLine(result.currentLimits.action, c.configuredAction, "Action", { dashed: true, showLabel })}
         </ComposedChart>
-      </ResponsiveContainer>
-    </Box>
+    </ChartFrame>
   );
 }

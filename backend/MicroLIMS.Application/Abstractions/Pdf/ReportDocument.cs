@@ -123,3 +123,16 @@ public class SignatureEntry
     public string Meaning { get; set; } = string.Empty;
     public string? Comment { get; set; }
 }
+
+// A full-width picture (a chart) with an optional caption. The bytes are
+// a PNG; renderers decode it, so the Application layer never touches
+// pixels. Kept whole on one page and scaled to the content width.
+public class ImageBlock : ReportBlock
+{
+    public byte[] Png { get; set; } = Array.Empty<byte>();
+    public string? Caption { get; set; }
+}
+
+// Starts the next block on a fresh page (ignored at the top of a page) -
+// e.g. one chart per page in a control chart report.
+public class PageBreakBlock : ReportBlock { }

@@ -5,7 +5,9 @@ import {
   ControlChartCriteria,
   ControlChartResult,
   ControlChartSettings,
-  LimitReviewResult
+  LimitReviewResult,
+  ReportFormat,
+  ReportItem
 } from "../types/controlChartTypes";
 import { SampleCategory } from "../types/reportingTypes";
 
@@ -28,6 +30,11 @@ function settingsParams(s: ControlChartSettings) {
 }
 
 const optionalNumber = (v: string) => (v.trim() === "" ? undefined : Number(v));
+
+function fileNameFrom(contentDisposition: string | undefined, fallback: string): string {
+  const match = contentDisposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  return match?.[1] ? decodeURIComponent(match[1]) : fallback;
+}
 
 export const ControlChartService = {
   getChart: (c: ControlChartCriteria, s: ControlChartSettings) =>
@@ -77,5 +84,35 @@ export const ControlChartService = {
       items,
       reason,
       password
-    }).then((r) => r.data.data)
+    }).then((r) => r.data.data),
+
+  // One PDF or Word document holding every queued chart. Returns the file
+  // and the name the server gave it.
+  downloadReport: async (title: string, notes: string, includeSummary: boolean, format: ReportFormat, items: ReportItem[]) => {
+    const res = await apiClient.post("/reporting/control-chart/report", {
+      title,
+      notes: notes.trim() || null,
+      format,
+      includeSummary,
+      sections: items.map((i) => ({
+        testCode: i.criteria.testCode,
+        subjectName: i.subjectName,
+        category: i.criteria.category,
+        fromDate: dayStart(i.criteria.fromDate) ?? null,
+        toDate: dayEnd(i.criteria.toDate) ?? null,
+        calculationFrom: dayStart(i.criteria.calculationFrom) ?? null,
+        calculationTo: dayEnd(i.criteria.calculationTo) ?? null,
+        approvedOnly: i.criteria.approvedOnly,
+        settings: i.settings,
+        capabilityBasis: i.criteria.capabilityBasis,
+        customLsl: i.criteria.capabilityBasis === "Custom" ? optionalNumber(i.criteria.customLsl) ?? null : null,
+        customUsl: i.criteria.capabilityBasis === "Custom" ? optionalNumber(i.criteria.customUsl) ?? null : null,
+        chartType: i.chartLabel,
+        title: i.title,
+        imagePng: i.image
+      }))
+    }, { responseType: "blob" });
+    const fallback = `control_chart_report.${format === "Pdf" ? "pdf" : "docx"}`;
+    return { blob: res.data as Blob, fileName: fileNameFrom(res.headers["content-disposition"], fallback) };
+  }
 };

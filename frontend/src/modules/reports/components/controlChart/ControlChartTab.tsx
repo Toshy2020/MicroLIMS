@@ -6,6 +6,9 @@ import {
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ImageIcon from "@mui/icons-material/Image";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
+import PostAddIcon from "@mui/icons-material/PostAdd";
+import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
+import ArticleIcon from "@mui/icons-material/Article";
 import { toast } from "sonner";
 import { DateField } from "../../../../components/DateField";
 import { useHasPermission } from "../../../../contexts/AuthContext";
@@ -14,16 +17,42 @@ import { ReportingService } from "../../services/ReportingService";
 import { ControlChartService } from "../../services/ControlChartService";
 import { LocationCascadeFilter, hasLocationHierarchy } from "../LocationCascadeFilter";
 import { RecordDetailDialog } from "../RecordDetailDialog";
-import { captureSvgAsPng } from "../../utils/chartExport";
+import { captureChartsAsPng } from "../../utils/chartExport";
+import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { downloadCsv } from "../../utils/exportTrend";
 import { toDateInputValue } from "../../utils/dateRange";
 import { ResultRecordItem, SampleCategory, TestCodeOption } from "../../types/reportingTypes";
 import {
   AppliedLimit, CHART_KINDS, CapabilityBasis, ChartKind, ControlChartCriteria, ControlChartPoint, ControlChartResult,
-  ControlChartSettings, DEFAULT_SETTINGS, LimitMethod, LimitReviewResult, LimitRounding, RULE_LABELS
+  ControlChartSettings, DEFAULT_SETTINGS, LimitMethod, LimitReviewResult, LimitRounding, ReportFormat, ReportItem, RULE_LABELS
 } from "../../types/controlChartTypes";
 import { SpcChart, SpcChartOptions, fmt } from "./SpcCharts";
 import { ApplyCandidate, ApplyLimitsDialog } from "./ApplyLimitsDialog";
+import { ReportBuilderDrawer } from "./ReportBuilderDrawer";
+
+// Report charts are captured at this width whatever the screen size, so
+// every figure in a report has the same proportions and text size.
+const CAPTURE_WIDTH = 960;
+
+// The queued report outlives the tab: switching to another Reports tab
+// unmounts this one, and the charts should still be there on return.
+let persistedReportItems: ReportItem[] = [];
+
+const chartLabel = (kind: ChartKind) => CHART_KINDS.find((k) => k.value === kind)?.label ?? kind;
+
+function ChartBody({ kind, result, options, width, onPointClick }: {
+  kind: ChartKind; result: ControlChartResult; options: SpcChartOptions; width?: number; onPointClick?: (p: ControlChartPoint) => void;
+}) {
+  if (kind === "imr") {
+    return (
+      <>
+        <SpcChart kind="individuals" result={result} options={options} height={340} width={width} onPointClick={onPointClick} />
+        <SpcChart kind="movingRange" result={result} options={options} height={220} width={width} onPointClick={onPointClick} />
+      </>
+    );
+  }
+  return <SpcChart kind={kind} result={result} options={options} height={400} width={width} onPointClick={onPointClick} />;
+}
 
 const CATEGORY_LABELS: Partial<Record<SampleCategory, string>> = {
   EnvironmentalMonitoring: "Environmental Monitoring",
@@ -116,6 +145,15 @@ export function ControlChartTab() {
   });
 
   const [chart, setChart] = useState<ControlChartResult | null>(null);
+  // The criteria and settings the displayed chart was actually drawn from
+  // (the inputs are debounced, so they can be ahead of it).
+  const [chartSource, setChartSource] = useState<{ criteria: ControlChartCriteria; settings: ControlChartSettings } | null>(null);
+  const [reportItems, setReportItemsState] = useState<ReportItem[]>(persistedReportItems);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
+  const [offscreen, setOffscreen] = useState<{ result: ControlChartResult; kind: ChartKind; key: number } | null>(null);
+  const offscreenRef = useRef<HTMLDivElement>(null);
+  const offscreenDone = useRef<((el: HTMLElement) => void) | null>(null);
   const [review, setReview] = useState<LimitReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +163,6 @@ export function ControlChartTab() {
   const [applyCandidates, setApplyCandidates] = useState<ApplyCandidate[] | null>(null);
   const [applyFromChart, setApplyFromChart] = useState(false);
   const [drillDown, setDrillDown] = useState<ResultRecordItem | null>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     ReportingService.getFilterOptions()
@@ -147,7 +184,7 @@ export function ControlChartTab() {
     setLoading(true);
     setError(null);
     const request = v === "chart"
-      ? ControlChartService.getChart(c, s).then((r) => { if (!cancelled) setChart(r); })
+      ? ControlChartService.getChart(c, s).then((r) => { if (!cancelled) { setChart(r); setChartSource({ criteria: c, settings: s }); } })
       : ControlChartService.getLimitReview(c, s).then((r) => { if (!cancelled) { setReview(r); setSelected(new Set()); } });
     request
       .catch((e: any) => { if (!cancelled) setError(e?.response?.data?.message ?? "The analysis could not be loaded."); })
@@ -177,11 +214,50 @@ export function ControlChartTab() {
     }
   };
 
+  // ---- Capture & report ----------------------------------------------
+
+  const setReportItems = (items: ReportItem[]) => {
+    persistedReportItems = items;
+    setReportItemsState(items);
+  };
+
+  // Once the off-screen chart has rendered (two frames: mount, then paint)
+  // hand its container to whoever asked for the capture.
+  useEffect(() => {
+    if (!offscreen || !offscreenRef.current) return;
+    const el = offscreenRef.current;
+    let raf = requestAnimationFrame(() => { raf = requestAnimationFrame(() => offscreenDone.current?.(el)); });
+    return () => cancelAnimationFrame(raf);
+  }, [offscreen]);
+
+  // Draws a chart off-screen, in the light theme at CAPTURE_WIDTH, and
+  // returns it as a PNG data URL - identical output whatever the viewer's
+  // screen size or dark mode.
+  const captureChart = (result: ControlChartResult, kind: ChartKind) =>
+    new Promise<string>((resolve, reject) => {
+      offscreenDone.current = (el) => {
+        offscreenDone.current = null;
+        captureChartsAsPng(el).then(resolve, reject).finally(() => setOffscreen(null));
+      };
+      setOffscreen({ result, kind, key: Date.now() });
+    });
+
+  const newItem = (result: ControlChartResult, kind: ChartKind, image: string, c: ControlChartCriteria, s: ControlChartSettings): ReportItem => ({
+    id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+    title: `${result.testDisplayName} - ${result.subjectName}`,
+    chartKind: kind,
+    chartLabel: chartLabel(kind),
+    subjectName: result.subjectName,
+    testDisplayName: result.testDisplayName,
+    criteria: { ...c, subjectName: result.subjectName },
+    settings: { ...s, rules: [...s.rules] },
+    image
+  });
+
   const exportPng = async () => {
-    const svg = chartRef.current?.querySelector<SVGSVGElement>(".recharts-wrapper > svg.recharts-surface");
-    if (!svg) return;
+    if (!chart) return;
     try {
-      const url = await captureSvgAsPng(svg);
+      const url = await captureChart(chart, chartKind);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${criteria.testCode}_${criteria.subjectName}_${chartKind}.png`.replace(/\s+/g, "_");
@@ -189,6 +265,52 @@ export function ControlChartTab() {
     } catch (e: any) {
       toast.error(e?.message ?? "Could not capture the chart.");
     }
+  };
+
+  const addChartToReport = async () => {
+    if (!chart || !chartSource) return;
+    try {
+      const image = await captureChart(chart, chartKind);
+      setReportItems([...persistedReportItems, newItem(chart, chartKind, image, chartSource.criteria, chartSource.settings)]);
+      toast.success(`Added ${chart.subjectName} to the report.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not capture the chart.");
+    }
+  };
+
+  // Charts every location in the review that has results, with the
+  // review's own criteria (no separate calculation window), and queues them.
+  const addAllToReport = async () => {
+    if (!review) return;
+    const subjects = review.rows.filter((r) => r.count > 0).map((r) => r.subjectName);
+    const c = { ...criteria, calculationFrom: "", calculationTo: "" };
+    const s = { ...settings, rules: [...settings.rules] };
+    setBatch({ done: 0, total: subjects.length });
+    const added: ReportItem[] = [];
+    try {
+      for (const subjectName of subjects) {
+        const result = await ControlChartService.getChart({ ...c, subjectName }, s);
+        added.push(newItem(result, chartKind, await captureChart(result, chartKind), c, s));
+        setBatch({ done: added.length, total: subjects.length });
+      }
+      toast.success(`Added ${added.length} chart(s) to the report.`);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Some charts could not be added.");
+    } finally {
+      if (added.length) setReportItems([...persistedReportItems, ...added]);
+      setBatch(null);
+    }
+  };
+
+  const generateReport = async (title: string, notes: string, includeSummary: boolean, format: ReportFormat) => {
+    const { blob, fileName } = await ControlChartService.downloadReport(title, notes, includeSummary, format, reportItems);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(`${fileName} downloaded.`);
   };
 
   const exportPointsCsv = () => {
@@ -303,9 +425,9 @@ export function ControlChartTab() {
               </Select>
             </FormControl>
           ))}
-          <Stack direction="row" spacing={1}>
-            <DateField label="From" size="small" value={criteria.fromDate} onChange={(v) => set("fromDate", v)} />
-            <DateField label="To" size="small" value={criteria.toDate} onChange={(v) => set("toDate", v)} />
+          <Stack spacing={2}>
+            <DateField label="From" size="small" fullWidth value={criteria.fromDate} onChange={(v) => set("fromDate", v)} />
+            <DateField label="To" size="small" fullWidth value={criteria.toDate} onChange={(v) => set("toDate", v)} />
           </Stack>
           <FormControlLabel control={<Checkbox size="small" checked={criteria.approvedOnly} onChange={(e) => set("approvedOnly", e.target.checked)} />}
             label={<Typography sx={{ fontSize: 13 }}>Approved results only</Typography>} />
@@ -341,9 +463,9 @@ export function ControlChartTab() {
           {view === "chart" && (
             <>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Estimate limits from (blank = whole period)</Typography>
-              <Stack direction="row" spacing={1}>
-                <DateField label="From" size="small" value={criteria.calculationFrom} onChange={(v) => set("calculationFrom", v)} />
-                <DateField label="To" size="small" value={criteria.calculationTo} onChange={(v) => set("calculationTo", v)} />
+              <Stack spacing={2}>
+                <DateField label="Limits from" size="small" fullWidth value={criteria.calculationFrom} onChange={(v) => set("calculationFrom", v)} />
+                <DateField label="Limits to" size="small" fullWidth value={criteria.calculationTo} onChange={(v) => set("calculationTo", v)} />
               </Stack>
             </>
           )}
@@ -385,11 +507,14 @@ export function ControlChartTab() {
 
       {/* ---------------- Results ---------------- */}
       <Box sx={{ minWidth: 0 }}>
-        <Paper sx={{ px: 2, mb: 2 }}>
+        <Paper sx={{ px: 2, mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
           <Tabs value={view} onChange={(_, v) => setView(v)}>
             <Tab value="chart" label="Control chart & capability" />
             <Tab value="review" label="Limit review (all locations)" />
           </Tabs>
+          <Button size="small" variant="outlined" startIcon={<ArticleIcon />} onClick={() => setReportOpen(true)}>
+            Report ({reportItems.length})
+          </Button>
         </Paper>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -411,7 +536,12 @@ export function ControlChartTab() {
                       {CHART_KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{k.label}</MenuItem>)}
                     </Select>
                   </FormControl>
-                  <Tooltip title="Download chart (PNG)"><span><Button size="small" onClick={exportPng}><ImageIcon fontSize="small" /></Button></span></Tooltip>
+                  <Tooltip title="Add this chart to the report"><span>
+                    <Button size="small" variant="contained" startIcon={<PostAddIcon />} disabled={!chart.points.length || !!offscreen} onClick={addChartToReport}>
+                      Add to report
+                    </Button>
+                  </span></Tooltip>
+                  <Tooltip title="Download chart (PNG)"><span><Button size="small" disabled={!!offscreen} onClick={exportPng}><ImageIcon fontSize="small" /></Button></span></Tooltip>
                   <Tooltip title="Download points (CSV)"><span><Button size="small" onClick={exportPointsCsv}><FileDownloadIcon fontSize="small" /></Button></span></Tooltip>
                 </Stack>
               </Stack>
@@ -436,15 +566,8 @@ export function ControlChartTab() {
                   {chart.imputedPointCount} result(s) below the detection limit are plotted at half the limit.
                 </Typography>
               )}
-              <Box ref={chartRef} sx={{ opacity: loading ? 0.5 : 1 }}>
-                {chartKind === "imr" ? (
-                  <>
-                    <SpcChart kind="individuals" result={chart} options={options} height={340} onPointClick={handlePointClick} />
-                    <SpcChart kind="movingRange" result={chart} options={options} height={220} onPointClick={handlePointClick} />
-                  </>
-                ) : (
-                  <SpcChart kind={chartKind} result={chart} options={options} height={400} onPointClick={handlePointClick} />
-                )}
+              <Box sx={{ opacity: loading ? 0.5 : 1 }}>
+                <ChartBody kind={chartKind} result={chart} options={options} onPointClick={handlePointClick} />
               </Box>
             </Paper>
 
@@ -537,7 +660,17 @@ export function ControlChartTab() {
                 <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{review.testDisplayName} · {CATEGORY_LABELS[review.category] ?? review.category}</Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Proposed limits: {methodSummary(settings)}, rounding {ROUNDING_LABELS[settings.rounding].toLowerCase()}</Typography>
               </Box>
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Report chart type</InputLabel>
+                  <Select label="Report chart type" value={chartKind} onChange={(e) => setChartKind(e.target.value as ChartKind)}>
+                    {CHART_KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{k.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <Button size="small" variant="outlined" startIcon={<LibraryAddIcon />}
+                  disabled={!!batch || !review.rows.some((r) => r.count > 0)} onClick={addAllToReport}>
+                  {batch ? `Adding ${batch.done}/${batch.total}...` : "Add all to report"}
+                </Button>
                 <Button size="small" startIcon={<FileDownloadIcon />} onClick={exportReviewCsv}>CSV</Button>
                 {canApplyCategory && (
                   <Tooltip title={canManageLimits ? "" : "Needs the MasterData.Manage permission"}>
@@ -635,6 +768,16 @@ export function ControlChartTab() {
         onApplied={onApplied}
       />
       <RecordDetailDialog open={!!drillDown} record={drillDown} onClose={() => setDrillDown(null)} />
+      <ReportBuilderDrawer open={reportOpen} items={reportItems} onClose={() => setReportOpen(false)}
+        onChange={setReportItems} onGenerate={generateReport} />
+      {offscreen && (
+        <Box ref={offscreenRef} key={offscreen.key} aria-hidden
+          sx={{ position: "fixed", left: -20000, top: 0, width: CAPTURE_WIDTH, bgcolor: "#fff", pointerEvents: "none" }}>
+          <PinnedLightTheme>
+            <ChartBody kind={offscreen.kind} result={offscreen.result} options={options} width={CAPTURE_WIDTH} />
+          </PinnedLightTheme>
+        </Box>
+      )}
     </Box>
   );
 }

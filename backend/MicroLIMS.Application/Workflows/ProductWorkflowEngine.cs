@@ -164,12 +164,26 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             {
                 var actualUnit = ExtractUnit(request.SampleQuantity);
                 var expectedUnit = item.MinSampleQuantityUnit?.Trim();
-                var unitMatches = string.IsNullOrEmpty(expectedUnit) || string.Equals(actualUnit, expectedUnit, StringComparison.OrdinalIgnoreCase);
 
-                if (unitMatches && actualQty.Value < minQty.Value)
+                if (string.IsNullOrEmpty(expectedUnit))
                 {
-                    var unitDisplay = string.IsNullOrWhiteSpace(expectedUnit) ? "" : " " + expectedUnit;
-                    warnings.Add($"Sample quantity {request.SampleQuantity} is below the STM minimum of {minQty.Value.ToString("G29", CultureInfo.InvariantCulture)}{unitDisplay}.");
+                    // When the item unit is empty, warn only when the quantity is a bare number (no unit text)
+                    if (string.IsNullOrEmpty(actualUnit) && actualQty.Value < minQty.Value)
+                    {
+                        warnings.Add($"Sample quantity {request.SampleQuantity} is below the STM minimum of {minQty.Value.ToString("G29", CultureInfo.InvariantCulture)}.");
+                    }
+                }
+                else
+                {
+                    // When the item unit is specified: bare numbers are read in the item unit;
+                    // mass and volume are converted into the item's unit; other unit pairs give no warning.
+                    if (TryConvertToExpectedUnit(actualQty.Value, actualUnit, expectedUnit, out var convertedQty))
+                    {
+                        if (convertedQty < minQty.Value)
+                        {
+                            warnings.Add($"Sample quantity {request.SampleQuantity} is below the STM minimum of {minQty.Value.ToString("G29", CultureInfo.InvariantCulture)} {expectedUnit}.");
+                        }
+                    }
                 }
             }
         }
@@ -195,6 +209,102 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         if (string.IsNullOrWhiteSpace(sampleQuantity)) return string.Empty;
         var match = Regex.Match(sampleQuantity, @"^\s*[0-9]+(?:[.,][0-9]+)?\s*(.*)$");
         return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+    }
+
+    private static bool TryConvertToExpectedUnit(decimal actualQty, string actualUnit, string expectedUnit, out decimal convertedQty)
+    {
+        if (string.IsNullOrEmpty(actualUnit))
+        {
+            // A bare number (e.g. "80") is read in the item's unit
+            convertedQty = actualQty;
+            return true;
+        }
+
+        if (string.Equals(actualUnit, expectedUnit, StringComparison.OrdinalIgnoreCase))
+        {
+            convertedQty = actualQty;
+            return true;
+        }
+
+        if (TryNormalizeMass(actualUnit, out var actualMassFactor) && TryNormalizeMass(expectedUnit, out var expectedMassFactor))
+        {
+            convertedQty = actualQty * actualMassFactor / expectedMassFactor;
+            return true;
+        }
+
+        if (TryNormalizeVolume(actualUnit, out var actualVolFactor) && TryNormalizeVolume(expectedUnit, out var expectedVolFactor))
+        {
+            convertedQty = actualQty * actualVolFactor / expectedVolFactor;
+            return true;
+        }
+
+        convertedQty = 0;
+        return false;
+    }
+
+    private static bool TryNormalizeMass(string unit, out decimal factorInGrams)
+    {
+        var u = unit.Trim().TrimEnd('.').ToLowerInvariant();
+        switch (u)
+        {
+            case "mg":
+            case "mg(s)":
+            case "milligram":
+            case "milligrams":
+            case "milligram(s)":
+                factorInGrams = 0.001m;
+                return true;
+            case "g":
+            case "gm":
+            case "gms":
+            case "gram":
+            case "grams":
+            case "gram(s)":
+                factorInGrams = 1m;
+                return true;
+            case "kg":
+            case "kgs":
+            case "kg(s)":
+            case "kilogram":
+            case "kilograms":
+            case "kilogram(s)":
+                factorInGrams = 1000m;
+                return true;
+            default:
+                factorInGrams = 0;
+                return false;
+        }
+    }
+
+    private static bool TryNormalizeVolume(string unit, out decimal factorInMl)
+    {
+        var u = unit.Trim().TrimEnd('.').ToLowerInvariant();
+        switch (u)
+        {
+            case "ml":
+            case "ml(s)":
+            case "milliliter":
+            case "milliliters":
+            case "milliliter(s)":
+            case "millilitre":
+            case "millilitres":
+            case "millilitre(s)":
+                factorInMl = 1m;
+                return true;
+            case "l":
+            case "l(s)":
+            case "liter":
+            case "liters":
+            case "liter(s)":
+            case "litre":
+            case "litres":
+            case "litre(s)":
+                factorInMl = 1000m;
+                return true;
+            default:
+                factorInMl = 0;
+                return false;
+        }
     }
 
     // A test applies to a graded sample when it has no specification rows at

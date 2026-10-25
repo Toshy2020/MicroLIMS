@@ -150,4 +150,108 @@ public class MinimumSampleQuantityTests
         Assert.Equal(SampleStatus.Received, sample.Status);
         Assert.Empty(sample.Warnings);
     }
+
+    [Fact]
+    public async Task Receive_ItemUnitNull_QuantityWithUnitText_ProducesNoWarning()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 100m, minRetestQty: 50m, unit: null);
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "2 bottles"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Empty(sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_ItemUnitNull_BareNumberBelowMinimum_Warns()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 100m, minRetestQty: 50m, unit: null);
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "80"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Contains("Sample quantity 80 is below the STM minimum of 100.", sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_MassUnitConversion_0_08_kg_vs_100_g_Warns()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 100m, minRetestQty: 50m, unit: "g");
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "0.08 kg"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Contains("Sample quantity 0.08 kg is below the STM minimum of 100 g.", sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_MassUnitConversion_0_2_kg_vs_100_g_ProducesNoWarning()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 100m, minRetestQty: 50m, unit: "g");
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "0.2 kg"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Empty(sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_BareNumberWithUnitConfigured_80_vs_100_g_Warns()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 100m, minRetestQty: 50m, unit: "g");
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "80"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Contains("Sample quantity 80 is below the STM minimum of 100 g.", sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_IncommensurateUnits_80_mL_vs_100_g_ProducesNoWarning()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 100m, minRetestQty: 50m, unit: "g");
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "80 mL"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Empty(sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_VolumeUnitConversion_0_5_L_vs_300_mL_ProducesNoWarning()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 300m, minRetestQty: 150m, unit: "mL");
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "0.5 L"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Empty(sample.Warnings);
+    }
+
+    [Fact]
+    public async Task Receive_VolumeUnitConversion_250_mL_vs_300_mL_Warns()
+    {
+        await using var db = NewDb();
+        var (item, routine, _) = await SeedDataAsync(db, minQty: 300m, minRetestQty: 150m, unit: "mL");
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, routine.Id, "250 mL"));
+
+        Assert.NotNull(sample);
+        Assert.Equal(SampleStatus.Received, sample.Status);
+        Assert.Contains("Sample quantity 250 mL is below the STM minimum of 300 mL.", sample.Warnings);
+    }
 }

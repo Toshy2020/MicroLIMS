@@ -580,6 +580,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             CauseOfTesting = s.CauseOfTesting?.Name ?? string.Empty,
             CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
+            Grade = s.Grade,
             ControlNumber = s.ControlNumber,
             Status = LabStatus(s).ToString(),
             // TestOrders are already narrowed to the labs in view: when none of

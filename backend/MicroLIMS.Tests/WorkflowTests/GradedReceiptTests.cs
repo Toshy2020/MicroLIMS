@@ -205,4 +205,61 @@ public class GradedReceiptTests
         Assert.Equal("BP", saved.Grade);
         Assert.Equal(2, saved.TestOrders.Count);
     }
+
+    // The edit dialog does not send a grade it was not given: omitted = unchanged.
+    [Fact]
+    public async Task Correct_OtherFieldWithGradeOmitted_KeepsGradeAndTests()
+    {
+        var (db, sample, signer, service) = await ReceiveBpAsync();
+        await using var _ = db;
+
+        await service.CorrectAsync(sample.Id, AsStored(sample, null) with { SampledBy = "Typo Fixed" }, "Typo", Password, signer.Id, null);
+
+        var saved = await db.Samples.Include(s => s.TestOrders).AsNoTracking().FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal("BP", saved.Grade);
+        Assert.Equal("Typo Fixed", saved.SampledBy);
+        Assert.Equal(2, saved.TestOrders.Count);
+    }
+
+    // BP-graded item whose USP-only test sits in a second laboratory: moving the
+    // sample to BP would leave that laboratory with nothing to test.
+    [Fact]
+    public async Task Correct_GradeThatLeavesALabWithNoTests_IsRefused()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var dept = db.DocumentDepartments.FirstOrDefault(d => d.Code == "QC")
+            ?? db.DocumentDepartments.Add(new DocumentDepartment { Name = "Quality Control", Code = "QC", IsActive = true }).Entity;
+        await db.SaveChangesAsync();
+        var fp = new DocumentSection { Name = "Physicochemical Laboratory", Code = "FP", DepartmentId = dept.Id, IsActive = true };
+        db.DocumentSections.Add(fp);
+        db.TestDefinitions.Add(new TestDefinition { Code = "ASSAY", DisplayName = "ASSAY", SectionId = micro.Id });
+        db.TestDefinitions.Add(new TestDefinition { Code = "SULPHATE", DisplayName = "SULPHATE", SectionId = fp.Id });
+        var item = new Item { Name = "Glycerin", Code = "RM-GLY", Category = SampleCategory.RawMaterial, IsActive = true };
+        item.AssignedTests.Add(new SampleTest { TestCode = "ASSAY", DisplayName = "ASSAY" });
+        item.AssignedTests.Add(new SampleTest { TestCode = "SULPHATE", DisplayName = "SULPHATE" });
+        db.Items.Add(item);
+        var role = new Role { Type = RoleType.SectionHead, Name = "Section Head" };
+        db.Roles.Add(role);
+        db.CausesOfTesting.Add(new CauseOfTesting { Name = "Routine" });
+        await db.SaveChangesAsync();
+        db.Specifications.AddRange(Spec(item.Id, "ASSAY", "BP"), Spec(item.Id, "ASSAY", "USP"), Spec(item.Id, "SULPHATE", "USP"));
+        var signer = new User { FullName = "Sam Head", Username = "samhead", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) };
+        db.Users.Add(signer);
+        await db.SaveChangesAsync();
+
+        var sample = await Engine(db).ReceiveAsync(Request(item.Id, "USP") with
+        {
+            CauseOfTestingId = db.CausesOfTesting.First().Id, ReceivedByUserId = signer.Id, TargetSectionIds = new[] { micro.Id, fp.Id }
+        });
+        Assert.Equal(2, sample.TestOrders.Count);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleCorrection(db).CorrectAsync(sample.Id, AsStored(sample, "BP"), "CoA says BP", Password, signer.Id, null));
+
+        Assert.Equal("This grade leaves Physicochemical Laboratory with no tests; void the sample and receive it again.", ex.Message);
+        var saved = await db.Samples.Include(s => s.TestOrders).AsNoTracking().FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal("USP", saved.Grade);
+        Assert.Equal(2, saved.TestOrders.Count);
+    }
 }

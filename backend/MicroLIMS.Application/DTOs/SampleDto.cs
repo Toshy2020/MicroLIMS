@@ -50,6 +50,7 @@ public class SampleDto
     public string CauseOfTesting { get; set; } = string.Empty;
     public int CauseOfTestingId { get; set; }
     public string? BatchNumber { get; set; }
+    public string? Grade { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string PreparationStatus { get; set; } = string.Empty;

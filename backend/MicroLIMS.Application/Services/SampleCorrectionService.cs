@@ -135,10 +135,12 @@ public class SampleCorrectionService
             Track("Exp Date", AsDate(sample.ExpDate), exp, FormatDate, v => sample.ExpDate = v);
             // Grade stated on the supplier's CoA: decides which tests apply.
             var effectiveItem = structural?.NewItem ?? sample.Item;
-            if (effectiveItem is not null && (structural is not null || request.Grade is not null || sample.Grade is not null))
+            // An omitted grade on an unchanged item means "unchanged" (the edit dialog
+            // only sends one it shows); a new item always re-resolves the grade.
+            if (effectiveItem is not null && (structural is not null || request.Grade is not null))
             {
                 var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id).ToListAsync();
-                var newGrade = ProductWorkflowEngine.ResolveGrade(itemSpecs, request.Grade);
+                var newGrade = ProductWorkflowEngine.ResolveGrade(itemSpecs, request.Grade ?? sample.Grade);
                 gradeContext = new GradeContext(itemSpecs, newGrade);
                 if (newGrade != sample.Grade)
                 {
@@ -506,6 +508,16 @@ public class SampleCorrectionService
             .ToList();
         var sections = await TestSectionLookup.ResolveAsync(_db, missing);
         var added = missing.Where(c => labs.Contains(sections[c])).Select(c => (c, sections[c])).ToList();
+
+        // Receiving never leaves a lab (or the sample) without tests, so neither may a correction.
+        var remainingSections = sample.TestOrders.Except(removed).Select(o => o.SectionId)
+            .Concat(added.Select(a => a.Item2)).ToHashSet();
+        var emptiedLab = labs.Where(l => !remainingSections.Contains(l)).Cast<int?>().FirstOrDefault();
+        if (emptiedLab is int emptied)
+        {
+            var labName = await _db.DocumentSections.Where(d => d.Id == emptied).Select(d => d.Name).FirstOrDefaultAsync() ?? $"section {emptied}";
+            throw new InvalidOperationException($"This grade leaves {labName} with no tests; void the sample and receive it again.");
+        }
 
         var changes = new List<AuditFieldChange>();
         var before = TestCodes(sample.TestOrders);

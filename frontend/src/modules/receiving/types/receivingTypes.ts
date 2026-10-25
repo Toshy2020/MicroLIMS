@@ -68,6 +68,7 @@ export interface SampleRecord {
   causeOfTesting: string;
   causeOfTestingId?: number;
   batchNumber: string | null;
+  grade?: string | null;
   controlNumber: string;
   status: string;
   preparationStatus: string;
@@ -119,6 +120,8 @@ export interface SampleCorrectionPayload {
   waterDepartmentId: number | null;
   departmentId: number | null;
   machineId: number | null;
+  // Omitted = unchanged. Only editable while every test is still pending.
+  grade?: string | null;
 }
 
 // Mirrors backend ItemBasedReceiveRequest (Product/RM/PM).

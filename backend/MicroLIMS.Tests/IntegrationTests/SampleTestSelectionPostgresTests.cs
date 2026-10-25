@@ -47,7 +47,7 @@ public class SampleTestSelectionPostgresTests
 
     // A raw material with LOD (ungraded), ASSAY (BP + USP), a USP-only test and an FP test,
     // received as a BP periodic retest for Microbiology.
-    private async Task<World> ReceiveAsync(string grade = "BP")
+    private async Task<World> ReceiveAsync(string grade = "BP", bool bothLabs = false)
     {
         var uid = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
         var db = _fixture.CreateDbContext();
@@ -73,7 +73,7 @@ public class SampleTestSelectionPostgresTests
 
         var sample = await new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db)).ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, cause.Id, "10 g", "Analyst", $"LOT-{uid}", $"CTRL-{uid}", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null,
-            _fixture.SeededUserId, new[] { micro.Id }, grade));
+            _fixture.SeededUserId, bothLabs ? new[] { micro.Id, fp.Id } : new[] { micro.Id }, grade));
         return new World(db, sample, micro.Id, fp.Id, lod, assay, uspOnly, fpTest, head, supervisor, analyst, outside);
     }
 
@@ -256,6 +256,81 @@ public class SampleTestSelectionPostgresTests
         var again = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Assay), w.Head.Id, null));
         Assert.Equal("Tests for this sample have already been selected.", again.Message);
         Assert.Single(await db.TestOrders.Where(t => t.SampleId == w.Sample.Id).ToListAsync());
+    }
+
+    [PostgresFact]
+    public async Task TwoLaboratories_AreChosenPerLaboratory_AndTheSampleStaysAwaitingUntilBothAreDone()
+    {
+        var w = await ReceiveAsync(bothLabs: true);
+        await using var db = w.Db;
+        var service = TestServiceFactory.SampleTestSelection(db);
+        Assert.Equal(new[] { w.MicroId, w.FpId }.OrderBy(i => i).Select(i => i.ToString()), w.Sample.PendingTargetSectionIds!.Split(','));
+
+        // Microbiology's head may not choose the Physicochemical test.
+        var notMine = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.Head.Id, null));
+        Assert.Equal($"Test {w.FpTest} is not available for this sample.", notMine.Message);
+
+        // The dialog data: both labs' tests, only the user's own selectable.
+        var asMicro = await service.GetEligibleAsync(w.Sample.Id, w.Head.Id);
+        Assert.Contains(asMicro, e => e.TestCode == w.Lod && e.CanSelect);
+        Assert.Contains(asMicro, e => e.TestCode == w.FpTest && !e.CanSelect);
+
+        await service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod), w.Head.Id, null);
+
+        await using (var read = _fixture.CreateDbContext())
+        {
+            var afterA = await read.Samples.Include(s => s.TestOrders).AsNoTracking().SingleAsync(s => s.Id == w.Sample.Id);
+            Assert.Equal(new[] { w.Lod }, afterA.TestOrders.Select(t => t.TestCode));
+            Assert.True(afterA.AwaitingTestSelection);
+            Assert.Equal(w.FpId.ToString(), afterA.PendingTargetSectionIds);
+            Assert.Equal(SampleStatus.Received, afterA.Status);
+
+            // Register: still awaiting for both heads; the Microbiology head sees its order, the Physicochemical head none.
+            var workspace = new TestingWorkspaceService(read, new UserSectionScopeService(read));
+            var filter = new TestingWorkspaceFilterDto { Category = "RawMaterial", Search = w.Sample.ReferenceNumber, PageSize = 200 };
+            var microRow = Assert.Single((await workspace.GetActiveSamplesAsync(filter, w.Head.Id)).Items);
+            Assert.True(microRow.AwaitingTestSelection);
+            Assert.Single(microRow.AssignedTests);
+            var fpRow = Assert.Single((await workspace.GetActiveSamplesAsync(filter, w.OutsideHead.Id)).Items);
+            Assert.True(fpRow.AwaitingTestSelection);
+            Assert.Empty(fpRow.AssignedTests);
+
+            var tracking = await TestServiceFactory.SampleTracking(read).GetTrackingAsync(new SampleTrackingFilterDto { PageSize = 200 });
+            Assert.Equal("InProgress", Assert.Single(tracking.Items, r => r.ReferenceNumber == w.Sample.ReferenceNumber).OverallStatus);
+
+            var eligibleB = await TestServiceFactory.SampleTestSelection(read).GetEligibleAsync(w.Sample.Id, w.OutsideHead.Id);
+            var only = Assert.Single(eligibleB);
+            Assert.Equal(w.FpTest, only.TestCode);
+            Assert.True(only.CanSelect);
+        }
+
+        // Head A has nothing left to choose; head B still can.
+        var again = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Assay), w.Head.Id, null));
+        Assert.Equal("Tests for this sample have already been selected.", again.Message);
+
+        await service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.OutsideHead.Id, null);
+
+        await using var final = _fixture.CreateDbContext();
+        var done = await final.Samples.Include(s => s.TestOrders).AsNoTracking().SingleAsync(s => s.Id == w.Sample.Id);
+        Assert.False(done.AwaitingTestSelection);
+        Assert.Null(done.PendingTargetSectionIds);
+        Assert.Equal(new[] { w.FpTest, w.Lod }.OrderBy(c => c, StringComparer.Ordinal),
+            done.TestOrders.Select(t => t.TestCode).OrderBy(c => c, StringComparer.Ordinal));
+        Assert.Equal(SamplePreparationStatus.NeedsPreparation, done.PreparationStatus);
+
+        foreach (var user in new[] { w.Head.Id, w.OutsideHead.Id })
+        {
+            var second = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod), user, null));
+            Assert.Equal("Tests for this sample have already been selected.", second.Message);
+        }
+
+        // Each call signed and audited on its own, with its laboratory and codes.
+        var audits = await final.AuditLogs.Include(a => a.Changes).AsNoTracking()
+            .Where(a => a.ActionCode == "SAMPLE_TESTS_SELECTED" && a.SampleId == w.Sample.Id).ToListAsync();
+        Assert.Equal(2, audits.Count);
+        Assert.Contains(audits, a => a.UserId == w.Head.Id && a.Changes.Any(c => c.FieldName == "Tests" && c.NewValue == w.Lod) && a.Changes.Any(c => c.FieldName == "Laboratory"));
+        Assert.Contains(audits, a => a.UserId == w.OutsideHead.Id && a.Changes.Any(c => c.FieldName == "Tests" && c.NewValue == w.FpTest));
+        Assert.Equal(2, await final.ElectronicSignatures.CountAsync(s => s.MeaningOfSignature == SignatureMeaning.TestsSelected && s.EntityId == w.Sample.Id));
     }
 
     [PostgresFact]

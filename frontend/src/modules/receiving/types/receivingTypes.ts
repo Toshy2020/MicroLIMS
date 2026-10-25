@@ -238,4 +238,6 @@ export interface RetestEligibleTest {
   displayName: string;
   sectionId: number;
   sectionName: string;
+  // The current user may choose this test; the rest are shown read-only.
+  canSelect: boolean;
 }

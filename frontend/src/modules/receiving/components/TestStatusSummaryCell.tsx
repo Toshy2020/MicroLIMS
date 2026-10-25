@@ -103,8 +103,11 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
   const theme = useTheme();
 
   const tests = sample.assignedTests || [];
-  const summaryInfo = getSummaryText(tests, sample.preparationStatus, sample.status, Boolean(sample.awaitingTestSelection));
-  const awaiting = Boolean(sample.awaitingTestSelection);
+  // Another laboratory of the sample may still be pending while this one has tests.
+  const pendingSelection = Boolean(sample.awaitingTestSelection);
+  const awaiting = pendingSelection && tests.length === 0;
+  const summaryInfo = getSummaryText(tests, sample.preparationStatus, sample.status, awaiting);
+
   const summaryTone = theme.custom.status[summaryInfo.tone];
   const summary = { text: summaryInfo.text, bg: summaryTone.bg, textColor: summaryTone.text, border: summaryTone.border };
   const isOpen = Boolean(anchorEl);
@@ -188,6 +191,12 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
           />
         )}
       </Box>
+
+      {pendingSelection && tests.length > 0 && (
+        <Typography component="span" sx={{ display: "block", fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+          Awaiting test selection (another laboratory)
+        </Typography>
+      )}
 
       {tests.length > 0 && (
         <Popover

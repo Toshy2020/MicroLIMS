@@ -28,7 +28,7 @@ const RECEIVING_CATEGORY_NAMES = ["FinishedProduct", "RawMaterial", "PackagingMa
 // "Receive" wizard with a required target-lab choice, and a signed
 // "Add Laboratory" action for samples already on the register (requires Samples.Receive).
 export function ReceivingPage() {
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const canReceive = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE);
   const canReceiveOwnLab = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
   const canReceiveAny = canReceive || canReceiveOwnLab;
@@ -174,7 +174,7 @@ export function ReceivingPage() {
       <SelectRetestTestsDialog
         open={Boolean(selectingTestsSample)}
         sample={selectingTestsSample}
-        canSelect={canCorrect}
+        canSelect={canCorrect && (role === "SectionHead" || role === "Reviewer")}
         onClose={() => setSelectingTestsSample(null)}
         onSuccess={() => {
           setSelectingTestsSample(null);

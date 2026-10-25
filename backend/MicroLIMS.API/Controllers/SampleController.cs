@@ -171,15 +171,13 @@ public class SampleController : ControllerBase
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
-    // A second laboratory's tests added to a sample already received -
-    // same sample, same reference number.
-    // Periodic retest: the tests a Section Head / Supervisor may choose from
+    // Periodic retest: the tests of the laboratories still pending; canSelect marks those the caller may choose
     // (read-only for everyone else with access to the sample).
     [HttpGet("{id}/test-selection")]
     public async Task<IActionResult> GetTestSelection(int id, CancellationToken ct)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
-        return Ok(ApiResponse<object>.Ok(await _testSelection.GetEligibleAsync(id, ct)));
+        return Ok(ApiResponse<object>.Ok(await _testSelection.GetEligibleAsync(id, CurrentUserId, ct)));
     }
 
     [HttpPost("{id}/test-selection")]
@@ -191,6 +189,8 @@ public class SampleController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    // A second laboratory's tests added to a sample already received -
+    // same sample, same reference number.
     [HttpPost("{id}/laboratories")]
     [Authorize(Policy = PermissionConstants.SamplesReceive)]
     public async Task<IActionResult> AddLaboratory(int id, AddLaboratoryRequest request)

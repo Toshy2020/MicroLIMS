@@ -226,8 +226,10 @@ export function SampleRegisterTable({
   columnsStorageKey = "microlims.sampleRegister.columns"
 }: Props) {
   const theme = useTheme();
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
+  // Mirrors the server: only a Section Head or Supervisor chooses a periodic retest's tests.
+  const canChooseTests = permissions.includes(PERMISSIONS.SAMPLES_CORRECT) && (role === "SectionHead" || role === "Reviewer");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [activeDocSample, setActiveDocSample] = useState<SampleRecord | null>(null);
@@ -252,8 +254,9 @@ export function SampleRegisterTable({
   // reported; no laboratory rule is decided here.
   const getNextAction = (sample: SampleRecord): NextAction | null => {
     if (CLOSED_STATUSES.has(sample.status)) return null;
-    if (sample.awaitingTestSelection) {
-      return onSelectTests && permissions.includes(PERMISSIONS.SAMPLES_CORRECT)
+    // A laboratory with tests of its own carries on; the rest is shown by the summary chip.
+    if (sample.awaitingTestSelection && sample.assignedTests.length === 0) {
+      return onSelectTests && canChooseTests
         ? { label: "Select tests", kind: "primary", run: () => onSelectTests(sample) }
         : { label: "Awaiting test selection", kind: "wait" };
     }

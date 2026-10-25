@@ -10,14 +10,17 @@ using MicroLIMS.Shared.Exceptions;
 namespace MicroLIMS.Application.Services;
 
 // Named RetestEligibleTestDto: Services already has an HPLC EligibleTestDto.
-public record RetestEligibleTestDto(string TestCode, string DisplayName, int SectionId, string SectionName);
+// CanSelect: the current user may choose this test (otherwise it is shown read-only).
+public record RetestEligibleTestDto(string TestCode, string DisplayName, int SectionId, string SectionName, bool CanSelect = false);
 
 public record SelectTestsRequest(IReadOnlyList<string> TestCodes, string Password, string? Comment);
 
 // A periodic retest is received without test orders (ProductWorkflowEngine);
-// a Section Head or Supervisor of one of its laboratories later chooses which
-// of the item's assigned tests to run - those that apply to the sample's
-// grade, in the laboratories it was received for. The choice is signed.
+// a Section Head or Supervisor later chooses which of the item's assigned tests
+// to run - those that apply to the sample's grade, in the laboratories it was
+// received for. The choice is per laboratory: each call covers the still-pending
+// laboratories the signer covers, is signed and audited on its own, and the
+// sample stays "awaiting" until every laboratory has its tests.
 public class SampleTestSelectionService
 {
     public const string SelectedActionCode = "SAMPLE_TESTS_SELECTED";
@@ -36,12 +39,17 @@ public class SampleTestSelectionService
         _scope = scope;
     }
 
-    // Empty once the tests have been chosen (or when the sample never needed a choice).
-    public async Task<IReadOnlyList<RetestEligibleTestDto>> GetEligibleAsync(int sampleId, CancellationToken ct = default)
+    // The tests of the laboratories still pending (empty once every laboratory has its tests,
+    // or when the sample never needed a choice). With a user, CanSelect marks the ones they may choose.
+    public async Task<IReadOnlyList<RetestEligibleTestDto>> GetEligibleAsync(int sampleId, int? userId = null, CancellationToken ct = default)
     {
         var sample = await _db.Samples.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
-        return await EligibleAsync(sample, ct);
+        var eligible = await EligibleAsync(sample, ct);
+        if (userId is not int uid || !IsHeadOrSupervisor(await RoleOfAsync(uid, ct)))
+            return eligible;
+        var scope = await _scope.GetAccessibleSectionIdsAsync(uid, ct);
+        return eligible.Select(e => e with { CanSelect = scope is null || scope.Contains(e.SectionId) }).ToList();
     }
 
     public Task SelectAsync(int sampleId, SelectTestsRequest request, int userId, string? ipAddress, CancellationToken ct = default) =>
@@ -52,19 +60,26 @@ public class SampleTestSelectionService
         var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var role = await _db.Users.AsNoTracking().Where(u => u.Id == userId)
-            .Select(u => u.Role != null ? (RoleType?)u.Role.Type : null).FirstOrDefaultAsync(ct);
-        if (role is not (RoleType.SectionHead or RoleType.Reviewer))
+        if (!IsHeadOrSupervisor(await RoleOfAsync(userId, ct)))
             throw new UnauthorizedAccessException("Only a Section Head or Supervisor can choose the tests for a periodic retest.");
 
+        const string AlreadySelected = "Tests for this sample have already been selected.";
         if (!sample.AwaitingTestSelection)
-            throw new InvalidOperationException("Tests for this sample have already been selected.");
+            throw new InvalidOperationException(AlreadySelected);
         if (sample.Status != SampleStatus.Received)
             throw new InvalidOperationException("The tests can no longer be chosen: the sample is closed.");
 
+        // The laboratories this call covers: still pending, and the signer's own.
         var userScope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
-        if (userScope is not null && !SampleSectionRollup.PendingSectionIds(sample).Any(userScope.Contains))
+        var pending = SampleSectionRollup.PendingSectionIds(sample).ToList();
+        var mine = userScope is null ? pending : pending.Where(userScope.Contains).ToList();
+        if (mine.Count == 0)
+        {
+            // A head of a laboratory that already has its tests is told so; anyone else is simply not in scope.
+            if (userScope is not null && sample.TestOrders.Any(t => userScope.Contains(t.SectionId)))
+                throw new InvalidOperationException(AlreadySelected);
             throw new UnauthorizedAccessException("This sample belongs to a laboratory section you are not assigned to.");
+        }
 
         var codes = (request.TestCodes ?? Array.Empty<string>())
             .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).Distinct(StringComparer.Ordinal).ToList();
@@ -74,13 +89,8 @@ public class SampleTestSelectionService
         var eligible = await EligibleAsync(sample, ct);
         var chosen = new List<RetestEligibleTestDto>();
         foreach (var code in codes)
-        {
-            var test = eligible.FirstOrDefault(e => e.TestCode == code)
-                ?? throw new InvalidOperationException($"Test {code} is not available for this sample.");
-            if (userScope is not null && !userScope.Contains(test.SectionId))
-                throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
-            chosen.Add(test);
-        }
+            chosen.Add(eligible.FirstOrDefault(e => e.TestCode == code && mine.Contains(e.SectionId))
+                ?? throw new InvalidOperationException($"Test {code} is not available for this sample."));
 
         // Signs first - a failed verification creates nothing (the signature,
         // the orders and the audit event commit in the single save below).
@@ -99,16 +109,36 @@ public class SampleTestSelectionService
                 CurrentStep = WorkflowStep.Waiting
             });
         }
-        sample.AwaitingTestSelection = false;
-        sample.PendingTargetSectionIds = null;
-        sample.TestSelectionSignature = signature;
-        sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
 
+        // Only the laboratories this call covered leave the pending list.
+        var remaining = pending.Except(mine).ToList();
+        sample.AwaitingTestSelection = remaining.Count > 0;
+        sample.PendingTargetSectionIds = remaining.Count > 0 ? SampleSectionRollup.FormatPendingSectionIds(remaining) : null;
+        sample.TestSelectionSignature = signature;
+
+        // As when a laboratory is added: an existing preparation is kept, otherwise the tests decide.
+        var needs = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
+        if (!await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id))
+            sample.PreparationStatus = needs;
+        else if (needs == SamplePreparationStatus.NeedsPreparation)
+            sample.PreparationStatus = needs;
+
+        var labNames = await _db.DocumentSections.AsNoTracking().Where(s => mine.Contains(s.Id)).Select(s => s.Name).ToListAsync(ct);
         await _audit.RecordUserEventAsync(SelectedActionCode, AuditActionCategory.Other, ReviewEntityTypes.Sample,
             reason: comment ?? "Tests chosen for periodic retest",
-            changes: new[] { new AuditFieldChange("Tests", null, string.Join(", ", chosen.Select(c => c.TestCode).OrderBy(c => c))) },
+            changes: new[]
+            {
+                new AuditFieldChange("Laboratory", null, string.Join(", ", labNames.OrderBy(n => n, StringComparer.Ordinal))),
+                new AuditFieldChange("Tests", null, string.Join(", ", chosen.Select(c => c.TestCode).OrderBy(c => c, StringComparer.Ordinal)))
+            },
             entityId: sample.Id.ToString(), sampleId: sample.Id, cancellationToken: ct);
     }
+
+    private static bool IsHeadOrSupervisor(RoleType? role) => role is RoleType.SectionHead or RoleType.Reviewer;
+
+    private Task<RoleType?> RoleOfAsync(int userId, CancellationToken ct) =>
+        _db.Users.AsNoTracking().Where(u => u.Id == userId)
+            .Select(u => u.Role != null ? (RoleType?)u.Role.Type : null).FirstOrDefaultAsync(ct);
 
     private async Task<IReadOnlyList<RetestEligibleTestDto>> EligibleAsync(Sample sample, CancellationToken ct)
     {

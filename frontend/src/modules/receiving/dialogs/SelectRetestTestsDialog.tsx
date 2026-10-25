@@ -98,9 +98,9 @@ export function SelectRetestTestsDialog({ open, sample, canSelect, onClose, onSu
         actions={
           <>
             <Button onClick={handleClose} color="inherit">
-              {canSelect ? "Cancel" : "Close"}
+              {canSelect && tests?.some((t) => t.canSelect) ? "Cancel" : "Close"}
             </Button>
-            {canSelect && (
+            {canSelect && tests?.some((t) => t.canSelect) && (
               <Button
                 variant="contained"
                 disabled={chosen.size === 0}
@@ -113,9 +113,9 @@ export function SelectRetestTestsDialog({ open, sample, canSelect, onClose, onSu
           </>
         }
       >
-        {!canSelect && (
+        {!(canSelect && tests?.some((t) => t.canSelect)) && tests !== null && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            A Section Head or Supervisor of this laboratory chooses the tests for a periodic retest.
+            A Section Head or Supervisor of each laboratory chooses that laboratory's tests for a periodic retest. Tests you cannot choose are shown for reference.
           </Alert>
         )}
         {loadError && <Alert severity="error">{loadError}</Alert>}
@@ -131,7 +131,7 @@ export function SelectRetestTestsDialog({ open, sample, canSelect, onClose, onSu
                   control={
                     <Checkbox
                       checked={chosen.has(t.testCode)}
-                      disabled={!canSelect}
+                      disabled={!canSelect || !t.canSelect}
                       onChange={() => toggle(t.testCode)}
                     />
                   }

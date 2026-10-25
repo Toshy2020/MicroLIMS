@@ -52,7 +52,7 @@ export function SampleActionMenu({
   onSelectTests
 }: Props) {
   const theme = useTheme();
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -76,7 +76,7 @@ export function SampleActionMenu({
   const canEdit = canManageSample && Boolean(onEdit);
   const canVoid = canManageSample && Boolean(onVoid) && sample.status !== "Voided";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
-  const canSelectTests = canManageSample && Boolean(onSelectTests) && Boolean(sample.awaitingTestSelection);
+  const canSelectTests = canManageSample && (role === "SectionHead" || role === "Reviewer") && Boolean(onSelectTests) && Boolean(sample.awaitingTestSelection);
   const canAddLab = canReceive && Boolean(onAddLaboratory) && !["Rejected", "Voided", "Cancelled"].includes(sample.status);
 
   return (

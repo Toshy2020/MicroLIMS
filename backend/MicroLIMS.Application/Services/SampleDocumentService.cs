@@ -67,6 +67,7 @@ public class SampleDocumentService
         SampleDocumentType type, int userId, CancellationToken ct)
     {
         await EnsureAccessAsync(sampleId, userId, ct);
+        await EnsureSampleOpenAsync(sampleId, ct);
 
         var error = _validator.Validate(fileName, contentType, content.Length, content.Take(16).ToArray());
         if (error != null)
@@ -151,6 +152,7 @@ public class SampleDocumentService
         var document = await _db.SampleDocuments.Include(d => d.UploadedByUser).FirstOrDefaultAsync(d => d.Id == documentId, ct)
             ?? throw new NotFoundException($"Document {documentId} not found.");
         await EnsureAccessAsync(document.SampleId, userId, ct);
+        await EnsureSampleOpenAsync(document.SampleId, ct);
 
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("A void reason is required.");
@@ -178,6 +180,14 @@ public class SampleDocumentService
         if (!await _db.Samples.AsNoTracking().AnyAsync(s => s.Id == sampleId, ct))
             throw new NotFoundException($"Sample {sampleId} not found.");
         await _scope.EnsureSampleAccessAsync(userId, sampleId, ct);
+    }
+
+    // A voided or cancelled sample is closed; its documents stay readable but cannot change.
+    private async Task EnsureSampleOpenAsync(int sampleId, CancellationToken ct)
+    {
+        var status = await _db.Samples.AsNoTracking().Where(s => s.Id == sampleId).Select(s => s.Status).FirstAsync(ct);
+        if (status is SampleStatus.Voided or SampleStatus.Cancelled)
+            throw new InvalidOperationException("This sample is voided; its documents can no longer be changed.");
     }
 
     private static SampleDocumentDto ToDto(SampleDocument d, string? uploadedByName = null) => new(

@@ -7,8 +7,9 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-// Documents attached to a sample (the supplier's CoA). Upload and void need
-// SamplesReceiveOwnLab; listing and content need only a signed-in user who can
+// Documents attached to a sample (the supplier's CoA). Upload needs
+// SamplesReceiveOwnLab; void needs SamplesCorrect (as voiding the sample does:
+// Section Head, Supervisor, Administrator); listing and content need only a signed-in user who can
 // access one of the sample's laboratories (checked in the service).
 [ApiController]
 [Authorize]
@@ -46,14 +47,17 @@ public class SampleDocumentController : ControllerBase
     {
         var (meta, content) = await _service.ReadContentAsync(documentId, CurrentUserId, ct);
         var inline = meta.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) || meta.ContentType == "application/pdf";
-        Response.Headers["Content-Disposition"] =
-            $"{(inline ? "inline" : "attachment")}; filename=\"{Uri.EscapeDataString(meta.OriginalFileName)}\"";
         Response.Headers["X-Content-Type-Options"] = "nosniff";
+        if (!inline)
+            return File(content, meta.ContentType, meta.OriginalFileName); // attachment, name encoded by MVC
+        // ContentDisposition writes non-ASCII names as RFC 2231, which browsers decode back.
+        Response.Headers["Content-Disposition"] =
+            new System.Net.Mime.ContentDisposition { FileName = meta.OriginalFileName, Inline = true }.ToString();
         return File(content, meta.ContentType);
     }
 
     [HttpPost("api/sample-documents/{documentId:int}/void")]
-    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
+    [Authorize(Policy = PermissionConstants.SamplesCorrect)]
     public async Task<IActionResult> Void(int documentId, VoidDocumentHttpRequest request, CancellationToken ct) =>
         Ok(ApiResponse<object>.Ok(await _service.VoidAsync(documentId, request.Reason, CurrentUserId, ct)));
 }

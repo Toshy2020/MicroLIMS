@@ -29,6 +29,8 @@ function formatBytes(bytes: number): string {
 export function SampleDocumentsDialog({ sample, onClose }: Props) {
   const { permissions } = useAuth();
   const canChange = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
+  // Same permission as voiding the sample itself (Section Head, Supervisor, Administrator).
+  const canVoid = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [documents, setDocuments] = useState<SampleDocument[]>([]);
@@ -67,6 +69,8 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
     try {
       const url = URL.createObjectURL(await ReceiveService.getSampleDocumentContent(doc.id));
       window.open(url, "_blank", "noopener,noreferrer");
+      // The new tab has started loading it by then; free the blob after a minute.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch {
       toast.error("Failed to retrieve document. Please try again.");
     }
@@ -162,7 +166,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
                     <VisibilityOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                {canChange && doc.status === "Current" && (
+                {canVoid && doc.status === "Current" && (
                   <Tooltip title="Void">
                     <IconButton aria-label="Void document" size="small" disabled={busy} onClick={() => setVoidTarget(doc)} sx={{ color: "error.main" }}>
                       <BlockIcon fontSize="small" />

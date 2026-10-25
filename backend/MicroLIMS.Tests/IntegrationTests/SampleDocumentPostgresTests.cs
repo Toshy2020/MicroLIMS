@@ -175,4 +175,41 @@ public class SampleDocumentPostgresTests
         // An unscoped administrator can.
         Assert.Single(await service.ListAsync(w.Sample.Id, _fixture.SeededUserId));
     }
+
+    [PostgresFact]
+    public async Task VoidedOrCancelledSample_RefusesUploadAndVoid_ButStillLists()
+    {
+        var w = await ReceiveAsync();
+        await using var db = w.Db;
+        var service = Service(db, new InMemoryFileStorageService());
+        var dto = await service.UploadAsync(w.Sample.Id, "CoA.pdf", "application/pdf", Pdf, SampleDocumentType.SupplierCoa, w.MicroHead.Id);
+
+        foreach (var status in new[] { SampleStatus.Voided, SampleStatus.Cancelled })
+        {
+            w.Sample.Status = status;
+            await db.SaveChangesAsync();
+
+            var upload = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(
+                w.Sample.Id, "x.pdf", "application/pdf", Pdf, SampleDocumentType.Other, w.MicroHead.Id));
+            Assert.Equal("This sample is voided; its documents can no longer be changed.", upload.Message);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoidAsync(dto.Id, "late", w.MicroHead.Id));
+            Assert.Equal(SampleDocumentStatus.Current, Assert.Single(await service.ListAsync(w.Sample.Id, w.MicroHead.Id)).Status);
+        }
+    }
+
+    // Voiding a CoA is for Section Head / Supervisor / Administrator, as voiding the sample is; uploading stays open to Analysts.
+    [Fact]
+    public void VoidingADocument_IsClosedToAnalysts_UploadIsNot()
+    {
+        var voidRoles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.SampleDocumentController>(
+            nameof(MicroLIMS.API.Controllers.SampleDocumentController.Void))!;
+        Assert.DoesNotContain(RoleType.Analyst, voidRoles);
+        Assert.Contains(RoleType.Reviewer, voidRoles);
+        Assert.Contains(RoleType.SectionHead, voidRoles);
+        Assert.Contains(RoleType.SystemAdministrator, voidRoles);
+
+        var uploadRoles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.SampleDocumentController>(
+            nameof(MicroLIMS.API.Controllers.SampleDocumentController.Upload))!;
+        Assert.Contains(RoleType.Analyst, uploadRoles);
+    }
 }

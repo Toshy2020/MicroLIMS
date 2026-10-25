@@ -8699,6 +8699,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime?>("ExpDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<int?>("ItemId")
                         .HasColumnType("integer");
 
@@ -9615,6 +9619,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("ExpectedState")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<int?>("HplcMethodAnalyteId")
                         .HasColumnType("integer");
 
@@ -9711,10 +9719,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("IcpMethodElementId");
 
-                    b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole")
+                    b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade")
                         .IsUnique();
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole"), false);
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade"), false);
 
                     b.ToTable("Specifications");
                 });

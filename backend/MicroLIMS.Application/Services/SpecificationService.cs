@@ -175,9 +175,22 @@ public class SpecificationService
         }
     }
 
+    // Trims and collapses inner whitespace; blank = ungraded (null). BP and USP
+    // are stored upper-case, any other grade (e.g. In-house) as typed.
+    public static string? NormalizeGrade(string? grade)
+    {
+        if (string.IsNullOrWhiteSpace(grade)) return null;
+        var g = string.Join(' ', grade.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (g.Length > 20) throw new InvalidOperationException("Grade must be 20 characters or fewer.");
+        return g.ToUpperInvariant() is "BP" or "USP" ? g.ToUpperInvariant() : g;
+    }
+
     public async Task ValidateAsync(Specification spec, CancellationToken cancellationToken = default)
     {
         Validate(spec);
+        spec.Grade = NormalizeGrade(spec.Grade);
+        // Grades match case-insensitively ("In-house" = "in-house").
+        var grade = spec.Grade?.ToLower();
 
         if (string.IsNullOrWhiteSpace(spec.TestCode))
             throw new InvalidOperationException("Test code is required.");
@@ -216,7 +229,8 @@ public class SpecificationService
         {
             var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == methodAnalyteId
-                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                     && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (duplicateAnalyteBasis)
                 throw new InvalidOperationException("A specification for this analyte and basis already exists.");
@@ -226,7 +240,8 @@ public class SpecificationService
         {
             var duplicateElementBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.IcpMethodElementId == icpElementId
-                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                     && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (duplicateElementBasis)
                 throw new InvalidOperationException("A specification for this element and basis already exists.");
@@ -234,10 +249,13 @@ public class SpecificationService
 
         var duplicate = await _db.Specifications.AnyAsync(
             s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName
-                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                 && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
             cancellationToken);
         if (duplicate)
-            throw new InvalidOperationException($"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at {StageText(spec.ProductionStageRole)} on this item.");
+            throw new InvalidOperationException(spec.Grade is not null
+                ? "A specification for this parameter and grade already exists."
+                : $"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at {StageText(spec.ProductionStageRole)} on this item.");
 
         var testDef = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == spec.TestCode, cancellationToken);

@@ -14,6 +14,7 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
         builder.Property(s => s.DisplayOrder).HasDefaultValue(0);
         builder.Property(s => s.LimitType).IsRequired();
         builder.Property(s => s.ReferenceStandard).HasMaxLength(100);
+        builder.Property(s => s.Grade).HasMaxLength(20);
 
         builder.Property(s => s.LowerLimit).HasPrecision(18, 6);
         builder.Property(s => s.UpperLimit).HasPrecision(18, 6);
@@ -46,9 +47,9 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
                .HasForeignKey(st => st.SpecificationId)
                .OnDelete(DeleteBehavior.Cascade);
 
-        // One row per parameter per production stage; NULL (every stage)
-        // counts as a value of its own, so two every-stage rows still clash.
-        builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName, s.ProductionStageRole })
+        // One row per parameter per production stage and grade; NULL (every
+        // stage / ungraded) counts as a value of its own, so two such rows still clash.
+        builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName, s.ProductionStageRole, s.Grade })
             .IsUnique()
             .AreNullsDistinct(false);
     }

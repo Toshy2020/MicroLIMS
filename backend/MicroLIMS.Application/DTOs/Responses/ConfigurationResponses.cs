@@ -324,6 +324,7 @@ public class SpecificationResponse
     public int? HplcMethodAnalyteId { get; init; }
     public int? IcpMethodElementId { get; init; }
     public ProductionStageRole? ProductionStageRole { get; init; }
+    public string? Grade { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -333,6 +334,7 @@ public class SpecificationResponse
         ItemId = e.ItemId,
         TestCode = e.TestCode,
         ProductionStageRole = e.ProductionStageRole,
+        Grade = e.Grade,
         AlertLimit = e.AlertLimit,
         ActionLimit = e.ActionLimit,
         SpecLimit = e.SpecLimit,

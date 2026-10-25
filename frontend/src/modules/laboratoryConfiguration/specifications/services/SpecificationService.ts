@@ -45,6 +45,9 @@ export function productionStageRoleLabel(role: ProductionStageRole | string | nu
   return PRODUCTION_STAGE_ROLE_OPTIONS.find((o) => o.value === role)?.label ?? "All stages";
 }
 
+// Suggested grades for raw-material specifications; any text up to 20 characters is accepted.
+export const GRADE_SUGGESTIONS = ["BP", "USP", "In-house"];
+
 export interface SpecificationStageDto {
   id?: number;
   stageNumber: number;
@@ -92,6 +95,7 @@ export interface SpecificationDto {
   hplcMethodAnalyteId?: number | null;
   icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | string | null;
+  grade?: string | null;
 }
 
 export interface CreateSpecificationPayload {
@@ -125,6 +129,7 @@ export interface CreateSpecificationPayload {
   hplcMethodAnalyteId?: number | null;
   icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | null;
+  grade?: string | null;
 }
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;

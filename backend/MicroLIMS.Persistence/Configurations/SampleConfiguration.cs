@@ -14,6 +14,7 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
         builder.HasIndex(s => s.BatchNumber);
         builder.HasIndex(s => s.ControlNumber);
         builder.Property(s => s.ReferenceNumber).IsRequired().HasMaxLength(20);
+        builder.Property(s => s.Grade).HasMaxLength(20);
         builder.Property(s => s.ControlNumber).IsRequired().HasMaxLength(50);
         builder.Property(s => s.SampledBy).IsRequired().HasMaxLength(100);
         builder.Property(s => s.PreviousProductName).HasMaxLength(200);

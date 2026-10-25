@@ -504,8 +504,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                           >
                             <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
                               {displayName}
-                              {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole) && (
+                              {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole || spec.grade) && (
                                 <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                  {spec.grade && (
+                                    <Chip size="small" label={`Grade: ${spec.grade}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                  )}
                                   {spec.productionStageRole && (
                                     <Chip
                                       size="small"
@@ -754,8 +757,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
                                         {spec.parameterName}
                                       </Typography>
-                                      {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole) && (
+                                      {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole || spec.grade) && (
                                         <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                          {spec.grade && (
+                                            <Chip size="small" label={`Grade: ${spec.grade}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                          )}
                                           {spec.productionStageRole && (
                                             <Chip
                                               size="small"

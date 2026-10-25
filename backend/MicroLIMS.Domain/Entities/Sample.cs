@@ -15,6 +15,10 @@ public class Sample : IVersionedEntity
     public SampleCategory Category { get; set; }
     public int? ItemId { get; set; }              // Product/RM/PM only
     public Item? Item { get; set; }
+
+    // Raw material only - the grade (BP, USP, In-house ...) the sample is
+    // tested against, chosen at receiving. Null = ungraded.
+    public string? Grade { get; set; }
     public int? WaterSamplingPointId { get; set; } // Water only
     public WaterSamplingPoint? WaterSamplingPoint { get; set; }
     public int? DepartmentId { get; set; }         // EM only

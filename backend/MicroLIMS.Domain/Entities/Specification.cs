@@ -18,6 +18,11 @@ public class Specification : IVersionedEntity
     // own for this TestCode, those rows are used and the every-stage rows
     // are not; otherwise the every-stage rows are (SpecificationStageResolver).
     public ProductionStageRole? ProductionStageRole { get; set; }
+
+    // The grade this row applies to (BP, USP, In-house ...), free text up to
+    // 20 characters, normalised by SpecificationService.NormalizeGrade.
+    // Null = ungraded (every existing row).
+    public string? Grade { get; set; }
     public string AlertLimit { get; set; } = string.Empty;
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;

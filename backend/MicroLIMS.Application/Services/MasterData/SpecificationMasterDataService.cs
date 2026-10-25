@@ -64,7 +64,7 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.ResultBasis,
                 s.LabelClaim, s.LabelClaimUnit, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId, s.Grade) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -113,6 +113,7 @@ public class SpecificationMasterDataService
             HplcMethodAnalyteId = request.HplcMethodAnalyteId,
             IcpMethodElementId = request.IcpMethodElementId,
             ProductionStageRole = request.ProductionStageRole,
+            Grade = request.Grade,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
                 StageNumber = s.StageNumber,
@@ -177,6 +178,7 @@ public class SpecificationMasterDataService
         spec.HplcMethodAnalyteId = request.HplcMethodAnalyteId;
         spec.IcpMethodElementId = request.IcpMethodElementId;
         spec.ProductionStageRole = request.ProductionStageRole;
+        spec.Grade = request.Grade;
 
         // Replace-all on stages
         _db.SpecificationStages.RemoveRange(spec.Stages);

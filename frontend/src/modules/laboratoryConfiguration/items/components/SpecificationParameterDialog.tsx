@@ -17,7 +17,8 @@ import {
   CircularProgress,
   Stack,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Autocomplete
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
@@ -34,7 +35,8 @@ import {
   UpdateSpecificationPayload,
   DosageForm,
   ProductionStageRole,
-  PRODUCTION_STAGE_ROLE_OPTIONS
+  PRODUCTION_STAGE_ROLE_OPTIONS,
+  GRADE_SUGGESTIONS
 } from "../../specifications/services/SpecificationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
@@ -143,6 +145,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // samples, so the field is offered only for Finished Product items.
   const [productionStageRole, setProductionStageRole] = useState<ProductionStageRole | "">("");
   const supportsProductionStage = item.category === "FinishedProduct";
+  // Raw-material specs can differ by grade (BP, USP, In-house ...); "" = ungraded.
+  const [grade, setGrade] = useState("");
+  const supportsGrade = item.category === "RawMaterial";
 
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
 
@@ -338,6 +343,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       );
       setDosageForm((editingSpec.dosageForm as DosageForm) || "");
       setProductionStageRole((editingSpec.productionStageRole as ProductionStageRole) || "");
+      setGrade(editingSpec.grade ?? "");
       if (editingSpec.limitType === "WeightVariation") {
         setUnit("mg");
       }
@@ -406,6 +412,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setDilutionFactor("");
       setDosageForm("");
       setProductionStageRole("");
+      setGrade("");
 
       setHplcMethodAnalyteId("");
       setIcpMethodElementId("");
@@ -762,7 +769,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               : isHplcMethodAssay && resultBasis === "MgPerUnit"
               ? labelClaimUnit.trim() || null
               : null)),
-      productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null
+      productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null,
+      grade: supportsGrade && grade.trim() ? grade.trim() : null
     };
 
     try {
@@ -880,6 +888,24 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 &quot;All stages&quot; specification.
               </Typography>
             </FormControl>
+          )}
+
+          {supportsGrade && (
+            <Autocomplete
+              freeSolo
+              size="small"
+              options={GRADE_SUGGESTIONS}
+              inputValue={grade}
+              onInputChange={(_, v) => setGrade(v)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Grade"
+                  helperText="BP, USP, In-house or your own (max 20 characters). Leave blank for an ungraded specification."
+                  slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, maxLength: 20 } }}
+                />
+              )}
+            />
           )}
 
           {/* HPLC Method Assay Parameters Block */}

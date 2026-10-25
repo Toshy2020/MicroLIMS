@@ -9,7 +9,8 @@ import {
   ReceiptLabOption,
   SampleAssignmentOptions,
   TestAnalystAssignment,
-  RetestEligibleTest
+  RetestEligibleTest,
+  SampleDocument
 } from "../types/receivingTypes";
 
 export interface TestingWorkspaceFilter {
@@ -53,6 +54,25 @@ export interface WorkspaceTileCounts {
 export const ReceiveService = {
   receiveItemBased: (r: ItemBasedReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/samples", r).then((res) => res.data.data),
+
+  // ---- Sample documents (supplier CoA) ----
+  getSampleDocuments: (sampleId: number): Promise<SampleDocument[]> =>
+    apiClient.get(`/samples/${sampleId}/documents`).then((res) => res.data.data),
+
+  uploadSampleDocument: (sampleId: number, file: File, documentType: SampleDocument["documentType"] = "SupplierCoa"): Promise<SampleDocument> => {
+    const fd = new FormData();
+    fd.append("documentType", documentType);
+    fd.append("file", file);
+    return apiClient
+      .post(`/samples/${sampleId}/documents`, fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((res) => res.data.data);
+  },
+
+  getSampleDocumentContent: (documentId: number): Promise<Blob> =>
+    apiClient.get(`/sample-documents/${documentId}/content`, { responseType: "blob" }).then((res) => res.data),
+
+  voidSampleDocument: (documentId: number, reason: string): Promise<SampleDocument> =>
+    apiClient.post(`/sample-documents/${documentId}/void`, { reason }).then((res) => res.data.data),
 
   // Which laboratories the item's assigned tests belong to, with each
   // lab's test count - feeds the Laboratories column and Add Laboratory dialog.

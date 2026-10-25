@@ -142,6 +142,8 @@ export function MultiSampleEntryGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, gradesByItem, isItemBased]);
 
+  // Raw materials only: the supplier's CoA can be attached while receiving.
+  const showCoaColumn = category === "rm";
   const showGradeColumn = isItemBased && rows.some((r) => r.gradeOptions && r.gradeOptions.length > 0);
 
   return (
@@ -181,7 +183,7 @@ export function MultiSampleEntryGrid({
         }}
       >
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: showLabColumn ? (showGradeColumn ? 1560 : 1400) : isItemBased || isAC ? (showGradeColumn ? 1360 : 1200) : 780 }}>
+          <Table size="small" stickyHeader sx={{ minWidth: (showLabColumn ? (showGradeColumn ? 1560 : 1400) : isItemBased || isAC ? (showGradeColumn ? 1360 : 1200) : 780) + (showCoaColumn ? 200 : 0) }}>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
                 <TableCell sx={{ width: 40 }}>#</TableCell>
@@ -203,6 +205,8 @@ export function MultiSampleEntryGrid({
                     Grade <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
+
+                {showCoaColumn && <TableCell sx={{ minWidth: 200 }}>Supplier CoA</TableCell>}
 
                 {isAC && (
                   <>
@@ -409,6 +413,24 @@ export function MultiSampleEntryGrid({
                         ) : (
                           <Typography sx={{ fontSize: 12, color: "text.disabled" }}>-</Typography>
                         )}
+                      </TableCell>
+                    )}
+
+                    {/* Supplier CoA (optional; uploaded once the sample exists) */}
+                    {showCoaColumn && (
+                      <TableCell>
+                        <Button component="label" size="small" variant="outlined" sx={{ textTransform: "none", fontSize: 12, maxWidth: 190 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {row.coaFile ? row.coaFile.name : "Attach CoA"}
+                          </span>
+                          <input
+                            type="file"
+                            hidden
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff"
+                            aria-label={`Sample ${idx + 1} supplier CoA`}
+                            onChange={(e) => onChangeRow(idx, "coaFile", e.target.files?.[0] ?? null)}
+                          />
+                        </Button>
                       </TableCell>
                     )}
 

@@ -161,6 +161,7 @@ public interface IMicroLimsDbContext
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }
+    DbSet<SampleDocument> SampleDocuments { get; }
     DbSet<MaterialDocumentAccessLog> MaterialDocumentAccessLogs { get; }
     DbSet<EquipmentDocument> EquipmentDocuments { get; }
     DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs { get; }

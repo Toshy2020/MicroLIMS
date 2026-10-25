@@ -230,7 +230,22 @@ export interface ReceiveRowItem {
   // one stated on the supplier's CoA. Empty gradeOptions = ungraded item.
   gradeOptions?: string[];
   grade?: string;
+  // Raw materials: optional supplier CoA, uploaded once the sample is created.
+  coaFile?: File | null;
   errors?: Record<string, string>;
+}
+
+// A document attached to a sample (the supplier's CoA).
+export interface SampleDocument {
+  id: number;
+  sampleId: number;
+  documentType: "SupplierCoa" | "Other";
+  originalFileName: string;
+  fileSizeBytes: number;
+  uploadedByName: string;
+  uploadedAt: string;
+  status: "Current" | "Voided";
+  voidReason?: string | null;
 }
 
 // A test a Section Head / Supervisor may choose for a periodic retest.

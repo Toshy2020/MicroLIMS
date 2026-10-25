@@ -281,6 +281,17 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
           if (res?.warnings?.length) {
             allWarnings.push(...res.warnings);
           }
+          // The sample is received either way; a failed CoA upload is reported, not retried here.
+          if (category === "rm" && row.coaFile && res?.sampleId) {
+            try {
+              await ReceiveService.uploadSampleDocument(res.sampleId, row.coaFile);
+            } catch (uploadErr: any) {
+              const why = uploadErr?.response?.data?.message || uploadErr?.message || "upload failed";
+              allWarnings.push(
+                `Sample ${res.referenceNumber} was received, but its supplier CoA could not be attached (${why}). Attach it from the sample's Documents.`
+              );
+            }
+          }
         } else if (category === "water") {
           await ReceiveService.receiveWater({
             waterDepartmentId: Number(row.departmentId),

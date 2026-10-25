@@ -165,6 +165,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();
+    public DbSet<SampleDocument> SampleDocuments => Set<SampleDocument>();
     public DbSet<MaterialDocumentAccessLog> MaterialDocumentAccessLogs => Set<MaterialDocumentAccessLog>();
     public DbSet<EquipmentDocument> EquipmentDocuments => Set<EquipmentDocument>();
     public DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs => Set<EquipmentDocumentAccessLog>();

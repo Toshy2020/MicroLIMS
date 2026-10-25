@@ -19,10 +19,12 @@ import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import LibraryAddOutlinedIcon from "@mui/icons-material/LibraryAddOutlined";
 import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { SampleDocumentsDialog } from "../dialogs/SampleDocumentsDialog";
 
 interface Props {
   sample: SampleRecord;
@@ -56,6 +58,7 @@ export function SampleActionMenu({
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -277,6 +280,20 @@ export function SampleActionMenu({
         <MenuItem
           onClick={() => {
             handleCloseMenu();
+            setDocumentsOpen(true);
+          }}
+        >
+          <ListItemIcon>
+            <AttachFileOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+          </ListItemIcon>
+          <ListItemText primary="Documents" slotProps={{
+            primary: { sx: { fontSize: 13 } }
+          }} />
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            handleCloseMenu();
             onViewAuditHistory(sample);
           }}
         >
@@ -288,6 +305,8 @@ export function SampleActionMenu({
           }} />
         </MenuItem>
       </Menu>
+
+      {documentsOpen && <SampleDocumentsDialog sample={sample} onClose={() => setDocumentsOpen(false)} />}
     </Box>
   );
 }

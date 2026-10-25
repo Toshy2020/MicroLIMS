@@ -191,6 +191,7 @@ public static class ServiceCollectionExtensions
         var maxDocBytes = config.GetValue<long>("MaterialDocuments:MaxFileSizeBytes", 26_214_400L); // 25 MB default
         services.AddSingleton(_ => new MaterialDocumentFileValidator(maxDocBytes));
         services.AddScoped<MaterialDocumentService>();
+        services.AddScoped<SampleDocumentService>();
         services.AddScoped<EquipmentDocumentService>();
         services.AddScoped<ItemDocumentService>();
         services.AddScoped<OosInvestigationDocumentService>();

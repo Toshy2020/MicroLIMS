@@ -15,12 +15,26 @@ public static class SampleSectionRollup
     // Every section with a test on the sample - superseded tests included,
     // since a section whose tests all moved to a retest is still part of
     // the sample - plus any section that already has a sign-off.
+    // A periodic retest still awaiting its tests has no orders: the
+    // laboratories it was received for count instead.
     public static List<int> SectionIds(Sample sample) =>
         sample.TestOrders.Select(t => t.SectionId)
             .Union(sample.SectionSignoffs.Select(s => s.SectionId))
+            .Union(PendingSectionIds(sample))
             .Distinct()
             .OrderBy(id => id)
             .ToList();
+
+    public static IEnumerable<int> PendingSectionIds(Sample sample) =>
+        PendingSectionIds(sample.AwaitingTestSelection, sample.PendingTargetSectionIds);
+
+    public static IEnumerable<int> PendingSectionIds(bool awaitingTestSelection, string? pendingTargetSectionIds) =>
+        awaitingTestSelection && !string.IsNullOrWhiteSpace(pendingTargetSectionIds)
+            ? pendingTargetSectionIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse)
+            : Enumerable.Empty<int>();
+
+    public static string FormatPendingSectionIds(IEnumerable<int> sectionIds) =>
+        string.Join(",", sectionIds.Distinct().OrderBy(id => id));
 
     // A section gets its own sign-off row once it moves past testing, so a
     // section without one shares the sample's own state - InTesting for a

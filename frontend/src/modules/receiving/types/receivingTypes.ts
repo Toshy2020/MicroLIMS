@@ -69,6 +69,8 @@ export interface SampleRecord {
   causeOfTestingId?: number;
   batchNumber: string | null;
   grade?: string | null;
+  // Periodic retest still waiting for a Section Head / Supervisor to choose its tests.
+  awaitingTestSelection?: boolean;
   controlNumber: string;
   status: string;
   preparationStatus: string;
@@ -228,4 +230,12 @@ export interface ReceiveRowItem {
   gradeOptions?: string[];
   grade?: string;
   errors?: Record<string, string>;
+}
+
+// A test a Section Head / Supervisor may choose for a periodic retest.
+export interface RetestEligibleTest {
+  testCode: string;
+  displayName: string;
+  sectionId: number;
+  sectionName: string;
 }

@@ -125,18 +125,33 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             assigned = assigned.Where(t => targets.Contains(testSections[t.TestCode])).ToList();
         }
 
-        foreach (var test in assigned)
+        // Periodic retest: no orders yet - a Section Head or Supervisor
+        // chooses the tests later. The laboratories are remembered on the sample.
+        var requiresSelection = await _db.CausesOfTesting
+            .Where(c => c.Id == request.CauseOfTestingId)
+            .Select(c => c.RequiresTestSelection)
+            .FirstOrDefaultAsync();
+        if (requiresSelection)
         {
-            sample.TestOrders.Add(new TestOrder
-            {
-                TestCode = test.TestCode,
-                SectionId = testSections[test.TestCode],
-                Status = ApprovalStatus.Pending,
-                CurrentStep = WorkflowStep.Waiting
-            });
+            sample.AwaitingTestSelection = true;
+            sample.PendingTargetSectionIds = SampleSectionRollup.FormatPendingSectionIds(assigned.Select(t => testSections[t.TestCode]));
+            sample.PreparationStatus = SamplePreparationStatus.Ready; // nothing to prepare until tests exist
         }
+        else
+        {
+            foreach (var test in assigned)
+            {
+                sample.TestOrders.Add(new TestOrder
+                {
+                    TestCode = test.TestCode,
+                    SectionId = testSections[test.TestCode],
+                    Status = ApprovalStatus.Pending,
+                    CurrentStep = WorkflowStep.Waiting
+                });
+            }
 
-        sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
+            sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
+        }
 
         _db.Samples.Add(sample);
         await _db.SaveChangesAsync();

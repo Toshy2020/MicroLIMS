@@ -42,7 +42,19 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
         if (scope != null)
         {
-            query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
+            var inScope = SampleWorkflowQueues.HasTestInSections(scope);
+            if (filter.LabSectionId == null)
+            {
+                // The register (not a lab workspace) also lists periodic retests
+                // that have no tests yet, for the laboratories they were received for.
+                var awaiting = await AwaitingSampleIdsInAsync(scope);
+                var withTests = _db.Samples.AsNoTracking().Where(inScope).Select(x => x.Id);
+                query = query.Where(s => awaiting.Contains(s.Id) || withTests.Contains(s.Id));
+            }
+            else
+            {
+                query = query.Where(inScope);
+            }
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -261,6 +273,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
+    // Periodic retests with no tests yet that were received for at least one of the laboratories in scope.
+    private async Task<List<int>> AwaitingSampleIdsInAsync(IReadOnlyCollection<int> scope)
+    {
+        // ponytail: loads every awaiting sample; they are few (cleared on selection).
+        var awaiting = await _db.Samples.AsNoTracking().Where(s => s.AwaitingTestSelection).ToListAsync();
+        return awaiting.Where(s => SampleSectionRollup.PendingSectionIds(s).Any(scope.Contains)).Select(s => s.Id).ToList();
+    }
+
     // The Physicochemical workspace is split into FP and RM & PM areas by sample category.
     // Returns the categories to keep, or null for any other laboratory (unchanged behaviour).
     private async Task<IReadOnlyList<SampleCategory>?> ResolveAreaAsync(int? labSectionId, string? area, int? userId)
@@ -458,7 +478,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         if (scope != null)
         {
-            var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId));
+            var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId))
+                || (labSectionId == null && SampleSectionRollup.PendingSectionIds(sample).Any(scope.Contains));
             if (!hasInScopeNonSuperseded) return null;
         }
 
@@ -581,6 +602,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
             Grade = s.Grade,
+            AwaitingTestSelection = s.AwaitingTestSelection && s.Status == SampleStatus.Received,
             ControlNumber = s.ControlNumber,
             Status = LabStatus(s).ToString(),
             // TestOrders are already narrowed to the labs in view: when none of
@@ -605,6 +627,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             IncubationStarted = sampleIncubations.Count > 0,
             CanEditDetails = SampleCorrectionService.IsCorrectable(s.Status),
             CanChangeItemOrLocation = s.Status == SampleStatus.Received
+                && !s.AwaitingTestSelection
                 && s.OriginSampleId == null
                 && sampleIncubations.Count == 0
                 && s.TestOrders.All(t => t.CurrentStep == WorkflowStep.Waiting),

@@ -51,6 +51,8 @@ public class SampleDto
     public int CauseOfTestingId { get; set; }
     public string? BatchNumber { get; set; }
     public string? Grade { get; set; }
+    // Periodic retest still waiting for a Section Head / Supervisor to choose its tests.
+    public bool AwaitingTestSelection { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string PreparationStatus { get; set; } = string.Empty;

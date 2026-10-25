@@ -44,7 +44,9 @@ internal static class WorkloadTestData
             NewUser(Dana, "Dana Analyst", 1), NewUser(Carol, "carol analyst", 1));
         db.UserOrgMemberships.AddRange(
             Member(Alice, 1), Member(Bob, 1), Member(Sam, 1), Member(Dana, 2), Member(Carol, 1));
-        db.CausesOfTesting.Add(new CauseOfTesting { Id = 1, Name = "Routine" });
+        // A migrated (Postgres) database already has cause 1 (the migration-added "Periodic retest").
+        if (!await db.CausesOfTesting.AnyAsync(c => c.Id == 1))
+            db.CausesOfTesting.Add(new CauseOfTesting { Id = 1, Name = "Routine" });
         db.TestDefinitions.AddRange(
             Definition("TAMC", WorkflowType.CountTest), Definition("PH", WorkflowType.Measurement),
             Definition("OBS", WorkflowType.Observation), Definition("NOPROF", WorkflowType.Gravimetric));

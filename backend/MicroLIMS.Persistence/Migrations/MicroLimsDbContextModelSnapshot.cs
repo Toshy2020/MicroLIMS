@@ -795,6 +795,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("RequiresTestSelection")
+                        .HasColumnType("boolean");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -8676,6 +8679,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("ApprovedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("AwaitingTestSelection")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("BatchNumber")
                         .HasColumnType("text");
 
@@ -8718,6 +8724,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<int?>("OriginSampleId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PendingTargetSectionIds")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("PreparationStatus")
                         .HasColumnType("integer");
@@ -8773,6 +8783,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("StorageTimeHours")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("TestSelectionSignatureId")
+                        .HasColumnType("integer");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -8814,6 +8827,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasDatabaseName("IX_Samples_ReferenceNumber");
 
                     b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("TestSelectionSignatureId");
 
                     b.HasIndex("WaterDepartmentId");
 
@@ -13875,6 +13890,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("ReviewedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "TestSelectionSignature")
+                        .WithMany()
+                        .HasForeignKey("TestSelectionSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.WaterDepartment", "WaterDepartment")
                         .WithMany()
                         .HasForeignKey("WaterDepartmentId")
@@ -13896,6 +13916,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("OriginSample");
 
                     b.Navigation("ProductionStageRef");
+
+                    b.Navigation("TestSelectionSignature");
 
                     b.Navigation("WaterDepartment");
 

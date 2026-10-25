@@ -15,6 +15,8 @@ namespace MicroLIMS.Persistence.Seed;
 // Reference Strain can ever be received).
 public static class DbSeeder
 {
+    private const string PeriodicRetestCause = "Periodic retest";
+
     // initialAdminPassword must be supplied out of band (configuration /
     // hosting secret). When it is absent no administrator is created - see
     // SeedInitialAdministrator for why that is the safe default.
@@ -35,7 +37,10 @@ public static class DbSeeder
 
         SeedInitialAdministrator(db, initialAdminPassword);
 
-        if (!db.CausesOfTesting.Any())
+        // "Periodic retest" is also inserted by the AddPeriodicRetestSelection
+        // migration (which runs first), so the basic causes are seeded when
+        // that is the only one.
+        if (!db.CausesOfTesting.Any(c => c.Name != PeriodicRetestCause))
         {
             db.CausesOfTesting.AddRange(
                 new CauseOfTesting { Name = "Routine" },
@@ -43,6 +48,8 @@ public static class DbSeeder
                 new CauseOfTesting { Name = "Retest" }
             );
         }
+        if (!db.CausesOfTesting.Any(c => c.Name == PeriodicRetestCause))
+            db.CausesOfTesting.Add(new CauseOfTesting { Name = PeriodicRetestCause, RequiresTestSelection = true });
 
         if (!db.Neutralizers.Any())
         {

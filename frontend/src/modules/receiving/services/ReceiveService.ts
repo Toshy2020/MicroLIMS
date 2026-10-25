@@ -8,7 +8,8 @@ import {
   SampleRecord,
   ReceiptLabOption,
   SampleAssignmentOptions,
-  TestAnalystAssignment
+  TestAnalystAssignment,
+  RetestEligibleTest
 } from "../types/receivingTypes";
 
 export interface TestingWorkspaceFilter {
@@ -151,5 +152,15 @@ export const ReceiveService = {
   async voidSample(sampleId: number, reason: string, password: string): Promise<SampleRecord> {
     const res = await apiClient.post(`/samples/${sampleId}/void`, { reason, password });
     return res.data.data;
+  },
+
+  // Periodic retest: the tests that may be chosen, and the signed choice.
+  async getTestSelection(sampleId: number): Promise<RetestEligibleTest[]> {
+    const res = await apiClient.get(`/samples/${sampleId}/test-selection`);
+    return res.data.data;
+  },
+
+  async selectTests(sampleId: number, testCodes: string[], password: string, comment?: string): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/test-selection`, { testCodes, password, comment });
   }
 };

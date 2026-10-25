@@ -36,7 +36,7 @@ public class SampleTrackingService
             // superseded or not: an OOS origin sample whose tests all moved
             // to a retest sample is still a received sample (RetestRequested)
             // and must stay visible.
-            .Where(s => s.TestOrders.Any());
+            .Where(s => s.TestOrders.Any() || s.AwaitingTestSelection);
 
         if (filter.LabSectionId is int labSectionId)
             query = query.Where(s => s.TestOrders.Any(t => t.SectionId == labSectionId && !t.IsSuperseded));
@@ -130,7 +130,7 @@ public class SampleTrackingService
             id,
             sections.TryGetValue(id, out var section) ? section.Code : string.Empty,
             section.Name ?? string.Empty,
-            StageText(SampleSectionRollup.StatusOf(s, id))
+            s.AwaitingTestSelection && s.Status == SampleStatus.Received ? "Awaiting test selection" : StageText(SampleSectionRollup.StatusOf(s, id))
         )).ToList();
 
         return new SampleTrackingRowDto(

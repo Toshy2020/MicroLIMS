@@ -98,6 +98,9 @@ public class SampleCorrectionService
         var category = sample.Category;
         var isItemBased = ItemBasedCategories.Contains(category);
         var structural = await ResolveItemOrLocationChangeAsync(sample, request);
+        if (sample.AwaitingTestSelection && (structural is not null || request.CauseOfTestingId != sample.CauseOfTestingId))
+            throw new InvalidOperationException(
+                "The item and cause of testing cannot change while the tests are still to be chosen. Void the sample and receive it again.");
         GradeContext? gradeContext = null;
         GradeOrderPlan? gradePlan = null;
 
@@ -147,7 +150,9 @@ public class SampleCorrectionService
                 {
                     // A new item rebuilds every test (and is locked once work exists);
                     // a grade change alone re-derives the set, only while nothing has started.
-                    if (structural is null)
+                    // A periodic retest awaiting its tests has none: the new grade is
+                    // simply used when the tests are chosen.
+                    if (structural is null && !sample.AwaitingTestSelection)
                     {
                         if (sample.TestOrders.Any(o => o.Status != ApprovalStatus.Pending))
                             throw new InvalidOperationException(

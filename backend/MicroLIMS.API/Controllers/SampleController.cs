@@ -53,6 +53,8 @@ public record VoidSampleRequest(string Reason, string Password);
 
 public record AddLaboratoryRequest(int SectionId, string Password, string Reason);
 
+public record SelectSampleTestsRequest(List<string> TestCodes, string Password, string? Comment);
+
 [ApiController]
 [Route("api/samples")]
 [Authorize]
@@ -64,6 +66,7 @@ public class SampleController : ControllerBase
     private readonly IUserSectionScopeService _scopeService;
     private readonly AddLaboratoryService _addLaboratory;
     private readonly ReceiptLabService _receiptLabs;
+    private readonly SampleTestSelectionService _testSelection;
 
     public SampleController(
         IReceivingService receivingService,
@@ -71,8 +74,10 @@ public class SampleController : ControllerBase
         SampleAssignmentService assignmentService,
         IUserSectionScopeService scopeService,
         AddLaboratoryService addLaboratory,
-        ReceiptLabService receiptLabs)
+        ReceiptLabService receiptLabs,
+        SampleTestSelectionService testSelection)
     {
+        _testSelection = testSelection;
         _receivingService = receivingService;
         _correctionService = correctionService;
         _assignmentService = assignmentService;
@@ -168,6 +173,24 @@ public class SampleController : ControllerBase
 
     // A second laboratory's tests added to a sample already received -
     // same sample, same reference number.
+    // Periodic retest: the tests a Section Head / Supervisor may choose from
+    // (read-only for everyone else with access to the sample).
+    [HttpGet("{id}/test-selection")]
+    public async Task<IActionResult> GetTestSelection(int id, CancellationToken ct)
+    {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+        return Ok(ApiResponse<object>.Ok(await _testSelection.GetEligibleAsync(id, ct)));
+    }
+
+    [HttpPost("{id}/test-selection")]
+    [Authorize(Policy = PermissionConstants.SamplesCorrect)]
+    public async Task<IActionResult> SelectTests(int id, SelectSampleTestsRequest request, CancellationToken ct)
+    {
+        await _testSelection.SelectAsync(id, new SelectTestsRequest(request.TestCodes ?? new(), request.Password, request.Comment),
+            CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
     [HttpPost("{id}/laboratories")]
     [Authorize(Policy = PermissionConstants.SamplesReceive)]
     public async Task<IActionResult> AddLaboratory(int id, AddLaboratoryRequest request)

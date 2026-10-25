@@ -23,6 +23,8 @@ interface Props {
   onTestClick: (test: TestOrderSummary, sample: SampleRecord) => void;
   onViewAllTests: (sample: SampleRecord) => void;
   onPrepareSample?: (sample: SampleRecord) => void;
+  // Periodic retest awaiting its tests: opens the test-selection dialog.
+  onSelectTests?: (sample: SampleRecord) => void;
 }
 
 // Closed samples: the summary states how the record closed, ahead of any
@@ -34,10 +36,14 @@ const CLOSED_SAMPLE_SUMMARY: Record<string, { text: string; tone: StatusTone }> 
   RetestRequested: { text: "On Hold, Retest", tone: "inconclusive" }
 };
 
-function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sampleStatus: string): { text: string; tone: StatusTone; isDirectAction: boolean } {
+function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sampleStatus: string, awaitingTestSelection: boolean): { text: string; tone: StatusTone; isDirectAction: boolean } {
   const closed = CLOSED_SAMPLE_SUMMARY[sampleStatus];
   if (closed) {
     return { text: closed.text, tone: closed.tone, isDirectAction: false };
+  }
+
+  if (awaitingTestSelection) {
+    return { text: "Awaiting test selection", tone: "inconclusive", isDirectAction: true };
   }
 
   if (preparationStatus === "NeedsPreparation") {
@@ -92,18 +98,25 @@ function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sa
   return { text: summary, tone: "purple", isDirectAction: false };
 }
 
-export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onPrepareSample }: Props) {
+export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onPrepareSample, onSelectTests }: Props) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const theme = useTheme();
 
   const tests = sample.assignedTests || [];
-  const summaryInfo = getSummaryText(tests, sample.preparationStatus, sample.status);
+  const summaryInfo = getSummaryText(tests, sample.preparationStatus, sample.status, Boolean(sample.awaitingTestSelection));
+  const awaiting = Boolean(sample.awaitingTestSelection);
   const summaryTone = theme.custom.status[summaryInfo.tone];
   const summary = { text: summaryInfo.text, bg: summaryTone.bg, textColor: summaryTone.text, border: summaryTone.border };
   const isOpen = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation(); // Stop propagation to row selection
+
+    // 0. Periodic retest with no tests yet -> the test-selection dialog
+    if (awaiting) {
+      onSelectTests?.(sample);
+      return;
+    }
 
     // 1. Stage: Needs Preparation -> Direct shortcut to Preparation Dialog
     // (never for a closed sample - there is no preparation left to do)
@@ -144,7 +157,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
         type="button"
         data-no-row-click="true"
         onClick={handleClick}
-        disabled={tests.length === 0 && sample.preparationStatus !== "NeedsPreparation"}
+        disabled={!awaiting && tests.length === 0 && sample.preparationStatus !== "NeedsPreparation"}
         sx={{
           display: "inline-flex",
           alignItems: "center",
@@ -157,9 +170,9 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
           color: summary.textColor,
           fontSize: 12,
           fontWeight: 600,
-          cursor: (tests.length > 0 || sample.preparationStatus === "NeedsPreparation") ? "pointer" : "default",
+          cursor: (awaiting || tests.length > 0 || sample.preparationStatus === "NeedsPreparation") ? "pointer" : "default",
           transition: "all 0.15s ease",
-          "&:hover": (tests.length > 0 || sample.preparationStatus === "NeedsPreparation")
+          "&:hover": (awaiting || tests.length > 0 || sample.preparationStatus === "NeedsPreparation")
             ? { filter: "brightness(0.95)", transform: "scale(1.01)" }
             : undefined
         }}

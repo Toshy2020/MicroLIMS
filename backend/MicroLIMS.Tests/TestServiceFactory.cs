@@ -155,6 +155,11 @@ public static class TestServiceFactory
     public static AddLaboratoryService AddLaboratory(MicroLimsDbContext db) =>
         new(db, ReviewGate(db));
 
+    public static SampleTestSelectionService SampleTestSelection(MicroLimsDbContext db) =>
+        new(db, new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)),
+            new UserSectionScopeService(db));
+
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 

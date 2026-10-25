@@ -14,6 +14,7 @@ import { NewSampleDialog } from "./dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { VoidSampleConfirmationDialog } from "./dialogs/VoidSampleConfirmationDialog";
 import { AddLaboratoryDialog } from "./dialogs/AddLaboratoryDialog";
+import { SelectRetestTestsDialog } from "./dialogs/SelectRetestTestsDialog";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
@@ -39,6 +40,7 @@ export function ReceivingPage() {
   const [editSample, setEditSample] = useState<SampleRecord | null>(null);
   const [voidingSample, setVoidingSample] = useState<SampleRecord | null>(null);
   const [addingLabSample, setAddingLabSample] = useState<SampleRecord | null>(null);
+  const [selectingTestsSample, setSelectingTestsSample] = useState<SampleRecord | null>(null);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" } | null>(null);
@@ -117,6 +119,7 @@ export function ReceivingPage() {
         onPrepareSample={(sample) => setSummarySampleId(sample.sampleId)}
         onVoid={canCorrect ? ((sample) => setVoidingSample(sample)) : undefined}
         onAddLaboratory={canReceive ? ((sample) => setAddingLabSample(sample)) : undefined}
+        onSelectTests={(sample) => setSelectingTestsSample(sample)}
       />
 
       {canReceiveAny && (
@@ -167,6 +170,18 @@ export function ReceivingPage() {
           }}
         />
       )}
+
+      <SelectRetestTestsDialog
+        open={Boolean(selectingTestsSample)}
+        sample={selectingTestsSample}
+        canSelect={canCorrect}
+        onClose={() => setSelectingTestsSample(null)}
+        onSuccess={() => {
+          setSelectingTestsSample(null);
+          setNotification({ text: "Tests chosen and signed.", severity: "success" });
+          loadRecords();
+        }}
+      />
 
       <SampleSummaryDialog
         open={Boolean(summarySampleId)}

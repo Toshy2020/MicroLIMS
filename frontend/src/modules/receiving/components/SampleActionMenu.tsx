@@ -18,6 +18,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import LibraryAddOutlinedIcon from "@mui/icons-material/LibraryAddOutlined";
+import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
 import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -34,6 +35,8 @@ interface Props {
   onVoid?: (sample: SampleRecord) => void;
   // Receiving page only - adds a second laboratory's tests to the sample (requires Samples.Receive).
   onAddLaboratory?: (sample: SampleRecord) => void;
+  // Periodic retest awaiting its tests - Section Head / Supervisor only (Samples.Correct).
+  onSelectTests?: (sample: SampleRecord) => void;
 }
 
 export function SampleActionMenu({
@@ -45,7 +48,8 @@ export function SampleActionMenu({
   onPrepareSample,
   onAssignAnalyst,
   onVoid,
-  onAddLaboratory
+  onAddLaboratory,
+  onSelectTests
 }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
@@ -72,6 +76,7 @@ export function SampleActionMenu({
   const canEdit = canManageSample && Boolean(onEdit);
   const canVoid = canManageSample && Boolean(onVoid) && sample.status !== "Voided";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
+  const canSelectTests = canManageSample && Boolean(onSelectTests) && Boolean(sample.awaitingTestSelection);
   const canAddLab = canReceive && Boolean(onAddLaboratory) && !["Rejected", "Voided", "Cancelled"].includes(sample.status);
 
   return (
@@ -182,6 +187,22 @@ export function SampleActionMenu({
               <AssignmentIndOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
             </ListItemIcon>
             <ListItemText primary="Assign Analyst" slotProps={{
+              primary: { sx: { fontSize: 13, fontWeight: 600 } }
+            }} />
+          </MenuItem>
+        )}
+
+        {canSelectTests && (
+          <MenuItem
+            onClick={() => {
+              handleCloseMenu();
+              if (onSelectTests) onSelectTests(sample);
+            }}
+          >
+            <ListItemIcon>
+              <ChecklistOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+            </ListItemIcon>
+            <ListItemText primary="Select Tests" slotProps={{
               primary: { sx: { fontSize: 13, fontWeight: 600 } }
             }} />
           </MenuItem>

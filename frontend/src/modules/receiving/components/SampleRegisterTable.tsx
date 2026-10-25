@@ -57,6 +57,8 @@ interface Props {
   onAssignAnalyst?: (sample: SampleRecord) => void;
   onVoid?: (sample: SampleRecord) => void;
   onAddLaboratory?: (sample: SampleRecord) => void;
+  // Periodic retest awaiting its tests: opens the test-selection dialog.
+  onSelectTests?: (sample: SampleRecord) => void;
   // localStorage key for this register's column choice, so each page that
   // uses the table remembers its own set.
   columnsStorageKey?: string;
@@ -220,6 +222,7 @@ export function SampleRegisterTable({
   onAssignAnalyst,
   onVoid,
   onAddLaboratory,
+  onSelectTests,
   columnsStorageKey = "microlims.sampleRegister.columns"
 }: Props) {
   const theme = useTheme();
@@ -249,6 +252,11 @@ export function SampleRegisterTable({
   // reported; no laboratory rule is decided here.
   const getNextAction = (sample: SampleRecord): NextAction | null => {
     if (CLOSED_STATUSES.has(sample.status)) return null;
+    if (sample.awaitingTestSelection) {
+      return onSelectTests && permissions.includes(PERMISSIONS.SAMPLES_CORRECT)
+        ? { label: "Select tests", kind: "primary", run: () => onSelectTests(sample) }
+        : { label: "Awaiting test selection", kind: "wait" };
+    }
     if (sample.preparationStatus === "NeedsPreparation") {
       return { label: "Prepare", kind: "primary", run: () => onPrepareSample(sample) };
     }
@@ -726,6 +734,7 @@ export function SampleRegisterTable({
                   onTestClick={onTestClick}
                   onViewAllTests={onViewSummary}
                   onPrepareSample={onPrepareSample}
+                  onSelectTests={onSelectTests}
                 />
               </Box>
             </TableCell>
@@ -774,6 +783,7 @@ export function SampleRegisterTable({
               onAssignAnalyst={onAssignAnalyst}
               onVoid={onVoid}
               onAddLaboratory={onAddLaboratory}
+              onSelectTests={onSelectTests}
             />
           </TableCell>
         </TableRow>

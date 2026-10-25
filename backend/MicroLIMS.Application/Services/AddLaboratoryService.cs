@@ -35,6 +35,8 @@ public class AddLaboratoryService
 
         if (SampleSectionRollup.Overall(sample) is OverallSampleStatus.Rejected or OverallSampleStatus.Voided or OverallSampleStatus.Cancelled)
             throw new InvalidOperationException("A laboratory cannot be added to a rejected, voided or cancelled sample.");
+        if (sample.AwaitingTestSelection)
+            throw new InvalidOperationException("The tests for this periodic retest have not been chosen yet; a laboratory cannot be added until they are.");
         if (sample.TestOrders.Any(t => t.SectionId == sectionId))
             throw new InvalidOperationException("This laboratory is already testing the sample.");
         if (sample.ItemId is not int itemId)

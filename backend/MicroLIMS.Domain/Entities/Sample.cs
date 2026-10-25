@@ -19,6 +19,16 @@ public class Sample : IVersionedEntity
     // Raw material only - the grade (BP, USP, In-house ...) the sample is
     // tested against, chosen at receiving. Null = ungraded.
     public string? Grade { get; set; }
+
+    // Periodic retest: received without test orders; a Section Head or
+    // Supervisor picks the tests later (SampleTestSelectionService).
+    public bool AwaitingTestSelection { get; set; }
+    // The laboratories the sample was received for (comma-separated section
+    // ids). Only kept while AwaitingTestSelection - once tests exist, the
+    // orders themselves say which laboratories the sample is in.
+    public string? PendingTargetSectionIds { get; set; }
+    public int? TestSelectionSignatureId { get; set; }
+    public ElectronicSignature? TestSelectionSignature { get; set; }
     public int? WaterSamplingPointId { get; set; } // Water only
     public WaterSamplingPoint? WaterSamplingPoint { get; set; }
     public int? DepartmentId { get; set; }         // EM only

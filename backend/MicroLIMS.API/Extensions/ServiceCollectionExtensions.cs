@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SampleApprovalService>();
         services.AddScoped<SectionClosureService>();
         services.AddScoped<AddLaboratoryService>();
+        services.AddScoped<SampleTestSelectionService>();
         services.AddScoped<SampleSummaryService>();
         services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();

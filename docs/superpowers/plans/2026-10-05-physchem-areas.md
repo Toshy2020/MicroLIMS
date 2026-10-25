@@ -6,7 +6,7 @@
 
 **Architecture:** One physicochemical section (`DocumentSection.Code == "FP"`) gains an *area* tag on tests and on user memberships. The area of a sample is derived from its category. Backend lanes run in parallel git worktrees (Sonnet); frontend lanes run in the main tree via agy against the fixed API contract below. The orchestrator merges, applies migrations to LIMSV2 and runs the suites.
 
-**Tech Stack:** ASP.NET Core 8, EF Core + PostgreSQL, xUnit; React 18 + TypeScript + MUI, vitest/RTL.
+**Tech Stack:** ASP.NET Core 10, EF Core + PostgreSQL, xUnit; React 18 + TypeScript + MUI, vitest/RTL.
 
 **Spec:** `docs/superpowers/specs/2026-10-05-physchem-areas-design.md` (sections 0-7, including amendments A1-A5).
 

@@ -6,7 +6,7 @@
 
 **Architecture:** Add a new `WaterDepartment` entity and a nullable `WaterDepartmentId` FK on the existing `WaterSamplingPoint` (never replacing it — `Sample` and `SamplingConfiguration` reference its Id). Add CRUD endpoints on `MasterDataController` mirroring the existing EM `departments` / `rooms` / `room-test-configurations` endpoints, plus a `water-sampling-configurations` family that writes the already-consumed `SamplingConfiguration` table. Rebuild `WaterConfigPage.tsx` to mirror `EMConfigPage.tsx`. The `WaterWorkflowEngine` needs **zero** changes — it already reads `SamplingConfiguration` limits.
 
-**Tech Stack:** .NET 8 / EF Core (InMemory for tests, xUnit), ASP.NET Core controllers, React + TypeScript + MUI, axios (`apiClient`).
+**Tech Stack:** .NET 10 / EF Core (InMemory for tests, xUnit), ASP.NET Core controllers, React + TypeScript + MUI, axios (`apiClient`).
 
 **Spec:** `docs/superpowers/specs/2026-08-17-water-config-em-parity-design.md`
 

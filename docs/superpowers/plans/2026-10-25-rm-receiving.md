@@ -6,7 +6,7 @@
 
 **Architecture:** Grade is a nullable string on `Specification` and `Sample`; `SpecificationLookup` gains a grade dimension mirroring its existing stage dimension, and receiving skips tests whose spec rows all belong to another grade. Periodic retest is a `CauseOfTesting` flag; such samples are created with no test orders and an `AwaitingTestSelection` flag until a signed selection creates them. Supplier CoA reuses the `MaterialDocument` upload pattern as a new `SampleDocument`.
 
-**Tech Stack:** ASP.NET Core 8, EF Core + PostgreSQL (Npgsql), xUnit, React + TypeScript + MUI.
+**Tech Stack:** ASP.NET Core 10, EF Core + PostgreSQL (Npgsql), xUnit, React + TypeScript + MUI.
 
 **Spec:** `docs/superpowers/specs/2026-10-25-raw-material-stm-support-design.md` (goals 1, 2, "Minimum quantities" call).
 

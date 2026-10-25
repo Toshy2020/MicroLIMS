@@ -6,7 +6,7 @@
 
 **Architecture:** A WS lot is a `Material` row (`MaterialType.WorkingStandard`) linked to the primary standard's master entry, so the existing lot matching (`LotUsability`) accepts it everywhere with no new gate. A new `WorkingStandardQualification` record carries source, moisture, results and signatures. The candidate is assigned to a passed HPLC run as an `HplcRunSample` whose `TestOrderId` is null and `WorkingStandardQualificationId` is set; it has its own entry/submit endpoints in the workspace, and review/approval happen on the Working Standards page.
 
-**Tech Stack:** ASP.NET Core 8, EF Core + PostgreSQL (Npgsql), xUnit (in-memory unit tests + `[PostgresFact]` integration tests), React + TypeScript + MUI.
+**Tech Stack:** ASP.NET Core 10, EF Core + PostgreSQL (Npgsql), xUnit (in-memory unit tests + `[PostgresFact]` integration tests), React + TypeScript + MUI.
 
 **Spec:** `docs/superpowers/specs/2026-10-03-working-standard-qualification-design.md` (read it with this plan).
 

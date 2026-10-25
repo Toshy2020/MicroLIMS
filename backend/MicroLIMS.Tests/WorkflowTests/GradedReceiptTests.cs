@@ -262,4 +262,60 @@ public class GradedReceiptTests
         Assert.Equal("USP", saved.Grade);
         Assert.Equal(2, saved.TestOrders.Count);
     }
+
+    // ---- Moving a graded sample to another item: the old grade is not carried over ----
+
+    private static async Task<Item> AddItemAsync(MicroLimsDbContext db, string code, params string?[] gradesForAssay)
+    {
+        var item = new Item { Name = code, Code = code, Category = SampleCategory.RawMaterial, IsActive = true };
+        item.AssignedTests.Add(new SampleTest { TestCode = "ASSAY", DisplayName = "ASSAY" });
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+        foreach (var g in gradesForAssay) db.Specifications.Add(Spec(item.Id, "ASSAY", g));
+        await db.SaveChangesAsync();
+        return item;
+    }
+
+    [Fact]
+    public async Task Correct_ItemChangeToUngradedItem_ClearsTheGrade()
+    {
+        var (db, sample, signer, service) = await ReceiveBpAsync();
+        await using var _ = db;
+        var other = await AddItemAsync(db, "RM-UNGRADED", (string?)null);
+
+        await service.CorrectAsync(sample.Id, AsStored(sample, null) with { ItemId = other.Id }, "Wrong item", Password, signer.Id, null);
+
+        var saved = await db.Samples.Include(s => s.TestOrders).AsNoTracking().FirstAsync(s => s.Id == sample.Id);
+        Assert.Null(saved.Grade);
+        Assert.Equal(other.Id, saved.ItemId);
+        Assert.Equal(new[] { "ASSAY" }, saved.TestOrders.Select(t => t.TestCode));
+    }
+
+    [Fact]
+    public async Task Correct_ItemChangeToGradedItem_WithoutGrade_AsksForOne_EvenWhenTheOldGradeExists()
+    {
+        var (db, sample, signer, service) = await ReceiveBpAsync();
+        await using var _ = db;
+        var other = await AddItemAsync(db, "RM-OTHER", "BP", "USP");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CorrectAsync(sample.Id, AsStored(sample, null) with { ItemId = other.Id }, "Wrong item", Password, signer.Id, null));
+
+        Assert.Equal("Choose the grade stated on the supplier's CoA.", ex.Message);
+        Assert.Equal("BP", (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).Grade);
+    }
+
+    [Fact]
+    public async Task Correct_ItemChangeToGradedItem_WithGrade_StoresIt()
+    {
+        var (db, sample, signer, service) = await ReceiveBpAsync();
+        await using var _ = db;
+        var other = await AddItemAsync(db, "RM-OTHER", "BP", "USP");
+
+        await service.CorrectAsync(sample.Id, AsStored(sample, "usp") with { ItemId = other.Id }, "Wrong item", Password, signer.Id, null);
+
+        var saved = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal("USP", saved.Grade);
+        Assert.Equal(other.Id, saved.ItemId);
+    }
 }

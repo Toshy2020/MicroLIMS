@@ -135,12 +135,13 @@ public class SampleCorrectionService
             Track("Exp Date", AsDate(sample.ExpDate), exp, FormatDate, v => sample.ExpDate = v);
             // Grade stated on the supplier's CoA: decides which tests apply.
             var effectiveItem = structural?.NewItem ?? sample.Item;
-            // An omitted grade on an unchanged item means "unchanged" (the edit dialog
-            // only sends one it shows); a new item always re-resolves the grade.
+            // an omitted grade on an unchanged item means "unchanged"; a new item always
+            // needs a grade of its own (the old one is not carried over).
             if (effectiveItem is not null && (structural is not null || request.Grade is not null))
             {
                 var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id).ToListAsync();
-                var newGrade = ProductWorkflowEngine.ResolveGrade(itemSpecs, request.Grade ?? sample.Grade);
+                var newGrade = ProductWorkflowEngine.ResolveGrade(
+                    itemSpecs, structural is null ? request.Grade ?? sample.Grade : request.Grade);
                 gradeContext = new GradeContext(itemSpecs, newGrade);
                 if (newGrade != sample.Grade)
                 {

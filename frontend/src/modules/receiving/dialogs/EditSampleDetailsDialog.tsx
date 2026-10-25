@@ -144,7 +144,10 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     };
   }, [open, category]);
 
-  const gradeItemId = PRODUCT_LIKE.includes(category) ? (sample?.itemId ?? null) : null;
+  // The grades of the item the sample will have: the chosen one when the item is being changed.
+  const gradeItemId = PRODUCT_LIKE.includes(category)
+    ? (form?.locationId === "" ? null : form?.locationId) ?? sample?.itemId ?? null
+    : null;
   useEffect(() => {
     if (!open || gradeItemId == null) {
       setGrades([]);
@@ -170,8 +173,9 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   const canEdit = Boolean(sample.canEditDetails);
   const canChangeLocation = Boolean(sample.canChangeItemOrLocation);
   // Grade shows only for an item that has grades; the backend re-checks that every test is still pending.
-  const showGrade = isProductLike && !locationChanged && grades.length > 0;
-  const canChangeGrade = canEdit && sample.assignedTests.every((t) => t.status === "Pending");
+  const showGrade = isProductLike && grades.length > 0;
+  // A new item needs its own grade; otherwise only while every test is still pending.
+  const canChangeGrade = canEdit && (locationChanged || sample.assignedTests.every((t) => t.status === "Pending"));
   // "Retest" is assigned by the system to retest samples - never chosen here.
   const isRetest = (name?: string) => (name ?? "").trim().toLowerCase() === "retest";
   const causeIsRetest = isRetest(sample.causeOfTesting);
@@ -320,7 +324,10 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               size="small"
               fullWidth
               value={locationValue}
-              onChange={(e) => set("locationId", Number(e.target.value))}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                setForm((prev) => (prev ? { ...prev, locationId: id, grade: id === originalLocationId ? (sample.grade ?? "") : "" } : prev));
+              }}
               sx={{ gridColumn: "1 / -1" }}
             >
               {locationOptions.map((o) => (

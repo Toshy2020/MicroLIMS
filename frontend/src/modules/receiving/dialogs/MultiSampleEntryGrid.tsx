@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Typography,
@@ -113,6 +113,37 @@ export function MultiSampleEntryGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, labOptionsByItem, showLabColumn]);
 
+  // Grades per item (raw materials with graded specifications). Loaded once
+  // per item, then copied onto each row so the dialog can require a grade.
+  const [gradesByItem, setGradesByItem] = useState<Record<string, string[]>>({});
+  const requestedGradeItems = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isItemBased) return;
+    rows.forEach((row) => {
+      if (!row.itemId) return;
+      const key = String(row.itemId);
+      if (gradesByItem[key] || requestedGradeItems.current.has(key)) return;
+      requestedGradeItems.current.add(key);
+      ReceiveService.itemGrades(Number(row.itemId))
+        .then((grades) => setGradesByItem((prev) => ({ ...prev, [key]: grades })))
+        .catch(() => requestedGradeItems.current.delete(key));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, isItemBased]);
+
+  useEffect(() => {
+    if (!isItemBased) return;
+    rows.forEach((row, idx) => {
+      if (!row.itemId || row.gradeOptions !== undefined) return;
+      const grades = gradesByItem[String(row.itemId)];
+      if (grades) onChangeRow(idx, "gradeOptions", grades);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, gradesByItem, isItemBased]);
+
+  const showGradeColumn = isItemBased && rows.some((r) => r.gradeOptions && r.gradeOptions.length > 0);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {(isEM || isAC || isWater) && (
@@ -150,7 +181,7 @@ export function MultiSampleEntryGrid({
         }}
       >
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: showLabColumn ? 1400 : isItemBased || isAC ? 1200 : 780 }}>
+          <Table size="small" stickyHeader sx={{ minWidth: showLabColumn ? (showGradeColumn ? 1560 : 1400) : isItemBased || isAC ? (showGradeColumn ? 1360 : 1200) : 780 }}>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
                 <TableCell sx={{ width: 40 }}>#</TableCell>
@@ -164,6 +195,12 @@ export function MultiSampleEntryGrid({
                 {showLabColumn && (
                   <TableCell sx={{ minWidth: 200 }}>
                     Laboratories <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  </TableCell>
+                )}
+
+                {showGradeColumn && (
+                  <TableCell sx={{ minWidth: 160 }}>
+                    Grade <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
@@ -271,6 +308,8 @@ export function MultiSampleEntryGrid({
                             // A different item can have a different set of
                             // labs - clear the stale choice so it re-defaults.
                             onChangeRow(idx, "targetSectionIds", undefined);
+                            onChangeRow(idx, "gradeOptions", undefined);
+                            onChangeRow(idx, "grade", "");
                           }}
                           sx={{ fontSize: 12 }}
                           inputProps={{ "aria-label": `Sample ${idx + 1} item` }}
@@ -335,6 +374,40 @@ export function MultiSampleEntryGrid({
                           <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, mt: 0.25 }}>
                             {errors.targetSectionIds}
                           </Typography>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Grade stated on the supplier's CoA (only for items with graded specifications) */}
+                    {showGradeColumn && (
+                      <TableCell>
+                        {row.gradeOptions && row.gradeOptions.length > 0 ? (
+                          <>
+                            <Select
+                              size="small"
+                              fullWidth
+                              displayEmpty
+                              value={row.grade ?? ""}
+                              error={Boolean(errors.grade)}
+                              onChange={(e) => onChangeRow(idx, "grade", e.target.value)}
+                              sx={{ fontSize: 12 }}
+                              inputProps={{ "aria-label": `Sample ${idx + 1} grade` }}
+                            >
+                              <MenuItem value="">
+                                <em style={{ color: theme.palette.text.secondary }}>Select grade</em>
+                              </MenuItem>
+                              {row.gradeOptions.map((g) => (
+                                <MenuItem key={g} value={g}>
+                                  {g}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                            <Typography sx={{ fontSize: 11, color: errors.grade ? theme.custom.status.detected.text : "text.secondary", mt: 0.25 }}>
+                              {errors.grade || "Choose the grade stated on the supplier's CoA"}
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography sx={{ fontSize: 12, color: "text.disabled" }}>-</Typography>
                         )}
                       </TableCell>
                     )}

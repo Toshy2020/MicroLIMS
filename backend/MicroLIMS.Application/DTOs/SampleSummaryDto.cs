@@ -17,6 +17,8 @@ public class SampleSummaryDto
     public string? ProductionStage { get; set; }
     public string CauseOfTesting { get; set; } = string.Empty;
     public string? BatchNumber { get; set; }
+    // Grade stated on the supplier's CoA (raw materials); null when ungraded.
+    public string? Grade { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     // Status as a controlled record prints it ("In testing", not

@@ -60,6 +60,12 @@ export const ReceiveService = {
     return res.data.data;
   },
 
+  // The grades the item has specifications for (empty = ungraded item).
+  async itemGrades(itemId: number): Promise<string[]> {
+    const res = await apiClient.get(`/items/${itemId}/grades`);
+    return res.data.data;
+  },
+
   // Signed: adds a second laboratory's tests to an already-received sample.
   async addLaboratory(sampleId: number, sectionId: number, reason: string, password: string): Promise<void> {
     await apiClient.post(`/samples/${sampleId}/laboratories`, { sectionId, reason, password });

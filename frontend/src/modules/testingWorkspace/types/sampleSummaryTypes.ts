@@ -226,6 +226,7 @@ export interface SampleSummary {
   productionStage: string | null;
   causeOfTesting: string;
   batchNumber: string | null;
+  grade?: string | null;
   controlNumber: string;
   status: string;
   // Status as the controlled record prints it ("In testing"), worded on

@@ -42,6 +42,10 @@ public class ItemController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<ItemResponse>>.Ok(await _itemService.GetAllAsync()));
 
+    // Grades the receive dialog offers; empty when the item is ungraded.
+    [HttpGet("{id:int}/grades")]
+    public async Task<IActionResult> GetGrades(int id) => Ok(ApiResponse<IReadOnlyList<string>>.Ok(await _itemService.GetGradesAsync(id)));
+
     [HttpPost]
     [Authorize(Policy = PermissionConstants.ItemsManage)]
     public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) => Ok(ApiResponse<ItemResponse>.Ok(await _itemService.CreateAsync(request)));

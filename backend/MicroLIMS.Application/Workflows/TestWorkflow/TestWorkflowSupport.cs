@@ -621,9 +621,10 @@ public class TestWorkflowSupport
 
         var itemId = order.Sample.ItemId.Value;
 
+        var grade = await SpecificationLookup.ApplicableGradeAsync(_db, order.SampleId, itemId, order.TestCode);
         var stage = await SpecificationLookup.ApplicableStageAsync(_db, order.SampleId, itemId, order.TestCode);
         var specs = await _db.Specifications
-            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.ProductionStageRole == stage)
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.Grade == grade && s.ProductionStageRole == stage)
             .ToListAsync();
 
         if (specs.Count == 0)

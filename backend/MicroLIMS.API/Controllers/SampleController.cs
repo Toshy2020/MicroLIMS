@@ -18,7 +18,9 @@ public record ReceiveItemBasedSampleRequest(
     string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate, string? ProductionStage,
     // Which laboratories to receive the sample for (ReceiptLabGuard resolves
     // and authorizes it before the engine sees it).
-    List<int>? TargetSectionIds);
+    List<int>? TargetSectionIds,
+    // Grade stated on the supplier's CoA (required when the item has graded specifications).
+    string? Grade = null);
 
 // The sample's full corrected details (see SampleCorrectionRequest), plus the
 // reason and the signer's password.
@@ -40,7 +42,8 @@ public record CorrectSampleRequest(
     int? ItemId = null,
     int? WaterDepartmentId = null,
     int? DepartmentId = null,
-    int? MachineId = null);
+    int? MachineId = null,
+    string? Grade = null);
 
 public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
 
@@ -92,7 +95,7 @@ public class SampleController : ControllerBase
         var sample = await _receivingService.ReceiveSampleAsync(new ItemBasedReceiveRequest(
             request.ItemId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy,
             request.BatchNumber, request.ControlNumber, request.MfgDate, request.ExpDate,
-            request.ProductionStage, CurrentUserId, targets));
+            request.ProductionStage, CurrentUserId, targets, request.Grade));
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
@@ -117,7 +120,7 @@ public class SampleController : ControllerBase
                 request.BatchNumber, request.MfgDate, request.ExpDate, request.SampleQuantity,
                 request.ProductionStage, request.PreviousProductName, request.PreviousProductBatchNumber,
                 request.StorageCondition, request.StorageTimeHours,
-                request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId),
+                request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId, request.Grade),
             request.Reason,
             request.Password,
             CurrentUserId,

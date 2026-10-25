@@ -184,6 +184,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
           isValid = false;
         }
 
+        if (row.itemId && row.gradeOptions?.length && !row.grade) {
+          errors.grade = "Grade is required";
+          isValid = false;
+        }
+
         if (category === "product" && (!row.productionStage || row.productionStage.trim() === "")) {
           errors.productionStage = "Production Stage is required";
           isValid = false;
@@ -266,7 +271,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             mfgDate: row.mfgDate || null,
             expDate: row.expDate || null,
             productionStage: category === "product" ? row.productionStage || null : null,
-            targetSectionIds
+            targetSectionIds,
+            grade: row.gradeOptions?.length ? row.grade || null : null
           });
         } else if (category === "water") {
           await ReceiveService.receiveWater({

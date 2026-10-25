@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -14,7 +15,10 @@ public record ItemBasedReceiveRequest(
     // behaviour (every assigned test, any section) for internal callers
     // that predate lab-targeted receipt; the HTTP endpoint always passes a
     // resolved, non-empty set (see ReceiptLabGuard).
-    IReadOnlyCollection<int>? TargetSectionIds = null);
+    IReadOnlyCollection<int>? TargetSectionIds = null,
+    // Raw materials: the grade stated on the supplier's CoA. Required when the
+    // item has graded specifications; decides which assigned tests apply.
+    string? Grade = null);
 
 public interface IProductWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -72,8 +76,12 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
         }
 
+        var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == item.Id).ToListAsync();
+        var grade = ResolveGrade(itemSpecs, request.Grade);
+
         var sample = new Sample
         {
+            Grade = grade,
             ReferenceNumber = await _refNumbers.GenerateAsync(item.Category),
             Category = item.Category,
             ItemId = item.Id,
@@ -100,7 +108,9 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         // from inside its own workspace must never silently create the
         // other lab's work. Null keeps every assigned test (internal
         // callers that predate this).
-        var assigned = item.AssignedTests.ToList();
+        var assigned = item.AssignedTests.Where(t => AppliesToGrade(itemSpecs, t.TestCode, grade)).ToList();
+        if (assigned.Count == 0)
+            throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
         if (request.TargetSectionIds is { } targets)
         {
             foreach (var sectionId in targets)
@@ -132,6 +142,39 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         await _db.SaveChangesAsync();
 
         return sample;
+    }
+
+    // A test applies to a graded sample when it has no specification rows at
+    // all, an ungraded row, or a row of that grade. (A test whose rows are all
+    // of other grades is skipped: e.g. a USP-only test on a BP receipt.)
+    public static bool TestAppliesToGrade(IEnumerable<Specification> rowsForTest, string? grade)
+    {
+        var rows = rowsForTest.ToList();
+        return rows.Count == 0
+            || rows.Any(r => r.Grade == null)
+            || (grade != null && rows.Any(r => string.Equals(r.Grade, grade, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public static bool AppliesToGrade(IEnumerable<Specification> itemSpecs, string testCode, string? grade) =>
+        TestAppliesToGrade(itemSpecs.Where(s => s.TestCode == testCode), grade);
+
+    // The grade to store for a receipt / correction: required (and must match
+    // one of the item's grades, case-insensitively) when the item has graded
+    // specifications; null for an ungraded item. Returns the item's own
+    // spelling of the grade so later lookups match exactly.
+    public static string? ResolveGrade(IReadOnlyCollection<Specification> itemSpecs, string? requested)
+    {
+        var requestedGrade = SpecificationService.NormalizeGrade(requested);
+        var itemGrades = itemSpecs.Where(s => s.Grade != null).Select(s => s.Grade!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (itemGrades.Count == 0)
+        {
+            if (requestedGrade != null) throw new InvalidOperationException($"Grade {requestedGrade} has no specification for this item.");
+            return null;
+        }
+        if (requestedGrade == null)
+            throw new InvalidOperationException("Choose the grade stated on the supplier's CoA.");
+        return itemGrades.FirstOrDefault(g => string.Equals(g, requestedGrade, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"Grade {requestedGrade} has no specification for this item.");
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

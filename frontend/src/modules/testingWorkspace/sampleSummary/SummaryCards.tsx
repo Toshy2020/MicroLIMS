@@ -69,6 +69,7 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         <SummaryField label="Production Stage" value={s.productionStage} />
         <SummaryField label="Sampled By" value={s.sampledBy} />
         <SummaryField label="Batch Number" value={s.batchNumber} />
+        {s.grade && <SummaryField label="Grade" value={s.grade} />}
 
         <SummaryField label="Control Number" value={s.controlNumber} />
         <SummaryField label="Received By" value={s.receivedByName} />

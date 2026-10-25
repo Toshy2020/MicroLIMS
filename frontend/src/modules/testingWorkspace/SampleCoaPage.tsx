@@ -495,6 +495,7 @@ export function SampleCoaPage() {
                     <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
                     <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
                     <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
+                    {s.grade && <div><div className="il">Grade</div><div className="iv">{s.grade}</div></div>}
                     <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
                   </div>
 
@@ -513,6 +514,7 @@ export function SampleCoaPage() {
                     </div>
                     <div className="coa-dates-grid">
                       <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
+                      {s.grade && <div><div className="il">Grade</div><div className="iv">{s.grade}</div></div>}
                       <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
                       <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
                       <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
@@ -562,6 +564,7 @@ export function SampleCoaPage() {
                   <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
                   <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
                   <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
+                  {s.grade && <div><div className="il">Grade</div><div className="iv">{s.grade}</div></div>}
                   <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
                 </div>
               ) : (
@@ -575,6 +578,7 @@ export function SampleCoaPage() {
                   </div>
                   <div className="coa-dates-grid">
                     <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
+                    {s.grade && <div><div className="il">Grade</div><div className="iv">{s.grade}</div></div>}
                     <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
                     <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
                     <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
@@ -710,6 +714,7 @@ export function SampleCoaPage() {
                         <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
                         <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
                         <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
+                        {s.grade && <div><div className="il">Grade</div><div className="iv">{s.grade}</div></div>}
                         <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
                       </div>
 
@@ -728,6 +733,7 @@ export function SampleCoaPage() {
                         </div>
                         <div className="coa-dates-grid">
                           <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
+                          {s.grade && <div><div className="il">Grade</div><div className="iv">{s.grade}</div></div>}
                           <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
                           <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
                           <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>

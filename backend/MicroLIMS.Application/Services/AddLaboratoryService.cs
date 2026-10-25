@@ -42,7 +42,10 @@ public class AddLaboratoryService
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstAsync(i => i.Id == itemId);
         var sections = await TestSectionLookup.ResolveAsync(_db, item.AssignedTests.Select(t => t.TestCode));
-        var tests = item.AssignedTests.Where(t => sections[t.TestCode] == sectionId).ToList();
+        var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync();
+        var tests = item.AssignedTests
+            .Where(t => sections[t.TestCode] == sectionId && ProductWorkflowEngine.AppliesToGrade(itemSpecs, t.TestCode, sample.Grade))
+            .ToList();
         if (tests.Count == 0)
         {
             var name = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Name).FirstOrDefaultAsync() ?? $"section {sectionId}";

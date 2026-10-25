@@ -6,6 +6,7 @@
   "ProductionStage": "Bulk",
   "CauseOfTesting": "Routine",
   "BatchNumber": "B-100",
+  "Grade": null,
   "ControlNumber": "CTRL-1",
   "Status": "Approved",
   "StatusDisplay": "Approved",

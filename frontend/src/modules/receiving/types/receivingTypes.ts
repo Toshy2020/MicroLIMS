@@ -134,6 +134,8 @@ export interface ItemBasedReceiveRequest {
   productionStage?: string | null;
   // Which laboratories to receive the sample for - required, at least one.
   targetSectionIds: number[];
+  // Grade stated on the supplier's CoA - required when the item has graded specifications.
+  grade?: string | null;
 }
 
 // Mirrors backend ReceiptLabOptionDto (GET /samples/receipt-labs?itemId=).
@@ -218,5 +220,9 @@ export interface ReceiveRowItem {
   // Choose-mode only: labs picked for this row (Laboratories column).
   // undefined until the item's receipt-labs have loaded and defaulted.
   targetSectionIds?: number[];
+  // Raw materials: the item's grades (loaded when the item is picked) and the
+  // one stated on the supplier's CoA. Empty gradeOptions = ungraded item.
+  gradeOptions?: string[];
+  grade?: string;
   errors?: Record<string, string>;
 }

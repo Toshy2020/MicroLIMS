@@ -233,7 +233,7 @@ public class SampleSummaryService
                 .OrderBy(sp => sp.DisplayOrder).ThenBy(sp => sp.Id)
                 .ToListAsync())
                 .GroupBy(sp => sp.TestCode)
-                .ToDictionary(g => g.Key, g => SpecificationLookup.SelectForStage(g, sampleStageRole));
+                .ToDictionary(g => g.Key, g => SpecificationLookup.SelectForStage(g, sampleStageRole, sample.Grade));
 
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
@@ -296,6 +296,7 @@ public class SampleSummaryService
             ProductionStage = sample.ProductionStage,
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
             BatchNumber = sample.BatchNumber,
+            Grade = sample.Grade,
             ControlNumber = sample.ControlNumber,
             Status = sample.Status.ToString(),
             AssignedAnalystId = assignedAnalystId,

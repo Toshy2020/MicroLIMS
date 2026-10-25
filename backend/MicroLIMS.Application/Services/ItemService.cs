@@ -30,6 +30,11 @@ public class ItemService
     public async Task<List<ItemResponse>> GetAllAsync() =>
         (await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ThenInclude(s => s.Stages).AsSplitQuery().ToListAsync()).Select(ItemResponse.From).ToList();
 
+    // The grades the item has specifications for (empty = ungraded item).
+    public async Task<IReadOnlyList<string>> GetGradesAsync(int itemId) =>
+        await _db.Specifications.Where(s => s.ItemId == itemId && s.Grade != null)
+            .Select(s => s.Grade!).Distinct().OrderBy(g => g).ToListAsync();
+
     // Builds the Item from the fields a client may set. Id, IsActive and
     // Specifications are never taken from the request - see ItemSaveRequest.
     public async Task<ItemResponse> CreateAsync(ItemSaveRequest request)

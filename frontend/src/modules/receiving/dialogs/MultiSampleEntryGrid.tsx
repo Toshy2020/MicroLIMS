@@ -137,7 +137,11 @@ export function MultiSampleEntryGrid({
     rows.forEach((row, idx) => {
       if (!row.itemId || row.gradeOptions !== undefined) return;
       const grades = gradesByItem[String(row.itemId)];
-      if (grades) onChangeRow(idx, "gradeOptions", grades);
+      if (grades) {
+        onChangeRow(idx, "gradeOptions", grades);
+        // One grade only: preselect it (still shown and changeable).
+        if (grades.length === 1 && !row.grade) onChangeRow(idx, "grade", grades[0]);
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, gradesByItem, isItemBased]);

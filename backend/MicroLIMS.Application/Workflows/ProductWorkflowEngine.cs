@@ -111,7 +111,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         // other lab's work. Null keeps every assigned test (internal
         // callers that predate this).
         var assigned = item.AssignedTests.Where(t => AppliesToGrade(itemSpecs, t.TestCode, grade)).ToList();
-        if (assigned.Count == 0)
+        if (assigned.Count == 0 && grade is not null)
             throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
         if (request.TargetSectionIds is { } targets)
         {

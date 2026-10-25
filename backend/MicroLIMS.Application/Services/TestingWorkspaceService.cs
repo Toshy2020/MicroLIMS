@@ -602,7 +602,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
             Grade = s.Grade,
-            AwaitingTestSelection = s.AwaitingTestSelection && s.Status == SampleStatus.Received,
+            AwaitingTestSelection = s.AwaitingTestSelection,
             ControlNumber = s.ControlNumber,
             Status = LabStatus(s).ToString(),
             // TestOrders are already narrowed to the labs in view: when none of

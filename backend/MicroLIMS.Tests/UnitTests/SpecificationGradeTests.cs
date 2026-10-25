@@ -76,4 +76,35 @@ public class SpecificationGradeTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(Spec(null)));
         Assert.Contains("already exists for test 'ID'", ex.Message);
     }
+
+    [Fact]
+    public async Task ValidateAsync_ReusesTheItemsExistingSpellingOfAGrade()
+    {
+        using var db = NewDb();
+        db.SampleTests.Add(new SampleTest { ItemId = 1, TestCode = "LOD" });
+        var assay = Spec("In-house");
+        assay.ParameterName = "Assay";
+        db.Specifications.Add(assay);
+        await db.SaveChangesAsync();
+
+        var lod = Spec("in-house");
+        lod.TestCode = "LOD";
+        await new SpecificationService(db).ValidateAsync(lod);
+
+        Assert.Equal("In-house", lod.Grade);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_LetsTheOnlyRowOfAGradeChangeItsCase()
+    {
+        using var db = NewDb();
+        var row = Spec("In-house");
+        db.Specifications.Add(row);
+        await db.SaveChangesAsync();
+
+        row.Grade = "IN-HOUSE";
+        await new SpecificationService(db).ValidateAsync(row);
+
+        Assert.Equal("IN-HOUSE", row.Grade);
+    }
 }

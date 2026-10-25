@@ -189,8 +189,16 @@ public class SpecificationService
     {
         Validate(spec);
         spec.Grade = NormalizeGrade(spec.Grade);
-        // Grades match case-insensitively ("In-house" = "in-house").
+        // Grades match case-insensitively ("In-house" = "in-house"); reuse the item's
+        // existing spelling so exact-match lookups see one value per item.
         var grade = spec.Grade?.ToLower();
+        if (grade is not null)
+        {
+            var existing = await _db.Specifications
+                .Where(s => s.ItemId == spec.ItemId && s.Id != spec.Id && s.Grade != null && s.Grade.ToLower() == grade)
+                .Select(s => s.Grade).FirstOrDefaultAsync(cancellationToken);
+            if (existing is not null) spec.Grade = existing;
+        }
 
         if (string.IsNullOrWhiteSpace(spec.TestCode))
             throw new InvalidOperationException("Test code is required.");

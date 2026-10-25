@@ -212,4 +212,16 @@ public class SampleDocumentPostgresTests
             nameof(MicroLIMS.API.Controllers.SampleDocumentController.Upload))!;
         Assert.Contains(RoleType.Analyst, uploadRoles);
     }
+
+    [PostgresFact]
+    public async Task Upload_StripsControlCharactersAndQuotesFromTheFileName()
+    {
+        var w = await ReceiveAsync();
+        await using var db = w.Db;
+
+        var dto = await Service(db, new InMemoryFileStorageService()).UploadAsync(w.Sample.Id, "Co\r\nA \"v1\"\t.pdf", "application/pdf", Pdf,
+            SampleDocumentType.SupplierCoa, w.MicroHead.Id);
+
+        Assert.Equal("CoA v1.pdf", dto.OriginalFileName);
+    }
 }

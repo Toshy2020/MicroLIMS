@@ -79,7 +79,7 @@ public class SampleDocumentService
         {
             SampleId = sampleId,
             DocumentType = type,
-            OriginalFileName = Path.GetFileName(fileName).Trim(),
+            OriginalFileName = CleanFileName(fileName),
             StorageKey = "pending", // needs the Id, set below
             FileExtension = ext,
             ContentType = contentType.Split(';')[0].Trim().ToLowerInvariant(),
@@ -189,6 +189,10 @@ public class SampleDocumentService
         if (status is SampleStatus.Voided or SampleStatus.Cancelled)
             throw new InvalidOperationException("This sample is voided; its documents can no longer be changed.");
     }
+
+    // Strips the path and every control character and double quote (header / log injection).
+    private static string CleanFileName(string fileName) =>
+        new string(Path.GetFileName(fileName).Where(c => c >= ' ' && c != '\u007f' && c != '"').ToArray()).Trim();
 
     private static SampleDocumentDto ToDto(SampleDocument d, string? uploadedByName = null) => new(
         d.Id, d.SampleId, d.DocumentType, d.OriginalFileName, d.FileExtension, d.ContentType, d.FileSizeBytes,

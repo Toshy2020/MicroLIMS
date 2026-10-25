@@ -102,6 +102,38 @@ public class ItemMassAssignmentTests
             new ItemSaveRequest("Water point", "W-1", SampleCategory.Water, null, null)));
     }
 
+    [Theory]
+    [InlineData(0.0, null, "g", "Minimum sample quantity must be greater than zero.")]
+    [InlineData(-1.0, null, "g", "Minimum sample quantity must be greater than zero.")]
+    [InlineData(null, 0.0, "g", "Minimum sample quantity must be greater than zero.")]
+    [InlineData(5.0, null, null, "Enter the unit for the minimum sample quantity.")]
+    [InlineData(null, 5.0, " ", "Enter the unit for the minimum sample quantity.")]
+    public async Task CreateAndUpdate_RejectABadMinimumSampleQuantity(double? min, double? retestMin, string? unit, string message)
+    {
+        await using var db = NewDb();
+        var service = new ItemService(db);
+        var bad = new ItemSaveRequest("Glycerin", "RM-1", SampleCategory.RawMaterial, null, null,
+            (decimal?)min, (decimal?)retestMin, unit);
+
+        Assert.Equal(message, (await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(bad))).Message);
+
+        var item = await service.CreateAsync(bad with { MinSampleQuantity = null, MinRetestSampleQuantity = null, MinSampleQuantityUnit = null });
+        Assert.Equal(message, (await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(item.Id, bad))).Message);
+    }
+
+    [Fact]
+    public async Task GetGrades_IsDistinctIgnoringCase()
+    {
+        await using var db = NewDb();
+        db.Specifications.AddRange(
+            new Domain.Entities.Specification { ItemId = 7, TestCode = "A", ParameterName = "p", Grade = "In-house" },
+            new Domain.Entities.Specification { ItemId = 7, TestCode = "B", ParameterName = "p", Grade = "in-house" },
+            new Domain.Entities.Specification { ItemId = 7, TestCode = "C", ParameterName = "p", Grade = "BP" });
+        await db.SaveChangesAsync();
+
+        Assert.Equal(new[] { "BP", "In-house" }, await new ItemService(db).GetGradesAsync(7));
+    }
+
     // API-wide guard: no controller action may take a domain entity as its
     // request model, so the same mass-assignment hole cannot come back
     // through another controller.

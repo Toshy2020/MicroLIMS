@@ -66,8 +66,10 @@ public class SampleTestSelectionService
         const string AlreadySelected = "Tests for this sample have already been selected.";
         if (!sample.AwaitingTestSelection)
             throw new InvalidOperationException(AlreadySelected);
-        if (sample.Status != SampleStatus.Received)
-            throw new InvalidOperationException("The tests can no longer be chosen: the sample is closed.");
+        // A second laboratory may still choose after the first has started testing (InTesting);
+        // only a closed sample is refused.
+        if (sample.Status is SampleStatus.Voided or SampleStatus.Cancelled or SampleStatus.Rejected or SampleStatus.Approved)
+            throw new InvalidOperationException("This sample is closed; tests can no longer be selected.");
 
         // The laboratories this call covers: still pending, and the signer's own.
         var userScope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);

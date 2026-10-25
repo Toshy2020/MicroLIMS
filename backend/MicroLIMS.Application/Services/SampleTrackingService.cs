@@ -130,7 +130,7 @@ public class SampleTrackingService
             id,
             sections.TryGetValue(id, out var section) ? section.Code : string.Empty,
             section.Name ?? string.Empty,
-            s.AwaitingTestSelection && s.Status == SampleStatus.Received ? "Awaiting test selection" : StageText(SampleSectionRollup.StatusOf(s, id))
+            s.AwaitingTestSelection ? "Awaiting test selection" : StageText(SampleSectionRollup.StatusOf(s, id))
         )).ToList();
 
         return new SampleTrackingRowDto(

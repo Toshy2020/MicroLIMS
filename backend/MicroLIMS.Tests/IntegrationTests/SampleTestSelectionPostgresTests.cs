@@ -354,4 +354,73 @@ public class SampleTestSelectionPostgresTests
         await TestServiceFactory.SampleTestSelection(db).SelectAsync(s.Id, Choose(Password, w.UspOnly), w.Head.Id, null);
         Assert.Equal(new[] { w.UspOnly }, await db.TestOrders.Where(t => t.SampleId == s.Id).Select(t => t.TestCode).ToListAsync());
     }
+
+    [PostgresFact]
+    public async Task SecondLaboratory_MaySelectAfterTheFirstStartedTesting_AndTheFlagClears()
+    {
+        var w = await ReceiveAsync(bothLabs: true);
+        await using var db = w.Db;
+        var service = TestServiceFactory.SampleTestSelection(db);
+
+        await service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod), w.Head.Id, null);
+        // What the first laboratory starting its test does (IncubationStepRecorder).
+        w.Sample.Status = SampleStatus.InTesting;
+        await db.SaveChangesAsync();
+
+        await using (var read = _fixture.CreateDbContext())
+        {
+            var workspace = new TestingWorkspaceService(read, new UserSectionScopeService(read));
+            var filter = new TestingWorkspaceFilterDto { Category = "RawMaterial", Search = w.Sample.ReferenceNumber, PageSize = 200 };
+            Assert.True(Assert.Single((await workspace.GetActiveSamplesAsync(filter, w.OutsideHead.Id)).Items).AwaitingTestSelection);
+        }
+
+        await service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.OutsideHead.Id, null);
+
+        await using var final = _fixture.CreateDbContext();
+        var done = await final.Samples.Include(s => s.TestOrders).AsNoTracking().SingleAsync(s => s.Id == w.Sample.Id);
+        Assert.False(done.AwaitingTestSelection);
+        Assert.Null(done.PendingTargetSectionIds);
+        Assert.Equal(2, done.TestOrders.Count);
+    }
+
+    [PostgresFact]
+    public async Task ClosedSample_RefusesSelection_WithAnAccurateMessage()
+    {
+        var w = await ReceiveAsync();
+        await using var db = w.Db;
+        w.Sample.Status = SampleStatus.Voided;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleTestSelection(db).SelectAsync(w.Sample.Id, Choose(Password, w.Lod), w.Head.Id, null));
+
+        Assert.Equal("This sample is closed; tests can no longer be selected.", ex.Message);
+    }
+
+    [PostgresFact]
+    public async Task UngradedReceipt_KeepsWorkingWithoutAGrade()
+    {
+        var w = await ReceiveAsync();
+        await using var db = w.Db;
+        var micro = await db.DocumentSections.FirstAsync(s => s.Code == "MICRO");
+        var uid = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        var code = $"UN{uid}";
+        db.TestDefinitions.Add(new TestDefinition { Code = code, DisplayName = code, SectionId = micro.Id, IsActive = true });
+        var item = new Item { Code = $"RM-{uid}", Name = $"Ungraded {uid}", Category = SampleCategory.RawMaterial, IsActive = true };
+        item.AssignedTests.Add(new SampleTest { TestCode = code, DisplayName = code });
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+        db.Specifications.Add(Spec(item.Id, code, null));
+        await db.SaveChangesAsync();
+        var cause = new CauseOfTesting { Name = $"Routine {uid}", IsActive = true };
+        db.CausesOfTesting.Add(cause);
+        await db.SaveChangesAsync();
+
+        var sample = await new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db)).ReceiveAsync(new ItemBasedReceiveRequest(
+            item.Id, cause.Id, "10 g", "Analyst", $"LOT-{uid}", $"CTRL-{uid}", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null,
+            _fixture.SeededUserId, new[] { micro.Id }, null));
+
+        Assert.Null(sample.Grade);
+        Assert.Equal(code, Assert.Single(sample.TestOrders).TestCode);
+    }
 }

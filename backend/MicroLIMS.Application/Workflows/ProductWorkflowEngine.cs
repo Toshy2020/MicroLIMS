@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -153,10 +155,46 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
         }
 
+        var warnings = new List<string>();
+        var minQty = requiresSelection ? item.MinRetestSampleQuantity : item.MinSampleQuantity;
+        if (minQty.HasValue)
+        {
+            var actualQty = LeadingQuantity(request.SampleQuantity);
+            if (actualQty.HasValue)
+            {
+                var actualUnit = ExtractUnit(request.SampleQuantity);
+                var expectedUnit = item.MinSampleQuantityUnit?.Trim();
+                var unitMatches = string.IsNullOrEmpty(expectedUnit) || string.Equals(actualUnit, expectedUnit, StringComparison.OrdinalIgnoreCase);
+
+                if (unitMatches && actualQty.Value < minQty.Value)
+                {
+                    var unitDisplay = string.IsNullOrWhiteSpace(expectedUnit) ? "" : " " + expectedUnit;
+                    warnings.Add($"Sample quantity {request.SampleQuantity} is below the STM minimum of {minQty.Value.ToString("G29", CultureInfo.InvariantCulture)}{unitDisplay}.");
+                }
+            }
+        }
+        sample.Warnings = warnings;
+
         _db.Samples.Add(sample);
         await _db.SaveChangesAsync();
 
         return sample;
+    }
+
+    public static decimal? LeadingQuantity(string? sampleQuantity)
+    {
+        if (string.IsNullOrWhiteSpace(sampleQuantity)) return null;
+        var match = Regex.Match(sampleQuantity, @"^\s*([0-9]+(?:[.,][0-9]+)?)");
+        if (!match.Success) return null;
+        var text = match.Groups[1].Value.Replace(',', '.');
+        return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var val) ? val : null;
+    }
+
+    private static string ExtractUnit(string? sampleQuantity)
+    {
+        if (string.IsNullOrWhiteSpace(sampleQuantity)) return string.Empty;
+        var match = Regex.Match(sampleQuantity, @"^\s*[0-9]+(?:[.,][0-9]+)?\s*(.*)$");
+        return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
     }
 
     // A test applies to a graded sample when it has no specification rows at

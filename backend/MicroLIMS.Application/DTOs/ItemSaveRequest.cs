@@ -13,6 +13,9 @@ public record ItemSaveRequest(
     string Code,
     SampleCategory Category,
     string? SopNumber,
-    List<ItemTestRequest>? AssignedTests);
+    List<ItemTestRequest>? AssignedTests,
+    decimal? MinSampleQuantity = null,
+    decimal? MinRetestSampleQuantity = null,
+    string? MinSampleQuantityUnit = null);
 
 public record ItemTestRequest(string TestCode, string DisplayName);

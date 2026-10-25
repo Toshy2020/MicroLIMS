@@ -93,4 +93,5 @@ public class SampleDto
     public string? OosGroupCode { get; set; }
 
     public List<TestOrderSummaryDto> AssignedTests { get; set; } = new();
+    public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
 }

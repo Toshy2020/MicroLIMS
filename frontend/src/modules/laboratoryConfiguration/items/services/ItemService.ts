@@ -11,6 +11,9 @@ export interface Item {
   isActive: boolean;
   assignedTests: { testCode: string; displayName: string }[];
   specifications: { id?: number; testCode: string; alertLimit: string; actionLimit: string; specLimit: string; dilutionFactor?: number | null }[];
+  minSampleQuantity?: number | null;
+  minRetestSampleQuantity?: number | null;
+  minSampleQuantityUnit?: string | null;
 }
 
 export interface ItemSaveRequest {
@@ -19,6 +22,9 @@ export interface ItemSaveRequest {
   category: string;
   sopNumber: string;
   assignedTests: { testCode: string; displayName: string }[];
+  minSampleQuantity?: number | null;
+  minRetestSampleQuantity?: number | null;
+  minSampleQuantityUnit?: string | null;
 }
 
 export const ItemService = {

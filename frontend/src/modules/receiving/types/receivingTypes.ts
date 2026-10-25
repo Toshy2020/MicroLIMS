@@ -99,6 +99,7 @@ export interface SampleRecord {
   originReferenceNumber?: string | null;
   oosGroupCode?: string | null;
   assignedTests: TestOrderSummary[];
+  warnings?: string[];
 }
 
 // Mirrors backend CorrectSampleRequest: the sample's full corrected details

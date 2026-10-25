@@ -170,6 +170,9 @@ public sealed class ItemsSheet : SheetHandler
         new SheetColumn("Category", Required: true, EnumType: typeof(SampleCategory), Help: "FinishedProduct, RawMaterial or PackagingMaterial."),
         new SheetColumn("SopNumber"),
         new SheetColumn("TestCodes", IsList: true, Help: "Tests assigned on receipt, from Test Master, separated by ;."),
+        new SheetColumn("MinSampleQuantity", Help: "STM minimum sample quantity."),
+        new SheetColumn("MinRetestSampleQuantity", Help: "STM minimum sample quantity for periodic retest receipts."),
+        new SheetColumn("MinSampleQuantityUnit", Help: "Unit for minimum sample quantity (e.g. g, mL)."),
     };
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
@@ -180,6 +183,9 @@ public sealed class ItemsSheet : SheetHandler
         {
             ["Code"] = i.Code, ["Name"] = i.Name, ["Category"] = i.Category.ToString(),
             ["SopNumber"] = Fmt(i.SopNumber), ["TestCodes"] = FmtList(i.AssignedTests.Select(t => t.TestCode)),
+            ["MinSampleQuantity"] = Fmt(i.MinSampleQuantity),
+            ["MinRetestSampleQuantity"] = Fmt(i.MinRetestSampleQuantity),
+            ["MinSampleQuantityUnit"] = Fmt(i.MinSampleQuantityUnit),
         }).ToList();
 
     // Loaded inactive: an inactive item cannot receive samples
@@ -197,7 +203,10 @@ public sealed class ItemsSheet : SheetHandler
         var created = await _service.CreateAsync(new ItemSaveRequest(
             r.Text("Name"), r.Text("Code"), r.Enum<SampleCategory>("Category"), r.OptionalText("SopNumber"),
             codes.Select(c => tests.First(t => t.Code.Equals(c, StringComparison.OrdinalIgnoreCase)))
-                .Select(t => new ItemTestRequest(t.Code, t.DisplayName)).ToList()));
+                .Select(t => new ItemTestRequest(t.Code, t.DisplayName)).ToList(),
+            MinSampleQuantity: r.Decimal("MinSampleQuantity"),
+            MinRetestSampleQuantity: r.Decimal("MinRetestSampleQuantity"),
+            MinSampleQuantityUnit: r.OptionalText("MinSampleQuantityUnit")));
         await _service.SetActiveAsync(created.Id, false);
         return Created("Item", created.Id, r);
     }

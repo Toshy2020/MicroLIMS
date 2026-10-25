@@ -15,6 +15,9 @@ public class ItemResponse
     public string SopNumber { get; init; } = null!;
     public List<SpecificationResponse> Specifications { get; init; } = new();
     public List<SampleTestResponse> AssignedTests { get; init; } = new();
+    public decimal? MinSampleQuantity { get; init; }
+    public decimal? MinRetestSampleQuantity { get; init; }
+    public string? MinSampleQuantityUnit { get; init; }
     public bool IsActive { get; init; }
 
     public static ItemResponse From(Item e) => new()
@@ -27,6 +30,9 @@ public class ItemResponse
         SopNumber = e.SopNumber,
         Specifications = e.Specifications.Select(SpecificationResponse.From).ToList(),
         AssignedTests = e.AssignedTests.Select(SampleTestResponse.From).ToList(),
+        MinSampleQuantity = e.MinSampleQuantity,
+        MinRetestSampleQuantity = e.MinRetestSampleQuantity,
+        MinSampleQuantityUnit = e.MinSampleQuantityUnit,
         IsActive = e.IsActive,
     };
 }

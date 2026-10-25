@@ -638,7 +638,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
             PreviousProductBatchNumber = s.Category == SampleCategory.AfterCleaning ? (s.PreviousProductBatchNumber ?? s.BatchNumber) : null,
             OriginSampleId = s.OriginSampleId,
             OriginReferenceNumber = s.OriginSample?.ReferenceNumber,
-            OosGroupCode = s.OosGroupCode
+            OosGroupCode = s.OosGroupCode,
+            Warnings = s.Warnings
         };
     }
 }

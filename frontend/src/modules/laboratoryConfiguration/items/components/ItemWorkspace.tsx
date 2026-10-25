@@ -242,6 +242,37 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   {item.isActive ? "Active (Sample receipt enabled)" : "Frozen (Sample receipt disabled)"}
                 </Typography>
               </Paper>
+
+              {item.category === "RawMaterial" && (
+                <>
+                  <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
+                      Min Sample Quantity
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {item.minSampleQuantity != null ? `${item.minSampleQuantity} ${item.minSampleQuantityUnit || ""}`.trim() : "—"}
+                    </Typography>
+                  </Paper>
+
+                  <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
+                      Min Retest Sample Quantity
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {item.minRetestSampleQuantity != null ? `${item.minRetestSampleQuantity} ${item.minSampleQuantityUnit || ""}`.trim() : "—"}
+                    </Typography>
+                  </Paper>
+
+                  <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
+                      Min Sample Quantity Unit
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {item.minSampleQuantityUnit || "—"}
+                    </Typography>
+                  </Paper>
+                </>
+              )}
             </Box>
 
             <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>

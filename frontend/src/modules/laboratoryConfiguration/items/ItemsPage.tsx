@@ -124,6 +124,9 @@ export function ItemsPage() {
     category: string;
     sopNumber: string;
     testCodes: string[];
+    minSampleQuantity?: number | null;
+    minRetestSampleQuantity?: number | null;
+    minSampleQuantityUnit?: string | null;
   }) => {
     setMessage(null);
     const payload = {
@@ -132,6 +135,9 @@ export function ItemsPage() {
       category: itemData.category,
       sopNumber: itemData.sopNumber,
       assignedTests: itemData.testCodes.map((tc) => ({ testCode: tc, displayName: tc })),
+      minSampleQuantity: itemData.minSampleQuantity,
+      minRetestSampleQuantity: itemData.minRetestSampleQuantity,
+      minSampleQuantityUnit: itemData.minSampleQuantityUnit,
     };
 
     if (editingItem) {

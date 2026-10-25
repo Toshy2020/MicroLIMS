@@ -4,6 +4,7 @@ import {
   Box,
   Typography,
   Alert,
+  Snackbar,
   CircularProgress,
   useTheme
 } from "@mui/material";
@@ -80,6 +81,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [warningSnackbarOpen, setWarningSnackbarOpen] = useState(false);
 
   // Load shared master data when dialog opens
   useEffect(() => {
@@ -257,11 +260,12 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     setLoading(true);
 
     try {
+      const allWarnings: string[] = [];
       // Process each row sequentially or in parallel
       for (const row of rows) {
         if (category === "product" || category === "rm" || category === "pm") {
           const targetSectionIds = labMode.kind === "fixed" ? [labMode.sectionId] : row.targetSectionIds || [];
-          await ReceiveService.receiveItemBased({
+          const res = await ReceiveService.receiveItemBased({
             itemId: Number(row.itemId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampleQuantity: row.sampleQuantity || "",
@@ -274,6 +278,9 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             targetSectionIds,
             grade: row.gradeOptions?.length ? row.grade || null : null
           });
+          if (res?.warnings?.length) {
+            allWarnings.push(...res.warnings);
+          }
         } else if (category === "water") {
           await ReceiveService.receiveWater({
             waterDepartmentId: Number(row.departmentId),
@@ -304,6 +311,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
         }
       }
 
+      if (allWarnings.length > 0) {
+        setWarnings(allWarnings);
+        setWarningSnackbarOpen(true);
+      }
+
       onSuccess(rows.length);
       onClose();
     } catch (err: any) {
@@ -320,7 +332,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
   const currentCategoryDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
 
   return (
-    <FloatingDialog
+    <>
+      <FloatingDialog
       open={open}
       onClose={() => { if (!loading) onClose(); }}
       maxWidth={step === 1 ? "md" : "xl"}
@@ -428,6 +441,21 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             />
           )
         )}
-    </FloatingDialog>
+      </FloatingDialog>
+      <Snackbar
+        open={warningSnackbarOpen}
+        autoHideDuration={8000}
+        onClose={() => setWarningSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="warning"
+          onClose={() => setWarningSnackbarOpen(false)}
+          sx={{ borderRadius: 1.5, whiteSpace: "pre-line", maxWidth: 600 }}
+        >
+          {warnings.join("\n")}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }

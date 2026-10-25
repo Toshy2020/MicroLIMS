@@ -50,7 +50,10 @@ public class ItemService
             Code = request.Code,
             Category = request.Category,
             SopNumber = request.SopNumber ?? string.Empty,
-            AssignedTests = ToSampleTests(request.AssignedTests)
+            AssignedTests = ToSampleTests(request.AssignedTests),
+            MinSampleQuantity = request.MinSampleQuantity,
+            MinRetestSampleQuantity = request.MinRetestSampleQuantity,
+            MinSampleQuantityUnit = request.MinSampleQuantityUnit
         };
 
         _db.Items.Add(item);
@@ -79,6 +82,9 @@ public class ItemService
         item.Code = update.Code;
         item.Category = update.Category;
         item.SopNumber = update.SopNumber ?? string.Empty;
+        item.MinSampleQuantity = update.MinSampleQuantity;
+        item.MinRetestSampleQuantity = update.MinRetestSampleQuantity;
+        item.MinSampleQuantityUnit = update.MinSampleQuantityUnit;
 
         _db.RemoveRange(item.AssignedTests);
         item.AssignedTests = ToSampleTests(update.AssignedTests);

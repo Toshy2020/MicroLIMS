@@ -51,7 +51,7 @@ export interface WorkspaceTileCounts {
 
 // One receiving endpoint per category, matching the distinct backend receive shapes.
 export const ReceiveService = {
-  receiveItemBased: (r: ItemBasedReceiveRequest) =>
+  receiveItemBased: (r: ItemBasedReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/samples", r).then((res) => res.data.data),
 
   // Which laboratories the item's assigned tests belong to, with each

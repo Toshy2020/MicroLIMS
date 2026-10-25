@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
@@ -115,4 +116,7 @@ public class Sample : IVersionedEntity
     public List<SampleSectionSignoff> SectionSignoffs { get; set; } = new();
     public List<SampleLocation> Locations { get; set; } = new();
     public SamplePreparation? SamplePreparation { get; set; }
+
+    [NotMapped]
+    public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
 }

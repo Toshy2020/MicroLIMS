@@ -65,12 +65,19 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task SystemAdministrator_HoldsEveryPermission()
+    public async Task SystemAdministrator_HoldsExactlyTheSystemAdministratorGrants()
     {
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.SystemAdministrator);
-        Assert.Equal(PermissionConstants.All.Count, codes.Count);
-        Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
+        Assert.Equal(PermissionConstants.SystemAdministratorGrants.Count, codes.Count);
+        Assert.Equal(PermissionConstants.SystemAdministratorGrants.OrderBy(c => c), codes.OrderBy(c => c));
+
+        // Segregation of duties: the administrator controls the system but does
+        // not execute, correct or supervise GxP work.
+        Assert.DoesNotContain(PermissionConstants.SamplesReceive, codes);
+        Assert.DoesNotContain(PermissionConstants.SamplesCorrect, codes);
+        Assert.DoesNotContain(PermissionConstants.TestWorkflowSupervise, codes);
+        Assert.DoesNotContain(PermissionConstants.TestWorkflowExecute, codes);
 
         // Document Control capabilities the specification denies the
         // administrator are deliberately absent from the catalog entirely, so
@@ -195,16 +202,14 @@ public class RolePermissionSeedDataTests
     [Fact]
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
-        // System.ViewSecurityAudit is granted to SystemAdministrator only.
-        // Samples.Receive/Samples.TrackAll are granted to SystemAdministrator
-        // and SectionHead only. Solutions.Prepare (HPLC chain S4) is granted
-        // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
-        // 110 (SystemAdministrator holds it via PermissionConstants.All).
-        // Hplc.Operate (HPLC chain S6) is granted to the same three roles -
-        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123. MonitoringPlan.View (all four roles) +4, Manage and Approve (SystemAdministrator, SectionHead) +4, for 131.
+        // The System Administrator now holds only PermissionConstants.SystemAdministratorGrants
+        // (22 system codes, no lab/GxP codes). The total is the sum of the four per-role
+        // sets that the tests above assert literally:
+        //   SystemAdministrator 22 + SectionHead 50 + Reviewer 18 + Analyst 17 = 107.
+        // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(142, total);
+        Assert.Equal(107, total);
     }
 
     [Fact]
@@ -214,20 +219,30 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(142, await db.RolePermissions.CountAsync());
+        Assert.Equal(107, await db.RolePermissions.CountAsync()); // 22 + 50 + 18 + 17, see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]
-    public async Task ReceiveAndTrackAll_AreSeededForAdminAndSectionHeadOnly()
+    public async Task SamplesReceive_IsSectionHeadOnly()
     {
         var db = CreateSeededDbContext();
+        var code = PermissionConstants.SamplesReceive;
 
-        foreach (var code in new[] { PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll })
-        {
-            Assert.Contains(code, await CodesForRole(db, RoleType.SystemAdministrator));
-            Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
-            Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
-            Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
-        }
+        Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.SystemAdministrator));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
+    }
+
+    [Fact]
+    public async Task SamplesTrackAll_IsSystemAdministratorAndSectionHeadOnly()
+    {
+        var db = CreateSeededDbContext();
+        var code = PermissionConstants.SamplesTrackAll;
+
+        Assert.Contains(code, await CodesForRole(db, RoleType.SystemAdministrator));
+        Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
     }
 }

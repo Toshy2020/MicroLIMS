@@ -631,9 +631,9 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
             Keywords: new List<string> { "Admin", "SoD" },
             InitialRevisionNumber: "01",
             ReviewCycleMonths: 12
-        ), users.Admin.Id);
+        ), users.Author.Id); // Registration needs Documents.Register, which the System Administrator no longer holds; the admin remains the owner.
 
-        var adminRev = await db.DocumentRevisions.FirstAsync(r => r.DocumentMasterId == adminMaster.Id);
+        var adminRev =await db.DocumentRevisions.FirstAsync(r => r.DocumentMasterId == adminMaster.Id);
 
         // Admin attempting to create approval task nominating themselves as Approver
         await Assert.ThrowsAsync<InvalidOperationException>(() =>

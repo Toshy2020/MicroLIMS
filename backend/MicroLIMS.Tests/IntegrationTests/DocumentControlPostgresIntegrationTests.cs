@@ -38,7 +38,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "1",
             Action = "Create",
-            UserId = _fixture.SeededUserId,
+            UserId = _fixture.SeededControllerUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -67,7 +67,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "2",
             Action = "Create",
-            UserId = _fixture.SeededUserId,
+            UserId = _fixture.SeededControllerUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -95,7 +95,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "3",
             Action = "Create",
-            UserId = _fixture.SeededUserId,
+            UserId = _fixture.SeededControllerUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -133,7 +133,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "4",
             Action = "Create",
-            UserId = _fixture.SeededUserId,
+            UserId = _fixture.SeededControllerUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -171,7 +171,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityType = "Sample",
             EntityId = 1,
             MeaningOfSignature = SignatureMeaning.Reviewed,
-            UserId = _fixture.SeededUserId,
+            UserId = _fixture.SeededControllerUserId,
             SignedAt = DateTime.UtcNow,
             UserFullNameSnapshot = "QA Document Admin",
             UsernameSnapshot = "qa_admin",
@@ -202,7 +202,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityType = "Sample",
             EntityId = 2,
             MeaningOfSignature = SignatureMeaning.Approved,
-            UserId = _fixture.SeededUserId,
+            UserId = _fixture.SeededControllerUserId,
             SignedAt = DateTime.UtcNow,
             UserFullNameSnapshot = "QA Document Admin",
             UsernameSnapshot = "qa_admin",
@@ -284,11 +284,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
-            DocumentOwnerUserId = _fixture.SeededUserId,
+            DocumentOwnerUserId = _fixture.SeededControllerUserId,
             Confidentiality = DocumentConfidentiality.Internal,
             RecordOrigin = RecordOrigin.Native,
             RecordStatus = DocumentRecordStatus.Active,
-            CreatedByUserId = _fixture.SeededUserId,
+            CreatedByUserId = _fixture.SeededControllerUserId,
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc1);
@@ -303,11 +303,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
-            DocumentOwnerUserId = _fixture.SeededUserId,
+            DocumentOwnerUserId = _fixture.SeededControllerUserId,
             Confidentiality = DocumentConfidentiality.Internal,
             RecordOrigin = RecordOrigin.Native,
             RecordStatus = DocumentRecordStatus.Active,
-            CreatedByUserId = _fixture.SeededUserId,
+            CreatedByUserId = _fixture.SeededControllerUserId,
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc2);
@@ -324,7 +324,7 @@ public class DocumentControlPostgresIntegrationTests
         // Void the first document
         doc1.RecordStatus = DocumentRecordStatus.Void;
         doc1.VoidedAt = DateTime.UtcNow;
-        doc1.VoidedByUserId = _fixture.SeededUserId;
+        doc1.VoidedByUserId = _fixture.SeededControllerUserId;
         doc1.VoidReason = "Superseded by new revision flow";
         await db.SaveChangesAsync();
 
@@ -337,11 +337,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
-            DocumentOwnerUserId = _fixture.SeededUserId,
+            DocumentOwnerUserId = _fixture.SeededControllerUserId,
             Confidentiality = DocumentConfidentiality.Internal,
             RecordOrigin = RecordOrigin.Native,
             RecordStatus = DocumentRecordStatus.Active,
-            CreatedByUserId = _fixture.SeededUserId,
+            CreatedByUserId = _fixture.SeededControllerUserId,
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc3);
@@ -365,7 +365,7 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId,
+            DocumentOwnerUserId: _fixture.SeededControllerUserId,
             Confidentiality: DocumentConfidentiality.Internal,
             Category: "Validation",
             Keywords: new List<string> { "Postgres", "Integration" },
@@ -380,7 +380,7 @@ public class DocumentControlPostgresIntegrationTests
             await db.SaveChangesAsync();
         }
 
-        var result = await masterService.RegisterDocumentMasterAsync(request, _fixture.SeededUserId);
+        var result = await masterService.RegisterDocumentMasterAsync(request, _fixture.SeededControllerUserId);
 
         Assert.NotNull(result);
         Assert.StartsWith("DOC-", result.MicroLimsDocumentId);
@@ -413,8 +413,8 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         var revId = registered.Revisions[0].Id;
         var validContent = Encoding.UTF8.GetBytes("%PDF-1.7 Authentic Controlled Content");
@@ -426,12 +426,12 @@ public class DocumentControlPostgresIntegrationTests
             "sop_authentic.pdf",
             "application/pdf",
             validContent,
-            _fixture.SeededUserId);
+            _fixture.SeededControllerUserId);
 
         Assert.Equal(expectedHash, uploaded.ContentSha256);
 
         // Successful retrieval
-        var (meta, content) = await fileService.GetFileContentAsync(uploaded.Id, _fixture.SeededUserId);
+        var (meta, content) = await fileService.GetFileContentAsync(uploaded.Id, _fixture.SeededControllerUserId);
         Assert.Equal(validContent.Length, content.Length);
 
         // Tamper storage
@@ -441,7 +441,7 @@ public class DocumentControlPostgresIntegrationTests
         // Retrieval must detect integrity failure and record security audit log in Postgres
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
-            await fileService.GetFileContentAsync(uploaded.Id, _fixture.SeededUserId);
+            await fileService.GetFileContentAsync(uploaded.Id, _fixture.SeededControllerUserId);
         });
         Assert.Contains("integrity check failed", ex.Message, StringComparison.OrdinalIgnoreCase);
 
@@ -466,8 +466,8 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         // Attempt voiding as regular user -> Must fail with 403
         var voidRequest = new VoidDocumentMasterRequest("Document registered in error by project team.");
@@ -657,20 +657,20 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         var revId = registered.Revisions[0].Id;
         var fileBytes1 = Encoding.UTF8.GetBytes("%PDF-1.7 Original Draft File Content v1");
         var fileBytes2 = Encoding.UTF8.GetBytes("%PDF-1.7 Replaced Draft File Content v2");
 
         var file1 = await fileService.UploadRevisionFileAsync(
-            revId, FileRole.ControlledPdf, "rev1_v1.pdf", "application/pdf", fileBytes1, _fixture.SeededUserId);
+            revId, FileRole.ControlledPdf, "rev1_v1.pdf", "application/pdf", fileBytes1, _fixture.SeededControllerUserId);
         Assert.True(file1.IsActive);
         Assert.Null(file1.SupersededByFileId);
 
         var file2 = await fileService.UploadRevisionFileAsync(
-            revId, FileRole.ControlledPdf, "rev1_v2.pdf", "application/pdf", fileBytes2, _fixture.SeededUserId);
+            revId, FileRole.ControlledPdf, "rev1_v2.pdf", "application/pdf", fileBytes2, _fixture.SeededControllerUserId);
         Assert.True(file2.IsActive);
         Assert.Null(file2.SupersededByFileId);
 
@@ -681,7 +681,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Equal(file2.Id, reloadedFile1.SupersededByFileId);
 
         // Historical retrieval of superseded file1 is still bit-exact
-        var (meta1, content1) = await fileService.GetFileContentAsync(file1.Id, _fixture.SeededUserId);
+        var (meta1, content1) = await fileService.GetFileContentAsync(file1.Id, _fixture.SeededControllerUserId);
         Assert.Equal(fileBytes1.Length, content1.Length);
 
         // Audit log in Postgres
@@ -708,23 +708,23 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         var revId = registered.Revisions[0].Id;
         var fileBytes = Encoding.UTF8.GetBytes("%PDF-1.7 Content to be cancelled");
         var uploaded = await fileService.UploadRevisionFileAsync(
-            revId, FileRole.ControlledPdf, "to_cancel.pdf", "application/pdf", fileBytes, _fixture.SeededUserId);
+            revId, FileRole.ControlledPdf, "to_cancel.pdf", "application/pdf", fileBytes, _fixture.SeededControllerUserId);
 
         // Short reason (< 10 chars) -> Throws ArgumentException
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await masterService.CancelDraftRevisionAsync(revId, new CancelDraftRevisionRequest("Short"), _fixture.SeededUserId);
+            await masterService.CancelDraftRevisionAsync(revId, new CancelDraftRevisionRequest("Short"), _fixture.SeededControllerUserId);
         });
 
         // Valid reason (>= 10 chars) -> Cancels
         var cancelReason = "Project scope changed; procedure no longer required.";
-        var cancelled = await masterService.CancelDraftRevisionAsync(revId, new CancelDraftRevisionRequest(cancelReason), _fixture.SeededUserId);
+        var cancelled = await masterService.CancelDraftRevisionAsync(revId, new CancelDraftRevisionRequest(cancelReason), _fixture.SeededControllerUserId);
 
         Assert.Equal(DocumentRevisionStatus.Cancelled, cancelled.RevisionStatus);
         Assert.Equal(cancelReason, cancelled.CancelReason);
@@ -738,7 +738,7 @@ public class DocumentControlPostgresIntegrationTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
         {
             await fileService.UploadRevisionFileAsync(
-                revId, FileRole.ControlledPdf, "another.pdf", "application/pdf", fileBytes, _fixture.SeededUserId);
+                revId, FileRole.ControlledPdf, "another.pdf", "application/pdf", fileBytes, _fixture.SeededControllerUserId);
         });
 
         // Audit Trail verification in Postgres
@@ -838,8 +838,8 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         var doc2 = await masterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(
             CompanyDocumentCode: $"{uniquePrefix}-DOC-2",
@@ -847,8 +847,8 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         // Void doc2
         await masterService.VoidMasterAsync(doc2.Id, new VoidDocumentMasterRequest("Voided for library filter testing."), _fixture.SeededControllerUserId);
@@ -858,7 +858,7 @@ public class DocumentControlPostgresIntegrationTests
         {
             SearchTerm = uniquePrefix,
             IncludeCancelledAndVoided = false
-        }, _fixture.SeededUserId);
+        }, _fixture.SeededControllerUserId);
         Assert.Single(resDefault.Items);
         Assert.Equal(doc1.Id, resDefault.Items[0].Id);
 
@@ -867,7 +867,7 @@ public class DocumentControlPostgresIntegrationTests
         {
             SearchTerm = uniquePrefix,
             IncludeCancelledAndVoided = true
-        }, _fixture.SeededUserId);
+        }, _fixture.SeededControllerUserId);
         Assert.Equal(2, resAll.Items.Count);
         Assert.Contains(resAll.Items, d => d.Id == doc1.Id && d.RecordStatus == DocumentRecordStatus.Active);
         Assert.Contains(resAll.Items, d => d.Id == doc2.Id && d.RecordStatus == DocumentRecordStatus.Void);
@@ -889,11 +889,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId: _fixture.SeededDocTypeId,
             DepartmentId: _fixture.SeededDepartmentId,
             SectionId: _fixture.SeededSectionId,
-            DocumentOwnerUserId: _fixture.SeededUserId
-        ), _fixture.SeededUserId);
+            DocumentOwnerUserId: _fixture.SeededControllerUserId
+        ), _fixture.SeededControllerUserId);
 
         // Query record audit
-        var recordAudit = await docAuditService.GetRecordAuditHistoryAsync(registered.Id, null, _fixture.SeededUserId);
+        var recordAudit = await docAuditService.GetRecordAuditHistoryAsync(registered.Id, null, _fixture.SeededControllerUserId);
         Assert.NotEmpty(recordAudit);
         Assert.Contains(recordAudit, a => a.ActionCode == "DocumentMasterRegistered");
 
@@ -901,7 +901,7 @@ public class DocumentControlPostgresIntegrationTests
         var (csvBytes, contentType, fileName) = await docAuditService.ExportAuditTrailAsync(new DocumentAuditFilterRequest
         {
             DocumentMasterId = registered.Id
-        }, _fixture.SeededUserId);
+        }, _fixture.SeededControllerUserId);
 
         Assert.NotEmpty(csvBytes);
         var csvText = Encoding.UTF8.GetString(csvBytes);
@@ -910,7 +910,7 @@ public class DocumentControlPostgresIntegrationTests
 
         // Verify 21 CFR Part 11 Self-Audit Log: AuditTrailExported was written to Postgres
         var exportLog = await db.AuditLogs
-            .FirstOrDefaultAsync(a => a.ActionCode == "AuditTrailExported" && a.UserId == _fixture.SeededUserId);
+            .FirstOrDefaultAsync(a => a.ActionCode == "AuditTrailExported" && a.UserId == _fixture.SeededControllerUserId);
         Assert.NotNull(exportLog);
         Assert.Equal(AuditActionCategory.Security, exportLog.ActionCategory);
     }
@@ -922,13 +922,13 @@ public class DocumentControlPostgresIntegrationTests
         var marker = Guid.NewGuid().ToString("N");
         var now = DateTime.UtcNow;
         db.AuditLogs.AddRange(
-            new AuditLog { EntityName = nameof(Sample), EntityId = $"{marker}-sample", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now },
-            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = $"{marker}-esig", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now },
-            new AuditLog { EntityName = nameof(DocumentKeyword), EntityId = $"{marker}-keyword", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now });
+            new AuditLog { EntityName = nameof(Sample), EntityId = $"{marker}-sample", Action = "Create", UserId = _fixture.SeededControllerUserId, Timestamp = now },
+            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = $"{marker}-esig", Action = "Create", UserId = _fixture.SeededControllerUserId, Timestamp = now },
+            new AuditLog { EntityName = nameof(DocumentKeyword), EntityId = $"{marker}-keyword", Action = "Create", UserId = _fixture.SeededControllerUserId, Timestamp = now });
         await db.SaveChangesAsync();
 
         var service = new DocumentAuditService(db, new AuditEventService(db, new DatabaseSequenceHelper(db)), new DocumentAuthorizationService(db));
-        var result = await service.SearchAuditLogsAsync(new DocumentAuditFilterRequest(SearchTerm: marker), _fixture.SeededUserId);
+        var result = await service.SearchAuditLogsAsync(new DocumentAuditFilterRequest(SearchTerm: marker), _fixture.SeededControllerUserId);
 
         var item = Assert.Single(result.Items);
         Assert.Equal($"{marker}-keyword", item.EntityId);

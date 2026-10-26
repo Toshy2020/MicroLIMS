@@ -373,6 +373,16 @@ public class RoleManagementTests
         return user;
     }
 
+    // The seeded System Administrator no longer holds a GxP code (WP1.2), so
+    // it no longer violates segregation of duties. Tests that need the
+    // administrator to start in violation add the GxP grant explicitly.
+    private static async Task SeedAdministratorGxpGrantAsync(MicroLimsDbContext db)
+    {
+        var samplesApprove = await db.Permissions.SingleAsync(p => p.Code == PermissionConstants.SamplesApprove);
+        db.RolePermissions.Add(new RolePermission { RoleId = 1, PermissionId = samplesApprove.Id });
+        await db.SaveChangesAsync();
+    }
+
     private static async Task<User> AddActingUserAsync(MicroLimsDbContext db, int roleId = 4)
     {
         var user = new User { FullName = "Acting User", Username = "actinguser", RoleId = roleId, IsActive = true };
@@ -506,6 +516,7 @@ public class RoleManagementTests
     public async Task UpdatePermissionsAsync_AcceptsRemovingTheConflictsOfAnAlreadyViolatingRole()
     {
         var db = CreateDbContext();
+        await SeedAdministratorGxpGrantAsync(db);
         var service = CreateService(db);
         var actor = await AddActingUserAsync(db);
         Assert.NotEmpty((await service.GetByIdAsync(1))!.SodConflicts);
@@ -533,6 +544,7 @@ public class RoleManagementTests
     public async Task CreateAsync_RejectsABaseRoleWhoseGrantsWouldConflict_AndSavesNothing()
     {
         var db = CreateDbContext();
+        await SeedAdministratorGxpGrantAsync(db);
         var service = CreateService(db);
         var rolesBefore = await db.Roles.CountAsync();
 
@@ -558,6 +570,7 @@ public class RoleManagementTests
     public async Task GetAllAsync_ListsTheConflictsOfExistingRoles()
     {
         var db = CreateDbContext();
+        await SeedAdministratorGxpGrantAsync(db);
         var service = CreateService(db);
 
         var roles = await service.GetAllAsync();
@@ -584,6 +597,7 @@ public class RoleManagementTests
     public async Task Controller_MapsASegregationOfDutiesViolationToConflict_OnUpdatePermissionsAndCreate()
     {
         var db = CreateDbContext();
+        await SeedAdministratorGxpGrantAsync(db);
         var actor = await AddActingUserAsync(db);
         var controller = CreateController(db, actor.Id);
         var created = await CreateService(db).CreateAsync("Mixed Role", null, RoleType.Analyst);

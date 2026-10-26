@@ -590,15 +590,16 @@ public class SampleCorrectionTests
     }
 
     // Analysts record the work; correcting or voiding the sample record is not theirs.
+    // The System Administrator is not granted Samples.Correct either (segregation
+    // of duties - it administers the system, it does not correct GxP records).
     [Theory]
     [InlineData(nameof(SampleController.Correct))]
     [InlineData(nameof(SampleController.Void))]
-    public void SampleController_CorrectAndVoid_AreClosedToAnalysts(string action)
+    public void SampleController_CorrectAndVoid_AreRestrictedToReviewerAndSectionHead(string action)
     {
         var roles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<SampleController>(action)!;
-        Assert.DoesNotContain(MicroLIMS.Domain.Enums.RoleType.Analyst, roles);
-        Assert.Contains(MicroLIMS.Domain.Enums.RoleType.Reviewer, roles);
-        Assert.Contains(MicroLIMS.Domain.Enums.RoleType.SectionHead, roles);
-        Assert.Contains(MicroLIMS.Domain.Enums.RoleType.SystemAdministrator, roles);
+        Assert.Equal(
+            new[] { MicroLIMS.Domain.Enums.RoleType.SectionHead, MicroLIMS.Domain.Enums.RoleType.Reviewer },
+            roles.OrderBy(r => r));
     }
 }

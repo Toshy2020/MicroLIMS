@@ -2833,6 +2833,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("MeaningOfSignature")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RoleNameSnapshot")
+                        .HasColumnType("text");
+
                     b.Property<string>("RoleSnapshot")
                         .IsRequired()
                         .HasColumnType("text");
@@ -3103,7 +3106,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("LastModifiedByUserId")
+                    b.Property<int?>("LastModifiedByUserId")
                         .HasColumnType("integer");
 
                     b.Property<DateOnly?>("LastPmOn")
@@ -3218,7 +3221,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("ChangedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("ChangedByUserId")
+                    b.Property<int?>("ChangedByUserId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Comment")
@@ -8458,6 +8461,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("PermissionVersion")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");

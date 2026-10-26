@@ -70,6 +70,8 @@ interface HeaderProps {
   labCodes: string[];
 }
 
+// Labels for the base role type, used only until the session knows the
+// role's own name (a session stored before role names were sent).
 const ROLE_LABELS: Record<string, string> = {
   SectionHead: "Section Head",
   SystemAdministrator: "System Administrator"
@@ -81,10 +83,10 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const showIdentityText = useMediaQuery(theme.breakpoints.up("sm"));
   const navigate = useNavigate();
-  const { username, fullName, jobTitle, role, logout } = useAuth();
+  const { username, fullName, jobTitle, role, roleName, logout } = useAuth();
 
   const displayName = fullName ?? username ?? "User";
-  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes);
+  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes, roleName);
 
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [bellAnchor, setBellAnchor] = useState<HTMLElement | null>(null);
@@ -424,7 +426,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{displayTitle}</Typography>
             <Box component="dl" sx={{ m: 0, mt: 0.75, display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 1, fontSize: 12, color: "text.secondary", "& dd": { m: 0, color: "text.primary" } }}>
               {username && (<><dt>User ID</dt><dd>{username}</dd></>)}
-              {role && (<><dt>Role</dt><dd>{ROLE_LABELS[role] ?? role}</dd></>)}
+              {(roleName || role) && (<><dt>Role</dt><dd>{roleName?.trim() || (role ? ROLE_LABELS[role] ?? role : "")}</dd></>)}
             </Box>
           </Box>
           <Divider />

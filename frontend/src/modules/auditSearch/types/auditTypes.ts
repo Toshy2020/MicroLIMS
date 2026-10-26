@@ -7,7 +7,8 @@ export interface AuditLogItem {
   newValue: string | null;
   userId: number;
   userName: string;
-  userRole: string | null;
+  // The user's role today, not necessarily when the event happened.
+  userCurrentRole: string | null;
   userUsername: string | null;
   timestamp: string;
   batchNumber: string | null;

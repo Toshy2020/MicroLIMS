@@ -87,6 +87,7 @@ public class ElectronicSignatureService : IElectronicSignatureService
             UserFullNameSnapshot = user.FullName,
             UsernameSnapshot = user.Username,
             RoleSnapshot = user.Role?.Type.ToString() ?? "Unknown",
+            RoleNameSnapshot = user.Role?.Name,
             MeaningOfSignature = meaning,
             EntityType = entityType,
             EntityId = entityId,
@@ -102,6 +103,6 @@ public class ElectronicSignatureService : IElectronicSignatureService
         _db.ElectronicSignatures
             .Where(s => s.EntityType == entityType && s.EntityId == entityId)
             .OrderBy(s => s.SignedAt)
-            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
+            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleNameSnapshot ?? s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
             .ToListAsync();
 }

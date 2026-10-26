@@ -630,7 +630,6 @@ public class EquipmentWorkService
 
         if (overdue.Count == 0) return 0;
 
-        var systemUserId = await ResolveSystemUserIdAsync();
         var now = _clock.UtcNow.UtcDateTime;
 
         await UnitOfWork.RunAsync(_db, async () =>
@@ -642,7 +641,8 @@ public class EquipmentWorkService
                 inst.Status = EquipmentOperationalStatus.OutOfService;
                 inst.AutoOutOfServiceSince = today;
                 inst.LastModifiedAt = now;
-                inst.LastModifiedByUserId = systemUserId;
+                // Changed by the system, not a user: no user id is recorded.
+                inst.LastModifiedByUserId = null;
 
                 _db.EquipmentStatusHistories.Add(new EquipmentStatusHistory
                 {
@@ -650,7 +650,7 @@ public class EquipmentWorkService
                     PreviousStatus = prevStatus,
                     NewStatus = EquipmentOperationalStatus.OutOfService,
                     Comment = $"Calibration overdue since {due:yyyy-MM-dd} (automatic)",
-                    ChangedByUserId = systemUserId,
+                    ChangedByUserId = null,
                     ChangedAt = now
                 });
             }
@@ -659,19 +659,5 @@ public class EquipmentWorkService
         });
 
         return overdue.Count;
-    }
-
-    private async Task<int> ResolveSystemUserIdAsync()
-    {
-        var adminId = await _db.Users
-            .Where(u => (u.Role != null && u.Role.Type == RoleType.SystemAdministrator) || u.Username == "admin" || u.Username == "system")
-            .OrderBy(u => u.Id)
-            .Select(u => u.Id)
-            .FirstOrDefaultAsync();
-
-        if (adminId != 0) return adminId;
-
-        var fallbackId = await _db.Users.OrderBy(u => u.Id).Select(u => u.Id).FirstOrDefaultAsync();
-        return fallbackId != 0 ? fallbackId : 1;
     }
 }

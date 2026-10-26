@@ -370,7 +370,8 @@ public class DocumentApprovalService : IDocumentApprovalService
                 s.EntityId,
                 s.SignedAt,
                 s.Comment,
-                s.IpAddress
+                s.IpAddress,
+                s.RoleNameSnapshot
             ))
             .FirstOrDefaultAsync();
 
@@ -611,13 +612,14 @@ public class DocumentApprovalService : IDocumentApprovalService
             recordType: nameof(ElectronicSignature),
             documentMasterId: master.Id,
             documentRevisionId: revision.Id,
-            reason: $"21 CFR Part 11 Electronic Signature ({SignatureMeaning.Approved}) applied by {signature.UserFullNameSnapshot} ({signature.RoleSnapshot})",
+            reason: $"21 CFR Part 11 Electronic Signature ({SignatureMeaning.Approved}) applied by {signature.UserFullNameSnapshot} ({signature.RoleNameSnapshot ?? signature.RoleSnapshot})",
             changes: new[]
             {
                 new AuditFieldChange("SignatureId", null, signature.Id.ToString()),
                 new AuditFieldChange("SignerUsername", null, signature.UsernameSnapshot),
                 new AuditFieldChange("SignerFullName", null, signature.UserFullNameSnapshot),
                 new AuditFieldChange("SignerRole", null, signature.RoleSnapshot),
+                new AuditFieldChange("SignerRoleName", null, signature.RoleNameSnapshot),
                 new AuditFieldChange("Meaning", null, signature.MeaningOfSignature.ToString()),
                 new AuditFieldChange("SignedAt", null, signature.SignedAt.ToString("O"))
             },

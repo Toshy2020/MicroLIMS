@@ -162,6 +162,14 @@ public class RoleService
         foreach (var code in toRevoke)
             await _permissionService.RevokeAsync(id, permissionIdByCode[code]);
 
+        // Once per call, and only when a grant actually changed. Saved with
+        // the audit entry below, i.e. after the grants and in the same
+        // transaction (UnitOfWork), so a token can never be issued with the
+        // new version but the old grants. Every access token issued from
+        // this role's earlier grants stops validating (AccessTokenRevalidator).
+        if (toGrant.Count > 0 || toRevoke.Count > 0)
+            role.PermissionVersion++;
+
         // PermissionService.GrantAsync/RevokeAsync each call SaveChangesAsync
         // internally (see PermissionService), so this audit entry is
         // written and saved separately rather than batched with the

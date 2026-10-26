@@ -31,10 +31,10 @@ export function LoginPage() {
     setIsSubmitting(true);
     setError(null);
     try {
-      const { token, refreshToken, role, permissions, mustChangePassword } = await authenticationService.login(username, password);
+      const { token, refreshToken, role, roleName, permissions, mustChangePassword } = await authenticationService.login(username, password);
       localStorage.setItem("microlims_token", token);
       const me = await authenticationService.me();
-      login({ token, refreshToken, username, role, permissions, fullName: me.fullName, userId: me.userId, mustChangePassword });
+      login({ token, refreshToken, username, role, roleName: roleName ?? me.roleName ?? null, permissions, fullName: me.fullName, userId: me.userId, mustChangePassword });
       navigate("/dashboard");
     } catch (err: any) {
       if (err?.response?.status === 401) {

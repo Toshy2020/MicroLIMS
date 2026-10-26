@@ -369,7 +369,7 @@ export function EquipmentHistoryPrint({
                     </TableCell>
                     <TableCell sx={{ fontSize: "9pt" }}>{s.comment}</TableCell>
                     <TableCell sx={{ fontSize: "9pt" }}>
-                      {s.changedByName || `User #${s.changedByUserId}`}
+                      {s.changedByName || (s.changedByUserId == null ? "System (automatic)" : `User #${s.changedByUserId}`)}
                     </TableCell>
                     <TableCell sx={{ fontSize: "9pt" }}>{formatLabDateTime(s.changedAt)}</TableCell>
                   </TableRow>

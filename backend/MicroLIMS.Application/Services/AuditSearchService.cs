@@ -30,7 +30,9 @@ public record AuditLogDto(
     string? NewValue,
     int UserId,
     string UserName,
-    string? UserRole,
+    // The user's role TODAY, not the one they held when the row was written
+    // (the audit trail does not record that), so it can differ from history.
+    string? UserCurrentRole,
     string? UserUsername,
     DateTime Timestamp,
     string? BatchNumber,

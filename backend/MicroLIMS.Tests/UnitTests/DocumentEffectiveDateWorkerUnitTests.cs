@@ -424,6 +424,7 @@ public class DocumentEffectiveDateWorkerUnitTests
 
         var services = new ServiceCollection();
         services.AddSingleton(db);
+        services.AddSingleton<IMicroLimsDbContext>(db);
         services.AddSingleton<IDocumentEffectiveDateService>(service);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -438,6 +439,9 @@ public class DocumentEffectiveDateWorkerUnitTests
         // Assert
         var refreshed = await db.DocumentRevisions.FindAsync(futureRev.Id);
         Assert.Equal(DocumentRevisionStatus.Effective, refreshed!.RevisionStatus);
+
+        // The worker writes with no user: its audit rows must name the worker.
+        Assert.Equal(DocumentEffectiveDateWorker.ProcessName, db.CurrentSystemProcessName);
     }
 
     [Fact]

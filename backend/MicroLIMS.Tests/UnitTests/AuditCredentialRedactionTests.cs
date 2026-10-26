@@ -31,7 +31,7 @@ public class AuditCredentialRedactionTests
     }
 
     private static AuthenticationService CreateAuth(MicroLimsDbContext db) => new(
-        db, (id, role, codes) => $"jwt-for-{id}", new PermissionService(db),
+        db, subject => $"jwt-for-{subject.UserId}", new PermissionService(db),
         new EmailSender("", 587, "", "", "no-reply@microlims.local", false),
         NullLogger<AuthenticationService>.Instance,
         new SecurityAuditService(db, new SystemSecurityRequestContext()));

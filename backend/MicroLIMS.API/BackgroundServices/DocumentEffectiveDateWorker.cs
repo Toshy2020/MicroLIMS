@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 
 namespace MicroLIMS.API.BackgroundServices;
@@ -100,6 +101,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
             var effectiveDateService = scope.ServiceProvider.GetRequiredService<IDocumentEffectiveDateService>();
             var periodicReviewService = scope.ServiceProvider.GetService<IPeriodicReviewService>();
 

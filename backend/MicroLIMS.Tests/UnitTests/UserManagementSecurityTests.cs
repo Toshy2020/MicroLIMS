@@ -327,4 +327,25 @@ public class UserManagementSecurityTests
         var asAdmin = await userService.GetEligibleAnalystsAsync(actingUserId: 16);
         Assert.Equal(new[] { "analyst1", "analyst2", "rev1" }, asAdmin.Select(u => u.Username).OrderBy(n => n));
     }
+
+    [Fact]
+    public async Task Scenario18_RoleChangeAuditRecordsPreviousRoleIdAndNewRoleId()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var user = new User { Id = 2, FullName = "Role Target", Username = "roletarget", RoleId = 4 };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1);
+
+        var log = await db.AuditLogs.SingleAsync(a => a.Action == "USER_ROLE_CHANGED" && a.EntityId == "2");
+        using var previous = System.Text.Json.JsonDocument.Parse(log.PreviousValue!);
+        using var next = System.Text.Json.JsonDocument.Parse(log.NewValue!);
+
+        Assert.Equal(4, previous.RootElement.GetProperty("RoleId").GetInt32());
+        Assert.Equal("Analyst", previous.RootElement.GetProperty("RoleName").GetString());
+        Assert.Equal(3, next.RootElement.GetProperty("RoleId").GetInt32());
+        Assert.Equal("Reviewer", next.RootElement.GetProperty("RoleName").GetString());
+    }
 }

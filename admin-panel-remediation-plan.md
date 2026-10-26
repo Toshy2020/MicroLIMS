@@ -74,6 +74,20 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 
 ### Wave 1 — Segregation of duties & identity correctness (gate: D1, D2, D3)
 
+> **Status (2026-10-26): Wave 1 is complete.** The full suite passed with PostgreSQL (3,681 tests), `has-pending-model-changes` reported no changes, and `tsc -b`, lint (0 errors) and Vitest (466 tests) passed.
+>
+> | WP | Delivered |
+> |---|---|
+> | WP1.1 | Equipment status and inventory changes made by workers are recorded as the System actor. `CurrentSystemProcessName` is set by all 7 workers. Migration `AllowSystemActorOnEquipmentChanges`. |
+> | WP1.2 | `SystemAdministratorGrants` is a keep-list of 22 codes, including the new `Sections.ViewAll`. Migration `RestrictSystemAdministratorToSystemPermissions` touches only the system role of Type 0. It writes a System-actor audit row and bumps `PermissionVersion`, and its `Down` restores the grants. `Documents.TrainingViewMatrix` is now enforced. |
+> | WP1.2b | Seed, correction, EM-batch and permission-enforcement tests were updated. The authorization matrix was regenerated: SystemAdministrator lost 194 endpoints and no other role changed. |
+> | WP1.3 | Every `RoleType.SystemAdministrator` shortcut was removed from Application. Section scope is split: reads use `GetReadableSectionIdsAsync` (`Sections.ViewAll` means all sections, read-only), and writes use `GetMemberSectionIdsAsync`. The Document Control admin override is gone. |
+> | WP1.4 | The HPLC/ICP pages and the preparation forms check permissions, not the role name. |
+> | WP1.5 | `SegregationOfDutiesRules`: holding both {Users.Manage, Roles.Manage} and any GxP execute, review or approve code returns 409. `GET /api/roles/sod-rules` exposes the rules, and the permission matrix greys out conflicting codes. |
+> | WP1.6 | Tokens carry `rid` and `pv`, so a role move or a permission edit invalidates them. `roleName` appears in login and `/me`. Signatures snapshot `RoleNameSnapshot`. Audit search labels "current role". |
+>
+> **Consequence to confirm:** writes follow section membership, so an administrator who is not a member of a section can no longer edit that section's master data or configuration.
+
 | WP | Covers | Model | Scope / spec summary | Acceptance |
 |---|---|---|---|---|
 | **WP1.1** | N6 prerequisite | Sonnet | Replace `EquipmentWorkService.cs:661` ("lowest-id admin / user named admin or system") with an explicit system actor: `ActorType.System` + `SystemProcessName`, and `PerformedByUserId` null for system-generated entries (schema change if the column is non-null). Audit rows already support a System actor (`MicroLimsDbContext.cs:551-565`). | Auto-generated overdue records show "System: EquipmentOverdueWorker". |

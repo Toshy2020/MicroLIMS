@@ -134,3 +134,24 @@ describe("menuConfig area filtering", () => {
     expect(rmpmTestMasterTrail?.exact).toBe(true);
   });
 });
+
+describe("menuConfig document audit link", () => {
+  const hasAuditLink = (role: "Analyst" | "Reviewer" | "SectionHead" | "SystemAdministrator", permissions: string[]) => {
+    const groups = getGroupedMenu({ role, permissions, labCodes: [] });
+    return findItemByPath(groups.flatMap((g) => g.items), "/document-control/audit") !== undefined;
+  };
+
+  // Mirrors DocumentAuthorizationService.CanQueryGlobalAuditAsync: Reviewers and Section Heads by role,
+  // everyone else only by holding Audit.View.
+  it("is offered to Reviewers and Section Heads by role, and to anyone else only with Audit.View", () => {
+    expect(hasAuditLink("Reviewer", [])).toBe(true);
+    expect(hasAuditLink("SectionHead", [])).toBe(true);
+    expect(hasAuditLink("Analyst", [])).toBe(false);
+    expect(hasAuditLink("Analyst", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
+  });
+
+  it("follows the System Administrator's Audit.View, not the role name", () => {
+    expect(hasAuditLink("SystemAdministrator", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
+    expect(hasAuditLink("SystemAdministrator", [])).toBe(false);
+  });
+});

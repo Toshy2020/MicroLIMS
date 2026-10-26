@@ -107,8 +107,9 @@ export function DocumentConfigurationPage() {
   };
 
   useEffect(() => {
-    loadAll();
-  }, []);
+    // Without the permission the server would only answer 403.
+    if (canConfigure) loadAll();
+  }, [canConfigure]);
 
   if (!canConfigure) {
     return (

@@ -227,6 +227,8 @@ export interface SampleSummary {
   causeOfTesting: string;
   batchNumber: string | null;
   grade?: string | null;
+  retentionQuantity?: number | null;
+  retentionQuantityUnit?: string | null;
   controlNumber: string;
   status: string;
   // Status as the controlled record prints it ("In testing"), worded on

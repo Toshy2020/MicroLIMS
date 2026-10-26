@@ -362,6 +362,12 @@ export interface TitrationContext {
   specifications: TitrationSpecInfo[];
 }
 
+export interface SampleMoistureResult {
+  role: "LossOnDrying" | "Water";
+  percent: number;
+  testCode: string;
+}
+
 export interface RecordTitrationResultRequest {
   analysedAt: string;
   equipmentId: number | null;
@@ -369,7 +375,7 @@ export interface RecordTitrationResultRequest {
   excessPreparationId: number | null;
   blankVolumeMl: number | null;
   titrationTemperatureC: number | null;
-  lossOnDryingPercent: number | null;
+  lossOnDryingPercent?: number | null;
   averageUnitWeightMg: number | null;
   standards: { materialId: number; weightMg: number; titreMl: number }[] | null;
   specificationIds: number[];

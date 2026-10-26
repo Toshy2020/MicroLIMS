@@ -4,7 +4,7 @@ import {
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
   GrowthObservation, SiblingPathogenOrder,
   ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
-  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest
+  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest, SampleMoistureResult
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -76,6 +76,9 @@ export const TestWorkflowService = {
   // Titration assay (titration-context + signed record). Server is authoritative.
   getTitrationContext: (testOrderId: number): Promise<TitrationContext> =>
     apiClient.get(`/test-workflow/${testOrderId}/titration-context`).then((r) => r.data.data),
+
+  getMoisture: (testOrderId: number): Promise<SampleMoistureResult | null> =>
+    apiClient.get(`/test-workflow/${testOrderId}/moisture`).then((r) => r.data.data),
 
   recordTitrationResult: (testOrderId: number, payload: RecordTitrationResultRequest): Promise<TestWorkflowResult> =>
     apiClient.post(`/test-workflow/${testOrderId}/record-titration-result`, payload).then((r) => r.data.data),

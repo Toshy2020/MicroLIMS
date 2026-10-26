@@ -17,6 +17,7 @@ import { workflowEventLabel } from "../../utils/workflowEventLabel";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
+import { isRawMaterialPhyschemReview, isRetentionValid } from "./utils/moistureRetentionHelpers";
 import { SampleSummary, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
@@ -131,6 +132,8 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [exportError, setExportError] = useState<string | null>(null);
 
   const [reviewSectionId, setReviewSectionId] = useState<number | "">("");
+  const [retentionQuantity, setRetentionQuantity] = useState<string>("");
+  const [retentionQuantityUnit, setRetentionQuantityUnit] = useState<string>("");
   const [approvalSectionId, setApprovalSectionId] = useState<number | "">("");
   const [closingSectionId, setClosingSectionId] = useState<number | "">("");
   const [confirmingClose, setConfirmingClose] = useState(false);
@@ -186,9 +189,15 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setReviewSectionId("");
       setApprovalSectionId("");
       setClosingSectionId("");
+      setRetentionQuantity("");
+      setRetentionQuantityUnit("");
       SampleSummaryService.getSummary(sampleId)
         .then((data) => {
           setSummary(data);
+          if (data.retentionQuantity != null) {
+            setRetentionQuantity(String(data.retentionQuantity));
+            setRetentionQuantityUnit(data.retentionQuantityUnit ?? "");
+          }
           const rev = (data.sections ?? []).filter((s) => s.canView && s.status === "UnderReview");
           if (rev.length === 1) {
             setReviewSectionId(rev[0].sectionId);
@@ -259,7 +268,17 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   const handleReviewConfirm = async (password: string) => {
     if (!sampleId) return;
-    await SampleSummaryService.completeReview(sampleId, password, comment || undefined, effectiveReviewSectionId);
+    const activeSec = reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId);
+    const showRetention = isRawMaterialPhyschemReview(summary?.category, activeSec?.sectionCode);
+    const valid = isRetentionValid(retentionQuantity, retentionQuantityUnit);
+    await SampleSummaryService.completeReview(
+      sampleId,
+      password,
+      comment || undefined,
+      effectiveReviewSectionId,
+      showRetention && valid ? Number(retentionQuantity) : undefined,
+      showRetention && valid ? retentionQuantityUnit : undefined
+    );
     setConfirmingReview(false);
     onClose();
   };
@@ -541,6 +560,10 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               reviewableSections={reviewableSections}
               reviewSectionId={reviewSectionId}
               onReviewSectionChange={setReviewSectionId}
+              retentionQuantity={retentionQuantity}
+              setRetentionQuantity={setRetentionQuantity}
+              retentionQuantityUnit={retentionQuantityUnit}
+              setRetentionQuantityUnit={setRetentionQuantityUnit}
               approvableSections={approvableSections}
               approvalSectionId={approvalSectionId}
               onApprovalSectionChange={handleApprovalSectionChange}

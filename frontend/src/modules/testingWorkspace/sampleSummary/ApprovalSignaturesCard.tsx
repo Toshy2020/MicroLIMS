@@ -6,6 +6,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { SampleApprovalDecision } from "../services/SampleSummaryService";
 import { sectionScope } from "../coaAggregation";
 import { SampleSummary, SampleSectionSummaryDetail } from "../types/sampleSummaryTypes";
+import { isRawMaterialPhyschemReview, isRetentionValid, RETENTION_UNITS } from "../utils/moistureRetentionHelpers";
 import { UserRecord } from "../../users/services/UserService";
 import { DECISION_OPTIONS, SIGNATURE_STATEMENTS, formatExactTime, isTestOrderNonPassing } from "./summaryFormatting";
 
@@ -33,6 +34,10 @@ export function ApprovalSignaturesCard({
   reviewableSections,
   reviewSectionId,
   onReviewSectionChange,
+  retentionQuantity = "",
+  setRetentionQuantity,
+  retentionQuantityUnit = "",
+  setRetentionQuantityUnit,
   approvableSections,
   approvalSectionId,
   onApprovalSectionChange,
@@ -67,6 +72,10 @@ export function ApprovalSignaturesCard({
   reviewableSections: SampleSectionSummaryDetail[];
   reviewSectionId: number | "";
   onReviewSectionChange: (id: number | "") => void;
+  retentionQuantity?: string;
+  setRetentionQuantity?: (q: string) => void;
+  retentionQuantityUnit?: string;
+  setRetentionQuantityUnit?: (u: string) => void;
   approvableSections: SampleSectionSummaryDetail[];
   approvalSectionId: number | "";
   onApprovalSectionChange: (id: number | "") => void;
@@ -97,6 +106,8 @@ export function ApprovalSignaturesCard({
 
   const activeReviewSectionId = reviewableSections.length === 1 ? reviewableSections[0].sectionId : reviewSectionId;
   const activeReviewSection = reviewableSections.find((s) => s.sectionId === activeReviewSectionId);
+  const showRetention = isRawMaterialPhyschemReview(summary.category, activeReviewSection?.sectionCode);
+  const retentionValid = !showRetention || isRetentionValid(retentionQuantity, retentionQuantityUnit);
 
   const oosWarning = useMemo(() => {
     if (decision !== "Approve" || effectiveApprovalSectionId == null) {
@@ -189,6 +200,11 @@ export function ApprovalSignaturesCard({
                   Comment: {sig.comment}
                 </Typography>
               )}
+              {sig.role?.toLowerCase().includes("review") && summary.retentionQuantity != null && (
+                <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
+                  Retention: {summary.retentionQuantity} {summary.retentionQuantityUnit ?? ""}
+                </Typography>
+              )}
             </Box>
           ))}
         </Stack>
@@ -205,6 +221,11 @@ export function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{SIGNATURE_STATEMENTS.Reviewed}"
               </Typography>
+              {summary.retentionQuantity != null && (
+                <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
+                  Retention: {summary.retentionQuantity} {summary.retentionQuantityUnit ?? ""}
+                </Typography>
+              )}
             </Box>
           )}
           {summary.approvedByName && (
@@ -260,6 +281,35 @@ export function ApprovalSignaturesCard({
               ? `By submitting, I confirm I have reviewed all test results for ${activeReviewSection.sectionName}.`
               : "By submitting, I confirm I have reviewed all test results for this sample."}
           </Alert>
+          {showRetention && (
+            <Box sx={{ display: "flex", gap: 1.5, mb: 1.5 }}>
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                label="Retention quantity"
+                required
+                value={retentionQuantity}
+                onChange={(e) => setRetentionQuantity?.(e.target.value)}
+                slotProps={{ htmlInput: { step: "any", min: 0 } }}
+              />
+              <TextField
+                select
+                size="small"
+                label="Unit"
+                required
+                value={retentionQuantityUnit}
+                onChange={(e) => setRetentionQuantityUnit?.(e.target.value)}
+                sx={{ minWidth: 100 }}
+              >
+                {RETENTION_UNITS.map((u) => (
+                  <MenuItem key={u} value={u}>
+                    {u}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          )}
           <TextField
             fullWidth
             size="small"
@@ -274,7 +324,7 @@ export function ApprovalSignaturesCard({
             variant="contained"
             color="primary"
             fullWidth
-            disabled={reviewableSections.length > 1 && !reviewSectionId}
+            disabled={Boolean((reviewableSections.length > 1 && !reviewSectionId) || !retentionValid)}
             onClick={onReviewClick}
           >
             Submit Review

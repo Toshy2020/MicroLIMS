@@ -7,11 +7,13 @@ import type { TitrationContext } from "./types/testWorkflowTypes";
 
 const getTitrationContext = vi.fn();
 const recordTitrationResult = vi.fn();
+const getMoisture = vi.fn();
 
 vi.mock("./services/TestWorkflowService", () => ({
   TestWorkflowService: {
     getTitrationContext: (...a: unknown[]) => getTitrationContext(...a),
-    recordTitrationResult: (...a: unknown[]) => recordTitrationResult(...a)
+    recordTitrationResult: (...a: unknown[]) => recordTitrationResult(...a),
+    getMoisture: (...a: unknown[]) => getMoisture(...a)
   }
 }));
 vi.mock("./services/SampleSummaryService", () => ({ SampleSummaryService: { getSummary: vi.fn().mockResolvedValue({ testOrders: [] }) } }));
@@ -90,6 +92,7 @@ const renderPanel = async (ctx: TitrationContext) => {
 beforeEach(() => {
   getTitrationContext.mockReset();
   recordTitrationResult.mockReset();
+  getMoisture.mockReset();
 });
 afterEach(cleanup);
 
@@ -194,7 +197,6 @@ describe("TitrationPanel", () => {
       excessPreparationId: null,
       blankVolumeMl: 0.1,
       titrationTemperatureC: null,
-      lossOnDryingPercent: null,
       averageUnitWeightMg: 600,
       standards: [{ materialId: 40, weightMg: 100, titreMl: 10.5 }],
       specificationIds: [11],
@@ -209,6 +211,7 @@ describe("TitrationPanel", () => {
     });
     expect(payload).not.toHaveProperty("standardizationTemperatureC");
     expect(payload).not.toHaveProperty("standard");
+    expect(payload).not.toHaveProperty("lossOnDryingPercent");
     await waitFor(() => expect(onRecorded).toHaveBeenCalled());
   }, 15000);
 
@@ -334,4 +337,80 @@ describe("TitrationPanel", () => {
     expect(payload.dueTitrantAcknowledged).toBe(true);
     expect(payload.dueTitrantJustification).toBe("Excess standardized earlier today");
   }, 15000);
+
+  it("fetches moisture and displays read-only line for LossOnDrying when needsLod is true", async () => {
+    getMoisture.mockResolvedValue({ role: "LossOnDrying", percent: 2.5, testCode: "LOD-042" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(getMoisture).toHaveBeenCalledWith(7);
+    expect(await screen.findByText("Loss on drying 2.5 % (from LOD-042)")).toBeTruthy();
+    expect(screen.queryByLabelText(/Loss on drying \/ water/)).toBeNull();
+  });
+
+  it("fetches moisture and displays read-only line for Water when spec is PercentAnhydrousBasis", async () => {
+    getMoisture.mockResolvedValue({ role: "Water", percent: 0.45, testCode: "KF-109" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (anhydrous basis)", resultBasis: "PercentAnhydrousBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(getMoisture).toHaveBeenCalledWith(7);
+    expect(await screen.findByText("Water 0.45 % (from KF-109)")).toBeTruthy();
+  });
+
+  it("shows prompt and disables submit when needsLod is true but moisture is null for PercentDriedBasis", async () => {
+    getMoisture.mockResolvedValue(null);
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(getMoisture).toHaveBeenCalledWith(7);
+    expect(await screen.findByText("Record the sample's loss on drying result first.")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows Karl Fischer prompt when moisture is null for PercentAnhydrousBasis", async () => {
+    getMoisture.mockResolvedValue(null);
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (anhydrous basis)", resultBasis: "PercentAnhydrousBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("Record the sample's water content (Karl Fischer) result first.")).toBeTruthy();
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("does not fetch moisture when needsLod is false (PercentAsIs)", async () => {
+    await renderPanel(baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay", resultBasis: "PercentAsIs", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    }));
+
+    expect(getMoisture).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Record the sample/)).toBeNull();
+  });
 });

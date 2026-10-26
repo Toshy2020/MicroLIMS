@@ -74,6 +74,12 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         <SummaryField label="Control Number" value={s.controlNumber} />
         <SummaryField label="Received By" value={s.receivedByName} />
         <SummaryField label="Sample Quantity" value={s.sampleQuantity} />
+        {s.retentionQuantity != null && (
+          <SummaryField
+            label="Retention"
+            value={`Retention: ${s.retentionQuantity} ${s.retentionQuantityUnit ?? ""}`.trim()}
+          />
+        )}
         <SummaryField label="Mfg Date" value={formatDate(s.mfgDate)} />
 
         <SummaryField label="Cause of Testing" value={s.causeOfTesting} />

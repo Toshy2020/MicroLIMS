@@ -84,6 +84,8 @@ namespace MicroLIMS.Persistence.Migrations
                 WHERE NOT EXISTS (SELECT 1 FROM "Permissions" WHERE "Code" = 'Sections.ViewAll');
                 """);
             migrationBuilder.Sql("""UPDATE "Permissions" SET "IsEnforced" = TRUE WHERE "Code" = 'Sections.ViewAll';""");
+            // The training matrix controller now checks Documents.TrainingViewMatrix to show everyone's rows.
+            migrationBuilder.Sql("""UPDATE "Permissions" SET "IsEnforced" = TRUE WHERE "Code" = 'Documents.TrainingViewMatrix';""");
 
             migrationBuilder.Sql(
                 "DO $$\n" + Declarations + "\nBEGIN\n" +
@@ -131,6 +133,7 @@ namespace MicroLIMS.Persistence.Migrations
                 WHERE "PermissionId" IN (SELECT "Id" FROM "Permissions" WHERE "Code" = 'Sections.ViewAll');
                 """);
             migrationBuilder.Sql("""DELETE FROM "Permissions" WHERE "Code" = 'Sections.ViewAll';""");
+            migrationBuilder.Sql("""UPDATE "Permissions" SET "IsEnforced" = FALSE WHERE "Code" = 'Documents.TrainingViewMatrix';""");
         }
     }
 }

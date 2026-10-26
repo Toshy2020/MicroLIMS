@@ -21,7 +21,9 @@ public class EquipmentStatusHistory
     // Mandatory comment/reason for the transition (e.g. "Sent for calibration", "Returned to service").
     public string Comment { get; set; } = string.Empty;
 
-    public int ChangedByUserId { get; set; }
+    // Null = changed automatically by the system (e.g. the calibration-overdue job),
+    // never a guessed user.
+    public int? ChangedByUserId { get; set; }
     public User? ChangedByUser { get; set; }
     public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
 }

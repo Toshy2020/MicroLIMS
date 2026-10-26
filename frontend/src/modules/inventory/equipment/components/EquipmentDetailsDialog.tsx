@@ -274,7 +274,7 @@ export function EquipmentDetailsDialog({
                         {h.comment}
                       </Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-                        Changed by: <strong>{h.changedByName}</strong>
+                        Changed by: <strong>{h.changedByName || (h.changedByUserId == null ? "System (automatic)" : "Unknown")}</strong>
                       </Typography>
                     </Box>
                   ))}

@@ -123,6 +123,7 @@ public class ErrorLogRetentionWorker : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+            db.CurrentSystemProcessName = ProcessName;
 
             var now = DateTime.UtcNow;
             var lowCutoff = now.AddDays(-LowSeverityRetentionDays);

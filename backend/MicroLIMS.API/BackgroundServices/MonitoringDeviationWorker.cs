@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Monitoring;
 
 namespace MicroLIMS.API.BackgroundServices;
@@ -58,6 +59,7 @@ public class MonitoringDeviationWorker : BackgroundService
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
             var service = scope.ServiceProvider.GetRequiredService<MonitoringDeviationService>();
             var result = await service.DetectAsync();
             if (result.MissedOpened + result.ExcursionsOpened > 0)

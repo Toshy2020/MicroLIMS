@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services.EquipmentPlan;
 
@@ -58,6 +59,7 @@ public class EquipmentOverdueWorker : BackgroundService
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
             var clock = scope.ServiceProvider.GetRequiredService<ILabClock>();
             var service = scope.ServiceProvider.GetRequiredService<EquipmentWorkService>();
             var changed = await service.ApplyOverdueAsync(clock.LabToday);

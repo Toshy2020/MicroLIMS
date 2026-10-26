@@ -18,6 +18,10 @@ public interface IMicroLimsDbContext
     // if CurrentUserId is set.
     string? CurrentAgentCode { get; set; }
 
+    // The hosted worker making the change, when there is no user or agent.
+    // Audit rows then name the System actor and this process.
+    string? CurrentSystemProcessName { get; set; }
+
     // The Version of the record the client's form was loaded with, from the
     // request's If-Match header. Null when the client sent none. Checked by
     // RecordVersion.EnsureCurrent.

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 
 namespace MicroLIMS.API.BackgroundServices;
@@ -15,6 +16,8 @@ namespace MicroLIMS.API.BackgroundServices;
 // nor resends one that already went out.
 public class CriticalAlertWorker : BackgroundService
 {
+    public const string ProcessName = "CriticalAlertWorker";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<CriticalAlertWorker> _logger;
     private readonly TimeSpan _interval;
@@ -50,6 +53,7 @@ public class CriticalAlertWorker : BackgroundService
             try
             {
                 using var scope = _scopeFactory.CreateScope();
+                scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
                 var alerts = scope.ServiceProvider.GetRequiredService<ICriticalAlertService>();
                 await alerts.DispatchPendingAsync(stoppingToken);
             }

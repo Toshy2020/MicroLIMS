@@ -135,7 +135,8 @@ public class EquipmentInventoryResponse
     public DocumentSectionResponse? Section { get; init; }
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
-    public int LastModifiedByUserId { get; init; }
+    // Null = last changed automatically by the system.
+    public int? LastModifiedByUserId { get; init; }
     public DateTime LastModifiedAt { get; init; }
     public bool IsCalibrationOverdue { get; init; }
     public int? CalibrationIntervalValue { get; init; }

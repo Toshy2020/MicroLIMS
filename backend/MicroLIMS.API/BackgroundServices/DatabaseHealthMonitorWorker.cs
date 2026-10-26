@@ -137,6 +137,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+            db.CurrentSystemProcessName = ProcessName;
             var capture = scope.ServiceProvider.GetRequiredService<IErrorCaptureService>();
 
             var connection = (NpgsqlConnection)db.Database.GetDbConnection();

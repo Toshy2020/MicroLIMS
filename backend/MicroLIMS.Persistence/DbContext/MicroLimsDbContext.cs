@@ -19,6 +19,12 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // Set by AuditMiddleware for an instrument agent (AgentKey scheme), which
     // has no user id. Only used when CurrentUserId is null: a user always wins.
     public string? CurrentAgentCode { get; set; }
+
+    // Set by a hosted worker that writes outside any request (e.g. the
+    // calibration-overdue job): the audit trail records the System actor and
+    // this process name instead of "user 0". Only used when there is no user
+    // and no agent code.
+    public string? CurrentSystemProcessName { get; set; }
     public uint? ExpectedVersion { get; set; }
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
@@ -574,8 +580,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
 
         // An instrument agent has no user id: record it as the System actor
         // with the agent's code, and no user. If a user id is also present the
-        // user wins and the agent code is ignored.
+        // user wins and the agent code is ignored. A background worker (a
+        // process name and neither of the above) is recorded the same way.
         var byAgent = CurrentUserId is null && !string.IsNullOrEmpty(CurrentAgentCode);
+        var byProcess = CurrentUserId is null && !byAgent && !string.IsNullOrEmpty(CurrentSystemProcessName);
+        var bySystem = byAgent || byProcess;
 
         return new AuditLog
         {
@@ -584,9 +593,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             Action = action,
             PreviousValue = previousValue,
             NewValue = newValue,
-            UserId = byAgent ? null : CurrentUserId ?? 0,
-            ActorType = byAgent ? Domain.Enums.ActorType.System : null,
-            SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : null,
+            UserId = bySystem ? null : CurrentUserId ?? 0,
+            ActorType = bySystem ? Domain.Enums.ActorType.System : null,
+            SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = DateTime.UtcNow,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),

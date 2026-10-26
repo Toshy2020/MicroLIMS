@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Persistence.Helpers;
+using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text.Json;
 
 namespace MicroLIMS.Persistence.DbContext;
@@ -495,19 +499,26 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         string? PreviousValue,
         AuditLog? Completed);
 
+    // Entity types the automatic capture skips. Public so the redaction
+    // architecture test scans exactly the entities that DO reach AuditLogs.
+    public static readonly IReadOnlySet<Type> AuditCaptureExcludedTypes = new HashSet<Type>
+    {
+        typeof(AuditLog),
+        typeof(AuditEventChange), // append-only; excluded to prevent recursive audit
+        typeof(MaterialDocumentAccessLog), // append-only; excluded to prevent recursive audit
+        typeof(EquipmentDocumentAccessLog), // append-only; excluded to prevent recursive audit
+        typeof(Incident), // operational error monitoring; not a GxP record
+        typeof(ErrorLog), // operational error monitoring; not a GxP record
+        typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
+        typeof(NotificationLog), // derived reminders and read state; not a GxP record
+        typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
+        typeof(SecurityAuditEvent) // security evidence, not a GxP record; also prevents recursive audit
+    };
+
     private List<PendingAuditEntry> CapturePendingAuditEntries()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is not AuditLog &&
-                        e.Entity is not AuditEventChange && // append-only; excluded to prevent recursive audit
-                        e.Entity is not MaterialDocumentAccessLog && // append-only; excluded to prevent recursive audit
-                        e.Entity is not EquipmentDocumentAccessLog && // append-only; excluded to prevent recursive audit
-                        e.Entity is not Incident && // operational error monitoring; not a GxP record
-                        e.Entity is not ErrorLog && // operational error monitoring; not a GxP record
-                        e.Entity is not RefreshToken && // session state; recorded in the Security Audit Trail instead
-                        e.Entity is not NotificationLog && // derived reminders and read state; not a GxP record
-                        e.Entity is not InstrumentIngestPayload && // append-only by DB trigger; hashes carried by the explicit ingest audit event
-                        e.Entity is not SecurityAuditEvent && // security evidence, not a GxP record; also prevents recursive audit
+            .Where(e => !AuditCaptureExcludedTypes.Contains(e.Entity.GetType()) &&
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 
@@ -541,8 +552,19 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         }
     }
 
+    // A credential hash (marked [AuditRedacted]) must never reach the
+    // immutable audit table: the change is still recorded, the value is not.
+    private static readonly ConcurrentDictionary<PropertyInfo, bool> RedactedProperties = new();
+
+    private static bool IsAuditRedacted(IProperty property) =>
+        // Shadow properties have no CLR member, so nothing can mark them.
+        property.PropertyInfo is { } member &&
+        RedactedProperties.GetOrAdd(member, m => m.IsDefined(typeof(AuditRedactedAttribute), inherit: true));
+
     private static string SerializeValues(Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues values) =>
-        JsonSerializer.Serialize(values.Properties.ToDictionary(p => p.Name, p => values[p]));
+        JsonSerializer.Serialize(values.Properties.ToDictionary(
+            p => p.Name,
+            p => IsAuditRedacted(p) ? AuditRedactedAttribute.RedactedValue : values[p]));
 
     private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
     {

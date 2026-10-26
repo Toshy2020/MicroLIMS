@@ -41,6 +41,7 @@ export function UsersPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [roleId, setRoleId] = useState("");
 
   // Dialog state variables
@@ -48,6 +49,7 @@ export function UsersPage() {
   const [editFullName, setEditFullName] = useState("");
   const [editUsername, setEditUsername] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editJobTitle, setEditJobTitle] = useState("");
 
   const [roleDialogUser, setRoleDialogUser] = useState<UserRecord | null>(null);
   const [newRoleId, setNewRoleId] = useState<number | "">("");
@@ -95,9 +97,9 @@ export function UsersPage() {
       return;
     }
     try {
-      await UserService.create(fullName, username, password, Number(roleId), email);
+      await UserService.create(fullName, username, password, Number(roleId), email, jobTitle);
       toast.success(`User "${username}" created successfully.`);
-      setFullName(""); setUsername(""); setPassword(""); setEmail(""); setRoleId("");
+      setFullName(""); setUsername(""); setPassword(""); setEmail(""); setJobTitle(""); setRoleId("");
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Could not create user.");
@@ -110,12 +112,13 @@ export function UsersPage() {
     setEditFullName(u.fullName);
     setEditUsername(u.username);
     setEditEmail(u.email ?? "");
+    setEditJobTitle(u.jobTitle ?? "");
   };
 
   const handleSaveProfile = async () => {
     if (!editProfileUser) return;
     try {
-      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editProfileUser.version);
+      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editJobTitle || null, editProfileUser.version);
       toast.success(`Profile updated for ${editUsername}.`);
       setEditProfileUser(null);
       load();
@@ -306,7 +309,7 @@ export function UsersPage() {
               xs: "1fr",
               sm: "1fr 1fr",
               md: "repeat(3, 1fr)",
-              lg: "1.2fr 1fr 1.2fr 1.2fr 1.2fr auto"
+              lg: "1.2fr 1fr 1.2fr 1fr 1.2fr 1.2fr auto"
             },
             gap: 2,
             alignItems: "start"
@@ -335,6 +338,13 @@ export function UsersPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             helperText="Password reset destination"
+            fullWidth
+          />
+          <TextField
+            size="small"
+            label="Job Title"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
             fullWidth
           />
           <TextField
@@ -504,6 +514,7 @@ export function UsersPage() {
           <TextField label="Full Name" size="small" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} fullWidth />
           <TextField label="Username" size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
           <TextField label="Email" size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText="Required for email password resets" />
+          <TextField label="Job Title" size="small" value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} fullWidth />
         </Stack>
       </FloatingDialog>
 

@@ -136,9 +136,12 @@ public class DocumentControlRestApiUnitTests
         var ackService = new DocumentAcknowledgementService(db, audit, NullLogger<DocumentAcknowledgementService>.Instance);
         var escService = new DocumentEscalationService(db, audit, NullLogger<DocumentEscalationService>.Instance);
 
+        // Training assignment and escalation are privileged actions gated on
+        // Documents.TrainingAssign, which the System Administrator no longer holds
+        // (a lab/document permission). These fixtures act as a Section Head instead.
         var assignmentController = new DocumentTrainingAssignmentController(trainingService)
         {
-            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SectionHead))
         };
 
         var ackController = new DocumentAcknowledgementController(ackService)
@@ -148,7 +151,7 @@ public class DocumentControlRestApiUnitTests
 
         var escController = new DocumentEscalationController(escService)
         {
-            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SectionHead))
         };
 
         return (db, admin, analyst1, analyst2, master, rev1, assignment1, assignmentController, ackController, escController);

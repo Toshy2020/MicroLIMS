@@ -213,9 +213,11 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var audit = new AuditEventService(db, new PostgresSequenceHelper());
         var escService = new DocumentEscalationService(db, audit, NullLogger<DocumentEscalationService>.Instance);
 
+        // Escalation processing is gated on Documents.TrainingAssign, which the
+        // System Administrator no longer holds; act as a Section Head instead.
         var controller = new DocumentEscalationController(escService)
         {
-            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SectionHead))
         };
 
         // 1. Trigger process-due

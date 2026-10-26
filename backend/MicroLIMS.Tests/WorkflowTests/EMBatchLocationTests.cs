@@ -696,14 +696,15 @@ public class EMBatchLocationTests
         Assert.Contains("48 hours", ex.Message); // window 2's own gate, not silently bypassed by window 1's override
     }
 
-    // Analyst/Reviewer must NOT be able to skip the wait - Section
-    // Head/System Administrator only. Same reflection-based pattern as
-    // RoleController_StaysSystemAdministratorOnlyAtTheClassLevel.
+    // Analyst/Reviewer must NOT be able to skip the wait, and neither may the
+    // System Administrator (TestWorkflow.Supervise is a lab/GxP code, no longer
+    // granted to the administrator) - Section Head only. Same reflection-based
+    // pattern as RoleController_StaysSystemAdministratorOnlyAtTheClassLevel.
     [Fact]
-    public void OverrideMinimumDuration_IsRestrictedToSectionHeadAndSystemAdministrator()
+    public void OverrideMinimumDuration_IsRestrictedToSectionHead()
     {
         var roles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.TestWorkflowController>(
             nameof(MicroLIMS.API.Controllers.TestWorkflowController.OverrideMinimumDuration))!;
-        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SystemAdministrator, MicroLIMS.Domain.Enums.RoleType.SectionHead }, roles.OrderBy(r => r));
+        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SectionHead }, roles.OrderBy(r => r));
     }
 }

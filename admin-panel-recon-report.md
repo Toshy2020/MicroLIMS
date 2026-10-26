@@ -21,6 +21,32 @@
 | H7 | Medium | Security Audit Trail events are recorded, but **no endpoint or screen reads them**. The `System.ViewSecurityAudit` permission exists but isn't enforced anywhere. | `B/MicroLIMS.Shared/Constants/PermissionConstants.cs:42` (not in `Enforced`, lines 147-159); no reader in `B/MicroLIMS.API/Controllers/` |
 | H8 | Low (bug) | Editing a user's profile from the Users page **clears their Job Title**. The frontend sends no `jobTitle`, the request defaults it to `null`, and the service assigns it unconditionally. | `F/modules/users/services/UserService.ts:34-35`; `B/MicroLIMS.API/Controllers/UserController.cs:12`; `B/MicroLIMS.Application/Services/UserService.cs:146` |
 
+### 0.1 Verification pass (2026-10-26) — errata and new findings
+
+Five independent read-only agents re-checked this report. Two checked every file:line citation (~257 citations; 2 errors, both fixed inline above), one inventoried tooling, and two re-derived the security/audit and access-control findings. Results:
+
+**New findings (not in the original report):**
+
+| # | Severity | Finding | Evidence |
+|---|---|---|---|
+| N1 | **High (live defect, likely)** | **Recording a Biological Waste Destruction or a Maintenance Log Entry probably fails on PostgreSQL.** Both services insert the e-signature with `EntityId = 0`, then set the real id and save again. That second save is an UPDATE on `ElectronicSignatures`, which `trg_electronicsignatures_immutable` rejects. In-memory tests can't catch this, and no PostgreSQL test covers these paths. The two plan-approval variants assign an already-known id, so they should be no-ops. The maintenance path also sets `ElectronicSignatureId = signature.Id` before the signature is saved (`EquipmentWorkService.cs:391`); on Npgsql that reads `0`, so the FK insert likely fails first. | `B/MicroLIMS.Application/Services/BiologicalWasteDestructionService.cs:192-222`; `B/MicroLIMS.Application/Services/EquipmentPlan/EquipmentWorkService.cs:372-399`; trigger `20260902181230_AddAuditImmutabilityTriggers.cs:30-32` (never relaxed later) |
+| N2 | High | H3 is wider than stated. `AdminPasswordRecovery.CodeHash` (unsalted SHA-256 of a ~60-bit, 15-minute code) and `InstrumentAgent.KeyHash` are also captured. `PasswordHistory` pruning writes old BCrypt hashes as `Delete` rows. Failed logins and password changes also write full `User` rows. Only the BCrypt hashes are realistically crackable; the SHA-256 token/key hashes are high-entropy. | `MicroLimsDbContext.cs:544-545`; `AuthenticationService.cs:106, 131, 317-323`; `AdminPasswordRecoveryService.cs:17-45, 223`; `InstrumentAgentService.cs:76-96, 150` |
+| N3 | High (remediation hazard) | `RoleService.UpdatePermissionsAsync` can strip `Users.Manage`/`Roles.Manage` from the only role holding them, which locks everyone out of administration. Nothing stops a user editing **their own** role's permissions. | `RoleService.cs:129-171`; `PermissionService.cs:41-47` |
+| N4 | Medium | The last-admin guard on hard delete counts by `RoleType`, so a custom role holding `Users.Manage` is invisible to it. | `UserDeletionService.cs:65-68` |
+| N5 | Medium | The frontend hard-codes admin authority. Seven HPLC/ICP pages treat `role === "SystemAdministrator"` as an operator. Two test-preparation forms exempt admin from the assigned-analyst lock. Document detail lets admin create revisions and edit drafts. `useMyLabs` gives admin every lab. | `F/modules/hplcWorkspace/entry/HplcSampleEntryPage.tsx:50-52` (+6 HPLC/ICP files); `F/modules/testPreparation/ConfirmPreparationForm.tsx:30-32`, `TestPreparationForm.tsx:35`; `F/modules/documentControl/pages/DocumentDetailPage.tsx:206`; `F/hooks/useMyLabs.ts:48, 56` |
+| N6 | Medium | More `RoleType.SystemAdministrator` shortcuts: lab approval/review queues on the dashboard; the system actor for auto-generated equipment-overdue records is "the lowest-id admin, or a user named admin/system". Slimming the admin role needs a real system actor first. | `DashboardNotificationService.cs:174, 188`; `EquipmentWorkService.cs:661` |
+| N7 | Medium | `Media.Release` and `Cryovials.Approve` stack on the class-level `Media.Prepare` / `Cryovials.Manage` gates. Removing only the approve/release code leaves the base write access. | `MediaController.cs:24, 74`; `CryovialController.cs:23, 50, 76` |
+| N8 | Medium (process) | **Frontend tests never run in CI.** The workflow has lint, tsc and build but no `npm test`. `AuthorizationMatrixTests` + `authorization-matrix.txt` (611 lines naming SystemAdministrator) is the main backend safety net for any grant change. | `.github/workflows/ci.yml:218-245`; `B/MicroLIMS.Tests/ArchitectureTests/AuthorizationMatrixTests.cs:103-116` |
+| N9 | Low (unverified) | Tracker bypasses not yet traced: raw Npgsql in `DatabaseSequenceHelper.cs:44` and `DatabaseHealthMonitorWorker.cs:174, 338`; `ChangeTracker.Clear()` in DocumentFileService and the master-data workbook runner; `ExecuteUpdateAsync` on the `InstrumentAgents.LastSeenAt` heartbeat (non-GxP). | Audit deep-check agent |
+
+**Corrections to this report:**
+- **H1 / B8:** `Documents.Approve` is granted but **inert**: no endpoint checks it. Document approval authority comes from the `RoleType` gates in `DocumentApprovalService.cs:109, 416`.
+- **H1 sizing:** `TestWorkflow.Execute` gates ~52 endpoints, `Hplc.Operate` 26, `MasterData.Manage` ~95. `Samples.Receive` gates only 1 endpoint; registration itself uses `Samples.ReceiveOwnLab` (`SampleController.cs:84`).
+- **D13:** Of the later-protected tables, only `InstrumentIngestPayloads` and `DocumentAcknowledgementRecords` are fully append-only. `InstrumentIngestVersions` and `InstrumentIngests` allow limited updates. `WorkflowProfileVersions` blocks updates only once Effective.
+- **D14 / D16:** The Document Control CSV export **is** itself audited (`DocumentAuditService.cs:43-45`). Only the main trail has no export.
+- **D15:** No explicit `AuditLogs.Add` / `Record*EventAsync` site was found reading a temporary key. ~60 sites were read and all 87 event calls were scanned. The remaining exposure is historical rows only.
+- **A3:** The registry-enforcement test exists (corrected inline in §2).
+
 ---
 
 ## 1. Summary table — all checklist items
@@ -89,7 +115,7 @@ Gaps:
 
 ### A3 / Deliverable 2. FK map for `User`
 
-`UserReferenceRegistry.All` (`B/MicroLIMS.Application/Services/UserReferenceRegistry.cs:35-262`) is a hand-reviewed list of every column that references `User.Id`. A reflection test enforces it (`UserReferenceModelScanTests`, cited at `:25-28`). Grouped by how they're enforced:
+`UserReferenceRegistry.All` (`B/MicroLIMS.Application/Services/UserReferenceRegistry.cs:35-262`) is a hand-reviewed list of every column that references `User.Id`. A reflection test enforces it: `UserReferenceRegistry_AccountsForEveryUserIdNamedPropertyInTheModel` and `…_EveryEntryMatchesARealIntProperty` in `B/MicroLIMS.Tests/UnitTests/UserDeletionTests.cs:247-271`. The registry comment at `:25-28` gives the test a name (`UserReferenceModelScanTests`) that doesn't exist. Grouped by how they're enforced:
 
 **Group A — real DB FK, `Restrict` (blocks delete). Lines 38-110, plus 238-239, 250, 260.**
 `AdminPasswordRecovery.{UserId, CreatedByUserId}`, `ElectronicSignature.UserId`, `EquipmentDocument.UploadedByUserId`, `EquipmentStatusHistory.ChangedByUserId`, `ItemDocument.UploadedByUserId`, `ItemDocumentAccessLog.UserId`, `LocationPathogenObservation.ObservedByUserId`, `MaterialDocument.UploadedByUserId`, `OosInvestigationDocument.UploadedByUserId`, `Sample.{ReceivedByUserId, ReviewedByUserId, ApprovedByUserId}`, `SampleSectionSignoff.{ReviewedByUserId, ApprovedByUserId, ClosedByUserId}`, `TestReturnEvent.{ReviewerUserId, AssignedAnalystId}`, `Discussion*` / `Conversation*` / `DirectMessage` authorship (7 columns), the whole Document Control family (`DocumentMaster`, `DocumentMasterAssignment`, `DocumentRevision`, `RevisionFile`, `DocumentNumberingConfiguration`, `ConfigurationSetting`, `DocumentReviewTask/Finding`, `RevisionChangeItem`, `RevisionImpactAssessment`, `DocumentApprovalTask`, `PeriodicReviewTask/Finding`, `DocumentTrainingAssignment/Configuration`, `DocumentRoleCurriculum`, `DocumentAcknowledgementRecord`, `DocumentEscalationRecord` — 33 columns), `MasterDataImport.{ImportedByUserId, VerifiedByUserId}`, `AnalystAvailability.UserId`, `CalendarEventDocument.UploadedByUserId`.
@@ -245,7 +271,7 @@ None of these are DB-editable, versioned or visible in the UI.
 
 ### C11. E-signatures
 
-- **Re-authentication:** the password is re-verified at the moment of signing (`ElectronicSignatureService.cs:60-65`, comment cites 11.200(a)(1)). Inactive and locked users are refused with the same generic message (`:62-65`).
+- **Re-authentication:** the password is re-verified at the moment of signing (`ElectronicSignatureService.cs:60-65`; the 11.200(a)(1) rationale is at `IElectronicSignatureService.cs:18`). Inactive and locked users are refused with the same generic message (`:62-65`).
 - **Failures:** each one writes an `AuditLog` `SignatureFailed` row. After 5 in 15 minutes, attempts are refused without checking the password (`:40-58`). The login account is deliberately not locked (`:67-70`).
 - **Meaning:** a `SignatureMeaning` enum with 27 values (`B/MicroLIMS.Domain/Enums/SignatureMeaning.cs`), stored on the row.
 - **Linkage:** `EntityType` (string) + `EntityId` (int), plus name/username/role snapshots, IP, comment and `SignedAt` (`ElectronicSignature.cs:12-32`). The signature is queued on the same DbContext so it commits atomically with the state change (`IElectronicSignatureService.cs:16-24`). The row is immutable by DB trigger (`20260902181230_AddAuditImmutabilityTriggers.cs:30-32`).

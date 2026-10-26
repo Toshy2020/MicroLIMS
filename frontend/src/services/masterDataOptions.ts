@@ -93,6 +93,8 @@ export interface UpdateTestDefinitionStageReplicateRequest {
   sampleReplicates?: number | null;
 }
 
+export type MoistureRole = "None" | "LossOnDrying" | "Water";
+
 export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   code: string;
   displayName: string;
@@ -133,6 +135,8 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
   physchemArea?: PhyschemArea | null;
+  perContainer?: boolean;
+  moistureRole?: MoistureRole;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -175,6 +179,8 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
   physchemArea?: PhyschemArea | null;
+  perContainer?: boolean;
+  moistureRole?: MoistureRole;
   changeReason?: string | null;
 }
 

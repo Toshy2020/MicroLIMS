@@ -86,10 +86,12 @@ export const TestWorkflowService = {
     payload: {
       analysedAt: string;
       equipmentId?: number | null;
+      containerCount?: number;
       parameters: {
         specificationId: number;
         conforms: boolean;
         observation?: string | null;
+        containers?: { index: number; conforms: boolean; observation?: string }[];
       }[];
       password: string;
       comment?: string | null;

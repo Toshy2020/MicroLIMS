@@ -148,6 +148,7 @@ export interface CurrentStepResponse {
   totalSteps: number;
   testName: string;
   workflowType: WorkflowType;
+  perContainer?: boolean;
   sampleContext: SampleContext;
   incubationLock: IncubationLock | null;
   previousSteps: PreviousStepDetail[];

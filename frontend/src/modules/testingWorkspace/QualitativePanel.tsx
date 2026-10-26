@@ -22,6 +22,12 @@ import { SpecificationService, SpecificationDto } from "../laboratoryConfigurati
 import { ItemService } from "../laboratoryConfiguration/items/services/ItemService";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
+import {
+  buildContainerRows,
+  buildQualitativePayload,
+  getConclusionLine,
+  isValidContainerCount
+} from "./qualitativePerContainerHelper";
 
 interface Props {
   testOrderId: number;
@@ -31,6 +37,7 @@ interface Props {
   sampleId?: number | null;
   current: {
     workflowType?: string;
+    perContainer?: boolean;
     testName?: string;
     sampleContext?: {
       sampleName?: string;
@@ -44,12 +51,19 @@ interface Props {
   onClose?: () => void;
 }
 
+interface QualitativeContainerRowState {
+  index: number;
+  conforms: boolean;
+  observation: string;
+}
+
 interface QualitativeRowState {
   specificationId: number;
   parameterName: string;
   specLimitText: string;
   conforms: boolean;
   observation: string;
+  containers?: QualitativeContainerRowState[];
 }
 
 const getLocalIsoString = (date: Date = new Date()): string => {
@@ -76,6 +90,10 @@ export function QualitativePanel({
   const [rows, setRows] = useState<QualitativeRowState[]>([]);
   const [comment, setComment] = useState("");
   const [signing, setSigning] = useState(false);
+
+  const isPerContainer = Boolean(current.perContainer);
+  const [containerCountInput, setContainerCountInput] = useState<string>("");
+  const [containerCountTouched, setContainerCountTouched] = useState(false);
 
   // Outcome / completion view
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string } | null>(null);
@@ -150,7 +168,8 @@ export function QualitativePanel({
             parameterName: s.parameterName || s.testCode,
             specLimitText: limitText,
             conforms: true,
-            observation: ""
+            observation: "",
+            containers: []
           };
         });
 
@@ -174,13 +193,50 @@ export function QualitativePanel({
     return () => {
       active = false;
     };
-  }, [effectiveTestCode, itemId, current.sampleContext?.sampleName]);
+  }, [effectiveTestCode, itemId, current.sampleContext?.sampleName, testOrderId]);
 
   const handleRowChange = (index: number, patch: Partial<QualitativeRowState>) => {
     setRows((prev) =>
       prev.map((r, i) => (i === index ? { ...r, ...patch } : r))
     );
   };
+
+  const handleContainerCountChange = (val: string) => {
+    setContainerCountInput(val);
+    const count = Number(val);
+    if (isValidContainerCount(count)) {
+      setRows((prev) =>
+        prev.map((r) => ({
+          ...r,
+          containers: buildContainerRows(r.containers || [], count)
+        }))
+      );
+    }
+  };
+
+  const handleContainerChange = (
+    paramIndex: number,
+    containerIndex: number,
+    patch: Partial<QualitativeContainerRowState>
+  ) => {
+    setRows((prev) =>
+      prev.map((r, pIdx) => {
+        if (pIdx !== paramIndex) return r;
+        const nextContainers = (r.containers || []).map((c) =>
+          c.index === containerIndex ? { ...c, ...patch } : c
+        );
+        return {
+          ...r,
+          containers: nextContainers,
+          conforms: nextContainers.every((c) => c.conforms)
+        };
+      })
+    );
+  };
+
+  const isCountValid = useMemo(() => {
+    return isValidContainerCount(Number(containerCountInput));
+  }, [containerCountInput]);
 
   const isFormValid = useMemo(() => {
     if (rows.length === 0) return false;
@@ -192,6 +248,22 @@ export function QualitativePanel({
       return false;
     }
 
+    if (isPerContainer) {
+      const count = Number(containerCountInput);
+      if (!isValidContainerCount(count)) return false;
+
+      for (const r of rows) {
+        if (!r.containers || r.containers.length !== count) return false;
+        for (const c of r.containers) {
+          if (!c.conforms) {
+            if (!c.observation.trim()) return false;
+          }
+          if (c.observation.length > 500) return false;
+        }
+      }
+      return true;
+    }
+
     // For every row: if !conforms, observation is required and <= 500 chars
     for (const r of rows) {
       if (!r.conforms) {
@@ -201,22 +273,20 @@ export function QualitativePanel({
     }
 
     return true;
-  }, [rows, analysedAt]);
+  }, [rows, analysedAt, isPerContainer, containerCountInput]);
 
   const submit = async (password: string) => {
     setError(null);
     try {
-      const payload = {
-        analysedAt: new Date(analysedAt).toISOString(),
-        equipmentId: selectedEquipmentId !== "" ? Number(selectedEquipmentId) : null,
-        parameters: rows.map((r) => ({
-          specificationId: r.specificationId,
-          conforms: r.conforms,
-          observation: r.observation.trim() || null
-        })),
+      const payload = buildQualitativePayload({
+        analysedAt,
+        equipmentId: selectedEquipmentId,
         password,
-        comment: comment.trim() || null
-      };
+        comment,
+        isPerContainer,
+        containerCount: isPerContainer ? Number(containerCountInput) : undefined,
+        parameters: rows
+      });
 
       const res = await TestWorkflowService.recordQualitativeResult(testOrderId, payload);
       setSigning(false);
@@ -291,37 +361,56 @@ export function QualitativePanel({
             1. Analysis Configuration
           </Typography>
 
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            <TextField
-              size="small"
-              type="datetime-local"
-              label="Analysis time"
-              value={analysedAt}
-              onChange={(e) => setAnalysedAt(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-              required
-              fullWidth
-            />
+          <Stack spacing={2}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <TextField
+                size="small"
+                type="datetime-local"
+                label="Analysis time"
+                value={analysedAt}
+                onChange={(e) => setAnalysedAt(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+                required
+                fullWidth
+              />
 
-            <FormControl size="small" fullWidth>
-              <InputLabel id="equipment-select-label">Equipment (Physicochemical)</InputLabel>
-              <Select
-                labelId="equipment-select-label"
-                label="Equipment (Physicochemical)"
-                value={selectedEquipmentId}
-                onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
-              >
-                <MenuItem value="">
-                  <em>None (no instrument linked)</em>
-                </MenuItem>
-                {fpEquipment.map((eq) => (
-                  <MenuItem key={eq.id} value={eq.id}>
-                    {eq.name} ({eq.code})
+              <FormControl size="small" fullWidth>
+                <InputLabel id="equipment-select-label">Equipment (Physicochemical)</InputLabel>
+                <Select
+                  labelId="equipment-select-label"
+                  label="Equipment (Physicochemical)"
+                  value={selectedEquipmentId}
+                  onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
+                >
+                  <MenuItem value="">
+                    <em>None (no instrument linked)</em>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+                  {fpEquipment.map((eq) => (
+                    <MenuItem key={eq.id} value={eq.id}>
+                      {eq.name} ({eq.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {isPerContainer && (
+              <TextField
+                size="small"
+                type="number"
+                label="Containers received *"
+                placeholder="1–200"
+                value={containerCountInput}
+                onChange={(e) => handleContainerCountChange(e.target.value)}
+                onBlur={() => setContainerCountTouched(true)}
+                slotProps={{ htmlInput: { min: 1, max: 200, step: 1 } }}
+                helperText="Enter the number of containers received (1 to 200)."
+                error={Boolean((containerCountTouched || containerCountInput !== "") && !isCountValid)}
+                required
+                sx={{ maxWidth: { xs: "100%", sm: 300 } }}
+              />
+            )}
+          </Stack>
         </Box>
 
         {/* Section 2: Qualitative Parameters Rows */}
@@ -330,8 +419,178 @@ export function QualitativePanel({
             2. Qualitative Observations ({rows.length} parameter{rows.length === 1 ? "" : "s"})
           </Typography>
 
+          {isPerContainer && !isCountValid && (
+            <Alert severity="info">
+              Enter the number of containers received (1 to 200) to record results.
+            </Alert>
+          )}
+
           <Stack spacing={2}>
             {rows.map((row, idx) => {
+              if (isPerContainer) {
+                if (!isCountValid) return null;
+
+                const parsedCount = Number(containerCountInput);
+                const conclusion = getConclusionLine(parsedCount, row.containers);
+                const allComply = !row.containers?.some((c) => !c.conforms);
+
+                return (
+                  <Box
+                    key={row.specificationId}
+                    sx={{
+                      p: 2,
+                      border: "1px solid",
+                      borderColor: allComply ? "divider" : "error.light",
+                      borderRadius: 1.5,
+                      bgcolor: allComply ? "background.paper" : "error.lighter",
+                      transition: "border-color 0.2s, background-color 0.2s"
+                    }}
+                  >
+                    <Box sx={{ mb: 2 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: 14 }}>
+                        {row.parameterName}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 12, mb: 1.5 }}>
+                        Criteria: <strong>{row.specLimitText}</strong>
+                      </Typography>
+
+                      {/* Read-only conclusion line */}
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 1,
+                          bgcolor: allComply ? "action.hover" : "background.paper",
+                          border: "1px solid",
+                          borderColor: allComply ? "divider" : "error.main",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1
+                        }}
+                      >
+                        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
+                          Conclusion:
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: allComply ? "success.dark" : "error.dark"
+                          }}
+                        >
+                          {conclusion}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Container rows 1..n */}
+                    <Stack spacing={1.5}>
+                      {(row.containers || []).map((container) => {
+                        const obsRequired = !container.conforms;
+                        const obsMissing = obsRequired && !container.observation.trim();
+
+                        return (
+                          <Box
+                            key={container.index}
+                            sx={{
+                              p: 1.5,
+                              border: "1px solid",
+                              borderColor: container.conforms ? "divider" : "error.light",
+                              borderRadius: 1,
+                              bgcolor: container.conforms ? "background.paper" : "rgba(211, 47, 47, 0.04)"
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                gap: 1.5,
+                                mb: 1.5
+                              }}
+                            >
+                              <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
+                                Container {container.index} of {parsedCount}
+                              </Typography>
+
+                              <ToggleButtonGroup
+                                value={container.conforms ? "complies" : "non-comply"}
+                                exclusive
+                                size="small"
+                                onChange={(_, val) => {
+                                  if (val !== null) {
+                                    handleContainerChange(idx, container.index, { conforms: val === "complies" });
+                                  }
+                                }}
+                              >
+                                <ToggleButton
+                                  value="complies"
+                                  color="success"
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    px: 2,
+                                    "&.Mui-selected": {
+                                      bgcolor: "success.main",
+                                      color: "success.contrastText",
+                                      "&:hover": {
+                                        bgcolor: "success.dark"
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <CheckCircleOutlineIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                  Complies
+                                </ToggleButton>
+                                <ToggleButton
+                                  value="non-comply"
+                                  color="error"
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    px: 2,
+                                    "&.Mui-selected": {
+                                      bgcolor: "error.main",
+                                      color: "error.contrastText",
+                                      "&:hover": {
+                                        bgcolor: "error.dark"
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <HighlightOffIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                  Does not comply
+                                </ToggleButton>
+                              </ToggleButtonGroup>
+                            </Box>
+
+                            <TextField
+                              size="small"
+                              fullWidth
+                              label={obsRequired ? "Observation (required) *" : "Observation (optional)"}
+                              placeholder={obsRequired ? `Describe what container ${container.index} shows.` : "Notes or visual description"}
+                              value={container.observation}
+                              onChange={(e) => handleContainerChange(idx, container.index, { observation: e.target.value })}
+                              required={obsRequired}
+                              error={obsMissing}
+                              helperText={
+                                obsMissing
+                                  ? `Describe what container ${container.index} shows.`
+                                  : container.observation.length > 450
+                                  ? `${container.observation.length}/500 chars`
+                                  : undefined
+                              }
+                              slotProps={{ htmlInput: { maxLength: 500 } }}
+                            />
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                );
+              }
+
+              // Non-per-container: original rendering
               const observationRequired = !row.conforms;
               const hasObservationError = observationRequired && !row.observation.trim();
 

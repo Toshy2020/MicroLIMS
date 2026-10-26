@@ -4,8 +4,11 @@ import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterData
 import {
   masterDataOptions,
   CreateTestDefinitionPayload,
-  UpdateTestDefinitionPayload
+  UpdateTestDefinitionPayload,
+  MoistureRole
 } from "../services/masterDataOptions";
+
+export type { MoistureRole };
 
 export interface TestDefinitionOption extends TitrationDefinitionFields {
   id: number;
@@ -56,6 +59,8 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
     code: string;
   };
   physchemArea?: PhyschemArea | null;
+  perContainer?: boolean;
+  moistureRole?: MoistureRole;
 }
 
 // Backs every TestCode picker in the app (Items, Water Sampling Points,

@@ -9,7 +9,7 @@ import { LoadErrorAlert, LoadFailuresAlert } from "../../../components/LoadError
 import { useLoadFailures } from "../../../hooks/useLoadFailures";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
-import { CreateTestDefinitionPayload, UpdateTestDefinitionPayload } from "../../../services/masterDataOptions";
+import { CreateTestDefinitionPayload, UpdateTestDefinitionPayload, MoistureRole } from "../../../services/masterDataOptions";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
 import { IcpMethodService, IcpMethodListItem } from "./services/IcpMethodService";
 import { TitrationConfigSection } from "./TitrationConfigSection";
@@ -92,6 +92,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [evaluationBasis, setEvaluationBasis] = useState<"Mean" | "EachValue" | "Min" | "Max">("Mean");
   const [conditionFields, setConditionFields] = useState<string>("");
   const [usesTare, setUsesTare] = useState<boolean>(false);
+  const [perContainer, setPerContainer] = useState<boolean>(false);
+  const [moistureRole, setMoistureRole] = useState<MoistureRole>("None");
   const [titration, setTitration] = useState<TitrationFormState>(createInitialTitrationForm);
 
   const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>("5");
@@ -154,6 +156,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setEvaluationBasis("Mean");
     setConditionFields("");
     setUsesTare(false);
+    setPerContainer(false);
+    setMoistureRole("None");
     setTitration(createInitialTitrationForm());
     setDissolutionS1Offset("5");
     setDissolutionS2MinOffset("15");
@@ -200,6 +204,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setEvaluationBasis(t.evaluationBasis || "Mean");
     setConditionFields(t.conditionFields || "");
     setUsesTare(!!t.usesTare);
+    setPerContainer(!!t.perContainer);
+    setMoistureRole(t.moistureRole ?? "None");
     setTitration(titrationFormFromDefinition(t));
     setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : "5");
     setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
@@ -489,6 +495,12 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           ...titrationPayloadFields(titration, isTitration),
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           changeReason: reasonCheck.payload,
+          perContainer: isQualitative ? perContainer : false,
+          moistureRole: isGravimetric
+            ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
+            : (isTitration && titration.type === "KarlFischer")
+            ? (moistureRole === "Water" ? "Water" : "None")
+            : "None",
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
           icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
         };
@@ -496,6 +508,12 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
       } else {
         const payload: CreateTestDefinitionPayload = {
+          perContainer: isQualitative ? perContainer : false,
+          moistureRole: isGravimetric
+            ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
+            : (isTitration && titration.type === "KarlFischer")
+            ? (moistureRole === "Water" ? "Water" : "None")
+            : "None",
           code: trimmedCode,
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
@@ -1065,12 +1083,30 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
                 />
+                <FormControl size="small" sx={{ maxWidth: 300 }}>
+                  <InputLabel id="gravimetric-moisture-role-label">Moisture role</InputLabel>
+                  <Select<MoistureRole>
+                    labelId="gravimetric-moisture-role-label"
+                    label="Moisture role"
+                    value={moistureRole === "Water" ? "None" : moistureRole}
+                    onChange={(e) => setMoistureRole(e.target.value as MoistureRole)}
+                  >
+                    <MenuItem value="None">None</MenuItem>
+                    <MenuItem value="LossOnDrying">Loss on drying</MenuItem>
+                  </Select>
+                </FormControl>
               </Stack>
             </Box>
           )}
 
           {workflowType === "Titration" && (
-            <TitrationConfigSection form={titration} onChange={setTitration} sectionId={sectionId} />
+            <TitrationConfigSection
+              form={titration}
+              onChange={setTitration}
+              sectionId={sectionId}
+              moistureRole={moistureRole}
+              onMoistureRoleChange={setMoistureRole}
+            />
           )}
 
           {isFp && area && <TestAreaField pageArea={area} value={physchemArea} onChange={setPhyschemArea} />}
@@ -1081,9 +1117,18 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
 
           {workflowType === "Qualitative" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-              <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary" }}>
+              <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary", mb: 1.5 }}>
                 Qualitative test: records compliance observation against specifications directly (no replicates or steps).
               </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={perContainer}
+                    onChange={(e) => setPerContainer(e.target.checked)}
+                  />
+                }
+                label="Recorded per container"
+              />
             </Box>
           )}
 

@@ -2833,6 +2833,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("MeaningOfSignature")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RoleNameSnapshot")
+                        .HasColumnType("text");
+
                     b.Property<string>("RoleSnapshot")
                         .IsRequired()
                         .HasColumnType("text");
@@ -8458,6 +8461,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("PermissionVersion")
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");

@@ -26,6 +26,9 @@ public class RoleManagementTests
         );
         db.SaveChanges();
         DbSeeder.SeedPermissionsAndGrants(db);
+        // Somebody must still be able to administer users and roles after the change under test.
+        db.Users.Add(new User { Id = 1, FullName = "Standing Admin", Username = "admin", RoleId = 1, IsActive = true });
+        db.SaveChanges();
         return db;
     }
 
@@ -248,5 +251,116 @@ public class RoleManagementTests
             var methodAttrs = method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true);
             Assert.Empty(methodAttrs); // no method-level override - inherits the class-level SystemAdministrator-only restriction
         }
+    }
+
+    // ---- Administration continuity ----
+    // CreateDbContext seeds one active administrator (user 1, role 1), the
+    // only user whose role holds Users.Manage and Roles.Manage.
+
+    private static List<string> AllCodesExcept(string code) =>
+        PermissionConstants.All.Where(c => c != code).ToList();
+
+    // A non-system role holding both administration permissions, with one
+    // user in it. Not typed SystemAdministrator - holding is by permission.
+    private static async Task<User> AddCustomAdministratorAsync(MicroLimsDbContext db, bool isActive = true, DateTime? lockedUntil = null)
+    {
+        var role = new Role { Name = "Operations Admin", Type = RoleType.Analyst, IsSystemRole = false, IsActive = true };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        var permissionIds = await db.Permissions
+            .Where(p => p.Code == PermissionConstants.UsersManage || p.Code == PermissionConstants.RolesManage)
+            .Select(p => p.Id).ToListAsync();
+        foreach (var permissionId in permissionIds)
+            db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+        var user = new User { FullName = "Ops Admin", Username = "opsadmin", RoleId = role.Id, IsActive = isActive, LockedUntil = lockedUntil };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user;
+    }
+
+    private static async Task<User> AddActingUserAsync(MicroLimsDbContext db, int roleId = 4)
+    {
+        var user = new User { FullName = "Acting User", Username = "actinguser", RoleId = roleId, IsActive = true };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user;
+    }
+
+    [Theory]
+    [InlineData(PermissionConstants.UsersManage)]
+    [InlineData(PermissionConstants.RolesManage)]
+    public async Task UpdatePermissionsAsync_RejectsRemovingAnAdministrationPermission_FromTheOnlyHoldingRole(string permissionCode)
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db);
+        var auditCountBefore = await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id));
+
+        Assert.Contains(permissionCode, ex.Message);
+        // Nothing was saved: the role keeps the permission and no audit entry was written.
+        Assert.Contains(permissionCode, await new PermissionService(db).GetPermissionCodesForRoleAsync(1));
+        Assert.Equal(auditCountBefore, await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED"));
+    }
+
+    [Theory]
+    [InlineData(PermissionConstants.UsersManage)]
+    [InlineData(PermissionConstants.RolesManage)]
+    public async Task UpdatePermissionsAsync_AllowsRemovingAnAdministrationPermission_WhenAnotherActiveUsersRoleHoldsIt(string permissionCode)
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db);
+        await AddCustomAdministratorAsync(db);
+
+        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id);
+
+        Assert.DoesNotContain(permissionCode, updated.PermissionCodes);
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_DoesNotCountDisabledUsers()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db);
+        await AddCustomAdministratorAsync(db, isActive: false);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.UsersManage), actor.Id));
+
+        Assert.Contains(PermissionConstants.UsersManage, ex.Message);
+    }
+
+    // A lockout expires by itself after 15 minutes, so it must not be what
+    // blocks administration.
+    [Fact]
+    public async Task UpdatePermissionsAsync_CountsTemporarilyLockedUsers()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db);
+        await AddCustomAdministratorAsync(db, lockedUntil: DateTime.UtcNow.AddMinutes(10));
+
+        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id);
+
+        Assert.DoesNotContain(PermissionConstants.RolesManage, updated.PermissionCodes);
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_RejectsChangingThePermissionsOfTheActingUsersOwnRole()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var created = await service.CreateAsync("Own Role", null, RoleType.Analyst);
+        var actor = await AddActingUserAsync(db, roleId: created.Id);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actor.Id));
+
+        Assert.Equal("You cannot change the permissions of your own role.", ex.Message);
+        Assert.DoesNotContain(PermissionConstants.AuditView, await new PermissionService(db).GetPermissionCodesForRoleAsync(created.Id));
     }
 }

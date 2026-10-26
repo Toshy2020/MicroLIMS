@@ -22,10 +22,13 @@ public record UserReferenceEntry(Type EntityType, string PropertyName, UserRefer
 // columns with no DB-level enforcement at all).
 //
 // UserDeletionService.UserHasAnyHistoryAsync walks every Blocks entry
-// looking for a reference to the user being deleted. UserReferenceModelScanTests
-// asserts every int/int? "*UserId"-suffixed property found by reflecting
-// over the EF model appears in this list, so a newly added column that
-// nobody reviewed fails the build instead of silently going unchecked.
+// looking for a reference to the user being deleted. UserDeletionTests
+// (UserReferenceRegistry_AccountsForEveryUserIdNamedPropertyInTheModel and
+// UserReferenceRegistry_EveryEntryMatchesARealIntProperty) assert every
+// int/int? "*UserId"-suffixed property found by reflecting over the EF model
+// appears in this list and every entry matches a real property, so a newly
+// added column that nobody reviewed fails the build instead of silently
+// going unchecked.
 //
 // Do not add or remove an entry without updating this list AND deciding
 // its disposition - that is the entire point of keeping it explicit

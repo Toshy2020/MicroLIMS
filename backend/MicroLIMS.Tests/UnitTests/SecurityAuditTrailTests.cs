@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Constants;
 using Xunit;
 
@@ -51,6 +52,10 @@ public class SecurityAuditTrailTests
             new Role { Id = 2, Type = RoleType.SectionHead, Name = "Section Head" },
             new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst" }
         );
+        db.SaveChanges();
+        DbSeeder.SeedPermissionsAndGrants(db);
+        // Somebody must still be able to administer users and roles after the change under test.
+        db.Users.Add(new User { Id = 900, FullName = "Standing Admin", Username = "standingadmin", RoleId = 1, IsActive = true });
         db.SaveChanges();
         return db;
     }

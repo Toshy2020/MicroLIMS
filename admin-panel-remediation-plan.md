@@ -48,6 +48,20 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 
 ### Wave 0 — Urgent fixes (independent of the admin panel; gate: D0, D4 only)
 
+> **Status 2026-10-26: COMPLETE on `claude/eager-ramanujan-izk0z7`.** The merged branch has the full backend suite green locally against PostgreSQL 16: 3,613 passed, 0 failed, 0 skipped. Baseline before Wave 0 was 3,580, and its only 4 failures were the OCR tests, caused by a missing tesseract binary in this container (now installed). The no-DB pass has 3,363 passed and 250 skipped. Frontend: 90 files / 436 Vitest tests passed, `tsc -b` clean, lint 0 errors. `ef migrations has-pending-model-changes` reports none.
+>
+> | WP | Result | Agent → review |
+> |---|---|---|
+> | WP0.1 | Dump untracked, backups ignored (`14e4cf3`, `bc604f4`). History rewrite still open (D0). | Opus |
+> | WP0.2 | **Bug confirmed on PostgreSQL before the fix**, in **three** places: waste destruction (trigger rejects the signature UPDATE), maintenance entry and calibration (FK to signature id `0`). Fix: reserve the record id from its identity sequence via a new `IDatabaseSequenceHelper.ReserveIdAsync<T>`, then insert the signature and record together. Plan-approval variants verified as no-ops. 6 new PG tests. | Sonnet → Opus (sent back once: the first version put PostgreSQL SQL in the Application layer) |
+> | WP0.3 | `[AuditRedacted]` on 5 credential properties; capture writes `[REDACTED]`. Architecture test with a 1-entry allowlist (`DocumentAcknowledgementRecord.ControlledFileHash`). Opus restored subtype-aware exclusion (`d3c6a40`). | Sonnet → Opus |
+> | WP0.4 | Previous RoleId fixed + test. | Haiku → Opus |
+> | WP0.5 | Job Title kept on edit and settable on create + 3 Vitest tests. | Haiku → Opus |
+> | WP0.6 | `AdministrationContinuityGuard` (by permission, active users) wired into role change, disable, permission edit and hard delete; own-role permission edits blocked. 22 existing fixtures now seed grants and a standing admin. | Sonnet → Opus |
+> | WP0.7 | Audit search `Take` clamped to 1–1000; `npm test` added to CI. | Haiku → Opus |
+>
+> Still open from Wave 0: **D0** (history rewrite, credential rotation) and **D4 part B** (forced password reset plus a deviation note for hashes already in `AuditLogs`).
+
 | WP | Covers | Model | Scope / spec summary | Acceptance |
 |---|---|---|---|---|
 | **WP0.1** | H2 | Haiku | `git rm --cached backups/*.dump`; add `backups/*.dump` and `*.dump` to `.gitignore`; note in `DEPLOYMENT.md` where backups belong. History rewrite and secret rotation are **human** steps (D0). | The file is untracked; CI is green. |

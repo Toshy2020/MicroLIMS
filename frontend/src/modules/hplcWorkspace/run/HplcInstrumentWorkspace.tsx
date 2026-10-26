@@ -59,10 +59,8 @@ export function HplcInstrumentWorkspace() {
   const { technique, label, routes } = useTechnique();
   const { instrumentId, runId } = useParams<{ instrumentId: string; runId?: string }>();
   const equipmentId = Number(instrumentId);
-  const { permissions, role } = useAuth();
-  const canOperate =
-    permissions.includes(PERMISSIONS.HPLC_OPERATE) ||
-    role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE);
 
   const getInitialTab = () => {
     const path = location.pathname;

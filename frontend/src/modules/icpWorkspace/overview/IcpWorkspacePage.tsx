@@ -21,10 +21,8 @@ import type { IcpInstrumentDto, IcpRunDto } from "../types";
 
 export function IcpWorkspacePage() {
   const navigate = useNavigate();
-  const { permissions, role } = useAuth();
-  const canOperate =
-    permissions.includes(PERMISSIONS.HPLC_OPERATE) ||
-    role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE);
 
   const [instruments, setInstruments] = useState<IcpInstrumentDto[]>([]);
   const [loading, setLoading] = useState(true);

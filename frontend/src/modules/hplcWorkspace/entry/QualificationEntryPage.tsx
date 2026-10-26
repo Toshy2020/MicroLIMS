@@ -28,8 +28,8 @@ export function QualificationEntryPage() {
   const theme = useTheme();
   const navigate = useNavigate();
   const { basePath } = useTechnique();
-  const { permissions, role } = useAuth();
-  const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE) || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE);
 
   const { instrumentId, runId, runSampleId } = useParams<{
     instrumentId: string;

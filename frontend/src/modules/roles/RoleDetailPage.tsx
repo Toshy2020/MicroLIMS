@@ -9,7 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
-import { RoleService, RoleDetail, PermissionRecord } from "./services/RoleService";
+import { RoleService, RoleDetail, PermissionRecord, SodRules } from "./services/RoleService";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { PermissionMatrix } from "./components/PermissionMatrix";
@@ -24,6 +24,7 @@ export function RoleDetailPage() {
   const [role, setRole] = useState<RoleDetail | null>(null);
   const [permissions, setPermissions] = useState<PermissionRecord[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [sodRules, setSodRules] = useState<SodRules | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [checkedCodes, setCheckedCodes] = useState<Set<string>>(new Set());
@@ -44,6 +45,7 @@ export function RoleDetailPage() {
     }).catch(() => setMessage({ text: "Could not load this role.", ok: false }));
     RoleService.getAllPermissions().then(setPermissions).catch(fail("the permission list"));
     UserService.getAll().then(setUsers).catch(fail("the users holding this role"));
+    RoleService.getSodRules().then(setSodRules).catch(fail("the segregation-of-duties rules"));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [roleId]);
@@ -163,6 +165,13 @@ export function RoleDetailPage() {
         </Stack>
       </Paper>
 
+      {role.sodConflicts && role.sodConflicts.length > 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          This role mixes system administration with GxP execution or approval ({role.sodConflicts.join("; ")}).
+          Segregation of duties does not allow that: uncheck one side of each pair and save.
+        </Alert>
+      )}
+
       {!role.isSystemRole && (
         <Alert severity="info" sx={{ mb: 3 }}>
           This role behaves like <strong>{role.type}</strong> on screens not yet migrated to the new permission system
@@ -171,7 +180,7 @@ export function RoleDetailPage() {
       )}
 
       <SectionTitle>Permissions</SectionTitle>
-      <PermissionMatrix permissions={permissions} checkedCodes={checkedCodes} onToggle={handleToggle} />
+      <PermissionMatrix permissions={permissions} checkedCodes={checkedCodes} onToggle={handleToggle} sodRules={sodRules} />
 
       <Box
         sx={{

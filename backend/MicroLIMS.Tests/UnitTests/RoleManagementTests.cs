@@ -1,4 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -343,8 +347,13 @@ public class RoleManagementTests
     // CreateDbContext seeds one active administrator (user 1, role 1), the
     // only user whose role holds Users.Manage and Roles.Manage.
 
+    // The seeded System Administrator holds every code, which segregation of
+    // duties no longer lets a save keep; these tests are about continuity, so
+    // they save the administration side of it without the GxP codes.
     private static List<string> AllCodesExcept(string code) =>
-        PermissionConstants.All.Where(c => c != code).ToList();
+        PermissionConstants.All
+            .Where(c => c != code && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c))
+            .ToList();
 
     // A non-system role holding both administration permissions, with one
     // user in it. Not typed SystemAdministrator - holding is by permission.
@@ -448,5 +457,154 @@ public class RoleManagementTests
 
         Assert.Equal("You cannot change the permissions of your own role.", ex.Message);
         Assert.DoesNotContain(PermissionConstants.AuditView, await new PermissionService(db).GetPermissionCodesForRoleAsync(created.Id));
+    }
+
+    // ---- Segregation of duties ----
+
+    private static async Task<int> CountRolePermissionsAsync(MicroLimsDbContext db, int roleId) =>
+        await db.RolePermissions.CountAsync(rp => rp.RoleId == roleId);
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_RejectsAdministrationTogetherWithGxpExecution_AndSavesNothing()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var created = await service.CreateAsync("Mixed Role", null, RoleType.Analyst);
+        var actor = await AddActingUserAsync(db);
+        var grantsBefore = await CountRolePermissionsAsync(db, created.Id);
+        var auditCountBefore = await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED");
+
+        var ex = await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() =>
+            service.UpdatePermissionsAsync(created.Id,
+                new List<string> { PermissionConstants.AuditView, PermissionConstants.UsersManage, PermissionConstants.SamplesApprove }, actor.Id));
+
+        Assert.Contains("Users.Manage + Samples.Approve", ex.Message);
+        Assert.Equal(grantsBefore, await CountRolePermissionsAsync(db, created.Id));
+        Assert.Equal(auditCountBefore, await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED"));
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_AllowsAdministrationWithoutGxp_AndGxpWithoutAdministration()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var created = await service.CreateAsync("Split Role", null, RoleType.Analyst);
+        var actor = await AddActingUserAsync(db);
+
+        var administration = await service.UpdatePermissionsAsync(created.Id,
+            new List<string> { PermissionConstants.UsersManage, PermissionConstants.RolesManage, PermissionConstants.AuditView }, actor.Id);
+        var gxp = await service.UpdatePermissionsAsync(created.Id,
+            new List<string> { PermissionConstants.SamplesApprove, PermissionConstants.TestWorkflowExecute }, actor.Id);
+
+        Assert.Empty(administration.SodConflicts);
+        Assert.Empty(gxp.SodConflicts);
+    }
+
+    // The seeded System Administrator still holds every code on a database
+    // not yet migrated; saving it down to administration only must work.
+    [Fact]
+    public async Task UpdatePermissionsAsync_AcceptsRemovingTheConflictsOfAnAlreadyViolatingRole()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db);
+        Assert.NotEmpty((await service.GetByIdAsync(1))!.SodConflicts);
+
+        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept("none"), actor.Id);
+
+        Assert.Empty(updated.SodConflicts);
+        Assert.Empty((await service.GetByIdAsync(1))!.SodConflicts);
+        Assert.Contains(PermissionConstants.UsersManage, updated.PermissionCodes);
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_RejectsASaveThatKeepsSomeOfAnExistingViolation()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db);
+        var codes = AllCodesExcept("none");
+        codes.Add(PermissionConstants.OosManage);
+
+        await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() => service.UpdatePermissionsAsync(1, codes, actor.Id));
+    }
+
+    [Fact]
+    public async Task CreateAsync_RejectsABaseRoleWhoseGrantsWouldConflict_AndSavesNothing()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var rolesBefore = await db.Roles.CountAsync();
+
+        var ex = await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() =>
+            service.CreateAsync("Admin Copy", null, RoleType.SystemAdministrator));
+
+        Assert.Contains("Roles.Manage + ", ex.Message);
+        Assert.Equal(rolesBefore, await db.Roles.CountAsync());
+    }
+
+    [Fact]
+    public async Task CreateAsync_AcceptsABaseRoleWithoutConflicts()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync("Section Copy", null, RoleType.SectionHead);
+
+        Assert.Empty(created.SodConflicts);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ListsTheConflictsOfExistingRoles()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+
+        var roles = await service.GetAllAsync();
+
+        Assert.Contains("Users.Manage + Samples.Approve", roles.Single(r => r.Id == 1).SodConflicts);
+        Assert.Empty(roles.Single(r => r.Id == 4).SodConflicts);
+    }
+
+    private static RoleController CreateController(MicroLimsDbContext db, int actingUserId) => new(CreateService(db))
+    {
+        ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, actingUserId.ToString())
+                }, "TestAuth"))
+            }
+        }
+    };
+
+    [Fact]
+    public async Task Controller_MapsASegregationOfDutiesViolationToConflict_OnUpdatePermissionsAndCreate()
+    {
+        var db = CreateDbContext();
+        var actor = await AddActingUserAsync(db);
+        var controller = CreateController(db, actor.Id);
+        var created = await CreateService(db).CreateAsync("Mixed Role", null, RoleType.Analyst);
+
+        var update = await controller.UpdatePermissions(created.Id,
+            new UpdateRolePermissionsRequest(new List<string> { PermissionConstants.RolesManage, PermissionConstants.MediaRelease }));
+        var create = await controller.Create(new CreateRoleRequest("Admin Copy", null, RoleType.SystemAdministrator));
+
+        Assert.IsType<ConflictObjectResult>(update);
+        Assert.IsType<ConflictObjectResult>(create);
+    }
+
+    [Fact]
+    public void Controller_GetSodRules_ReturnsBothSets()
+    {
+        var controller = CreateController(CreateDbContext(), 1);
+
+        var ok = Assert.IsType<OkObjectResult>(controller.GetSodRules());
+
+        var body = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<SodRulesDto>>(ok.Value);
+        Assert.Contains(PermissionConstants.UsersManage, body.Data!.AdministrationCodes);
+        Assert.Contains(PermissionConstants.DocumentsApprove, body.Data.GxpExecutionAndApprovalCodes);
     }
 }

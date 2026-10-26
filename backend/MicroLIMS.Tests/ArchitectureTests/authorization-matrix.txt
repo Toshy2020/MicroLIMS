@@ -464,6 +464,7 @@ RoleController.Delete(Int32): SystemAdministrator
 RoleController.GetAll(): SystemAdministrator
 RoleController.GetAllPermissions(): SystemAdministrator
 RoleController.GetById(Int32): SystemAdministrator
+RoleController.GetSodRules(): SystemAdministrator
 RoleController.Update(Int32, UpdateRoleRequest): SystemAdministrator
 RoleController.UpdatePermissions(Int32, UpdateRolePermissionsRequest): SystemAdministrator
 SampleApprovalController.CloseTesting(Int32, Int32, CloseSectionTestingRequest): SystemAdministrator,SectionHead

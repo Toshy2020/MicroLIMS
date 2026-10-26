@@ -42,8 +42,15 @@ public class RoleController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateRoleRequest request)
     {
-        var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType);
-        return Ok(ApiResponse<RoleDetailDto>.Ok(created));
+        try
+        {
+            var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType);
+            return Ok(ApiResponse<RoleDetailDto>.Ok(created));
+        }
+        catch (SegregationOfDutiesViolationException ex)
+        {
+            return Conflict(ApiResponse<object>.Fail(ex.Message));
+        }
     }
 
     [HttpPut("{id}")]
@@ -63,9 +70,20 @@ public class RoleController : ControllerBase
     [HttpPut("{id}/permissions")]
     public async Task<IActionResult> UpdatePermissions(int id, UpdateRolePermissionsRequest request)
     {
-        var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId);
-        return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
+        try
+        {
+            var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId);
+            return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
+        }
+        catch (SegregationOfDutiesViolationException ex)
+        {
+            return Conflict(ApiResponse<object>.Fail(ex.Message));
+        }
     }
+
+    // The two sets the server enforces, so the permission matrix can disable a conflicting box up front.
+    [HttpGet("sod-rules")]
+    public IActionResult GetSodRules() => Ok(ApiResponse<SodRulesDto>.Ok(RoleService.GetSodRules()));
 
     [HttpGet("/api/permissions")]
     public async Task<IActionResult> GetAllPermissions() => Ok(ApiResponse<List<PermissionDto>>.Ok(await _roleService.GetAllPermissionsAsync()));

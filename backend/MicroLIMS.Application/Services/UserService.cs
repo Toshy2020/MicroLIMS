@@ -174,6 +174,7 @@ public class UserService
         var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Id == newRoleId)
             ?? throw new InvalidOperationException("Selected role does not exist.");
 
+        var prevRoleId = user.RoleId;
         var prevRoleName = user.Role?.Name ?? "Unknown";
         user.RoleId = newRoleId;
 
@@ -192,7 +193,7 @@ public class UserService
             EntityName = nameof(User),
             EntityId = targetUserId.ToString(),
             Action = "USER_ROLE_CHANGED",
-            PreviousValue = JsonSerializer.Serialize(new { RoleId = user.RoleId, RoleName = prevRoleName }),
+            PreviousValue = JsonSerializer.Serialize(new { RoleId = prevRoleId, RoleName = prevRoleName }),
             NewValue = JsonSerializer.Serialize(new { RoleId = newRoleId, RoleName = newRole.Name, Reason = reason }),
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime

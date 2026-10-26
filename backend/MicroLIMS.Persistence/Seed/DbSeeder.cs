@@ -506,6 +506,7 @@ public static class DbSeeder
             (PermissionConstants.EquipmentPlanApprove, "Sign an equipment plan revision into force."),
             (PermissionConstants.EquipmentWorkRecord, "Record and sign calibrations and maintenance logbook entries."),
             (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
+            (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -527,7 +528,7 @@ public static class DbSeeder
 
             var grants = new (RoleType Role, string[] Codes)[]
             {
-                (RoleType.SystemAdministrator, PermissionConstants.All.ToArray()),
+                (RoleType.SystemAdministrator, PermissionConstants.SystemAdministratorGrants.ToArray()),
                 (RoleType.SectionHead, new[]
                 {
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,

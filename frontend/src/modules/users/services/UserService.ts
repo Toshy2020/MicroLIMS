@@ -7,6 +7,7 @@ export interface UserRecord {
   fullName: string;
   username: string;
   email: string | null;
+  jobTitle?: string | null;
   roleId: number;
   role: { id: number; name: string; type: string } | null;
   isActive: boolean;
@@ -28,11 +29,12 @@ export const UserService = {
   async getById(id: number): Promise<UserRecord> {
     return (await apiClient.get(`/users/${id}`)).data.data;
   },
-  async create(fullName: string, username: string, password: string, roleId: number, email?: string) {
-    return (await apiClient.post("/users", { fullName, username, password, roleId, email: email || null })).data.data;
+  async create(fullName: string, username: string, password: string, roleId: number, email?: string, jobTitle?: string) {
+    return (await apiClient.post("/users", { fullName, username, password, roleId, email: email || null, jobTitle: jobTitle || null })).data.data;
   },
-  async updateProfile(id: number, fullName: string, username: string, email: string | null, version?: number) {
-    return (await apiClient.put(`/users/${id}`, { fullName, username, email }, ifMatch(version))).data.data;
+  // jobTitle is required so every caller states it: the backend treats a missing value as "clear it".
+  async updateProfile(id: number, fullName: string, username: string, email: string | null, jobTitle: string | null, version?: number) {
+    return (await apiClient.put(`/users/${id}`, { fullName, username, email, jobTitle: jobTitle || null }, ifMatch(version))).data.data;
   },
   async changeRole(id: number, roleId: number, reason: string) {
     return (await apiClient.put(`/users/${id}/role`, { roleId, reason })).data.data;

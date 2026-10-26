@@ -7,6 +7,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -47,6 +48,7 @@ public class GlobalSearchServiceTests
         var admin = new User { Username = "admin", FullName = "System Administrator", RoleId = adminRole.Id, Role = adminRole, IsActive = true };
         db.Users.AddRange(userA, userB, admin);
         db.SaveChanges();
+        AdministratorScope.GrantViewAll(db, adminRole.Id); // reads every section (Sections.ViewAll), belongs to none
 
         db.UserOrgMemberships.AddRange(
             new UserOrgMembership { UserId = userA.Id, DepartmentId = secA.DepartmentId, SectionId = secA.Id },
@@ -183,7 +185,7 @@ public class GlobalSearchServiceTests
         Assert.Single(samplesUserB.Items);
         Assert.Equal("SMP-FP-02", samplesUserB.Items[0].Title);
 
-        // System Administrator should see BOTH
+        // A System Administrator holding Sections.ViewAll should see BOTH (read-only)
         var resultAdmin = await searchService.SearchAsync(new GlobalSearchRequest("B-COMMON"), admin.Id);
         var samplesAdmin = resultAdmin.Categories.FirstOrDefault(c => c.CategoryName == "Samples");
         Assert.NotNull(samplesAdmin);

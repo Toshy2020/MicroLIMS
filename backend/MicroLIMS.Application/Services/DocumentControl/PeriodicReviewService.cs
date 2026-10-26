@@ -560,7 +560,7 @@ public class PeriodicReviewService : IPeriodicReviewService
         // Verify assignment: Must be assigned reviewer or SectionHead (Document Controller)
         if (task.AssignedReviewerUserId.HasValue && task.AssignedReviewerUserId.Value != userId)
         {
-            if (actorRole != RoleType.SectionHead && actorRole != RoleType.SystemAdministrator)
+            if (actorRole != RoleType.SectionHead)
             {
                 throw new UnauthorizedAccessException("Only the assigned reviewer or Document Controller can complete this review.");
             }

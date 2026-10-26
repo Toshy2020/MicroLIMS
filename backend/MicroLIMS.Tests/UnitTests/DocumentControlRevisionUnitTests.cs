@@ -215,12 +215,13 @@ public class DocumentControlRevisionUnitTests
 
     // DC-URS-166 / BR-013 negative test. The revision-number override is
     // reserved for the Document Controller, and the FRS-1A permission matrix
-    // records System Administrator as No for it. The service used to admit
-    // SystemAdministrator here - contradicting its own error message and the
-    // rule that administrators get no exemption from controlled-action
-    // restrictions.
-    [Fact]
-    public async Task CreateRevision_OverrideBySystemAdministrator_IsRefused()
+    // records System Administrator as No for it. An administrator also has no
+    // draft authority over any document (21 CFR Part 11 11.10(d)(g)): the
+    // revision is refused at the authorization gate, with or without an override.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("99-ADMIN")]
+    public async Task CreateRevision_BySystemAdministrator_IsRefused(string? customRevisionNumber)
     {
         var (db, _, _, _, master, _) = await CreateSeededContextWithEffectiveDocumentAsync();
 
@@ -239,14 +240,16 @@ public class DocumentControlRevisionUnitTests
 
         var request = new CreateRevisionRequest(
             RevisionType: RevisionType.Major,
-            ReasonForRevision: "Administrative renumbering requested outside change control.",
-            CustomRevisionNumber: "99-ADMIN"
+            ReasonForRevision: "Administrative revision requested outside change control.",
+            CustomRevisionNumber: customRevisionNumber
         );
 
+        var revisionsBefore = await db.DocumentRevisions.CountAsync();
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             revisionService.CreateRevisionFromEffectiveAsync(master.Id, request, admin.Id));
 
-        Assert.Contains("Only Document Controllers are authorized to override", ex.Message);
+        Assert.Contains("not authorized to create revisions", ex.Message);
+        Assert.Equal(revisionsBefore, await db.DocumentRevisions.CountAsync());
     }
 
     [Fact]

@@ -46,7 +46,8 @@ import type {
 export function DocumentConfigurationPage() {
   const theme = useTheme();
   const { permissions } = useAuth();
-  const isAdmin = permissions.includes(PERMISSIONS.DOCUMENTS_CONFIG_MANAGE);
+  // Configuration is the Documents.ConfigManage permission (the System Administrator holds it by default), not a role.
+  const canConfigure = permissions.includes(PERMISSIONS.DOCUMENTS_CONFIG_MANAGE);
 
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -106,14 +107,15 @@ export function DocumentConfigurationPage() {
   };
 
   useEffect(() => {
-    loadAll();
-  }, []);
+    // Without the permission the server would only answer 403.
+    if (canConfigure) loadAll();
+  }, [canConfigure]);
 
-  if (!isAdmin) {
+  if (!canConfigure) {
     return (
       <Box sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
         <Alert severity="error">
-          <strong>Access Denied:</strong> Only System Administrators can access and modify Document Control module configuration.
+          <strong>Access Denied:</strong> Your role has not been granted Document Control configuration management.
         </Alert>
       </Box>
     );

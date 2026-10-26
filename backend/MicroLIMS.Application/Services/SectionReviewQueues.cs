@@ -14,7 +14,7 @@ public sealed record SectionQueueEntry(Sample Sample, int SectionId, SampleSecti
 public static class SectionReviewQueues
 {
     // Laboratory-section filters for dashboards and reports. A null list
-    // means unrestricted (a system administrator): the filter is then left
+    // means unrestricted (a role holding Sections.ViewAll, reading): the filter is then left
     // out of the query entirely.
     public static Expression<Func<TestOrder, bool>> OrderIn(IReadOnlyCollection<int>? sectionIds) =>
         sectionIds is null ? t => true : t => sectionIds.Contains(t.SectionId);

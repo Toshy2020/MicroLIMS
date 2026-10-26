@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.InventoryTests;
@@ -112,7 +114,10 @@ public class MediaCryovialSectionScopeTests
 
         await scope.EnsureMediaAccessAsync(w.MicroUser, w.MicroLot.Id);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => scope.EnsureMediaAccessAsync(w.MicroUser, w.FpLot.Id));
-        await scope.EnsureMediaAccessAsync(w.Admin, w.FpLot.Id);
+        // An administrator holding Sections.ViewAll reads another section's lot but may not act on it.
+        AdministratorScope.GrantViewAll(db, db.Users.Single(u => u.Id == w.Admin).RoleId);
+        await scope.EnsureMediaAccessAsync(w.Admin, w.FpLot.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => scope.EnsureMediaAccessAsync(w.Admin, w.FpLot.Id));
         await scope.EnsureMediaAccessAsync(w.MicroUser, 999); // unknown id: left to not-found handling
 
         await scope.EnsureCryovialAccessAsync(w.MicroUser, w.MicroVial.Id);
@@ -144,11 +149,20 @@ public class MediaCryovialSectionScopeTests
         var w = await SeedAsync(db);
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(w.MicroChallenge.Id, w.FpVial.Id, w.Admin));
+        // A user who belongs to both laboratories passes the scope guard, so only the media-section rule is under test.
+        var bothLabs = new User { FullName = "Both Labs", Username = "both", RoleId = db.Roles.First(r => r.Type == RoleType.Analyst).Id };
+        db.Users.Add(bothLabs);
+        await db.SaveChangesAsync();
+        db.UserOrgMemberships.AddRange(
+            new UserOrgMembership { UserId = bothLabs.Id, DepartmentId = db.DocumentSections.Single(x => x.Id == w.Micro).DepartmentId, SectionId = w.Micro },
+            new UserOrgMembership { UserId = bothLabs.Id, DepartmentId = db.DocumentSections.Single(x => x.Id == w.Fp).DepartmentId, SectionId = w.Fp });
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(w.MicroChallenge.Id, w.FpVial.Id, bothLabs.Id));
         Assert.Contains("another laboratory section", ex.Message);
         Assert.Empty(db.ThawEvents); // the refused pick never cost a vial
 
-        var diskEx = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(w.MicroChallenge.Id, w.FpMaterial.Id, w.Admin));
+        var diskEx = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(w.MicroChallenge.Id, w.FpMaterial.Id, bothLabs.Id));
         Assert.Contains("another laboratory section", diskEx.Message);
         Assert.Equal(10, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == w.FpMaterial.Id)).QuantityRemaining);
     }

@@ -389,7 +389,7 @@ public class TestDefinitionMasterDataService
 
         // Only a member of the test's section may change it, and only into a
         // section they belong to.
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetMemberSectionIdsAsync(currentUserId);
         if (scope is not null && !scope.Contains(entity.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)

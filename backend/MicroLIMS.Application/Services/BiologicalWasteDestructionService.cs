@@ -116,7 +116,7 @@ public class BiologicalWasteDestructionService
         if (!program.IsActive)
             throw new InvalidOperationException($"Autoclave program {program.ProgramCode} is inactive.");
 
-        var sectionIds = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var sectionIds = await _scope.GetMemberSectionIdsAsync(userId);
         var items = new List<BiologicalWasteDestructionItem>();
 
         var thaws = await _db.ThawEvents

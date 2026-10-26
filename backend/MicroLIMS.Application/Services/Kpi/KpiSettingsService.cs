@@ -31,7 +31,7 @@ public class KpiSettingsService
 
     public async Task<KpiSettingsDto> GetAsync(int sectionId, int userId, CancellationToken ct = default)
     {
-        await EnsureSectionAccessAsync(sectionId, userId, ct);
+        await EnsureSectionAccessAsync(sectionId, userId, ct, SectionAccess.Read);
         var row = await _db.KpiSettings.AsNoTracking().FirstOrDefaultAsync(s => s.SectionId == sectionId, ct);
         return row is null
             ? new KpiSettingsDto(sectionId, KpiSettingDefaults.HoursPerAnalystDay, KpiSettingDefaults.WorkingWeekdays,
@@ -84,11 +84,11 @@ public class KpiSettingsService
         return ToDto(row);
     }
 
-    private async Task EnsureSectionAccessAsync(int sectionId, int userId, CancellationToken ct)
+    private async Task EnsureSectionAccessAsync(int sectionId, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
         if (!await _db.DocumentSections.AnyAsync(s => s.Id == sectionId && s.IsActive, ct))
             throw new NotFoundException("Laboratory section not found.");
-        var ids = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var ids = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (ids is not null && !ids.Contains(sectionId))
             throw new UnauthorizedAccessException("You do not have access to this laboratory section.");
     }

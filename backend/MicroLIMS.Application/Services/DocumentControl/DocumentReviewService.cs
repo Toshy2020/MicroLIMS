@@ -96,7 +96,7 @@ public class DocumentReviewService : IDocumentReviewService
             throw new InvalidOperationException($"Cannot submit revision for review: {unaddressedOriginatingItems.Count} originating review finding(s) remain unaddressed.");
         }
 
-        // Authorization check: User must be Document Owner, assigned Author, or SectionHead/Admin
+        // Authorization check: User must be Document Owner, assigned Author, or SectionHead
         var canEdit = await _auth.CanEditDraftMetadataAsync(revision.DocumentMasterId, userId);
         if (!canEdit)
             throw new UnauthorizedAccessException("User is not authorized to submit this document revision for technical review.");
@@ -289,7 +289,7 @@ public class DocumentReviewService : IDocumentReviewService
         if (!isActive || role == null)
             throw new UnauthorizedAccessException("User is inactive or not found.");
 
-        if (userId != task.AssignedReviewerUserId && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
+        if (userId != task.AssignedReviewerUserId && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may add review findings.");
 
         // Release 1d: Linkage to specific source file version
@@ -430,7 +430,7 @@ public class DocumentReviewService : IDocumentReviewService
                 t.AssignedReviewerUserId == userId &&
                 (t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress));
 
-        if (!isAssignedReviewer && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
+        if (!isAssignedReviewer && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer may verify findings.");
 
         var prevStatus = finding.Status.ToString();
@@ -490,7 +490,7 @@ public class DocumentReviewService : IDocumentReviewService
                 t.AssignedReviewerUserId == userId &&
                 (t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress));
 
-        if (!isAssignedReviewer && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
+        if (!isAssignedReviewer && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may resolve review findings.");
 
         // The finding lifecycle is a ladder, not a set of interchangeable states:

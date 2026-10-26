@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,7 @@ public partial class HplcRunService
     public async Task<List<EligibleQualificationDto>> GetEligibleQualificationsAsync(int runId, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
-        await EnsureAccessAsync(run, userId, ct);
+        await EnsureAccessAsync(run, userId, ct, SectionAccess.Read);
         return (await EligibleQualificationsAsync(run, null, ct)).Select(e => e.Dto).ToList();
     }
 
@@ -113,7 +114,7 @@ public partial class HplcRunService
     public async Task<HplcQualificationEntryDto> GetQualificationEntryAsync(int runSampleId, int userId, CancellationToken ct = default)
     {
         var c = await LoadQualificationSampleAsync(runSampleId, ct);
-        await EnsureAccessAsync(c.Run, userId, ct);
+        await EnsureAccessAsync(c.Run, userId, ct, SectionAccess.Read);
         return await BuildQualificationEntryAsync(c, ct);
     }
 

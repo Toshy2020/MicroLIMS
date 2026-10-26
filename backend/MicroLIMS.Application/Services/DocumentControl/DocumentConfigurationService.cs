@@ -32,7 +32,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     {
         var canManage = await _authService.CanManageConfigurationAsync(userId);
         if (!canManage)
-            throw new UnauthorizedAccessException("Only System Administrators can manage module configuration.");
+            throw new UnauthorizedAccessException("Only users granted Document Control configuration management can manage module configuration.");
     }
 
     // ---- Document Types ----

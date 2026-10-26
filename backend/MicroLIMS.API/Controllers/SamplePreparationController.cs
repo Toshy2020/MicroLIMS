@@ -74,7 +74,7 @@ public class SamplePreparationController : ControllerBase
             .ToList();
 
         foreach (var id in ids)
-            await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+            await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct, access: SectionAccess.Read);
 
         var result = await _service.GetGroupedPreparationAsync(ids, CurrentUserId, ct);
         return Ok(ApiResponse<GroupedPreparationResponse>.Ok(result));
@@ -101,7 +101,7 @@ public class SamplePreparationController : ControllerBase
     [HttpGet("{sampleId}/is-prepared")]
     public async Task<IActionResult> IsPrepared(int sampleId)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(new { prepared = await _service.IsPreparedAsync(sampleId) }));
     }
 }

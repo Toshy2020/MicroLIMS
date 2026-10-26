@@ -38,7 +38,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "1",
             Action = "Create",
-            UserId = _fixture.SeededControllerUserId,
+            UserId = _fixture.SeededUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -67,7 +67,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "2",
             Action = "Create",
-            UserId = _fixture.SeededControllerUserId,
+            UserId = _fixture.SeededUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -95,7 +95,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "3",
             Action = "Create",
-            UserId = _fixture.SeededControllerUserId,
+            UserId = _fixture.SeededUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -133,7 +133,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityName = "TestEntity",
             EntityId = "4",
             Action = "Create",
-            UserId = _fixture.SeededControllerUserId,
+            UserId = _fixture.SeededUserId,
             Timestamp = DateTime.UtcNow
         };
         db.AuditLogs.Add(log);
@@ -171,7 +171,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityType = "Sample",
             EntityId = 1,
             MeaningOfSignature = SignatureMeaning.Reviewed,
-            UserId = _fixture.SeededControllerUserId,
+            UserId = _fixture.SeededUserId,
             SignedAt = DateTime.UtcNow,
             UserFullNameSnapshot = "QA Document Admin",
             UsernameSnapshot = "qa_admin",
@@ -202,7 +202,7 @@ public class DocumentControlPostgresIntegrationTests
             EntityType = "Sample",
             EntityId = 2,
             MeaningOfSignature = SignatureMeaning.Approved,
-            UserId = _fixture.SeededControllerUserId,
+            UserId = _fixture.SeededUserId,
             SignedAt = DateTime.UtcNow,
             UserFullNameSnapshot = "QA Document Admin",
             UsernameSnapshot = "qa_admin",
@@ -284,11 +284,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
-            DocumentOwnerUserId = _fixture.SeededControllerUserId,
+            DocumentOwnerUserId = _fixture.SeededUserId,
             Confidentiality = DocumentConfidentiality.Internal,
             RecordOrigin = RecordOrigin.Native,
             RecordStatus = DocumentRecordStatus.Active,
-            CreatedByUserId = _fixture.SeededControllerUserId,
+            CreatedByUserId = _fixture.SeededUserId,
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc1);
@@ -303,11 +303,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
-            DocumentOwnerUserId = _fixture.SeededControllerUserId,
+            DocumentOwnerUserId = _fixture.SeededUserId,
             Confidentiality = DocumentConfidentiality.Internal,
             RecordOrigin = RecordOrigin.Native,
             RecordStatus = DocumentRecordStatus.Active,
-            CreatedByUserId = _fixture.SeededControllerUserId,
+            CreatedByUserId = _fixture.SeededUserId,
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc2);
@@ -324,7 +324,7 @@ public class DocumentControlPostgresIntegrationTests
         // Void the first document
         doc1.RecordStatus = DocumentRecordStatus.Void;
         doc1.VoidedAt = DateTime.UtcNow;
-        doc1.VoidedByUserId = _fixture.SeededControllerUserId;
+        doc1.VoidedByUserId = _fixture.SeededUserId;
         doc1.VoidReason = "Superseded by new revision flow";
         await db.SaveChangesAsync();
 
@@ -337,11 +337,11 @@ public class DocumentControlPostgresIntegrationTests
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
-            DocumentOwnerUserId = _fixture.SeededControllerUserId,
+            DocumentOwnerUserId = _fixture.SeededUserId,
             Confidentiality = DocumentConfidentiality.Internal,
             RecordOrigin = RecordOrigin.Native,
             RecordStatus = DocumentRecordStatus.Active,
-            CreatedByUserId = _fixture.SeededControllerUserId,
+            CreatedByUserId = _fixture.SeededUserId,
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc3);
@@ -469,7 +469,7 @@ public class DocumentControlPostgresIntegrationTests
             DocumentOwnerUserId: _fixture.SeededControllerUserId
         ), _fixture.SeededControllerUserId);
 
-        // Attempt voiding as regular user -> Must fail with 403
+        // Attempt voiding as System Administrator -> Must fail with 403 (FS-1a-111: not even the administrator)
         var voidRequest = new VoidDocumentMasterRequest("Document registered in error by project team.");
         await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
         {
@@ -892,8 +892,12 @@ public class DocumentControlPostgresIntegrationTests
             DocumentOwnerUserId: _fixture.SeededControllerUserId
         ), _fixture.SeededControllerUserId);
 
+        // A System Administrator reads and exports the audit trail (read-only oversight through Audit.View);
+        // a new request by that user, so the export is audited against them
+        db.CurrentUserId = _fixture.SeededUserId;
+
         // Query record audit
-        var recordAudit = await docAuditService.GetRecordAuditHistoryAsync(registered.Id, null, _fixture.SeededControllerUserId);
+        var recordAudit = await docAuditService.GetRecordAuditHistoryAsync(registered.Id, null, _fixture.SeededUserId);
         Assert.NotEmpty(recordAudit);
         Assert.Contains(recordAudit, a => a.ActionCode == "DocumentMasterRegistered");
 
@@ -901,7 +905,7 @@ public class DocumentControlPostgresIntegrationTests
         var (csvBytes, contentType, fileName) = await docAuditService.ExportAuditTrailAsync(new DocumentAuditFilterRequest
         {
             DocumentMasterId = registered.Id
-        }, _fixture.SeededControllerUserId);
+        }, _fixture.SeededUserId);
 
         Assert.NotEmpty(csvBytes);
         var csvText = Encoding.UTF8.GetString(csvBytes);
@@ -910,7 +914,7 @@ public class DocumentControlPostgresIntegrationTests
 
         // Verify 21 CFR Part 11 Self-Audit Log: AuditTrailExported was written to Postgres
         var exportLog = await db.AuditLogs
-            .FirstOrDefaultAsync(a => a.ActionCode == "AuditTrailExported" && a.UserId == _fixture.SeededControllerUserId);
+            .FirstOrDefaultAsync(a => a.ActionCode == "AuditTrailExported" && a.UserId == _fixture.SeededUserId);
         Assert.NotNull(exportLog);
         Assert.Equal(AuditActionCategory.Security, exportLog.ActionCategory);
     }
@@ -922,13 +926,13 @@ public class DocumentControlPostgresIntegrationTests
         var marker = Guid.NewGuid().ToString("N");
         var now = DateTime.UtcNow;
         db.AuditLogs.AddRange(
-            new AuditLog { EntityName = nameof(Sample), EntityId = $"{marker}-sample", Action = "Create", UserId = _fixture.SeededControllerUserId, Timestamp = now },
-            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = $"{marker}-esig", Action = "Create", UserId = _fixture.SeededControllerUserId, Timestamp = now },
-            new AuditLog { EntityName = nameof(DocumentKeyword), EntityId = $"{marker}-keyword", Action = "Create", UserId = _fixture.SeededControllerUserId, Timestamp = now });
+            new AuditLog { EntityName = nameof(Sample), EntityId = $"{marker}-sample", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now },
+            new AuditLog { EntityName = nameof(ElectronicSignature), EntityId = $"{marker}-esig", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now },
+            new AuditLog { EntityName = nameof(DocumentKeyword), EntityId = $"{marker}-keyword", Action = "Create", UserId = _fixture.SeededUserId, Timestamp = now });
         await db.SaveChangesAsync();
 
         var service = new DocumentAuditService(db, new AuditEventService(db, new DatabaseSequenceHelper(db)), new DocumentAuthorizationService(db));
-        var result = await service.SearchAuditLogsAsync(new DocumentAuditFilterRequest(SearchTerm: marker), _fixture.SeededControllerUserId);
+        var result = await service.SearchAuditLogsAsync(new DocumentAuditFilterRequest(SearchTerm: marker), _fixture.SeededUserId);
 
         var item = Assert.Single(result.Items);
         Assert.Equal($"{marker}-keyword", item.EntityId);

@@ -74,7 +74,7 @@ public class SectionCountersService
         else
         {
             // Only the areas this user works in have a workspace card.
-            var areas = await _sectionScope.GetPhyschemAreasAsync(userId, ct);
+            var areas = await _sectionScope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Read);
             if (areas.Contains(WorkspaceArea.Fp))
                 cards.Add(await WorkspaceCardAsync(SectionCardKeys.FpWorkspace, userId, sectionIds[0], "fp"));
             if (areas.Contains(WorkspaceArea.RmPm))

@@ -3,6 +3,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Tests.InventoryTests;
 using Xunit;
 
@@ -72,6 +73,8 @@ public class EquipmentInventoryLabTests
         };
         db.Users.AddRange(microUser, adminUser);
         db.SaveChanges();
+        // The built-in administrator reads every section (Sections.ViewAll) but belongs to none.
+        AdministratorScope.GrantViewAll(db, adminRole.Id);
 
         TestServiceFactory.AssignUserToMicroSection(db, microUser.Id);
 
@@ -142,7 +145,7 @@ public class EquipmentInventoryLabTests
         var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
         var scopeService = new UserSectionScopeService(db);
 
-        var microScope = await scopeService.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microScope = await scopeService.GetReadableSectionIdsAsync(microUser.Id);
         var microList = await service.GetAllAsync(microScope);
         Assert.Single(microList);
         Assert.Equal(microAsset.Id, microList[0].Id);
@@ -153,7 +156,7 @@ public class EquipmentInventoryLabTests
         Assert.Equal(IntervalUnit.Months, microList[0].PmIntervalUnit);
         Assert.Equal(new DateOnly(2026, 2, 1), microList[0].LastPmOn);
 
-        var adminScope = await scopeService.GetAccessibleSectionIdsAsync(adminUser.Id);
+        var adminScope = await scopeService.GetReadableSectionIdsAsync(adminUser.Id);
         var adminList = await service.GetAllAsync(adminScope);
         Assert.Equal(2, adminList.Count);
         Assert.Contains(adminList, e => e.Id == microAsset.Id);
@@ -270,7 +273,7 @@ public class EquipmentInventoryLabTests
         Assert.NotNull(found);
 
         var scopeService = new UserSectionScopeService(db);
-        var microScope = await scopeService.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microScope = await scopeService.GetReadableSectionIdsAsync(microUser.Id);
         var microList = await service.GetAllAsync(microScope);
         Assert.DoesNotContain(microList, e => e.Id == legacyAsset.Id);
 
@@ -333,12 +336,12 @@ public class EquipmentInventoryLabTests
         var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
         var scopeService = new UserSectionScopeService(db);
 
-        var microScope = await scopeService.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microScope = await scopeService.GetReadableSectionIdsAsync(microUser.Id);
         var microResult = await service.WhereIsItAsync("FP-REF-900", microScope);
         Assert.Null(microResult.CurrentActivity);
         Assert.Empty(microResult.History);
 
-        var fpScope = await scopeService.GetAccessibleSectionIdsAsync(fpUser.Id);
+        var fpScope = await scopeService.GetReadableSectionIdsAsync(fpUser.Id);
         var fpResult = await service.WhereIsItAsync("FP-REF-900", fpScope);
         Assert.Single(fpResult.History);
 
@@ -384,12 +387,12 @@ public class EquipmentInventoryLabTests
         var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
         var scopeService = new UserSectionScopeService(db);
 
-        var microScope = await scopeService.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microScope = await scopeService.GetReadableSectionIdsAsync(microUser.Id);
         var microResult = await service.WhereIsItAsync("FP-LOT-951", microScope);
         Assert.Null(microResult.CurrentActivity);
         Assert.Empty(microResult.History);
 
-        var fpScope = await scopeService.GetAccessibleSectionIdsAsync(fpUser.Id);
+        var fpScope = await scopeService.GetReadableSectionIdsAsync(fpUser.Id);
         var fpResult = await service.WhereIsItAsync("FP-LOT-951", fpScope);
         Assert.Single(fpResult.History);
 

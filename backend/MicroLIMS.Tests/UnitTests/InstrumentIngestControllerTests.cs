@@ -410,6 +410,10 @@ public class InstrumentIngestControllerTests
             setup.SaveChanges();
             setup.Users.Add(new User { Id = 7, Username = "adm", FullName = "Admin", RoleId = role.Id, Role = role, IsActive = true });
             setup.SaveChanges();
+            // Writes follow membership for everyone: the administrator rotates keys only for equipment in sections it belongs to.
+            var section = TestServiceFactory.EnsureMicroSection(setup);
+            setup.UserOrgMemberships.Add(new UserOrgMembership { UserId = 7, DepartmentId = section.DepartmentId, SectionId = section.Id });
+            setup.SaveChanges();
         }
         var (app, client) = await StartAsync(dbName);
         await using var _ = app;

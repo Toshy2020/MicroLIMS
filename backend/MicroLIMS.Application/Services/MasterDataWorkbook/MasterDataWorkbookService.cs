@@ -62,11 +62,11 @@ public class MasterDataWorkbookService
         _runner = new MasterDataWorkbookRunner(db, _sheets);
     }
 
-    // System administrators get every section's records; everyone else
-    // only the sections they belong to.
+    // A role holding Sections.ViewAll gets every section's records; everyone
+    // else only the sections they belong to.
     public async Task<(byte[] Content, string FileName)> DownloadAsync(int userId)
     {
-        var scope = await new UserSectionScopeService(_db).GetAccessibleSectionIdsAsync(userId);
+        var scope = await new UserSectionScopeService(_db).GetReadableSectionIdsAsync(userId);
         var sheets = new List<WorkbookSheet>();
         var choices = new List<WorkbookColumnChoices>();
         var help = new List<WorkbookInstructionRow>();
@@ -201,7 +201,7 @@ public class MasterDataWorkbookService
 
             // The verifier must be able to see what they verify: material
             // master entries belong to lab sections. Checked before signing.
-            var scope = await new UserSectionScopeService(_db).GetAccessibleSectionIdsAsync(userId);
+            var scope = await new UserSectionScopeService(_db).GetMemberSectionIdsAsync(userId);
             if (scope is not null)
             {
                 var entryIds = import.Records.Where(r => r.EntityType == "MaterialMasterEntry").Select(r => r.EntityId).ToList();

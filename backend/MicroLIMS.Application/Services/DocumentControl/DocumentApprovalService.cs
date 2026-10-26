@@ -89,7 +89,7 @@ public class DocumentApprovalService : IDocumentApprovalService
                 $"An active approval task (ID: {existingPending.Id}) is already pending for this revision.");
         }
 
-        // Authorization: Assigning user must be Owner, assigned Author, SectionHead, or Admin
+        // Authorization: Assigning user must be Owner, assigned Author, or SectionHead
         var canEdit = await _auth.CanEditDraftMetadataAsync(revision.DocumentMasterId, userId);
         if (!canEdit)
             throw new UnauthorizedAccessException("User is not authorized to create approval tasks for this document.");
@@ -102,11 +102,11 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (approver == null || !approver.IsActive)
             throw new InvalidOperationException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
 
-        // Approver role eligibility: Reviewer, SectionHead, or SystemAdministrator
+        // Approver role eligibility: Reviewer or SectionHead. A System Administrator
+        // controls the system, never approves GxP data (21 CFR Part 11 §11.10(d)(g)).
         if (approver.Role == null ||
             (approver.Role.Type != RoleType.Reviewer &&
-             approver.Role.Type != RoleType.SectionHead &&
-             approver.Role.Type != RoleType.SystemAdministrator))
+             approver.Role.Type != RoleType.SectionHead))
         {
             throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
         }
@@ -414,7 +414,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         ValidateDecisionSegregationOfDuties(revision, userId);
 
         // Verify assignment: Must be the assigned approver or Document Controller (SectionHead)
-        if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead && actorRole != RoleType.SystemAdministrator)
+        if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead)
         {
             throw new UnauthorizedAccessException("Only the assigned approver or Document Controller may execute an approval decision.");
         }

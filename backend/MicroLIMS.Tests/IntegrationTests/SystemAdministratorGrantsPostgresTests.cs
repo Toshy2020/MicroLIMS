@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Tests.Fixtures;
+using MicroLIMS.Tests.UnitTests;
 using Xunit;
 
 namespace MicroLIMS.Tests.IntegrationTests;
@@ -14,6 +16,7 @@ namespace MicroLIMS.Tests.IntegrationTests;
 public class SystemAdministratorGrantsPostgresTests
 {
     private const string InitialMigration = "20260729201340_InitialCreate";
+    private const string PreviousMigration = "20261026162508_AddRolePermissionVersionAndSignatureRoleName";
 
     private static Task<List<string>> HeldByBuiltInAdministratorAsync(MicroLimsDbContext db) =>
         db.RolePermissions
@@ -57,6 +60,41 @@ public class SystemAdministratorGrantsPostgresTests
             var excess = held.Except(PermissionConstants.SystemAdministratorGrants).OrderBy(c => c, StringComparer.Ordinal).ToList();
             Assert.True(excess.Count == 0, $"System Administrator holds codes outside SystemAdministratorGrants: {string.Join(", ", excess)}");
             Assert.Contains(PermissionConstants.SectionsViewAll, held);
+
+            // Tokens issued with the old grants must stop validating (AccessTokenRevalidator): PermissionVersion starts at 1.
+            var role = await db.Roles.AsNoTracking().SingleAsync(r => r.Type == RoleType.SystemAdministrator && r.IsSystemRole);
+            Assert.True(role.PermissionVersion > 1, $"PermissionVersion was not incremented (is {role.PermissionVersion})");
+
+            var audit = await db.AuditLogs.SingleAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED" && a.EntityId == role.Id.ToString());
+            Assert.Equal(nameof(Role), audit.EntityName);
+            Assert.Contains("Segregation of duties", audit.Reason);
+        });
+    }
+
+    // Rolling the migration back gives the administrator every removed code again and drops Sections.ViewAll.
+    [PostgresFact]
+    public async Task Down_RestoresTheRemovedCodes_AndInvalidatesTokensAgain()
+    {
+        await ScratchPostgresDatabase.RunAsync(async connectionString =>
+        {
+            await using var db = ScratchPostgresDatabase.NewContext(connectionString);
+            await db.Database.MigrateAsync(InitialMigration);
+            await db.Database.ExecuteSqlRawAsync(@"INSERT INTO ""Roles"" (""Type"", ""Name"") VALUES (0, 'System Administrator');");
+            await db.Database.MigrateAsync();
+            var upVersion = (await db.Roles.AsNoTracking().SingleAsync(r => r.Type == RoleType.SystemAdministrator)).PermissionVersion;
+
+            await db.Database.MigrateAsync(PreviousMigration);
+
+            var held = await HeldByBuiltInAdministratorAsync(db);
+            Assert.DoesNotContain(PermissionConstants.SectionsViewAll, held);
+            Assert.False(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SectionsViewAll));
+            // Only codes whose Permission row exists here (this schema-only database has none the seeder adds).
+            var existing = await db.Permissions.Select(p => p.Code).ToListAsync();
+            var expected = SystemAdministratorGrantsTests.GxpExecutionCodes.Intersect(existing).ToList();
+            Assert.NotEmpty(expected);
+            Assert.Empty(expected.Except(held));
+            var role = await db.Roles.AsNoTracking().SingleAsync(r => r.Type == RoleType.SystemAdministrator);
+            Assert.True(role.PermissionVersion > upVersion);
         });
     }
 }

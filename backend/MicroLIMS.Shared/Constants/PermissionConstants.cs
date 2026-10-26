@@ -50,9 +50,8 @@ public static class PermissionConstants
     // Deliberately NOT permissions, and left as fixed rules in
     // DocumentAuthorizationService:
     //   * Voiding a Document Master. FS-1a-111 reserves it for the Document
-    //     Controller "not even SystemAdministrator", and System Administrator is
-    //     seeded with All - so a Documents.Void code would hand admins exactly
-    //     the capability the specification denies them.
+    //     Controller "not even SystemAdministrator", so a Documents.Void code
+    //     could hand admins exactly the capability the specification denies them.
     //   * The segregation-of-duties invariants (author != reviewer != approver).
     //     BR-013 states the restriction "cannot be overridden administratively",
     //     so it must not be expressible as a grant.
@@ -118,6 +117,9 @@ public static class PermissionConstants
     public const string EquipmentWorkRecord = "EquipmentWork.Record";
     public const string CalendarEventManage = "CalendarEvent.Manage";
 
+    // Read every laboratory section's records without being a member; writes still follow membership - enforced by a follow-up package.
+    public const string SectionsViewAll = "Sections.ViewAll";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -138,7 +140,27 @@ public static class PermissionConstants
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
-        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        SectionsViewAll
+    };
+
+    // What the built-in System Administrator role holds. Segregation of duties
+    // (21 CFR Part 11 §11.10(d)(g), EU GMP Annex 11 §12): administrators control
+    // the system - users, roles, configuration, master data - and may read the
+    // GxP record, but never execute, review or approve GxP data. Codes that
+    // perform or sign laboratory work (sample review/approval, test workflow,
+    // media, cryovials, OOS, document review/approval, plan approval and so on)
+    // must never be added here.
+    public static readonly IReadOnlyList<string> SystemAdministratorGrants = new[]
+    {
+        UsersManage, RolesManage, AuditView, ReportingAdmin,
+        SystemViewErrorLog, SystemViewSecurityAudit,
+        MasterDataManage, ItemsManage, DocumentsConfigManage, KpiConfigureProfiles,
+        DiscussionsView, DiscussionsCreate, MessagesUse,
+        SignaturesManage,   // read-only signature trail
+        DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam,
+        SamplesTrackAll, MonitoringPlanView, DocumentsTrainingViewMatrix,
+        SectionsViewAll
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -155,6 +177,7 @@ public static class PermissionConstants
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
-        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        SectionsViewAll
     };
 }

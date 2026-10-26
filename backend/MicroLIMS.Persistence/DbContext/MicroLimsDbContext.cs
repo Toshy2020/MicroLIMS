@@ -518,7 +518,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     private List<PendingAuditEntry> CapturePendingAuditEntries()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => !AuditCaptureExcludedTypes.Contains(e.Entity.GetType()) &&
+            // IsInstanceOfType, not an exact-type lookup: a subclass of an
+            // excluded type stays excluded, as the original `is not` chain did.
+            .Where(e => !AuditCaptureExcludedTypes.Any(t => t.IsInstanceOfType(e.Entity)) &&
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 

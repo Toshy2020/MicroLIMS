@@ -143,7 +143,7 @@ public class AuditCredentialRedactionTests
         var offenders = db.Model.GetEntityTypes()
             .Select(e => e.ClrType)
             .Distinct()
-            .Where(t => !MicroLimsDbContext.AuditCaptureExcludedTypes.Contains(t))
+            .Where(t => !MicroLimsDbContext.AuditCaptureExcludedTypes.Any(x => x.IsAssignableFrom(t)))
             .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             .Where(p => p.PropertyType == typeof(string) && LooksLikeCredential(p.Name))
             .Where(p => !p.IsDefined(typeof(AuditRedactedAttribute), inherit: true))

@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Attributes;
+
 namespace MicroLIMS.Domain.Entities;
 
 public class User : IVersionedEntity
@@ -6,6 +8,7 @@ public class User : IVersionedEntity
     public uint Version { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
+    [AuditRedacted]
     public string PasswordHash { get; set; } = string.Empty;
     public string? Email { get; set; }
     public int RoleId { get; set; }

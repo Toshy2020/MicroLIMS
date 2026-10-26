@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Attributes;
+
 namespace MicroLIMS.Domain.Entities;
 
 // Identity of an on-site edge agent that pushes instrument data (e.g.
@@ -18,6 +20,7 @@ public class InstrumentAgent : IVersionedEntity
     // IANA zone of the instrument PC; instrument timestamps are local.
     public string TimeZoneId { get; set; } = string.Empty;
 
+    [AuditRedacted]
     public string KeyHash { get; set; } = string.Empty;
     public string KeyPrefix { get; set; } = string.Empty;
 

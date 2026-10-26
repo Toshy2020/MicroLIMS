@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services.EquipmentPlan;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Tests.Fixtures;
@@ -157,7 +158,7 @@ public class EquipmentWorkServiceTests
         await db.SaveChangesAsync();
 
         var signatures = new ElectronicSignatureService(db);
-        var service = new EquipmentWorkService(db, clock, signatures);
+        var service = new EquipmentWorkService(db, clock, signatures, new DatabaseSequenceHelper(db));
 
         return new World
         {

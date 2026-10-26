@@ -127,6 +127,23 @@ public class DocumentControlTrainingMatrixUnitTests
     }
 
     [Fact]
+    public async Task GetTrainingMatrixGrid_ReviewerWithViewMatrixOnly_ReturnsFullGrid()
+    {
+        // The Reviewer holds Documents.TrainingViewMatrix but not
+        // Documents.TrainingAssign: viewing alone is enough to see every row.
+        var stubService = new TestTrainingMatrixService();
+        var controller = new DocumentTrainingMatrixController(stubService)
+        {
+            ControllerContext = CreateContext(7, nameof(RoleType.Reviewer))
+        };
+
+        var res = await controller.GetTrainingMatrixGrid(new TrainingMatrixFilterDto());
+        Assert.IsType<OkObjectResult>(res);
+        Assert.NotNull(stubService.LastGridFilter);
+        Assert.Null(stubService.LastGridFilter!.UserId);
+    }
+
+    [Fact]
     public async Task GetTrainingMatrixGrid_NonAdminUser_ScopesToCurrentUserId()
     {
         var stubService = new TestTrainingMatrixService();

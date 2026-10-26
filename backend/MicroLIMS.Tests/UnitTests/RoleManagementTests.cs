@@ -281,8 +281,11 @@ public class RoleManagementTests
         var service = CreateService(db);
         var actor = await AddActingUserAsync(db, roleId: 3);
         var analyst = await service.GetByIdAsync(4);
-        // Revokes one code and grants another in a single call.
-        var desired = analyst!.PermissionCodes.Skip(1).Append(PermissionConstants.RolesManage).ToList();
+        // Revokes one code and grants another in a single call. The granted
+        // code must not be an administration code: the Analyst role holds
+        // GxP execution codes, and mixing the two is a segregation-of-duties
+        // violation that UpdatePermissionsAsync rejects.
+        var desired = analyst!.PermissionCodes.Skip(1).Append(PermissionConstants.KpiView).ToList();
 
         await service.UpdatePermissionsAsync(4, desired, actor.Id);
 

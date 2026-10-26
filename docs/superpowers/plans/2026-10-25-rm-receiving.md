@@ -147,7 +147,7 @@
 
 ### Task 6: Phase check
 
-- [ ] Opus reviews the whole Plan 1 diff against spec goals 1–2 and the Review Focus list.
-- [ ] Full Postgres suite green; local LIMSV2 migrated (backup first).
-- [ ] Browser check on local: receive Pyridoxine (BP) with a supplier CoA, see only BP + micro tests and "Grade: BP" on the CoA; receive a periodic retest, select tests as Section Head; confirm analyst sees the list read-only.
+- [x] Opus reviews the whole Plan 1 diff against spec goals 1–2 and the Review Focus list.
+- [x] Full Postgres suite green; local LIMSV2 migrated (backup first).
+- [x] Browser check on local: receive Pyridoxine (BP) with a supplier CoA, see only BP + micro tests and "Grade: BP" on the CoA; receive a periodic retest, select tests as Section Head; confirm analyst sees the list read-only.
 - [ ] Stop and report to the user before Plan 2.

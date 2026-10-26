@@ -21,6 +21,7 @@ public class BiologicalWasteDestructionService
     private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatures;
     private readonly IUserSectionScopeService _scope;
+    private readonly IDatabaseSequenceHelper _sequences;
     private readonly TimeProvider _time;
 
     // A cycle start may sit slightly in the future of the server clock
@@ -28,11 +29,12 @@ public class BiologicalWasteDestructionService
     private static readonly TimeSpan ClockTolerance = TimeSpan.FromMinutes(5);
 
     public BiologicalWasteDestructionService(IMicroLimsDbContext db, IElectronicSignatureService signatures,
-        IUserSectionScopeService scope, TimeProvider? timeProvider = null)
+        IUserSectionScopeService scope, IDatabaseSequenceHelper sequences, TimeProvider? timeProvider = null)
     {
         _db = db;
         _signatures = signatures;
         _scope = scope;
+        _sequences = sequences;
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -190,8 +192,7 @@ public class BiologicalWasteDestructionService
         // is saved together with its signature, which must already carry
         // the record's id (a saved signature can never be updated), so the
         // id is taken from the sequence first.
-        var destructionId = await RecordIdReservation.ReserveAsync(
-            _db, nameof(IMicroLimsDbContext.BiologicalWasteDestructions), _db.BiologicalWasteDestructions.Select(d => d.Id));
+        var destructionId = await _sequences.ReserveIdAsync<BiologicalWasteDestruction>();
         var signature = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.BiologicalWasteDestroyed,
             nameof(BiologicalWasteDestruction), destructionId, string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes.Trim(), ipAddress);
 

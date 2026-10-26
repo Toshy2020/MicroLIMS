@@ -65,15 +65,18 @@ public class EquipmentWorkService
     private readonly IMicroLimsDbContext _db;
     private readonly ILabClock _clock;
     private readonly IElectronicSignatureService _signatures;
+    private readonly IDatabaseSequenceHelper _sequences;
 
     public EquipmentWorkService(
         IMicroLimsDbContext db,
         ILabClock clock,
-        IElectronicSignatureService signatures)
+        IElectronicSignatureService signatures,
+        IDatabaseSequenceHelper sequences)
     {
         _db = db;
         _clock = clock;
         _signatures = signatures;
+        _sequences = sequences;
     }
 
     public async Task<EquipmentTaskResponse> RecordCalibrationAsync(
@@ -372,8 +375,7 @@ public class EquipmentWorkService
             // The entry is saved together with its signature, which must
             // already carry the entry's id (a saved signature can never be
             // updated), so the id is taken from the sequence first.
-            var entryId = await RecordIdReservation.ReserveAsync(
-                _db, nameof(IMicroLimsDbContext.MaintenanceLogEntries), _db.MaintenanceLogEntries.Select(m => m.Id));
+            var entryId = await _sequences.ReserveIdAsync<MaintenanceLogEntry>();
             var signature = await _signatures.SignAsync(
                 userId,
                 r.Password,

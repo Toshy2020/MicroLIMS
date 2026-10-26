@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Interfaces;
 using Xunit;
 
@@ -69,7 +70,7 @@ public class BiologicalWasteDestructionTests
     }
 
     private static BiologicalWasteDestructionService Service(World w) =>
-        new(w.Db, new ElectronicSignatureService(w.Db, w.Clock), new UserSectionScopeService(w.Db), w.Clock);
+        new(w.Db, new ElectronicSignatureService(w.Db, w.Clock), new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db), w.Clock);
 
     private static async Task<ThawEvent> ThawAsync(World w)
     {

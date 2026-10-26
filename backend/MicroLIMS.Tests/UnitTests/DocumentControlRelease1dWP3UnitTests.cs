@@ -22,6 +22,8 @@ public class DocumentControlRelease1dWP3UnitTests
     private class TestDbSequenceHelper : IDatabaseSequenceHelper
     {
         private long _seq = 8000;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, System.Threading.CancellationToken cancellationToken = default)
         {
             return Task.FromResult(System.Threading.Interlocked.Increment(ref _seq));

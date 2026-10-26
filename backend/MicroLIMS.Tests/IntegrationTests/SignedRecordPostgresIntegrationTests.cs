@@ -6,6 +6,7 @@ using MicroLIMS.Application.Services.EquipmentPlan;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
@@ -48,10 +49,10 @@ public class SignedRecordPostgresIntegrationTests
     }
 
     private static BiologicalWasteDestructionService WasteService(MicroLimsDbContext db) =>
-        new(db, new ElectronicSignatureService(db), new UserSectionScopeService(db));
+        new(db, new ElectronicSignatureService(db), new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
     private static EquipmentWorkService WorkService(MicroLimsDbContext db) =>
-        new(db, LabClock.Default, new ElectronicSignatureService(db));
+        new(db, LabClock.Default, new ElectronicSignatureService(db), new DatabaseSequenceHelper(db));
 
     private async Task<(Equipment Autoclave, AutoclaveProgram Program)> SeedAutoclaveAsync(MicroLimsDbContext db)
     {

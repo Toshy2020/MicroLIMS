@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { PageHeader } from "../../components/PageHeader";
-import { RoleService, RoleRecord, PermissionRecord } from "./services/RoleService";
+import { RoleService, RoleRecord, PermissionRecord, SodRules } from "./services/RoleService";
 import { PermissionMatrix } from "./components/PermissionMatrix";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { Role as RoleType } from "../../contexts/AuthContext";
@@ -28,6 +28,7 @@ export function CreateRolePage() {
   const [checkedCodes, setCheckedCodes] = useState<Set<string>>(new Set());
   const [cloneFromRoleId, setCloneFromRoleId] = useState<number | "">("");
 
+  const [sodRules, setSodRules] = useState<SodRules | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,6 +37,7 @@ export function CreateRolePage() {
   useEffect(() => {
     RoleService.getAll().then(setExistingRoles).catch(fail("the existing roles"));
     RoleService.getAllPermissions().then(setAllPermissions).catch(fail("the permission list"));
+    RoleService.getSodRules().then(setSodRules).catch(fail("the segregation-of-duties rules"));
   }, [fail]);
 
   // Default-check the selected base type's current grants whenever it
@@ -155,7 +157,7 @@ export function CreateRolePage() {
               </Select>
             </Stack>
           </Paper>
-          <PermissionMatrix permissions={allPermissions} checkedCodes={checkedCodes} onToggle={handleToggle} />
+          <PermissionMatrix permissions={allPermissions} checkedCodes={checkedCodes} onToggle={handleToggle} sodRules={sodRules} />
         </>
       )}
 

@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,8 +14,11 @@ public record RoleDetailDto(int Id, string Name, string? Description, string Typ
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
+    // Administration + GxP pairs the role holds today ("A + B"); empty when it is clean.
+    public List<string> SodConflicts { get; init; } = new();
 }
 public record PermissionDto(string Code, string Description, bool IsEnforced);
+public record SodRulesDto(List<string> AdministrationCodes, List<string> GxpExecutionAndApprovalCodes);
 
 // Role CRUD + permission-grant management. Plain create/update/delete
 // rely on IMicroLimsDbContext.SaveChanges's automatic audit capture -
@@ -69,6 +73,17 @@ public class RoleService
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidOperationException("Role name is required.");
+
+        // A new role copies its base system role's grants (below); refuse
+        // before anything is saved if that copy would mix administration with GxP.
+        var baseCodes = await _db.RolePermissions
+            .Where(rp => rp.Role!.IsSystemRole && rp.Role.Type == baseType)
+            .Select(rp => rp.Permission!.Code)
+            .Distinct()
+            .ToListAsync();
+        var baseConflicts = SegregationOfDutiesRules.FindConflicts(baseCodes);
+        if (baseConflicts.Count > 0)
+            throw new SegregationOfDutiesViolationException(baseConflicts);
 
         var role = new Role { Name = name, Description = description, Type = baseType, IsSystemRole = false, IsActive = true };
         _db.Roles.Add(role);
@@ -147,6 +162,11 @@ public class RoleService
             throw new InvalidOperationException($"Unknown permission code(s): {string.Join(", ", unknown)}.");
 
         // Checked before the first grant/revoke, which each save on their own.
+        // A save that removes the conflicts of an already-violating role passes.
+        var sodConflicts = SegregationOfDutiesRules.FindConflicts(permissionCodes);
+        if (sodConflicts.Count > 0)
+            throw new SegregationOfDutiesViolationException(sodConflicts);
+
         await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes));
 
         var currentCodes = await _permissionService.GetPermissionCodesForRoleAsync(id);
@@ -184,8 +204,25 @@ public class RoleService
     }
 
     private static RoleDetailDto ToDto(Role r, List<string> permissionCodes) =>
-        new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes) { Version = r.Version };
+        new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes)
+        {
+            Version = r.Version,
+            SodConflicts = SegregationOfDutiesRules.FindConflicts(permissionCodes).Select(SegregationOfDutiesRules.Describe).ToList()
+        };
 
-    public async Task<List<RoleResponse>> GetAllAsync() =>
-        (await _db.Roles.AsNoTracking().ToListAsync()).Select(RoleResponse.From).ToList();
+    public static SodRulesDto GetSodRules() => new(
+        SegregationOfDutiesRules.AdministrationCodes.OrderBy(c => c, StringComparer.Ordinal).ToList(),
+        SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.OrderBy(c => c, StringComparer.Ordinal).ToList());
+
+    public async Task<List<RoleResponse>> GetAllAsync()
+    {
+        var roles = await _db.Roles.AsNoTracking().ToListAsync();
+        var grants = await _db.RolePermissions.AsNoTracking()
+            .Select(rp => new { rp.RoleId, rp.Permission!.Code })
+            .ToListAsync();
+        var codesByRole = grants.GroupBy(g => g.RoleId).ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
+        return roles
+            .Select(r => RoleResponse.From(r, codesByRole.TryGetValue(r.Id, out var codes) ? codes : []))
+            .ToList();
+    }
 }

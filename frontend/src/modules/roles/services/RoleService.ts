@@ -7,6 +7,8 @@ export interface RoleRecord {
   type: string;
   isSystemRole: boolean;
   isActive: boolean;
+  // Administration + GxP pairs the role holds today ("A + B"); empty when it is clean.
+  sodConflicts?: string[];
 }
 
 export interface RoleDetail {
@@ -19,6 +21,14 @@ export interface RoleDetail {
   isSystemRole: boolean;
   isActive: boolean;
   permissionCodes: string[];
+  sodConflicts?: string[];
+}
+
+// The segregation-of-duties rule the server enforces: no role may hold a
+// code from each list.
+export interface SodRules {
+  administrationCodes: string[];
+  gxpExecutionAndApprovalCodes: string[];
 }
 
 export interface PermissionRecord {
@@ -48,5 +58,8 @@ export const RoleService = {
   },
   async getAllPermissions(): Promise<PermissionRecord[]> {
     return (await apiClient.get("/permissions")).data.data;
+  },
+  async getSodRules(): Promise<SodRules> {
+    return (await apiClient.get("/roles/sod-rules")).data.data;
   }
 };

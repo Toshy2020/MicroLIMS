@@ -29,16 +29,16 @@ public class BiologicalWasteDestructionController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     // Cryovial material currently eligible for destruction.
     [HttpGet("eligible")]
     public async Task<IActionResult> GetEligible() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetEligibleAsync(await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.GetEligibleAsync(await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     [HttpPost]
     public async Task<IActionResult> Record(RecordBiologicalWasteDestructionRequest r) =>

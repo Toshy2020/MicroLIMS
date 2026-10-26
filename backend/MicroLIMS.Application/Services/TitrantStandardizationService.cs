@@ -286,7 +286,7 @@ public class TitrantStandardizationService
     public async Task<List<TitrantStandardizationResponse>> GetForPreparationAsync(int preparationId, int userId, CancellationToken ct = default)
     {
         var prep = await LoadPrepAsync(preparationId, ct);
-        await EnsureAccessAsync(prep, userId, ct);
+        await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var records = await _db.TitrantStandardizations.AsNoTracking()
             .Include(x => x.Replicates).ThenInclude(x => x.StandardMaterial)
@@ -337,7 +337,7 @@ public class TitrantStandardizationService
     public async Task<List<LotOption>> GetStandardLotOptionsAsync(int preparationId, int userId, CancellationToken ct = default)
     {
         var prep = await LoadPrepAsync(preparationId, ct);
-        await EnsureAccessAsync(prep, userId, ct);
+        await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
             ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
@@ -362,7 +362,7 @@ public class TitrantStandardizationService
     public async Task<List<SolutionPreparationListItem>> GetReferenceOptionsAsync(int preparationId, int userId, CancellationToken ct = default)
     {
         var prep = await LoadPrepAsync(preparationId, ct);
-        await EnsureAccessAsync(prep, userId, ct);
+        await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
             ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
@@ -402,9 +402,9 @@ public class TitrantStandardizationService
             .ToList();
     }
 
-    private async Task EnsureAccessAsync(SolutionPreparation prep, int userId, CancellationToken ct)
+    private async Task EnsureAccessAsync(SolutionPreparation prep, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(prep.SectionId))
             throw new NotFoundException($"Solution preparation {prep.Id} not found.");
     }

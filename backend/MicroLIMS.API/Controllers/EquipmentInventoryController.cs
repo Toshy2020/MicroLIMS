@@ -39,7 +39,7 @@ public class EquipmentInventoryController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
@@ -51,11 +51,11 @@ public class EquipmentInventoryController : ControllerBase
 
     [HttpGet("print")]
     public async Task<IActionResult> GetForPrint() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetForPrintAsync(await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.GetForPrintAsync(await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     [HttpGet("active")]
     public async Task<IActionResult> GetActiveEquipment() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetActiveEquipmentAsync(await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.GetActiveEquipmentAsync(await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     [HttpGet("{id:int}/activities")]
     public async Task<IActionResult> GetActiveActivities(int id)
@@ -71,7 +71,7 @@ public class EquipmentInventoryController : ControllerBase
 
     [HttpGet("where-is-it")]
     public async Task<IActionResult> WhereIsIt([FromQuery] string query) =>
-        Ok(ApiResponse<object>.Ok(await _service.WhereIsItAsync(query, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _service.WhereIsItAsync(query, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 
     [HttpPost]
     public async Task<IActionResult> Create(SaveEquipmentInventoryHttpRequest r) =>

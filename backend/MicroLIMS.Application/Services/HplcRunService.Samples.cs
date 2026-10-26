@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -49,7 +50,7 @@ public partial class HplcRunService
     public async Task<List<EligibleTestDto>> GetEligibleTestsAsync(int runId, string? search, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
-        await EnsureAccessAsync(run, userId, ct);
+        await EnsureAccessAsync(run, userId, ct, SectionAccess.Read);
 
         var query = EligibleOrdersQuery(run);
         if (!string.IsNullOrWhiteSpace(search))
@@ -173,7 +174,7 @@ public partial class HplcRunService
     public async Task<HplcSampleEntryDto> GetSampleEntryAsync(int runSampleId, int userId, CancellationToken ct = default)
     {
         var context = await HplcSampleEntryContext.LoadAsync(_db, runSampleId, ct);
-        await EnsureAccessAsync(context.Run, userId, ct);
+        await EnsureAccessAsync(context.Run, userId, ct, SectionAccess.Read);
         return await BuildEntryDtoAsync(context, ct);
     }
 

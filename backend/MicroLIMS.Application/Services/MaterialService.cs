@@ -114,7 +114,7 @@ public class MaterialService
 
     public async Task<List<MaterialResponse>> GetAllAsync(int currentUserId, MaterialType? type = null)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId);
         var query = _db.Materials.Include(m => m.Organism).Include(m => m.MediaProduct).AsQueryable();
         if (scope != null)
         {
@@ -348,7 +348,7 @@ public class MaterialService
     // SST picker: usable primary and working standards (in stock, not expired) in the caller's sections.
     public async Task<List<MaterialResponse>> GetUsableReferenceStandardsAsync(int currentUserId)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId);
         var query = _db.Materials.AsNoTracking().AsQueryable();
         if (scope != null)
         {

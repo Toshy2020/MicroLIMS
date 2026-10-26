@@ -19,10 +19,11 @@ public class SampleAssignmentTests
     }
 
     // Micro: Section Heads 1 and 2, Analyst 3, Reviewer 4. FP: Analyst 5.
-    // System Administrator 6 has no membership and reaches every section.
+    // System Administrator 6 has no membership, so it can act on no section (Sections.ViewAll is read-only).
+    // Section Head 7 belongs to both Microbiology and FP.
     private sealed record World(Sample Sample, TestOrder Tamc, TestOrder Tymc, TestOrder Assay, TestOrder ApprovedEc, DocumentSection Micro, DocumentSection Fp);
 
-    private const int HeadMicro = 1, OtherHeadMicro = 2, AnalystMicro = 3, ReviewerMicro = 4, AnalystFp = 5, Admin = 6;
+    private const int HeadMicro = 1, OtherHeadMicro = 2, AnalystMicro = 3, ReviewerMicro = 4, AnalystFp = 5, Admin = 6, BothHead = 7;
 
     private static async Task<World> SeedAsync(MicroLimsDbContext db)
     {
@@ -52,6 +53,9 @@ public class SampleAssignmentTests
         await User(ReviewerMicro, RoleType.Reviewer, micro);
         await User(AnalystFp, RoleType.Analyst, fp);
         await User(Admin, RoleType.SystemAdministrator, null);
+        await User(BothHead, RoleType.SectionHead, micro);
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = BothHead, DepartmentId = fp.DepartmentId, SectionId = fp.Id });
+        await db.SaveChangesAsync();
 
         var sample = new Sample { ReferenceNumber = "FP1026001", Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-10", Status = SampleStatus.InTesting };
         var tamc = new TestOrder { TestCode = "TAMC", SectionId = micro.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
@@ -77,7 +81,7 @@ public class SampleAssignmentTests
         await using var db = NewDb();
         var w = await SeedAsync(db);
 
-        await NewService(db).AssignAnalystAsync(w.Sample.Id, AnalystMicro, actingUserId: Admin);
+        await NewService(db).AssignAnalystAsync(w.Sample.Id, AnalystMicro, actingUserId: BothHead);
 
         Assert.Equal(AnalystMicro, w.Tamc.AssignedAnalystId);
         Assert.Equal(AnalystMicro, w.Tymc.AssignedAnalystId);
@@ -94,7 +98,7 @@ public class SampleAssignmentTests
         w.Assay.AssignedAnalystId = AnalystFp;
         await db.SaveChangesAsync();
 
-        await NewService(db).AssignAnalystAsync(w.Sample.Id, null, actingUserId: Admin);
+        await NewService(db).AssignAnalystAsync(w.Sample.Id, null, actingUserId: BothHead);
 
         Assert.Null(w.Tamc.AssignedAnalystId);
         Assert.Null(w.Assay.AssignedAnalystId);
@@ -110,7 +114,7 @@ public class SampleAssignmentTests
         await db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            NewService(db).AssignAnalystAsync(w.Sample.Id, AnalystFp, actingUserId: Admin));
+            NewService(db).AssignAnalystAsync(w.Sample.Id, AnalystFp, actingUserId: BothHead));
 
         Assert.Contains("not a member of the Microbiology Laboratory laboratory section", ex.Message);
         Assert.Null(w.Tamc.AssignedAnalystId);
@@ -172,7 +176,7 @@ public class SampleAssignmentTests
 
     [Theory]
     [InlineData(OtherHeadMicro)]
-    [InlineData(Admin)]
+    [InlineData(BothHead)]
     [InlineData(AnalystMicro)]
     public async Task SectionHead_CannotBeAssignedByAnyoneElse(int actingUserId)
     {
@@ -197,7 +201,7 @@ public class SampleAssignmentTests
         var w = await SeedAsync(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, AnalystFp) }, actingUserId: Admin));
+            NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, AnalystFp) }, actingUserId: BothHead));
 
         Assert.Contains("not a member of the Microbiology Laboratory laboratory section", ex.Message);
     }
@@ -209,7 +213,7 @@ public class SampleAssignmentTests
         var w = await SeedAsync(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, Admin) }, actingUserId: Admin));
+            NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, Admin) }, actingUserId: BothHead));
 
         Assert.Contains("only Analysts, Reviewers and Section Heads", ex.Message);
     }
@@ -277,19 +281,23 @@ public class SampleAssignmentTests
         Assert.False(ec.CanAssign);
     }
 
+    // Administrators control the system, never assign GxP work (21 CFR Part 11 11.10(d)(g)): holding
+    // Sections.ViewAll lets one read every section, but assignment is a write and follows membership.
     [Fact]
-    public async Task GetAssignmentOptionsAsync_Administrator_SeesNoSectionHeads_AndEachTestsOwnSectionMembers()
+    public async Task Administrator_BelongingToNoSection_CanAssignNothing()
     {
         await using var db = NewDb();
         var w = await SeedAsync(db);
+        var service = NewService(db);
 
-        var options = await NewService(db).GetAssignmentOptionsAsync(w.Sample.Id, actingUserId: Admin);
+        var options = await service.GetAssignmentOptionsAsync(w.Sample.Id, actingUserId: Admin);
+        Assert.All(options.Tests, t => Assert.False(t.CanAssign));
+        Assert.Empty(options.Users);
 
-        Assert.DoesNotContain(options.Users, u => u.RoleType == nameof(RoleType.SectionHead));
-        Assert.DoesNotContain(options.Users, u => u.Id == Admin);
-        Assert.Equal(new[] { AnalystFp }, options.Tests.Single(t => t.TestOrderId == w.Assay.Id).EligibleUserIds);
-        Assert.Equal(new[] { AnalystMicro, ReviewerMicro }.OrderBy(i => i),
-            options.Tests.Single(t => t.TestOrderId == w.Tamc.Id).EligibleUserIds.OrderBy(i => i));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignAnalystAsync(w.Sample.Id, AnalystMicro, actingUserId: Admin));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, AnalystMicro) }, actingUserId: Admin));
+        Assert.Null(w.Tamc.AssignedAnalystId);
     }
 
     [Fact]

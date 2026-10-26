@@ -37,7 +37,7 @@ public class AnalystAvailabilityService
         if (!canViewTeam && userId is int other && other != viewerUserId)
             throw new UnauthorizedAccessException("You may only view your own availability.");
 
-        var viewerScope = canViewTeam ? await _scope.GetAccessibleSectionIdsAsync(viewerUserId, ct) : null;
+        var viewerScope = canViewTeam ? await _scope.GetReadableSectionIdsAsync(viewerUserId, ct) : null;
         if (canViewTeam && userId is int asked && !await KpiUserScope.InScopeAsync(_scope, asked, viewerScope, ct))
             throw new UnauthorizedAccessException("That analyst is outside your laboratory sections.");
 
@@ -131,7 +131,7 @@ public class AnalystAvailabilityService
     {
         if (!await _db.Users.AnyAsync(u => u.Id == analystId, ct))
             throw new InvalidOperationException("The analyst does not exist.");
-        var editorScope = await _scope.GetAccessibleSectionIdsAsync(editorId, ct);
+        var editorScope = await _scope.GetMemberSectionIdsAsync(editorId, ct);
         if (!await KpiUserScope.InScopeAsync(_scope, analystId, editorScope, ct))
             throw new UnauthorizedAccessException("You may only record availability for analysts in your laboratory sections.");
     }

@@ -3,6 +3,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -38,6 +39,7 @@ public class DashboardLabScopeTests
         var admin = new User { Username = "admin", FullName = "Administrator", RoleId = adminRole.Id, Role = adminRole, IsActive = true };
         db.Users.AddRange(microAnalyst, dualAnalyst, admin);
         await db.SaveChangesAsync();
+        AdministratorScope.GrantViewAll(db, adminRole.Id); // reads every section (Sections.ViewAll), belongs to none
 
         db.UserOrgMemberships.AddRange(
             new UserOrgMembership { UserId = microAnalyst.Id, DepartmentId = dept.Id, SectionId = micro.Id },
@@ -81,7 +83,7 @@ public class DashboardLabScopeTests
         Assert.Equal(new[] { f.Fp.Id }, fp.SectionIds);
         Assert.False(fp.IsMicrobiology);
 
-        // Administrators are unrestricted, but a laboratory view still narrows.
+        // A role holding Sections.ViewAll is unrestricted for reading, but a laboratory view still narrows.
         var adminFp = await resolver.ResolveAsync(f.Admin.Id, "FP");
         Assert.Equal(new[] { f.Fp.Id }, adminFp.SectionIds);
     }

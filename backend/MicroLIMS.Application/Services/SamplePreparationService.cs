@@ -202,7 +202,7 @@ public class SamplePreparationService
         // unassigned test on this sample that hasn't started yet, in the
         // laboratory sections they belong to. Tests already assigned, or past
         // Waiting, keep whoever's already on them.
-        var memberOf = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var memberOf = await _scope.GetMemberSectionIdsAsync(userId);
         var waitingOrders = (await _db.TestOrders
             .Where(t => t.SampleId == sample.Id && t.CurrentStep == WorkflowStep.Waiting && t.AssignedAnalystId == null)
             .ToListAsync())

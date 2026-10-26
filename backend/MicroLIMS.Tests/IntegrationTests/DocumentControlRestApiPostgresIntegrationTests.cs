@@ -215,7 +215,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
 
         var controller = new DocumentEscalationController(escService)
         {
-            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SectionHead))
         };
 
         // 1. Trigger process-due
@@ -340,7 +340,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var matrixService = new TrainingMatrixService(db, NullLogger<TrainingMatrixService>.Instance);
         var controller = new DocumentTrainingMatrixController(matrixService)
         {
-            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SectionHead))
         };
 
         // 1. Query Matrix Grid

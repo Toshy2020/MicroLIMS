@@ -168,7 +168,7 @@ public partial class HplcRunService
 
     public async Task<List<HplcInstrumentDto>> GetInstrumentsAsync(int userId, HplcTechnique technique = HplcTechnique.Hplc, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = _db.Equipment.Where(e => e.Type == HplcTechniqueEquipment.For(technique)).AsNoTracking();
         if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         var equipmentList = await query.OrderBy(e => e.Code).ToListAsync(ct);
@@ -214,7 +214,7 @@ public partial class HplcRunService
 
     public async Task<List<HplcMethodOptionDto>> GetMethodOptionsAsync(int userId, HplcTechnique technique = HplcTechnique.Hplc, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = _db.HplcMethods.Where(m => m.IsActive && m.Technique == technique).AsNoTracking();
         if (scope != null) query = query.Where(m => scope.Contains(m.SectionId));
         var methods = await query.OrderBy(m => m.Name).ToListAsync(ct);
@@ -266,7 +266,7 @@ public partial class HplcRunService
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.EquipmentId, ct)
             ?? throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
             throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
@@ -380,7 +380,7 @@ public partial class HplcRunService
     public async Task<HplcRunDto> GetRunAsync(int runId, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
-        await EnsureAccessAsync(run, userId, ct);
+        await EnsureAccessAsync(run, userId, ct, SectionAccess.Read);
         return await BuildDtoAsync(run, ct);
     }
 
@@ -675,7 +675,7 @@ public partial class HplcRunService
         var evidence = await _db.HplcEvidences.Include(e => e.HplcRun).FirstOrDefaultAsync(e => e.Id == evidenceId, ct)
             ?? throw new NotFoundException($"Evidence {evidenceId} not found.");
 
-        await EnsureAccessAsync(evidence.HplcRun!, userId, ct);
+        await EnsureAccessAsync(evidence.HplcRun!, userId, ct, SectionAccess.Read);
 
         var content = await _storage.ReadAsync(evidence.FilePath);
         return (content, evidence.ContentType, evidence.FileName);
@@ -683,7 +683,7 @@ public partial class HplcRunService
 
     public async Task<HplcDissolutionStandardResult> GetDissolutionStandardAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
-        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct, access: SectionAccess.Read);
         return await HplcDissolutionStandard.ResolveAsync(_db, testOrderId, ct);
     }
 
@@ -691,7 +691,7 @@ public partial class HplcRunService
     // every run it was assigned to plus each such run's SST standard report.
     public async Task<List<HplcEvidenceDto>> GetTestOrderEvidenceAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
-        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct, access: SectionAccess.Read);
 
         var runSamples = await _db.HplcRunSamples.AsNoTracking()
             .Where(s => s.TestOrderId == testOrderId).Select(s => new { s.Id, s.HplcRunId }).ToListAsync(ct);
@@ -755,7 +755,7 @@ public partial class HplcRunService
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
             throw new NotFoundException($"Equipment {equipmentId} not found.");
 
@@ -787,9 +787,9 @@ public partial class HplcRunService
 
     // ---- Shared loading / mapping ----
 
-    private async Task EnsureAccessAsync(HplcRun run, int userId, CancellationToken ct)
+    private async Task EnsureAccessAsync(HplcRun run, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(run.SectionId))
             throw new NotFoundException($"HPLC run {run.Id} not found.");
     }

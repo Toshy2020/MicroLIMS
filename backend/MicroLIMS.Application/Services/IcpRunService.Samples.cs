@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Exceptions;
@@ -38,7 +39,7 @@ public partial class IcpRunService
     public async Task<List<EligibleTestDto>> GetEligibleTestsAsync(int runId, string? search, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
-        await EnsureAccessAsync(run, userId, ct);
+        await EnsureAccessAsync(run, userId, ct, SectionAccess.Read);
 
         var query = EligibleOrdersQuery(run);
         if (!string.IsNullOrWhiteSpace(search))
@@ -156,7 +157,7 @@ public partial class IcpRunService
     public async Task<IcpSampleEntryDto> GetSampleEntryAsync(int runSampleId, int userId, CancellationToken ct = default)
     {
         var context = await IcpSampleEntryContext.LoadAsync(_db, runSampleId, ct, _clock);
-        await EnsureAccessAsync(context.Run, userId, ct);
+        await EnsureAccessAsync(context.Run, userId, ct, SectionAccess.Read);
         return await BuildEntryDtoAsync(context, ct);
     }
 

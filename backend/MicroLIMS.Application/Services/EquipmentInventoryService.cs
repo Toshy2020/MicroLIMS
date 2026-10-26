@@ -97,7 +97,7 @@ public class EquipmentInventoryService
 
     public async Task<EquipmentInventoryResponse?> GetByIdAsync(int id, int userId)
     {
-        await _scope.EnsureEquipmentInventoryAccessAsync(userId, id);
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, id, access: SectionAccess.Read);
         return (await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id)) is { } found ? EquipmentInventoryResponse.From(found) : null;
     }
 
@@ -124,7 +124,7 @@ public class EquipmentInventoryService
         if (!existsAndActive)
             throw new InvalidOperationException("Selected laboratory section was not found or is inactive.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var scope = await _scope.GetMemberSectionIdsAsync(userId);
         if (scope != null && !scope.Contains(sectionId))
             throw new UnauthorizedAccessException("This equipment belongs to a laboratory section you are not assigned to.");
 
@@ -242,7 +242,7 @@ public class EquipmentInventoryService
 
     public async Task<List<EquipmentStatusHistoryDto>> GetStatusHistoryAsync(int equipmentId, int userId)
     {
-        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId, access: SectionAccess.Read);
 
         var equipmentExists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!equipmentExists)
@@ -317,7 +317,7 @@ public class EquipmentInventoryService
 
     public async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentAsync(int equipmentId, int userId)
     {
-        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId, access: SectionAccess.Read);
 
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
@@ -327,7 +327,7 @@ public class EquipmentInventoryService
 
     public async Task<List<EquipmentActivityDto>> GetHistoricalActivitiesForEquipmentAsync(int equipmentId, int userId, string? itemCode = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
-        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId, access: SectionAccess.Read);
 
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
@@ -440,7 +440,7 @@ public class EquipmentInventoryService
     // SectionMediaRule uses for "a lot belongs to its source material's
     // section"). An incubation with neither link can't be attributed to a
     // lab, so - like a legacy null-SectionId EquipmentInventory row - it's
-    // visible only to a System Administrator (scope == null).
+    // visible only to a role holding Sections.ViewAll (scope == null).
     public async Task<WhereIsItResultDto> WhereIsItAsync(string query, IReadOnlyList<int>? scope)
     {
         if (string.IsNullOrWhiteSpace(query))

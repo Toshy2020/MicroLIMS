@@ -24,7 +24,7 @@ public static class ReceiptLabGuard
 
         if (!canReceiveForAnyLab)
         {
-            var userScope = await scope.GetAccessibleSectionIdsAsync(userId);
+            var userScope = await scope.GetMemberSectionIdsAsync(userId);
             if (userScope is not null && ids.Any(id => !userScope.Contains(id)))
                 throw new UnauthorizedAccessException("You can receive samples only for your own laboratory.");
         }

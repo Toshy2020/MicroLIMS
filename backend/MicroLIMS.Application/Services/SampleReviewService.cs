@@ -100,7 +100,7 @@ public class SampleReviewService
         var sample = await LoadAsync(sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var userScope = await _scope.GetAccessibleSectionIdsAsync(reviewerUserId);
+        var userScope = await _scope.GetMemberSectionIdsAsync(reviewerUserId);
         var section = SampleSectionRollup.ResolveSection(
             sample, sectionId, SectionSignoffStatus.UnderReview, userScope,
             "Sample must be under review before it can be reviewed.");

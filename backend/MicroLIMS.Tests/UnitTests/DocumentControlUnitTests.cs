@@ -503,8 +503,13 @@ public class DocumentControlUnitTests
         var otherCanEdit = await _authService.CanEditDraftMetadataAsync(registered.Id, _otherUserId);
         Assert.False(otherCanEdit);
 
-        // Assign other user as Author
-        await _masterService.AddOrUpdateAssignmentAsync(registered.Id, new CreateAssignmentRequest(_otherUserId, AssignmentRole.Author), _adminUserId);
+        // A System Administrator controls the system, not the document: no draft authority and no say in who authors it
+        Assert.False(await _authService.CanEditDraftMetadataAsync(registered.Id, _adminUserId));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _masterService.AddOrUpdateAssignmentAsync(registered.Id, new CreateAssignmentRequest(_otherUserId, AssignmentRole.Author), _adminUserId));
+
+        // The owner assigns the other user as Author
+        await _masterService.AddOrUpdateAssignmentAsync(registered.Id, new CreateAssignmentRequest(_otherUserId, AssignmentRole.Author), _authorUserId);
 
         // Now other user (assigned Author) can edit draft
         var assignedAuthorCanEdit = await _authService.CanEditDraftMetadataAsync(registered.Id, _otherUserId);

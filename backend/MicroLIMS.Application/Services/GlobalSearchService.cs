@@ -33,7 +33,7 @@ public class GlobalSearchService : IGlobalSearchService
         var targetCategory = request.Category?.Trim().ToLower();
         var searchAll = string.IsNullOrWhiteSpace(targetCategory) || targetCategory == "all";
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var categories = new List<GlobalSearchCategoryDto>();
 
         // If user has a non-null but empty scope, they are assigned to no laboratory sections

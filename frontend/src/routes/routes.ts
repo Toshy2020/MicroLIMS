@@ -226,6 +226,7 @@ export const PERMISSIONS = {
   SAMPLES_TRACK_ALL: "Samples.TrackAll",
   SAMPLES_CORRECT: "Samples.Correct",
   SAMPLES_ASSIGN_ANALYST: "Samples.AssignAnalyst",
+  SECTIONS_VIEW_ALL: "Sections.ViewAll",
   TEST_WORKFLOW_EXECUTE: "TestWorkflow.Execute",
   TEST_WORKFLOW_SUPERVISE: "TestWorkflow.Supervise",
   CRYOVIALS_MANAGE: "Cryovials.Manage",

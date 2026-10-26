@@ -253,19 +253,50 @@ public class DocumentControlApprovalUnitTests
     }
 
     [Fact]
-    public async Task CreateApprovalTask_SegregationOfDuties_AdminCannotBypass_ThrowsUnauthorized()
+    public async Task CreateApprovalTask_SegregationOfDuties_EligibleApproverWhoAuthoredTheRevision_ThrowsUnauthorized()
+    {
+        var (db, _, controller, _, approver, _, _, revision, approvalService, _) =
+            await CreateSeededContextWithApprovalReadyRevisionAsync();
+
+        // If the eligible approver was the author, they cannot be assigned as approver
+        revision.CreatedByUserId = approver.Id;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), controller.Id));
+
+        Assert.Contains("Segregation of Duties Violation", ex.Message);
+    }
+
+    // Administrators control the system, never approve GxP data (21 CFR Part 11 11.10(d)(g)): the role
+    // is no longer an eligible approver, whoever authored the revision.
+    [Fact]
+    public async Task CreateApprovalTask_SystemAdministratorIsNotEligibleAsApprover()
     {
         var (db, _, controller, _, _, admin, _, revision, approvalService, _) =
             await CreateSeededContextWithApprovalReadyRevisionAsync();
 
-        // If admin was the author, admin cannot be assigned as approver
-        revision.CreatedByUserId = admin.Id;
-        await db.SaveChangesAsync();
-
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(admin.Id), controller.Id));
 
-        Assert.Contains("Segregation of Duties Violation", ex.Message);
+        Assert.Contains("not eligible to be assigned as an approver", ex.Message);
+        Assert.Empty(db.DocumentApprovalTasks);
+    }
+
+    // An administrator is not a stand-in for the assigned approver, even for a decision on someone else's task.
+    [Fact]
+    public async Task ExecuteDecision_SystemAdministratorCannotDecideAnotherApproversTask()
+    {
+        var (db, author, _, _, approver, admin, _, revision, approvalService, _) =
+            await CreateSeededContextWithApprovalReadyRevisionAsync();
+
+        var task = await approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), author.Id);
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            approvalService.ExecuteApprovalDecisionAsync(task.Id, new ExecuteApprovalDecisionRequest(DocumentApprovalDecision.Approve, "Admin approving"), admin.Id));
+
+        Assert.Contains("Only the assigned approver or Document Controller", ex.Message);
+        Assert.Equal(DocumentApprovalTaskStatus.Pending, (await db.DocumentApprovalTasks.FindAsync(task.Id))!.Status);
     }
 
     [Fact]

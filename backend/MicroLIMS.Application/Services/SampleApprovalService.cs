@@ -149,7 +149,7 @@ public class SampleApprovalService
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var userScope = await _scope.GetAccessibleSectionIdsAsync(sectionHeadUserId);
+        var userScope = await _scope.GetMemberSectionIdsAsync(sectionHeadUserId);
         var section = SampleSectionRollup.ResolveSection(
             sample, sectionId, SectionSignoffStatus.UnderApproval, userScope,
             "Sample must be under approval before a decision can be made.");

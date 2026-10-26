@@ -184,6 +184,12 @@ public class PostgresTestFixture : IAsyncLifetime
             var dept = await db.DocumentDepartments.SingleAsync(d => d.Code == "QC");
             var section = await db.DocumentSections.SingleAsync(s => s.Code == "MICRO");
 
+            // Writes follow section membership for everyone, administrators included. Many tests use the
+            // seeded QA user as a generic acting user in the Microbiology laboratory, so it belongs to the
+            // whole QC department; reading across sections is Sections.ViewAll, granted by the seeded matrix.
+            db.UserOrgMemberships.Add(new UserOrgMembership { UserId = SeededUserId, DepartmentId = dept.Id, SectionId = null });
+            await db.SaveChangesAsync();
+
             SeededDocTypeId = docType.Id;
             SeededDepartmentId = dept.Id;
             SeededSectionId = section.Id;

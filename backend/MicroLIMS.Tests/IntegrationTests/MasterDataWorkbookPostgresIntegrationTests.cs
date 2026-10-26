@@ -76,6 +76,13 @@ public class MasterDataWorkbookPostgresIntegrationTests
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
+        // Writes follow section membership for everyone: the administrator who loads the workbook belongs to the QC
+        // department (all its sections). A Section Head built here has no memberships, as the tests below need.
+        if (roleType == RoleType.SystemAdministrator)
+        {
+            db.UserOrgMemberships.Add(new UserOrgMembership { UserId = user.Id, DepartmentId = _fixture.SeededDepartmentId, SectionId = null });
+            await db.SaveChangesAsync();
+        }
         return user;
     }
 

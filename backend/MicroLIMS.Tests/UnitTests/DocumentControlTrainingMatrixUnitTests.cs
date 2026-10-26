@@ -114,7 +114,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var stubService = new TestTrainingMatrixService();
         var controller = new DocumentTrainingMatrixController(stubService)
         {
-            ControllerContext = CreateContext(1, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(1, nameof(RoleType.SectionHead)) // the Document Controller holds Documents.TrainingAssign; the administrator does not
         };
 
         var res = await controller.GetTrainingMatrixGrid(new TrainingMatrixFilterDto());
@@ -147,7 +147,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var stubService = new TestTrainingMatrixService();
         var controller = new DocumentTrainingMatrixController(stubService)
         {
-            ControllerContext = CreateContext(1, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(1, nameof(RoleType.SectionHead)) // the Document Controller holds Documents.TrainingAssign; the administrator does not
         };
 
         var res = await controller.GetComplianceKpis();

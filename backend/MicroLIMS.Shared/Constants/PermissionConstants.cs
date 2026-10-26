@@ -117,7 +117,7 @@ public static class PermissionConstants
     public const string EquipmentWorkRecord = "EquipmentWork.Record";
     public const string CalendarEventManage = "CalendarEvent.Manage";
 
-    // Read every laboratory section's records without being a member; writes still follow membership - enforced by a follow-up package.
+    // Read every laboratory section's records without being a member. Read-only: writes always follow section membership, for administrators too (UserSectionScopeService).
     public const string SectionsViewAll = "Sections.ViewAll";
 
     public static readonly IReadOnlyList<string> All = new[]

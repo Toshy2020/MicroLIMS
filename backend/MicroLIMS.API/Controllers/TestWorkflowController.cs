@@ -64,7 +64,7 @@ public class TestWorkflowController : ControllerBase
                 .ToList();
         }
 
-        var userScope = await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId, ct);
+        var userScope = await _scopeService.GetReadableSectionIdsAsync(CurrentUserId, ct);
 
         var result = await _groupedTestActionService.GetActionableGroupsAsync(
             CurrentUserId, CurrentRole, scope, actionType, parsedSampleIds, userScope, ct);
@@ -107,14 +107,14 @@ public class TestWorkflowController : ControllerBase
     [HttpGet("{testOrderId}/current-step")]
     public async Task<IActionResult> GetCurrentStep(int testOrderId)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, access: SectionAccess.Read);
         return await RunAsync(() => _currentStepView.GetAsync(testOrderId));
     }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]
     public async Task<IActionResult> GetSiblingPathogenOrders(int testOrderId, CancellationToken ct)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct, access: SectionAccess.Read);
         var siblings = await _engine.GetSiblingPathogenOrdersAsync(testOrderId, ct);
         return Ok(ApiResponse<List<SiblingPathogenOrderDto>>.Ok(siblings));
     }
@@ -122,14 +122,14 @@ public class TestWorkflowController : ControllerBase
     [HttpGet("{testOrderId}/eligible-incubators/{stepMediaId}")]
     public async Task<IActionResult> GetEligibleIncubators(int testOrderId, int stepMediaId)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _queries.GetEligibleIncubatorsAsync(stepMediaId)));
     }
 
     [HttpGet("{testOrderId}/permitted-confirmatory-media")]
     public async Task<IActionResult> GetPermittedConfirmatoryMedia(int testOrderId, [FromQuery] string stepName)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _queries.GetPermittedConfirmatoryMediaAsync(testOrderId, stepName)));
     }
 
@@ -384,7 +384,7 @@ public class TestWorkflowController : ControllerBase
     [HttpGet("{testOrderId}/locations")]
     public async Task<IActionResult> GetLocations(int testOrderId)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, access: SectionAccess.Read);
         return await RunAsync(() => _engine.GetLocationsAsync(testOrderId));
     }
 

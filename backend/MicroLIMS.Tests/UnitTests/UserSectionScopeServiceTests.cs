@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Seed;
+using MicroLIMS.Shared.Constants;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -18,24 +21,91 @@ public class UserSectionScopeServiceTests
         return db;
     }
 
-    [Fact]
-    public async Task GetAccessibleSectionIdsAsync_SystemAdministrator_ReturnsNull()
+    // Built-in roles with the seeded permission grants, so the administrator holds exactly what ships.
+    private static (User Admin, User Analyst) SeedBuiltInRoles(MicroLimsDbContext db)
     {
-        await using var db = NewDb();
-        var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator };
-        db.Roles.Add(adminRole);
-        var adminUser = new User { Username = "admin", FullName = "Admin User", Role = adminRole };
-        db.Users.Add(adminUser);
-        await db.SaveChangesAsync();
+        foreach (var type in Enum.GetValues<RoleType>())
+            db.Roles.Add(new Role { Name = type.ToString(), Type = type, IsSystemRole = true, IsActive = true });
+        db.SaveChanges();
+        DbSeeder.SeedPermissionsAndGrants(db);
 
-        var service = new UserSectionScopeService(db);
-        var accessible = await service.GetAccessibleSectionIdsAsync(adminUser.Id);
-
-        Assert.Null(accessible);
+        var admin = new User { Username = "admin", FullName = "Admin User", RoleId = db.Roles.First(r => r.Type == RoleType.SystemAdministrator).Id };
+        var analyst = new User { Username = "analyst", FullName = "Analyst User", RoleId = db.Roles.First(r => r.Type == RoleType.Analyst).Id };
+        db.Users.AddRange(admin, analyst);
+        db.SaveChanges();
+        return (admin, analyst);
     }
 
     [Fact]
-    public async Task GetAccessibleSectionIdsAsync_DepartmentMembership_ReturnsAllActiveSections_ExcludingInactive_AndExcludedIfDeptInactive()
+    public async Task Readable_SystemAdministratorHoldingViewAll_ReturnsNull_ButMembersIsEmpty()
+    {
+        await using var db = NewDb();
+        var (admin, analyst) = SeedBuiltInRoles(db);
+
+        var service = new UserSectionScopeService(db);
+
+        Assert.Null(await service.GetReadableSectionIdsAsync(admin.Id));
+        // Writes never span every section: the administrator belongs to none.
+        Assert.Empty(await service.GetMemberSectionIdsAsync(admin.Id));
+        // Everyone else's read scope is their membership.
+        var analystScope = await service.GetReadableSectionIdsAsync(analyst.Id);
+        Assert.NotNull(analystScope);
+        Assert.Empty(analystScope);
+    }
+
+    [Fact]
+    public async Task Readable_SystemAdministratorWithoutViewAll_IsMembershipOnly()
+    {
+        await using var db = NewDb();
+        var (admin, _) = SeedBuiltInRoles(db);
+        // A lab withdraws the permission on the Roles screen.
+        var grant = db.RolePermissions.Single(rp => rp.RoleId == admin.RoleId && rp.Permission!.Code == PermissionConstants.SectionsViewAll);
+        db.RolePermissions.Remove(grant);
+        await db.SaveChangesAsync();
+
+        var scope = await new UserSectionScopeService(db).GetReadableSectionIdsAsync(admin.Id);
+        Assert.NotNull(scope);
+        Assert.Empty(scope);
+    }
+
+    [Fact]
+    public async Task Readable_InactiveUserHoldingViewAll_IsNotUnrestricted()
+    {
+        await using var db = NewDb();
+        var (admin, _) = SeedBuiltInRoles(db);
+        admin.IsActive = false;
+        await db.SaveChangesAsync();
+
+        Assert.NotNull(await new UserSectionScopeService(db).GetReadableSectionIdsAsync(admin.Id));
+    }
+
+    [Fact]
+    public async Task AdminMemberOfOneSection_WritesOnlyThere_ReadsEverywhere()
+    {
+        await using var db = NewDb();
+        var (admin, _) = SeedBuiltInRoles(db);
+        var dept = new DocumentDepartment { Name = "QC", Code = "QC", IsActive = true };
+        db.DocumentDepartments.Add(dept);
+        await db.SaveChangesAsync();
+        var own = new DocumentSection { Name = "Own", Code = "OWN", DepartmentId = dept.Id, IsActive = true };
+        var other = new DocumentSection { Name = "Other", Code = "OTH", DepartmentId = dept.Id, IsActive = true };
+        db.DocumentSections.AddRange(own, other);
+        await db.SaveChangesAsync();
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = admin.Id, DepartmentId = dept.Id, SectionId = own.Id });
+        var material = new Material { MaterialName = "M", SectionId = other.Id };
+        db.Materials.Add(material);
+        await db.SaveChangesAsync();
+
+        var service = new UserSectionScopeService(db);
+
+        Assert.Equal(new[] { own.Id }, await service.GetMemberSectionIdsAsync(admin.Id));
+        // Read passes for another section's record; the default (write) is refused.
+        await service.EnsureMaterialAccessAsync(admin.Id, material.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.EnsureMaterialAccessAsync(admin.Id, material.Id));
+    }
+
+    [Fact]
+    public async Task GetMemberSectionIdsAsync_DepartmentMembership_ReturnsAllActiveSections_ExcludingInactive_AndExcludedIfDeptInactive()
     {
         await using var db = NewDb();
         var role = new Role { Name = "Analyst", Type = RoleType.Analyst };
@@ -66,20 +136,20 @@ public class UserSectionScopeServiceTests
 
         var service = new UserSectionScopeService(db);
 
-        var scope1 = await service.GetAccessibleSectionIdsAsync(user1.Id);
+        var scope1 = await service.GetMemberSectionIdsAsync(user1.Id);
         Assert.NotNull(scope1);
         Assert.Equal(2, scope1.Count);
         Assert.Contains(activeSec1.Id, scope1);
         Assert.Contains(activeSec2.Id, scope1);
         Assert.DoesNotContain(inactiveSec.Id, scope1);
 
-        var scope2 = await service.GetAccessibleSectionIdsAsync(user2.Id);
+        var scope2 = await service.GetMemberSectionIdsAsync(user2.Id);
         Assert.NotNull(scope2);
         Assert.Empty(scope2);
     }
 
     [Fact]
-    public async Task GetAccessibleSectionIdsAsync_SectionMembership_ReturnsOnlyThatSection()
+    public async Task GetMemberSectionIdsAsync_SectionMembership_ReturnsOnlyThatSection()
     {
         await using var db = NewDb();
         var role = new Role { Name = "Analyst", Type = RoleType.Analyst };
@@ -102,7 +172,7 @@ public class UserSectionScopeServiceTests
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var scope = await service.GetAccessibleSectionIdsAsync(user.Id);
+        var scope = await service.GetMemberSectionIdsAsync(user.Id);
 
         Assert.NotNull(scope);
         Assert.Single(scope);
@@ -111,7 +181,7 @@ public class UserSectionScopeServiceTests
     }
 
     [Fact]
-    public async Task GetAccessibleSectionIdsAsync_NoMemberships_ReturnsEmptyList()
+    public async Task GetMemberSectionIdsAsync_NoMemberships_ReturnsEmptyList()
     {
         await using var db = NewDb();
         var role = new Role { Name = "Analyst", Type = RoleType.Analyst };
@@ -121,7 +191,7 @@ public class UserSectionScopeServiceTests
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var scope = await service.GetAccessibleSectionIdsAsync(user.Id);
+        var scope = await service.GetMemberSectionIdsAsync(user.Id);
 
         Assert.NotNull(scope);
         Assert.Empty(scope);
@@ -242,20 +312,27 @@ public class UserSectionScopeServiceTests
     }
 
     [Fact]
-    public async Task ResolveSectionForCreateAsync_AdminWithoutSectionId_ThrowsChooseSection()
+    public async Task ResolveSectionForCreateAsync_AdminIsNotAMemberOfEverySection()
     {
         await using var db = NewDb();
-        var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator };
-        db.Roles.Add(adminRole);
-        var adminUser = new User { Username = "admin", FullName = "Admin", Role = adminRole };
-        db.Users.Add(adminUser);
+        var (admin, _) = SeedBuiltInRoles(db);
+        var dept = new DocumentDepartment { Name = "QC", Code = "QC", IsActive = true };
+        db.DocumentDepartments.Add(dept);
+        await db.SaveChangesAsync();
+        var sec = new DocumentSection { Name = "Micro", Code = "MICRO", DepartmentId = dept.Id, IsActive = true };
+        db.DocumentSections.Add(sec);
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.ResolveSectionForCreateAsync(adminUser.Id, requestedSectionId: null));
 
-        Assert.Equal("Choose a laboratory section.", ex.Message);
+        // Holding Sections.ViewAll does not let the administrator create records in a section.
+        var notMember = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ResolveSectionForCreateAsync(admin.Id, requestedSectionId: sec.Id));
+        Assert.Equal("You are not a member of the selected laboratory section.", notMember.Message);
+
+        var notAssigned = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ResolveSectionForCreateAsync(admin.Id, requestedSectionId: null));
+        Assert.Equal("Your account is not assigned to any laboratory section. Ask an administrator to assign one.", notAssigned.Message);
     }
 
     [Fact]

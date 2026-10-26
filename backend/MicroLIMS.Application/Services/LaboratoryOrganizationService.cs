@@ -34,16 +34,16 @@ public class LaboratoryOrganizationService
             .Select(s => new LaboratorySectionDto(s.Id, s.Code, s.Name, s.DepartmentId, s.Department.Code, s.Department.Name, Array.Empty<string>()))
             .ToListAsync();
 
-    // The sections a user can work in - every active section for an
-    // unrestricted user (system administrator).
+    // The sections a user can see - every active section for a role holding
+    // Sections.ViewAll (read-only); writes still follow membership.
     public async Task<List<LaboratorySectionDto>> GetMySectionsAsync(int userId)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId);
         var sections = await GetActiveSectionsAsync();
         var mine = scope is null ? sections : sections.Where(s => scope.Contains(s.SectionId)).ToList();
         if (mine.All(s => s.SectionCode != PhyschemAreas.SectionCode)) return mine;
 
-        var areas = (await _scope.GetPhyschemAreasAsync(userId))
+        var areas = (await _scope.GetPhyschemAreasAsync(userId, access: SectionAccess.Read))
             .Select(a => a == WorkspaceArea.Fp ? "fp" : "rmpm").ToList();
         return mine.Select(s => s.SectionCode == PhyschemAreas.SectionCode ? s with { PhyschemAreas = areas } : s).ToList();
     }

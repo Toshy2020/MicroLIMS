@@ -579,6 +579,7 @@ public class Release1cIntegrationVerificationPostgresTests
         var escService = new DocumentEscalationService(db, audit, NullLogger<DocumentEscalationService>.Instance);
 
         var services = new ServiceCollection();
+        services.AddSingleton<IMicroLimsDbContext>(db);
         services.AddSingleton<IDocumentEffectiveDateService>(effectiveService);
         services.AddSingleton<IPeriodicReviewService>(periodicService);
         services.AddSingleton<IDocumentEscalationService>(escService);

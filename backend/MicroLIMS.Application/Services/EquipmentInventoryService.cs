@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -28,7 +29,7 @@ public record EquipmentStatusHistoryDto(
     EquipmentOperationalStatus PreviousStatus,
     EquipmentOperationalStatus NewStatus,
     string Comment,
-    int ChangedByUserId,
+    int? ChangedByUserId,
     string ChangedByName,
     DateTime ChangedAt);
 
@@ -252,7 +253,7 @@ public class EquipmentInventoryService
             .OrderByDescending(h => h.ChangedAt)
             .ToListAsync();
 
-        var userIds = historyList.Select(h => h.ChangedByUserId).Distinct().ToList();
+        var userIds = historyList.Where(h => h.ChangedByUserId.HasValue).Select(h => h.ChangedByUserId!.Value).Distinct().ToList();
         var userMap = await _db.Users
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName);
@@ -264,7 +265,7 @@ public class EquipmentInventoryService
             h.NewStatus,
             h.Comment,
             h.ChangedByUserId,
-            userMap.GetValueOrDefault(h.ChangedByUserId, "Unknown"),
+            h.ChangedByUserId is { } changedBy ? userMap.GetValueOrDefault(changedBy, "Unknown") : SystemActor.DisplayName,
             h.ChangedAt)).ToList();
     }
 

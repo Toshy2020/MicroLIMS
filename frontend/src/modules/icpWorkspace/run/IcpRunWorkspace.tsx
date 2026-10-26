@@ -41,10 +41,8 @@ export function IcpRunWorkspace() {
   const location = useLocation();
   const { instrumentId, runId } = useParams<{ instrumentId: string; runId?: string }>();
   const equipmentId = Number(instrumentId);
-  const { permissions, role } = useAuth();
-  const canOperate =
-    permissions.includes(PERMISSIONS.HPLC_OPERATE) ||
-    role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE);
 
   const [activeTab, setActiveTab] = useState<string>(() => getInitialTab(location.pathname));
   const [run, setRun] = useState<IcpRunDto | null>(null);

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services;
 
 namespace MicroLIMS.API.BackgroundServices;
@@ -75,6 +76,7 @@ public class SolutionPreparationExpiryWorker : BackgroundService
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
             var service = scope.ServiceProvider.GetRequiredService<SolutionPreparationService>();
 
             var expired = await service.ExpireDueAsync(cancellationToken);

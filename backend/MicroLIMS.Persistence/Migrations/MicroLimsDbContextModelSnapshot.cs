@@ -3103,7 +3103,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("LastModifiedByUserId")
+                    b.Property<int?>("LastModifiedByUserId")
                         .HasColumnType("integer");
 
                     b.Property<DateOnly?>("LastPmOn")
@@ -3218,7 +3218,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("ChangedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("ChangedByUserId")
+                    b.Property<int?>("ChangedByUserId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Comment")

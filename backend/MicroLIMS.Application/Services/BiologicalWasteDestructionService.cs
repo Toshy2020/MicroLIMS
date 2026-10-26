@@ -187,10 +187,13 @@ public class BiologicalWasteDestructionService
 
         // Signs last of the checks and before anything is written - a
         // wrong password saves only its own failure audit row. The record
-        // id does not exist yet, so the signature is pointed at it after
-        // the first save (same transaction).
+        // is saved together with its signature, which must already carry
+        // the record's id (a saved signature can never be updated), so the
+        // id is taken from the sequence first.
+        var destructionId = await RecordIdReservation.ReserveAsync(
+            _db, nameof(IMicroLimsDbContext.BiologicalWasteDestructions), _db.BiologicalWasteDestructions.Select(d => d.Id));
         var signature = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.BiologicalWasteDestroyed,
-            nameof(BiologicalWasteDestruction), 0, string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes.Trim(), ipAddress);
+            nameof(BiologicalWasteDestruction), destructionId, string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes.Trim(), ipAddress);
 
         // The withdrawn batches' unthawed vials are gone now. Changed only
         // after signing: a refused signature saves its audit row, and must
@@ -199,6 +202,7 @@ public class BiologicalWasteDestructionService
 
         var destruction = new BiologicalWasteDestruction
         {
+            Id = destructionId,
             SectionId = autoclave.SectionId,
             AutoclaveEquipmentId = autoclave.Id,
             AutoclaveProgramId = program.Id,
@@ -216,9 +220,6 @@ public class BiologicalWasteDestructionService
             Items = items
         };
         _db.BiologicalWasteDestructions.Add(destruction);
-        await _db.SaveChangesAsync();
-
-        signature.EntityId = destruction.Id;
         await _db.SaveChangesAsync();
         return destruction;
     }

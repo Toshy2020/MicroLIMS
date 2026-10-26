@@ -202,7 +202,7 @@ public class EquipmentWorkService
                 Reason = "Calibration recorded",
                 PerformedByUserId = userId,
                 PerformedAt = now,
-                ElectronicSignatureId = signature.Id
+                ElectronicSignature = signature
             };
             _db.EquipmentTaskEvents.Add(completedEvent);
 
@@ -262,7 +262,7 @@ public class EquipmentWorkService
                             Reason = $"Re-projected from calibration on {r.CalibratedOn:yyyy-MM-dd}",
                             PerformedByUserId = userId,
                             PerformedAt = now,
-                            ElectronicSignatureId = signature.Id
+                            ElectronicSignature = signature
                         });
                     }
                 }
@@ -369,12 +369,17 @@ public class EquipmentWorkService
 
         return await UnitOfWork.RunAsync(_db, async () =>
         {
+            // The entry is saved together with its signature, which must
+            // already carry the entry's id (a saved signature can never be
+            // updated), so the id is taken from the sequence first.
+            var entryId = await RecordIdReservation.ReserveAsync(
+                _db, nameof(IMicroLimsDbContext.MaintenanceLogEntries), _db.MaintenanceLogEntries.Select(m => m.Id));
             var signature = await _signatures.SignAsync(
                 userId,
                 r.Password,
                 SignatureMeaning.MaintenanceEntryRecorded,
                 nameof(MaintenanceLogEntry),
-                0,
+                entryId,
                 r.WorkDone.Trim(),
                 ip);
 
@@ -382,6 +387,7 @@ public class EquipmentWorkService
 
             var entry = new MaintenanceLogEntry
             {
+                Id = entryId,
                 EquipmentInventoryId = equipmentId,
                 EntryType = r.EntryType,
                 PerformedOn = r.PerformedOn,
@@ -389,14 +395,12 @@ public class EquipmentWorkService
                 WorkDone = r.WorkDone.Trim(),
                 PartsReplaced = string.IsNullOrWhiteSpace(r.PartsReplaced) ? null : r.PartsReplaced.Trim(),
                 Findings = string.IsNullOrWhiteSpace(r.Findings) ? null : r.Findings.Trim(),
-                ElectronicSignatureId = signature.Id,
+                ElectronicSignature = signature,
                 RecordedAt = now,
                 CalendarEventId = r.CalendarEventId
             };
             _db.MaintenanceLogEntries.Add(entry);
             await _db.SaveChangesAsync();
-
-            signature.EntityId = entry.Id;
 
             if (r.EntryType == MaintenanceEntryType.PreventiveMaintenance)
             {

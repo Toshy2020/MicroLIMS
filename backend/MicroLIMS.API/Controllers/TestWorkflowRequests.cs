@@ -17,8 +17,9 @@ public record RecordMeasurementResultRequest(DateTime AnalysedAt, int? Equipment
 public record GravimetricReplicateRequest(decimal? Container, decimal Initial, decimal Final);
 public record RecordGravimetricParameterRequest(int SpecificationId, List<GravimetricReplicateRequest> Replicates);
 public record RecordGravimetricResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string> Conditions, List<RecordGravimetricParameterRequest> Parameters, string Password, string? Comment = null);
-public record RecordQualitativeParameterRequest(int SpecificationId, bool Conforms, string? Observation);
-public record RecordQualitativeResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordQualitativeParameterRequest> Parameters, string Password, string? Comment = null);
+public record RecordQualitativeContainerRequest(int Index, bool Conforms, string? Observation);
+public record RecordQualitativeParameterRequest(int SpecificationId, bool Conforms, string? Observation, List<RecordQualitativeContainerRequest>? Containers = null);
+public record RecordQualitativeResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordQualitativeParameterRequest> Parameters, string Password, string? Comment = null, int? ContainerCount = null);
 public record RecordDissolutionResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, decimal MediumVolumeMl, decimal? DilutionFactor, List<decimal> VesselAreas, string Password, string? Comment = null);
 public record RecordDissolutionStageRequest(List<decimal> VesselAreas, string Password, string? Comment = null);
 public record RecordDisintegrationResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, List<decimal?> UnitMinutes, string Password, string? Comment = null);

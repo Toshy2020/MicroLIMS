@@ -315,4 +315,149 @@ public class QualitativeWorkflowUnitTests
         // Stored snapshot should be the original
         Assert.Equal("Original Expected Description", pr.SpecLimit);
     }
+
+    private static (TestOrder order, Specification spec, User user) SeedPerContainer(MicroLimsDbContext db)
+    {
+        var (order, spec, user, testDef) = SeedQualitativeTest(db);
+        testDef.PerContainer = true;
+        db.SaveChanges();
+        return (order, spec, user);
+    }
+
+    private static QualitativePayload PerContainerPayload(
+        Specification spec, int? count, List<QualitativeContainerInput>? containers, bool paramConforms = true) =>
+        new(
+            AnalysedAt: DateTime.UtcNow,
+            EquipmentId: null,
+            Parameters: new List<QualitativeParameterInput>
+            {
+                new(spec.Id, Conforms: paramConforms, Observation: null, Containers: containers)
+            },
+            Password: "Password123!",
+            ContainerCount: count);
+
+    private static List<QualitativeContainerInput> AllConform(int n) =>
+        Enumerable.Range(1, n).Select(i => new QualitativeContainerInput(i, true, $"Drum {i} white powder")).ToList();
+
+    [Fact]
+    public async Task PerContainer_AllComply()
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        // Client-sent parameter-level Conforms=false is ignored; the conclusion is derived.
+        var result = await engine.RecordQualitativeResultAsync(
+            order.Id, PerContainerPayload(spec, 3, AllConform(3), paramConforms: false), user.Id);
+
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
+
+        var pr = await db.ParameterResults.Include(p => p.Readings).SingleAsync(p => p.TestOrderId == order.Id);
+        Assert.Equal("All 3 containers comply", pr.ReportedDisplay);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
+        Assert.Equal(3, pr.Readings.Count);
+        foreach (var r in pr.Readings)
+        {
+            Assert.Equal(ReadingKind.Replicate, r.Kind);
+            Assert.True(r.Passed);
+            Assert.Equal($"Drum {r.Index} white powder", r.Text);
+        }
+        Assert.Equal(new[] { 1, 2, 3 }, pr.Readings.Select(r => r.Index).OrderBy(i => i).ToArray());
+
+        using var calc = JsonDocument.Parse(pr.CalculationJson!);
+        Assert.True(calc.RootElement.GetProperty("conforms").GetBoolean());
+        Assert.Equal(3, calc.RootElement.GetProperty("containerCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task PerContainer_OneFails()
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        var containers = AllConform(4);
+        containers[1] = new QualitativeContainerInput(2, false, "Lumps");
+
+        var result = await engine.RecordQualitativeResultAsync(
+            order.Id, PerContainerPayload(spec, 4, containers), user.Id);
+
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
+        var pr = await db.ParameterResults.Include(p => p.Readings).SingleAsync(p => p.TestOrderId == order.Id);
+        Assert.Equal("Container 2 of 4 does not comply", pr.ReportedDisplay);
+        Assert.Equal(ResultStatus.OutOfSpecification, pr.ComparisonStatus);
+        Assert.Equal("Lumps", pr.Readings.Single(r => r.Index == 2).Text);
+        Assert.False(pr.Readings.Single(r => r.Index == 2).Passed);
+
+        using var calc = JsonDocument.Parse(pr.CalculationJson!);
+        Assert.False(calc.RootElement.GetProperty("conforms").GetBoolean());
+        Assert.Equal(new[] { 2 }, calc.RootElement.GetProperty("failedContainers").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+    }
+
+    [Fact]
+    public async Task PerContainer_TwoFail()
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        var containers = AllConform(4);
+        containers[1] = new QualitativeContainerInput(2, false, "Lumps");
+        containers[3] = new QualitativeContainerInput(4, false, "Yellow");
+
+        await engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 4, containers), user.Id);
+
+        var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
+        Assert.Equal("Containers 2, 4 of 4 do not comply", pr.ReportedDisplay);
+        using var calc = JsonDocument.Parse(pr.CalculationJson!);
+        Assert.Equal(new[] { 2, 4 }, calc.RootElement.GetProperty("failedContainers").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+    }
+
+    private const string CountMsg = "Enter the number of containers received (1 to 200).";
+    private const string EachMsg = "Record a result for each container 1 to 3.";
+
+    [Theory]
+    [InlineData(null, "ok3", CountMsg)]
+    [InlineData(0, "ok3", CountMsg)]
+    [InlineData(201, "ok3", CountMsg)]
+    [InlineData(3, "none", EachMsg)]
+    [InlineData(3, "short", EachMsg)]
+    [InlineData(3, "duplicate", EachMsg)]
+    [InlineData(3, "outOfRange", EachMsg)]
+    [InlineData(3, "failNoText", "Describe what container 2 shows.")]
+    public async Task PerContainer_Refused_WritesNothing(int? count, string shape, string expected)
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        List<QualitativeContainerInput>? containers = shape switch
+        {
+            "none" => null,
+            "short" => AllConform(2),
+            "duplicate" => new() { new(1, true, null), new(1, true, null), new(3, true, null) },
+            "outOfRange" => new() { new(1, true, null), new(2, true, null), new(4, true, null) },
+            "failNoText" => new() { new(1, true, null), new(2, false, "  "), new(3, true, null) },
+            _ => AllConform(3)
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, count, containers), user.Id));
+        Assert.Equal(expected, ex.Message);
+        Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
+        Assert.Empty(db.ParameterResults.Where(p => p.TestOrderId == order.Id));
+    }
+
+    [Fact]
+    public async Task NotPerContainer_WithContainers_Refused()
+    {
+        using var db = NewDb();
+        var (order, spec, user, _) = SeedQualitativeTest(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 2, AllConform(2)), user.Id));
+        Assert.Equal("This test is not recorded per container.", ex.Message);
+        Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
+    }
 }

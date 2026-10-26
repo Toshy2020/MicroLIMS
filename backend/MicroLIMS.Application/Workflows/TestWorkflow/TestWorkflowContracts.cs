@@ -144,17 +144,21 @@ public record GravimetricPayload(
     string Password,
     string? Comment = null);
 
+public record QualitativeContainerInput(int Index, bool Conforms, string? Observation);
+
 public record QualitativeParameterInput(
     int SpecificationId,
     bool Conforms,
-    string? Observation);
+    string? Observation,
+    List<QualitativeContainerInput>? Containers = null);
 
 public record QualitativePayload(
     DateTime AnalysedAt,
     int? EquipmentId,
     List<QualitativeParameterInput> Parameters,
     string Password,
-    string? Comment = null);
+    string? Comment = null,
+    int? ContainerCount = null);
 
 public record DissolutionPayload(
     DateTime AnalysedAt,

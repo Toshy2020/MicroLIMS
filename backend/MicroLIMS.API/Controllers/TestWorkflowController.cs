@@ -265,9 +265,11 @@ public class TestWorkflowController : ControllerBase
                 request.Parameters.Select(p => new QualitativeParameterInput(
                     p.SpecificationId,
                     p.Conforms,
-                    p.Observation)).ToList(),
+                    p.Observation,
+                    p.Containers?.Select(c => new QualitativeContainerInput(c.Index, c.Conforms, c.Observation)).ToList())).ToList(),
                 request.Password,
-                request.Comment);
+                request.Comment,
+                request.ContainerCount);
             return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }

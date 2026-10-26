@@ -261,8 +261,35 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
 
         ArgumentNullException.ThrowIfNull(payload.Parameters);
 
+        var perContainer = definition.PerContainer;
+        var containerCount = payload.ContainerCount ?? 0;
+
+        if (!perContainer && payload.Parameters.Any(p => p.Containers is { Count: > 0 }))
+            throw new InvalidOperationException("This test is not recorded per container.");
+
+        if (perContainer && containerCount is < 1 or > 200)
+            throw new InvalidOperationException("Enter the number of containers received (1 to 200).");
+
         foreach (var param in payload.Parameters)
         {
+            if (perContainer)
+            {
+                // The conclusion is derived from the containers; the parameter-level Conforms is ignored.
+                if (param.Containers == null
+                    || !param.Containers.Select(c => c.Index).Order().SequenceEqual(Enumerable.Range(1, containerCount)))
+                    throw new InvalidOperationException($"Record a result for each container 1 to {containerCount}.");
+
+                foreach (var c in param.Containers)
+                {
+                    if (!c.Conforms && string.IsNullOrWhiteSpace(c.Observation))
+                        throw new InvalidOperationException($"Describe what container {c.Index} shows.");
+
+                    if (c.Observation != null && c.Observation.Length > 500)
+                        throw new InvalidOperationException("Observation cannot exceed 500 characters.");
+                }
+                continue;
+            }
+
             if (!param.Conforms && string.IsNullOrWhiteSpace(param.Observation))
                 throw new InvalidOperationException("An observation is required when result does not conform.");
 
@@ -279,7 +306,16 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
                 ? spec.SpecLimit
                 : SpecificationService.BuildCanonicalSpecLimit(spec);
 
-            var calcData = new QualitativeCalculationData(canonicalLimit, param.Conforms);
+            var failed = perContainer ? param.Containers!.Where(c => !c.Conforms).Select(c => c.Index).Order().ToList() : null;
+            var conforms = perContainer ? failed!.Count == 0 : param.Conforms;
+            var display = !perContainer
+                ? (conforms ? "Complies" : "Does not comply")
+                : conforms ? $"All {containerCount} containers comply"
+                : failed!.Count == 1 ? $"Container {failed[0]} of {containerCount} does not comply"
+                : $"Containers {string.Join(", ", failed)} of {containerCount} do not comply";
+
+            var calcData = new QualitativeCalculationData(
+                canonicalLimit, conforms, perContainer ? containerCount : null, failed);
             var calculationJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
             var paramResult = new ParameterResult
@@ -288,11 +324,11 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
                 SpecificationId = spec.Id,
                 ParameterName = spec.ParameterName,
                 ReportedValue = null,
-                ReportedDisplay = param.Conforms ? "Complies" : "Does not comply",
+                ReportedDisplay = display,
                 Unit = spec.Unit,
                 SpecLimit = canonicalLimit,
                 ResultBasis = null,
-                ComparisonStatus = param.Conforms ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification,
+                ComparisonStatus = conforms ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification,
                 OverRange = false,
                 BelowLoq = false,
                 CalculationJson = calculationJson,
@@ -300,13 +336,21 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
                 IsActive = true
             };
 
-            paramResult.Readings.Add(new ResultReading
+            if (perContainer)
             {
-                Kind = ReadingKind.Replicate,
-                Index = 1,
-                Text = param.Observation,
-                Passed = param.Conforms
-            });
+                foreach (var c in param.Containers!.OrderBy(c => c.Index))
+                    paramResult.Readings.Add(new ResultReading { Kind = ReadingKind.Replicate, Index = c.Index, Text = c.Observation, Passed = c.Conforms });
+            }
+            else
+            {
+                paramResult.Readings.Add(new ResultReading
+                {
+                    Kind = ReadingKind.Replicate,
+                    Index = 1,
+                    Text = param.Observation,
+                    Passed = param.Conforms
+                });
+            }
 
             parameterResults.Add(paramResult);
         }

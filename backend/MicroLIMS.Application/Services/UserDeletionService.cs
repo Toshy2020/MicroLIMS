@@ -21,11 +21,13 @@ public class UserHasHistoryException : InvalidOperationException
 public class UserDeletionService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly AdministrationContinuityGuard _continuityGuard;
     private readonly TimeProvider _time;
 
-    public UserDeletionService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
+    public UserDeletionService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null)
     {
         _time = timeProvider ?? TimeProvider.System;
+        _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
         _db = db;
     }
 
@@ -62,13 +64,14 @@ public class UserDeletionService
         if (actingUserId == targetUserId)
             throw new InvalidOperationException("You cannot permanently delete your own account.");
 
-        if (user.IsActive && user.Role?.Type == RoleType.SystemAdministrator)
+        // Counted by permission, not RoleType: a custom role holding
+        // Users.Manage / Roles.Manage is an administrator too. Deleting an
+        // inactive account changes nobody's access, so it is not checked.
+        if (user.IsActive)
         {
-            var otherActiveAdmins = await _db.Users.CountAsync(u =>
-                u.Id != targetUserId && u.IsActive && u.Role != null && u.Role.Type == RoleType.SystemAdministrator);
-
-            if (otherActiveAdmins == 0)
-                throw new InvalidOperationException("Cannot delete the last active System Administrator account. Promote another user to System Administrator first.");
+            var missingPermission = await _continuityGuard.FindMissingPermissionAfterAsync(AdministrationChange.UserDisabledOrDeleted(targetUserId));
+            if (missingPermission is not null)
+                throw new InvalidOperationException($"Cannot delete the last active System Administrator account - no other active user would hold the '{missingPermission}' permission. Promote another user to a role with that permission first.");
         }
 
         if (await UserHasAnyHistoryAsync(targetUserId))

@@ -29,11 +29,13 @@ public class RoleService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly PermissionService _permissionService;
+    private readonly AdministrationContinuityGuard _continuityGuard;
     private readonly TimeProvider _time;
 
-    public RoleService(IMicroLimsDbContext db, PermissionService permissionService, TimeProvider? timeProvider = null)
+    public RoleService(IMicroLimsDbContext db, PermissionService permissionService, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null)
     {
         _time = timeProvider ?? TimeProvider.System;
+        _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
         _db = db;
         _permissionService = permissionService;
     }
@@ -131,10 +133,21 @@ public class RoleService
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Role {id} not found.");
 
+        // Mirrors the self-role-change block in UserService.ChangeRoleAsync.
+        var actingUserRoleId = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == actingUserId)
+            .Select(u => (int?)u.RoleId)
+            .FirstOrDefaultAsync();
+        if (actingUserRoleId == id)
+            throw new InvalidOperationException("You cannot change the permissions of your own role.");
+
         var validCodes = await _db.Permissions.Select(p => p.Code).ToListAsync();
         var unknown = permissionCodes.Except(validCodes).ToList();
         if (unknown.Count > 0)
             throw new InvalidOperationException($"Unknown permission code(s): {string.Join(", ", unknown)}.");
+
+        // Checked before the first grant/revoke, which each save on their own.
+        await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes));
 
         var currentCodes = await _permissionService.GetPermissionCodesForRoleAsync(id);
         var toGrant = permissionCodes.Except(currentCodes).ToList();

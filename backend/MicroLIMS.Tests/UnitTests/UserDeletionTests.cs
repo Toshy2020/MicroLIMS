@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Seed;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -24,6 +25,7 @@ public class UserDeletionTests
             new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true }
         );
         db.SaveChanges();
+        DbSeeder.SeedPermissionsAndGrants(db);
         return db;
     }
 
@@ -278,5 +280,70 @@ public class UserDeletionTests
             Assert.True(property!.PropertyType == typeof(int) || property.PropertyType == typeof(int?),
                 $"{entry.EntityType.Name}.{entry.PropertyName} is not an int/int? property.");
         }
+    }
+
+    // ---- Administration continuity (hard delete counts by permission, not RoleType) ----
+
+    private static async Task<User> AddCustomRoleAdminAsync(MicroLimsDbContext db, int id, params string[] permissionCodes)
+    {
+        var role = new Role { Id = 10, Type = RoleType.Analyst, Name = "Operations Admin", IsSystemRole = false, IsActive = true };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        var permissionIds = await db.Permissions.Where(p => permissionCodes.Contains(p.Code)).Select(p => p.Id).ToListAsync();
+        foreach (var permissionId in permissionIds)
+            db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+        var user = new User { Id = id, FullName = "Ops Admin", Username = "opsadmin", RoleId = role.Id, IsActive = true };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user;
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_Succeeds_WhenACustomRoleHoldingBothAdministrationPermissionsRemains()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var systemAdmin = new User { Id = 1, FullName = "Admin", Username = "admin", RoleId = 1, IsActive = true };
+        db.Users.Add(systemAdmin);
+        await db.SaveChangesAsync();
+        var customAdmin = await AddCustomRoleAdminAsync(db, 2, MicroLIMS.Shared.Constants.PermissionConstants.UsersManage, MicroLIMS.Shared.Constants.PermissionConstants.RolesManage);
+
+        // The custom role is not typed SystemAdministrator - a RoleType count would call this the last administrator.
+        await service.HardDeleteAsync(systemAdmin.Id, customAdmin.Id);
+
+        Assert.Null(await db.Users.FirstOrDefaultAsync(u => u.Id == systemAdmin.Id));
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_IsRejected_WhenTheOnlyOtherUserLacksRolesManage()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var systemAdmin = new User { Id = 1, FullName = "Admin", Username = "admin", RoleId = 1, IsActive = true };
+        db.Users.Add(systemAdmin);
+        await db.SaveChangesAsync();
+        var usersOnly = await AddCustomRoleAdminAsync(db, 2, MicroLIMS.Shared.Constants.PermissionConstants.UsersManage);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(systemAdmin.Id, usersOnly.Id));
+
+        Assert.Contains("Roles.Manage", ex.Message);
+        Assert.NotNull(await db.Users.FirstOrDefaultAsync(u => u.Id == systemAdmin.Id));
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_IsRejected_WhenTheOtherAdministratorIsDisabled()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var systemAdmin = new User { Id = 1, FullName = "Admin", Username = "admin", RoleId = 1, IsActive = true };
+        var disabledAdmin = new User { Id = 2, FullName = "Disabled Admin", Username = "disabledadmin", RoleId = 1, IsActive = false };
+        var analyst = new User { Id = 3, FullName = "Analyst", Username = "analyst3", RoleId = 4, IsActive = true };
+        db.Users.AddRange(systemAdmin, disabledAdmin, analyst);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(systemAdmin.Id, analyst.Id));
+
+        Assert.Contains("last active System Administrator", ex.Message);
+        Assert.NotNull(await db.Users.FirstOrDefaultAsync(u => u.Id == systemAdmin.Id));
     }
 }

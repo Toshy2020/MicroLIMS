@@ -46,11 +46,13 @@ public class UserService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuthenticationService _authService;
     private readonly ISecurityAuditService _securityAudit;
+    private readonly AdministrationContinuityGuard _continuityGuard;
     private readonly TimeProvider _time;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null)
     {
         _time = timeProvider ?? TimeProvider.System;
+        _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
         _securityAudit = securityAudit;
         _db = db;
         _authService = authService;
@@ -174,6 +176,10 @@ public class UserService
         var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Id == newRoleId)
             ?? throw new InvalidOperationException("Selected role does not exist.");
 
+        // Self-changes are blocked above, but two administrators could still
+        // demote each other until nobody is left.
+        await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.UserRoleChanged(targetUserId, newRoleId));
+
         var prevRoleId = user.RoleId;
         var prevRoleName = user.Role?.Name ?? "Unknown";
         user.RoleId = newRoleId;
@@ -214,6 +220,9 @@ public class UserService
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        if (!isActive)
+            await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.UserDisabledOrDeleted(targetUserId));
 
         var prevStatus = user.IsActive;
         user.IsActive = isActive;

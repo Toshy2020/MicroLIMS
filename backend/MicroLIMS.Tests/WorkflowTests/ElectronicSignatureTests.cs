@@ -66,6 +66,66 @@ public class ElectronicSignatureTests
         Assert.Equal(signature.Id, stored.Id);
     }
 
+    // The type snapshot is what history was written with; the name is what
+    // the signer's role was called at the moment of signing.
+    [Fact]
+    public async Task SignAsync_SnapshotsTheRoleNameAlongsideTheRoleType()
+    {
+        await using var db = NewDb();
+        var user = await SeedUser(db);
+        var service = new ElectronicSignatureService(db);
+
+        await service.SignAsync(user.Id, CorrectPassword, SignatureMeaning.Approved, "TestOrder", 1, null, null);
+        await db.SaveChangesAsync();
+
+        var stored = await db.ElectronicSignatures.SingleAsync();
+        Assert.Equal("Reviewer", stored.RoleSnapshot);
+        Assert.Equal("Reviewer", stored.RoleNameSnapshot);
+
+        // Renaming the role afterwards leaves the signed record as it was.
+        db.Roles.Single().Name = "Quality Lead";
+        await db.SaveChangesAsync();
+        Assert.Equal("Reviewer", (await db.ElectronicSignatures.SingleAsync()).RoleNameSnapshot);
+    }
+
+    [Fact]
+    public async Task SignAsync_UsesTheCustomRoleNameNotTheBaseType()
+    {
+        await using var db = NewDb();
+        var user = await SeedUser(db, RoleType.Analyst);
+        db.Roles.Single().Name = "Senior Microbiologist";
+        await db.SaveChangesAsync();
+        var service = new ElectronicSignatureService(db);
+
+        await service.SignAsync(user.Id, CorrectPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null);
+        await db.SaveChangesAsync();
+
+        var trail = await service.GetTrailAsync("TestOrder", 1);
+        var stored = await db.ElectronicSignatures.SingleAsync();
+        Assert.Equal("Analyst", stored.RoleSnapshot);
+        Assert.Equal("Senior Microbiologist", stored.RoleNameSnapshot);
+        Assert.Equal("Senior Microbiologist", Assert.Single(trail).Role);
+    }
+
+    // Rows signed before RoleNameSnapshot existed have only the type.
+    [Fact]
+    public async Task GetTrailAsync_FallsBackToTheRoleTypeForRowsWithoutARoleName()
+    {
+        await using var db = NewDb();
+        var user = await SeedUser(db);
+        db.ElectronicSignatures.Add(new ElectronicSignature
+        {
+            UserId = user.Id, UserFullNameSnapshot = "Old Signer", UsernameSnapshot = "old",
+            RoleSnapshot = "SectionHead", RoleNameSnapshot = null,
+            MeaningOfSignature = SignatureMeaning.Approved, EntityType = "TestOrder", EntityId = 9
+        });
+        await db.SaveChangesAsync();
+
+        var trail = await new ElectronicSignatureService(db).GetTrailAsync("TestOrder", 9);
+
+        Assert.Equal("SectionHead", Assert.Single(trail).Role);
+    }
+
     [Fact]
     public async Task SignAsync_WrongPassword_DoesNotIncrementFailedLoginAttemptsOrLockAccount()
     {

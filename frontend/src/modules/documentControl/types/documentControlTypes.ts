@@ -680,6 +680,8 @@ export interface ElectronicSignatureDto {
   userFullNameSnapshot: string;
   usernameSnapshot: string;
   roleSnapshot: string;
+  // Role name at signing; absent on signatures made before it was captured.
+  roleNameSnapshot?: string | null;
   meaningOfSignature: string;
   entityType: string;
   entityId: number;

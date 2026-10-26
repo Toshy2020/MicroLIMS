@@ -253,6 +253,92 @@ public class RoleManagementTests
         }
     }
 
+    // ---- PermissionVersion ----
+    // Every access token carries the version of the role's grants it was
+    // issued from; a change in grants must therefore move the version.
+
+    private static async Task<int> PermissionVersionOf(MicroLimsDbContext db, int roleId) =>
+        (await db.Roles.AsNoTracking().SingleAsync(r => r.Id == roleId)).PermissionVersion;
+
+    [Fact]
+    public async Task NewRole_StartsAtPermissionVersionOne()
+    {
+        var db = CreateDbContext();
+        var created = await CreateService(db).CreateAsync("QC Trainee", null, RoleType.Analyst);
+
+        Assert.Equal(1, await PermissionVersionOf(db, created.Id));
+        Assert.Equal(1, await PermissionVersionOf(db, 4));
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_IncrementsThePermissionVersionOnce_WhateverTheNumberOfChanges()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db, roleId: 3);
+        var analyst = await service.GetByIdAsync(4);
+        // Revokes one code and grants another in a single call.
+        var desired = analyst!.PermissionCodes.Skip(1).Append(PermissionConstants.RolesManage).ToList();
+
+        await service.UpdatePermissionsAsync(4, desired, actor.Id);
+
+        Assert.Equal(2, await PermissionVersionOf(db, 4));
+        Assert.Equal(1, await PermissionVersionOf(db, 3)); // other roles untouched
+        Assert.Equal(1, await PermissionVersionOf(db, 1));
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_IncrementsOnEachChangingCall()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db, roleId: 3);
+        var analyst = await service.GetByIdAsync(4);
+
+        await service.UpdatePermissionsAsync(4, analyst!.PermissionCodes.Skip(1).ToList(), actor.Id);
+        await service.UpdatePermissionsAsync(4, analyst.PermissionCodes, actor.Id);
+
+        Assert.Equal(3, await PermissionVersionOf(db, 4));
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_LeavesThePermissionVersionAlone_WhenNothingChanges()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db, roleId: 3);
+        var analyst = await service.GetByIdAsync(4);
+
+        await service.UpdatePermissionsAsync(4, analyst!.PermissionCodes.ToList(), actor.Id);
+
+        Assert.Equal(1, await PermissionVersionOf(db, 4));
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_DoesNotIncrement_WhenTheChangeIsRefused()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var actor = await AddActingUserAsync(db, roleId: 3);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdatePermissionsAsync(4, new List<string> { "No.Such.Code" }, actor.Id));
+
+        Assert.Equal(1, await PermissionVersionOf(db, 1));
+        Assert.Equal(1, await PermissionVersionOf(db, 4));
+    }
+
+    [Fact]
+    public async Task RenamingARole_DoesNotChangeThePermissionVersion()
+    {
+        var db = CreateDbContext();
+        await CreateService(db).UpdateAsync(4, "Lab Technician", null);
+
+        Assert.Equal(1, await PermissionVersionOf(db, 4));
+    }
+
     // ---- Administration continuity ----
     // CreateDbContext seeds one active administrator (user 1, role 1), the
     // only user whose role holds Users.Manage and Roles.Manage.

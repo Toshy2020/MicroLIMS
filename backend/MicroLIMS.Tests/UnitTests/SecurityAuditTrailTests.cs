@@ -63,7 +63,7 @@ public class SecurityAuditTrailTests
     private static (UserService UserService, AuthenticationService AuthService) CreateServices(MicroLimsDbContext db)
     {
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, codes) => $"jwt-for-{id}";
+        AccessTokenIssuer tokenIssuer = subject => $"jwt-for-{subject.UserId}";
         var securityAudit = new SecurityAuditService(db, new StubRequestContext());
         var authService = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender,
@@ -454,7 +454,7 @@ public class SecurityAuditTrailTests
         using var db = CreateDbContext();
         SeedUser(db);
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, codes) => "jwt";
+        AccessTokenIssuer tokenIssuer = _ => "jwt";
         var auth = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender,
             NullLogger<AuthenticationService>.Instance,

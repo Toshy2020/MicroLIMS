@@ -336,10 +336,10 @@ public static class ServiceCollectionExtensions
 
         // AuthenticationService needs a token-issuing delegate - wire it
         // from IJwtTokenService so Application does not reference Infrastructure directly.
-        services.AddScoped<Func<string, string, IEnumerable<string>, string>>(sp =>
+        services.AddScoped<AccessTokenIssuer>(sp =>
         {
             var jwt = sp.GetRequiredService<IJwtTokenService>();
-            return (userId, role, permissionCodes) => jwt.IssueToken(userId, role, permissionCodes);
+            return subject => jwt.IssueToken(subject.UserId, subject.Role, subject.PermissionCodes, subject.RoleId, subject.PermissionVersion);
         });
 
         return services;

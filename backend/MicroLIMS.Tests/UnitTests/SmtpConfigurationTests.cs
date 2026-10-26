@@ -357,7 +357,7 @@ public class SmtpConfigurationTests
 
     private static AuthenticationService CreateAuthService(MicroLimsDbContext db, IEmailSender emailSender)
     {
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, permissionCodes) => "fake-jwt";
+        AccessTokenIssuer tokenIssuer = _ => "fake-jwt";
         var securityAudit = new SecurityAuditService(db, new SystemSecurityRequestContext());
         return new AuthenticationService(
             db,

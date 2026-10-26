@@ -291,6 +291,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         // IsActive = false is saved as false rather than replaced by the
         // column default.
         modelBuilder.Entity<Department>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+
+        // Existing roles start at revision 1; the application increments it.
+        modelBuilder.Entity<Role>().Property(e => e.PermissionVersion).HasDefaultValue(1).ValueGeneratedNever();
         modelBuilder.Entity<Room>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
 
         // An LAF's parent Room. Restrict: a Room with LAFs cannot be removed

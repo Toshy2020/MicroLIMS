@@ -45,7 +45,7 @@ public class MediaSummaryService
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == ReviewEntityTypes.Media && s.EntityId == mediaId)
             .OrderBy(s => s.SignedAt)
-            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
+            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleNameSnapshot ?? s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
             .ToListAsync();
 
         // One batched name lookup for every user referenced here.

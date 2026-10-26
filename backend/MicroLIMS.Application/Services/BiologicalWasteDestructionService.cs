@@ -240,7 +240,7 @@ public class BiologicalWasteDestructionService
             d.ProgramCodeSnapshot, d.ProgramNameSnapshot, d.LoadTypeSnapshot, d.TemperatureSnapshot, d.CycleTimeMinutesSnapshot,
             d.CycleNumber, d.CycleStartedAt, d.Notes,
             names.TryGetValue(d.RecordedByUserId, out var n) ? n : "Unknown", d.RecordedAt,
-            d.Signature?.UserFullNameSnapshot ?? string.Empty, d.Signature?.RoleSnapshot ?? string.Empty, d.Signature?.SignedAt ?? d.RecordedAt,
+            d.Signature?.UserFullNameSnapshot ?? string.Empty, d.Signature?.RoleNameSnapshot ?? d.Signature?.RoleSnapshot ?? string.Empty, d.Signature?.SignedAt ?? d.RecordedAt,
             d.Items.Count(i => i.ItemType != BiologicalWasteItemType.Other),
             d.Items.Count(i => i.ItemType == BiologicalWasteItemType.Other),
             d.Items.OrderBy(i => i.ItemType).ThenBy(i => i.Id).Select(i => new BiologicalWasteItemDto(

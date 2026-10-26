@@ -38,7 +38,7 @@ public class AuthenticationController : ControllerBase
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         var outcome = await _authService.LoginAsync(request.Username, request.Password, ip);
         if (!outcome.Success) return Unauthorized(ApiResponse<object>.Fail(outcome.FailureReason ?? "Login failed."));
-        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, mustChangePassword = outcome.MustChangePassword }));
+        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, mustChangePassword = outcome.MustChangePassword, roleName = outcome.RoleName }));
     }
 
     [HttpPost("refresh")]
@@ -48,7 +48,7 @@ public class AuthenticationController : ControllerBase
     {
         var outcome = await _authService.RefreshAsync(request.RefreshToken);
         if (!outcome.Success) return Unauthorized(ApiResponse<object>.Fail(outcome.FailureReason ?? "Refresh failed."));
-        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken }));
+        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, roleName = outcome.RoleName }));
     }
 
     [HttpPost("password-reset/request")]
@@ -129,6 +129,7 @@ public class AuthenticationController : ControllerBase
             username = info.Username,
             fullName = info.FullName,
             role = info.Role,
+            roleName = info.RoleName,
             jobTitle = info.JobTitle,
             lastLoginAt = info.LastLoginAt,
             passwordChangedAt = info.PasswordChangedAt,

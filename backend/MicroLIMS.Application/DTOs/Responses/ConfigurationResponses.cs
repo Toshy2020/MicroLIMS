@@ -174,6 +174,8 @@ public class TestDefinitionResponse
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
     public PhyschemArea? PhyschemArea { get; init; }
+    public bool PerContainer { get; init; }
+    public MoistureRole MoistureRole { get; init; }
     public WorkflowType WorkflowType { get; init; }
     public bool IsActive { get; init; }
     public EquationType EquationType { get; init; }
@@ -236,6 +238,8 @@ public class TestDefinitionResponse
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
         PhyschemArea = e.PhyschemArea,
+        PerContainer = e.PerContainer,
+        MoistureRole = e.MoistureRole,
         WorkflowType = e.WorkflowType,
         IsActive = e.IsActive,
         EquationType = e.EquationType,

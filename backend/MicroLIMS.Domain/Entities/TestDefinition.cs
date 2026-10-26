@@ -30,6 +30,12 @@ public class TestDefinition : IVersionedEntity
     public PhyschemArea? PhyschemArea { get; set; }
 
     public WorkflowType WorkflowType { get; set; } = WorkflowType.Observation;
+
+    // Qualitative tests only: one result per sample container instead of one per sample.
+    public bool PerContainer { get; set; }
+
+    // Which moisture measurement this test supplies (RM dried/anhydrous basis assays look it up).
+    public MoistureRole MoistureRole { get; set; } = MoistureRole.None;
     public List<TestWorkflowStep> Steps { get; set; } = new();
 
     // Frozen tests are hidden from TestCodePicker/TestCodePickerMulti's

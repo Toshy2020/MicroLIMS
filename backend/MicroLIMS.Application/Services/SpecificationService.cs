@@ -407,6 +407,26 @@ public class SpecificationService
                 or ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
                 throw new InvalidOperationException("Result basis is required for titration specifications: % as is, % dried basis, % anhydrous basis, % of label claim or mg per unit.");
 
+            // A dried/anhydrous basis needs the item to carry the moisture test it corrects with
+            // (assigned test is enough; its spec row may be added later).
+            var neededRole = spec.ResultBasis switch
+            {
+                ResultBasis.PercentDriedBasis => MoistureRole.LossOnDrying,
+                ResultBasis.PercentAnhydrousBasis => MoistureRole.Water,
+                _ => MoistureRole.None
+            };
+            if (neededRole != MoistureRole.None)
+            {
+                var hasMoistureTest = await _db.SampleTests.AnyAsync(
+                    st => st.ItemId == spec.ItemId
+                          && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.MoistureRole == neededRole),
+                    cancellationToken);
+                if (!hasMoistureTest)
+                    throw new InvalidOperationException(neededRole == MoistureRole.LossOnDrying
+                        ? "Assign a loss on drying test to this item before using a dried basis."
+                        : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+            }
+
             bool needsClaim = spec.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit;
             if (needsClaim && (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0))
                 throw new InvalidOperationException("Label claim (mg per unit) must be greater than zero when the result basis is % of label claim or mg per unit.");

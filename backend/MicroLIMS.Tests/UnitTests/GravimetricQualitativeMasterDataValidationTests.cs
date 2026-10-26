@@ -227,4 +227,105 @@ public class GravimetricQualitativeMasterDataValidationTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains($"{wf} tests have no workflow steps", ex.Message);
     }
+
+    [Fact]
+    public async Task PerContainer_OnlyAllowedForQualitative()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "GRAV-PC",
+            DisplayName: "Per container gravimetric",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Gravimetric,
+            EquationType: EquationType.GravimetricLoss,
+            ReplicateCount: 1,
+            PerContainer: true);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        Assert.Contains("Per-container results are only available for qualitative tests.", ex.Message);
+    }
+
+    [Fact]
+    public async Task PerContainer_QualitativeSavesAndKeepsOnUpdate()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "QUAL-PC",
+            DisplayName: "Identification",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Qualitative,
+            EquationType: EquationType.Qualitative,
+            PerContainer: true,
+            PhyschemArea: PhyschemArea.Both);
+
+        var ok = Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(req));
+        var created = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(ok.Value).Data);
+        Assert.True(created.PerContainer);
+        Assert.Equal(MoistureRole.None, created.MoistureRole);
+
+        // null on update = keep
+        var okUpd = Assert.IsType<OkObjectResult>(await controller.TestDefinition.UpdateTestDefinition(created.Id, new UpdateTestDefinitionRequest("QUAL-PC", "Identification 2")));
+        var updated = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(okUpd.Value).Data);
+        Assert.True(updated.PerContainer);
+    }
+
+    [Fact]
+    public async Task LossOnDryingRole_RequiresGravimetric()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "TIT-LOD",
+            DisplayName: "Titration as LOD",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Titration,
+            MoistureRole: MoistureRole.LossOnDrying);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        Assert.Contains("Loss on drying role needs a gravimetric test.", ex.Message);
+    }
+
+    [Fact]
+    public async Task WaterRole_RequiresKarlFischerTitration()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "TIT-WATER",
+            DisplayName: "Non-KF titration as water",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Titration,
+            TitrationType: TitrationType.AcidBase,
+            MoistureRole: MoistureRole.Water);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        Assert.Contains("Water role needs a Karl Fischer titration test.", ex.Message);
+    }
+
+    [Fact]
+    public async Task LossOnDryingRole_GravimetricSaves()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "GRAV-LOD-ROLE",
+            DisplayName: "Loss on drying",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Gravimetric,
+            EquationType: EquationType.GravimetricLoss,
+            ReplicateCount: 1,
+            MoistureRole: MoistureRole.LossOnDrying,
+            PhyschemArea: PhyschemArea.Both);
+
+        var ok = Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(req));
+        var created = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(ok.Value).Data);
+        Assert.Equal(MoistureRole.LossOnDrying, created.MoistureRole);
+    }
 }

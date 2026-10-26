@@ -10009,6 +10009,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("MoistureRole")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("PerContainer")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("PhyschemArea")
                         .HasColumnType("integer");
 

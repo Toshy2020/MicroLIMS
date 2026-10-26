@@ -306,12 +306,16 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
 
+        ValidatePerContainerAndMoistureRole(request.WorkflowType, request.TitrationType, request.PerContainer ?? false, request.MoistureRole ?? MoistureRole.None);
+
         var entity = new TestDefinition
         {
             Code = request.Code,
             DisplayName = request.DisplayName,
             SectionId = sectionId,
             WorkflowType = request.WorkflowType,
+            PerContainer = request.PerContainer ?? false,
+            MoistureRole = request.MoistureRole ?? MoistureRole.None,
             EquationType = request.EquationType,
             RequiresSystemSuitability = request.RequiresSystemSuitability,
             MethodAbbreviation = methodAbbr,
@@ -730,6 +734,8 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = 40;
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
+        if (request.PerContainer.HasValue) entity.PerContainer = request.PerContainer.Value;
+        if (request.MoistureRole.HasValue) entity.MoistureRole = request.MoistureRole.Value;
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
         if (request.IcpMethodId.HasValue) entity.IcpMethodId = request.IcpMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
@@ -747,6 +753,7 @@ public class TestDefinitionMasterDataService
         if (request.TitrationTempCorrection.HasValue) entity.TitrationTempCorrection = request.TitrationTempCorrection;
         if (request.TitrationExpansionCoefficient.HasValue) entity.TitrationExpansionCoefficient = request.TitrationExpansionCoefficient;
         if (request.TitrationStandardEntryId.HasValue) entity.TitrationStandardEntryId = request.TitrationStandardEntryId;
+        ValidatePerContainerAndMoistureRole(entity.WorkflowType, entity.TitrationType, entity.PerContainer, entity.MoistureRole);
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
 
         (string? Before, string After, string Reason)? titrationAudit = null;
@@ -773,6 +780,16 @@ public class TestDefinitionMasterDataService
         }
 
         return TestDefinitionResponse.From(entity);
+    }
+
+    private static void ValidatePerContainerAndMoistureRole(WorkflowType workflowType, TitrationType? titrationType, bool perContainer, MoistureRole role)
+    {
+        if (perContainer && workflowType != WorkflowType.Qualitative)
+            throw new InvalidOperationException("Per-container results are only available for qualitative tests.");
+        if (role == MoistureRole.LossOnDrying && workflowType != WorkflowType.Gravimetric)
+            throw new InvalidOperationException("Loss on drying role needs a gravimetric test.");
+        if (role == MoistureRole.Water && !(workflowType == WorkflowType.Titration && titrationType == TitrationType.KarlFischer))
+            throw new InvalidOperationException("Water role needs a Karl Fischer titration test.");
     }
 
     // Physicochemical-section tests must carry an area; other sections never do.

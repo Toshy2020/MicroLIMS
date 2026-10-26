@@ -688,6 +688,10 @@ public class TitrationRecorderTests
         // Label claim bases exist only for dosage units: a raw material may use % bases only.
         item.Category = SampleCategory.RawMaterial;
         await db.SaveChangesAsync();
+        // A dried basis needs the item to carry a loss on drying test.
+        db.TestDefinitions.Add(new TestDefinition { Code = "LOD-RM", DisplayName = "LOD", WorkflowType = WorkflowType.Gravimetric, MoistureRole = MoistureRole.LossOnDrying, IsActive = true });
+        db.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = "LOD-RM" });
+        await db.SaveChangesAsync();
         await Run(NewSpec(sp => sp.ResultBasis = ResultBasis.PercentDriedBasis));
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => { sp.ResultBasis = ResultBasis.MgPerUnit; sp.LabelClaim = 500m; sp.LabelClaimUnit = "mg"; })));
         Assert.Contains("Finished Product", ex.Message);

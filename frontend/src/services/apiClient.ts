@@ -65,6 +65,7 @@ const AUTH_STORAGE_KEYS = [
   "microlims_refresh_token",
   "microlims_username",
   "microlims_role",
+  "microlims_role_name",
   "microlims_permissions",
   "microlims_full_name",
   "microlims_user_id",
@@ -88,7 +89,7 @@ function refreshAccessToken(): Promise<string | null> {
     refreshPromise = axios
       .post(`${baseURL}/auth/refresh`, { refreshToken: storedRefreshToken })
       .then((res) => {
-        const { token, refreshToken } = res.data.data as { token: string; refreshToken: string };
+        const { token, refreshToken, roleName } = res.data.data as { token: string; refreshToken: string; roleName?: string | null };
         localStorage.setItem("microlims_token", token);
         localStorage.setItem("microlims_refresh_token", refreshToken);
         // The new token carries the user's current role and permissions -
@@ -97,6 +98,9 @@ function refreshAccessToken(): Promise<string | null> {
         const { role, permissions } = readTokenClaims(token);
         if (role) localStorage.setItem("microlims_role", role);
         localStorage.setItem("microlims_permissions", JSON.stringify(permissions));
+        // Renaming a role does not invalidate tokens, so this is how an open
+        // session learns the new name: on its next refresh.
+        if (roleName) localStorage.setItem("microlims_role_name", roleName);
         window.dispatchEvent(new Event(TOKEN_REFRESHED_EVENT));
         return token;
       })

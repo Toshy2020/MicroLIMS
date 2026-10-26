@@ -60,7 +60,7 @@ public class AuditSearchAndTraceabilityTests
         Assert.Single(results);
         var entry = results[0];
         Assert.Equal("Ahmed Hassan", entry.UserName);
-        Assert.Equal("Microbiology Analyst", entry.UserRole);
+        Assert.Equal("Microbiology Analyst", entry.UserCurrentRole);
         Assert.Equal("ahmed.hassan", entry.UserUsername);
         Assert.Equal(5, entry.UserId);
         Assert.Equal("FP0107026", entry.SampleReferenceNumber);
@@ -88,7 +88,7 @@ public class AuditSearchAndTraceabilityTests
 
         Assert.Single(history);
         Assert.Equal("Ahmed Hassan", history[0].UserName);
-        Assert.Equal("Microbiology Analyst", history[0].UserRole);
+        Assert.Equal("Microbiology Analyst", history[0].UserCurrentRole);
         Assert.Equal(5, history[0].UserId);
     }
 

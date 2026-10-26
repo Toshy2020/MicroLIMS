@@ -119,7 +119,7 @@ export function AuditEventDrawer({
               {event.userName}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
-              {event.userRole ?? "User"}
+              {event.userCurrentRole ? `Current role: ${event.userCurrentRole}` : "User"}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5, fontFamily: "monospace" }}>
               User ID: #{event.userId} {event.userUsername ? `(${event.userUsername})` : ""}

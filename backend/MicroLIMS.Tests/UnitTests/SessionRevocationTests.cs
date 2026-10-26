@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -45,7 +46,7 @@ public class SessionRevocationTests
     private static (UserService UserService, AuthenticationService AuthService) CreateServices(MicroLimsDbContext db)
     {
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, codes) => $"jwt-for-{id}";
+        AccessTokenIssuer tokenIssuer = subject => $"jwt-for-{subject.UserId}";
         var securityAudit = new SecurityAuditService(db, new SystemSecurityRequestContext());
         var authService = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender, NullLogger<AuthenticationService>.Instance, securityAudit);

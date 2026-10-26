@@ -52,14 +52,14 @@ public class AuthenticationService : IAuthenticationService
         new(() => BCrypt.Net.BCrypt.HashPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))));
 
     private readonly IMicroLimsDbContext _db;
-    private readonly Func<string, string, IEnumerable<string>, string> _tokenIssuer; // (userId, role, permissionCodes) -> JWT
+    private readonly AccessTokenIssuer _tokenIssuer;
     private readonly PermissionService _permissionService;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly ISecurityAuditService _securityAudit;
     private readonly TimeProvider _time;
 
-    public AuthenticationService(IMicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
+    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
@@ -139,8 +139,7 @@ public class AuthenticationService : IAuthenticationService
         await _db.SaveChangesAsync();
         await RecordLoginAsync(user.Id, username, true, null, ipAddress);
 
-        var permissionCodes = user.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(user.Role.Id) : new List<string>();
-        var token = _tokenIssuer(user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst", permissionCodes);
+        var token = await IssueAccessTokenAsync(user);
 
         // Self-service: the actor and the target are the same person.
         _securityAudit.Record(new SecurityEventRequest(
@@ -152,7 +151,7 @@ public class AuthenticationService : IAuthenticationService
 
         var refreshToken = await IssueRefreshTokenAsync(user.Id);
 
-        return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword);
+        return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword, user.Role?.Name);
     }
 
     public Task<LoginOutcome> RefreshAsync(string refreshToken) =>
@@ -204,9 +203,20 @@ public class AuthenticationService : IAuthenticationService
         var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId);
         await _db.SaveChangesAsync();
 
-        var permissionCodes = stored.User?.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(stored.User.Role.Id) : new List<string>();
-        var token = _tokenIssuer(stored.UserId.ToString(), stored.User?.Role?.Type.ToString() ?? "Analyst", permissionCodes);
-        return new LoginOutcome(true, token, newRefreshToken, null, stored.User?.MustChangePassword ?? false);
+        var token = await IssueAccessTokenAsync(user);
+        return new LoginOutcome(true, token, newRefreshToken, null, user.MustChangePassword, user.Role?.Name);
+    }
+
+    // The role's CURRENT permission set and PermissionVersion are read in the
+    // same call, so the token's pv claim describes the codes it carries.
+    // Login and refresh both go through here; AccessTokenRevalidator holds
+    // every later request to the pv this stamps.
+    private async Task<string> IssueAccessTokenAsync(User user)
+    {
+        var permissionCodes = user.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(user.Role.Id) : new List<string>();
+        return _tokenIssuer(new AccessTokenSubject(
+            user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst",
+            user.RoleId, user.Role?.PermissionVersion ?? 0, permissionCodes));
     }
 
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
@@ -291,7 +301,7 @@ public class AuthenticationService : IAuthenticationService
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return null;
         return new CurrentUserInfo(user.Id, user.Username, user.FullName, user.Role?.Type.ToString() ?? "Analyst",
-            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword);
+            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword, user.Role?.Name ?? string.Empty);
     }
 
     // Shared by ChangePasswordAsync and ConfirmPasswordResetAsync: enforces

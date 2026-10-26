@@ -107,7 +107,7 @@ export function AuditResultsTable({
                       {item.userName}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
-                      {item.userRole ?? "User"}
+                      {item.userCurrentRole ? `Current role: ${item.userCurrentRole}` : "User"}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary", fontFamily: "monospace" }}>
                       ID: #{item.userId}

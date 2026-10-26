@@ -44,6 +44,9 @@ public record AuditLogDto(
 
 public class AuditSearchService
 {
+    // Upper bound on client-supplied Take: an unbounded value can pull the whole immutable audit table into memory.
+    public const int MaxTake = 1000;
+
     private readonly IMicroLimsDbContext _db;
 
     public AuditSearchService(IMicroLimsDbContext db)
@@ -69,7 +72,7 @@ public class AuditSearchService
         if (!string.IsNullOrWhiteSpace(r.EntityName)) query = query.Where(a => a.EntityName == r.EntityName);
         if (!string.IsNullOrWhiteSpace(r.Action)) query = query.Where(a => a.Action == r.Action);
 
-        var logs = await query.OrderByDescending(a => a.Timestamp).Take(r.Take).ToListAsync();
+        var logs = await query.OrderByDescending(a => a.Timestamp).Take(Math.Clamp(r.Take, 1, MaxTake)).ToListAsync();
         return await ToDtosAsync(logs);
     }
 
@@ -88,7 +91,7 @@ public class AuditSearchService
     {
         var query = _db.LoginHistories.AsQueryable();
         if (!string.IsNullOrWhiteSpace(username)) query = query.Where(l => l.Username == username);
-        return (await query.OrderByDescending(l => l.Timestamp).Take(take).ToListAsync()).Select(LoginHistoryResponse.From).ToList();
+        return (await query.OrderByDescending(l => l.Timestamp).Take(Math.Clamp(take, 1, MaxTake)).ToListAsync()).Select(LoginHistoryResponse.From).ToList();
     }
 
     private async Task<List<AuditLogDto>> ToDtosAsync(List<AuditLog> logs)

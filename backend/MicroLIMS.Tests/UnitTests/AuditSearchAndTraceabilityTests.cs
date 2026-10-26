@@ -199,4 +199,59 @@ public class AuditSearchAndTraceabilityTests
         Assert.Equal("ATC-003", trace.RootIdentifier);
         Assert.Contains(trace.Nodes, n => n.NodeType == "Equipment" && n.Identifier == "ATC-003");
     }
+
+    [Fact]
+    public async Task AuditSearch_HugeTake_IsClampedToMaxTake()
+    {
+        await using var db = NewDb();
+        var searchService = new AuditSearchService(db);
+
+        for (var i = 0; i < AuditSearchService.MaxTake + 5; i++)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "Sample",
+                EntityId = i.ToString(),
+                Action = "Create",
+                UserId = 5,
+                Timestamp = DateTime.UtcNow.AddSeconds(-i)
+            });
+        }
+        await db.SaveChangesAsync();
+
+        var results = await searchService.SearchAsync(new AuditSearchRequest(
+            null, null, null, null, null, null, null, null, null, null, null, null, null, Take: 1_000_000));
+
+        Assert.Equal(AuditSearchService.MaxTake, results.Count);
+    }
+
+    [Fact]
+    public async Task AuditSearch_ZeroTake_IsClampedToOneRow()
+    {
+        await using var db = NewDb();
+        var searchService = new AuditSearchService(db);
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Sample",
+            EntityId = "1",
+            Action = "Create",
+            UserId = 5,
+            Timestamp = DateTime.UtcNow
+        });
+        db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Sample",
+            EntityId = "2",
+            Action = "Create",
+            UserId = 5,
+            Timestamp = DateTime.UtcNow.AddSeconds(-1)
+        });
+        await db.SaveChangesAsync();
+
+        var results = await searchService.SearchAsync(new AuditSearchRequest(
+            null, null, null, null, null, null, null, null, null, null, null, null, null, Take: 0));
+
+        Assert.Single(results);
+    }
 }

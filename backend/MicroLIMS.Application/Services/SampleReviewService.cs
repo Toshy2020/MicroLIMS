@@ -273,7 +273,7 @@ public class SampleReviewService
         var candidates = await _db.TestAnalyses
             .Where(a => a.IsActive && a.AnalysisType == WorkflowType.Titration && a.TestOrderId != moistureOrder.Id
                 && a.TestOrder!.SampleId == moistureOrder.SampleId && !a.TestOrder.IsSuperseded
-                && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Voided)
+                && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Cancelled && a.TestOrder.Status != ApprovalStatus.Voided)
             .Select(a => new { a.TestOrder, a.ConditionsJson })
             .ToListAsync();
         return candidates

@@ -106,6 +106,12 @@ describe("TitrationChangeReasonField", () => {
       expect(hasTitrationSettingsChanged(baseTest, changedForm, "Titration")).toBe(true);
     });
 
+    it("returns true when moistureRole changes on a non-titration (loss on drying) test", () => {
+      const lodTest: TestDefinitionOption = { ...baseTest, workflowType: "Gravimetric", moistureRole: "None" };
+      expect(hasTitrationSettingsChanged(lodTest, baseForm, "Gravimetric", null, "LossOnDrying")).toBe(true);
+      expect(hasTitrationSettingsChanged(lodTest, baseForm, "Gravimetric", null, "None")).toBe(false);
+    });
+
     it("returns true when moistureRole changes on Titration test", () => {
       expect(hasTitrationSettingsChanged(baseTest, baseForm, "Titration", null, "Water")).toBe(true);
       const kfTest: TestDefinitionOption = {

@@ -31,7 +31,8 @@ export function hasTitrationSettingsChanged(
   const wasTitration = initialTest.workflowType === "Titration";
   const isTitration = currentWorkflowType === "Titration";
 
-  if (!wasTitration && !isTitration) return false;
+  // Not a titration either way: only the moisture role (e.g. a loss on drying test) needs a reason.
+  if (!wasTitration && !isTitration) return (initialTest.moistureRole ?? "None") !== (currentMoistureRole ?? "None");
   if (wasTitration !== isTitration) return true;
 
   // Both were/are Titration: compare the normalized payload fields and replicate count

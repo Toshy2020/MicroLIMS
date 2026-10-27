@@ -384,6 +384,7 @@ public class TestDefinitionMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
         var titrationBefore = entity.WorkflowType == WorkflowType.Titration
             ? JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options) : null;
+        var moistureRoleBefore = entity.MoistureRole;
 
         if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
             throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
@@ -769,6 +770,17 @@ public class TestDefinitionMasterDataService
             }
         }
 
+        // A moisture role change on any other workflow (e.g. loss on drying) moves every dried-basis assay of the
+        // item, so it needs the same reason and an audit row.
+        (string Reason, MoistureRole Before)? roleAudit = null;
+        if (titrationAudit is null && entity.MoistureRole != moistureRoleBefore)
+        {
+            var reason = request.ChangeReason?.Trim();
+            if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
+                throw new InvalidOperationException("A reason for change is required when the moisture role changes.");
+            roleAudit = (reason, moistureRoleBefore);
+        }
+
         await _db.SaveChangesAsync();
 
         if (titrationAudit is { } a)
@@ -777,6 +789,14 @@ public class TestDefinitionMasterDataService
             await _audit.RecordUserEventAsync("TestDefinition.TitrationChanged", AuditActionCategory.Configuration,
                 "TestDefinition", entityId: entity.Id.ToString(),
                 changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: a.Reason);
+        }
+
+        if (roleAudit is { } r)
+        {
+            _db.CurrentUserId = currentUserId;
+            await _audit.RecordUserEventAsync("TestDefinition.MoistureRoleChanged", AuditActionCategory.Configuration,
+                "TestDefinition", entityId: entity.Id.ToString(),
+                changes: new[] { new AuditFieldChange("MoistureRole", r.Before.ToString(), entity.MoistureRole.ToString()) }, reason: r.Reason);
         }
 
         return TestDefinitionResponse.From(entity);

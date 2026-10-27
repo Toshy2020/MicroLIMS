@@ -40,7 +40,6 @@ public sealed class TitrationRecorder : TestWorkflowSupport
     public static List<string> WarningsOf(TitrantPreparationOption main, TitrantPreparationOption? excess) =>
         new[] { main.Warning, excess?.Warning }.Where(w => w != null).Select(w => w!).ToList();
 
-    private static readonly ResultBasis[] NeedLoss = { ResultBasis.PercentDriedBasis, ResultBasis.PercentAnhydrousBasis };
     private static readonly ResultBasis[] NeedUnitWeight = { ResultBasis.PercentLabelClaim, ResultBasis.MgPerUnit };
 
     public TitrationRecorder(TestWorkflowDependencies deps) : base(deps) { }
@@ -93,15 +92,15 @@ public sealed class TitrationRecorder : TestWorkflowSupport
                 or ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
                 throw new InvalidOperationException($"Specification '{s.ParameterName}' has no valid titration result basis.");
         }
-        bool needLoss = specs.Any(s => NeedLoss.Contains(s.ResultBasis!.Value));
+        var moistureRole = SampleMoistureResolver.NeededRole(specs.Select(s => s.ResultBasis));
         bool needUnitWt = specs.Any(s => NeedUnitWeight.Contains(s.ResultBasis!.Value));
-        if (needLoss)
-        {
-            if (!p.LossOnDryingPercent.HasValue || p.LossOnDryingPercent < 0m || p.LossOnDryingPercent >= 100m)
-                throw new InvalidOperationException("Loss on drying / water % (0 to below 100) is required for a dried or anhydrous basis.");
-        }
-        else if (p.LossOnDryingPercent.HasValue)
-            throw new InvalidOperationException("Loss on drying / water % is only used with a dried or anhydrous basis.");
+        // Moisture comes from the sample's own LOD / Karl Fischer result, never from the client.
+        if (p.LossOnDryingPercent.HasValue)
+            throw new InvalidOperationException("The loss on drying / water value is read from the sample's own result.");
+        SampleMoisture? moisture = null;
+        if (moistureRole != MoistureRole.None)
+            moisture = await new SampleMoistureResolver(_db).ResolveAsync(order.SampleId, moistureRole)
+                ?? throw new InvalidOperationException(SampleMoistureResolver.MissingMessage(moistureRole));
         if (needUnitWt)
         {
             if (!p.AverageUnitWeightMg.HasValue || p.AverageUnitWeightMg <= 0m)
@@ -254,7 +253,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
                 try
                 {
                     values.Add(TitrationEngine.ApplyBasis(mgs[i], p.Replicates[i].SampleWeightMg, spec.ResultBasis.Value,
-                        p.LossOnDryingPercent, p.AverageUnitWeightMg, labelClaim));
+                        moisture?.Percent, p.AverageUnitWeightMg, labelClaim));
                 }
                 catch (InvalidOperationException ex) { throw new InvalidOperationException($"{spec.ParameterName}: {ex.Message}"); }
             }
@@ -330,7 +329,11 @@ public sealed class TitrationRecorder : TestWorkflowSupport
             {
                 standardizationTemperatureC = tStd, titrationTemperatureC = p.TitrationTemperatureC, coefficient,
             } : null,
-            lossOnDryingPercent = p.LossOnDryingPercent,
+            moisture = moisture == null ? null : new
+            {
+                role = moisture.Role, percent = moisture.Percent, testOrderId = moisture.TestOrderId,
+                parameterResultId = moisture.ParameterResultId, testCode = moisture.TestCode,
+            },
             averageUnitWeightMg = p.AverageUnitWeightMg,
             standard = deductLot == null ? null : new
             {

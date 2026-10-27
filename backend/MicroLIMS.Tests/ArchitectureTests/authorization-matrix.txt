@@ -538,6 +538,7 @@ TestWorkflowController.GetActionableGroups(String, String, String, CancellationT
 TestWorkflowController.GetCurrentStep(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetEligibleIncubators(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetLocations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+TestWorkflowController.GetMoisture(Int32, SampleMoistureResolver, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetPermittedConfirmatoryMedia(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetSiblingPathogenOrders(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestWorkflowController.GetTitrationContext(Int32, TitrationContextService, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst

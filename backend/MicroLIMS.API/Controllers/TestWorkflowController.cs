@@ -234,6 +234,14 @@ public class TestWorkflowController : ControllerBase
     public async Task<IActionResult> GetTitrationContext(int testOrderId, [FromServices] TitrationContextService context, CancellationToken ct) =>
         await RunAsync(() => context.GetContextAsync(testOrderId, CurrentUserId, ct));
 
+    // The sample's own LOD / water result a dried or anhydrous basis assay will use (null when none is needed or recorded yet).
+    [HttpGet("{testOrderId}/moisture")]
+    public async Task<IActionResult> GetMoisture(int testOrderId, [FromServices] SampleMoistureResolver resolver, CancellationToken ct)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
+        return await RunAsync(() => resolver.GetForTitrationOrderAsync(testOrderId, ct));
+    }
+
     [HttpPost("{testOrderId}/record-titration-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
     public async Task<IActionResult> RecordTitrationResult(int testOrderId, RecordTitrationResultRequest request)

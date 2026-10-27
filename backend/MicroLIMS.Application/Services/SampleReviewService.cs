@@ -188,6 +188,60 @@ public class SampleReviewService
         if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
+        // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
+        // returning it returns every assay that used it, in the same unit of work. Found first - the
+        // state transition below saves, and the moisture results are inactive from then on.
+        var dependents = definition.MoistureRole == MoistureRole.None ? new List<TestOrder>() : await FindDependentAssaysAsync(order);
+
+        var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
+
+        var phrase = definition.MoistureRole == MoistureRole.LossOnDrying ? "loss on drying" : "water content";
+        foreach (var dependent in dependents)
+        {
+            var dependentDefinition = await _db.TestDefinitions.FirstAsync(d => d.Code == dependent.TestCode);
+            await ReturnOrderAsync(dependent, dependentDefinition, sample, null, reviewerId, $"Recalculate: the {phrase} result was returned.");
+        }
+
+        await _db.SaveChangesAsync();
+
+        return returnEvent;
+    }
+
+    // ResultEntered titration orders of the same sample whose active analysis took its moisture value
+    // from one of this order's active results. Must run before those results are superseded.
+    private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder)
+    {
+        var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync();
+        var candidates = await _db.TestAnalyses
+            .Where(a => a.IsActive && a.AnalysisType == WorkflowType.Titration && a.TestOrderId != moistureOrder.Id
+                && a.TestOrder!.SampleId == moistureOrder.SampleId && a.TestOrder.Status == ApprovalStatus.ResultEntered)
+            .Select(a => new { a.TestOrder, a.ConditionsJson })
+            .ToListAsync();
+        return candidates
+            .Where(c => UsesMoistureResult(c.ConditionsJson, resultIds))
+            .Select(c => c.TestOrder!)
+            .ToList();
+    }
+
+    private static bool UsesMoistureResult(string? conditionsJson, List<int> resultIds)
+    {
+        if (string.IsNullOrWhiteSpace(conditionsJson)) return false;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(conditionsJson);
+            return doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("moisture", out var m) && m.ValueKind == System.Text.Json.JsonValueKind.Object
+                && m.TryGetProperty("parameterResultId", out var id) && id.TryGetInt32(out var value) && resultIds.Contains(value);
+        }
+        catch (System.Text.Json.JsonException) { return false; }
+    }
+
+    // Steps 1-5 of a return for one order (queued on the context; the caller saves).
+    private async Task<TestReturnEvent> ReturnOrderAsync(
+        TestOrder order, TestDefinition definition, Sample? sample, SectionSignoffStatus? knownSectionStatus, int reviewerId, string? reason)
+    {
+        var testOrderId = order.Id;
+        var sectionStatus = knownSectionStatus ?? (sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId));
         if (definition.WorkflowType == WorkflowType.CountTest)
         {
             // 1. Soft-supersede all active CountTestReading rows for this test order
@@ -263,7 +317,8 @@ public class SampleReviewService
         };
 
         _db.TestReturnEvents.Add(returnEvent);
-        await _db.SaveChangesAsync();
+
+        _db.TestReturnEvents.Add(returnEvent);
 
         return returnEvent;
     }

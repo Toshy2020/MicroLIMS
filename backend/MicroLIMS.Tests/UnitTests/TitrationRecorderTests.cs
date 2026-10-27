@@ -269,22 +269,27 @@ public class TitrationRecorderTests
     }
 
     [Fact]
-    public async Task DriedBasis_NeedsLossOnDrying_AndAppliesIt()
+    public async Task DriedBasis_NeedsRecordedLossOnDrying_AndAppliesIt()
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db, new() { TweakSpec = sp => sp.ResultBasis = ResultBasis.PercentDriedBasis });
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
-        Assert.Contains("Loss on drying", ex.Message);
+        Assert.Contains("Record the sample's loss on drying result before this assay.", ex.Message);
+
+        // A typed value is never accepted any more.
+        s.AddMoistureResult(db, MoistureRole.LossOnDrying, 5m);
+        var typed = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s, lod: 5m)));
+        Assert.Contains("read from the sample's own result", typed.Message);
 
         // 99.07469891 x 100 / 95 = 104.2891 -> OOS above 102
-        var result = await Record(db, s, Payload(s, lod: 5m));
+        var result = await Record(db, s, Payload(s));
         Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
         Assert.Contains("104.29 %", result.OutcomeSummary);
 
         using var db2 = NewDb();
         var s2 = TitrationScenario.Seed(db2);
         var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s2, Payload(s2, lod: 5m)));
-        Assert.Contains("only used with a dried", ex2.Message);
+        Assert.Contains("read from the sample's own result", ex2.Message);
     }
 
     [Fact]

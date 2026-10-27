@@ -176,6 +176,62 @@ public class TitrationScenario
         return s;
     }
 
+    // A finished moisture test (LOD or Karl Fischer) on this scenario's sample: its own test
+    // definition, order (ResultEntered) and signed analysis holding ParameterResult(s).
+    public (TestOrder Order, ParameterResult Result) AddMoistureResult(
+        MicroLimsDbContext db, MoistureRole role, decimal? value, bool active = true, int parameterCount = 1)
+    {
+        var uid = Guid.NewGuid().ToString("N")[..6];
+        var itemId = db.Samples.Where(x => x.Id == Order.SampleId).Select(x => x.ItemId!.Value).First();
+        var def = new TestDefinition
+        {
+            Code = $"{(role == MoistureRole.LossOnDrying ? "LOD" : "KF")}_{uid}", DisplayName = $"Moisture {uid}", SectionId = Section.Id,
+            IsActive = true, MoistureRole = role, ReplicateCount = 1,
+            WorkflowType = role == MoistureRole.LossOnDrying ? WorkflowType.Gravimetric : WorkflowType.Titration,
+            EquationType = role == MoistureRole.LossOnDrying ? EquationType.GravimetricLoss : EquationType.Titration,
+            TitrationType = role == MoistureRole.Water ? TitrationType.KarlFischer : null,
+        };
+        db.TestDefinitions.Add(def);
+        var order = new TestOrder
+        {
+            SampleId = Order.SampleId, TestCode = def.Code, SectionId = Section.Id,
+            CurrentStep = WorkflowStep.Ready, Status = ApprovalStatus.ResultEntered,
+        };
+        db.TestOrders.Add(order);
+        var user = db.Users.First(u => u.Id == UserId);
+        var sig = new ElectronicSignature
+        {
+            UserId = UserId, UserFullNameSnapshot = user.FullName, UsernameSnapshot = user.Username, RoleSnapshot = "Analyst",
+            MeaningOfSignature = SignatureMeaning.ResultRecorded, EntityType = "TestOrder", EntityId = 0, SignedAt = DateTime.UtcNow,
+        };
+        var analysis = new TestAnalysis
+        {
+            TestOrder = order, AnalysisType = def.WorkflowType, AnalysedAt = DateTime.UtcNow, IsActive = active,
+            EnteredByUserId = UserId, EnteredAt = DateTime.UtcNow, Signature = sig,
+        };
+        ParameterResult? first = null;
+        for (int i = 0; i < parameterCount; i++)
+        {
+            var spec = new Specification
+            {
+                ItemId = itemId, TestCode = def.Code, ParameterName = $"Moisture {i + 1}", LimitType = LimitType.NotMoreThan,
+                UpperLimit = 1m, Unit = "%", SpecLimit = "NMT 1%", DisplayOrder = i + 1, ResultBasis = ResultBasis.PercentAsIs,
+            };
+            db.Specifications.Add(spec);
+            var pr = new ParameterResult
+            {
+                TestOrder = order, Specification = spec, ParameterName = spec.ParameterName, ReportedValue = value,
+                ReportedDisplay = $"{value} %", Unit = "%", ComparisonStatus = value > 1m ? ResultStatus.OutOfSpecification : ResultStatus.WithinLimits,
+                IsActive = active,
+            };
+            analysis.ParameterResults.Add(pr);
+            first ??= pr;
+        }
+        db.TestAnalyses.Add(analysis);
+        db.SaveChanges();
+        return (order, first!);
+    }
+
     private static SolutionMaster NewMaster(MicroLimsDbContext db, int sectionId, string name, decimal nominal, TitrantStrengthUnit unit)
     {
         var m = new SolutionMaster

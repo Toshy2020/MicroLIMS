@@ -24,6 +24,7 @@ using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Infrastructure.Word;
 using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Persistence.Diagnostics;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Persistence.Repositories;
 
@@ -264,6 +265,8 @@ public static class ServiceCollectionExtensions
 
         // Read/triage side of the same data - scoped, ordinary querying.
         services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
+        services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
+        services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
         services.AddSingleton<ISecurityPolicyService>(sp => new SecurityPolicyService(sp.GetRequiredService<JwtSettings>().AccessTokenLifetime));
 
         // Critical incident alerting. Disabled unless explicitly enabled,

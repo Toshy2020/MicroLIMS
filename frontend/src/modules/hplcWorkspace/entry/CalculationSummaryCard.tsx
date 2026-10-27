@@ -66,6 +66,8 @@ export function OfficialResultsCard({
                     ? "Amount per Unit"
                     : o.quantity === "ResidualSolventPpm" || o.quantity === "Residual solvent (ppm)"
                     ? "Residual solvent (ppm)"
+                    : o.quantity === "RelatedSubstance"
+                    ? "Related substance (%)"
                     : o.quantity;
 
                 return (
@@ -128,6 +130,10 @@ export function CalculationSummaryCard({
     (p) => p.quantity === "Residual solvent (ppm)" || p.quantity === "ResidualSolventPpm"
   );
 
+  const isRelatedSubstancesPreview = preview.some(
+    (p) => p.quantity === "RelatedSubstance"
+  );
+
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
@@ -147,7 +153,9 @@ export function CalculationSummaryCard({
       {preview.length === 0 ? (
         <Box sx={{ p: 3 }}>
           <Alert severity="info">
-            No preview results available yet. Enter actual weights and {isResidualSolventsPreview ? "areas" : "responses"} above and click <strong>Save Replicates</strong> to generate the preview calculation.
+            {isRelatedSubstancesPreview
+              ? "No preview results available yet. Enter peak areas above and click Save Replicates to generate the preview calculation."
+              : `No preview results available yet. Enter actual weights and ${isResidualSolventsPreview ? "areas" : "responses"} above and click Save Replicates to generate the preview calculation.`}
           </Alert>
         </Box>
       ) : (
@@ -174,6 +182,8 @@ export function CalculationSummaryCard({
                     ? "Amount per Unit"
                     : p.quantity === "ResidualSolventPpm" || p.quantity === "Residual solvent (ppm)"
                     ? "Residual solvent (ppm)"
+                    : p.quantity === "RelatedSubstance"
+                    ? "Related substance (%)"
                     : p.quantity;
 
                 return (

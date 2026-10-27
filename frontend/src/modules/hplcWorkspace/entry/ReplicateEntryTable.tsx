@@ -29,24 +29,29 @@ export interface ReplicateEntryTableProps {
   requiredReplicates?: number | null;
   disabled?: boolean;
   isResidualSolvents?: boolean;
+  hasInternalStandard?: boolean;
+  internalStandardName?: string | null;
   // Rendered under the table (the page puts the sticky Save button here).
   footer?: ReactNode;
 }
 
-const isPositive = (n: number | undefined) => typeof n === "number" && Number.isFinite(n) && n > 0;
-const isNonNegative = (n: number | undefined) => typeof n === "number" && Number.isFinite(n) && n >= 0;
+const isPositive = (n: number | null | undefined) => typeof n === "number" && Number.isFinite(n) && n > 0;
+const isNonNegative = (n: number | null | undefined) => typeof n === "number" && Number.isFinite(n) && n >= 0;
 
 // True when every weight and every analyte response is valid.
 // In ResidualSolvents mode, response 0 is allowed (= not detected).
+// In internal-standard mode, internalStandardResponse must be > 0.
 export function replicatesComplete(
   methodWeights: HplcMethodWeightDto[],
   replicates: HplcReplicateDto[],
-  isResidualSolvents = false
+  isResidualSolvents = false,
+  hasInternalStandard = false
 ): boolean {
   if (replicates.length === 0) return false;
   return replicates.every(
     (rep) =>
       isPositive(rep.actualWeightMg) &&
+      (!hasInternalStandard || isPositive(rep.internalStandardResponse)) &&
       methodWeights.every((mw) => {
         const resp = rep.responses.find((r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId)?.response;
         return isResidualSolvents ? isNonNegative(resp) : isPositive(resp);
@@ -67,6 +72,8 @@ export function ReplicateEntryTable({
   requiredReplicates,
   disabled = false,
   isResidualSolvents = false,
+  hasInternalStandard = false,
+  internalStandardName,
   footer
 }: ReplicateEntryTableProps) {
   const theme = useTheme();
@@ -76,6 +83,7 @@ export function ReplicateEntryTable({
 
   const weightKey = (repNo: number) => `${repNo}:w`;
   const respKey = (repNo: number, analyteId: number) => `${repNo}:a${analyteId}`;
+  const isKey = (repNo: number) => `${repNo}:is`;
 
   // A draft is only shown while it still matches the model value; after a
   // server refresh (or row removal) the model value wins.
@@ -95,7 +103,8 @@ export function ReplicateEntryTable({
     const newReplicate: HplcReplicateDto = {
       replicateNo: nextNo,
       actualWeightMg: 0,
-      responses: methodWeights.map((mw) => ({ hplcMethodAnalyteId: mw.hplcMethodAnalyteId, response: 0 }))
+      responses: methodWeights.map((mw) => ({ hplcMethodAnalyteId: mw.hplcMethodAnalyteId, response: 0 })),
+      internalStandardResponse: hasInternalStandard ? 0 : undefined
     };
     onChange([...replicates, newReplicate]);
   };
@@ -128,6 +137,15 @@ export function ReplicateEntryTable({
           : [...rep.responses, newResp]
       };
     });
+    onChange(updated);
+  };
+
+  const handleIsResponseChange = (repIndex: number, rawVal: string) => {
+    setDraft(isKey(replicates[repIndex].replicateNo), rawVal);
+    const parsed = parseDraft(rawVal);
+    const updated = replicates.map((rep, idx) =>
+      idx !== repIndex ? rep : { ...rep, internalStandardResponse: parsed }
+    );
     onChange(updated);
   };
 
@@ -166,9 +184,17 @@ export function ReplicateEntryTable({
               />
             )}
             <StatusBadge status="Pending" label={`${replicates.length} entered`} />
+            {hasInternalStandard && (
+              <StatusBadge
+                status="Assigned"
+                label={internalStandardName ? `IS: ${internalStandardName}` : "Internal Standard"}
+              />
+            )}
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            {isResidualSolvents
+            {hasInternalStandard
+              ? "Record actual test weight (mg), analyte peak area and internal standard peak area for each replicate injection. Press Enter to move to the next replicate."
+              : isResidualSolvents
               ? "Record sample weight (mg) and peak area per solvent for each replicate injection (0 = not detected). Press Enter to move to the next replicate."
               : "Record actual test weight (mg) and peak response per analyte for each replicate injection. Press Enter to move to the next replicate."}
           </Typography>
@@ -196,9 +222,14 @@ export function ReplicateEntryTable({
               </TableCell>
               {methodWeights.map((mw) => (
                 <TableCell key={mw.hplcMethodAnalyteId} align="right" sx={{ minWidth: 180 }}>
-                  {isResidualSolvents ? `${mw.analyteName} Area *` : `${mw.analyteName} Response *`}
+                  {hasInternalStandard ? "Analyte area *" : isResidualSolvents ? `${mw.analyteName} Area *` : `${mw.analyteName} Response *`}
                 </TableCell>
               ))}
+              {hasInternalStandard && (
+                <TableCell align="right" sx={{ minWidth: 180 }}>
+                  IS area *
+                </TableCell>
+              )}
               <TableCell align="right" sx={{ width: 60 }}>Action</TableCell>
             </TableRow>
           </TableHead>
@@ -206,7 +237,7 @@ export function ReplicateEntryTable({
             {replicates.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={3 + methodWeights.length}
+                  colSpan={3 + methodWeights.length + (hasInternalStandard ? 1 : 0)}
                   sx={{ textAlign: "center", py: 4, color: "text.secondary" }}
                 >
                   No replicates added. Click &ldquo;Add Replicate&rdquo; to start entering replicate test data.
@@ -261,7 +292,9 @@ export function ReplicateEntryTable({
                               min: 0,
                               step: "any",
                               "data-cell": `a${mw.hplcMethodAnalyteId}-${repIdx}`,
-                              "aria-label": isResidualSolvents
+                              "aria-label": hasInternalStandard
+                                ? `Replicate ${rep.replicateNo} Analyte area`
+                                : isResidualSolvents
                                 ? `Replicate ${rep.replicateNo} ${mw.analyteName} area`
                                 : `Replicate ${rep.replicateNo} ${mw.analyteName} response`
                             }
@@ -271,6 +304,30 @@ export function ReplicateEntryTable({
                       </TableCell>
                     );
                   })}
+                  {hasInternalStandard && (
+                    <TableCell align="right">
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={cellText(isKey(rep.replicateNo), rep.internalStandardResponse ?? 0)}
+                        onChange={(e) => handleIsResponseChange(repIdx, e.target.value)}
+                        onKeyDown={(e) => handleEnter(e, "is", repIdx)}
+                        placeholder="0.00"
+                        disabled={disabled}
+                        error={!disabled && !isPositive(rep.internalStandardResponse)}
+                        helperText={helper(rep.internalStandardResponse ?? 0)}
+                        slotProps={{
+                          htmlInput: {
+                            min: 0,
+                            step: "any",
+                            "data-cell": `is-${repIdx}`,
+                            "aria-label": `Replicate ${rep.replicateNo} IS area`
+                          }
+                        }}
+                        sx={cellSx}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell align="right">
                     <Tooltip title={replicates.length <= 1 ? "At least one replicate is required" : "Remove replicate"}>
                       <span>

@@ -1,12 +1,15 @@
-import type { HplcSstAnalyteDto, SaveSstAnalyteInput } from "../types";
+import type { HplcSstAnalyteDto, SaveSstAnalyteInput, HplcMethodSnapshot } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export function findMissingSstFields(
   analytes: HplcSstAnalyteDto[],
   inputs: Record<number, SaveSstAnalyteInput>,
-  method: HplcMethodResponse | null | undefined,
-  isResidualSolvents = false
+  method: HplcMethodResponse | HplcMethodSnapshot | null | undefined,
+  isResidualSolvents = false,
+  hasInternalStandard = false
 ): string[] {
+  const isIS = hasInternalStandard || Boolean((method as HplcMethodSnapshot)?.internalStandardName);
+
   return analytes.flatMap((a) => {
     const v = inputs[a.id];
     const ma = method?.analytes.find(
@@ -27,6 +30,14 @@ export function findMissingSstFields(
       .filter((n) => !((v?.responses?.[n - 1] ?? 0) > 0));
     if (blank.length > 0) {
       fields.push(`injection ${blank.map((n) => `#${n}`).join(", ")}`);
+    }
+
+    if (isIS) {
+      const isBlank = Array.from({ length: injectionCount }, (_, i) => i + 1)
+        .filter((n) => !((v?.internalStandardResponses?.[n - 1] ?? 0) > 0));
+      if (isBlank.length > 0) {
+        fields.push(`internal standard injection ${isBlank.map((n) => `#${n}`).join(", ")}`);
+      }
     }
 
     if (ma?.sstMinResolution != null && v?.resolution == null) fields.push("resolution");

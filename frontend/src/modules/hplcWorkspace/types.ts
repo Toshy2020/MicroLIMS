@@ -40,15 +40,34 @@ export interface HplcInstrumentDto {
   activeRun?: HplcActiveRunSummaryDto | null;
 }
 
-import type { HplcTechnique, HplcResultMode } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+import type {
+  HplcTechnique,
+  HplcMethodResponse
+} from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export type {
   HplcTechnique,
-  HplcResultMode,
   CarrierGas,
-  HplcDetectorType,
-  HplcMethodResponse as HplcMethodSnapshot
+  HplcDetectorType
 } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+
+export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances";
+
+export interface HplcMethodImpuritySnapshot {
+  id: number;
+  displayOrder: number;
+  name: string;
+  relativeRetention?: number | null;
+  correctionFactor?: number | null;
+}
+
+export interface HplcMethodSnapshot extends Omit<HplcMethodResponse, "resultMode"> {
+  resultMode?: HplcResultMode;
+  impurities?: HplcMethodImpuritySnapshot[];
+  internalStandardName?: string | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
+}
 
 export interface HplcMethodOptionDto {
   id: number;
@@ -79,6 +98,7 @@ export interface SaveSstAnalyteInput {
   standardMaterialId: number;
   standardWeightMg: number;
   responses: number[];
+  internalStandardResponses?: number[] | null;
   reportedRsdPercent?: number | null;
   resolution?: number | null;
   tailingFactor?: number | null;
@@ -127,6 +147,7 @@ export interface HplcRunMobilePhaseDto {
 export interface HplcSstInjectionDto {
   injectionNo: number;
   response: number;
+  internalStandardResponse?: number | null;
 }
 
 export interface HplcSstAnalyteDto {
@@ -141,6 +162,7 @@ export interface HplcSstAnalyteDto {
   standardMoisturePercent?: number | null;
   standardWeightMg?: number | null;
   injections: HplcSstInjectionDto[];
+  internalStandardResponses?: number[] | null;
   reportedRsdPercent?: number | null;
   resolution?: number | null;
   tailingFactor?: number | null;
@@ -253,9 +275,17 @@ export interface HplcReplicateResponseInput {
   response: number;
 }
 
+export interface HplcReplicatePeakInput {
+  hplcMethodImpurityId: number | null;
+  relativeRetention: number | null;
+  area: number;
+}
+
 export interface HplcReplicateInput {
   actualWeightMg: number;
   responses: HplcReplicateResponseInput[];
+  internalStandardResponse?: number | null;
+  peaks?: HplcReplicatePeakInput[];
 }
 
 export interface AssignHplcSamplesRequest {
@@ -275,6 +305,8 @@ export interface HplcReplicateDto {
   replicateNo: number;
   actualWeightMg: number;
   responses: HplcReplicateResponseInput[];
+  internalStandardResponse?: number | null;
+  peaks?: HplcReplicatePeakInput[];
 }
 
 export interface HplcMethodWeightDto {

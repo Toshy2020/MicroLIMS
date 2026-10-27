@@ -14,12 +14,12 @@ import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import { useTechnique } from "../useTechnique";
-import type { HplcRunDto, HplcSstRecordDto, SaveSstAnalyteInput } from "../types";
+import type { HplcRunDto, HplcSstRecordDto, SaveSstAnalyteInput, HplcMethodSnapshot } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export interface SystemSuitabilityPanelProps {
   run: HplcRunDto;
-  method?: HplcMethodResponse | null;
+  method?: HplcMethodSnapshot | HplcMethodResponse | null;
   canOperate: boolean;
   onRunUpdated: () => void;
 }
@@ -32,6 +32,7 @@ export function SystemSuitabilityPanel({
 }: SystemSuitabilityPanelProps) {
   const { label } = useTechnique();
   const isResidualSolvents = method?.resultMode === "ResidualSolvents";
+  const hasInternalStandard = Boolean((method as HplcMethodSnapshot)?.internalStandardName);
   const [currentRun, setCurrentRun] = useState<HplcRunDto>(run);
 
   useEffect(() => {
@@ -104,11 +105,17 @@ export function SystemSuitabilityPanel({
           return matched ? matched.response : 0;
         });
 
+        const internalStandardResponses: number[] = Array.from({ length: injectionCount }, (_, idx) => {
+          const matched = a.injections?.find((inj) => inj.injectionNo === idx + 1);
+          return matched?.internalStandardResponse ?? 0;
+        });
+
         next[a.id] = {
           hplcSstAnalyteId: a.id,
           standardMaterialId: a.standardMaterialId ?? 0,
           standardWeightMg: a.standardWeightMg ?? 0,
           responses,
+          internalStandardResponses: hasInternalStandard ? internalStandardResponses : undefined,
           reportedRsdPercent: a.reportedRsdPercent ?? null,
           resolution: a.resolution ?? null,
           tailingFactor: a.tailingFactor ?? null,
@@ -120,7 +127,7 @@ export function SystemSuitabilityPanel({
       });
       return next;
     });
-  }, [sst, method]);
+  }, [sst, method, hasInternalStandard]);
 
   const isConfirmed = sst?.status === "Passed" || sst?.status === "Failed" || currentRun.status !== "Open";
   const isPending = sst?.status === "Pending" && currentRun.status === "Open";
@@ -141,7 +148,7 @@ export function SystemSuitabilityPanel({
 
   // Blank entries per analyte, so the analyst is warned before saving.
   const findMissing = (): string[] =>
-    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, isResidualSolvents);
+    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, isResidualSolvents, hasInternalStandard);
 
   // Save SST inputs
   // refresh=false keeps the page mounted (the parent reload shows a spinner),
@@ -149,17 +156,19 @@ export function SystemSuitabilityPanel({
   const handleSaveSst = async (refresh = true): Promise<boolean> => {
     if (!sst) return false;
     setCheckMissing(true);
-    if (findMissing().length) return false;
-    const analytesPayload: SaveSstAnalyteInput[] = Object.values(analyteInputs);
-
+    const gaps = findMissing();
+    if (gaps.length > 0) {
+      setError(`Please complete all required fields before saving: ${gaps.join("; ")}`);
+      return false;
+    }
     setSaving(true);
     setError(null);
+
+    const payload: SaveSstAnalyteInput[] = Object.values(analyteInputs);
+
     try {
-      const savedRun = (await HplcWorkspaceService.saveSst(currentRun.id, { analytes: analytesPayload })) as unknown as HplcRunDto;
+      await HplcWorkspaceService.saveSst(currentRun.id, { analytes: payload });
       toast.success("System suitability data saved.");
-      if (savedRun && savedRun.sst) {
-        setCurrentRun(savedRun);
-      }
       if (refresh) onRunUpdated();
       return true;
     } catch (err: unknown) {
@@ -171,38 +180,35 @@ export function SystemSuitabilityPanel({
     }
   };
 
-  // Confirm SST via E-Signature
+  // Confirm SST via signature
   const handleConfirmSignature = async (password: string) => {
-    setError(null);
+    if (!sst) return;
     try {
-      const confirmedRun = (await HplcWorkspaceService.confirmSst(currentRun.id, {
+      await HplcWorkspaceService.confirmSst(currentRun.id, {
         password,
         comment: signComment.trim() || null
-      })) as unknown as HplcRunDto;
-      setSignOpen(false);
+      });
       toast.success("System suitability confirmed.");
-      if (confirmedRun && confirmedRun.sst) {
-        setCurrentRun(confirmedRun);
-      }
+      setSignOpen(false);
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not confirm system suitability.");
+      toast.error(e.response?.data?.message ?? e.message ?? "Confirmation failed.");
     }
   };
 
-  // Abandon Run
+  // Abandon run
   const handleAbandonRun = async () => {
     if (!abandonReason.trim()) return;
     setAbandoning(true);
     try {
       await HplcWorkspaceService.abandonRun(currentRun.id, abandonReason.trim());
+      toast.success(`${label} run abandoned.`);
       setAbandonOpen(false);
-      toast.info("Run has been marked as abandoned.");
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not abandon run.");
+      toast.error(e.response?.data?.message ?? e.message ?? `Could not abandon ${label} run.`);
     } finally {
       setAbandoning(false);
     }
@@ -210,54 +216,51 @@ export function SystemSuitabilityPanel({
 
   const missing = checkMissing ? findMissing() : [];
 
-  if (!sst) {
-    return (
-      <Alert severity="warning">
-        No System Suitability record found for this run.
-      </Alert>
-    );
-  }
-
   return (
-    <Stack spacing={3}>
-      {/* SST Status Banner */}
-      <SstStatusCard
-        code={sst.code}
-        status={sst.status}
-        failureReasons={sst.failureReasons}
-        confirmedByUserName={sst.confirmedByUserName}
-        confirmedAt={sst.confirmedAt}
-      />
-
+    <Stack spacing={2.5}>
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {missing.length > 0 && (
-        <Alert severity="warning">
-          <strong>Fill in the empty fields before saving:</strong>
-          <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
-            {missing.map((m) => <li key={m}>{m}</li>)}
-          </ul>
-        </Alert>
+      {/* SST Overall Status Card */}
+      {sst && (
+        <SstStatusCard
+          code={sst.code}
+          status={sst.status}
+          failureReasons={sst.failureReasons}
+          confirmedByUserName={sst.confirmedByUserName}
+          confirmedAt={sst.confirmedAt}
+        />
       )}
 
-      {/* Values & Criteria Comparison Table */}
-      <SstValuesTable analytes={sst.analytes} method={method} />
+      {/* SST Criteria and Results Table */}
+      {sst && (
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+            Suitability Criteria & Results
+          </Typography>
+          <SstValuesTable analytes={sst.analytes} method={method as unknown as HplcMethodResponse} />
+        </Box>
+      )}
 
-      {/* Per-analyte standard entry forms */}
+      {/* Analyte Calibration & Injection Input Forms */}
       <Box>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Standard Entry & Injections
+          Standard Calibration & Injections
         </Typography>
 
         {loadingLots ? (
-          <CircularProgress size={24} sx={{ my: 2 }} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 3 }}>
+            <CircularProgress size={20} />
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Loading reference standards...
+            </Typography>
+          </Box>
         ) : (
           <Stack spacing={2.5}>
-            {sst.analytes.map((a) => {
+            {sst?.analytes.map((a) => {
               const methodAnalyte = methodAnalyteFor(a);
               const formVal = analyteInputs[a.id] || {
                 hplcSstAnalyteId: a.id,
@@ -277,6 +280,8 @@ export function SystemSuitabilityPanel({
                   disabled={isConfirmed || !canOperate}
                   showMissing={missing.length > 0}
                   isResidualSolvents={isResidualSolvents}
+                  hasInternalStandard={hasInternalStandard}
+                  internalStandardName={(method as HplcMethodSnapshot)?.internalStandardName}
                 />
               );
             })}

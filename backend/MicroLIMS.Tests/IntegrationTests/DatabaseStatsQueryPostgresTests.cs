@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Diagnostics;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
@@ -13,6 +14,7 @@ public class DatabaseStatsQueryPostgresTests
         await ScratchPostgresDatabase.RunAsync(async connectionString =>
         {
             await using var db = ScratchPostgresDatabase.NewContext(connectionString);
+            await db.Database.MigrateAsync(); // the scratch database starts empty
             var query = new DatabaseStatsQuery(db);
 
             var snapshot = await query.GetSizeSnapshotAsync(topTableCount: 3);

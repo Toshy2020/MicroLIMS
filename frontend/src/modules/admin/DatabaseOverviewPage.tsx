@@ -45,8 +45,9 @@ export function DatabaseOverviewPage() {
       .then((data) => {
         if (!cancelled) setOverview(data);
       })
-      .catch((err: any) => {
-        if (!cancelled) setError(err?.response?.data?.message ?? "Could not load the database overview.");
+      .catch((err: unknown) => {
+        const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        if (!cancelled) setError(message ?? "Could not load the database overview.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -61,12 +62,12 @@ export function DatabaseOverviewPage() {
       <PageHeader title="Database overview" subtitle="Size of the database and the status of the last backup. Read-only." />
 
       {error && <Alert severity="error">{error}</Alert>}
-      {loading && <TableSkeleton rows={6} columns={4} />}
+      {loading && <TableSkeleton rows={6} cols={3} />}
 
       {overview && (
         <Stack spacing={2}>
           <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600}>Database size</Typography>
+            <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>Database size</Typography>
             <Typography variant="h5" component="p">{overview.databaseSizePretty}</Typography>
             <Typography variant="body2" color="text.secondary">{overview.databaseSizeBytes.toLocaleString()} bytes</Typography>
           </Paper>
@@ -76,7 +77,7 @@ export function DatabaseOverviewPage() {
           </Alert>
 
           <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Largest tables</Typography>
+            <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600, mb: 1 }}>Largest tables</Typography>
             <Box sx={{ overflowX: "auto" }}>
               <Table size="small" aria-label="Largest tables">
                 <TableHead>

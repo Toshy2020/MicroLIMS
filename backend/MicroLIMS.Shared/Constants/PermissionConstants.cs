@@ -41,6 +41,9 @@ public static class PermissionConstants
     // and are deliberately not granted together.
     public const string SystemViewSecurityAudit = "System.ViewSecurityAudit";
 
+    // Change system operating settings (security thresholds, retention, worker limits) in the admin Settings registry. Never GxP data.
+    public const string SystemConfigureSettings = "System.ConfigureSettings";
+
     // Document Control module. URS v1.1 §5 splits authority in two: "Global role
     // permissions determine which categories of function a user may access" and
     // "per-document assignments determine on which documents a user may exercise
@@ -137,7 +140,7 @@ public static class PermissionConstants
         ItemsManage, ItemsDocumentUpload,
         MasterDataManage,
         DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse,
-        SystemViewErrorLog, SystemViewSecurityAudit,
+        SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         DocumentsRegister, DocumentsDraftEdit, DocumentsRevisionCreate,
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
         DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage,
@@ -160,7 +163,7 @@ public static class PermissionConstants
     public static readonly IReadOnlyList<string> SystemAdministratorGrants = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
-        SystemViewErrorLog, SystemViewSecurityAudit,
+        SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         MasterDataManage, ItemsManage, DocumentsConfigManage, KpiConfigureProfiles,
         DiscussionsView, DiscussionsCreate, MessagesUse,
         SignaturesManage,   // read-only signature trail
@@ -179,7 +182,7 @@ public static class PermissionConstants
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
-        SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit,
+        SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,

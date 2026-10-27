@@ -1,4 +1,5 @@
 using MicroLIMS.Application.Services.BackgroundJobs;
+using MicroLIMS.Application.Services.SystemSettings;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -56,11 +57,18 @@ public class SessionTokenCleanupWorker : BackgroundService, IBackgroundJobWork
     private bool Enabled =>
         _configuration.GetValue<bool?>("SessionTokenCleanup:Enabled") ?? true;
 
-    private int IntervalHours =>
-        Positive(_configuration.GetValue<int?>("SessionTokenCleanup:IntervalHours"), DefaultIntervalHours);
+    // Refreshed from the settings registry at the start of every cycle.
+    private int _intervalHours = DefaultIntervalHours;
+    private int _retentionDays = DefaultRetentionDays;
 
-    private int RetentionDays =>
-        Positive(_configuration.GetValue<int?>("SessionTokenCleanup:RetentionDays"), DefaultRetentionDays);
+    private int IntervalHours => _intervalHours;
+    private int RetentionDays => _retentionDays;
+
+    private async Task RefreshSettingsAsync(IServiceProvider services, CancellationToken ct)
+    {
+        _intervalHours = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.SessionTokenIntervalHours, ct);
+        _retentionDays = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.SessionTokenRetentionDays, ct);
+    }
 
     private static int Positive(int? configured, int fallback) =>
         configured is > 0 ? configured.Value : fallback;
@@ -92,14 +100,13 @@ public class SessionTokenCleanupWorker : BackgroundService, IBackgroundJobWork
             _logger.LogError(ex, "[{Worker}] Unhandled error during startup cycle.", ProcessName);
         }
 
-        using var timer = new PeriodicTimer(TimeSpan.FromHours(IntervalHours));
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                if (await timer.WaitForNextTickAsync(stoppingToken))
-                    await ScheduledPassAsync(stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(IntervalHours), stoppingToken);
+                await ScheduledPassAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -137,6 +144,7 @@ public class SessionTokenCleanupWorker : BackgroundService, IBackgroundJobWork
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>();
             db.CurrentSystemProcessName = ProcessName;
+            await RefreshSettingsAsync(scope.ServiceProvider, cancellationToken);
 
             var cutoff = _time.GetUtcNow().UtcDateTime.AddDays(-RetentionDays);
 

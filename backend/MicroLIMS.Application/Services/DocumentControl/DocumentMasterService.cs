@@ -815,7 +815,9 @@ public class DocumentMasterService : IDocumentMasterService
             m.VoidedByUser?.FullName,
             m.VoidReason,
             m.Keywords.Select(k => k.Keyword).ToList(),
-            m.Assignments.Where(a => a.IsActive).Select(a => new DocumentMasterAssignmentDto(
+            // Current assignees only: an inactive user no longer appears as an assignee
+            // (their historical actions keep their name via the audit trail and revisions).
+            m.Assignments.Where(a => a.IsActive && (a.User == null || a.User.IsActive)).Select(a => new DocumentMasterAssignmentDto(
                 a.Id,
                 a.DocumentMasterId,
                 a.UserId,

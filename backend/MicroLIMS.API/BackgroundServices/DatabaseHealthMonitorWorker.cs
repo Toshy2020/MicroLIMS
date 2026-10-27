@@ -1,4 +1,5 @@
 using MicroLIMS.Application.Services.BackgroundJobs;
+using MicroLIMS.Application.Services.SystemSettings;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
@@ -79,11 +80,18 @@ public class DatabaseHealthMonitorWorker : BackgroundService, IBackgroundJobWork
     private int PollIntervalSeconds =>
         Positive(_configuration.GetValue<int?>("ErrorMonitoring:DatabaseHealth:PollIntervalSeconds"), DefaultPollIntervalSeconds);
 
-    private int SlowQueryThresholdMs =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:DatabaseHealth:SlowQueryThresholdMs"), DefaultSlowQueryThresholdMs);
+    // Refreshed from the settings registry at the start of every cycle.
+    private int _slowQueryThresholdMs = DefaultSlowQueryThresholdMs;
+    private int _blockedQueryThresholdMs = DefaultBlockedQueryThresholdMs;
 
-    private int BlockedQueryThresholdMs =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:DatabaseHealth:BlockedQueryThresholdMs"), DefaultBlockedQueryThresholdMs);
+    private int SlowQueryThresholdMs => _slowQueryThresholdMs;
+    private int BlockedQueryThresholdMs => _blockedQueryThresholdMs;
+
+    private async Task RefreshSettingsAsync(IServiceProvider services, CancellationToken ct)
+    {
+        _slowQueryThresholdMs = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.SlowQueryThresholdMs, ct);
+        _blockedQueryThresholdMs = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.BlockedQueryThresholdMs, ct);
+    }
 
     private static int Positive(int? configured, int fallback) =>
         configured is > 0 ? configured.Value : fallback;
@@ -155,6 +163,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService, IBackgroundJobWork
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
             db.CurrentSystemProcessName = ProcessName;
+            await RefreshSettingsAsync(scope.ServiceProvider, cancellationToken);
             var capture = scope.ServiceProvider.GetRequiredService<IErrorCaptureService>();
 
             var connection = (NpgsqlConnection)db.Database.GetDbConnection();

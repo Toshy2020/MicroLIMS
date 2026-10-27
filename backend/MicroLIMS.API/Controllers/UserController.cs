@@ -10,7 +10,7 @@ namespace MicroLIMS.API.Controllers;
 
 // Every administrative request carries a Reason. It is nullable here so a
 // missing one reaches the service and is refused with the same 400 message
-// as a blank one (AdminActionReason). Role change and hard delete are also
+// as a blank one (AdminActionReason). Role change is also
 // electronically signed: Password is the administrator's own, re-verified.
 public record CreateUserRequest(string FullName, string Username, string Password, int RoleId, string? Email = null, string? JobTitle = null, string? Reason = null);
 public record UpdateProfileRequest(string FullName, string Username, string? Email, string? JobTitle = null, string? Reason = null);
@@ -19,7 +19,6 @@ public record SetStatusRequest(bool IsActive, string? Reason = null);
 public record UnlockUserRequest(string? Reason = null);
 public record AdminResetPasswordRequest(string? Reason = null);
 public record ForcePasswordChangeRequest(string? Reason = null);
-public record HardDeleteUserRequest(string? Reason = null, string? Password = null);
 public record UpdateEmailRequest(string? Email, string? Reason = null);
 public record AdminPasswordRecoveryRequest(string Reason);
 
@@ -30,13 +29,11 @@ public class UserController : ControllerBase
 {
     private readonly UserService _userService;
     private readonly AdminPasswordRecoveryService _adminPasswordRecoveryService;
-    private readonly UserDeletionService _userDeletionService;
 
-    public UserController(UserService userService, AdminPasswordRecoveryService adminPasswordRecoveryService, UserDeletionService userDeletionService)
+    public UserController(UserService userService, AdminPasswordRecoveryService adminPasswordRecoveryService)
     {
         _userService = userService;
         _adminPasswordRecoveryService = adminPasswordRecoveryService;
-        _userDeletionService = userDeletionService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -44,7 +41,9 @@ public class UserController : ControllerBase
     private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _userService.GetAllAsync()));
+    // ?status=active (default) | inactive | all. Read from the query string so the
+    // action signature (and the reviewed authorization matrix) stays unchanged.
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _userService.GetAllAsync(Request.Query["status"].FirstOrDefault())));
 
     [HttpGet("{id}")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
@@ -139,23 +138,5 @@ public class UserController : ControllerBase
     {
         var updated = await _userService.ForcePasswordChangeAsync(id, request?.Reason, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(updated));
-    }
-
-    // Permanent, irreversible removal of a User row - distinct from the
-    // deactivate endpoint above. Only allowed when the user has zero
-    // history anywhere in the domain model (see UserReferenceRegistry).
-    [HttpDelete("{id}")]
-    [Authorize(Policy = PermissionConstants.UsersManage)]
-    public async Task<IActionResult> HardDelete(int id, [FromBody] HardDeleteUserRequest? request)
-    {
-        try
-        {
-            await _userDeletionService.HardDeleteAsync(id, CurrentUserId, request?.Reason, request?.Password, ClientIp);
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-        catch (UserHasHistoryException ex)
-        {
-            return Conflict(ApiResponse<object>.Fail(ex.Message));
-        }
     }
 }

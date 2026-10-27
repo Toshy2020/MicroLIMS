@@ -9826,6 +9826,110 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("SpecificationStages");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("CurrentVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsGxpRelevant")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ValueType")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("SystemSettings");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSettingVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ElectronicSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreviousValue")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("SettingId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("ElectronicSignatureId");
+
+                    b.HasIndex("SettingId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("SystemSettingVersions");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.Property<int>("Id")
@@ -14279,6 +14383,30 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Specification");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSettingVersion", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ElectronicSignature")
+                        .WithMany()
+                        .HasForeignKey("ElectronicSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.SystemSetting", "Setting")
+                        .WithMany("Versions")
+                        .HasForeignKey("SettingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ElectronicSignature");
+
+                    b.Navigation("Setting");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.User", "EnteredByUser")
@@ -15020,6 +15148,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Specification", b =>
                 {
                     b.Navigation("Stages");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSetting", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>

@@ -14,7 +14,7 @@ using Xunit;
 namespace MicroLIMS.Tests.UnitTests;
 
 // WP2.2: every administrative user and role action carries a reason that
-// lands in AuditLog.Reason, and the D7 actions (user hard delete, user role
+// lands in AuditLog.Reason, and the D7 actions (user role
 // change, role permission edit, role delete) are also electronically signed.
 public class AdminReasonAndSignatureTests
 {
@@ -53,7 +53,6 @@ public class AdminReasonAndSignatureTests
     }
 
     private static RoleService CreateRoles(MicroLimsDbContext db) => new(db, new PermissionService(db));
-    private static UserDeletionService CreateDeletion(MicroLimsDbContext db) => new(db);
 
     // ---- a reason is required on every action --------------------------------
 
@@ -71,7 +70,6 @@ public class AdminReasonAndSignatureTests
     {
         var db = CreateDb();
         var users = CreateUsers(db);
-        var deletion = CreateDeletion(db);
 
         await AssertRefusedForReason(() => users.CreateAsync(new User { FullName = "N", Username = "newone", RoleId = 4 }, "SecuredP@ss123!", reason));
         await AssertRefusedForReason(() => users.UpdateProfileAsync(10, "New", "target", "t@test.com", null, 1, reason));
@@ -82,7 +80,6 @@ public class AdminReasonAndSignatureTests
         await AssertRefusedForReason(() => users.SetStatusAsync(10, false, reason, 1));
         await AssertRefusedForReason(() => users.SetStatusAsync(10, true, reason, 1));
         await AssertRefusedForReason(() => users.ChangeRoleAsync(10, 3, reason, 1, AdminPassword));
-        await AssertRefusedForReason(() => deletion.HardDeleteAsync(10, 1, reason, AdminPassword));
 
         // Nothing was changed or signed.
         Assert.Equal(4, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == 10)).RoleId);
@@ -237,49 +234,6 @@ public class AdminReasonAndSignatureTests
         Assert.Equal("10.0.0.5", signature.IpAddress);
         Assert.Contains(Reason, signature.Comment);
         Assert.Equal(3, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == 10)).RoleId);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("wrong password")]
-    public async Task HardDelete_WithoutTheRightPassword_IsRefusedAndTheUserStays(string? password)
-    {
-        var db = CreateDb();
-        var deletion = CreateDeletion(db);
-
-        await AssertRefusedAndRecorded(db, () => deletion.HardDeleteAsync(10, 1, Reason, password), nameof(User), 10);
-
-        Assert.True(await db.Users.AnyAsync(u => u.Id == 10));
-    }
-
-    [Fact]
-    public async Task HardDelete_WithTheRightPassword_SignsAgainstTheDeletedUser()
-    {
-        var db = CreateDb();
-        var deletion = CreateDeletion(db);
-
-        await deletion.HardDeleteAsync(10, 1, Reason, AdminPassword);
-
-        Assert.False(await db.Users.AnyAsync(u => u.Id == 10));
-        var signature = Assert.Single(db.ElectronicSignatures);
-        Assert.Equal(SignatureMeaning.UserDeleted, signature.MeaningOfSignature);
-        Assert.Equal(nameof(User), signature.EntityType);
-        Assert.Equal(10, signature.EntityId);
-        var audit = Assert.Single(db.AuditLogs.Where(a => a.Action == "USER_HARD_DELETED"));
-        Assert.Equal(Reason, audit.Reason);
-    }
-
-    [Fact]
-    public async Task HardDelete_RefusedForHistory_LeavesNoSignature()
-    {
-        var db = CreateDb();
-        var deletion = CreateDeletion(db);
-        db.Users.First(u => u.Id == 10).LastLoginAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
-
-        await Assert.ThrowsAsync<UserHasHistoryException>(() => deletion.HardDeleteAsync(10, 1, Reason, AdminPassword));
-
-        Assert.Empty(db.ElectronicSignatures);
     }
 
     [Theory]

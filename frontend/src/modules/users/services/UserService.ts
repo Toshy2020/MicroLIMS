@@ -35,8 +35,10 @@ export const UserService = {
   async revokeSessions(id: number, reason: string): Promise<{ revokedCount: number }> {
     return (await apiClient.post(`/admin/users/${id}/sessions/revoke`, { reason })).data.data;
   },
-  async getAll(): Promise<UserRecord[]> {
-    return (await apiClient.get("/users")).data.data;
+  // status: "active" (default) or "inactive". "all" is only for screens that
+  // resolve a stored user id to a name (historical attribution); never feed it to a picker.
+  async getAll(status: "active" | "inactive" | "all" = "active"): Promise<UserRecord[]> {
+    return (await apiClient.get("/users", { params: { status } })).data.data;
   },
   async getEligibleAnalysts(): Promise<UserRecord[]> {
     return (await apiClient.get("/users/analysts")).data.data;
@@ -73,9 +75,5 @@ export const UserService = {
   },
   async updateEmail(id: number, email: string | null, reason: string) {
     return (await apiClient.put(`/users/${id}/email`, { email, reason })).data.data;
-  },
-  // Electronically signed (password re-entry); the body carries reason and password.
-  async hardDelete(id: number, reason: string, password: string) {
-    return (await apiClient.delete(`/users/${id}`, { data: { reason, password } })).data.data;
   }
 };

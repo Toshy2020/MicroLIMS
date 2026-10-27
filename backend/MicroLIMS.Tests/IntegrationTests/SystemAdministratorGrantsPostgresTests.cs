@@ -74,6 +74,12 @@ public class SystemAdministratorGrantsPostgresTests
             Assert.Contains(PermissionConstants.SystemManageJobs, held);
             Assert.Contains(audits, a => a.Reason!.Contains("background job") && a.NewValue!.Contains("System.ManageJobs"));
             Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SectionsConfigureAll && p.IsEnforced));
+
+            // System.ConfigureSettings: granted with its own audit row, enforced.
+            Assert.Contains(PermissionConstants.SystemConfigureSettings, held);
+            Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SystemConfigureSettings && p.IsEnforced));
+            var settings = Assert.Single(audits, a => a.NewValue!.Contains(PermissionConstants.SystemConfigureSettings));
+            Assert.Contains("settings", settings.Reason!, StringComparison.OrdinalIgnoreCase);
         });
     }
 

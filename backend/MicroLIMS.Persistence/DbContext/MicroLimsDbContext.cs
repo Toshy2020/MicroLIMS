@@ -125,6 +125,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<WorkloadWeightHistory> WorkloadWeightHistories => Set<WorkloadWeightHistory>();
     public DbSet<WorkflowProfileVersion> WorkflowProfileVersions => Set<WorkflowProfileVersion>();
     public DbSet<KpiSetting> KpiSettings => Set<KpiSetting>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<SystemSettingVersion> SystemSettingVersions => Set<SystemSettingVersion>();
     public DbSet<AnalystAvailability> AnalystAvailabilities => Set<AnalystAvailability>();
 
     // Media Configuration
@@ -524,7 +526,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
         typeof(NotificationLog), // derived reminders and read state; not a GxP record
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
-        typeof(SecurityAuditEvent) // security evidence, not a GxP record; also prevents recursive audit
+        typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit
+        typeof(SystemSetting), // audited explicitly (Configuration category, with reason and signature) by SystemSettingsService
+        typeof(SystemSettingVersion) // append-only by DB trigger; is itself the change history
     };
 
     private List<PendingAuditEntry> CapturePendingAuditEntries()

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -58,9 +59,11 @@ public class AuthenticationService : IAuthenticationService
     private readonly ILogger<AuthenticationService> _logger;
     private readonly ISecurityAuditService _securityAudit;
     private readonly TimeProvider _time;
+    private readonly ISystemSettingsReader? _settings;
 
-    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
+    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _tokenIssuer = tokenIssuer;
@@ -111,9 +114,11 @@ public class AuthenticationService : IAuthenticationService
                 SecurityEventOutcome.Failure,
                 TargetUserId: user.Id, TargetUsername: username));
 
-            if (user.FailedLoginAttempts >= MaxFailedAttempts)
+            var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutMaxFailedAttempts);
+            if (user.FailedLoginAttempts >= maxFailedAttempts)
             {
-                user.LockedUntil = _time.GetUtcNow().UtcDateTime.Add(LockDuration);
+                var lockMinutes = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutDurationMinutes);
+                user.LockedUntil = _time.GetUtcNow().UtcDateTime.AddMinutes(lockMinutes);
                 // Locking the account has to end the sessions it already
                 // has, or the lockout only blocks the login form while an
                 // existing refresh token keeps minting new access tokens.
@@ -124,7 +129,7 @@ public class AuthenticationService : IAuthenticationService
                 _securityAudit.Record(new SecurityEventRequest(
                     SecurityEventCodes.AccountLocked, SecurityEventOutcome.Success,
                     ActorIsSystem: true, TargetUserId: user.Id, TargetUsername: username,
-                    Reason: $"Automatic lockout after {MaxFailedAttempts} failed login attempts.",
+                    Reason: $"Automatic lockout after {maxFailedAttempts} failed login attempts.",
                     Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
             }
 
@@ -255,7 +260,7 @@ public class AuthenticationService : IAuthenticationService
             ?? throw new InvalidOperationException("If that account exists, a reset link has been sent."); // don't leak existence
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var expiresAt = _time.GetUtcNow().UtcDateTime.Add(PasswordResetTokenLifetime);
+        var expiresAt = _time.GetUtcNow().UtcDateTime.AddMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordResetLifetimeMinutes));
         _db.PasswordResetTokens.Add(new PasswordResetToken
         {
             UserId = user.Id,
@@ -312,17 +317,18 @@ public class AuthenticationService : IAuthenticationService
     // marking a reset token used) in one transaction.
     private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword)
     {
-        var failures = PasswordPolicy.Validate(newPassword);
+        var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", failures));
 
+        var historyLimit = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordHistoryLimit);
         var existingHistory = await _db.PasswordHistories
             .Where(h => h.UserId == user.Id)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
 
-        if (existingHistory.Take(PasswordHistoryLimit).Any(h => BCrypt.Net.BCrypt.Verify(newPassword, h.PasswordHash)))
-            throw new InvalidOperationException($"New password must not match any of your last {PasswordHistoryLimit} passwords.");
+        if (existingHistory.Take(historyLimit).Any(h => BCrypt.Net.BCrypt.Verify(newPassword, h.PasswordHash)))
+            throw new InvalidOperationException($"New password must not match any of your last {historyLimit} passwords.");
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;
@@ -330,8 +336,8 @@ public class AuthenticationService : IAuthenticationService
         user.MustChangePassword = false;
 
         _db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = newHash });
-        if (existingHistory.Count >= PasswordHistoryLimit)
-            _db.PasswordHistories.RemoveRange(existingHistory.Skip(PasswordHistoryLimit - 1));
+        if (existingHistory.Count >= historyLimit)
+            _db.PasswordHistories.RemoveRange(existingHistory.Skip(historyLimit - 1));
 
         // Changing or resetting the password ends every existing session:
         // whoever knew the old password must not keep a refresh token that
@@ -414,7 +420,7 @@ public class AuthenticationService : IAuthenticationService
         {
             UserId = userId,
             TokenHash = Hash(rawToken),
-            ExpiresAt = _time.GetUtcNow().UtcDateTime.Add(RefreshTokenLifetime),
+            ExpiresAt = _time.GetUtcNow().UtcDateTime.AddDays(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.RefreshTokenLifetimeDays)),
             CreatedIp = Truncate(ipAddress, RefreshToken.MaxIpLength),
             UserAgent = Truncate(userAgent, RefreshToken.MaxUserAgentLength),
             LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null

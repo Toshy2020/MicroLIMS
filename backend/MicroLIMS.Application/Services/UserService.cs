@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
@@ -53,8 +54,11 @@ public class UserService
     private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null)
+    private readonly ISystemSettingsReader? _settings;
+
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null, ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
@@ -63,9 +67,22 @@ public class UserService
         _authService = authService;
     }
 
-    public async Task<List<UserDto>> GetAllAsync()
+    // Admin list. "active" (default) and "inactive" are kept apart: inactive
+    // users are only surfaced on the admin Inactive list (for reactivation).
+    // "all" exists solely for screens that resolve historical attribution
+    // (a name for a stored user id) and must never feed a picker or roster.
+    public async Task<List<UserDto>> GetAllAsync(string? status = null)
     {
-        var users = await _db.Users.Include(u => u.Role).OrderBy(u => u.Id).ToListAsync();
+        bool? wantActive = (status?.Trim().ToLowerInvariant()) switch
+        {
+            null or "" or "active" => true,
+            "inactive" => false,
+            "all" => null,
+            _ => throw new InvalidOperationException("Status must be 'active', 'inactive' or 'all'.")
+        };
+        var query = _db.Users.Include(u => u.Role).AsQueryable();
+        if (wantActive.HasValue) query = query.Where(u => u.IsActive == wantActive.Value);
+        var users = await query.OrderBy(u => u.Id).ToListAsync();
         return users.Select(ToDto).ToList();
     }
 
@@ -115,7 +132,7 @@ public class UserService
         if (string.IsNullOrWhiteSpace(user.FullName))
             throw new InvalidOperationException("Full Name is required.");
 
-        var passwordFailures = PasswordPolicy.Validate(plainPassword);
+        var passwordFailures = PasswordPolicy.Validate(plainPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (passwordFailures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", passwordFailures));
 

@@ -234,7 +234,7 @@ public class RolePermissionSeedDataTests
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
         // The System Administrator now holds only PermissionConstants.SystemAdministratorGrants
-        // (23 system codes, no lab/GxP codes). The total is the sum of the four per-role
+        // (24 system codes, no lab/GxP codes). The total is the sum of the four per-role
         // sets that the tests above assert literally:
         //   SystemAdministrator 24 + SectionHead 50 + Reviewer 18 + Analyst 17 = 109.
         // Update this only when a per-role set above changes.

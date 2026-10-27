@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
@@ -18,8 +20,11 @@ public class AdminPasswordRecoveryService
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
 
-    public AdminPasswordRecoveryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
+    private readonly ISystemSettingsReader? _settings;
+
+    public AdminPasswordRecoveryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
@@ -195,7 +200,7 @@ public class AdminPasswordRecoveryService
         }
 
         // Code matches - Validate Password Policy
-        var failures = PasswordPolicy.Validate(newPassword);
+        var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", failures));
 

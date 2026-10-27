@@ -38,6 +38,8 @@ public static class UserReferenceRegistry
     public static readonly IReadOnlyList<UserReferenceEntry> All = new[]
     {
         // ---- Group A: DB enforces a real Restrict FK to User ----
+        new UserReferenceEntry(typeof(SecurityAuditEvent), nameof(SecurityAuditEvent.ActorUserId), UserReferenceDisposition.Blocks, "Restrict FK - SecurityAuditEvents is an immutable regulated record (append-only trigger); a user it references cannot be hard-deleted"),
+        new UserReferenceEntry(typeof(SecurityAuditEvent), nameof(SecurityAuditEvent.TargetUserId), UserReferenceDisposition.Blocks, "Restrict FK - SecurityAuditEvents is an immutable regulated record (append-only trigger); a user it references cannot be hard-deleted"),
         new UserReferenceEntry(typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(ElectronicSignature), nameof(ElectronicSignature.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
@@ -124,12 +126,10 @@ public static class UserReferenceRegistry
         // by itself and the error entry survives without it.
         new UserReferenceEntry(typeof(ErrorLog), nameof(ErrorLog.UserId), UserReferenceDisposition.Excluded, "SetNull FK - operational error log, not a GxP record; attribution clears with the user"),
         new UserReferenceEntry(typeof(Incident), nameof(Incident.ResolvedByUserId), UserReferenceDisposition.Excluded, "SetNull FK - operational incident triage, not a GxP record; attribution clears with the user"),
-        new UserReferenceEntry(typeof(SecurityAuditEvent), nameof(SecurityAuditEvent.ActorUserId), UserReferenceDisposition.Excluded, "SetNull FK - security evidence, not a GxP record; TargetUsername keeps the event readable after the user row goes"),
-        new UserReferenceEntry(typeof(SecurityAuditEvent), nameof(SecurityAuditEvent.TargetUserId), UserReferenceDisposition.Excluded, "SetNull FK - security evidence, not a GxP record; TargetUsername keeps the event readable after the user row goes"),
 
         // ---- Group B: no DB FK constraint at all - blocked at application level only ----
         new UserReferenceEntry(typeof(AuditLog), nameof(AuditLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - traceability record"),
-        new UserReferenceEntry(typeof(LoginHistory), nameof(LoginHistory.UserId), UserReferenceDisposition.Blocks, "No DB FK - login history record"),
+        new UserReferenceEntry(typeof(LoginHistory), nameof(LoginHistory.UserId), UserReferenceDisposition.Blocks, "No DB FK - login history record; append-only (trigger), so it can never be removed"),
         new UserReferenceEntry(typeof(DataExportLog), nameof(DataExportLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - export history record"),
         new UserReferenceEntry(typeof(NotificationLog), nameof(NotificationLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - notification record"),
         new UserReferenceEntry(typeof(ArchivedRecord), nameof(ArchivedRecord.GeneratedByUserId), UserReferenceDisposition.Blocks, "No DB FK - archive provenance"),

@@ -138,6 +138,39 @@ public class UserDeletionTests
     }
 
     [Fact]
+    public async Task HardDeleteAsync_IsBlocked_ForUserReferencedBySecurityAuditEvent()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var target = new User { Id = 2, FullName = "Security Subject", Username = "secsubject1", RoleId = 4, IsActive = false };
+        db.Users.Add(target);
+        await db.SaveChangesAsync();
+
+        db.SecurityAuditEvents.Add(new SecurityAuditEvent { EventCode = "AUTH_LOGIN_FAILED", Source = "Api", TargetUserId = target.Id });
+        await db.SaveChangesAsync();
+
+        Assert.True(await service.UserHasAnyHistoryAsync(target.Id));
+        var ex = await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, actingUserId: 1));
+        Assert.Contains("activity history", ex.Message);
+        Assert.NotNull(await db.Users.FindAsync(target.Id));
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_IsBlocked_ForUserWithLoginHistory()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var target = new User { Id = 2, FullName = "Login Subject", Username = "loginsubject1", RoleId = 4, IsActive = false };
+        db.Users.Add(target);
+        await db.SaveChangesAsync();
+
+        db.LoginHistories.Add(new LoginHistory { UserId = target.Id, Username = target.Username, Success = false });
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, actingUserId: 1));
+    }
+
+    [Fact]
     public async Task UserHasAnyHistoryAsync_ReturnsFalse_ForAGenuinelyCleanUser()
     {
         var db = CreateDbContext();

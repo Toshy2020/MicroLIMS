@@ -134,6 +134,20 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 
 ### Wave 3 — Phase 2: configuration & operations (gate: D9 / Q9, Q10)
 
+> **Status (2026-10-27): Wave 3 is complete.** Validation: full suite with PostgreSQL (3,850 tests), `has-pending-model-changes` clean, `tsc -b`, lint (0 errors), Vitest (540 tests). Decisions: Q9 store UTC and display Africa/Cairo; Q10 manual runs for housekeeping jobs only; Q11 AI/MCP out of scope; Q13 enforce the five `Documents.*` codes and hide `Discussions.View/Create` and `Messages.Use`; Q14 hard delete removed, with an inactive-users list instead; Section Heads hold `Documents.Review`; documents are owned by their department, with explicit succession.
+>
+> | WP | Delivered |
+> |---|---|
+> | WP3.1 | `SystemSetting` and append-only `SystemSettingVersion` registry, 15 live settings. GxP-relevant settings need an e-signature; every change needs a reason and is audited as Configuration. New `System.ConfigureSettings`. The Settings tab replaces the read-only Security Policy page. |
+> | WP3.2 | The duplicate `System.TimeZone` setting is removed; `Lab:TimeZoneId` is the single display zone. Document Control settings are shown read-only, with a link. |
+> | WP3.3 | `BackgroundJobRun` recorder on all 8 workers; Jobs tab. "Run now" is available for the 3 housekeeping jobs only, with a reason and a security event. New `System.ManageJobs`. |
+> | WP3.4 | Database size and top tables; `BackupRun` rows written by `backup.sh`; Overview tab. |
+> | Q14 | Hard delete removed. Active and Inactive user lists. Inactive users are excluded from pickers, rosters and notifications, while historical attribution is kept. |
+> | Q13 | The five `Documents.*` codes are enforced in addition to assignment; pickers are filtered by permission; in-flight assignees received grants by migration. The three unused codes are hidden. Section Heads hold `Documents.Review`. |
+> | Org | Organization tab (departments, sections, memberships; reason required; no delete; deactivation shows an impact warning). The department "Needs reassignment" queue holds an inactive user's documents and tasks; a member Section Head (`Documents.Reassign`) or a ConfigManage holder hands each item over to an eligible department member, with a reason, an audit row and a notification. `DocumentControl.ReassignmentEscalationDays` (7) flags overdue items and notifies Section Heads; nothing is reassigned automatically. |
+>
+> WP3.5 (critical-alert recipients in the registry) remains open.
+
 | WP | Covers | Model | Scope |
 |---|---|---|---|
 | **WP3.1** 🔒 | F20, F21, C10 | Sonnet | `SystemSetting` + append-only `SystemSettingVersion` registry; typed and validated; reason + e-sign for GxP keys; audited as `ActionCategory.Configuration`. Migrate the security-policy constants and alert/retention/worker settings into it. Secrets stay in env and display masked. |

@@ -3570,6 +3570,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("DiluentSolutionId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("DisregardLimitPercent")
+                        .HasColumnType("decimal(10,4)");
+
                     b.Property<DateTime>("EffectiveDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -3619,6 +3622,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<decimal?>("ParticleSizeUm")
                         .HasColumnType("decimal(10,3)");
+
+                    b.Property<decimal?>("ReferenceSolutionPercent")
+                        .HasColumnType("decimal(10,4)");
 
                     b.Property<int>("ResultMode")
                         .HasColumnType("integer");
@@ -3768,6 +3774,45 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("HplcMethodId");
 
                     b.ToTable("HplcMethodGradientSteps");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodImpurity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CorrectionFactor")
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HplcMethodId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("RelativeRetention")
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HplcMethodId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("HplcMethodImpurities", (string)null);
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodMobilePhase", b =>
@@ -12581,6 +12626,17 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("HplcMethod");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodImpurity", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethod", "HplcMethod")
+                        .WithMany("Impurities")
+                        .HasForeignKey("HplcMethodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HplcMethod");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodMobilePhase", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.HplcMethod", "HplcMethod")
@@ -14912,6 +14968,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Analytes");
 
                     b.Navigation("GradientSteps");
+
+                    b.Navigation("Impurities");
 
                     b.Navigation("MobilePhases");
 

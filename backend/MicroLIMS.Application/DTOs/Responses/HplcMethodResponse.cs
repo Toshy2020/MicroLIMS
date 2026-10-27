@@ -18,6 +18,9 @@ public record HplcMethodAnalyteResponse(
     decimal? SstMinPeakToValley, decimal? StandardDilution = null,
     decimal? StandardConcentrationUgPerMl = null);
 
+public record HplcMethodImpurityResponse(
+    int Id, int DisplayOrder, string Name, decimal? RelativeRetention, decimal CorrectionFactor);
+
 public record HplcMethodOvenStepResponse(int Id, int StepNo, decimal? RateCPerMin, decimal TemperatureC, decimal HoldMin);
 
 public class HplcMethodResponse
@@ -67,6 +70,10 @@ public class HplcMethodResponse
     public List<HplcMethodMobilePhaseResponse> MobilePhases { get; init; } = new();
     public List<HplcMethodGradientStepResponse> GradientSteps { get; init; } = new();
     public List<HplcMethodAnalyteResponse> Analytes { get; init; } = new();
+
+    public decimal? ReferenceSolutionPercent { get; init; }
+    public decimal? DisregardLimitPercent { get; init; }
+    public List<HplcMethodImpurityResponse> Impurities { get; init; } = new();
 
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -132,6 +139,12 @@ public class HplcMethodResponse
                 a.SstMaxRsdPercent, a.SstMinResolution, a.SstMaxTailingFactor,
                 a.SstMinTheoreticalPlates, a.SstMinRetentionFactor, a.SstMinSignalToNoise,
                 a.SstMinPeakToValley, a.StandardDilution, a.StandardConcentrationUgPerMl))
+            .ToList(),
+        ReferenceSolutionPercent = m.ReferenceSolutionPercent,
+        DisregardLimitPercent = m.DisregardLimitPercent,
+        Impurities = m.Impurities
+            .OrderBy(i => i.DisplayOrder)
+            .Select(i => new HplcMethodImpurityResponse(i.Id, i.DisplayOrder, i.Name, i.RelativeRetention, i.CorrectionFactor))
             .ToList(),
         CreatedByUserId = m.CreatedByUserId,
         CreatedAt = m.CreatedAt,

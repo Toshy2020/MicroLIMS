@@ -13,6 +13,7 @@ namespace MicroLIMS.Application.Services;
 public record HplcMobilePhaseInput(string Channel, int SolutionMasterId, decimal? RatioPercent);
 public record HplcGradientStepInput(decimal TimeMin, decimal PercentA, decimal PercentB, decimal PercentC, decimal PercentD);
 public record GcOvenStepInput(decimal? RateCPerMin, decimal TemperatureC, decimal HoldMin);
+public record HplcImpurityInput(int? Id, string Name, decimal? RelativeRetention, decimal? CorrectionFactor);
 public record HplcAnalyteInput(int? Id, string Name, decimal? WavelengthNm, int StandardEntryId,
     decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg, int StandardInjections,
     decimal? SstMaxRsdPercent = null, decimal? SstMinResolution = null, decimal? SstMaxTailingFactor = null,
@@ -34,7 +35,9 @@ public record SaveHplcMethodRequest(
     List<GcOvenStepInput>? OvenSteps = null,
     bool HeadspaceEnabled = false, decimal? HeadspaceEquilibrationTemperatureC = null,
     decimal? HeadspaceEquilibrationMin = null, decimal? HeadspaceTransferLineTemperatureC = null,
-    decimal? SampleSolutionVolumeMl = null);
+    decimal? SampleSolutionVolumeMl = null,
+    decimal? ReferenceSolutionPercent = null, decimal? DisregardLimitPercent = null,
+    List<HplcImpurityInput>? Impurities = null);
 
 public record HplcMethodListItem(int Id, string Name, string Abbreviation, bool IsActive, int AnalyteCount, string SectionName, DateTime LastModifiedAt,
     HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay);
@@ -126,6 +129,7 @@ public partial class HplcMethodService
         ReplaceGradientSteps(method, r);
         ReplaceOvenSteps(method, r);
         ApplyAnalytes(method, r);
+        ApplyImpurities(method, r);
 
         _db.HplcMethods.Add(method);
         await _db.SaveChangesAsync(ct);
@@ -155,6 +159,7 @@ public partial class HplcMethodService
             .Include(m => m.GradientSteps)
             .Include(m => m.OvenSteps)
             .Include(m => m.Analytes)
+            .Include(m => m.Impurities)
             .FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException($"HPLC method {id} not found.");
 
@@ -186,6 +191,7 @@ public partial class HplcMethodService
         ReplaceGradientSteps(method, r);
         ReplaceOvenSteps(method, r);
         ApplyAnalytes(method, r);
+        ApplyImpurities(method, r);
         method.LastModifiedByUserId = currentUserId;
         method.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
@@ -273,7 +279,8 @@ public partial class HplcMethodService
             .Include(m => m.MobilePhases).ThenInclude(p => p.SolutionMaster)
             .Include(m => m.GradientSteps)
             .Include(m => m.OvenSteps)
-            .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry);
+            .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry)
+            .Include(m => m.Impurities);
 
     private static string ValidateReason(string? reason)
     {
@@ -316,6 +323,8 @@ public partial class HplcMethodService
         method.HeadspaceEquilibrationMin = r.HeadspaceEquilibrationMin;
         method.HeadspaceTransferLineTemperatureC = r.HeadspaceTransferLineTemperatureC;
         method.SampleSolutionVolumeMl = r.SampleSolutionVolumeMl;
+        method.ReferenceSolutionPercent = r.ReferenceSolutionPercent;
+        method.DisregardLimitPercent = r.DisregardLimitPercent;
     }
 
     private void ReplaceOvenSteps(HplcMethod method, SaveHplcMethodRequest r)
@@ -417,6 +426,65 @@ public partial class HplcMethodService
         }
     }
 
+    // Same pattern as ApplyAnalytes: matched by Id so unchanged impurities keep their Id.
+    private void ApplyImpurities(HplcMethod method, SaveHplcMethodRequest r)
+    {
+        var incoming = r.Impurities ?? new List<HplcImpurityInput>();
+        var existingById = method.Impurities.Where(i => i.Id != 0).ToDictionary(i => i.Id);
+        var keepIds = new HashSet<int>();
+        var order = 1;
+        foreach (var input in incoming)
+        {
+            HplcMethodImpurity impurity;
+            if (input.Id.HasValue && existingById.TryGetValue(input.Id.Value, out var existing))
+            {
+                impurity = existing;
+                keepIds.Add(existing.Id);
+            }
+            else
+            {
+                impurity = new HplcMethodImpurity();
+                method.Impurities.Add(impurity);
+            }
+
+            impurity.DisplayOrder = order++;
+            impurity.Name = input.Name.Trim();
+            impurity.RelativeRetention = input.RelativeRetention;
+            impurity.CorrectionFactor = input.CorrectionFactor ?? 1m;
+        }
+
+        var toRemove = method.Impurities.Where(i => i.Id != 0 && !keepIds.Contains(i.Id)).ToList();
+        if (toRemove.Count > 0)
+        {
+            _db.HplcMethodImpurities.RemoveRange(toRemove);
+            foreach (var rem in toRemove)
+                method.Impurities.Remove(rem);
+        }
+    }
+
+    private static void ValidateRelatedSubstances(SaveHplcMethodRequest r)
+    {
+        if (r.Analytes.Count > 1)
+            throw new InvalidOperationException("A related-substances method has exactly one analyte: the principal peak.");
+        if (r.Analytes.Any(a => a.TheoreticalWeightStdMg != 0m || a.TheoreticalWeightTestMg != 0m))
+            throw new InvalidOperationException("Theoretical weights are not used in a related-substances method.");
+        if (!(r.ReferenceSolutionPercent > 0m && r.ReferenceSolutionPercent <= 100m))
+            throw new InvalidOperationException("Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
+        if (r.DisregardLimitPercent < 0m)
+            throw new InvalidOperationException("The disregard limit cannot be negative.");
+
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var i in r.Impurities ?? new List<HplcImpurityInput>())
+        {
+            if (string.IsNullOrWhiteSpace(i.Name) || i.Name.Trim().Length > 100 || !names.Add(i.Name.Trim()))
+                throw new InvalidOperationException("Each impurity needs a unique name.");
+            if (i.CorrectionFactor <= 0m)
+                throw new InvalidOperationException("The correction factor must be greater than zero.");
+            if (i.RelativeRetention <= 0m)
+                throw new InvalidOperationException("The relative retention must be greater than zero.");
+        }
+    }
+
     private async Task<string> ValidateCommonAsync(
         SaveHplcMethodRequest r, int sectionId,
         HashSet<int>? alreadyUsedSolutionIds, HashSet<int>? alreadyUsedStandardIds,
@@ -452,6 +520,12 @@ public partial class HplcMethodService
             throw new InvalidOperationException("The diluent solution must be of type Diluent.");
         if (!diluent.IsActive && !alreadyUsedSolutionIds.Contains(diluent.Id))
             throw new InvalidOperationException("The diluent solution is inactive.");
+
+        if (r.ResultMode == HplcResultMode.RelatedSubstances && r.Technique != HplcTechnique.Hplc)
+            throw new InvalidOperationException("Related substances is available for HPLC methods only.");
+        if (r.ResultMode != HplcResultMode.RelatedSubstances
+            && (r.Impurities?.Count > 0 || r.ReferenceSolutionPercent.HasValue || r.DisregardLimitPercent.HasValue))
+            throw new InvalidOperationException("Impurities and reference-solution values belong to related-substances methods only.");
 
         if (r.Technique == HplcTechnique.Gc)
             ValidateGcSection(r);
@@ -505,8 +579,10 @@ public partial class HplcMethodService
             or HplcDetectorType.RI or HplcDetectorType.ELSD or HplcDetectorType.Other))
             throw new InvalidOperationException($"Detector {r.DetectorType} is not an HPLC detector.");
 
-        if (r.ResultMode != HplcResultMode.Assay)
+        if (r.ResultMode == HplcResultMode.ResidualSolvents)
             throw new InvalidOperationException("Residual solvents mode is only available for GC methods.");
+        if (r.ResultMode == HplcResultMode.RelatedSubstances)
+            ValidateRelatedSubstances(r);
 
         if (r.FilmThicknessUm.HasValue || r.CarrierGas.HasValue || r.SplitRatio.HasValue || r.InletTemperatureC.HasValue
             || r.DetectorTemperatureC.HasValue || r.SampleSolutionVolumeMl.HasValue
@@ -597,7 +673,8 @@ public partial class HplcMethodService
             if (!(a.WavelengthNm >= 190m && a.WavelengthNm <= 900m))
                 throw new InvalidOperationException("Analyte wavelength must be between 190 and 900 nm.");
 
-            if (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m)
+            if (r.ResultMode != HplcResultMode.RelatedSubstances
+                && (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m))
                 throw new InvalidOperationException("Theoretical weights must be greater than zero.");
 
             if (a.StandardDilution.HasValue && a.StandardDilution.Value <= 0m)

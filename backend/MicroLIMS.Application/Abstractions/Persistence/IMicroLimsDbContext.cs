@@ -130,6 +130,7 @@ public interface IMicroLimsDbContext
     DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases { get; }
     DbSet<HplcMethodGradientStep> HplcMethodGradientSteps { get; }
     DbSet<HplcMethodOvenStep> HplcMethodOvenSteps { get; }
+    DbSet<HplcMethodImpurity> HplcMethodImpurities { get; }
     DbSet<SolutionPreparation> SolutionPreparations { get; }
     DbSet<SolutionPreparationComponent> SolutionPreparationComponents { get; }
     DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories { get; }

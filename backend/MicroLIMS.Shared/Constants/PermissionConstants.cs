@@ -78,6 +78,13 @@ public static class PermissionConstants
     public const string DocumentsTrainingViewMatrix = "Documents.TrainingViewMatrix";
     public const string DocumentsConfigManage = "Documents.ConfigManage";
 
+    // Hand a deactivated user's document responsibilities (custodianship, assignments, open review,
+    // approval and periodic-review tasks) to another active member of the same department. Held by the
+    // Section Head; it only applies within a department the holder is a member of, unless the holder
+    // also has Documents.ConfigManage. Not a signing or SoD code: the new holder still meets every
+    // permission and segregation rule of the role being handed over.
+    public const string DocumentsReassign = "Documents.Reassign";
+
     // Gates that were [Authorize(Roles=...)] only, with no catalogue code
     // of their own. Each is granted by default to exactly the roles the
     // attribute named, so moving to them changed nobody's access.
@@ -143,7 +150,7 @@ public static class PermissionConstants
         SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         DocumentsRegister, DocumentsDraftEdit, DocumentsRevisionCreate,
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
-        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage,
+        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage, DocumentsReassign,
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
@@ -178,7 +185,7 @@ public static class PermissionConstants
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
-        DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
+        DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,

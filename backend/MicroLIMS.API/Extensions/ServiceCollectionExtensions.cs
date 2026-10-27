@@ -156,6 +156,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITrainingMatrixService, TrainingMatrixService>();
         services.AddScoped<IDocumentAcknowledgementService, DocumentAcknowledgementService>();
         services.AddScoped<IDocumentEscalationService, DocumentEscalationService>();
+        services.AddScoped<IDocumentReassignmentService, DocumentReassignmentService>();
         services.AddSingleton<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();

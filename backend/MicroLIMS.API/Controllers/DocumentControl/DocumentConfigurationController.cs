@@ -110,6 +110,17 @@ public class DocumentConfigurationController : ControllerBase
         }
     }
 
+    // What deactivating a department or section would leave behind, so the screen can warn before asking to confirm.
+    [HttpGet("departments/{id:int}/impact")]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
+    public async Task<IActionResult> GetDepartmentImpact(int id) =>
+        Ok(ApiResponse<OrganizationImpactDto>.Ok(await _configService.GetDepartmentImpactAsync(id, CurrentUserId)));
+
+    [HttpGet("sections/{id:int}/impact")]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
+    public async Task<IActionResult> GetSectionImpact(int id) =>
+        Ok(ApiResponse<OrganizationImpactDto>.Ok(await _configService.GetSectionImpactAsync(id, CurrentUserId)));
+
     [HttpGet("departments/{departmentId:int}/sections")]
     public async Task<IActionResult> GetSections(int departmentId, [FromQuery] bool includeInactive = false)
     {

@@ -842,7 +842,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             m.SectionId,
             m.Section?.Name ?? "",
             m.DocumentOwnerUserId,
-            m.DocumentOwnerUser?.FullName ?? "",
+            DocumentDtoMapper.HolderName(m.DocumentOwnerUser),
             m.Confidentiality,
             m.Category,
             m.RecordOrigin,
@@ -860,18 +860,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             m.VoidedByUser?.FullName,
             m.VoidReason,
             m.Keywords.Select(k => k.Keyword).ToList(),
-            m.Assignments.Where(a => a.IsActive).Select(a => new DocumentMasterAssignmentDto(
-                a.Id,
-                a.DocumentMasterId,
-                a.UserId,
-                a.User?.Username ?? "",
-                a.User?.FullName ?? "",
-                a.AssignmentRole,
-                a.IsActive,
-                a.AssignedAt,
-                a.AssignedByUserId,
-                a.AssignedByUser?.FullName ?? ""
-            )).ToList(),
+            m.Assignments.Where(a => a.IsActive).Select(DocumentDtoMapper.MapAssignment).ToList(),
             m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList(),
             sectionIds,
             sectionNames

@@ -181,6 +181,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     private async Task<DocumentDepartmentDto> CreateDepartmentCoreAsync(CreateDocumentDepartmentRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
+        var reason = AdminActionReason.Require(request.Reason, "create a department");
 
         if (string.IsNullOrWhiteSpace(request.Code))
             throw new ArgumentException("Department Code is required.", nameof(request.Code));
@@ -201,6 +202,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         _db.DocumentDepartments.Add(dept);
         _db.CurrentUserId = userId;
+        _db.CurrentReason = reason;
         await _db.SaveChangesAsync();
 
         var changes = new List<AuditFieldChange>
@@ -213,6 +215,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             actionCode: "DocumentDepartmentCreated",
             actionCategory: AuditActionCategory.Configuration,
             recordType: nameof(DocumentDepartment),
+            reason: reason,
             changes: changes,
             entityId: dept.Id.ToString());
 
@@ -225,6 +228,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     private async Task<DocumentDepartmentDto> UpdateDepartmentCoreAsync(int id, UpdateDocumentDepartmentRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
+        var reason = AdminActionReason.Require(request.Reason, "change a department");
 
         var dept = await _db.DocumentDepartments
             .Include(d => d.Sections)
@@ -245,11 +249,15 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         if (dept.IsActive != request.IsActive)
         {
+            // A department still in use can be deactivated, never deleted - but only knowingly.
+            if (!request.IsActive)
+                RequireDeactivationConfirmation("department", dept.Name, await GetDepartmentImpactCoreAsync(id), request.ConfirmDeactivation);
             changes.Add(new("IsActive", dept.IsActive.ToString(), request.IsActive.ToString()));
             dept.IsActive = request.IsActive;
         }
 
         _db.CurrentUserId = userId;
+        _db.CurrentReason = reason;
         await _db.SaveChangesAsync();
 
         if (changes.Count > 0)
@@ -258,6 +266,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 actionCode: "DocumentDepartmentUpdated",
                 actionCategory: AuditActionCategory.Configuration,
                 recordType: nameof(DocumentDepartment),
+                reason: reason,
                 changes: changes,
                 entityId: dept.Id.ToString());
         }
@@ -294,6 +303,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     private async Task<DocumentSectionDto> CreateSectionCoreAsync(CreateDocumentSectionRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
+        var reason = AdminActionReason.Require(request.Reason, "create a section");
 
         var dept = await _db.DocumentDepartments.FindAsync(request.DepartmentId)
             ?? throw new KeyNotFoundException($"Department {request.DepartmentId} not found.");
@@ -314,6 +324,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         _db.DocumentSections.Add(section);
         _db.CurrentUserId = userId;
+        _db.CurrentReason = reason;
         await _db.SaveChangesAsync();
 
         var changes = new List<AuditFieldChange>
@@ -326,6 +337,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             actionCode: "DocumentSectionCreated",
             actionCategory: AuditActionCategory.Configuration,
             recordType: nameof(DocumentSection),
+            reason: reason,
             changes: changes,
             entityId: section.Id.ToString());
 
@@ -338,6 +350,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     private async Task<DocumentSectionDto> UpdateSectionCoreAsync(int id, UpdateDocumentSectionRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
+        var reason = AdminActionReason.Require(request.Reason, "change a section");
 
         var section = await _db.DocumentSections
             .Include(s => s.Department)
@@ -358,11 +371,14 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         if (section.IsActive != request.IsActive)
         {
+            if (!request.IsActive)
+                RequireDeactivationConfirmation("section", section.Name, await GetSectionImpactCoreAsync(id), request.ConfirmDeactivation);
             changes.Add(new("IsActive", section.IsActive.ToString(), request.IsActive.ToString()));
             section.IsActive = request.IsActive;
         }
 
         _db.CurrentUserId = userId;
+        _db.CurrentReason = reason;
         await _db.SaveChangesAsync();
 
         if (changes.Count > 0)
@@ -371,11 +387,68 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 actionCode: "DocumentSectionUpdated",
                 actionCategory: AuditActionCategory.Configuration,
                 recordType: nameof(DocumentSection),
+                reason: reason,
                 changes: changes,
                 entityId: section.Id.ToString());
         }
 
         return new DocumentSectionDto(section.Id, section.DepartmentId, section.Department?.Name ?? "", section.Name, section.IsActive) { Version = section.Version };
+    }
+
+
+    // ---- Deactivation impact ----
+    // There is no delete: a department or section that documents, memberships or open work refer to is
+    // deactivated, and doing so with such references needs an explicit confirmation.
+
+    public async Task<OrganizationImpactDto> GetDepartmentImpactAsync(int id, int userId)
+    {
+        await EnsureAdminAsync(userId);
+        if (!await _db.DocumentDepartments.AnyAsync(d => d.Id == id))
+            throw new KeyNotFoundException($"Department {id} not found.");
+        return await GetDepartmentImpactCoreAsync(id);
+    }
+
+    public async Task<OrganizationImpactDto> GetSectionImpactAsync(int id, int userId)
+    {
+        await EnsureAdminAsync(userId);
+        if (!await _db.DocumentSections.AnyAsync(s => s.Id == id))
+            throw new KeyNotFoundException($"Section {id} not found.");
+        return await GetSectionImpactCoreAsync(id);
+    }
+
+    private static readonly DocumentRevisionStatus[] OpenRevisionStatuses =
+    {
+        DocumentRevisionStatus.Draft, DocumentRevisionStatus.InReview,
+        DocumentRevisionStatus.AwaitingApproval, DocumentRevisionStatus.FutureEffective
+    };
+
+    private Task<OrganizationImpactDto> GetDepartmentImpactCoreAsync(int id) =>
+        CountImpactAsync(
+            _db.DocumentMasters.Where(m => m.RecordStatus == DocumentRecordStatus.Active && m.DepartmentId == id),
+            _db.UserOrgMemberships.Where(m => m.DepartmentId == id));
+
+    private Task<OrganizationImpactDto> GetSectionImpactCoreAsync(int id) =>
+        CountImpactAsync(
+            _db.DocumentMasters.Where(m => m.RecordStatus == DocumentRecordStatus.Active && (m.SectionId == id || m.Sections.Any(s => s.SectionId == id))),
+            _db.UserOrgMemberships.Where(m => m.SectionId == id));
+
+    private async Task<OrganizationImpactDto> CountImpactAsync(IQueryable<DocumentMaster> masters, IQueryable<UserOrgMembership> memberships)
+    {
+        var documents = await masters.CountAsync();
+        // Inactive users keep their membership rows (history) but are no longer "active members".
+        var members = await memberships.CountAsync(m => m.User.IsActive);
+        var openRevisions = await _db.DocumentRevisions.CountAsync(r => OpenRevisionStatuses.Contains(r.RevisionStatus) && masters.Any(m => m.Id == r.DocumentMasterId));
+        var openReviews = await _db.PeriodicReviewTasks.CountAsync(t =>
+            (t.Status == PeriodicReviewTaskStatus.Pending || t.Status == PeriodicReviewTaskStatus.InProgress) && masters.Any(m => m.Id == t.DocumentMasterId));
+        return new OrganizationImpactDto(documents, members, openRevisions + openReviews);
+    }
+
+    private static void RequireDeactivationConfirmation(string kind, string name, OrganizationImpactDto impact, bool confirmed)
+    {
+        if (!impact.HasReferences || confirmed) return;
+        throw new InvalidOperationException(
+            $"The {kind} '{name}' still has {impact.ActiveDocuments} active document(s), {impact.ActiveMemberships} active member(s) and {impact.OpenWork} open work item(s). " +
+            "Deactivating it does not delete or move them. Confirm the deactivation to proceed.");
     }
 
     // ---- Numbering Configuration ----

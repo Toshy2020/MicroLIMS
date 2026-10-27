@@ -91,7 +91,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
         _logger.LogInformation("[{Worker}] Background service has stopped gracefully.", ProcessName);
     }
 
-    // Returns the number of items acted on: revisions activated, review tasks created, escalations created.
+    // Returns the number of items acted on: revisions activated, review tasks created, escalations created, Section Heads notified.
     public async Task<int> RunCycleAsync(CancellationToken cancellationToken = default)
     {
         // Non-overlapping execution guard: if a cycle is already actively executing, skip (concurrency-safe)
@@ -167,6 +167,21 @@ public class DocumentEffectiveDateWorker : BackgroundService
                         escalationResult.OverdueCreated,
                         escalationResult.TotalEvaluatedCount,
                         escalationResult.Errors.Count);
+                }
+            }
+
+            // 4. Reassignment safety net: tell each department's Section Heads about responsibilities of
+            // deactivated users that have waited too long. Notification only - nothing is reassigned.
+            var reassignmentService = scope.ServiceProvider.GetService<IDocumentReassignmentService>();
+            if (reassignmentService != null)
+            {
+                var notified = await reassignmentService.NotifyOverdueAsync(cancellationToken: cancellationToken);
+                processed += notified;
+                if (notified > 0)
+                {
+                    _logger.LogInformation(
+                        "[{Worker}] Reassignment escalation notified {Count} Section Head(s) about overdue hand-overs.",
+                        ProcessName, notified);
                 }
             }
             return processed;

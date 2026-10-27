@@ -278,6 +278,8 @@ public class UserService
         _db.CurrentReason = reason;
         var prevStatus = user.IsActive;
         user.IsActive = isActive;
+        if (prevStatus != isActive)
+            user.DeactivatedAt = isActive ? null : _time.GetUtcNow().UtcDateTime;
 
         // Disabling has to end the account's existing sessions in the same
         // transaction as the status change - otherwise the user stays

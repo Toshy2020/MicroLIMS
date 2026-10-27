@@ -485,6 +485,7 @@ public static class DbSeeder
             (PermissionConstants.DocumentsTrainingAssign, "Assign document reading and training curricula to personnel."),
             (PermissionConstants.DocumentsTrainingViewMatrix, "View and export the document training matrix."),
             (PermissionConstants.DocumentsConfigManage, "Manage Document Control configuration (types, departments, sections, numbering, settings)."),
+            (PermissionConstants.DocumentsReassign, "Hand a deactivated user's document responsibilities to another active member of the same department."),
             (PermissionConstants.DashboardsLabOverview, "View the laboratory overview dashboard (section workload, approvals, overdue work)."),
             (PermissionConstants.DashboardsReview, "View the reviewer dashboard."),
             (PermissionConstants.KpiView, "View laboratory KPIs."),
@@ -568,7 +569,7 @@ public static class DbSeeder
                     // override (FRS-1B §3.2:184).
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
-                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview,
+                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview, PermissionConstants.DocumentsReassign,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,

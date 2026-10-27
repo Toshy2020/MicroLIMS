@@ -58,8 +58,9 @@ public class LaboratoryOrganizationService
     // Replaces the user's memberships. Every change is captured by the
     // DbContext's audit trail under the acting user - membership decides
     // what laboratory data a user can see and act on.
-    public async Task<List<UserOrgMembershipDto>> ReplaceMembershipsAsync(int userId, IReadOnlyCollection<UserOrgMembershipDto> memberships, int actingUserId)
+    public async Task<List<UserOrgMembershipDto>> ReplaceMembershipsAsync(int userId, IReadOnlyCollection<UserOrgMembershipDto> memberships, string? reason, int actingUserId)
     {
+        reason = AdminActionReason.Require(reason, "change a user's laboratory memberships");
         var memberUser = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.IsActive }).FirstOrDefaultAsync()
             ?? throw new NotFoundException($"User {userId} not found.");
         if (!memberUser.IsActive)
@@ -88,6 +89,7 @@ public class LaboratoryOrganizationService
             throw new InvalidOperationException("An area can only be set on a Physicochemical Laboratory membership.");
 
         _db.CurrentUserId = actingUserId;
+        _db.CurrentReason = reason;
         var existing = await _db.UserOrgMemberships.Where(m => m.UserId == userId).ToListAsync();
         _db.UserOrgMemberships.RemoveRange(existing.Where(e => !wanted.Any(w => w.DepartmentId == e.DepartmentId && w.SectionId == e.SectionId)));
         foreach (var w in wanted)

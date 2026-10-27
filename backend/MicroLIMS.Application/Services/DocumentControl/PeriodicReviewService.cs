@@ -313,7 +313,7 @@ public class PeriodicReviewService : IPeriodicReviewService
             master.SectionId,
             master.Section?.Name ?? "",
             master.DocumentOwnerUserId,
-            master.DocumentOwnerUser?.FullName ?? "",
+            DocumentDtoMapper.HolderName(master.DocumentOwnerUser),
             master.Confidentiality,
             master.Category,
             master.RecordOrigin,

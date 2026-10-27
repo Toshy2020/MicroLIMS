@@ -56,9 +56,9 @@ public static class BackgroundJobCatalog
             RecordIdleScheduledPasses: false),
         new BackgroundJobDefinition(
             "DocumentEffectiveDateWorker", BackgroundJobClassification.Gxp,
-            "Activates document revisions that reached their effective date, generates periodic review tasks and training escalations.",
+            "Activates document revisions that reached their effective date, generates periodic review tasks and training escalations, and notifies Section Heads of overdue reassignments.",
             "Every 60 minutes (DocumentControl:EffectiveDateWorkerIntervalMinutes)",
-            "Moves controlled-document revisions into effect and creates review and training tasks; effective dates must follow the schedule, not an administrator."),
+            "Moves controlled-document revisions into effect, creates review and training tasks and sends notifications; effective dates must follow the schedule, not an administrator. The reassignment reminder only notifies; it never reassigns."),
         new BackgroundJobDefinition(
             "MonitoringDeviationWorker", BackgroundJobClassification.Gxp,
             "Opens deviations for missed monitoring occurrences and over-limit results.",

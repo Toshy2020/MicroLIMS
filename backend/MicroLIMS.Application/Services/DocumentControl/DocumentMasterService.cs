@@ -351,7 +351,7 @@ public class DocumentMasterService : IDocumentMasterService
                 m.SectionId,
                 m.Section?.Name ?? "",
                 m.DocumentOwnerUserId,
-                m.DocumentOwnerUser?.FullName ?? "",
+                DocumentDtoMapper.HolderName(m.DocumentOwnerUser),
                 m.Confidentiality,
                 m.Category,
                 m.RecordOrigin,
@@ -436,7 +436,10 @@ public class DocumentMasterService : IDocumentMasterService
 
         var ownerUser = await _db.Users.FindAsync(request.DocumentOwnerUserId)
             ?? throw new InvalidOperationException($"Owner user {request.DocumentOwnerUserId} not found.");
-        if (!ownerUser.IsActive)
+        // The custodian may not be changed TO an inactive user. A document whose current custodian has been
+        // deactivated stays editable with that custodian unchanged: hand the custodianship over through the
+        // reassignment queue (Document Control > Needs reassignment), which also works for an effective document.
+        if (!ownerUser.IsActive && ownerUser.Id != master.DocumentOwnerUserId)
             throw new InvalidOperationException($"Owner user '{ownerUser.FullName}' is inactive.");
 
         var changes = new List<AuditFieldChange>();
@@ -809,7 +812,7 @@ public class DocumentMasterService : IDocumentMasterService
             m.SectionId,
             m.Section?.Name ?? "",
             m.DocumentOwnerUserId,
-            m.DocumentOwnerUser?.FullName ?? "",
+            DocumentDtoMapper.HolderName(m.DocumentOwnerUser),
             m.Confidentiality,
             m.Category,
             m.RecordOrigin,
@@ -827,20 +830,9 @@ public class DocumentMasterService : IDocumentMasterService
             m.VoidedByUser?.FullName,
             m.VoidReason,
             m.Keywords.Select(k => k.Keyword).ToList(),
-            // Current assignees only: an inactive user no longer appears as an assignee
-            // (their historical actions keep their name via the audit trail and revisions).
-            m.Assignments.Where(a => a.IsActive && (a.User == null || a.User.IsActive)).Select(a => new DocumentMasterAssignmentDto(
-                a.Id,
-                a.DocumentMasterId,
-                a.UserId,
-                a.User?.Username ?? "",
-                a.User?.FullName ?? "",
-                a.AssignmentRole,
-                a.IsActive,
-                a.AssignedAt,
-                a.AssignedByUserId,
-                a.AssignedByUser?.FullName ?? ""
-            )).ToList(),
+            // Current assignees. A deactivated user stays listed - hiding them would hide that the work is
+            // orphaned - but without a name; the reassignment queue is where it gets handed over.
+            m.Assignments.Where(a => a.IsActive).Select(DocumentDtoMapper.MapAssignment).ToList(),
             m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList(),
             sectionIds,
             sectionNames

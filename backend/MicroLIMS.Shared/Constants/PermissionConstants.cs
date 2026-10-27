@@ -178,7 +178,7 @@ public static class PermissionConstants
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
-        DiscussionsEditAny, DocumentsConfigManage, DocumentsRegister, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
+        DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
@@ -188,5 +188,14 @@ public static class PermissionConstants
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs
+    };
+
+    // Declared and granted, but no feature checks them yet. Kept in the
+    // database (rows and grants are never deleted) and left off the Roles
+    // screen: the Roles API neither lists them nor lets them be granted, and a
+    // permission edit preserves the grants a role already holds.
+    public static readonly IReadOnlySet<string> Hidden = new HashSet<string>
+    {
+        DiscussionsView, DiscussionsCreate, MessagesUse
     };
 }

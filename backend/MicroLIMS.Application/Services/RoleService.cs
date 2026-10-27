@@ -55,8 +55,13 @@ public class RoleService
         return ToDto(role, codes);
     }
 
+    // Codes in PermissionConstants.Hidden stay in the database but are never
+    // shown or edited through the Roles API.
+    private static List<string> Visible(IEnumerable<string> codes) =>
+        codes.Where(c => !PermissionConstants.Hidden.Contains(c)).ToList();
+
     public async Task<List<PermissionDto>> GetAllPermissionsAsync() =>
-        await _db.Permissions.OrderBy(p => p.Code).Select(p => new PermissionDto(p.Code, p.Description, p.IsEnforced)).ToListAsync();
+        await _db.Permissions.Where(p => !PermissionConstants.Hidden.Contains(p.Code)).OrderBy(p => p.Code).Select(p => new PermissionDto(p.Code, p.Description, p.IsEnforced)).ToListAsync();
 
     // baseType: which of the 4 RoleType values this role's holders are
     // treated as by the still-untouched [Authorize(Roles=...)] attributes
@@ -176,6 +181,10 @@ public class RoleService
         if (actingUserRoleId == id)
             throw new InvalidOperationException("You cannot change the permissions of your own role.");
 
+        var hiddenRequested = permissionCodes.Where(PermissionConstants.Hidden.Contains).Distinct().ToList();
+        if (hiddenRequested.Count > 0)
+            throw new InvalidOperationException($"Permission code(s) not available for assignment: {string.Join(", ", hiddenRequested)}.");
+
         var validCodes = await _db.Permissions.Select(p => p.Code).ToListAsync();
         var unknown = permissionCodes.Except(validCodes).ToList();
         if (unknown.Count > 0)
@@ -187,9 +196,12 @@ public class RoleService
         if (sodConflicts.Count > 0)
             throw new SegregationOfDutiesViolationException(sodConflicts);
 
-        await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes));
+        var allCurrentCodes = await _permissionService.GetPermissionCodesForRoleAsync(id);
+        // Hidden grants are not part of the edit: they stay exactly as they are.
+        var preservedHidden = allCurrentCodes.Where(PermissionConstants.Hidden.Contains).ToList();
+        var currentCodes = Visible(allCurrentCodes);
 
-        var currentCodes = await _permissionService.GetPermissionCodesForRoleAsync(id);
+        await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes.Concat(preservedHidden).ToList()));
 
         // Signs before the first grant/revoke (each of which saves): a wrong
         // password throws and no permission changes.
@@ -241,7 +253,7 @@ public class RoleService
     }
 
     private static RoleDetailDto ToDto(Role r, List<string> permissionCodes) =>
-        new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes)
+        new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, Visible(permissionCodes))
         {
             Version = r.Version,
             SodConflicts = SegregationOfDutiesRules.FindConflicts(permissionCodes).Select(SegregationOfDutiesRules.Describe).ToList()
@@ -259,7 +271,7 @@ public class RoleService
             .ToListAsync();
         var codesByRole = grants.GroupBy(g => g.RoleId).ToDictionary(g => g.Key, g => g.Select(x => x.Code).ToList());
         return roles
-            .Select(r => RoleResponse.From(r, codesByRole.TryGetValue(r.Id, out var codes) ? codes : []))
+            .Select(r => RoleResponse.From(r, codesByRole.TryGetValue(r.Id, out var codes) ? Visible(codes) : []))
             .ToList();
     }
 }

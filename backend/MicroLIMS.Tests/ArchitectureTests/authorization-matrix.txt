@@ -590,7 +590,7 @@ UserController.SetStatus(Int32, SetStatusRequest): SystemAdministrator
 UserController.Unlock(Int32, UnlockUserRequest): SystemAdministrator
 UserController.UpdateEmail(Int32, UpdateEmailRequest): SystemAdministrator
 UserController.UpdateProfile(Int32, UpdateProfileRequest): SystemAdministrator
-UserDirectoryController.GetDirectory(): SystemAdministrator,SectionHead,Reviewer,Analyst
+UserDirectoryController.GetDirectory(String): SystemAdministrator,SectionHead,Reviewer,Analyst
 WaterController.Calculate(CalculateWaterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 WaterController.DailyReport(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst
 WaterController.Prepare(PrepareWaterRequest): SectionHead,Reviewer,Analyst

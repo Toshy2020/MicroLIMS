@@ -111,6 +111,10 @@ public class DocumentApprovalService : IDocumentApprovalService
             throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
         }
 
+        // ...and the role must hold Documents.Approve, or the approver could never act on the task.
+        if (!await _auth.CanExecuteApprovalAsync(request.ApproverUserId))
+            throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver: the role does not hold the Documents.Approve permission.");
+
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Approver, Reviewer != Approver. SystemAdministrator is NOT exempt!
         ValidateSegregationOfDuties(revision, request.ApproverUserId);
@@ -418,6 +422,9 @@ public class DocumentApprovalService : IDocumentApprovalService
         {
             throw new UnauthorizedAccessException("Only the assigned approver or Document Controller may execute an approval decision.");
         }
+
+        if (!await _auth.CanExecuteApprovalAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.Approve permission required to execute an approval decision.");
 
         var actorUser = await _db.Users.FindAsync(userId);
         var now = _time.GetUtcNow().UtcDateTime;

@@ -123,6 +123,12 @@ public class PeriodicReviewService : IPeriodicReviewService
                     assignedUserId = null;
                 }
 
+                // A default reviewer whose role lacks Documents.PeriodicReview could never act: leave the task unassigned for the Document Controller.
+                if (assignedUserId.HasValue && !await _auth.CanPerformPeriodicReviewAsync(assignedUserId.Value))
+                {
+                    assignedUserId = null;
+                }
+
                 var task = new PeriodicReviewTask
                 {
                     DocumentMasterId = master.Id,
@@ -391,6 +397,9 @@ public class PeriodicReviewService : IPeriodicReviewService
         if (task.DocumentRevision.CreatedByUserId == userId)
             throw new UnauthorizedAccessException("Segregation of Duties Violation: The author of the revision under review cannot add review notes or perform the review.");
 
+        if (!await _auth.CanPerformPeriodicReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.PeriodicReview permission required to perform a periodic review.");
+
         if (string.IsNullOrWhiteSpace(request.NoteText) || request.NoteText.Trim().Length < 5)
             throw new ArgumentException("Review note text must be at least 5 characters.", nameof(request.NoteText));
 
@@ -461,6 +470,9 @@ public class PeriodicReviewService : IPeriodicReviewService
         if (finding.PeriodicReviewTask.DocumentRevision.CreatedByUserId == userId)
             throw new UnauthorizedAccessException("The author cannot alter reviewer findings.");
 
+        if (!await _auth.CanPerformPeriodicReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.PeriodicReview permission required to perform a periodic review.");
+
         finding.Status = PeriodicReviewFindingStatus.Resolved;
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
@@ -498,6 +510,9 @@ public class PeriodicReviewService : IPeriodicReviewService
         var (targetActive, targetRole) = await GetUserRoleAsync(request.ReviewerUserId);
         if (!targetActive || targetRole == null)
             throw new InvalidOperationException("Target reviewer is not an active user in the system.");
+
+        if (!await _auth.CanPerformPeriodicReviewAsync(request.ReviewerUserId))
+            throw new InvalidOperationException("The selected reviewer's role does not hold the Documents.PeriodicReview permission.");
 
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Reviewer. SystemAdministrator is NOT exempt!
@@ -556,6 +571,9 @@ public class PeriodicReviewService : IPeriodicReviewService
         // HARD SEGREGATION OF DUTIES: Author != Reviewer (System Administrator is NOT exempt)
         if (task.DocumentRevision.CreatedByUserId == userId)
             throw new UnauthorizedAccessException("Segregation of Duties Violation: The author cannot perform or complete the periodic review.");
+
+        if (!await _auth.CanPerformPeriodicReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.PeriodicReview permission required to perform a periodic review.");
 
         // Verify assignment: Must be assigned reviewer or SectionHead (Document Controller)
         if (task.AssignedReviewerUserId.HasValue && task.AssignedReviewerUserId.Value != userId)

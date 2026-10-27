@@ -340,6 +340,11 @@ public class DocumentControlRelease1dWP3UnitTests
         var rev = new DocumentRevision { Id = 10, DocumentMasterId = 1, DocumentMaster = master, RevisionNumber = "01", RevisionStatus = DocumentRevisionStatus.Draft };
         db.DocumentMasters.Add(master);
         db.DocumentRevisions.Add(rev);
+        // This test is about file typing, not the role gate: the owner's role holds Documents.DraftEdit.
+        var draftEdit = new Permission { Code = MicroLIMS.Shared.Constants.PermissionConstants.DocumentsDraftEdit, Description = "d", IsEnforced = true };
+        db.Permissions.Add(draftEdit);
+        await db.SaveChangesAsync();
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = draftEdit.Id });
         await db.SaveChangesAsync();
 
         var docxContent = CreateValidDocx();

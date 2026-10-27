@@ -40,6 +40,7 @@ public class DocumentControlApprovalUnitTests
         var analystRole = new Role { Type = RoleType.Analyst, Name = "Analyst", IsActive = true };
         db.Roles.AddRange(adminRole, controllerRole, reviewerRole, analystRole);
         await db.SaveChangesAsync();
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
         var defaultPassword = "Approver-Password-1!";
         var defaultPasswordHash = TestPasswords.Hash(defaultPassword);

@@ -631,14 +631,6 @@ public static class DbSeeder
             db.ConfigurationSettings.AddRange(
                 new ConfigurationSetting
                 {
-                    SettingKey = "System.TimeZone",
-                    SettingValue = "UTC",
-                    DataType = "string",
-                    SettingGroup = "System",
-                    ModifiedAt = DateTime.UtcNow
-                },
-                new ConfigurationSetting
-                {
                     SettingKey = "DocumentControl.ControlledCopy.DownloadPermitted",
                     SettingValue = "true",
                     DataType = "boolean",

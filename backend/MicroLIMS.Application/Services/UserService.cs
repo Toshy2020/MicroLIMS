@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
@@ -53,8 +54,11 @@ public class UserService
     private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null)
+    private readonly ISystemSettingsReader? _settings;
+
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null, ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
@@ -115,7 +119,7 @@ public class UserService
         if (string.IsNullOrWhiteSpace(user.FullName))
             throw new InvalidOperationException("Full Name is required.");
 
-        var passwordFailures = PasswordPolicy.Validate(plainPassword);
+        var passwordFailures = PasswordPolicy.Validate(plainPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (passwordFailures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", passwordFailures));
 

@@ -30,7 +30,8 @@ public class AppendOnlyAuditHardeningPostgresTests
         "InstrumentIngestVersions",
         "InstrumentIngests",
         "LoginHistories",
-        "SecurityAuditEvents"
+        "SecurityAuditEvents",
+        "SystemSettingVersions"
     };
 
     [PostgresFact]

@@ -76,17 +76,22 @@ public class SystemSettingsService : ISystemSettingsService
         return new SystemSettingsOverviewDto(settings, await BuildFixedItemsAsync(cancellationToken));
     }
 
-    public Task<SystemSettingDto> UpdateAsync(string key, string? value, string? reason, int actingUserId, string? password, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => UpdateCoreAsync(key, value, reason, actingUserId, password, ipAddress))
-            .ContinueWith(t =>
-            {
-                // After the transaction is committed (or rolled back): drop the
-                // snapshot either way so no consumer ever holds a stale value.
-                _cache.Invalidate();
-                return t.GetAwaiter().GetResult();
-            }, TaskContinuationOptions.ExecuteSynchronously);
+    public async Task<SystemSettingDto> UpdateAsync(string key, string? value, string? reason, int actingUserId, string? password, string? ipAddress)
+    {
+        try
+        {
+            await UnitOfWork.RunAsync(_db, () => UpdateCoreAsync(key, value, reason, actingUserId, password, ipAddress));
+        }
+        finally
+        {
+            // After commit (or rollback): drop the snapshot so no consumer holds a stale value.
+            _cache.Invalidate();
+        }
+        var overview = await GetOverviewAsync();
+        return overview.Settings.Single(s => s.Key == key);
+    }
 
-    private async Task<SystemSettingDto> UpdateCoreAsync(string key, string? rawValue, string? rawReason, int actingUserId, string? password, string? ipAddress)
+    private async Task<bool> UpdateCoreAsync(string key, string? rawValue, string? rawReason, int actingUserId, string? password, string? ipAddress)
     {
         var definition = SystemSettingDefinitions.Find(key)
             ?? throw new NotFoundException($"System setting '{key}' does not exist.");
@@ -168,15 +173,7 @@ public class SystemSettingsService : ISystemSettingsService
 
         await _db.SaveChangesAsync();
 
-        var overview = await GetOverviewAfterChangeAsync(key);
-        return overview;
-    }
-
-    private async Task<SystemSettingDto> GetOverviewAfterChangeAsync(string key)
-    {
-        _cache.Invalidate();
-        var overview = await GetOverviewAsync();
-        return overview.Settings.Single(s => s.Key == key);
+        return true;
     }
 
     public async Task<IReadOnlyList<SystemSettingVersionDto>> GetHistoryAsync(string key, CancellationToken cancellationToken = default)

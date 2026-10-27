@@ -69,11 +69,23 @@ public class UserService
         return users.Select(ToDto).ToList();
     }
 
-    public async Task<List<UserDirectoryDto>> GetDirectoryAsync()
+    // Document Control assignment pickers ask for only the users whose role
+    // holds the code the assigned function needs (permission = that code).
+    public static readonly IReadOnlySet<string> DirectoryPermissionFilters = new HashSet<string>
     {
-        var users = await _db.Users
-            .Include(u => u.Role)
-            .Where(u => u.IsActive)
+        PermissionConstants.DocumentsDraftEdit, PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsReview,
+        PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsPeriodicReview
+    };
+
+    public async Task<List<UserDirectoryDto>> GetDirectoryAsync(string? requiredPermission = null)
+    {
+        if (!string.IsNullOrWhiteSpace(requiredPermission) && !DirectoryPermissionFilters.Contains(requiredPermission))
+            throw new InvalidOperationException($"Directory cannot be filtered by permission '{requiredPermission}'.");
+
+        var query = _db.Users.Include(u => u.Role).Where(u => u.IsActive);
+        if (!string.IsNullOrWhiteSpace(requiredPermission))
+            query = query.Where(u => _db.RolePermissions.Any(rp => rp.RoleId == u.RoleId && rp.Permission!.Code == requiredPermission));
+        var users = await query
             .OrderBy(u => u.FullName)
             .AsNoTracking()
             .ToListAsync();

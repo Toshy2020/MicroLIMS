@@ -114,6 +114,10 @@ public class DocumentReviewService : IDocumentReviewService
         if (!reviewerActive || reviewerRole == null)
             throw new InvalidOperationException("Assigned reviewer is not an active user in the system.");
 
+        // ...and their role must hold Documents.Review (a reviewer without it could never act on the task).
+        if (!await _auth.CanPerformTechnicalReviewAsync(request.ReviewerUserId))
+            throw new InvalidOperationException("The selected reviewer's role does not hold the Documents.Review permission.");
+
         // Check for any existing active review tasks
         var hasActiveTask = revision.ReviewTasks.Any(t => t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress);
         if (hasActiveTask)
@@ -292,6 +296,9 @@ public class DocumentReviewService : IDocumentReviewService
         if (userId != task.AssignedReviewerUserId && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may add review findings.");
 
+        if (!await _auth.CanPerformTechnicalReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.Review permission required to perform technical review.");
+
         // Release 1d: Linkage to specific source file version
         var reviewedFile = task.ReviewedSourceFile ??
             task.DocumentRevision.Files?.FirstOrDefault(f => f.Id == task.ReviewedSourceFileId) ??
@@ -433,6 +440,9 @@ public class DocumentReviewService : IDocumentReviewService
         if (!isAssignedReviewer && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer may verify findings.");
 
+        if (!await _auth.CanPerformTechnicalReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.Review permission required to perform technical review.");
+
         var prevStatus = finding.Status.ToString();
         finding.ReviewerVerificationNotes = request.VerificationNotes?.Trim();
         finding.ReviewerVerifiedAt = _time.GetUtcNow().UtcDateTime;
@@ -492,6 +502,9 @@ public class DocumentReviewService : IDocumentReviewService
 
         if (!isAssignedReviewer && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may resolve review findings.");
+
+        if (!await _auth.CanPerformTechnicalReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.Review permission required to perform technical review.");
 
         // The finding lifecycle is a ladder, not a set of interchangeable states:
         // Open -> AuthorResponded -> ReviewerVerified -> Resolved
@@ -561,6 +574,9 @@ public class DocumentReviewService : IDocumentReviewService
 
         if (userId != task.AssignedReviewerUserId && role != RoleType.SectionHead)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may complete this technical review.");
+
+        if (!await _auth.CanPerformTechnicalReviewAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.Review permission required to perform technical review.");
 
         if (request.Decision == ReviewDecision.CompleteReview)
         {

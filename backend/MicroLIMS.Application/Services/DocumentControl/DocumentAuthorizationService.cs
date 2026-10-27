@@ -66,6 +66,18 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
             .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == permissionCode);
     }
 
+    public Task<bool> HoldsPermissionAsync(int userId, string permissionCode) => HasPermissionAsync(userId, permissionCode);
+
+    public async Task<bool> CanCreateRevisionAsync(int documentMasterId, int userId) =>
+        await HasPermissionAsync(userId, PermissionConstants.DocumentsRevisionCreate) &&
+        await CanEditDraftMetadataAsync(documentMasterId, userId);
+
+    public Task<bool> CanPerformTechnicalReviewAsync(int userId) => HasPermissionAsync(userId, PermissionConstants.DocumentsReview);
+
+    public Task<bool> CanExecuteApprovalAsync(int userId) => HasPermissionAsync(userId, PermissionConstants.DocumentsApprove);
+
+    public Task<bool> CanPerformPeriodicReviewAsync(int userId) => HasPermissionAsync(userId, PermissionConstants.DocumentsPeriodicReview);
+
     private async Task<bool> IsOwnerOrAssignedAuthorAsync(int documentMasterId, int userId)
     {
         var isOwner = await _db.DocumentMasters
@@ -120,8 +132,11 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanEditDraftMetadataAsync(int documentMasterId, int userId)
     {
-        var (isActive, role, _) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
+
+        // Role gate: Documents.DraftEdit in addition to the ownership/authorship rule below.
+        if (!await RoleHoldsAsync(roleId, PermissionConstants.DocumentsDraftEdit)) return false;
 
         if (role == RoleType.SectionHead)
             return true;
@@ -131,8 +146,11 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanUploadOrReplaceDraftFileAsync(int revisionId, int userId)
     {
-        var (isActive, role, _) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
+
+        // Role gate: Documents.DraftEdit in addition to the ownership/authorship rule below.
+        if (!await RoleHoldsAsync(roleId, PermissionConstants.DocumentsDraftEdit)) return false;
 
         var revision = await _db.DocumentRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == revisionId);
         if (revision == null || revision.RevisionStatus != DocumentRevisionStatus.Draft)
@@ -146,8 +164,11 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanCancelDraftRevisionAsync(int revisionId, int userId)
     {
-        var (isActive, role, _) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
+
+        // Role gate: Documents.DraftEdit in addition to the ownership/authorship rule below.
+        if (!await RoleHoldsAsync(roleId, PermissionConstants.DocumentsDraftEdit)) return false;
 
         var revision = await _db.DocumentRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == revisionId);
         if (revision == null || revision.RevisionStatus != DocumentRevisionStatus.Draft)

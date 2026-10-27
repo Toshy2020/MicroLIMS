@@ -297,6 +297,8 @@ public class SampleSummaryService
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
             BatchNumber = sample.BatchNumber,
             Grade = sample.Grade,
+            RetentionQuantity = sample.RetentionQuantity,
+            RetentionQuantityUnit = sample.RetentionQuantityUnit,
             ControlNumber = sample.ControlNumber,
             Status = sample.Status.ToString(),
             AssignedAnalystId = assignedAnalystId,

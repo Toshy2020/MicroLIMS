@@ -21,6 +21,11 @@ public class Sample : IVersionedEntity
     // tested against, chosen at receiving. Null = ungraded.
     public string? Grade { get; set; }
 
+    // Raw material only - the quantity kept as the retention sample, recorded by the
+    // physicochemical reviewer when passing review (SampleReviewService).
+    public decimal? RetentionQuantity { get; set; }
+    public string? RetentionQuantityUnit { get; set; }
+
     // Periodic retest: received without test orders; a Section Head or
     // Supervisor picks the tests later (SampleTestSelectionService).
     public bool AwaitingTestSelection { get; set; }

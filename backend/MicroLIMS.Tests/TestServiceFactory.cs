@@ -116,7 +116,8 @@ public static class TestServiceFactory
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
     public static SampleReviewService SampleReview(MicroLimsDbContext db) =>
-        new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db));
+        new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);

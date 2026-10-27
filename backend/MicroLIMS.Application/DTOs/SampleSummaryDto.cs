@@ -19,6 +19,8 @@ public class SampleSummaryDto
     public string? BatchNumber { get; set; }
     // Grade stated on the supplier's CoA (raw materials); null when ungraded.
     public string? Grade { get; set; }
+    public decimal? RetentionQuantity { get; set; }
+    public string? RetentionQuantityUnit { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     // Status as a controlled record prints it ("In testing", not

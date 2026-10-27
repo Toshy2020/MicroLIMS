@@ -106,7 +106,51 @@ describe("RelatedSubstancesPeakTable", () => {
     expect(screen.queryByText(/Actual Weight/i)).toBeNull();
   });
 
-  it("adds and removes unspecified peak rows", () => {
+  it("shows error alert and disables Add Replicate when method snapshot is missing principal analyte", () => {
+    const invalidMethod: HplcMethodSnapshot = {
+      ...mockMethod,
+      analytes: []
+    };
+
+    render(
+      <PinnedLightTheme>
+        <RelatedSubstancesPeakTable
+          method={invalidMethod}
+          methodWeights={[]}
+          replicates={[]}
+          onChange={vi.fn()}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.getByText("Method snapshot is missing the principal analyte.")).toBeTruthy();
+    const addBtn = screen.getByRole("button", { name: /add replicate/i });
+    expect(addBtn.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("edits a named peak and triggers onChange with updated area", () => {
+    const handleChange = vi.fn();
+    render(
+      <PinnedLightTheme>
+        <RelatedSubstancesPeakTable
+          method={mockMethod}
+          methodWeights={mockMethodWeights}
+          replicates={[mockReplicate]}
+          onChange={handleChange}
+        />
+      </PinnedLightTheme>
+    );
+
+    const namedInput = screen.getByLabelText(/impurity a \(rrt 0.8\) area/i);
+    fireEvent.change(namedInput, { target: { value: "3500" } });
+
+    expect(handleChange).toHaveBeenCalled();
+    const updated = handleChange.mock.calls[handleChange.mock.calls.length - 1][0];
+    const impPeak = updated[0].peaks?.find((p: { hplcMethodImpurityId?: number | null }) => p.hplcMethodImpurityId === 101);
+    expect(impPeak?.area).toBe(3500);
+  });
+
+  it("adds and removes unspecified peak rows with stable keys", () => {
     const handleChange = vi.fn();
     render(
       <PinnedLightTheme>
@@ -127,13 +171,14 @@ describe("RelatedSubstancesPeakTable", () => {
     const peaks = updatedReplicates[0].peaks ?? [];
     expect(peaks.length).toBe(2);
     expect(peaks[1].hplcMethodImpurityId).toBeNull();
+    expect(peaks[1].clientKey).toBeDefined();
 
     // Now test removal
     const repWithUnspecified: HplcReplicateDto = {
       ...mockReplicate,
       peaks: [
         { hplcMethodImpurityId: 101, relativeRetention: 0.8, area: 1200 },
-        { hplcMethodImpurityId: null, relativeRetention: 1.5, area: 600 }
+        { clientKey: "test-client-key-1", hplcMethodImpurityId: null, relativeRetention: 1.5, area: 600 }
       ]
     };
 
@@ -186,44 +231,37 @@ describe("RelatedSubstancesPeakTable", () => {
     expect(errorElements.length).toBeGreaterThan(0);
   });
 
-  it("produces the expected payload shape with peaks and reference solution response", () => {
-    const handleChange = vi.fn();
+  it("shows error when unspecified peak RRT is negative or zero", () => {
+    const repWithInvalidRrt: HplcReplicateDto = {
+      ...mockReplicate,
+      peaks: [
+        { clientKey: "unsp-1", hplcMethodImpurityId: null, relativeRetention: -0.5, area: 100 }
+      ]
+    };
+
     render(
       <PinnedLightTheme>
         <RelatedSubstancesPeakTable
           method={mockMethod}
           methodWeights={mockMethodWeights}
-          replicates={[
-            {
-              replicateNo: 1,
-              actualWeightMg: 0,
-              responses: [{ hplcMethodAnalyteId: 10, response: 0 }],
-              peaks: []
-            }
-          ]}
-          onChange={handleChange}
+          replicates={[repWithInvalidRrt]}
+          onChange={vi.fn()}
         />
       </PinnedLightTheme>
     );
 
-    const refInput = screen.getByLabelText(/reference solution area/i);
-    fireEvent.change(refInput, { target: { value: "15000" } });
-
-    expect(handleChange).toHaveBeenCalled();
-    const callArg: HplcReplicateDto[] = handleChange.mock.calls[handleChange.mock.calls.length - 1][0];
-    expect(callArg[0].responses[0].response).toBe(15000);
-    expect(Array.isArray(callArg[0].peaks)).toBe(true);
+    expect(screen.getByText("Must be > 0")).toBeTruthy();
   });
 
   describe("rsReplicatesComplete", () => {
-    it("requires reference area > 0 and peak areas >= 0", () => {
+    it("requires reference area > 0 for the principal analyte and peak areas >= 0", () => {
       const repZeroRef: HplcReplicateDto = {
         replicateNo: 1,
         actualWeightMg: 0,
         responses: [{ hplcMethodAnalyteId: 10, response: 0 }],
         peaks: [{ hplcMethodImpurityId: 101, relativeRetention: 0.8, area: 100 }]
       };
-      expect(rsReplicatesComplete([repZeroRef])).toBe(false);
+      expect(rsReplicatesComplete([repZeroRef], 10)).toBe(false);
 
       const repNegativePeak: HplcReplicateDto = {
         replicateNo: 1,
@@ -231,7 +269,7 @@ describe("RelatedSubstancesPeakTable", () => {
         responses: [{ hplcMethodAnalyteId: 10, response: 10000 }],
         peaks: [{ hplcMethodImpurityId: 101, relativeRetention: 0.8, area: -10 }]
       };
-      expect(rsReplicatesComplete([repNegativePeak])).toBe(false);
+      expect(rsReplicatesComplete([repNegativePeak], 10)).toBe(false);
 
       const repValid: HplcReplicateDto = {
         replicateNo: 1,
@@ -242,7 +280,44 @@ describe("RelatedSubstancesPeakTable", () => {
           { hplcMethodImpurityId: null, relativeRetention: null, area: 0 }
         ]
       };
-      expect(rsReplicatesComplete([repValid])).toBe(true);
+      expect(rsReplicatesComplete([repValid], 10)).toBe(true);
+    });
+
+    it("returns false if principalAnalyteId is missing or wrong analyte responded", () => {
+      const rep: HplcReplicateDto = {
+        replicateNo: 1,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 99, response: 10000 }],
+        peaks: []
+      };
+      expect(rsReplicatesComplete([rep], null)).toBe(false);
+      expect(rsReplicatesComplete([rep], 10)).toBe(false);
+    });
+
+    it("requires unspecified RRT to be > 0 when given", () => {
+      const repZeroRrt: HplcReplicateDto = {
+        replicateNo: 1,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 10000 }],
+        peaks: [{ hplcMethodImpurityId: null, relativeRetention: 0, area: 50 }]
+      };
+      expect(rsReplicatesComplete([repZeroRrt], 10)).toBe(false);
+
+      const repNegativeRrt: HplcReplicateDto = {
+        replicateNo: 1,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 10000 }],
+        peaks: [{ hplcMethodImpurityId: null, relativeRetention: -1.2, area: 50 }]
+      };
+      expect(rsReplicatesComplete([repNegativeRrt], 10)).toBe(false);
+
+      const repPositiveRrt: HplcReplicateDto = {
+        replicateNo: 1,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 10000 }],
+        peaks: [{ hplcMethodImpurityId: null, relativeRetention: 1.15, area: 50 }]
+      };
+      expect(rsReplicatesComplete([repPositiveRrt], 10)).toBe(true);
     });
   });
 });

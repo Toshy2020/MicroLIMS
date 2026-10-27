@@ -3,20 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
+  Paper,
   Button,
   Stack,
   Alert,
-  Paper,
+  Tooltip,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Tooltip,
   useTheme
 } from "@mui/material";
-import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
@@ -24,21 +23,21 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { tableHeadSx } from "../../../theme";
+import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
+import { StatusBadge } from "../../../components/StatusBadge";
+import { NumericCell, ResultSection } from "../../../components/lab";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
+import { formatMoistureLabel } from "../../testingWorkspace/utils/moistureRetentionHelpers";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
-import { NumericCell, ResultSection } from "../../../components/lab";
-import { StatusBadge } from "../../../components/StatusBadge";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
 import { RelatedSubstancesPeakTable, rsReplicatesComplete } from "./RelatedSubstancesPeakTable";
 import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummaryCard";
-import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
-import { tableHeadSx } from "../../../theme";
+import { SendForReviewDialog } from "./SendForReviewDialog";
 import { useTechnique } from "../useTechnique";
-import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
-import { formatMoistureLabel } from "../../testingWorkspace/utils/moistureRetentionHelpers";
-import { getErrorMessage } from "../../../utils/errorMessage";
 import type { SampleMoistureResult } from "../../testingWorkspace/types/testWorkflowTypes";
 import type {
   HplcSampleEntryDto,
@@ -46,6 +45,41 @@ import type {
   HplcReplicateInput,
   HplcMethodSnapshot
 } from "../types";
+
+const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof Error && err.message) return err.message;
+  const e = err as { response?: { data?: { message?: string } } };
+  return e.response?.data?.message ?? fallback;
+};
+
+export function buildReplicatePayload(
+  replicates: HplcReplicateDto[],
+  isRelatedSubstances: boolean,
+  hasInternalStandard: boolean
+): HplcReplicateInput[] {
+  return replicates.map((r) => {
+    const item: HplcReplicateInput = {
+      actualWeightMg: isRelatedSubstances ? 0 : (r.actualWeightMg ?? 0),
+      responses: r.responses.map((resp) => ({
+        hplcMethodAnalyteId: resp.hplcMethodAnalyteId,
+        response: resp.response
+      }))
+    };
+    if (hasInternalStandard) {
+      item.internalStandardResponse = r.internalStandardResponse ?? null;
+    }
+    if (isRelatedSubstances && r.peaks) {
+      item.peaks = r.peaks
+        .filter((p) => p.hplcMethodImpurityId != null || (typeof p.area === "number" && p.area > 0))
+        .map((p) => ({
+          hplcMethodImpurityId: p.hplcMethodImpurityId ?? null,
+          relativeRetention: p.relativeRetention ?? null,
+          area: p.area
+        }));
+    }
+    return item;
+  });
+}
 
 export function HplcSampleEntryPage() {
   const theme = useTheme();
@@ -85,7 +119,34 @@ export function HplcSampleEntryPage() {
       setSampleEntry(data);
       setReplicates(data.replicates || []);
 
-      if (data.testOrderId) {
+      const runIdToFetch = parsedRunId || data.hplcRunId;
+      let loadedMethod: HplcMethodSnapshot | null = null;
+      if (runIdToFetch) {
+        try {
+          const runData = await HplcWorkspaceService.getRun(runIdToFetch);
+          if (runData?.hplcMethodId) {
+            loadedMethod = await HplcMethodService.getById(runData.hplcMethodId);
+            setMethod(loadedMethod);
+          }
+        } catch {
+          // Method snapshot is optional
+        }
+      }
+
+      const isRS =
+        loadedMethod?.resultMode === "RelatedSubstances" ||
+        data.preview?.some((p) => p.quantity === "RelatedSubstance") ||
+        data.official?.some((o) => o.quantity === "RelatedSubstance");
+      const isResidual =
+        loadedMethod?.resultMode === "ResidualSolvents" ||
+        data.preview?.some((p) => p.quantity === "Residual solvent (ppm)") ||
+        data.official?.some((o) => o.quantity === "ResidualSolventPpm") ||
+        (data.methodWeights &&
+          data.methodWeights.length > 0 &&
+          data.methodWeights.every((mw) => mw.theoreticalWeightStdMg === 0 && mw.theoreticalWeightTestMg === 0));
+
+      setMoistureError("");
+      if (!isRS && !isResidual && Boolean(data.moistureRole) && data.testOrderId) {
         try {
           setMoistureStatus("loading");
           const m = await TestWorkflowService.getMoisture(data.testOrderId);
@@ -96,19 +157,9 @@ export function HplcSampleEntryPage() {
           setMoistureError(getErrorMessage(err, "Could not load the sample's moisture result."));
           setMoistureStatus("error");
         }
-      }
-
-      const runIdToFetch = parsedRunId || data.hplcRunId;
-      if (runIdToFetch) {
-        try {
-          const runData = await HplcWorkspaceService.getRun(runIdToFetch);
-          if (runData?.hplcMethodId) {
-            const m = await HplcMethodService.getById(runData.hplcMethodId);
-            setMethod(m as HplcMethodSnapshot);
-          }
-        } catch {
-          // Method snapshot is optional
-        }
+      } else {
+        setMoisture(null);
+        setMoistureStatus("idle");
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -136,27 +187,14 @@ export function HplcSampleEntryPage() {
     sampleEntry?.official?.some((o) => o.quantity === "RelatedSubstance");
 
   const hasInternalStandard = Boolean(method?.internalStandardName);
+  const principalAnalyteId = method?.analytes?.[0]?.id ?? null;
 
   const handleSaveReplicates = async () => {
     if (!sampleEntry || !sampleIdNum) return;
     setSaving(true);
     setError(null);
 
-    const payload: HplcReplicateInput[] = replicates.map((r) => ({
-      actualWeightMg: r.actualWeightMg ?? 0,
-      responses: r.responses.map((resp) => ({
-        hplcMethodAnalyteId: resp.hplcMethodAnalyteId,
-        response: resp.response
-      })),
-      internalStandardResponse: hasInternalStandard ? (r.internalStandardResponse ?? null) : undefined,
-      peaks: isRelatedSubstances && r.peaks
-        ? r.peaks.map((p) => ({
-            hplcMethodImpurityId: p.hplcMethodImpurityId ?? null,
-            relativeRetention: p.relativeRetention ?? null,
-            area: p.area
-          }))
-        : undefined
-    }));
+    const payload = buildReplicatePayload(replicates, Boolean(isRelatedSubstances), hasInternalStandard);
 
     try {
       const updated = await HplcWorkspaceService.saveReplicates(sampleIdNum, {
@@ -196,24 +234,9 @@ export function HplcSampleEntryPage() {
   const isEditable = sampleEntry.editable && canOperate;
   const methodWeights = sampleEntry.methodWeights || [];
 
-  const isDriedOrAnhydrous = Boolean(
-    sampleEntry.basis?.toLowerCase().includes("dried") ||
-    sampleEntry.basis?.toLowerCase().includes("anhydrous") ||
-    sampleEntry.canSubmitReason?.toLowerCase().includes("loss on drying") ||
-    sampleEntry.canSubmitReason?.toLowerCase().includes("water content")
-  );
-  const needsMoisture = (!isResidualSolvents && !isRelatedSubstances) && (isDriedOrAnhydrous || moisture !== null);
-  const isMoistureMissing = needsMoisture && (!moisture || moisture.percent < 0 || moisture.percent >= 100);
-
   const canSave = isRelatedSubstances
-    ? rsReplicatesComplete(replicates)
+    ? rsReplicatesComplete(replicates, principalAnalyteId)
     : replicatesComplete(methodWeights, replicates, isResidualSolvents, hasInternalStandard);
-
-  const missingMoistureMessage =
-    sampleEntry.canSubmitReason ||
-    (sampleEntry.basis?.toLowerCase().includes("anhydrous")
-      ? "Record the sample's water content (Karl Fischer) result first."
-      : "Record the sample's loss on drying result first.");
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -283,8 +306,8 @@ export function HplcSampleEntryPage() {
 
             <Tooltip
               title={
-                !sampleEntry.canSubmit || isMoistureMissing
-                  ? (sampleEntry.canSubmitReason || missingMoistureMessage || "Prerequisites not met")
+                !sampleEntry.canSubmit
+                  ? (sampleEntry.canSubmitReason || "Prerequisites not met")
                   : ""
               }
             >
@@ -294,7 +317,7 @@ export function HplcSampleEntryPage() {
                   color="primary"
                   startIcon={<SendIcon />}
                   onClick={() => setReviewDialogOpen(true)}
-                  disabled={!sampleEntry.canSubmit || isMoistureMissing || sampleEntry.submitted || saving || !canOperate}
+                  disabled={!sampleEntry.canSubmit || sampleEntry.submitted || saving || !canOperate}
                   sx={{ textTransform: "none", fontWeight: 600 }}
                 >
                   Send for Review
@@ -311,8 +334,8 @@ export function HplcSampleEntryPage() {
           </Alert>
         )}
 
-        {/* Content basis moisture line */}
-        {needsMoisture && (
+        {/* Content basis moisture line: only when moistureRole is set, and not RS / residual */}
+        {Boolean(sampleEntry.moistureRole && !isRelatedSubstances && !isResidualSolvents) && (
           <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             {moistureStatus === "loading" ? (
               <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
@@ -323,21 +346,14 @@ export function HplcSampleEntryPage() {
                 {moistureError || "Could not load the sample's moisture result."}
               </Alert>
             ) : moisture ? (
-              <Box sx={{ width: "100%" }}>
-                <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 600 }}>
-                  {formatMoistureLabel(moisture)}
-                </Typography>
-                {(moisture.percent < 0 || moisture.percent >= 100) && (
-                  <Alert severity="error" sx={{ width: "100%", fontSize: 13, py: 0.5, mt: 0.5 }}>
-                    The moisture result is out of range (0 to below 100 %).
-                  </Alert>
-                )}
-              </Box>
-            ) : (
+              <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 600 }}>
+                {formatMoistureLabel(moisture)}
+              </Typography>
+            ) : sampleEntry.canSubmitReason ? (
               <Alert severity="warning" sx={{ width: "100%", fontSize: 13, py: 0.5 }}>
-                {missingMoistureMessage}
+                {sampleEntry.canSubmitReason}
               </Alert>
-            )}
+            ) : null}
           </Box>
         )}
       </Paper>
@@ -410,7 +426,7 @@ export function HplcSampleEntryPage() {
                 >
                   {isEditable && !canSave && (
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      Enter a positive reference solution area and non-negative peak areas to save.
+                      Enter a positive reference solution area, non-negative peak areas, and positive RRTs to save.
                     </Typography>
                   )}
                   <Button

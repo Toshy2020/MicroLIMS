@@ -14,7 +14,6 @@ import type {
   StartHplcRunRequest,
   SaveSstRequest,
   ConfirmSstRequest,
-  HplcSstRecordDto,
   SaveReplicatesRequest,
   SubmitHplcSampleRequest,
   EligibleQualificationDto,
@@ -122,13 +121,13 @@ export const HplcWorkspaceService = {
     return res.data?.data;
   },
 
-  saveSst: async (id: number, req: SaveSstRequest): Promise<HplcSstRecordDto> => {
-    const res = await apiClient.put<ApiResponse<HplcSstRecordDto>>(`/hplc-workspace/runs/${id}/sst`, req);
+  saveSst: async (id: number, req: SaveSstRequest): Promise<HplcRunDto> => {
+    const res = await apiClient.put<ApiResponse<HplcRunDto>>(`/hplc-workspace/runs/${id}/sst`, req);
     return res.data?.data;
   },
 
-  confirmSst: async (id: number, req: ConfirmSstRequest): Promise<HplcSstRecordDto> => {
-    const res = await apiClient.post<ApiResponse<HplcSstRecordDto>>(
+  confirmSst: async (id: number, req: ConfirmSstRequest): Promise<HplcRunDto> => {
+    const res = await apiClient.post<ApiResponse<HplcRunDto>>(
       `/hplc-workspace/runs/${id}/sst/confirm`,
       req
     );

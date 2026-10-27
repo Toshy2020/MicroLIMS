@@ -101,6 +101,23 @@ describe("ReplicateEntryTable", () => {
     expect(screen.getByLabelText(/replicate 1 is area/i)).toBeTruthy();
   });
 
+  it("the IS column is hidden without internalStandardName", () => {
+    render(
+      <PinnedLightTheme>
+        <ReplicateEntryTable
+          methodWeights={mockWeights}
+          replicates={[mockReplicate]}
+          onChange={vi.fn()}
+          hasInternalStandard={false}
+          internalStandardName={null}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.queryByText("IS area *")).toBeNull();
+    expect(screen.queryByLabelText(/is area/i)).toBeNull();
+  });
+
   describe("replicatesComplete", () => {
     it("permits response 0 in ResidualSolvents mode", () => {
       const repZero: HplcReplicateDto = {

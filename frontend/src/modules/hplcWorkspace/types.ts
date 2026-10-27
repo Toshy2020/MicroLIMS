@@ -276,6 +276,7 @@ export interface HplcReplicateResponseInput {
 }
 
 export interface HplcReplicatePeakInput {
+  clientKey?: string;
   hplcMethodImpurityId: number | null;
   relativeRetention: number | null;
   area: number;
@@ -351,6 +352,7 @@ export interface HplcSampleEntryDto {
   stageName?: string | null;
   status: HplcRunSampleStatus;
   basis: string;
+  moistureRole?: "LossOnDrying" | "Water" | null;
   requiredReplicates?: number | null;
   methodWeights: HplcMethodWeightDto[];
   replicates: HplcReplicateDto[];

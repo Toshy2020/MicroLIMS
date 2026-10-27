@@ -227,7 +227,7 @@ export function ReplicateEntryTable({
               ))}
               {hasInternalStandard && (
                 <TableCell align="right" sx={{ minWidth: 180 }}>
-                  IS area *
+                  {internalStandardName ? `${internalStandardName} Area *` : "IS area *"}
                 </TableCell>
               )}
               <TableCell align="right" sx={{ width: 60 }}>Action</TableCell>

@@ -1,22 +1,22 @@
-import { useState, useRef } from "react";
-import type { ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import {
   Box,
+  Paper,
   Typography,
+  Grid,
+  TextField,
   Button,
+  Stack,
+  Divider,
+  IconButton,
+  Tooltip,
+  Alert,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
-  IconButton,
-  Tooltip,
-  Paper,
-  Stack,
-  Divider,
-  Grid,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -41,14 +41,29 @@ export interface RelatedSubstancesPeakTableProps {
   footer?: ReactNode;
 }
 
-export function rsReplicatesComplete(replicates: HplcReplicateDto[]): boolean {
-  if (replicates.length === 0) return false;
+export function rsReplicatesComplete(
+  replicates: HplcReplicateDto[],
+  principalAnalyteId?: number | null
+): boolean {
+  if (!principalAnalyteId || replicates.length === 0) return false;
   return replicates.every((rep) => {
-    const refArea = rep.responses[0]?.response;
+    const matched = rep.responses.find((r) => r.hplcMethodAnalyteId === principalAnalyteId);
+    const refArea = matched?.response;
     if (typeof refArea !== "number" || !Number.isFinite(refArea) || refArea <= 0) {
       return false;
     }
     if (rep.peaks && rep.peaks.some((p) => typeof p.area === "number" && p.area < 0)) {
+      return false;
+    }
+    if (
+      rep.peaks &&
+      rep.peaks.some(
+        (p) =>
+          p.hplcMethodImpurityId == null &&
+          p.relativeRetention != null &&
+          (p.relativeRetention <= 0 || !Number.isFinite(p.relativeRetention))
+      )
+    ) {
       return false;
     }
     return true;
@@ -61,9 +76,16 @@ const parseDraft = (draft: string): number => {
   return Number.isNaN(n) ? 0 : n;
 };
 
+let unspCounter = 0;
+function getPeakClientKey(p: HplcReplicatePeakInput, repNo: number, idx: number): string {
+  if (!p.clientKey) {
+    p.clientKey = `unsp-${repNo}-${idx}-${++unspCounter}`;
+  }
+  return p.clientKey;
+}
+
 export function RelatedSubstancesPeakTable({
   method,
-  methodWeights = [],
   replicates,
   onChange,
   requiredReplicates,
@@ -74,15 +96,15 @@ export function RelatedSubstancesPeakTable({
   const tableRef = useRef<HTMLDivElement>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
-  const principalAnalyteId =
-    methodWeights[0]?.hplcMethodAnalyteId ?? method?.analytes?.[0]?.id ?? 1;
+  const principalAnalyte = method?.analytes?.[0];
+  const principalAnalyteId = principalAnalyte?.id ?? null;
 
   const impurities = method?.impurities ?? [];
 
   const refKey = (repNo: number) => `${repNo}:ref`;
   const namedKey = (repNo: number, impId: number) => `${repNo}:imp${impId}`;
-  const unspAreaKey = (repNo: number, idx: number) => `${repNo}:unsp_area_${idx}`;
-  const unspRrtKey = (repNo: number, idx: number) => `${repNo}:unsp_rrt_${idx}`;
+  const unspAreaKey = (repNo: number, clientKey: string) => `${repNo}:unsp_area_${clientKey}`;
+  const unspRrtKey = (repNo: number, clientKey: string) => `${repNo}:unsp_rrt_${clientKey}`;
 
   const setDraft = (key: string, value: string) => setDrafts((d) => ({ ...d, [key]: value }));
 
@@ -97,6 +119,7 @@ export function RelatedSubstancesPeakTable({
   };
 
   const handleAddReplicate = () => {
+    if (!principalAnalyteId) return;
     const nextNo = replicates.length + 1;
     const newReplicate: HplcReplicateDto = {
       replicateNo: nextNo,
@@ -120,6 +143,7 @@ export function RelatedSubstancesPeakTable({
   };
 
   const handleRefAreaChange = (repIndex: number, rawVal: string) => {
+    if (!principalAnalyteId) return;
     const rep = replicates[repIndex];
     setDraft(refKey(rep.replicateNo), rawVal);
     const parsed = parseDraft(rawVal);
@@ -170,6 +194,7 @@ export function RelatedSubstancesPeakTable({
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
       const newPeak: HplcReplicatePeakInput = {
+        clientKey: `unsp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         hplcMethodImpurityId: null,
         relativeRetention: null,
         area: 0
@@ -182,20 +207,12 @@ export function RelatedSubstancesPeakTable({
     onChange(updated);
   };
 
-  const handleRemoveUnspecifiedPeak = (repIndex: number, unspIndex: number) => {
+  const handleRemoveUnspecifiedPeak = (repIndex: number, clientKey: string) => {
     setDrafts({});
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
-      let currentUnsp = 0;
-      const filtered = peaks.filter((p) => {
-        if (p.hplcMethodImpurityId == null) {
-          const match = currentUnsp === unspIndex;
-          currentUnsp++;
-          return !match;
-        }
-        return true;
-      });
+      const filtered = peaks.filter((p) => p.clientKey !== clientKey);
       return {
         ...r,
         peaks: filtered
@@ -204,21 +221,16 @@ export function RelatedSubstancesPeakTable({
     onChange(updated);
   };
 
-  const handleUnspecifiedAreaChange = (repIndex: number, unspIndex: number, rawVal: string) => {
+  const handleUnspecifiedAreaChange = (repIndex: number, clientKey: string, rawVal: string) => {
     const rep = replicates[repIndex];
-    setDraft(unspAreaKey(rep.replicateNo, unspIndex), rawVal);
+    setDraft(unspAreaKey(rep.replicateNo, clientKey), rawVal);
     const parsed = parseDraft(rawVal);
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
-      let currentUnsp = 0;
       const updatedPeaks = peaks.map((p) => {
-        if (p.hplcMethodImpurityId == null) {
-          if (currentUnsp === unspIndex) {
-            currentUnsp++;
-            return { ...p, area: parsed };
-          }
-          currentUnsp++;
+        if (p.clientKey === clientKey) {
+          return { ...p, area: parsed };
         }
         return p;
       });
@@ -227,21 +239,16 @@ export function RelatedSubstancesPeakTable({
     onChange(updated);
   };
 
-  const handleUnspecifiedRrtChange = (repIndex: number, unspIndex: number, rawVal: string) => {
+  const handleUnspecifiedRrtChange = (repIndex: number, clientKey: string, rawVal: string) => {
     const rep = replicates[repIndex];
-    setDraft(unspRrtKey(rep.replicateNo, unspIndex), rawVal);
+    setDraft(unspRrtKey(rep.replicateNo, clientKey), rawVal);
     const parsed = rawVal.trim() === "" ? null : parseFloat(rawVal);
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
-      let currentUnsp = 0;
       const updatedPeaks = peaks.map((p) => {
-        if (p.hplcMethodImpurityId == null) {
-          if (currentUnsp === unspIndex) {
-            currentUnsp++;
-            return { ...p, relativeRetention: Number.isNaN(parsed) ? null : parsed };
-          }
-          currentUnsp++;
+        if (p.clientKey === clientKey) {
+          return { ...p, relativeRetention: Number.isNaN(parsed) ? null : parsed };
         }
         return p;
       });
@@ -259,6 +266,12 @@ export function RelatedSubstancesPeakTable({
 
   return (
     <Box ref={tableRef}>
+      {!principalAnalyteId && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Method snapshot is missing the principal analyte.
+        </Alert>
+      )}
+
       {/* Top action header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
         <Box>
@@ -288,7 +301,7 @@ export function RelatedSubstancesPeakTable({
           size="small"
           startIcon={<AddIcon />}
           onClick={handleAddReplicate}
-          disabled={disabled}
+          disabled={disabled || !principalAnalyteId}
         >
           Add Replicate
         </Button>
@@ -355,7 +368,7 @@ export function RelatedSubstancesPeakTable({
                         size="small"
                         label="Reference solution area"
                         type="number"
-                        disabled={disabled}
+                        disabled={disabled || !principalAnalyteId}
                         value={cellText(refKey(rep.replicateNo), refResp)}
                         onChange={(e) => handleRefAreaChange(repIdx, e.target.value)}
                         placeholder="0.00"
@@ -404,7 +417,7 @@ export function RelatedSubstancesPeakTable({
                                 htmlInput: {
                                   min: 0,
                                   step: "any",
-                                  "aria-label": `${imp.name} area`
+                                  "aria-label": `${labelText} area`
                                 }
                               }}
                             />
@@ -448,60 +461,67 @@ export function RelatedSubstancesPeakTable({
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {unspecifiedPeaks.map((p, unspIdx) => (
-                            <TableRow key={unspIdx} hover>
-                              <TableCell sx={{ fontWeight: 600 }}>#{unspIdx + 1}</TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  disabled={disabled}
-                                  placeholder="Optional RRT"
-                                  value={cellText(unspRrtKey(rep.replicateNo, unspIdx), p.relativeRetention)}
-                                  onChange={(e) => handleUnspecifiedRrtChange(repIdx, unspIdx, e.target.value)}
-                                  slotProps={{
-                                    htmlInput: {
-                                      min: 0,
-                                      step: "any",
-                                      "aria-label": `Unspecified peak ${unspIdx + 1} RRT`
-                                    }
-                                  }}
-                                  sx={{ maxWidth: 180 }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  disabled={disabled}
-                                  placeholder="0.00"
-                                  value={cellText(unspAreaKey(rep.replicateNo, unspIdx), p.area)}
-                                  onChange={(e) => handleUnspecifiedAreaChange(repIdx, unspIdx, e.target.value)}
-                                  error={!disabled && p.area < 0}
-                                  helperText={areaHelper(p.area)}
-                                  slotProps={{
-                                    htmlInput: {
-                                      min: 0,
-                                      step: "any",
-                                      "aria-label": `Unspecified peak ${unspIdx + 1} area`
-                                    }
-                                  }}
-                                  sx={{ maxWidth: 220 }}
-                                />
-                              </TableCell>
-                              <TableCell align="right">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  disabled={disabled}
-                                  onClick={() => handleRemoveUnspecifiedPeak(repIdx, unspIdx)}
-                                  aria-label={`Remove unspecified peak ${unspIdx + 1}`}
-                                >
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {unspecifiedPeaks.map((p, unspIdx) => {
+                            const clientKey = getPeakClientKey(p, rep.replicateNo, unspIdx);
+                            const hasInvalidRrt = p.relativeRetention != null && p.relativeRetention <= 0;
+
+                            return (
+                              <TableRow key={clientKey} hover>
+                                <TableCell sx={{ fontWeight: 600 }}>#{unspIdx + 1}</TableCell>
+                                <TableCell>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    disabled={disabled}
+                                    placeholder="Optional RRT"
+                                    value={cellText(unspRrtKey(rep.replicateNo, clientKey), p.relativeRetention)}
+                                    onChange={(e) => handleUnspecifiedRrtChange(repIdx, clientKey, e.target.value)}
+                                    error={!disabled && hasInvalidRrt}
+                                    helperText={!disabled && hasInvalidRrt ? "Must be > 0" : undefined}
+                                    slotProps={{
+                                      htmlInput: {
+                                        min: 0,
+                                        step: "any",
+                                        "aria-label": `Unspecified peak ${unspIdx + 1} RRT`
+                                      }
+                                    }}
+                                    sx={{ maxWidth: 180 }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    disabled={disabled}
+                                    placeholder="0.00"
+                                    value={cellText(unspAreaKey(rep.replicateNo, clientKey), p.area)}
+                                    onChange={(e) => handleUnspecifiedAreaChange(repIdx, clientKey, e.target.value)}
+                                    error={!disabled && p.area < 0}
+                                    helperText={areaHelper(p.area)}
+                                    slotProps={{
+                                      htmlInput: {
+                                        min: 0,
+                                        step: "any",
+                                        "aria-label": `Unspecified peak ${unspIdx + 1} area`
+                                      }
+                                    }}
+                                    sx={{ maxWidth: 220 }}
+                                  />
+                                </TableCell>
+                                <TableCell align="right">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    disabled={disabled}
+                                    onClick={() => handleRemoveUnspecifiedPeak(repIdx, clientKey)}
+                                    aria-label={`Remove unspecified peak ${unspIdx + 1}`}
+                                  >
+                                    <DeleteOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </TableContainer>

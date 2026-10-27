@@ -96,6 +96,16 @@ export interface SaveHplcMethodRequest {
   reason?: string | null;
   technique?: HplcTechnique;
   resultMode?: HplcResultMode;
+  impurities?: {
+    id: number;
+    displayOrder: number;
+    name: string;
+    relativeRetention?: number | null;
+    correctionFactor?: number | null;
+  }[];
+  internalStandardName?: string | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
   filmThicknessUm?: number | null;
   carrierGas?: CarrierGas | null;
   splitRatio?: number | null;
@@ -123,6 +133,16 @@ export interface HplcMethodListItem {
   lastModifiedAt: string;
   technique?: HplcTechnique;
   resultMode?: HplcResultMode;
+  impurities?: {
+    id: number;
+    displayOrder: number;
+    name: string;
+    relativeRetention?: number | null;
+    correctionFactor?: number | null;
+  }[];
+  internalStandardName?: string | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
 }
 
 export interface HplcMethodMobilePhaseResponse {
@@ -204,6 +224,16 @@ export interface HplcMethodResponse {
   lastModifiedAt?: string;
   technique?: HplcTechnique;
   resultMode?: HplcResultMode;
+  impurities?: {
+    id: number;
+    displayOrder: number;
+    name: string;
+    relativeRetention?: number | null;
+    correctionFactor?: number | null;
+  }[];
+  internalStandardName?: string | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
   filmThicknessUm?: number | null;
   carrierGas?: CarrierGas | null;
   splitRatio?: number | null;

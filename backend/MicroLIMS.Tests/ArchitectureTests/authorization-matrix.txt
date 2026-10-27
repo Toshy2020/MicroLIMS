@@ -1,3 +1,4 @@
+AdminSecurityPolicyController.Get(): SystemAdministrator
 AfterCleaningController.Prepare(PrepareAfterCleaningRequest): SectionHead,Reviewer,Analyst
 AfterCleaningController.Receive(ReceiveAfterCleaningRequest): SectionHead,Reviewer,Analyst
 AfterCleaningMasterDataController.CreateMachine(CreateMachineRequest): SystemAdministrator,SectionHead

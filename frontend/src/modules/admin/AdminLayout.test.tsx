@@ -1,0 +1,55 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { AdminIndexRedirect, AdminLayout } from "./AdminLayout";
+
+const auth = { permissions: [] as string[] };
+vi.mock("../../contexts/AuthContext", () => ({ useAuth: () => auth }));
+
+afterEach(() => cleanup());
+
+function renderAt(url: string) {
+  render(
+    <PinnedLightTheme>
+      <MemoryRouter initialEntries={[url]}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminIndexRedirect />} />
+            <Route path="users" element={<div>users page</div>} />
+            <Route path="audit" element={<div>audit page</div>} />
+          </Route>
+          <Route path="/dashboard" element={<div>dashboard</div>} />
+        </Routes>
+      </MemoryRouter>
+    </PinnedLightTheme>
+  );
+}
+
+describe("AdminLayout", () => {
+  it("shows only the tabs the user holds the permission for", () => {
+    auth.permissions = ["Audit.View", "System.ViewErrorLog"];
+    renderAt("/admin/audit");
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Audit Trail", "Error Log"]);
+    expect(screen.getByText("audit page")).toBeTruthy();
+  });
+
+  it("shows Security Policy to Users.Manage and marks the current tab selected", () => {
+    auth.permissions = ["Users.Manage"];
+    renderAt("/admin/users");
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Security Policy"]);
+    expect(screen.getByRole("tab", { name: "Users" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("/admin lands on the first permitted tab", () => {
+    auth.permissions = ["Audit.View"];
+    renderAt("/admin");
+    expect(screen.getByText("audit page")).toBeTruthy();
+  });
+
+  it("/admin sends a user with no admin permission to the dashboard", () => {
+    auth.permissions = [];
+    renderAt("/admin");
+    expect(screen.getByText("dashboard")).toBeTruthy();
+  });
+});

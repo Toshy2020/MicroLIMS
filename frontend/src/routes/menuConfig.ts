@@ -6,10 +6,11 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import TableViewOutlinedIcon from "@mui/icons-material/TableViewOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
+import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
+import PolicyOutlinedIcon from "@mui/icons-material/PolicyOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
@@ -84,10 +85,8 @@ export interface MenuContext {
 // Menu Items
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: "REPORTS" };
-const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", description: "Search the audit trail of every record and signature.", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.AUDIT_VIEW };
 const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
 const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: "REPORTS", permission: PERMISSIONS.MONITORING_PLAN_VIEW };
-const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: "SYSTEM", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
 // gated on privileges rather than role or lab membership - any lab may
@@ -102,18 +101,20 @@ const receiveSampleItem: MenuItem = {
 };
 const trackingBoardItem: MenuItem = { label: "Tracking Board", path: "/receiving/tracking", description: "Every received sample with each lab's stage.", icon: FactCheckOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_TRACK_ALL };
 
-const usersItem: MenuItem = { label: "Users", path: "/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.USERS_MANAGE };
-const rolesItem: MenuItem = { label: "Roles", path: "/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.ROLES_MANAGE };
 
-// The global document audit trail is a role rule plus a read-only grant on the
-// server (DocumentAuthorizationService.CanQueryGlobalAuditAsync): Reviewers and
-// Section Heads by role, anyone else - the System Administrator included - only
-// by holding Audit.View. So its link mirrors that pair.
-function canQueryDocumentAudit(role: Role | null, permissions: string[]): boolean {
-  return role === "Reviewer" || role === "SectionHead" || permissions.includes(PERMISSIONS.AUDIT_VIEW);
-}
+// Administration: one sidebar group, one entry per /admin tab, each behind the
+// permission of its page and endpoint. The panel controls the system, never
+// GxP data. The tabs themselves live in modules/admin/adminTabs.ts.
+const ADMIN_GROUP = "ADMINISTRATION";
+const adminItems: MenuItem[] = [
+  { label: "Users", path: "/admin/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE },
+  { label: "Roles", path: "/admin/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ROLES_MANAGE },
+  { label: "Audit Trail", path: "/admin/audit", description: "Search the audit trail of every record and signature.", icon: ManageSearchOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
+  { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
+  { label: "Security Policy", path: "/admin/security-policy", description: "Password, lockout, session and e-signature rules in force.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE }
+];
 
-function documentControlItem(role: Role | null, permissions: string[]): MenuItem {
+function documentControlItem(permissions: string[]): MenuItem {
   return {
     label: "Document Control",
     description: "Controlled documents, reading lists and training.",
@@ -127,7 +128,7 @@ function documentControlItem(role: Role | null, permissions: string[]): MenuItem
       { label: "Training Matrix", path: "/document-control/training-matrix", icon: SchoolOutlinedIcon, description: "Who is trained on which document, and what is outstanding." },
       { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", icon: InsightsOutlinedIcon, description: "Training and document compliance across sections." },
       { label: "Document Library", path: "/document-control/library", icon: LocalLibraryOutlinedIcon, description: "Search and open every controlled document and its versions." },
-      ...(canQueryDocumentAudit(role, permissions) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
+      ...(permissions.includes(PERMISSIONS.AUDIT_VIEW) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
       { label: "Configuration", path: "/document-control/configuration", icon: TuneOutlinedIcon, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, description: "Document types, sections and workflow settings." }
     ]
   };
@@ -264,10 +265,8 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
 // Builds the sidebar from the user's permissions and lab membership: each
 // link needs the permission its page's route guard checks, and each
 // laboratory area also needs membership in that lab (useMyLabs), or the
-// Sections.ViewAll permission for the read-only view of every lab. The role
-// only decides the document audit link, together with Audit.View, as the
-// server does.
-export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
+// Sections.ViewAll permission for the read-only view of every lab.
+export function getGroupedMenu({ permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
   const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
   if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
   if (labCodes.includes("FP")) {
@@ -276,7 +275,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
   }
   items.push(
     itemsItem, receivingConfigItem, masterDataWorkbookItem,
-    documentControlItem(role, permissions), usersItem, rolesItem, reportsItem, monitoringPlanItem, auditSearchItem, oosTrackingItem, errorMonitoringItem
+    documentControlItem(permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
   );
   return groupItems(visibleItems(items, permissions));
 }

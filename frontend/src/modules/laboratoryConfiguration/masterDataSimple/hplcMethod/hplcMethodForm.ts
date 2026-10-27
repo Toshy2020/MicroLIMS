@@ -34,6 +34,13 @@ export interface GcOvenStepRowState {
   holdMin: string | number;
 }
 
+export interface ImpurityRowState {
+  id?: number | null;
+  name: string;
+  relativeRetention: string | number;
+  correctionFactor: string | number;
+}
+
 export interface AnalyteRowState {
   id?: number;
   name: string;
@@ -84,6 +91,10 @@ export interface HplcMethodFormState {
   headspaceEquilibrationMin: string | number;
   headspaceTransferLineTemperatureC: string | number;
   sampleSolutionVolumeMl: string | number;
+  referenceSolutionPercent: string | number;
+  disregardLimitPercent: string | number;
+  impurities: ImpurityRowState[];
+  internalStandardName: string;
   ovenSteps: GcOvenStepRowState[];
   mobilePhases: MobilePhaseRowState[];
   gradientSteps: GradientStepRowState[];
@@ -97,7 +108,8 @@ export const TECHNIQUE_OPTIONS: Array<{ value: HplcTechnique; label: string }> =
 
 export const RESULT_MODE_OPTIONS: Array<{ value: HplcResultMode; label: string }> = [
   { value: "Assay", label: "Assay" },
-  { value: "ResidualSolvents", label: "Residual Solvents" }
+  { value: "ResidualSolvents", label: "Residual Solvents" },
+  { value: "RelatedSubstances", label: "Related Substances" }
 ];
 
 export const CARRIER_GAS_OPTIONS: Array<{ value: CarrierGas; label: string }> = [
@@ -170,6 +182,10 @@ export function createInitialHplcMethodFormState(
       headspaceEquilibrationMin: "",
       headspaceTransferLineTemperatureC: "",
       sampleSolutionVolumeMl: "",
+      referenceSolutionPercent: "",
+      disregardLimitPercent: "",
+      impurities: [],
+      internalStandardName: "",
       ovenSteps: [{ rateCPerMin: "", temperatureC: "40", holdMin: "5" }],
       mobilePhases: [],
       gradientSteps: [],
@@ -226,6 +242,10 @@ export function createInitialHplcMethodFormState(
     headspaceEquilibrationMin: "",
     headspaceTransferLineTemperatureC: "",
     sampleSolutionVolumeMl: "",
+    referenceSolutionPercent: "",
+    disregardLimitPercent: "",
+    impurities: [],
+    internalStandardName: "",
     ovenSteps: [],
     mobilePhases: [{ channel: "A", solutionMasterId: "", ratioPercent: "100" }],
     gradientSteps: [
@@ -303,6 +323,20 @@ export function hplcMethodEntityToFormState(m: HplcMethodResponse): HplcMethodFo
       m.headspaceTransferLineTemperatureC != null ? String(m.headspaceTransferLineTemperatureC) : "",
     sampleSolutionVolumeMl:
       m.sampleSolutionVolumeMl != null ? String(m.sampleSolutionVolumeMl) : "",
+    referenceSolutionPercent:
+      m.referenceSolutionPercent != null ? String(m.referenceSolutionPercent) : "",
+    disregardLimitPercent:
+      m.disregardLimitPercent != null ? String(m.disregardLimitPercent) : "",
+    impurities:
+      m.impurities && m.impurities.length > 0
+        ? m.impurities.map((imp) => ({
+            id: imp.id,
+            name: imp.name,
+            relativeRetention: imp.relativeRetention != null ? String(imp.relativeRetention) : "",
+            correctionFactor: imp.correctionFactor != null ? String(imp.correctionFactor) : "1"
+          }))
+        : [],
+    internalStandardName: m.internalStandardName ?? "",
     ovenSteps:
       m.ovenSteps && m.ovenSteps.length > 0
         ? m.ovenSteps.map((s) => ({
@@ -421,6 +455,10 @@ export function formToSaveRequest(
         isResidual && form.sampleSolutionVolumeMl !== ""
           ? Number(form.sampleSolutionVolumeMl)
           : null,
+      referenceSolutionPercent: null,
+      disregardLimitPercent: null,
+      impurities: [],
+      internalStandardName: null,
       ovenSteps: form.ovenSteps.map((s, idx) => ({
         rateCPerMin:
           idx === 0 || s.rateCPerMin === "" || s.rateCPerMin == null ? null : Number(s.rateCPerMin),
@@ -473,10 +511,12 @@ export function formToSaveRequest(
 
   // HPLC
   const isGradient = form.elutionMode === "Gradient";
+  const isRelatedSubstances = form.resultMode === "RelatedSubstances";
+  const isAssay = form.resultMode === "Assay";
 
   return {
     technique: "Hplc",
-    resultMode: "Assay",
+    resultMode: form.resultMode,
     name: form.name.trim(),
     abbreviation: form.abbreviation.trim().toUpperCase(),
     effectiveDate: form.effectiveDate,
@@ -505,6 +545,32 @@ export function formToSaveRequest(
     headspaceEquilibrationMin: null,
     headspaceTransferLineTemperatureC: null,
     sampleSolutionVolumeMl: null,
+    referenceSolutionPercent:
+      isRelatedSubstances && form.referenceSolutionPercent !== "" && form.referenceSolutionPercent != null
+        ? Number(form.referenceSolutionPercent)
+        : null,
+    disregardLimitPercent:
+      isRelatedSubstances && form.disregardLimitPercent !== "" && form.disregardLimitPercent != null
+        ? Number(form.disregardLimitPercent)
+        : null,
+    impurities: isRelatedSubstances
+      ? form.impurities.map((imp) => ({
+          id: imp.id ?? null,
+          name: imp.name.trim(),
+          relativeRetention:
+            imp.relativeRetention !== "" && imp.relativeRetention != null
+              ? Number(imp.relativeRetention)
+              : null,
+          correctionFactor:
+            imp.correctionFactor !== "" && imp.correctionFactor != null
+              ? Number(imp.correctionFactor)
+              : 1
+        }))
+      : [],
+    internalStandardName:
+      isAssay && form.internalStandardName && form.internalStandardName.trim()
+        ? form.internalStandardName.trim()
+        : null,
     ovenSteps: [],
     mobilePhases: form.mobilePhases.map((p) => ({
       channel: p.channel,
@@ -520,25 +586,47 @@ export function formToSaveRequest(
           percentD: Number(s.percentD || 0)
         }))
       : [],
-    analytes: form.analytes.map((a) => ({
-      id: a.id ?? null,
-      name: a.name.trim(),
-      wavelengthNm: Number(a.wavelengthNm),
-      standardEntryId: Number(a.standardEntryId),
-      theoreticalWeightStdMg: Number(a.theoreticalWeightStdMg),
-      theoreticalWeightTestMg: Number(a.theoreticalWeightTestMg),
-      standardDilution:
-        a.standardDilution === "" || a.standardDilution == null ? null : Number(a.standardDilution),
-      standardConcentrationUgPerMl: null,
-      standardInjections: Number(a.standardInjections),
-      sstMaxRsdPercent: a.sstMaxRsdPercent !== "" ? Number(a.sstMaxRsdPercent) : null,
-      sstMinResolution: a.sstMinResolution !== "" ? Number(a.sstMinResolution) : null,
-      sstMaxTailingFactor: a.sstMaxTailingFactor !== "" ? Number(a.sstMaxTailingFactor) : null,
-      sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
-      sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
-      sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
-      sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
-    }))
+    analytes: form.analytes.map((a) => {
+      if (isRelatedSubstances) {
+        return {
+          id: a.id ?? null,
+          name: a.name.trim(),
+          wavelengthNm: a.wavelengthNm !== "" && a.wavelengthNm != null ? Number(a.wavelengthNm) : null,
+          standardEntryId: Number(a.standardEntryId),
+          theoreticalWeightStdMg: 0,
+          theoreticalWeightTestMg: 0,
+          standardDilution: null,
+          standardConcentrationUgPerMl: null,
+          standardInjections: Number(a.standardInjections),
+          sstMaxRsdPercent: a.sstMaxRsdPercent !== "" ? Number(a.sstMaxRsdPercent) : null,
+          sstMinResolution: a.sstMinResolution !== "" ? Number(a.sstMinResolution) : null,
+          sstMaxTailingFactor: a.sstMaxTailingFactor !== "" ? Number(a.sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
+          sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
+          sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
+          sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
+        };
+      }
+      return {
+        id: a.id ?? null,
+        name: a.name.trim(),
+        wavelengthNm: Number(a.wavelengthNm),
+        standardEntryId: Number(a.standardEntryId),
+        theoreticalWeightStdMg: Number(a.theoreticalWeightStdMg),
+        theoreticalWeightTestMg: Number(a.theoreticalWeightTestMg),
+        standardDilution:
+          a.standardDilution === "" || a.standardDilution == null ? null : Number(a.standardDilution),
+        standardConcentrationUgPerMl: null,
+        standardInjections: Number(a.standardInjections),
+        sstMaxRsdPercent: a.sstMaxRsdPercent !== "" ? Number(a.sstMaxRsdPercent) : null,
+        sstMinResolution: a.sstMinResolution !== "" ? Number(a.sstMinResolution) : null,
+        sstMaxTailingFactor: a.sstMaxTailingFactor !== "" ? Number(a.sstMaxTailingFactor) : null,
+        sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
+        sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
+        sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
+        sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
+      };
+    })
   };
 }
 

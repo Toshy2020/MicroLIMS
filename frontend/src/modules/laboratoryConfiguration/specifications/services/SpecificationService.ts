@@ -18,6 +18,7 @@ export type DosageForm = "Tablet" | "HardCapsule" | "SoftCapsule";
 export type ToleranceMode = "Absolute" | "Percent";
 
 export type ExpectedPresence = "Presence" | "Absence";
+export type RelatedSubstanceRow = "Named" | "UnspecifiedEach" | "Total" | "TotalOthers";
 
 export type ResultBasis =
   | "MgPerKg"
@@ -93,6 +94,8 @@ export interface SpecificationDto {
   canEdit?: boolean;
   sectionName?: string;
   hplcMethodAnalyteId?: number | null;
+  hplcMethodImpurityId?: number | null;
+  relatedSubstanceRow?: RelatedSubstanceRow | null;
   icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | string | null;
   grade?: string | null;
@@ -127,6 +130,8 @@ export interface CreateSpecificationPayload {
   labelClaimUnit?: string | null;
   dosageForm?: DosageForm | null;
   hplcMethodAnalyteId?: number | null;
+  hplcMethodImpurityId?: number | null;
+  relatedSubstanceRow?: RelatedSubstanceRow | null;
   icpMethodElementId?: number | null;
   productionStageRole?: ProductionStageRole | null;
   grade?: string | null;

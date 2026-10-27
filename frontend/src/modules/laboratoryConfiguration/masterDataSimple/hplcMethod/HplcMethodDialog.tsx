@@ -20,6 +20,7 @@ import { HplcColumnSection } from "./HplcColumnSection";
 import { HplcElutionDetectionTab } from "./HplcElutionDetectionTab";
 import { HplcSolutionsSection } from "./HplcSolutionsSection";
 import { HplcAnalytesSection } from "./HplcAnalytesSection";
+import { HplcImpuritiesSection } from "./HplcImpuritiesSection";
 import { GcConditionsSection } from "./GcConditionsSection";
 import { useHplcMethodDialogState } from "./useHplcMethodDialogState";
 
@@ -166,6 +167,8 @@ export function HplcMethodDialog({
                 onAbbreviationChange={(val) => updateField("abbreviation", val)}
                 onEffectiveDateChange={(val) => updateField("effectiveDate", val)}
                 onSectionIdChange={(val) => updateField("sectionId", val)}
+                internalStandardName={form.internalStandardName}
+                onInternalStandardNameChange={(val) => updateField("internalStandardName", val)}
               />
 
               {isGc ? (
@@ -189,7 +192,7 @@ export function HplcMethodDialog({
                   <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
                   <Tab label={tabLabel("Elution & Detection", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
                   <Tab label={tabLabel("Solutions", 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                  <Tab label={tabLabel(`Analytes (${form.analytes.length})`, 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(form.resultMode === "RelatedSubstances" ? "Analytes & Impurities" : `Analytes (${form.analytes.length})`, 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
                 </Tabs>
               )}
 
@@ -369,9 +372,10 @@ export function HplcMethodDialog({
 
               {/* Tab 3: Analytes (HPLC only) */}
               {!isGc && tabIndex === 3 && (
-                <HplcAnalytesSection
-                  technique="Hplc"
-                  resultMode="Assay"
+                <>
+                  <HplcAnalytesSection
+                    technique="Hplc"
+                    resultMode={form.resultMode}
                   analytes={form.analytes}
                   availableStandards={availableReferenceStandards}
                   errors={errors}
@@ -414,7 +418,19 @@ export function HplcMethodDialog({
                     copy[targetIdx] = temp;
                     updateField("analytes", copy);
                   }}
-                />
+                  />
+                  {form.resultMode === "RelatedSubstances" && (
+                    <HplcImpuritiesSection
+                      referenceSolutionPercent={form.referenceSolutionPercent}
+                      disregardLimitPercent={form.disregardLimitPercent}
+                      impurities={form.impurities}
+                      errors={errors}
+                      onReferenceSolutionPercentChange={(val) => updateField("referenceSolutionPercent", val)}
+                      onDisregardLimitPercentChange={(val) => updateField("disregardLimitPercent", val)}
+                      onImpuritiesChange={(impurities) => updateField("impurities", impurities)}
+                    />
+                  )}
+                </>
               )}
             </>
           )}

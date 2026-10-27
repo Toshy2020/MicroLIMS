@@ -160,7 +160,7 @@ export function useHplcMethodDialogState({
         return {
           ...prev,
           technique: "Gc",
-          resultMode: prev.resultMode ?? "Assay",
+          resultMode: prev.resultMode === "RelatedSubstances" ? "Assay" : (prev.resultMode ?? "Assay"),
           columnDesignation: "",
           columnLength: "30",
           columnInternalDiameterMm: "0.32",
@@ -237,15 +237,20 @@ export function useHplcMethodDialogState({
     if (editingId) return; // Read-only on edit
     setForm((prev) => {
       const isResidual = nextMode === "ResidualSolvents";
+      const isRs = nextMode === "RelatedSubstances";
       return {
         ...prev,
         resultMode: nextMode,
         sampleSolutionVolumeMl: isResidual ? (prev.sampleSolutionVolumeMl || "5") : "",
-        analytes: prev.analytes.map((a) => ({
+        referenceSolutionPercent: isRs ? (prev.referenceSolutionPercent || "") : "",
+        disregardLimitPercent: isRs ? (prev.disregardLimitPercent || "") : "",
+        internalStandardName: nextMode === "Assay" ? prev.internalStandardName : "",
+        impurities: isRs ? prev.impurities : [],
+        analytes: (isRs && prev.analytes.length > 1 ? [prev.analytes[0]] : prev.analytes).map((a) => ({
           ...a,
-          theoreticalWeightStdMg: isResidual ? "0" : a.theoreticalWeightStdMg || "50",
-          theoreticalWeightTestMg: isResidual ? "0" : a.theoreticalWeightTestMg || "50",
-          standardDilution: isResidual ? "" : a.standardDilution,
+          theoreticalWeightStdMg: isResidual || isRs ? "0" : a.theoreticalWeightStdMg || "50",
+          theoreticalWeightTestMg: isResidual || isRs ? "0" : a.theoreticalWeightTestMg || "50",
+          standardDilution: isResidual || isRs ? "" : a.standardDilution,
           standardConcentrationUgPerMl: isResidual ? a.standardConcentrationUgPerMl || "100" : ""
         }))
       };

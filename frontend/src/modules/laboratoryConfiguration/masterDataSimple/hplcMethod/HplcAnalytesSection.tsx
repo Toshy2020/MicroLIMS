@@ -56,6 +56,7 @@ export function HplcAnalytesSection({
 }: HplcAnalytesSectionProps) {
   const isGc = technique === "Gc";
   const isResidual = isGc && resultMode === "ResidualSolvents";
+  const isRelatedSubstances = !isGc && resultMode === "RelatedSubstances";
   const [expandedSstIndices, setExpandedSstIndices] = useState<Record<number, boolean>>({});
 
   const toggleSstExpand = (index: number) => {
@@ -158,7 +159,7 @@ export function HplcAnalytesSection({
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <ScienceOutlinedIcon fontSize="small" color="primary" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {a.name.trim() ? a.name.trim() : `Analyte #${idx + 1}`}
+                    {a.name.trim() ? a.name.trim() : isRelatedSubstances ? "Principal Peak" : `Analyte #${idx + 1}`}
                   </Typography>
                   {a.id != null && (
                     <Typography variant="caption" sx={{ color: "text.disabled" }}>
@@ -167,6 +168,7 @@ export function HplcAnalytesSection({
                   )}
                 </Stack>
 
+                {!isRelatedSubstances && (
                 <Stack direction="row" spacing={0.5}>
                   <Tooltip title="Move up">
                     <span>
@@ -206,6 +208,7 @@ export function HplcAnalytesSection({
                     </span>
                   </Tooltip>
                 </Stack>
+                )}
               </Stack>
 
               {/* Main Fields: Name, Wavelength (if HPLC), Reference Standard */}
@@ -222,7 +225,7 @@ export function HplcAnalytesSection({
                 <TextField
                   size="small"
                   label="Analyte Name *"
-                  placeholder={isResidual ? "e.g. Methanol, Acetone, DCM" : "e.g. Paracetamol, Caffeine"}
+                  placeholder={isRelatedSubstances ? "e.g. Sildenafil Principal Peak" : isResidual ? "e.g. Methanol, Acetone, DCM" : "e.g. Paracetamol, Caffeine"}
                   value={a.name}
                   onChange={(e) => onAnalyteChange(idx, "name", e.target.value)}
                   required

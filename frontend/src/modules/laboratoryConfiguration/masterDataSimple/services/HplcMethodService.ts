@@ -3,7 +3,7 @@ import type { ApiResponse } from "./EquipmentConfigurationService";
 
 export type ElutionMode = "Isocratic" | "Gradient";
 export type HplcTechnique = "Hplc" | "Gc";
-export type HplcResultMode = "Assay" | "ResidualSolvents";
+export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances";
 export type CarrierGas = "Helium" | "Nitrogen" | "Hydrogen";
 export type HplcDetectorType =
   | "UV"
@@ -16,6 +16,21 @@ export type HplcDetectorType =
   | "Tcd"
   | "Ecd"
   | "Ms";
+
+export interface HplcImpurityInput {
+  id?: number | null;
+  name: string;
+  relativeRetention?: number | null;
+  correctionFactor?: number | null;
+}
+
+export interface HplcMethodImpurityResponse {
+  id: number;
+  displayOrder?: number;
+  name: string;
+  relativeRetention?: number | null;
+  correctionFactor: number;
+}
 
 export interface HplcMobilePhaseInput {
   channel: string;
@@ -92,6 +107,10 @@ export interface SaveHplcMethodRequest {
   headspaceEquilibrationMin?: number | null;
   headspaceTransferLineTemperatureC?: number | null;
   sampleSolutionVolumeMl?: number | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
+  impurities?: HplcImpurityInput[];
+  internalStandardName?: string | null;
 }
 
 export interface HplcMethodListItem {
@@ -196,6 +215,10 @@ export interface HplcMethodResponse {
   headspaceEquilibrationMin?: number | null;
   headspaceTransferLineTemperatureC?: number | null;
   sampleSolutionVolumeMl?: number | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
+  impurities?: HplcMethodImpurityResponse[];
+  internalStandardName?: string | null;
 }
 
 export interface HplcMethodHistoryEntry {

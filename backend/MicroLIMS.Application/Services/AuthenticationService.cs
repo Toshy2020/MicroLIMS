@@ -17,11 +17,11 @@ namespace MicroLIMS.Application.Services;
 // reset (gap analysis "Missing Security").
 public class AuthenticationService : IAuthenticationService
 {
-    private const int MaxFailedAttempts = 5;
-    private const int PasswordHistoryLimit = 5;
-    private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
-    private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
+    public const int MaxFailedAttempts = 5;
+    public const int PasswordHistoryLimit = 5;
+    public static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
+    public static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
+    public static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
     // Every failed login - unknown user, locked, disabled, wrong password -
     // gets this same message and costs the same one BCrypt check, so the

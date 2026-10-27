@@ -73,15 +73,17 @@ const APP_ROUTES = {
   DOCUMENT_CONTROL_CONFIGURATION: "/document-control/configuration",
 
   // Audit
-  AUDIT_SEARCH: "/audit-search",
-  ERROR_MONITORING: "/error-monitoring",
+  AUDIT_SEARCH: "/admin/audit",
+  ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
 
   // Administration
-  USERS: "/users",
-  ROLES: "/roles",
-  ROLE_NEW: "/roles/new",
-  ROLE_DETAIL: (id: number | string) => `/roles/${id}`,
+  ADMIN: "/admin",
+  USERS: "/admin/users",
+  ROLES: "/admin/roles",
+  ROLE_NEW: "/admin/roles/new",
+  ROLE_DETAIL: (id: number | string) => `/admin/roles/${id}`,
+  SECURITY_POLICY: "/admin/security-policy",
 
   // Printable Report Pages (standalone rendering outside MainLayout)
   SAMPLE_REPORT: (id: number | string) => `/samples/${id}/report`,

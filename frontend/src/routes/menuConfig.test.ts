@@ -141,17 +141,43 @@ describe("menuConfig document audit link", () => {
     return findItemByPath(groups.flatMap((g) => g.items), "/document-control/audit") !== undefined;
   };
 
-  // Mirrors DocumentAuthorizationService.CanQueryGlobalAuditAsync: Reviewers and Section Heads by role,
-  // everyone else only by holding Audit.View.
-  it("is offered to Reviewers and Section Heads by role, and to anyone else only with Audit.View", () => {
-    expect(hasAuditLink("Reviewer", [])).toBe(true);
-    expect(hasAuditLink("SectionHead", [])).toBe(true);
-    expect(hasAuditLink("Analyst", [])).toBe(false);
+  // A permission check, not a role-name check: the link follows Audit.View whatever the role.
+  it("is offered to whoever holds Audit.View, and to nobody else", () => {
     expect(hasAuditLink("Analyst", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
+    expect(hasAuditLink("SystemAdministrator", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
+    expect(hasAuditLink("Reviewer", [])).toBe(false);
+    expect(hasAuditLink("SectionHead", [])).toBe(false);
+    expect(hasAuditLink("SystemAdministrator", [])).toBe(false);
+  });
+});
+
+describe("menuConfig Administration group", () => {
+  const adminPaths = (permissions: string[]) => {
+    const group = getGroupedMenu({ role: "Analyst", permissions, labCodes: [] }).find((g) => g.groupName === "ADMINISTRATION");
+    return group?.items.map((i) => i.path) ?? [];
+  };
+
+  it("offers each admin page only to the permission that guards it", () => {
+    expect(adminPaths([])).toEqual([]);
+    expect(adminPaths([PERMISSIONS.USERS_MANAGE])).toEqual(["/admin/users", "/admin/security-policy"]);
+    expect(adminPaths([PERMISSIONS.ROLES_MANAGE])).toEqual(["/admin/roles"]);
+    expect(adminPaths([PERMISSIONS.AUDIT_VIEW])).toEqual(["/admin/audit"]);
+    expect(adminPaths([PERMISSIONS.SYSTEM_VIEW_ERROR_LOG])).toEqual(["/admin/error-log"]);
   });
 
-  it("follows the System Administrator's Audit.View, not the role name", () => {
-    expect(hasAuditLink("SystemAdministrator", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
-    expect(hasAuditLink("SystemAdministrator", [])).toBe(false);
+  it("lists all five pages, in tab order, for a full administrator", () => {
+    expect(adminPaths([PERMISSIONS.USERS_MANAGE, PERMISSIONS.ROLES_MANAGE, PERMISSIONS.AUDIT_VIEW, PERMISSIONS.SYSTEM_VIEW_ERROR_LOG]))
+      .toEqual(["/admin/users", "/admin/roles", "/admin/audit", "/admin/error-log", "/admin/security-policy"]);
+  });
+
+  it("no longer scatters admin entries under the old groups or paths", () => {
+    const groups = getGroupedMenu({
+      role: "SystemAdministrator",
+      permissions: [PERMISSIONS.USERS_MANAGE, PERMISSIONS.ROLES_MANAGE, PERMISSIONS.AUDIT_VIEW, PERMISSIONS.SYSTEM_VIEW_ERROR_LOG, PERMISSIONS.OOS_MANAGE],
+      labCodes: []
+    });
+    const all = groups.flatMap((g) => g.items);
+    for (const old of ["/users", "/roles", "/audit-search", "/error-monitoring"]) expect(findItemByPath(all, old)).toBeUndefined();
+    expect(groups.find((g) => g.groupName === "SYSTEM")).toBeUndefined();
   });
 });

@@ -262,6 +262,7 @@ public static class ServiceCollectionExtensions
 
         // Read/triage side of the same data - scoped, ordinary querying.
         services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
+        services.AddSingleton<ISecurityPolicyService>(sp => new SecurityPolicyService(sp.GetRequiredService<JwtSettings>().AccessTokenLifetime));
 
         // Critical incident alerting. Disabled unless explicitly enabled,
         // so no environment can mail anyone by accident. Driven by

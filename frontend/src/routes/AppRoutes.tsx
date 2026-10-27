@@ -6,6 +6,8 @@ import { PermissionRoute } from "./PermissionRoute";
 import { PERMISSIONS } from "./routes";
 import { MainLayout } from "../layouts/MainLayout";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { AdminLayout, AdminIndexRedirect } from "../modules/admin/AdminLayout";
+import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirects";
 
 // Every page-level route component below is lazy-loaded so the initial
 // bundle only ships the shell (layout/auth guards + whichever page the
@@ -84,6 +86,7 @@ const TrainingMatrixPage = lazy(() => import("../modules/documentControl/pages/T
 const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pages/ComplianceDashboardPage").then((m) => ({ default: m.ComplianceDashboardPage })));
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
+const SecurityPolicyPage = lazy(() => import("../modules/admin/SecurityPolicyPage").then((m) => ({ default: m.SecurityPolicyPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
 function LegacyRedirect({ to }: { to: string }) {
@@ -213,9 +216,6 @@ export function AppRoutes() {
 
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
-            <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
-              <Route path="/audit-search" element={<AuditSearchPage />} />
-            </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
             </Route>
@@ -268,21 +268,35 @@ export function AppRoutes() {
               <Route path="/monitoring-plan" element={<MonitoringPlanPage />} />
             </Route>
 
-            <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
-              <Route path="/error-monitoring" element={<ErrorMonitoringPage />} />
-            </Route>
-
             <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
               <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
             </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
-              <Route path="/users" element={<UsersPage />} />
+            {/* Administration: one shell, a tab per page, each tab behind
+                its own permission. The panel controls the system, never
+                GxP data. */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminIndexRedirect />} />
+              <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
+                <Route path="users" element={<UsersPage />} />
+                <Route path="security-policy" element={<SecurityPolicyPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
+                <Route path="roles" element={<RolesPage />} />
+                <Route path="roles/new" element={<CreateRolePage />} />
+                <Route path="roles/:id" element={<RoleDetailPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
+                <Route path="audit" element={<AuditSearchPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
+                <Route path="error-log" element={<ErrorMonitoringPage />} />
+              </Route>
             </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
-              <Route path="/roles" element={<RolesPage />} />
-              <Route path="/roles/new" element={<CreateRolePage />} />
-              <Route path="/roles/:id" element={<RoleDetailPage />} />
-            </Route>
+
+            {/* Old paths from before the pages moved under /admin. */}
+            {LEGACY_ADMIN_REDIRECTS.map((r) => (
+              <Route key={r.from} path={r.from} element={<LegacyPathRedirect to={r.to} />} />
+            ))}
 
             <Route path="*" element={<NotFoundPage />} />
           </Route>

@@ -185,6 +185,29 @@ public class SpecificationService
         return g.ToUpperInvariant() is "BP" or "USP" ? g.ToUpperInvariant() : g;
     }
 
+    private async Task ValidateRelatedSubstanceRowAsync(Specification spec, int? methodId, CancellationToken cancellationToken)
+    {
+        if (spec.RelatedSubstanceRow is not RelatedSubstanceRow kind)
+            throw new InvalidOperationException("Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.");
+
+        if (kind == RelatedSubstanceRow.Named)
+        {
+            if (!spec.HplcMethodImpurityId.HasValue)
+                throw new InvalidOperationException("Choose the impurity for this row.");
+            var impurityMethodId = await _db.HplcMethodImpurities.Where(i => i.Id == spec.HplcMethodImpurityId.Value)
+                .Select(i => (int?)i.HplcMethodId).FirstOrDefaultAsync(cancellationToken);
+            if (impurityMethodId != methodId)
+                throw new InvalidOperationException("The impurity does not belong to this test's HPLC method.");
+        }
+        else if (spec.HplcMethodImpurityId.HasValue)
+            throw new InvalidOperationException("Only a named-impurity row names an impurity.");
+
+        if (spec.LimitType != LimitType.NotMoreThan)
+            throw new InvalidOperationException("Related-substance limits are 'not more than' limits.");
+        if (spec.ResultBasis != ResultBasis.PercentAsIs)
+            throw new InvalidOperationException("Related-substance rows report % (as is).");
+    }
+
     public async Task ValidateAsync(Specification spec, CancellationToken cancellationToken = default)
     {
         Validate(spec);
@@ -233,7 +256,7 @@ public class SpecificationService
 
         // Method-analyte rows are keyed by analyte + basis; checked first so the
         // clearer message wins over the parameter-name duplicate below.
-        if (spec.HplcMethodAnalyteId is int methodAnalyteId)
+        if (spec.HplcMethodAnalyteId is int methodAnalyteId && spec.RelatedSubstanceRow is null)
         {
             var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == methodAnalyteId
@@ -260,7 +283,14 @@ public class SpecificationService
                  && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
                  && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
             cancellationToken);
-        if (duplicate)
+        // Related-substance rows are keyed by kind (+ impurity for a Named row) per stage and grade.
+        var relatedDuplicate = spec.RelatedSubstanceRow is RelatedSubstanceRow kind && await _db.Specifications.AnyAsync(
+            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.RelatedSubstanceRow == kind
+                 && s.HplcMethodImpurityId == spec.HplcMethodImpurityId
+                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                 && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
+            cancellationToken);
+        if (duplicate || relatedDuplicate)
             throw new InvalidOperationException(spec.Grade is not null
                 ? "A specification for this parameter and grade already exists."
                 : $"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at {StageText(spec.ProductionStageRole)} on this item.");
@@ -320,6 +350,10 @@ public class SpecificationService
         // keyed by method analyte + quantity, reusing ResultBasis as the
         // quantity (PercentLabelClaim = assay %, MgPerUnit = amount per unit;
         // spec 3.4). No new enum.
+        if (testDef?.WorkflowType != WorkflowType.HplcMethodAssay
+            && (spec.RelatedSubstanceRow.HasValue || spec.HplcMethodImpurityId.HasValue))
+            throw new InvalidOperationException("Related-substance rows belong to related-substances methods only.");
+
         if (testDef?.WorkflowType == WorkflowType.HplcMethodAssay)
         {
             if (spec.IcpMethodElementId.HasValue)
@@ -331,8 +365,14 @@ public class SpecificationService
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
                 throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
 
+            bool relatedSubstances = analyte.HplcMethod!.ResultMode == HplcResultMode.RelatedSubstances;
+            if (!relatedSubstances && (spec.RelatedSubstanceRow.HasValue || spec.HplcMethodImpurityId.HasValue))
+                throw new InvalidOperationException("Related-substance rows belong to related-substances methods only.");
+
             bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
-            if (residualSolvents)
+            if (relatedSubstances)
+                await ValidateRelatedSubstanceRowAsync(spec, testDef.HplcMethodId, cancellationToken);
+            else if (residualSolvents)
             {
                 if (spec.ResultBasis != ResultBasis.Ppm || spec.LimitType != LimitType.NotMoreThan
                     || spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))

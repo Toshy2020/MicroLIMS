@@ -9782,6 +9782,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("HplcMethodAnalyteId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("HplcMethodImpurityId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("IcpMethodElementId")
                         .HasColumnType("integer");
 
@@ -9819,6 +9822,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("ReferenceStandard")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("RelatedSubstanceRow")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ResultBasis")
                         .HasColumnType("integer");
@@ -9872,6 +9878,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("HplcMethodAnalyteId");
+
+                    b.HasIndex("HplcMethodImpurityId");
 
                     b.HasIndex("IcpMethodElementId");
 
@@ -14386,6 +14394,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("HplcMethodAnalyteId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethodImpurity", "HplcMethodImpurity")
+                        .WithMany()
+                        .HasForeignKey("HplcMethodImpurityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.IcpMethodElement", "IcpMethodElement")
                         .WithMany()
                         .HasForeignKey("IcpMethodElementId")
@@ -14398,6 +14411,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("HplcMethodAnalyte");
+
+                    b.Navigation("HplcMethodImpurity");
 
                     b.Navigation("IcpMethodElement");
 

@@ -329,6 +329,8 @@ public class SpecificationResponse
     public int? IcpMethodElementId { get; init; }
     public ProductionStageRole? ProductionStageRole { get; init; }
     public string? Grade { get; init; }
+    public RelatedSubstanceRow? RelatedSubstanceRow { get; init; }
+    public int? HplcMethodImpurityId { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -365,6 +367,8 @@ public class SpecificationResponse
         DosageForm = e.DosageForm,
         HplcMethodAnalyteId = e.HplcMethodAnalyteId,
         IcpMethodElementId = e.IcpMethodElementId,
+        RelatedSubstanceRow = e.RelatedSubstanceRow,
+        HplcMethodImpurityId = e.HplcMethodImpurityId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

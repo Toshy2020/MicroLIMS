@@ -66,6 +66,13 @@ public class Specification : IVersionedEntity
     [JsonIgnore]
     public HplcMethodAnalyte? HplcMethodAnalyte { get; set; }
 
+    // Related-substances rows (HPLC method in RelatedSubstances mode): which kind of row this is,
+    // and for a Named row the method impurity it limits.
+    public RelatedSubstanceRow? RelatedSubstanceRow { get; set; }
+    public int? HplcMethodImpurityId { get; set; }
+    [JsonIgnore]
+    public HplcMethodImpurity? HplcMethodImpurity { get; set; }
+
     // ICP workspace - IcpMethodAssay specification rows are keyed by method element + basis.
     public int? IcpMethodElementId { get; set; }
     [JsonIgnore]

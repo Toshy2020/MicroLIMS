@@ -186,6 +186,14 @@ public partial class HplcMethodService
                 throw new InvalidOperationException($"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.");
         }
 
+        // Same for impurities named by a related-substances specification row.
+        var incomingImpurityIds = (r.Impurities ?? new()).Where(i => i.Id.HasValue).Select(i => i.Id!.Value).ToHashSet();
+        foreach (var existingImpurity in method.Impurities.Where(i => !incomingImpurityIds.Contains(i.Id)))
+        {
+            if (await _db.Specifications.AnyAsync(s => s.HplcMethodImpurityId == existingImpurity.Id, ct))
+                throw new InvalidOperationException($"Impurity {existingImpurity.Name} is used by a specification and cannot be removed.");
+        }
+
         ApplyFields(method, r, abbr);
         ReplaceMobilePhases(method, r);
         ReplaceGradientSteps(method, r);

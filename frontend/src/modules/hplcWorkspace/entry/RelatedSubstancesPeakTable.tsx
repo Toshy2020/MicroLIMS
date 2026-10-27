@@ -1,4 +1,4 @@
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import {
   Box,
   Paper,
@@ -76,13 +76,8 @@ const parseDraft = (draft: string): number => {
   return Number.isNaN(n) ? 0 : n;
 };
 
-let unspCounter = 0;
-function getPeakClientKey(p: HplcReplicatePeakInput, repNo: number, idx: number): string {
-  if (!p.clientKey) {
-    p.clientKey = `unsp-${repNo}-${idx}-${++unspCounter}`;
-  }
-  return p.clientKey;
-}
+let unspSeq = 0;
+const nextUnspKey = () => `unsp-${Date.now()}-${++unspSeq}`;
 
 export function RelatedSubstancesPeakTable({
   method,
@@ -95,10 +90,45 @@ export function RelatedSubstancesPeakTable({
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [rowKeys, setRowKeys] = useState<Record<number, string[]>>({});
 
-  const principalAnalyte = method?.analytes?.[0];
-  const principalAnalyteId = principalAnalyte?.id ?? null;
+  // Keep stable keys in state when rows are loaded or added, without mutating props during render
+  useEffect(() => {
+    setRowKeys((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      replicates.forEach((rep) => {
+        const unspecifiedCount = (rep.peaks ?? []).filter((p) => p.hplcMethodImpurityId == null).length;
+        const current = next[rep.replicateNo] || [];
+        if (current.length !== unspecifiedCount) {
+          changed = true;
+          const updated: string[] = [];
+          for (let i = 0; i < unspecifiedCount; i++) {
+            updated.push(current[i] || nextUnspKey());
+          }
+          next[rep.replicateNo] = updated;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [replicates]);
 
+  const analytes = method?.analytes ?? [];
+  const hasExactlyOneAnalyte = analytes.length === 1;
+
+  if (!hasExactlyOneAnalyte) {
+    return (
+      <Box ref={tableRef}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          This related-substances method must have exactly one analyte.
+        </Alert>
+        {footer}
+      </Box>
+    );
+  }
+
+  const principalAnalyte = analytes[0];
+  const principalAnalyteId = principalAnalyte.id;
   const impurities = method?.impurities ?? [];
 
   const refKey = (repNo: number) => `${repNo}:ref`;
@@ -119,7 +149,6 @@ export function RelatedSubstancesPeakTable({
   };
 
   const handleAddReplicate = () => {
-    if (!principalAnalyteId) return;
     const nextNo = replicates.length + 1;
     const newReplicate: HplcReplicateDto = {
       replicateNo: nextNo,
@@ -143,7 +172,6 @@ export function RelatedSubstancesPeakTable({
   };
 
   const handleRefAreaChange = (repIndex: number, rawVal: string) => {
-    if (!principalAnalyteId) return;
     const rep = replicates[repIndex];
     setDraft(refKey(rep.replicateNo), rawVal);
     const parsed = parseDraft(rawVal);
@@ -190,11 +218,18 @@ export function RelatedSubstancesPeakTable({
   };
 
   const handleAddUnspecifiedPeak = (repIndex: number) => {
+    const assignedKey = nextUnspKey();
+    const rep = replicates[repIndex];
+    setRowKeys((prev) => ({
+      ...prev,
+      [rep.replicateNo]: [...(prev[rep.replicateNo] || []), assignedKey]
+    }));
+
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
       const newPeak: HplcReplicatePeakInput = {
-        clientKey: `unsp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        clientKey: assignedKey,
         hplcMethodImpurityId: null,
         relativeRetention: null,
         area: 0
@@ -207,12 +242,29 @@ export function RelatedSubstancesPeakTable({
     onChange(updated);
   };
 
-  const handleRemoveUnspecifiedPeak = (repIndex: number, clientKey: string) => {
+  const handleRemoveUnspecifiedPeak = (repIndex: number, clientKey: string, unspIdx: number) => {
     setDrafts({});
+    const rep = replicates[repIndex];
+    setRowKeys((prev) => {
+      const current = prev[rep.replicateNo] || [];
+      return {
+        ...prev,
+        [rep.replicateNo]: current.filter((k, idx) => (k !== clientKey && idx !== unspIdx))
+      };
+    });
+
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
-      const filtered = peaks.filter((p) => p.clientKey !== clientKey);
+      let currentUnsp = 0;
+      const filtered = peaks.filter((p) => {
+        if (p.hplcMethodImpurityId == null) {
+          const match = p.clientKey ? p.clientKey === clientKey : currentUnsp === unspIdx;
+          currentUnsp++;
+          return !match;
+        }
+        return true;
+      });
       return {
         ...r,
         peaks: filtered
@@ -228,9 +280,14 @@ export function RelatedSubstancesPeakTable({
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
+      let currentUnsp = 0;
       const updatedPeaks = peaks.map((p) => {
-        if (p.clientKey === clientKey) {
-          return { ...p, area: parsed };
+        if (p.hplcMethodImpurityId == null) {
+          const key = p.clientKey || rowKeys[r.replicateNo]?.[currentUnsp] || `unsp-${r.replicateNo}-${currentUnsp}`;
+          currentUnsp++;
+          if (key === clientKey) {
+            return { ...p, area: parsed };
+          }
         }
         return p;
       });
@@ -246,9 +303,14 @@ export function RelatedSubstancesPeakTable({
     const updated = replicates.map((r, idx) => {
       if (idx !== repIndex) return r;
       const peaks = r.peaks ?? [];
+      let currentUnsp = 0;
       const updatedPeaks = peaks.map((p) => {
-        if (p.clientKey === clientKey) {
-          return { ...p, relativeRetention: Number.isNaN(parsed) ? null : parsed };
+        if (p.hplcMethodImpurityId == null) {
+          const key = p.clientKey || rowKeys[r.replicateNo]?.[currentUnsp] || `unsp-${r.replicateNo}-${currentUnsp}`;
+          currentUnsp++;
+          if (key === clientKey) {
+            return { ...p, relativeRetention: Number.isNaN(parsed) ? null : parsed };
+          }
         }
         return p;
       });
@@ -266,12 +328,6 @@ export function RelatedSubstancesPeakTable({
 
   return (
     <Box ref={tableRef}>
-      {!principalAnalyteId && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Method snapshot is missing the principal analyte.
-        </Alert>
-      )}
-
       {/* Top action header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
         <Box>
@@ -301,7 +357,7 @@ export function RelatedSubstancesPeakTable({
           size="small"
           startIcon={<AddIcon />}
           onClick={handleAddReplicate}
-          disabled={disabled || !principalAnalyteId}
+          disabled={disabled}
         >
           Add Replicate
         </Button>
@@ -368,7 +424,7 @@ export function RelatedSubstancesPeakTable({
                         size="small"
                         label="Reference solution area"
                         type="number"
-                        disabled={disabled || !principalAnalyteId}
+                        disabled={disabled}
                         value={cellText(refKey(rep.replicateNo), refResp)}
                         onChange={(e) => handleRefAreaChange(repIdx, e.target.value)}
                         placeholder="0.00"
@@ -462,7 +518,10 @@ export function RelatedSubstancesPeakTable({
                         </TableHead>
                         <TableBody>
                           {unspecifiedPeaks.map((p, unspIdx) => {
-                            const clientKey = getPeakClientKey(p, rep.replicateNo, unspIdx);
+                            const clientKey =
+                              p.clientKey ||
+                              rowKeys[rep.replicateNo]?.[unspIdx] ||
+                              `unsp-${rep.replicateNo}-${unspIdx}`;
                             const hasInvalidRrt = p.relativeRetention != null && p.relativeRetention <= 0;
 
                             return (
@@ -513,7 +572,7 @@ export function RelatedSubstancesPeakTable({
                                     size="small"
                                     color="error"
                                     disabled={disabled}
-                                    onClick={() => handleRemoveUnspecifiedPeak(repIdx, clientKey)}
+                                    onClick={() => handleRemoveUnspecifiedPeak(repIdx, clientKey, unspIdx)}
                                     aria-label={`Remove unspecified peak ${unspIdx + 1}`}
                                   >
                                     <DeleteOutlineIcon fontSize="small" />

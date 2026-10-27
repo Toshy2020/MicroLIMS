@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
 import type { HplcMethodWeightDto, HplcReplicateDto } from "../types";
@@ -116,6 +116,36 @@ describe("ReplicateEntryTable", () => {
 
     expect(screen.queryByText("IS area *")).toBeNull();
     expect(screen.queryByLabelText(/is area/i)).toBeNull();
+  });
+
+  it("edits the IS area when hasInternalStandard is true", () => {
+    const handleChange = vi.fn();
+    render(
+      <PinnedLightTheme>
+        <ReplicateEntryTable
+          methodWeights={mockWeights}
+          replicates={[
+            {
+              replicateNo: 1,
+              actualWeightMg: 100.5,
+              responses: [{ hplcMethodAnalyteId: 10, response: 2000 }],
+              internalStandardResponse: 0
+            }
+          ]}
+          onChange={handleChange}
+          hasInternalStandard={true}
+          internalStandardName="n-Hexane (IS)"
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.getByText("n-Hexane (IS) Area *")).toBeTruthy();
+    const isInput = screen.getByLabelText(/replicate 1 is area/i);
+    fireEvent.change(isInput, { target: { value: "3500" } });
+
+    expect(handleChange).toHaveBeenCalled();
+    const callArg = handleChange.mock.calls[0][0];
+    expect(callArg[0].internalStandardResponse).toBe(3500);
   });
 
   describe("replicatesComplete", () => {

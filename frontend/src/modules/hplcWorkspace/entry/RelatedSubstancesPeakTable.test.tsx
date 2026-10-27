@@ -106,16 +106,16 @@ describe("RelatedSubstancesPeakTable", () => {
     expect(screen.queryByText(/Actual Weight/i)).toBeNull();
   });
 
-  it("shows error alert and disables Add Replicate when method snapshot is missing principal analyte", () => {
-    const invalidMethod: HplcMethodSnapshot = {
+  it("shows 'This related-substances method must have exactly one analyte.' and does not render inputs when analytes count !== 1", () => {
+    const invalidMethodEmpty: HplcMethodSnapshot = {
       ...mockMethod,
       analytes: []
     };
 
-    render(
+    const { unmount } = render(
       <PinnedLightTheme>
         <RelatedSubstancesPeakTable
-          method={invalidMethod}
+          method={invalidMethodEmpty}
           methodWeights={[]}
           replicates={[]}
           onChange={vi.fn()}
@@ -123,9 +123,34 @@ describe("RelatedSubstancesPeakTable", () => {
       </PinnedLightTheme>
     );
 
-    expect(screen.getByText("Method snapshot is missing the principal analyte.")).toBeTruthy();
-    const addBtn = screen.getByRole("button", { name: /add replicate/i });
-    expect(addBtn.hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("This related-substances method must have exactly one analyte.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /add replicate/i })).toBeNull();
+    expect(screen.queryByLabelText(/reference solution area/i)).toBeNull();
+
+    unmount();
+
+    const invalidMethodMultiple: HplcMethodSnapshot = {
+      ...mockMethod,
+      analytes: [
+        mockMethod.analytes![0],
+        { ...mockMethod.analytes![0], id: 11, name: "Second Analyte" }
+      ]
+    };
+
+    render(
+      <PinnedLightTheme>
+        <RelatedSubstancesPeakTable
+          method={invalidMethodMultiple}
+          methodWeights={[]}
+          replicates={[]}
+          onChange={vi.fn()}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.getByText("This related-substances method must have exactly one analyte.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /add replicate/i })).toBeNull();
+    expect(screen.queryByLabelText(/reference solution area/i)).toBeNull();
   });
 
   it("edits a named peak and triggers onChange with updated area", () => {

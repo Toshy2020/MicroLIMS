@@ -3,19 +3,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
-  Paper,
   Button,
   Stack,
   Alert,
-  Tooltip,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   useTheme
 } from "@mui/material";
+import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
@@ -23,21 +24,21 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
-import { tableHeadSx } from "../../../theme";
-import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
-import { StatusBadge } from "../../../components/StatusBadge";
-import { NumericCell, ResultSection } from "../../../components/lab";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
-import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
-import { formatMoistureLabel } from "../../testingWorkspace/utils/moistureRetentionHelpers";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { NumericCell, ResultSection } from "../../../components/lab";
+import { StatusBadge } from "../../../components/StatusBadge";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
 import { RelatedSubstancesPeakTable, rsReplicatesComplete } from "./RelatedSubstancesPeakTable";
 import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummaryCard";
-import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { SendForReviewDialog } from "./SendForReviewDialog";
+import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
+import { tableHeadSx } from "../../../theme";
 import { useTechnique } from "../useTechnique";
+import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
+import { formatMoistureLabel } from "../../testingWorkspace/utils/moistureRetentionHelpers";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import type { SampleMoistureResult } from "../../testingWorkspace/types/testWorkflowTypes";
 import type {
   HplcSampleEntryDto,
@@ -45,12 +46,6 @@ import type {
   HplcReplicateInput,
   HplcMethodSnapshot
 } from "../types";
-
-const getErrorMessage = (err: unknown, fallback: string): string => {
-  if (err instanceof Error && err.message) return err.message;
-  const e = err as { response?: { data?: { message?: string } } };
-  return e.response?.data?.message ?? fallback;
-};
 
 export function buildReplicatePayload(
   replicates: HplcReplicateDto[],
@@ -117,7 +112,14 @@ export function HplcSampleEntryPage() {
     try {
       const data = await HplcWorkspaceService.getSampleEntry(sampleIdNum);
       setSampleEntry(data);
-      setReplicates(data.replicates || []);
+      const normalizedReplicates = (data.replicates || []).map((r) => ({
+        ...r,
+        peaks: r.peaks?.map((p, idx) => ({
+          ...p,
+          clientKey: p.clientKey || (p.hplcMethodImpurityId == null ? `unsp-${r.replicateNo}-${idx}` : undefined)
+        }))
+      }));
+      setReplicates(normalizedReplicates);
 
       const runIdToFetch = parsedRunId || data.hplcRunId;
       let loadedMethod: HplcMethodSnapshot | null = null;
@@ -133,17 +135,8 @@ export function HplcSampleEntryPage() {
         }
       }
 
-      const isRS =
-        loadedMethod?.resultMode === "RelatedSubstances" ||
-        data.preview?.some((p) => p.quantity === "RelatedSubstance") ||
-        data.official?.some((o) => o.quantity === "RelatedSubstance");
-      const isResidual =
-        loadedMethod?.resultMode === "ResidualSolvents" ||
-        data.preview?.some((p) => p.quantity === "Residual solvent (ppm)") ||
-        data.official?.some((o) => o.quantity === "ResidualSolventPpm") ||
-        (data.methodWeights &&
-          data.methodWeights.length > 0 &&
-          data.methodWeights.every((mw) => mw.theoreticalWeightStdMg === 0 && mw.theoreticalWeightTestMg === 0));
+      const isRS = loadedMethod?.resultMode === "RelatedSubstances";
+      const isResidual = loadedMethod?.resultMode === "ResidualSolvents";
 
       setMoistureError("");
       if (!isRS && !isResidual && Boolean(data.moistureRole) && data.testOrderId) {
@@ -173,21 +166,12 @@ export function HplcSampleEntryPage() {
     loadData();
   }, [loadData]);
 
-  const isResidualSolvents =
-    method?.resultMode === "ResidualSolvents" ||
-    sampleEntry?.preview?.some((p) => p.quantity === "Residual solvent (ppm)") ||
-    sampleEntry?.official?.some((o) => o.quantity === "ResidualSolventPpm") ||
-    (sampleEntry?.methodWeights &&
-      sampleEntry.methodWeights.length > 0 &&
-      sampleEntry.methodWeights.every((mw) => mw.theoreticalWeightStdMg === 0 && mw.theoreticalWeightTestMg === 0));
-
-  const isRelatedSubstances =
-    method?.resultMode === "RelatedSubstances" ||
-    sampleEntry?.preview?.some((p) => p.quantity === "RelatedSubstance") ||
-    sampleEntry?.official?.some((o) => o.quantity === "RelatedSubstance");
+  const isResidualSolvents = method?.resultMode === "ResidualSolvents";
+  const isRelatedSubstances = method?.resultMode === "RelatedSubstances";
 
   const hasInternalStandard = Boolean(method?.internalStandardName);
-  const principalAnalyteId = method?.analytes?.[0]?.id ?? null;
+  const principalAnalyteId = method?.analytes?.length === 1 ? method.analytes[0].id : null;
+  const hasExactlyOneAnalyte = method?.analytes?.length === 1;
 
   const handleSaveReplicates = async () => {
     if (!sampleEntry || !sampleIdNum) return;
@@ -425,8 +409,13 @@ export function HplcSampleEntryPage() {
                   }}
                 >
                   {isEditable && !canSave && (
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      Enter a positive reference solution area, non-negative peak areas, and positive RRTs to save.
+                    <Typography
+                      variant="caption"
+                      sx={{ color: !hasExactlyOneAnalyte ? "error.main" : "text.secondary" }}
+                    >
+                      {!hasExactlyOneAnalyte
+                        ? "This related-substances method must have exactly one analyte."
+                        : "Enter a positive reference solution area, non-negative peak areas, and positive RRTs to save."}
                     </Typography>
                   )}
                   <Button

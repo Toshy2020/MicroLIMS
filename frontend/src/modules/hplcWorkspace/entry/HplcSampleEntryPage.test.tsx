@@ -196,4 +196,63 @@ describe("HplcSampleEntryPage - moisture line display", () => {
     expect(TestWorkflowService.getMoisture).not.toHaveBeenCalled();
     expect(screen.queryByText(/Loss on drying/i)).toBeNull();
   });
+
+  it("drives the RS layout by resultMode alone without relying on preview strings or zero weights", async () => {
+    vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
+      ...baseSampleEntry,
+      preview: [],
+      methodWeights: [{ hplcMethodAnalyteId: 10, analyteName: "API", theoreticalWeightStdMg: 50, theoreticalWeightTestMg: 50 }]
+    });
+    vi.mocked(HplcMethodService.getById).mockResolvedValue({
+      id: 1,
+      name: "RS Method",
+      abbreviation: "RS",
+      resultMode: "RelatedSubstances",
+      analytes: [{ id: 10, name: "Principal Analyte" }]
+    } as never);
+
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
+          <Routes>
+            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+          </Routes>
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Peak area entry")).toBeTruthy();
+    });
+    expect(screen.queryByText("Method & theoretical weights")).toBeNull();
+  });
+
+  it("shows the table's error instead of 'Enter a positive reference...' caption when principal analyte is missing", async () => {
+    vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
+      ...baseSampleEntry,
+      editable: true
+    });
+    vi.mocked(HplcMethodService.getById).mockResolvedValue({
+      id: 1,
+      name: "Invalid RS Method",
+      abbreviation: "RS-INV",
+      resultMode: "RelatedSubstances",
+      analytes: [] // missing analyte
+    } as never);
+
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
+          <Routes>
+            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+          </Routes>
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText("This related-substances method must have exactly one analyte.").length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText(/Enter a positive reference solution area/i)).toBeNull();
+  });
 });

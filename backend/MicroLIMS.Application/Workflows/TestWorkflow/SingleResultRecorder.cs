@@ -239,6 +239,16 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             ipAddress);
     }
 
+    // ReportedDisplay is varchar(100): fall back to a count when the list of failed containers would not fit.
+    private static string PerContainerDisplay(int n, List<int> failed)
+    {
+        if (n == 1) return failed.Count == 0 ? "The container complies" : "The container does not comply";
+        if (failed.Count == 0) return $"All {n} containers comply";
+        if (failed.Count == 1) return $"Container {failed[0]} of {n} does not comply";
+        var listed = $"Containers {string.Join(", ", failed)} of {n} do not comply";
+        return listed.Length <= 100 ? listed : $"{failed.Count} of {n} containers do not comply";
+    }
+
     public Task<TestWorkflowResult> RecordQualitativeResultAsync(
         int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null) =>
         UnitOfWork.RunAsync(_db, () => RecordQualitativeResultCoreAsync(testOrderId, payload, userId, ipAddress));
@@ -264,7 +274,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         var perContainer = definition.PerContainer;
         var containerCount = payload.ContainerCount ?? 0;
 
-        if (!perContainer && payload.Parameters.Any(p => p.Containers is { Count: > 0 }))
+        if (!perContainer && (payload.ContainerCount != null || payload.Parameters.Any(p => p.Containers is { Count: > 0 })))
             throw new InvalidOperationException("This test is not recorded per container.");
 
         if (perContainer && containerCount is < 1 or > 200)
@@ -272,6 +282,9 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
 
         foreach (var param in payload.Parameters)
         {
+            if (param.Observation != null && param.Observation.Length > 500)
+                throw new InvalidOperationException("Observation cannot exceed 500 characters.");
+
             if (perContainer)
             {
                 // The conclusion is derived from the containers; the parameter-level Conforms is ignored.
@@ -292,9 +305,6 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
 
             if (!param.Conforms && string.IsNullOrWhiteSpace(param.Observation))
                 throw new InvalidOperationException("An observation is required when result does not conform.");
-
-            if (param.Observation != null && param.Observation.Length > 500)
-                throw new InvalidOperationException("Observation cannot exceed 500 characters.");
         }
 
         var parameterResults = new List<ParameterResult>();
@@ -310,9 +320,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             var conforms = perContainer ? failed!.Count == 0 : param.Conforms;
             var display = !perContainer
                 ? (conforms ? "Complies" : "Does not comply")
-                : conforms ? $"All {containerCount} containers comply"
-                : failed!.Count == 1 ? $"Container {failed[0]} of {containerCount} does not comply"
-                : $"Containers {string.Join(", ", failed)} of {containerCount} do not comply";
+                : PerContainerDisplay(containerCount, failed!);
 
             var calcData = new QualitativeCalculationData(
                 canonicalLimit, conforms, perContainer ? containerCount : null, failed);

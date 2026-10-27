@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace MicroLIMS.Domain.Entities;
 
 public record QualitativeCalculationData(
     string Expected,
     bool Conforms,
-    int? ContainerCount = null,
-    List<int>? FailedContainers = null
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? ContainerCount = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<int>? FailedContainers = null
 );

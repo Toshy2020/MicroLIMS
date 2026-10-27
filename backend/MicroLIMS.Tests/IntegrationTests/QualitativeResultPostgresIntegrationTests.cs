@@ -281,4 +281,98 @@ public class QualitativeResultPostgresIntegrationTests
         var verifiedOrder = await verifyDb.TestOrders.FindAsync(order.Id);
         Assert.Equal(ApprovalStatus.ResultEntered, verifiedOrder!.Status);
     }
+
+
+    [PostgresFact]
+    public async Task RecordQualitativeResult_PerContainer_ManyFailures_FitsDisplayColumn()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..6];
+        await using var db = _fixture.CreateDbContext();
+
+        var section = await db.DocumentSections.FirstOrDefaultAsync(s => s.Code == "FP")
+            ?? await db.DocumentSections.FirstAsync(s => s.Code == "MICRO");
+
+        var user = await db.Users.FirstAsync(u => u.Id == _fixture.SeededUserId);
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("IntegrationPassword123!");
+        user.IsActive = true;
+
+        var testDef = new TestDefinition
+        {
+            Code = $"QUAL_PCM_{uid}",
+            DisplayName = $"Description Test {uid}",
+            SectionId = section.Id,
+            WorkflowType = WorkflowType.Qualitative,
+            EquationType = EquationType.Qualitative,
+            PerContainer = true,
+            IsActive = true
+        };
+        db.TestDefinitions.Add(testDef);
+
+        var item = new Item
+        {
+            Name = $"Raw Material {uid}",
+            Code = $"ITEM-PCM-{uid}",
+            Category = SampleCategory.FinishedProduct,
+            IsActive = true
+        };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+
+        var spec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Description",
+            LimitType = LimitType.Qualitative,
+            SpecLimit = "White crystalline powder",
+            DisplayOrder = 1
+        };
+        db.Specifications.Add(spec);
+
+        var cause = await db.CausesOfTesting.FirstOrDefaultAsync()
+            ?? db.CausesOfTesting.Add(new CauseOfTesting { Name = "Routine Testing", IsActive = true }).Entity;
+
+        var sample = new Sample
+        {
+            ReferenceNumber = $"SMP-PCM-{uid}",
+            Category = SampleCategory.FinishedProduct,
+            ItemId = item.Id,
+            ReceivedAt = DateTime.UtcNow,
+            CauseOfTesting = cause,
+            ReceivedByUserId = _fixture.SeededUserId,
+            Status = SampleStatus.InTesting
+        };
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var order = new TestOrder
+        {
+            SampleId = sample.Id,
+            TestCode = testDef.Code,
+            SectionId = section.Id,
+            CurrentStep = WorkflowStep.Running,
+            Status = ApprovalStatus.InProgress
+        };
+        db.TestOrders.Add(order);
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        // 30 failing of 200: the listed wording would exceed varchar(100) and fail on Postgres.
+        var containers = Enumerable.Range(1, 200)
+            .Select(i => new QualitativeContainerInput(i, i > 30, i <= 30 ? "Lumps" : null)).ToList();
+        var payload = new QualitativePayload(
+            AnalysedAt: DateTime.UtcNow,
+            EquipmentId: null,
+            Parameters: new List<QualitativeParameterInput> { new(spec.Id, Conforms: true, Observation: null, Containers: containers) },
+            Password: "IntegrationPassword123!",
+            ContainerCount: 200);
+
+        var result = await engine.RecordQualitativeResultAsync(order.Id, payload, _fixture.SeededUserId, "127.0.0.1");
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
+
+        await using var verifyDb = _fixture.CreateDbContext();
+        var param = await verifyDb.ParameterResults.Include(p => p.Readings).SingleAsync(p => p.TestOrderId == order.Id);
+        Assert.Equal("30 of 200 containers do not comply", param.ReportedDisplay);
+        Assert.Equal(200, param.Readings.Count);
+    }
 }

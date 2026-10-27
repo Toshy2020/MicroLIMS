@@ -460,4 +460,115 @@ public class QualitativeWorkflowUnitTests
         Assert.Equal("This test is not recorded per container.", ex.Message);
         Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
     }
+
+    [Fact]
+    public async Task PerContainer_ManyFailures_DisplayFitsColumnAndFullListKept()
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        // ParameterResult.ReportedDisplay is varchar(100): 30 failing of 200 must not overflow.
+        var containers = Enumerable.Range(1, 200)
+            .Select(i => new QualitativeContainerInput(i, i > 30, i <= 30 ? "Lumps" : null)).ToList();
+
+        await engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 200, containers), user.Id);
+
+        var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
+        Assert.True(pr.ReportedDisplay.Length <= 100);
+        Assert.Equal("30 of 200 containers do not comply", pr.ReportedDisplay);
+        using var calc = JsonDocument.Parse(pr.CalculationJson!);
+        Assert.Equal(30, calc.RootElement.GetProperty("failedContainers").GetArrayLength());
+    }
+
+    [Theory]
+    [InlineData(true, "The container complies")]
+    [InlineData(false, "The container does not comply")]
+    public async Task PerContainer_SingleContainer_Wording(bool conforms, string expected)
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        await engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 1,
+            new() { new(1, conforms, conforms ? null : "Lumps") }), user.Id);
+
+        var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
+        Assert.Equal(expected, pr.ReportedDisplay);
+    }
+
+    [Fact]
+    public async Task PerContainer_AllComply_StoresEmptyFailedList()
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        await engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 2, AllConform(2)), user.Id);
+
+        var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
+        using var calc = JsonDocument.Parse(pr.CalculationJson!);
+        Assert.Equal(0, calc.RootElement.GetProperty("failedContainers").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task NotPerContainer_StoredJsonHasNoContainerFields()
+    {
+        using var db = NewDb();
+        var (order, spec, user, _) = SeedQualitativeTest(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        await engine.RecordQualitativeResultAsync(order.Id, new QualitativePayload(
+            DateTime.UtcNow, null,
+            new List<QualitativeParameterInput> { new(spec.Id, true, "Ok") },
+            "Password123!"), user.Id);
+
+        var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
+        using var calc = JsonDocument.Parse(pr.CalculationJson!);
+        Assert.False(calc.RootElement.TryGetProperty("containerCount", out _));
+        Assert.False(calc.RootElement.TryGetProperty("failedContainers", out _));
+    }
+
+    [Fact]
+    public async Task NotPerContainer_WithContainerCountOnly_Refused()
+    {
+        using var db = NewDb();
+        var (order, spec, user, _) = SeedQualitativeTest(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 3, null), user.Id));
+        Assert.Equal("This test is not recorded per container.", ex.Message);
+        Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
+    }
+
+    [Fact]
+    public async Task NotPerContainer_EmptyContainersWithoutCount_Tolerated()
+    {
+        using var db = NewDb();
+        var (order, spec, user, _) = SeedQualitativeTest(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        var result = await engine.RecordQualitativeResultAsync(order.Id,
+            PerContainerPayload(spec, null, new List<QualitativeContainerInput>()), user.Id);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
+    }
+
+    [Fact]
+    public async Task PerContainer_LongParameterLevelObservation_Refused()
+    {
+        using var db = NewDb();
+        var (order, spec, user) = SeedPerContainer(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        var payload = new QualitativePayload(
+            DateTime.UtcNow, null,
+            new List<QualitativeParameterInput> { new(spec.Id, true, new string('A', 501), AllConform(2)) },
+            "Password123!", ContainerCount: 2);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.RecordQualitativeResultAsync(order.Id, payload, user.Id));
+        Assert.Equal("Observation cannot exceed 500 characters.", ex.Message);
+        Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
+    }
 }

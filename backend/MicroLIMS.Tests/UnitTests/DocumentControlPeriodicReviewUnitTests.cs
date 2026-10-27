@@ -50,6 +50,7 @@ public class DocumentControlPeriodicReviewUnitTests
         var adminRole = new Role { Type = RoleType.SystemAdministrator, Name = "Admin", IsActive = true };
         db.Roles.AddRange(analystRole, reviewerRole, sectionHeadRole, adminRole);
         await db.SaveChangesAsync();
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
         var author = new User { FullName = "SOP Author", Username = "author1", RoleId = analystRole.Id, IsActive = true, Role = analystRole };
         var reviewer = new User { FullName = "Tech Reviewer", Username = "rev1", RoleId = reviewerRole.Id, IsActive = true, Role = reviewerRole };

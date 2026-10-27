@@ -66,6 +66,7 @@ public class DocumentControlUnitTests
         // the real production grant matrix rather than a test-local copy - that
         // way these tests fail if a grant the module depends on is withdrawn.
         DbSeeder.SeedPermissionsAndGrants(_db);
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(_db);
 
         // Seed Users
         var adminUser = new User { FullName = "Admin User", Username = "admin", PasswordHash = "hash", RoleId = adminRole.Id, IsActive = true };

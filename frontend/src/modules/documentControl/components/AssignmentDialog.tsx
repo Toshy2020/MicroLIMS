@@ -53,14 +53,28 @@ export function AssignmentDialog({
     if (open) {
       setSelectedUser(null);
       setError(null);
-      fetchUsers();
     }
   }, [open]);
+
+  // Only users whose role holds the code the assigned function needs are offered (the server enforces the same rule).
+  const requiredPermission =
+    assignmentRole === "Author" ? "Documents.DraftEdit"
+    : assignmentRole === "TechnicalReviewer" ? "Documents.Review"
+    : assignmentRole === "Approver" ? "Documents.Approve"
+    : undefined;
+
+  useEffect(() => {
+    if (open) {
+      setSelectedUser(null);
+      fetchUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, requiredPermission]);
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const res = await apiClient.get("/users/directory");
+      const res = await apiClient.get("/users/directory", requiredPermission ? { params: { permission: requiredPermission } } : undefined);
       const list: UserDirectoryOption[] = res.data?.data || res.data || [];
       setUsers(list.filter((u) => u.isActive !== false));
     } catch {

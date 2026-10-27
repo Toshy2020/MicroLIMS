@@ -424,7 +424,7 @@ public class AccessTokenRevalidationTests
         Assert.Null(await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(login.Token!)));
 
         var analystCodes = await new PermissionService(db).GetPermissionCodesForRoleAsync(4);
-        await roles.UpdatePermissionsAsync(4, analystCodes.Skip(1).ToList(), actingUserId: 1, "Test reason", "pw");
+        await roles.UpdatePermissionsAsync(4, analystCodes.Where(c => !MicroLIMS.Shared.Constants.PermissionConstants.Hidden.Contains(c)).Skip(1).ToList(), actingUserId: 1, "Test reason", "pw");
 
         Assert.Equal("Role permissions have changed since the token was issued.",
             await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(login.Token!)));

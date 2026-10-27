@@ -92,7 +92,7 @@ public class RoleManagementTests
         // replaced role-only gates (review dashboard, media preparation,
         // receiving for their own lab, correcting a sample), and
         // MonitoringPlan.View.
-        Assert.Equal(18, reviewer!.PermissionCodes.Count);
+        Assert.Equal(15, reviewer!.PermissionCodes.Count); // was 18 before the three hidden Discussions.View/Create + Messages.Use grants stopped being listed
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }
@@ -356,7 +356,7 @@ public class RoleManagementTests
     // they save the administration side of it without the GxP codes.
     private static List<string> AllCodesExcept(string code) =>
         PermissionConstants.All
-            .Where(c => c != code && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c))
+            .Where(c => c != code && !PermissionConstants.Hidden.Contains(c) && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c))
             .ToList();
 
     // A non-system role holding both administration permissions, with one
@@ -624,5 +624,60 @@ public class RoleManagementTests
         var body = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<SodRulesDto>>(ok.Value);
         Assert.Contains(PermissionConstants.UsersManage, body.Data!.AdministrationCodes);
         Assert.Contains(PermissionConstants.DocumentsApprove, body.Data.GxpExecutionAndApprovalCodes);
+    }
+
+    // Discussions.View/Create and Messages.Use are declared and granted but no
+    // feature checks them: hidden from the Roles API, grants kept in the database.
+    [Fact]
+    public async Task HiddenPermissions_AreNotListedInCatalogOrRoleDetails()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+
+        var catalog = await service.GetAllPermissionsAsync();
+        var analyst = await service.GetByIdAsync(4);
+
+        foreach (var hidden in PermissionConstants.Hidden)
+        {
+            Assert.DoesNotContain(catalog, p => p.Code == hidden);
+            Assert.DoesNotContain(hidden, analyst!.PermissionCodes);
+            // ...but the grant is still in the database.
+            Assert.True(await db.RolePermissions.AnyAsync(rp => rp.RoleId == 4 && rp.Permission!.Code == hidden));
+        }
+        Assert.Equal(3, PermissionConstants.Hidden.Count);
+        Assert.DoesNotContain(PermissionConstants.Hidden, h => PermissionConstants.Enforced.Contains(h));
+    }
+
+    [Fact]
+    public async Task UpdatePermissionsAsync_PreservesExistingHiddenGrants()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var created = await service.CreateAsync("QC Trainee", null, RoleType.Analyst, "Test reason"); // copies the Analyst grants, hidden ones included
+
+        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actingUserId: 1, "Test reason", "pw");
+
+        var held = await db.RolePermissions.Where(rp => rp.RoleId == created.Id).Select(rp => rp.Permission!.Code).ToListAsync();
+        Assert.Contains(PermissionConstants.AuditView, held);
+        foreach (var hidden in PermissionConstants.Hidden)
+            Assert.Contains(hidden, held);
+        Assert.DoesNotContain(PermissionConstants.TestWorkflowExecute, held);
+        var role = await service.GetByIdAsync(created.Id);
+        Assert.Equal(new[] { PermissionConstants.AuditView }, role!.PermissionCodes);
+    }
+
+    [Theory]
+    [InlineData("Discussions.View")]
+    [InlineData("Discussions.Create")]
+    [InlineData("Messages.Use")]
+    public async Task UpdatePermissionsAsync_RejectsGrantingAHiddenCode(string hidden)
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var created = await service.CreateAsync("QC Trainee", null, RoleType.Analyst, "Test reason");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView, hidden }, actingUserId: 1, "Test reason", "pw"));
+        Assert.Contains(hidden, ex.Message);
     }
 }

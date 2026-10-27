@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
@@ -662,6 +663,17 @@ public class DocumentMasterService : IDocumentMasterService
             ?? throw new InvalidOperationException($"User {request.UserId} not found.");
         if (!targetUser.IsActive)
             throw new InvalidOperationException($"User '{targetUser.FullName}' is inactive.");
+
+        // The assignee's role must hold the code the assigned function needs.
+        var requiredCode = request.AssignmentRole switch
+        {
+            AssignmentRole.Author => PermissionConstants.DocumentsDraftEdit,
+            AssignmentRole.TechnicalReviewer => PermissionConstants.DocumentsReview,
+            AssignmentRole.Approver => PermissionConstants.DocumentsApprove,
+            _ => null
+        };
+        if (requiredCode != null && !await _authService.HoldsPermissionAsync(request.UserId, requiredCode))
+            throw new InvalidOperationException($"User '{targetUser.FullName}' cannot be assigned as {request.AssignmentRole}: their role does not hold the {requiredCode} permission.");
 
         var existing = await _db.DocumentMasterAssignments
             .FirstOrDefaultAsync(a => a.DocumentMasterId == documentMasterId &&

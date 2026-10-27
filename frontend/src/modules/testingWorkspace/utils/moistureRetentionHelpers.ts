@@ -55,12 +55,13 @@ export function isRetentionValid(
 }
 
 /**
- * Formats the read-only display string for retention in the sample summary.
+ * Formats the read-only display string for retention quantity and unit in the sample summary.
+ * Returns "{quantity} {unit}" without repeating the "Retention" label.
  */
 export function formatRetentionDisplay(
   quantity: number | null | undefined,
   unit: string | null | undefined
 ): string | null {
   if (quantity == null) return null;
-  return `Retention: ${quantity} ${unit ?? ""}`.trim();
+  return `${quantity} ${unit ?? ""}`.trim();
 }

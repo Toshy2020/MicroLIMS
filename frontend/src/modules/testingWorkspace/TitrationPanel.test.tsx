@@ -413,4 +413,86 @@ describe("TitrationPanel", () => {
     expect(getMoisture).not.toHaveBeenCalled();
     expect(screen.queryByText(/Record the sample/)).toBeNull();
   });
+
+  it("shows error alert and Retry button when getMoisture fails, and disables submit", async () => {
+    getMoisture.mockRejectedValue(new Error("Network 500 error"));
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("Could not load the sample's moisture result.")).toBeTruthy();
+    expect(screen.queryByText("Record the sample's loss on drying result first.")).toBeNull();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    const retryBtn = screen.getByRole("button", { name: /Retry/i });
+    expect(retryBtn).toBeTruthy();
+
+    getMoisture.mockResolvedValueOnce({ role: "LossOnDrying", percent: 3.1, testCode: "LOD-09" });
+    await userEvent.click(retryBtn);
+
+    expect(await screen.findByText("Loss on drying 3.1 % (from LOD-09)")).toBeTruthy();
+    expect(screen.queryByText("Could not load the sample's moisture result.")).toBeNull();
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("shows out-of-range error alert and disables submit when percent < 0", async () => {
+    getMoisture.mockResolvedValue({ role: "LossOnDrying", percent: -1.5, testCode: "LOD-042" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("The moisture result is out of range (0 to below 100 %).")).toBeTruthy();
+    expect(screen.getByText("Loss on drying -1.5 % (from LOD-042)")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows out-of-range error alert and disables submit when percent >= 100", async () => {
+    getMoisture.mockResolvedValue({ role: "Water", percent: 100, testCode: "KF-109" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (anhydrous basis)", resultBasis: "PercentAnhydrousBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("The moisture result is out of range (0 to below 100 %).")).toBeTruthy();
+    expect(screen.getByText("Water 100 % (from KF-109)")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
 });

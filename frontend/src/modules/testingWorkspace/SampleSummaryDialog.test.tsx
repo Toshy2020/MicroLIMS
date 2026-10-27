@@ -217,4 +217,71 @@ describe("SampleSummaryDialog review flow", () => {
       undefined
     );
   }, 15000);
+
+  it("disables review submission when retention quantity is 0", async () => {
+    const sample = createSample({ category: "RawMaterial" });
+    mockGetSummary.mockResolvedValue(sample);
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByLabelText(/Retention quantity/i)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "0" } });
+    await userEvent.click(screen.getByRole("combobox", { name: /Unit/i }));
+    await userEvent.click(screen.getByRole("option", { name: "g" }));
+
+    const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
+    expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
+    expect(mockCompleteReview).not.toHaveBeenCalled();
+  }, 15000);
+
+  it("disables review submission when retention quantity is negative", async () => {
+    const sample = createSample({ category: "RawMaterial" });
+    mockGetSummary.mockResolvedValue(sample);
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByLabelText(/Retention quantity/i)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "-5" } });
+    await userEvent.click(screen.getByRole("combobox", { name: /Unit/i }));
+    await userEvent.click(screen.getByRole("option", { name: "g" }));
+
+    const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
+    expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
+    expect(mockCompleteReview).not.toHaveBeenCalled();
+  }, 15000);
+
+  it("disables review submission when retention unit is empty", async () => {
+    const sample = createSample({ category: "RawMaterial" });
+    mockGetSummary.mockResolvedValue(sample);
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByLabelText(/Retention quantity/i)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "50" } });
+
+    const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
+    expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
+    expect(mockCompleteReview).not.toHaveBeenCalled();
+  }, 15000);
 });

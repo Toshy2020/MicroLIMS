@@ -117,9 +117,10 @@ describe("moistureRetentionHelpers", () => {
   });
 
   describe("formatRetentionDisplay", () => {
-    it("formats retention string when quantity is present", () => {
-      expect(formatRetentionDisplay(50, "g")).toBe("Retention: 50 g");
-      expect(formatRetentionDisplay(1.25, "kg")).toBe("Retention: 1.25 kg");
+    it("formats retention quantity and unit without repeating the label", () => {
+      expect(formatRetentionDisplay(50, "g")).toBe("50 g");
+      expect(formatRetentionDisplay(1.25, "kg")).toBe("1.25 kg");
+      expect(formatRetentionDisplay(10, null)).toBe("10");
     });
 
     it("returns null when quantity is null or undefined", () => {

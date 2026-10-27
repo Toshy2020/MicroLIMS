@@ -270,14 +270,16 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     if (!sampleId) return;
     const activeSec = reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId);
     const showRetention = isRawMaterialPhyschemReview(summary?.category, activeSec?.sectionCode);
-    const valid = isRetentionValid(retentionQuantity, retentionQuantityUnit);
+    if (showRetention && !isRetentionValid(retentionQuantity, retentionQuantityUnit)) {
+      return;
+    }
     await SampleSummaryService.completeReview(
       sampleId,
       password,
       comment || undefined,
       effectiveReviewSectionId,
-      showRetention && valid ? Number(retentionQuantity) : undefined,
-      showRetention && valid ? retentionQuantityUnit : undefined
+      showRetention ? Number(retentionQuantity) : undefined,
+      showRetention ? retentionQuantityUnit : undefined
     );
     setConfirmingReview(false);
     onClose();

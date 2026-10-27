@@ -49,7 +49,7 @@ const mockSummary = (over: Partial<SampleSummary> = {}): SampleSummary => ({
 });
 
 describe("SampleIdentityCard retention display", () => {
-  it("renders read-only retention line when retentionQuantity and unit are set", () => {
+  it("renders read-only retention line when retentionQuantity and unit are set without label stutter", () => {
     const summary = mockSummary({
       retentionQuantity: 50,
       retentionQuantityUnit: "g"
@@ -61,8 +61,9 @@ describe("SampleIdentityCard retention display", () => {
       </PinnedLightTheme>
     );
 
-    expect(screen.getByText("Retention: 50 g")).toBeTruthy();
     expect(screen.getByText("Retention", { selector: "p" })).toBeTruthy();
+    expect(screen.getByText("50 g")).toBeTruthy();
+    expect(screen.queryByText("Retention: 50 g")).toBeNull();
   });
 
   it("does not render retention field when retentionQuantity is null", () => {
@@ -77,7 +78,7 @@ describe("SampleIdentityCard retention display", () => {
       </PinnedLightTheme>
     );
 
-    expect(screen.queryByText(/Retention:/)).toBeNull();
+    expect(screen.queryByText("50 g")).toBeNull();
     expect(screen.queryByText("Retention", { selector: "p" })).toBeNull();
   });
 });

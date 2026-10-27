@@ -3,6 +3,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../../theme";
 import { SampleSummary, SampleLocationDetail, IncubationDetail } from "../types/sampleSummaryTypes";
 import { formatDate } from "./summaryFormatting";
+import { formatRetentionDisplay } from "../utils/moistureRetentionHelpers";
 
 // Reusable display field component
 export function SummaryField({
@@ -77,7 +78,7 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         {s.retentionQuantity != null && (
           <SummaryField
             label="Retention"
-            value={`Retention: ${s.retentionQuantity} ${s.retentionQuantityUnit ?? ""}`.trim()}
+            value={formatRetentionDisplay(s.retentionQuantity, s.retentionQuantityUnit) ?? ""}
           />
         )}
         <SummaryField label="Mfg Date" value={formatDate(s.mfgDate)} />

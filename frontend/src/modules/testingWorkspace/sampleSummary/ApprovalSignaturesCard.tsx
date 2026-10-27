@@ -200,11 +200,7 @@ export function ApprovalSignaturesCard({
                   Comment: {sig.comment}
                 </Typography>
               )}
-              {sig.role?.toLowerCase().includes("review") && summary.retentionQuantity != null && (
-                <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-                  Retention: {summary.retentionQuantity} {summary.retentionQuantityUnit ?? ""}
-                </Typography>
-              )}
+
             </Box>
           ))}
         </Stack>
@@ -221,11 +217,7 @@ export function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{SIGNATURE_STATEMENTS.Reviewed}"
               </Typography>
-              {summary.retentionQuantity != null && (
-                <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-                  Retention: {summary.retentionQuantity} {summary.retentionQuantityUnit ?? ""}
-                </Typography>
-              )}
+
             </Box>
           )}
           {summary.approvedByName && (

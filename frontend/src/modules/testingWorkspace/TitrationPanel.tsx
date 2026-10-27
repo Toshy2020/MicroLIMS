@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -151,6 +151,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   const [blank, setBlank] = useState("");
   const [tempC, setTempC] = useState("");
   const [moisture, setMoisture] = useState<SampleMoistureResult | null>(null);
+  const [moistureStatus, setMoistureStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
   const [avgWt, setAvgWt] = useState("");
   const [lotId, setLotId] = useState<number | "">("");
   const [stdRows, setStdRows] = useState<StdRow[]>([{ weightMg: "", titreMl: "" }]);
@@ -202,14 +203,22 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           (s) => s.resultBasis === "PercentDriedBasis" || s.resultBasis === "PercentAnhydrousBasis"
         );
         if (hasLod) {
+          setMoistureStatus("loading");
           try {
             const m = await TestWorkflowService.getMoisture(testOrderId);
-            if (active) setMoisture(m);
+            if (active) {
+              setMoisture(m);
+              setMoistureStatus("loaded");
+            }
           } catch {
-            if (active) setMoisture(null);
+            if (active) {
+              setMoisture(null);
+              setMoistureStatus("error");
+            }
           }
         } else {
           setMoisture(null);
+          setMoistureStatus("idle");
         }
         setReps(Array.from({ length: c.replicateCount }, () => ({ weight: "", volume: "" })));
         const onlyLot = c.standardLots.length === 1 ? c.standardLots[0].materialId : "";
@@ -226,6 +235,18 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     return () => {
       active = false;
     };
+  }, [testOrderId]);
+
+  const handleRetryMoisture = useCallback(async () => {
+    setMoistureStatus("loading");
+    try {
+      const m = await TestWorkflowService.getMoisture(testOrderId);
+      setMoisture(m);
+      setMoistureStatus("loaded");
+    } catch {
+      setMoisture(null);
+      setMoistureStatus("error");
+    }
   }, [testOrderId]);
 
   const isRelative = ctx?.calculation === "Relative";
@@ -262,7 +283,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
         excess,
         blankMl: num(blank),
         titrationTempC: num(tempC),
-        lossPercent: needsLod && moisture ? moisture.percent : null,
+        lossPercent: needsLod && moistureStatus === "loaded" && moisture && moisture.percent >= 0 && moisture.percent < 100 ? moisture.percent : null,
         avgUnitWeightMg: num(avgWt),
         standards
       }
@@ -324,7 +345,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     }
     if (ctx.blankRequired && !validNum(blank, false)) return false;
     if (ctx.tempCorrection && num(tempC) === null) return false;
-    if (needsLod && (moisture === null || moisture.percent < 0 || moisture.percent >= 100)) return false;
+    if (needsLod && (moistureStatus !== "loaded" || moisture === null || moisture.percent < 0 || moisture.percent >= 100)) return false;
     if (needsAvgWt && !validNum(avgWt)) return false;
     if (isRelative && (lotId === "" || stdRows.length < 1 || stdRows.some((r) => !validNum(r.weightMg) || !validNum(r.titreMl)))) return false;
     if (reps.length !== ctx.replicateCount) return false;
@@ -332,7 +353,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   }, [
     ctx, analysedAt, titrantPrepId, titrant, isResidual, excessPrepId, excess,
     hasDueWarning, dueAcknowledged, dueJustification,
-    blank, tempC, needsLod, moisture, needsAvgWt, avgWt, isRelative, lotId, stdRows, reps
+    blank, tempC, needsLod, moistureStatus, moisture, needsAvgWt, avgWt, isRelative, lotId, stdRows, reps
   ]);
 
   const submit = async (password: string) => {
@@ -554,10 +575,33 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
               />
             )}
             {needsLod && (
-              moisture ? (
-                <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 500 }}>
-                  {formatMoistureLabel(moisture)}
+              moistureStatus === "loading" ? (
+                <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
+                  Loading moisture result...
                 </Typography>
+              ) : moistureStatus === "error" ? (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button color="inherit" size="small" onClick={handleRetryMoisture}>
+                      Retry
+                    </Button>
+                  }
+                  sx={{ width: "100%", fontSize: 13, py: 0.5 }}
+                >
+                  Could not load the sample's moisture result.
+                </Alert>
+              ) : moisture ? (
+                <Box sx={{ width: "100%" }}>
+                  <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 500 }}>
+                    {formatMoistureLabel(moisture)}
+                  </Typography>
+                  {(moisture.percent < 0 || moisture.percent >= 100) && (
+                    <Alert severity="error" sx={{ width: "100%", fontSize: 13, py: 0.5, mt: 0.5 }}>
+                      The moisture result is out of range (0 to below 100 %).
+                    </Alert>
+                  )}
+                </Box>
               ) : (
                 <Alert severity="warning" sx={{ width: "100%", fontSize: 13, py: 0.5 }}>
                   {getMissingMoistureMessage(ctx?.specifications ?? [])}

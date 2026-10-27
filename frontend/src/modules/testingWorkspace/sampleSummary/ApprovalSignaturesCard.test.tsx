@@ -238,7 +238,7 @@ describe("ApprovalSignaturesCard retention requirement at review", () => {
     expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("displays read-only retention in review summary when recorded", () => {
+  it("does not display retention under signatures in ApprovalSignaturesCard (kept in SummaryCards)", () => {
     const summary = mockSummary({
       status: "Approved",
       reviewedByName: "Jane Reviewer",
@@ -260,6 +260,6 @@ describe("ApprovalSignaturesCard retention requirement at review", () => {
       </PinnedLightTheme>
     );
 
-    expect(screen.getByText("Retention: 25.5 g")).toBeTruthy();
+    expect(screen.queryByText(/Retention/i)).toBeNull();
   });
 });

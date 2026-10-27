@@ -99,7 +99,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
             throw new InvalidOperationException("The loss on drying / water value is read from the sample's own result.");
         SampleMoisture? moisture = null;
         if (moistureRole != MoistureRole.None)
-            moisture = await new SampleMoistureResolver(_db).ResolveAsync(order.SampleId, moistureRole)
+            moisture = await new SampleMoistureResolver(_db).ResolveLockedAsync(order.SampleId, moistureRole)
                 ?? throw new InvalidOperationException(SampleMoistureResolver.MissingMessage(moistureRole));
         if (needUnitWt)
         {

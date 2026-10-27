@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -229,6 +230,151 @@ public class SampleMoisturePostgresTests
         await using var v = _fixture.CreateDbContext();
         Assert.Equal(ApprovalStatus.ResultEntered, (await v.TestOrders.FindAsync(lodOrder.Id))!.Status);
         Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == lodOrder.Id)).IsActive);
+    }
+
+    // ---- fix round 1 ----
+
+    [PostgresFact]
+    public async Task Resolver_IgnoresCancelledVoidedAndSupersededMoistureOrders()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = Seed(db);
+        var resolver = new SampleMoistureResolver(db);
+
+        foreach (var status in new[] { ApprovalStatus.Cancelled, ApprovalStatus.Voided })
+        {
+            var (closed, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 4m);
+            closed.Status = status;
+            db.SaveChanges();
+        }
+        Assert.Null(await resolver.ResolveAsync(s.Order.SampleId, MoistureRole.LossOnDrying));
+
+        // a retest replaced the old order: both hold an active result, only the replacement counts
+        var (old, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 4m);
+        old.IsSuperseded = true;
+        db.SaveChanges();
+        var (replacement, pr) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2m);
+        var m = await resolver.ResolveAsync(s.Order.SampleId, MoistureRole.LossOnDrying);
+        Assert.Equal(replacement.Id, m!.TestOrderId);
+        Assert.Equal(pr.Id, m.ParameterResultId);
+    }
+
+    [PostgresFact]
+    public async Task RecordingAfterACommittedReturn_IsRefused()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = Seed(db);
+        var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+        await Record(db, s, TitrationRecorderTests.Payload(s));
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
+
+        await using var db2 = _fixture.CreateDbContext();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s, TitrationRecorderTests.Payload(s)));
+        Assert.Equal("Record the sample's loss on drying result before this assay.", ex.Message);
+    }
+
+    // Holds the moisture order's row lock in one transaction while another command runs, so the
+    // interleaving is deterministic: the second command must wait, then see what the first committed.
+    private static async Task<bool> WaitsAsync(Task t)
+    {
+        var done = await Task.WhenAny(t, Task.Delay(TimeSpan.FromSeconds(2)));
+        return done != t;
+    }
+
+    [PostgresFact]
+    public async Task RecordingWaitsForAReturnInFlight_ThenSeesTheReturnedResult()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = Seed(db);
+        var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+
+        await using var db1 = _fixture.CreateDbContext();
+        await using var tx = await db1.Database.BeginTransactionAsync();
+        await SampleMoistureResolver.LockMoistureOrderAsync(db1, lodOrder.Id);
+
+        await using var db2 = _fixture.CreateDbContext();
+        var recording = Record(db2, s, TitrationRecorderTests.Payload(s));
+        Assert.True(await WaitsAsync(recording), "recording must wait for the lock on the moisture order");
+
+        // the "return" commits: the LOD result is superseded
+        foreach (var r in await db1.ParameterResults.Where(r => r.TestOrderId == lodOrder.Id).ToListAsync()) r.IsActive = false;
+        await db1.SaveChangesAsync();
+        await tx.CommitAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => recording);
+        Assert.Equal("Record the sample's loss on drying result before this assay.", ex.Message);
+        await using var v = _fixture.CreateDbContext();
+        Assert.False(await v.TestAnalyses.AnyAsync(x => x.TestOrderId == s.Order.Id));
+    }
+
+    [PostgresFact]
+    public async Task ReturnWaitsForAnAssayInFlight_ThenCascadesToIt()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = Seed(db);
+        var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+
+        // the assay is being recorded: it holds the lock on the moisture order
+        await using var db1 = _fixture.CreateDbContext();
+        await using var tx = await db1.Database.BeginTransactionAsync();
+        await SampleMoistureResolver.LockMoistureOrderAsync(db1, lodOrder.Id);
+
+        await using var db2 = _fixture.CreateDbContext();
+        var returning = TestServiceFactory.SampleReview(db2).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
+        Assert.True(await WaitsAsync(returning), "the return must wait for the lock on the moisture order");
+
+        await tx.CommitAsync();
+        await returning;
+        await using var v = _fixture.CreateDbContext();
+        Assert.Equal(WorkflowStep.Running, (await v.TestOrders.FindAsync(lodOrder.Id))!.CurrentStep);
+    }
+
+    [PostgresFact]
+    public async Task ReturnIsRefused_WhenADependentAssaysSectionIsPastReview()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = Seed(db);
+        var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+        await Record(db, s, TitrationRecorderTests.Payload(s));
+
+        var other = db.DocumentSections.Add(new DocumentSection
+            { Name = "Other lab " + Guid.NewGuid().ToString("N")[..5], Code = "OT" + Guid.NewGuid().ToString("N")[..5], DepartmentId = s.Section.DepartmentId, IsActive = true }).Entity;
+        db.SaveChanges();
+        var assayOrder = db.TestOrders.Single(o => o.Id == s.Order.Id);
+        assayOrder.SectionId = other.Id;
+        db.SampleSectionSignoffs.Add(new SampleSectionSignoff { SampleId = assayOrder.SampleId, SectionId = other.Id, Status = SectionSignoffStatus.UnderApproval });
+        db.SaveChanges();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null));
+        Assert.Equal($"Cannot return {lodOrder.TestCode}: assay {s.Test.Code} has already been reviewed.", ex.Message);
+
+        await using var v = _fixture.CreateDbContext();
+        Assert.Equal(WorkflowStep.Ready, (await v.TestOrders.FindAsync(lodOrder.Id))!.CurrentStep);
+        Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == lodOrder.Id)).IsActive);
+        Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == s.Order.Id)).IsActive);
+        Assert.Empty(await v.TestReturnEvents.Where(e => e.TestOrderId == lodOrder.Id || e.TestOrderId == s.Order.Id).ToListAsync());
+    }
+
+    [PostgresFact]
+    public async Task MoistureLookup_ChecksAccessToTheMoistureOrdersSection()
+    {
+        await using var db = _fixture.CreateDbContext();
+        // a new analyst scoped to the assay's section only
+        var s = TitrationScenario.Seed(db, new() { TweakSpec = sp => sp.ResultBasis = ResultBasis.PercentDriedBasis });
+        var scope = new UserSectionScopeService(db);
+
+        s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+        var view = await new SampleMoistureResolver(db, scope).GetForTitrationOrderAsync(s.Order.Id, s.UserId);
+        Assert.Equal(2.5m, view!.Percent);
+
+        var other = db.DocumentSections.Add(new DocumentSection
+            { Name = "Other lab " + Guid.NewGuid().ToString("N")[..5], Code = "OT" + Guid.NewGuid().ToString("N")[..5], DepartmentId = s.Section.DepartmentId, IsActive = true }).Entity;
+        db.SaveChanges();
+        var s2 = TitrationScenario.Seed(db, new() { TweakSpec = sp => sp.ResultBasis = ResultBasis.PercentDriedBasis });
+        s2.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m, sectionId: other.Id);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => new SampleMoistureResolver(db, scope).GetForTitrationOrderAsync(s2.Order.Id, s2.UserId));
     }
 
     // A second assay order on the sample whose active analysis snapshot points at the given moisture result.

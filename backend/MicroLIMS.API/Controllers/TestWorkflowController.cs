@@ -239,7 +239,7 @@ public class TestWorkflowController : ControllerBase
     public async Task<IActionResult> GetMoisture(int testOrderId, [FromServices] SampleMoistureResolver resolver, CancellationToken ct)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
-        return await RunAsync(() => resolver.GetForTitrationOrderAsync(testOrderId, ct));
+        return await RunAsync(() => resolver.GetForTitrationOrderAsync(testOrderId, CurrentUserId, ct));
     }
 
     [HttpPost("{testOrderId}/record-titration-result")]

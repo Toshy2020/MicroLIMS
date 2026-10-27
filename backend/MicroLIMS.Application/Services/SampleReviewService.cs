@@ -229,7 +229,20 @@ public class SampleReviewService
         // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
         // returning it returns every assay that used it, in the same unit of work. Found first - the
         // state transition below saves, and the moisture results are inactive from then on.
-        var dependents = definition.MoistureRole == MoistureRole.None ? new List<TestOrder>() : await FindDependentAssaysAsync(order);
+        // The moisture order's row is locked first, so an assay being recorded against this result either
+        // commits before the scan below (and is returned) or waits and then finds the result returned.
+        var dependents = new List<TestOrder>();
+        if (definition.MoistureRole != MoistureRole.None)
+        {
+            await SampleMoistureResolver.LockMoistureOrderAsync(_db, order.Id);
+            dependents = await FindDependentAssaysAsync(order);
+            foreach (var dependent in dependents)
+            {
+                var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
+                if (dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
+                    throw new InvalidOperationException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
+            }
+        }
 
         var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
 
@@ -258,6 +271,7 @@ public class SampleReviewService
         return candidates
             .Where(c => UsesMoistureResult(c.ConditionsJson, resultIds))
             .Select(c => c.TestOrder!)
+            .Distinct()
             .ToList();
     }
 
@@ -353,8 +367,6 @@ public class SampleReviewService
             Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
             ReturnedAt = _time.GetUtcNow().UtcDateTime
         };
-
-        _db.TestReturnEvents.Add(returnEvent);
 
         _db.TestReturnEvents.Add(returnEvent);
 

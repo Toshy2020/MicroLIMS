@@ -179,13 +179,13 @@ public class TitrationScenario
     // A finished moisture test (LOD or Karl Fischer) on this scenario's sample: its own test
     // definition, order (ResultEntered) and signed analysis holding ParameterResult(s).
     public (TestOrder Order, ParameterResult Result) AddMoistureResult(
-        MicroLimsDbContext db, MoistureRole role, decimal? value, bool active = true, int parameterCount = 1)
+        MicroLimsDbContext db, MoistureRole role, decimal? value, bool active = true, int parameterCount = 1, int? sectionId = null)
     {
         var uid = Guid.NewGuid().ToString("N")[..6];
         var itemId = db.Samples.Where(x => x.Id == Order.SampleId).Select(x => x.ItemId!.Value).First();
         var def = new TestDefinition
         {
-            Code = $"{(role == MoistureRole.LossOnDrying ? "LOD" : "KF")}_{uid}", DisplayName = $"Moisture {uid}", SectionId = Section.Id,
+            Code = $"{(role == MoistureRole.LossOnDrying ? "LOD" : "KF")}_{uid}", DisplayName = $"Moisture {uid}", SectionId = sectionId ?? Section.Id,
             IsActive = true, MoistureRole = role, ReplicateCount = 1,
             WorkflowType = role == MoistureRole.LossOnDrying ? WorkflowType.Gravimetric : WorkflowType.Titration,
             EquationType = role == MoistureRole.LossOnDrying ? EquationType.GravimetricLoss : EquationType.Titration,
@@ -194,7 +194,7 @@ public class TitrationScenario
         db.TestDefinitions.Add(def);
         var order = new TestOrder
         {
-            SampleId = Order.SampleId, TestCode = def.Code, SectionId = Section.Id,
+            SampleId = Order.SampleId, TestCode = def.Code, SectionId = sectionId ?? Section.Id,
             CurrentStep = WorkflowStep.Ready, Status = ApprovalStatus.ResultEntered,
         };
         db.TestOrders.Add(order);

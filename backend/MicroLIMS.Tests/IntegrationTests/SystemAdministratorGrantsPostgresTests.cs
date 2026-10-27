@@ -65,9 +65,13 @@ public class SystemAdministratorGrantsPostgresTests
             var role = await db.Roles.AsNoTracking().SingleAsync(r => r.Type == RoleType.SystemAdministrator && r.IsSystemRole);
             Assert.True(role.PermissionVersion > 1, $"PermissionVersion was not incremented (is {role.PermissionVersion})");
 
-            var audit = await db.AuditLogs.SingleAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED" && a.EntityId == role.Id.ToString());
-            Assert.Equal(nameof(Role), audit.EntityName);
-            Assert.Contains("Segregation of duties", audit.Reason);
+            var audits = await db.AuditLogs.Where(a => a.Action == "ROLE_PERMISSIONS_UPDATED" && a.EntityId == role.Id.ToString()).ToListAsync();
+            var restriction = Assert.Single(audits, a => a.Reason!.Contains("Segregation of duties"));
+            Assert.Equal(nameof(Role), restriction.EntityName);
+            var configure = Assert.Single(audits, a => a.Reason!.Contains("configure master data"));
+            Assert.Contains("Sections.ConfigureAll", configure.NewValue);
+            Assert.Contains(PermissionConstants.SectionsConfigureAll, held);
+            Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SectionsConfigureAll && p.IsEnforced));
         });
     }
 
@@ -84,6 +88,7 @@ public class SystemAdministratorGrantsPostgresTests
             var upVersion = (await db.Roles.AsNoTracking().SingleAsync(r => r.Type == RoleType.SystemAdministrator)).PermissionVersion;
 
             await db.Database.MigrateAsync(PreviousMigration);
+            Assert.False(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SectionsConfigureAll));
 
             var held = await HeldByBuiltInAdministratorAsync(db);
             Assert.DoesNotContain(PermissionConstants.SectionsViewAll, held);

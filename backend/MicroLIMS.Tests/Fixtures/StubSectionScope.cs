@@ -12,9 +12,10 @@ internal sealed class StubSectionScope : IUserSectionScopeService
 
     // The same ids serve both kinds of access; a null entry means every section.
     public Task<IReadOnlyList<int>?> GetReadableSectionIdsAsync(int userId, CancellationToken ct = default) => Task.FromResult(_ids(userId));
+    public Task<IReadOnlyList<int>?> GetConfigurableSectionIdsAsync(int userId, CancellationToken ct = default) => Task.FromResult(_ids(userId));
     public Task<IReadOnlyList<int>> GetMemberSectionIdsAsync(int userId, CancellationToken ct = default) => Task.FromResult(_ids(userId) ?? Array.Empty<int>());
     public Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) => throw new NotSupportedException();
-    public Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) => throw new NotSupportedException();
     public Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) => throw new NotSupportedException();
     public Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) => throw new NotSupportedException();
     public Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) => throw new NotSupportedException();

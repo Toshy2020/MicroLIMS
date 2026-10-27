@@ -8,7 +8,9 @@ namespace MicroLIMS.Application.Interfaces;
 public enum SectionAccess
 {
     Write = 0,
-    Read = 1
+    Read = 1,
+    // Master data / settings: every section for a role holding Sections.ConfigureAll, else membership. Never used for GxP records.
+    Configure = 2
 }
 
 public interface IUserSectionScopeService
@@ -18,10 +20,14 @@ public interface IUserSectionScopeService
     Task<IReadOnlyList<int>?> GetReadableSectionIdsAsync(int userId, CancellationToken ct = default);
     // WRITE scope: the sections the user belongs to, for everyone including administrators. Never null.
     Task<IReadOnlyList<int>> GetMemberSectionIdsAsync(int userId, CancellationToken ct = default);
+    // CONFIGURATION scope: null = every section (the user's role holds Sections.ConfigureAll), else the sections the user belongs to.
+    // Only for master data and settings writes; GxP records always use GetMemberSectionIdsAsync.
+    Task<IReadOnlyList<int>?> GetConfigurableSectionIdsAsync(int userId, CancellationToken ct = default);
     // Physicochemical areas the user may work in: a department membership covering FP = both; none when not in FP.
     // Read access also gives both to a role holding Sections.ViewAll.
     Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write);
-    Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default);
+    // access = Configure is for master-data creation only: a role holding Sections.ConfigureAll may pick any active section.
+    Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write);
     Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write);
     Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default, SectionAccess access = SectionAccess.Write);
     Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write);
@@ -53,9 +59,12 @@ public static class UserSectionScopeServiceExtensions
     // The scope for one kind of access: null = every section, which only Read can return.
     public static Task<IReadOnlyList<int>?> GetSectionIdsAsync(
         this IUserSectionScopeService scope, int userId, SectionAccess access, CancellationToken ct = default) =>
-        access == SectionAccess.Read
-            ? scope.GetReadableSectionIdsAsync(userId, ct)
-            : MemberAsync(scope, userId, ct);
+        access switch
+        {
+            SectionAccess.Read => scope.GetReadableSectionIdsAsync(userId, ct),
+            SectionAccess.Configure => scope.GetConfigurableSectionIdsAsync(userId, ct),
+            _ => MemberAsync(scope, userId, ct),
+        };
 
     private static async Task<IReadOnlyList<int>?> MemberAsync(IUserSectionScopeService scope, int userId, CancellationToken ct) =>
         await scope.GetMemberSectionIdsAsync(userId, ct);

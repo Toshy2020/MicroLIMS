@@ -7,15 +7,14 @@ namespace MicroLIMS.Application.Services;
 // A Specification row carries no lab of its own - its lab is whichever
 // section owns the Test Master row for its TestCode (TestDefinitions.SectionId).
 // Item.Specifications is one shared list for both labs; only the owning
-// lab's members may add, edit or delete a row (membership, for everyone
-// including a System Administrator) - the other lab sees it read-only
+// lab's members may add, edit or delete a row (membership, or Sections.ConfigureAll for the System Administrator) - the other lab sees it read-only
 // (see MasterDataController specifications endpoints).
 public static class SpecificationOwnership
 {
     public static async Task EnsureCanEditAsync(
         IMicroLimsDbContext db, IUserSectionScopeService scope, int userId, string testCode)
     {
-        var scopeIds = await scope.GetMemberSectionIdsAsync(userId);
+        var scopeIds = await scope.GetConfigurableSectionIdsAsync(userId);
 
         var testDef = await db.TestDefinitions
             .AsNoTracking()
@@ -25,7 +24,7 @@ public static class SpecificationOwnership
         if (testDef is null)
             throw new InvalidOperationException($"Test code '{testCode}' is not in the Test Master.");
 
-        if (!scopeIds.Contains(testDef.SectionId))
+        if (scopeIds is not null && !scopeIds.Contains(testDef.SectionId))
         {
             var labName = testDef.Section?.Name ?? "another laboratory section";
             throw new UnauthorizedAccessException(

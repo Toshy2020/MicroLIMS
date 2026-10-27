@@ -1,3 +1,6 @@
+AdminJobsController.List(CancellationToken): SystemAdministrator
+AdminJobsController.Run(String, RunBackgroundJobRequest, CancellationToken): SystemAdministrator
+AdminJobsController.Runs(String, Int32, Int32, CancellationToken): SystemAdministrator
 AdminSecurityPolicyController.Get(): SystemAdministrator
 AdminUserSessionsController.List(Int32): SystemAdministrator
 AdminUserSessionsController.Revoke(Int32, RevokeUserSessionsRequest): SystemAdministrator

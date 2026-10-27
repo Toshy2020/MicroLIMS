@@ -126,6 +126,7 @@ public static class UserReferenceRegistry
         // by itself and the error entry survives without it.
         new UserReferenceEntry(typeof(ErrorLog), nameof(ErrorLog.UserId), UserReferenceDisposition.Excluded, "SetNull FK - operational error log, not a GxP record; attribution clears with the user"),
         new UserReferenceEntry(typeof(Incident), nameof(Incident.ResolvedByUserId), UserReferenceDisposition.Excluded, "SetNull FK - operational incident triage, not a GxP record; attribution clears with the user"),
+        new UserReferenceEntry(typeof(BackgroundJobRun), nameof(BackgroundJobRun.TriggeredByUserId), UserReferenceDisposition.Excluded, "No DB FK - operational run log, not a GxP record; the manual trigger is evidenced in the Security Audit Trail with actor and reason"),
 
         // ---- Group B: no DB FK constraint at all - blocked at application level only ----
         new UserReferenceEntry(typeof(AuditLog), nameof(AuditLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - traceability record"),

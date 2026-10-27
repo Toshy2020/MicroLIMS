@@ -510,15 +510,33 @@ public static class DbSeeder
             (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
         };
 
-        var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
+        // Metadata (Description, IsEnforced) of rows that already exist is
+        // re-synced from the catalog on every run, so a catalog change - e.g.
+        // a permission becoming enforced - reaches existing databases. Grants
+        // are never touched here.
+        var existing = db.Permissions.ToDictionary(p => p.Code);
         var missing = catalog
-            .Where(c => !existingCodes.Contains(c.Code))
+            .Where(c => !existing.ContainsKey(c.Code))
             .Select(c => new Permission { Code = c.Code, Description = c.Description, IsEnforced = PermissionConstants.Enforced.Contains(c.Code) })
             .ToList();
+
+        var metadataChanged = false;
+        foreach (var c in catalog)
+        {
+            if (!existing.TryGetValue(c.Code, out var row)) continue;
+
+            var isEnforced = PermissionConstants.Enforced.Contains(c.Code);
+            if (row.Description != c.Description) { row.Description = c.Description; metadataChanged = true; }
+            if (row.IsEnforced != isEnforced) { row.IsEnforced = isEnforced; metadataChanged = true; }
+        }
 
         if (missing.Count > 0)
         {
             db.Permissions.AddRange(missing);
+        }
+
+        if (missing.Count > 0 || metadataChanged)
+        {
             db.SaveChanges();
         }
 

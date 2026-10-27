@@ -57,6 +57,37 @@ public class RolePermissionSeedDataTests
         Assert.All(permissions, p => Assert.False(string.IsNullOrWhiteSpace(p.Description)));
     }
 
+    [Fact]
+    public async Task ExistingStalePermissionRows_AreResyncedFromCatalog()
+    {
+        var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        var db = new MicroLimsDbContext(options);
+        db.Roles.Add(new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true, IsActive = true });
+        db.SaveChanges();
+
+        // A row seeded by an older release: wrong description and not yet
+        // flagged enforced, although the code is in the Enforced set.
+        db.Permissions.Add(new Permission
+        {
+            Code = PermissionConstants.SamplesReceive,
+            Description = "stale description from an older release",
+            IsEnforced = false
+        });
+        db.SaveChanges();
+
+        DbSeeder.SeedPermissionsAndGrants(db);
+
+        var row = await db.Permissions.SingleAsync(p => p.Code == PermissionConstants.SamplesReceive);
+        var expected = PermissionConstants.Enforced.Contains(PermissionConstants.SamplesReceive);
+        Assert.True(expected);
+        Assert.True(row.IsEnforced);
+        Assert.NotEqual("stale description from an older release", row.Description);
+        Assert.False(string.IsNullOrWhiteSpace(row.Description));
+        Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
+    }
+
     private static async Task<List<string>> CodesForRole(MicroLimsDbContext db, RoleType type)
     {
         var permissionService = new PermissionService(db);

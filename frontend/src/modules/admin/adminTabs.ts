@@ -15,7 +15,8 @@ export const ADMIN_TABS: AdminTab[] = [
   { label: "Roles", path: "/admin/roles", permission: PERMISSIONS.ROLES_MANAGE },
   { label: "Audit Trail", path: "/admin/audit", permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
-  { label: "Settings", path: "/admin/settings", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS }
+  { label: "Settings", path: "/admin/settings", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
+  { label: "Jobs", path: "/admin/jobs", permission: PERMISSIONS.SYSTEM_MANAGE_JOBS }
 ];
 
 export function visibleAdminTabs(permissions: string[]): AdminTab[] {

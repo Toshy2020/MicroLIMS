@@ -43,6 +43,7 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.SectionsConfigureAll,
         PermissionConstants.DocumentsTrainingViewMatrix,
         PermissionConstants.SystemViewSecurityAudit,
+        PermissionConstants.SystemManageJobs,
         PermissionConstants.SystemConfigureSettings,
         PermissionConstants.DocumentsDraftEdit,
         PermissionConstants.DocumentsRevisionCreate,

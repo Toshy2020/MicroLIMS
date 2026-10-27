@@ -246,6 +246,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // record. Excluded from CaptureAuditEntries below and prunable.
     public DbSet<Incident> Incidents => Set<Incident>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -521,6 +522,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(EquipmentDocumentAccessLog), // append-only; excluded to prevent recursive audit
         typeof(Incident), // operational error monitoring; not a GxP record
         typeof(ErrorLog), // operational error monitoring; not a GxP record
+        typeof(BackgroundJobRun), // operational run log; a row per pass would be noise. Manual triggers are audited as security events
         typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
         typeof(NotificationLog), // derived reminders and read state; not a GxP record
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event

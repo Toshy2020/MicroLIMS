@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
 using MicroLIMS.Application.Services.SystemSettings;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -20,7 +21,7 @@ namespace MicroLIMS.API.BackgroundServices;
 //   PasswordResetToken:  used more than N days ago, or expired more than N days ago.
 // Keeping the window gives support staff a short period in which a recently
 // revoked session can still be explained from its row.
-public class SessionTokenCleanupWorker : BackgroundService
+public class SessionTokenCleanupWorker : BackgroundService, IBackgroundJobWork
 {
     public const string ProcessName = "SessionTokenCleanupWorker";
 
@@ -37,13 +38,16 @@ public class SessionTokenCleanupWorker : BackgroundService
     private readonly TimeProvider _time;
     private readonly ILogger<SessionTokenCleanupWorker> _logger;
     private readonly SemaphoreSlim _concurrencyLock = new(1, 1);
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
     public SessionTokenCleanupWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
         TimeProvider time,
-        ILogger<SessionTokenCleanupWorker> logger)
+        ILogger<SessionTokenCleanupWorker> logger,
+        IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _configuration = configuration;
         _time = time;
@@ -85,7 +89,7 @@ public class SessionTokenCleanupWorker : BackgroundService
         // Startup cycle, so a host that sleeps between requests still prunes.
         try
         {
-            await RunCycleAsync(stoppingToken);
+            await ScheduledPassAsync(stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -102,7 +106,7 @@ public class SessionTokenCleanupWorker : BackgroundService
             try
             {
                 await Task.Delay(TimeSpan.FromHours(IntervalHours), stoppingToken);
-                await RunCycleAsync(stoppingToken);
+                await ScheduledPassAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -116,6 +120,15 @@ public class SessionTokenCleanupWorker : BackgroundService
 
         _logger.LogInformation("[{Worker}] Background service has stopped gracefully.", ProcessName);
     }
+
+    public string JobName => ProcessName;
+
+    // The pass an administrator's manual run executes: exactly the scheduled one.
+    public async Task<int?> RunOnceAsync(CancellationToken cancellationToken) =>
+        (await RunCycleAsync(cancellationToken)).Total;
+
+    private Task ScheduledPassAsync(CancellationToken cancellationToken) =>
+        ScheduledJobPass.RunAsync(_recorder, ProcessName, RunOnceAsync, cancellationToken);
 
     // Runs one cleanup pass and returns the number of token rows deleted.
     public async Task<SessionTokenCleanupResult> RunCycleAsync(CancellationToken cancellationToken = default)

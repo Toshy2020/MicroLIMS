@@ -3890,6 +3890,43 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("HplcMethodOvenSteps");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicatePeak", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Area")
+                        .HasPrecision(28, 10)
+                        .HasColumnType("numeric(28,10)");
+
+                    b.Property<int?>("HplcMethodImpurityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HplcSampleReplicateId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("RelativeRetention")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HplcMethodImpurityId");
+
+                    b.HasIndex("HplcSampleReplicateId");
+
+                    b.ToTable("HplcReplicatePeaks");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicateResponse", b =>
                 {
                     b.Property<int>("Id")
@@ -12675,6 +12712,24 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("HplcMethod");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicatePeak", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethodImpurity", "HplcMethodImpurity")
+                        .WithMany()
+                        .HasForeignKey("HplcMethodImpurityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcSampleReplicate", "HplcSampleReplicate")
+                        .WithMany("Peaks")
+                        .HasForeignKey("HplcSampleReplicateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HplcMethodImpurity");
+
+                    b.Navigation("HplcSampleReplicate");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicateResponse", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.HplcSampleReplicate", "HplcSampleReplicate")
@@ -15009,6 +15064,8 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcSampleReplicate", b =>
                 {
+                    b.Navigation("Peaks");
+
                     b.Navigation("Responses");
                 });
 

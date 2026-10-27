@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using Xunit;
 using Base = MicroLIMS.Tests.UnitTests.HplcMethodServiceTests;
@@ -201,5 +202,25 @@ public class HplcMethodServiceRelatedSubstancesTests
             service.UpdateAsync(created.Id, RsReq(diluent.Id, mp.Id, standard.Id, reason: "edit", analytes: principal, impurities: impurities), userId));
         Assert.Equal(message, ex.Message);
         Assert.Equal(2, await db.HplcMethodImpurities.CountAsync(i => i.HplcMethodId == created.Id));
+    }
+
+    [Fact]
+    public async Task Update_RemovingImpurityWithRecordedPeaks_Refused()
+    {
+        await using var db = Base.NewDb();
+        var (section, userId) = await Base.SeedAsync(db);
+        var (diluent, mp, standard) = await Base.SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+        var created = await service.CreateAsync(RsReq(diluent.Id, mp.Id, standard.Id), userId);
+        var d = created.Impurities[0];
+        db.HplcReplicatePeaks.Add(new HplcReplicatePeak { HplcSampleReplicateId = 1, HplcMethodImpurityId = d.Id, Area = 100m });
+        await db.SaveChangesAsync();
+        var principal = new List<HplcAnalyteInput> { new(created.Analytes[0].Id, "Principal", 230m, standard.Id, 0m, 0m, 5) };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id,
+            RsReq(diluent.Id, mp.Id, standard.Id, reason: "drop", analytes: principal, impurities: new() { new(null, "Impurity Q", 0.5m, null) }), userId));
+
+        Assert.Equal("Impurity Impurity D has recorded peaks and cannot be removed.", ex.Message);
+        Assert.True(await db.HplcMethodImpurities.AnyAsync(i => i.Id == d.Id));
     }
 }

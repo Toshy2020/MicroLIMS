@@ -150,6 +150,7 @@ public interface IMicroLimsDbContext
     DbSet<InstrumentIngestPayload> InstrumentIngestPayloads { get; }
     DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
     DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
+    DbSet<HplcReplicatePeak> HplcReplicatePeaks { get; }
     DbSet<HplcEvidence> HplcEvidences { get; }
     DbSet<IcpRun> IcpRuns { get; }
     DbSet<IcpCalibration> IcpCalibrations { get; }

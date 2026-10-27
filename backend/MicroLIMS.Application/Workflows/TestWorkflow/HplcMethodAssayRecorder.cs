@@ -31,8 +31,9 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         var (order, _, _, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             c.Order.Id, _clock.UtcNow.UtcDateTime, null, null, password, WorkflowType.HplcMethodAssay, userId);
 
-        var rows = c.EvaluateRows();
-        var inputs = c.IsResidualSolvents ? new List<HplcAssayAnalyteInput>() : c.BuildAnalyteInputs();
+        var relatedSubstances = c.IsRelatedSubstances ? c.CalculateRelatedSubstances() : new List<RsRowResult>();
+        var rows = c.IsRelatedSubstances ? relatedSubstances.Select(r => r.Row).ToList() : c.EvaluateRows();
+        var inputs = c.Snapshot.ResultMode == HplcResultMode.Assay ? c.BuildAnalyteInputs() : new List<HplcAssayAnalyteInput>();
         var rsInputs = c.IsResidualSolvents ? c.BuildResidualSolventInputs() : new List<HplcResidualSolventInput>();
         var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var sst = c.Run.Sst!;
@@ -41,7 +42,9 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         foreach (var row in rows)
         {
             string calculationJson;
-            if (c.IsResidualSolvents)
+            if (c.IsRelatedSubstances)
+                calculationJson = RelatedSubstancesJson(c, relatedSubstances.First(x => ReferenceEquals(x.Row, row)));
+            else if (c.IsResidualSolvents)
             {
                 var rs = rsInputs.First(i => i.AnalyteId == row.AnalyteId);
                 calculationJson = JsonSerializer.Serialize(new
@@ -120,7 +123,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                 CalculationJson = calculationJson,
                 IsActive = true,
             };
-            foreach (var reading in row.Readings)
+            foreach (var reading in c.IsRelatedSubstances ? new List<HplcAssayReading>() : row.Readings)
             {
                 parameterResult.Readings.Add(new ResultReading
                 {
@@ -132,6 +135,8 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                     Passed = true,
                 });
             }
+            if (c.IsRelatedSubstances)
+                AddContributionReadings(parameterResult, relatedSubstances.First(x => ReferenceEquals(x.Row, row)));
             parameterResults.Add(parameterResult);
         }
 
@@ -150,5 +155,59 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             ipAddress,
             validityRecordType: nameof(HplcSstRecord),
             validityRecordId: sst.Id);
+    }
+
+    // What the related-substance row was calculated from: the reference solution, and per replicate the
+    // peaks that counted (the ones below the disregard limit are left out, as in the result).
+    private static string RelatedSubstancesJson(HplcSampleEntryContext c, RsRowResult rs)
+    {
+        var analyte = c.Snapshot.Analytes.First();
+        return JsonSerializer.Serialize(new
+        {
+            analyte = analyte.Name,
+            hplcMethodAnalyteId = analyte.Id,
+            parameter = rs.Row.AnalyteName,
+            quantity = "RelatedSubstance",
+            kind = rs.Kind.ToString(),
+            impurityId = rs.ImpurityId,
+            referenceSolutionPercent = c.Snapshot.ReferenceSolutionPercent,
+            disregardLimitPercent = c.Snapshot.DisregardLimitPercent ?? 0m,
+            replicates = rs.Replicates.Select(d => new
+            {
+                replicateNo = d.ReplicateNo,
+                referenceArea = d.ReferenceArea,
+                percent = d.Percent,
+                peaks = d.Contributions.Select(p => new { label = p.Label, area = p.Area, percent = p.Percent }),
+            }),
+            reportedValue = rs.Row.Value,
+            notDetected = rs.Row.Display == RelatedSubstancesEvaluator.NotDetected,
+            runCode = c.Run.Code,
+            sstCode = c.Run.Sst!.Code,
+            hplcMethodId = c.Run.HplcMethodId,
+            hplcRunId = c.Run.Id,
+            hplcRunSampleId = c.RunSample.Id,
+        }, JsonOptions);
+    }
+
+    // One reading per counted peak: the peak area, its % and a text naming it.
+    private static void AddContributionReadings(ParameterResult parameterResult, RsRowResult rs)
+    {
+        foreach (var replicate in rs.Replicates)
+        {
+            var index = 0;
+            foreach (var peak in replicate.Contributions)
+            {
+                parameterResult.Readings.Add(new ResultReading
+                {
+                    Kind = ReadingKind.Replicate,
+                    Stage = replicate.ReplicateNo,
+                    Index = ++index,
+                    Value1 = peak.Area,
+                    ComputedValue = peak.Percent,
+                    Text = $"{peak.Label}: {peak.Percent.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)}",
+                    Passed = true,
+                });
+            }
+        }
     }
 }

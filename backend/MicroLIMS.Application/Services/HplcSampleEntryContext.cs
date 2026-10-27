@@ -31,6 +31,7 @@ public sealed class HplcSampleEntryContext
 
     public ProductionStageRole? StageRole => Replicates.StageRole;
     public bool IsResidualSolvents => Snapshot.ResultMode == HplcResultMode.ResidualSolvents;
+    public bool IsRelatedSubstances => Snapshot.ResultMode == HplcResultMode.RelatedSubstances;
     public string? StageName => Sample.ProductionStageRef?.Name ?? Sample.ProductionStage;
 
     // Editable while the run is open, or - after a submitted result was
@@ -64,6 +65,8 @@ public sealed class HplcSampleEntryContext
         if (entered != required)
             return $"Expected exactly {required} replicates for stage role {Replicates.StageRole}, but {entered} entered.";
 
+        if (IsRelatedSubstances) return RelatedSubstancesEntryProblem();
+
         foreach (var analyte in Snapshot.Analytes)
         {
             foreach (var rep in RunSample.Replicates.OrderBy(r => r.ReplicateNo))
@@ -95,9 +98,49 @@ public sealed class HplcSampleEntryContext
         return null;
     }
 
-    public List<HplcAssayRow> EvaluateRows() => IsResidualSolvents
-        ? HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs())
-        : HplcSampleAssayEvaluator.Evaluate(BuildAnalyteInputs(), StageRole);
+    public List<HplcAssayRow> EvaluateRows() => Snapshot.ResultMode switch
+    {
+        HplcResultMode.Assay => HplcSampleAssayEvaluator.Evaluate(BuildAnalyteInputs(), StageRole),
+        HplcResultMode.ResidualSolvents => HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs()),
+        HplcResultMode.RelatedSubstances => CalculateRelatedSubstances().Select(r => r.Row).ToList(),
+        _ => throw new InvalidOperationException($"Unsupported result mode {Snapshot.ResultMode}."),
+    };
+
+    // Related substances: the principal analyte's "response" is the reference solution's principal-peak area;
+    // the sample weight is not used. Build/Calculate are only called when EntryProblem is null.
+    private string? RelatedSubstancesEntryProblem()
+    {
+        var analyte = Snapshot.Analytes.First();
+        if (Snapshot.ReferenceSolutionPercent is not > 0m)
+            return "The method has no reference solution concentration.";
+        foreach (var rep in RunSample.Replicates.OrderBy(r => r.ReplicateNo))
+            if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && x.Response > 0))
+                return $"{analyte.Name}: the reference solution area is required.";
+
+        var rows = Specs.Where(s => s.RelatedSubstanceRow.HasValue && s.HplcMethodAnalyteId == analyte.Id).ToList();
+        if (rows.Count == 0)
+            return "No related-substances specification on this item.";
+        if (rows.Any(s => s.RelatedSubstanceRow == RelatedSubstanceRow.Named && !Snapshot.Impurities.Any(i => i.Id == s.HplcMethodImpurityId)))
+            return "A specification names an impurity that is not in this run's method.";
+        return null;
+    }
+
+    public RelatedSubstancesInput BuildRelatedSubstancesInput()
+    {
+        var analyte = Snapshot.Analytes.First();
+        var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
+            .Select(r => new RsReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response,
+                r.Peaks.OrderBy(p => p.Id).Select(p => new HplcReplicatePeakInput(p.HplcMethodImpurityId, p.RelativeRetention, p.Area)).ToList()))
+            .ToList();
+        return new RelatedSubstancesInput(Snapshot.ReferenceSolutionPercent!.Value, Snapshot.DisregardLimitPercent ?? 0m,
+            Snapshot.Impurities, reps, Specs.Where(s => s.HplcMethodAnalyteId == analyte.Id).ToList());
+    }
+
+    public List<RsRowResult> CalculateRelatedSubstances()
+    {
+        var analyte = Snapshot.Analytes.First();
+        return RelatedSubstancesEvaluator.Calculate(analyte.Id, analyte.Name, BuildRelatedSubstancesInput());
+    }
 
     public List<HplcResidualSolventInput> BuildResidualSolventInputs()
     {
@@ -140,6 +183,7 @@ public sealed class HplcSampleEntryContext
     {
         var runSample = await db.HplcRunSamples
             .Include(s => s.Replicates).ThenInclude(r => r.Responses)
+            .Include(s => s.Replicates).ThenInclude(r => r.Peaks)
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
             ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
 

@@ -15,12 +15,14 @@ public record EligibleTestDto(
     DateTime ReceivedAt, string? StageName);
 
 public record HplcReplicateResponseInput(int HplcMethodAnalyteId, decimal Response);
-public record HplcReplicateInput(decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses);
+// A peak of a related-substances chromatogram: a method impurity, or (no impurity) an unspecified peak.
+public record HplcReplicatePeakInput(int? HplcMethodImpurityId, decimal? RelativeRetention, decimal Area);
+public record HplcReplicateInput(decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses, List<HplcReplicatePeakInput>? Peaks = null);
 public record AssignHplcSamplesRequest(List<int> TestOrderIds);
 public record SaveReplicatesRequest(List<HplcReplicateInput> Replicates);
 public record SubmitHplcSampleRequest(string Password, string? Comment);
 
-public record HplcReplicateDto(int ReplicateNo, decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses);
+public record HplcReplicateDto(int ReplicateNo, decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses, List<HplcReplicatePeakInput> Peaks);
 public record HplcMethodWeightDto(int HplcMethodAnalyteId, string AnalyteName, decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg);
 public record HplcPreviewResultDto(
     int HplcMethodAnalyteId, string ParameterName, string Quantity, int? ReplicateNo,
@@ -193,8 +195,10 @@ public partial class HplcRunService
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
-            if (input.ActualWeightMg <= 0)
+            // A related-substances sample is not weighed: its calculation uses no sample weight.
+            if (!context.IsRelatedSubstances && input.ActualWeightMg <= 0)
                 throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+            ValidatePeaks(context, input.Peaks);
 
             var responses = input.Responses ?? new List<HplcReplicateResponseInput>();
             if (responses.Any(x => !analyteIds.Contains(x.HplcMethodAnalyteId)))
@@ -204,20 +208,49 @@ public partial class HplcRunService
                 var matches = responses.Where(x => x.HplcMethodAnalyteId == analyte.Id).ToList();
                 if (matches.Count != 1)
                     throw new InvalidOperationException($"Replicate {i + 1}: exactly one response for {analyte.Name} is required.");
-                if (context.IsResidualSolvents)
+                switch (context.Snapshot.ResultMode)
                 {
-                    // A solvent that is not detected gives a zero response.
-                    if (matches[0].Response < 0)
-                        throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
+                    case HplcResultMode.Assay:
+                        if (matches[0].Response <= 0)
+                            throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
+                        break;
+                    case HplcResultMode.ResidualSolvents:
+                        // A solvent that is not detected gives a zero response.
+                        if (matches[0].Response < 0)
+                            throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
+                        break;
+                    case HplcResultMode.RelatedSubstances:
+                        // The response is the reference solution's principal-peak area; a missing (zero) one is reported by the entry problem.
+                        if (matches[0].Response < 0)
+                            throw new InvalidOperationException($"Replicate {i + 1}: the reference solution area must be zero or more.");
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unsupported result mode {context.Snapshot.ResultMode}.");
                 }
-                else if (matches[0].Response <= 0)
-                    throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
             }
         }
 
         await ReplaceReplicatesAsync(context.RunSample, inputs, ct);
 
         return await GetSampleEntryAsync(runSampleId, userId, ct);
+    }
+
+    // Peaks belong to related-substances entry only; an impurity must be one of the run's method impurities.
+    private static void ValidatePeaks(HplcSampleEntryContext context, List<HplcReplicatePeakInput>? peaks)
+    {
+        if (peaks == null || peaks.Count == 0) return;
+        if (!context.IsRelatedSubstances)
+            throw new InvalidOperationException("Peaks are entered for related-substances methods only.");
+        var impurityIds = context.Snapshot.Impurities.Select(i => i.Id).ToHashSet();
+        foreach (var peak in peaks)
+        {
+            if (peak.Area < 0m)
+                throw new InvalidOperationException("Peak areas cannot be negative.");
+            if (peak.HplcMethodImpurityId is int impurityId && !impurityIds.Contains(impurityId))
+                throw new InvalidOperationException("The impurity does not belong to this method.");
+            if (peak.RelativeRetention is <= 0m or > 100m)
+                throw new InvalidOperationException("The relative retention must be greater than zero and at most 100.");
+        }
     }
 
     // Replace-all: the old rows are removed first so the (sample, replicate no)
@@ -238,6 +271,8 @@ public partial class HplcRunService
                     ActualWeightMg = inputs[i].ActualWeightMg,
                     Responses = inputs[i].Responses
                         .Select(x => new HplcReplicateResponse { HplcMethodAnalyteId = x.HplcMethodAnalyteId, Response = x.Response }).ToList(),
+                    Peaks = (inputs[i].Peaks ?? new List<HplcReplicatePeakInput>())
+                        .Select(p => new HplcReplicatePeak { HplcMethodImpurityId = p.HplcMethodImpurityId, RelativeRetention = p.RelativeRetention, Area = p.Area }).ToList(),
                 });
             }
             await _db.SaveChangesAsync(ct);
@@ -303,7 +338,7 @@ public partial class HplcRunService
 
     private async Task<HplcSampleEntryDto> BuildEntryDtoAsync(HplcSampleEntryContext c, CancellationToken ct)
     {
-        var individual = !c.IsResidualSolvents && HplcAssayCalculator.IsIndividualBasis(c.StageRole);
+        var individual = c.Snapshot.ResultMode == HplcResultMode.Assay && HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var problem = c.SubmitProblem();
 
         // The preview is what submission would store; shown only once every
@@ -314,7 +349,8 @@ public partial class HplcRunService
             var rows = c.EvaluateRows();
             preview = rows.Select(row => new HplcPreviewResultDto(
                 row.AnalyteId, row.AnalyteName,
-                row.Basis == ResultBasis.Ppm ? "Residual solvent (ppm)" : row.Basis == ResultBasis.MgPerUnit ? "Amount per unit" : "Assay %", row.ReplicateNo,
+                row.Basis == ResultBasis.Ppm ? "Residual solvent (ppm)" : row.Basis == ResultBasis.MgPerUnit ? "Amount per unit"
+                    : c.IsRelatedSubstances ? "Related substance (%)" : "Assay %", row.ReplicateNo,
                 row.Value, row.Display, row.Unit, row.Status,
                 !string.IsNullOrWhiteSpace(row.Spec.SpecLimit) ? row.Spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(row.Spec))).ToList();
         }
@@ -325,7 +361,8 @@ public partial class HplcRunService
 
         var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new HplcReplicateDto(r.ReplicateNo, r.ActualWeightMg,
-                r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList()))
+                r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList(),
+                r.Peaks.OrderBy(p => p.Id).Select(p => new HplcReplicatePeakInput(p.HplcMethodImpurityId, p.RelativeRetention, p.Area)).ToList()))
             .ToList();
 
         var weights = c.Snapshot.Analytes.OrderBy(a => a.DisplayOrder)

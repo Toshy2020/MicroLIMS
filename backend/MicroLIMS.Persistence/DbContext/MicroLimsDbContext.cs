@@ -154,6 +154,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<InstrumentIngestPayload> InstrumentIngestPayloads => Set<InstrumentIngestPayload>();
     public DbSet<HplcSampleReplicate> HplcSampleReplicates => Set<HplcSampleReplicate>();
     public DbSet<HplcReplicateResponse> HplcReplicateResponses => Set<HplcReplicateResponse>();
+    public DbSet<HplcReplicatePeak> HplcReplicatePeaks => Set<HplcReplicatePeak>();
     public DbSet<HplcEvidence> HplcEvidences => Set<HplcEvidence>();
     public DbSet<IcpRun> IcpRuns => Set<IcpRun>();
     public DbSet<IcpCalibration> IcpCalibrations => Set<IcpCalibration>();

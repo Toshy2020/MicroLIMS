@@ -206,6 +206,13 @@ public partial class HplcMethodService
                 .Select(s => s.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
             if (usedImpurityId != null)
                 throw new InvalidOperationException($"Impurity {method.Impurities.First(i => i.Id == usedImpurityId).Name} is used by a specification and cannot be removed.");
+
+            // ... and by peaks recorded on samples.
+            var peakImpurityId = await _db.HplcReplicatePeaks
+                .Where(p => p.HplcMethodImpurityId != null && removedImpurityIds.Contains(p.HplcMethodImpurityId.Value))
+                .Select(p => p.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
+            if (peakImpurityId != null)
+                throw new InvalidOperationException($"Impurity {method.Impurities.First(i => i.Id == peakImpurityId).Name} has recorded peaks and cannot be removed.");
         }
 
         ApplyFields(method, r, abbr);

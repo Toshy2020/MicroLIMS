@@ -41,7 +41,7 @@ public partial class HplcRunService
     {
         if (SstUsedWorkingStandard(run)) return new();
         var snapshot = ReadSnapshot(run);
-        if (snapshot.ResultMode == HplcResultMode.ResidualSolvents) return new();
+        if (snapshot.ResultMode != HplcResultMode.Assay) return new(); // only an assay run qualifies working standards
         var entryIds = snapshot.Analytes.Select(a => a.StandardEntryId).ToList();
         var busy = _db.HplcRunSamples
             .Where(s => s.WorkingStandardQualificationId != null && s.Status == HplcRunSampleStatus.Assigned
@@ -274,7 +274,8 @@ public partial class HplcRunService
 
         var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new HplcReplicateDto(r.ReplicateNo, r.ActualWeightMg,
-                r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList()))
+                r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList(),
+                new List<HplcReplicatePeakInput>()))
             .ToList();
         var weights = new List<HplcMethodWeightDto>
         {

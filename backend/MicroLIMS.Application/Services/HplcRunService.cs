@@ -108,19 +108,28 @@ public partial class HplcRunService
 
     // A blank SST entry would be signed as a permanent failure, so confirmation
     // waits until every required value is in. Returns "Analyte: field, field" lines.
+    // Only an assay weighs its standard and corrects it for purity and moisture; residual-solvent and
+    // related-substances methods need just the lot (their calculations use no standard weight).
+    private static bool StandardIsWeighed(HplcResultMode mode) => mode switch
+    {
+        HplcResultMode.Assay => true,
+        HplcResultMode.ResidualSolvents or HplcResultMode.RelatedSubstances => false,
+        _ => throw new InvalidOperationException($"Unsupported result mode {mode}."),
+    };
+
     private static List<string> MissingSstEntries(HplcRun run)
     {
         var missing = new List<string>();
         if (run.Sst == null) return missing;
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
         var methodById = snapshot?.Analytes.ToDictionary(a => a.Id) ?? new Dictionary<int, HplcMethodAnalyteResponse>();
-        var residualSolvents = snapshot?.ResultMode == HplcResultMode.ResidualSolvents;
+        var weighsStandard = StandardIsWeighed(snapshot?.ResultMode ?? HplcResultMode.Assay);
 
         foreach (var a in run.Sst.Analytes.OrderBy(x => x.Id))
         {
             var fields = new List<string>();
             if (a.StandardMaterialId == null) fields.Add("reference standard lot");
-            if (!residualSolvents && !(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
+            if (weighsStandard && !(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
             if (methodById.TryGetValue(a.HplcMethodAnalyteId, out var m))
             {
                 var blank = Enumerable.Range(1, m.StandardInjections)
@@ -400,7 +409,7 @@ public partial class HplcRunService
         var method = await _db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == run.HplcMethodId, ct);
         var methodAnalyteById = method.Analytes.ToDictionary(a => a.Id);
         var today = _clock.LabToday;
-        var residualSolvents = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)?.ResultMode == HplcResultMode.ResidualSolvents;
+        var weighsStandard = StandardIsWeighed(JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)?.ResultMode ?? HplcResultMode.Assay);
 
         foreach (var input in r.Analytes ?? new List<SaveSstAnalyteInput>())
         {
@@ -410,7 +419,7 @@ public partial class HplcRunService
             if (!methodAnalyteById.TryGetValue(analyteRow.HplcMethodAnalyteId, out var methodAnalyte))
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: method analyte not found.");
 
-            if (!residualSolvents && input.StandardWeightMg <= 0)
+            if (weighsStandard && input.StandardWeightMg <= 0)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: standard weight must be greater than zero.");
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId, ct)
@@ -423,7 +432,7 @@ public partial class HplcRunService
             if (!check.Usable)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
 
-            if (!residualSolvents)
+            if (weighsStandard)
             {
                 if (!lot.Purity.HasValue)
                     throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");

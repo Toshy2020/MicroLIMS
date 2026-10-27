@@ -8,6 +8,7 @@ using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Validation;
 using Xunit;
@@ -48,7 +49,7 @@ public class UserManagementSecurityTests
         AccessTokenIssuer tokenIssuer = _ => "fake-jwt-token";
         var securityAudit = new SecurityAuditService(db, new SystemSecurityRequestContext());
         var authService = new AuthenticationService(db, tokenIssuer, new PermissionService(db), emailSender, authLogger, securityAudit);
-        var userService = new UserService(db, authService, securityAudit);
+        var userService = new UserService(db, authService, securityAudit, signatureService: new AcceptingSignatureService(db));
         return (userService, authService, db);
     }
 
@@ -74,7 +75,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var updated = await userService.UpdateProfileAsync(user.Id, "New Name", "newuser", "new@test.com", actingUserId: 1);
+        var updated = await userService.UpdateProfileAsync(user.Id, "New Name", "newuser", "new@test.com", actingUserId: 1, reason: "Test reason");
 
         Assert.Equal("New Name", updated.FullName);
         Assert.Equal("newuser", updated.Username);
@@ -91,7 +92,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var updated = await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1);
+        var updated = await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1, password: "pw");
 
         Assert.Equal(3, updated.RoleId);
         Assert.Equal("Reviewer", updated.Role?.Name);
@@ -107,7 +108,7 @@ public class UserManagementSecurityTests
         await db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            userService.ChangeRoleAsync(admin.Id, 4, "Self demotion attempt", actingUserId: admin.Id));
+            userService.ChangeRoleAsync(admin.Id, 4, "Self demotion attempt", actingUserId: admin.Id, password: "pw"));
 
         Assert.Contains("cannot modify their own role", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -255,7 +256,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var updated = await userService.ForcePasswordChangeAsync(user.Id, actingUserId: 1);
+        var updated = await userService.ForcePasswordChangeAsync(user.Id, "Test reason", actingUserId: 1);
 
         Assert.True(updated.MustChangePassword);
     }
@@ -278,11 +279,11 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        await userService.ChangeRoleAsync(user.Id, 3, "Promotion", actingUserId: 1);
+        await userService.ChangeRoleAsync(user.Id, 3, "Promotion", actingUserId: 1, password: "pw");
         await userService.SetStatusAsync(user.Id, false, "Disabled target", actingUserId: 1);
         await userService.UnlockUserAsync(user.Id, "Unlocked target", actingUserId: 1);
         await userService.InitiatePasswordResetAsync(user.Id, "Reset target", actingUserId: 1);
-        await userService.ForcePasswordChangeAsync(user.Id, actingUserId: 1);
+        await userService.ForcePasswordChangeAsync(user.Id, "Test reason", actingUserId: 1);
 
         var auditLogs = await db.AuditLogs.Where(a => a.EntityId == "2").ToListAsync();
         Assert.Contains(auditLogs, a => a.Action == "USER_ROLE_CHANGED");
@@ -301,7 +302,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        await userService.CreateAsync(new User { FullName = "New User", Username = "newsecuser", RoleId = 4 }, "SecuredP@ss123!");
+        await userService.CreateAsync(new User { FullName = "New User", Username = "newsecuser", RoleId = 4 }, "SecuredP@ss123!", "Test reason");
         await userService.InitiatePasswordResetAsync(user.Id, "Reset sec", actingUserId: 1);
 
         var auditLogs = await db.AuditLogs.ToListAsync();
@@ -350,7 +351,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1);
+        await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1, password: "pw");
 
         var log = await db.AuditLogs.SingleAsync(a => a.Action == "USER_ROLE_CHANGED" && a.EntityId == "2");
         using var previous = System.Text.Json.JsonDocument.Parse(log.PreviousValue!);
@@ -398,7 +399,7 @@ public class UserManagementSecurityTests
         var onlyAdmin = await AddAdminAsync(db, 1);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            userService.ChangeRoleAsync(onlyAdmin.Id, 4, "Demotion", actingUserId: 2));
+            userService.ChangeRoleAsync(onlyAdmin.Id, 4, "Demotion", actingUserId: 2, password: "pw"));
 
         Assert.Contains("Users.Manage", ex.Message);
         Assert.Equal(1, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == onlyAdmin.Id)).RoleId);
@@ -413,7 +414,7 @@ public class UserManagementSecurityTests
         var first = await AddAdminAsync(db, 1);
         await AddAdminAsync(db, 2);
 
-        var updated = await userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 2);
+        var updated = await userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 2, password: "pw");
 
         Assert.Equal(4, updated.RoleId);
     }
@@ -427,7 +428,7 @@ public class UserManagementSecurityTests
         await AddAdminAsync(db, 2, isActive: false);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 3));
+            userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 3, password: "pw"));
 
         Assert.Equal(1, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == first.Id)).RoleId);
     }
@@ -494,7 +495,7 @@ public class UserManagementSecurityTests
         var (userService, _, _) = CreateServices(db);
         var disabledAdmin = await AddAdminAsync(db, 1, isActive: false);
 
-        var updated = await userService.SetStatusAsync(disabledAdmin.Id, true, null, actingUserId: 2);
+        var updated = await userService.SetStatusAsync(disabledAdmin.Id, true, "Returned", actingUserId: 2);
 
         Assert.True(updated.IsActive);
     }

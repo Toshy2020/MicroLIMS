@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { PageHeader } from "../../components/PageHeader";
+import { SignatureDialog } from "../../components/SignatureDialog";
 import { RoleService, RoleRecord, PermissionRecord, SodRules } from "./services/RoleService";
 import { PermissionMatrix } from "./components/PermissionMatrix";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
@@ -31,6 +32,10 @@ export function CreateRolePage() {
   const [sodRules, setSodRules] = useState<SodRules | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [signing, setSigning] = useState(false);
+  // Kept so a refused password can be retried without creating the role twice.
+  const [createdId, setCreatedId] = useState<number | null>(null);
 
   const { failed: failedLists, fail } = useLoadFailures();
 
@@ -83,15 +88,30 @@ export function CreateRolePage() {
     return true;
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
+  // The permission grant is electronically signed, so creating opens the signature step.
+  const handleSubmit = () => {
+    if (!reason.trim()) {
+      setError("A reason is required to create a role.");
+      return;
+    }
     setError(null);
+    setSigning(true);
+  };
+
+  // Errors are thrown back to the signature dialog, which shows them and stays open.
+  const confirmSignature = async (password: string) => {
+    setSubmitting(true);
     try {
-      const created = await RoleService.create(name, description || null, baseType);
-      await RoleService.updatePermissions(created.id, Array.from(checkedCodes));
-      navigate(`/roles/${created.id}`);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not create this role.");
+      let id = createdId;
+      if (id === null) {
+        const created = await RoleService.create(name, description || null, baseType, reason.trim());
+        id = created.id;
+        setCreatedId(id);
+      }
+      await RoleService.updatePermissions(id, Array.from(checkedCodes), reason.trim(), password);
+      setSigning(false);
+      navigate(`/roles/${id}`);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -190,6 +210,8 @@ export function CreateRolePage() {
                 {checkedCodes.size === 0 && <Typography sx={{ fontSize: 13, color: "text.secondary" }}>None selected.</Typography>}
               </Stack>
             </Box>
+            <Divider />
+            <TextField label="Reason for Creating This Role" size="small" value={reason} onChange={(e) => setReason(e.target.value)} required fullWidth multiline rows={2} placeholder="Mandatory administrative justification" />
           </Stack>
         </Paper>
       )}
@@ -201,11 +223,18 @@ export function CreateRolePage() {
             Next
           </Button>
         ) : (
-          <Button variant="contained" color="primary" disabled={submitting} onClick={handleSubmit}>
+          <Button variant="contained" color="primary" disabled={submitting || !reason.trim()} onClick={handleSubmit}>
             {submitting ? "Creating..." : "Create Role"}
           </Button>
         )}
       </Stack>
+
+      <SignatureDialog
+        open={signing}
+        meaningStatement={`I am creating the role "${name}" and granting it ${checkedCodes.size} permission(s). Reason: ${reason.trim()}`}
+        onCancel={() => setSigning(false)}
+        onConfirm={confirmSignature}
+      />
     </>
   );
 }

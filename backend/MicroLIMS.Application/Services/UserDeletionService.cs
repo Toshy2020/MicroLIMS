@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Interfaces;
 
 namespace MicroLIMS.Application.Services;
 
@@ -22,11 +24,13 @@ public class UserDeletionService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly AdministrationContinuityGuard _continuityGuard;
+    private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
 
-    public UserDeletionService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null)
+    public UserDeletionService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null)
     {
         _time = timeProvider ?? TimeProvider.System;
+        _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
         _db = db;
     }
@@ -56,8 +60,15 @@ public class UserDeletionService
         return false;
     }
 
-    public async Task HardDeleteAsync(int targetUserId, int actingUserId)
+    // Signed (D7): the administrator's password is re-verified and the
+    // signature is linked to the deleted user's id. The signature row is
+    // inserted in the same save as the delete and never updated.
+    public Task HardDeleteAsync(int targetUserId, int actingUserId, string? reason, string? password, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => HardDeleteCoreAsync(targetUserId, actingUserId, reason, password, ipAddress));
+
+    private async Task HardDeleteCoreAsync(int targetUserId, int actingUserId, string? rawReason, string? password, string? ipAddress)
     {
+        var reason = AdminActionReason.Require(rawReason, "permanently delete a user");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
 
@@ -87,6 +98,13 @@ public class UserDeletionService
             RoleId = user.RoleId
         };
 
+        // Signs only once every check has passed and before anything is
+        // removed: a wrong password throws and the user stays.
+        _db.CurrentUserId = actingUserId;
+        _db.CurrentReason = reason;
+        await _signatureService.SignAsync(actingUserId, password ?? string.Empty, SignatureMeaning.UserDeleted,
+            nameof(User), targetUserId, $"Permanently deleted user {user.Username}: {reason}", ipAddress);
+
         _db.Users.Remove(user);
 
         // Removing the User row here and adding the audit entry in the same
@@ -101,6 +119,7 @@ public class UserDeletionService
             Action = "USER_HARD_DELETED",
             PreviousValue = JsonSerializer.Serialize(deletedUserSnapshot),
             NewValue = null,
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });

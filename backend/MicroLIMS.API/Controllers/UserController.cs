@@ -8,13 +8,19 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record CreateUserRequest(string FullName, string Username, string Password, int RoleId, string? Email = null, string? JobTitle = null);
-public record UpdateProfileRequest(string FullName, string Username, string? Email, string? JobTitle = null);
-public record ChangeRoleRequest(int RoleId, string Reason);
+// Every administrative request carries a Reason. It is nullable here so a
+// missing one reaches the service and is refused with the same 400 message
+// as a blank one (AdminActionReason). Role change and hard delete are also
+// electronically signed: Password is the administrator's own, re-verified.
+public record CreateUserRequest(string FullName, string Username, string Password, int RoleId, string? Email = null, string? JobTitle = null, string? Reason = null);
+public record UpdateProfileRequest(string FullName, string Username, string? Email, string? JobTitle = null, string? Reason = null);
+public record ChangeRoleRequest(int RoleId, string? Reason = null, string? Password = null);
 public record SetStatusRequest(bool IsActive, string? Reason = null);
 public record UnlockUserRequest(string? Reason = null);
 public record AdminResetPasswordRequest(string? Reason = null);
-public record UpdateEmailRequest(string? Email);
+public record ForcePasswordChangeRequest(string? Reason = null);
+public record HardDeleteUserRequest(string? Reason = null, string? Password = null);
+public record UpdateEmailRequest(string? Email, string? Reason = null);
 public record AdminPasswordRecoveryRequest(string Reason);
 
 [ApiController]
@@ -34,6 +40,8 @@ public class UserController : ControllerBase
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+    private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     [HttpGet]
     public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _userService.GetAllAsync()));
@@ -57,7 +65,7 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Create(CreateUserRequest request)
     {
         var user = new User { FullName = request.FullName, Username = request.Username, RoleId = request.RoleId, Email = request.Email, JobTitle = request.JobTitle };
-        var created = await _userService.CreateAsync(user, request.Password);
+        var created = await _userService.CreateAsync(user, request.Password, request.Reason);
         return Ok(ApiResponse<object>.Ok(created));
     }
 
@@ -65,7 +73,7 @@ public class UserController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateProfile(int id, UpdateProfileRequest request)
     {
-        var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId);
+        var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId, request.Reason);
         return Ok(ApiResponse<object>.Ok(updated));
     }
 
@@ -73,7 +81,7 @@ public class UserController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> ChangeRole(int id, ChangeRoleRequest request)
     {
-        var updated = await _userService.ChangeRoleAsync(id, request.RoleId, request.Reason, CurrentUserId);
+        var updated = await _userService.ChangeRoleAsync(id, request.RoleId, request.Reason, CurrentUserId, request.Password, ClientIp);
         return Ok(ApiResponse<object>.Ok(updated));
     }
 
@@ -97,7 +105,7 @@ public class UserController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateEmail(int id, UpdateEmailRequest request)
     {
-        await _userService.UpdateEmailAsync(id, request.Email);
+        await _userService.UpdateEmailAsync(id, request.Email, request.Reason);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -127,9 +135,9 @@ public class UserController : ControllerBase
 
     [HttpPut("{id}/force-password-change")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
-    public async Task<IActionResult> ForcePasswordChange(int id)
+    public async Task<IActionResult> ForcePasswordChange(int id, [FromBody] ForcePasswordChangeRequest? request)
     {
-        var updated = await _userService.ForcePasswordChangeAsync(id, CurrentUserId);
+        var updated = await _userService.ForcePasswordChangeAsync(id, request?.Reason, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(updated));
     }
 
@@ -138,11 +146,11 @@ public class UserController : ControllerBase
     // history anywhere in the domain model (see UserReferenceRegistry).
     [HttpDelete("{id}")]
     [Authorize(Policy = PermissionConstants.UsersManage)]
-    public async Task<IActionResult> HardDelete(int id)
+    public async Task<IActionResult> HardDelete(int id, [FromBody] HardDeleteUserRequest? request)
     {
         try
         {
-            await _userDeletionService.HardDeleteAsync(id, CurrentUserId);
+            await _userDeletionService.HardDeleteAsync(id, CurrentUserId, request?.Reason, request?.Password, ClientIp);
             return Ok(ApiResponse<object>.Ok(new { }));
         }
         catch (UserHasHistoryException ex)

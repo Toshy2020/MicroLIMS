@@ -461,7 +461,7 @@ ReportingController.GetResults(String, Nullable`1, String, Nullable`1, Nullable`
 ReportingController.GetTrend(String, String, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 ResultController.GetForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 RoleController.Create(CreateRoleRequest): SystemAdministrator
-RoleController.Delete(Int32): SystemAdministrator
+RoleController.Delete(Int32, DeleteRoleRequest): SystemAdministrator
 RoleController.GetAll(): SystemAdministrator
 RoleController.GetAllPermissions(): SystemAdministrator
 RoleController.GetById(Int32): SystemAdministrator
@@ -576,10 +576,10 @@ UserController.ChangeRole(Int32, ChangeRoleRequest): SystemAdministrator
 UserController.Create(CreateUserRequest): SystemAdministrator
 UserController.CreateAdminPasswordRecovery(Int32, AdminPasswordRecoveryRequest): SystemAdministrator
 UserController.Deactivate(Int32): SystemAdministrator
-UserController.ForcePasswordChange(Int32): SystemAdministrator
+UserController.ForcePasswordChange(Int32, ForcePasswordChangeRequest): SystemAdministrator
 UserController.GetAll(): SystemAdministrator
 UserController.GetById(Int32): SystemAdministrator
-UserController.HardDelete(Int32): SystemAdministrator
+UserController.HardDelete(Int32, HardDeleteUserRequest): SystemAdministrator
 UserController.InitiatePasswordReset(Int32, AdminResetPasswordRequest): SystemAdministrator
 UserController.SetStatus(Int32, SetStatusRequest): SystemAdministrator
 UserController.Unlock(Int32, UnlockUserRequest): SystemAdministrator

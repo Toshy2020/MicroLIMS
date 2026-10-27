@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Persistence.Seed;
 using Xunit;
 
@@ -50,7 +51,7 @@ public class SessionRevocationTests
         var securityAudit = new SecurityAuditService(db, new SystemSecurityRequestContext());
         var authService = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender, NullLogger<AuthenticationService>.Instance, securityAudit);
-        return (new UserService(db, authService, securityAudit), authService);
+        return (new UserService(db, authService, securityAudit, signatureService: new AcceptingSignatureService(db)), authService);
     }
 
     private static User SeedUser(MicroLimsDbContext db, int id = 10, string username = "analyst1")
@@ -164,7 +165,7 @@ public class SessionRevocationTests
         Assert.All(await db.RefreshTokens.Where(r => r.UserId == user.Id).ToListAsync(),
             r => Assert.NotNull(r.RevokedAt));
 
-        await users.SetStatusAsync(user.Id, isActive: true, reason: null, actingUserId: 1);
+        await users.SetStatusAsync(user.Id, isActive: true, reason: "Returned", actingUserId: 1);
 
         var outcome = await auth.RefreshAsync(refreshToken);
         Assert.False(outcome.Success);

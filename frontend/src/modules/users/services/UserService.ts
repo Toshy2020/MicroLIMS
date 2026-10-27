@@ -29,32 +29,38 @@ export const UserService = {
   async getById(id: number): Promise<UserRecord> {
     return (await apiClient.get(`/users/${id}`)).data.data;
   },
-  async create(fullName: string, username: string, password: string, roleId: number, email?: string, jobTitle?: string) {
-    return (await apiClient.post("/users", { fullName, username, password, roleId, email: email || null, jobTitle: jobTitle || null })).data.data;
+  // reason is required by the server for every administrative change.
+  async create(fullName: string, username: string, password: string, roleId: number, reason: string, email?: string, jobTitle?: string) {
+    return (await apiClient.post("/users", { fullName, username, password, roleId, email: email || null, jobTitle: jobTitle || null, reason })).data.data;
   },
   // jobTitle is required so every caller states it: the backend treats a missing value as "clear it".
-  async updateProfile(id: number, fullName: string, username: string, email: string | null, jobTitle: string | null, version?: number) {
-    return (await apiClient.put(`/users/${id}`, { fullName, username, email, jobTitle: jobTitle || null }, ifMatch(version))).data.data;
+  async updateProfile(id: number, fullName: string, username: string, email: string | null, jobTitle: string | null, reason: string, version?: number) {
+    return (await apiClient.put(`/users/${id}`, { fullName, username, email, jobTitle: jobTitle || null, reason }, ifMatch(version))).data.data;
   },
-  async changeRole(id: number, roleId: number, reason: string) {
-    return (await apiClient.put(`/users/${id}/role`, { roleId, reason })).data.data;
+  // Electronically signed: password is the administrator's own, re-verified by the server.
+  async changeRole(id: number, roleId: number, reason: string, password: string) {
+    return (await apiClient.put(`/users/${id}/role`, { roleId, reason, password })).data.data;
   },
-  async setStatus(id: number, isActive: boolean, reason?: string) {
-    return (await apiClient.put(`/users/${id}/status`, { isActive, reason: reason || null })).data.data;
+  async setStatus(id: number, isActive: boolean, reason: string) {
+    return (await apiClient.put(`/users/${id}/status`, { isActive, reason })).data.data;
   },
-  async unlock(id: number, reason?: string) {
-    return (await apiClient.put(`/users/${id}/unlock`, { reason: reason || null })).data.data;
+  async unlock(id: number, reason: string) {
+    return (await apiClient.put(`/users/${id}/unlock`, { reason })).data.data;
   },
-  async initiatePasswordReset(id: number, reason?: string) {
-    return (await apiClient.post(`/users/${id}/password-reset`, { reason: reason || null })).data.data;
+  async initiatePasswordReset(id: number, reason: string) {
+    return (await apiClient.post(`/users/${id}/password-reset`, { reason })).data.data;
   },
   async adminPasswordRecovery(id: number, reason: string): Promise<{ recoveryCode: string; expiresAt: string }> {
     return (await apiClient.post(`/users/${id}/admin-password-recovery`, { reason })).data.data;
   },
-  async forcePasswordChange(id: number) {
-    return (await apiClient.put(`/users/${id}/force-password-change`)).data.data;
+  async forcePasswordChange(id: number, reason: string) {
+    return (await apiClient.put(`/users/${id}/force-password-change`, { reason })).data.data;
   },
-  async hardDelete(id: number) {
-    return (await apiClient.delete(`/users/${id}`)).data.data;
+  async updateEmail(id: number, email: string | null, reason: string) {
+    return (await apiClient.put(`/users/${id}/email`, { email, reason })).data.data;
+  },
+  // Electronically signed (password re-entry); the body carries reason and password.
+  async hardDelete(id: number, reason: string, password: string) {
+    return (await apiClient.delete(`/users/${id}`, { data: { reason, password } })).data.data;
   }
 };

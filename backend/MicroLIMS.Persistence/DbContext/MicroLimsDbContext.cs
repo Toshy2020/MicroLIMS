@@ -26,6 +26,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // and no agent code.
     public string? CurrentSystemProcessName { get; set; }
     public uint? ExpectedVersion { get; set; }
+    public string? CurrentReason { get; set; }
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
 
@@ -600,6 +601,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             ActorType = bySystem ? Domain.Enums.ActorType.System : null,
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = DateTime.UtcNow,
+            Reason = CurrentReason,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
             SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),

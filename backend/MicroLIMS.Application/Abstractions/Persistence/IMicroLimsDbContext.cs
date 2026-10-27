@@ -27,6 +27,11 @@ public interface IMicroLimsDbContext
     // RecordVersion.EnsureCurrent.
     uint? ExpectedVersion { get; set; }
 
+    // Why the change in progress is being made (an administrator's stated
+    // reason). The automatic audit capture copies it into AuditLog.Reason
+    // for every row the save produces. Set per operation, never from JSON.
+    string? CurrentReason { get; set; }
+
     DbSet<User> Users { get; }
     DbSet<Role> Roles { get; }
     DbSet<Permission> Permissions { get; }

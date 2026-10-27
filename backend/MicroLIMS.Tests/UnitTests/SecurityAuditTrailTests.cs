@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Constants;
 using Xunit;
@@ -68,7 +69,7 @@ public class SecurityAuditTrailTests
         var authService = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender,
             NullLogger<AuthenticationService>.Instance, securityAudit);
-        return (new UserService(db, authService, securityAudit), authService);
+        return (new UserService(db, authService, securityAudit, signatureService: new AcceptingSignatureService(db)), authService);
     }
 
     private static User SeedUser(MicroLimsDbContext db, int id = 10, string username = "analyst1", int roleId = 4)
@@ -380,7 +381,7 @@ public class SecurityAuditTrailTests
         var target = SeedUser(db, id: 10, username: "analyst1", roleId: 4);
         var (users, _) = CreateServices(db);
 
-        await users.ChangeRoleAsync(target.Id, newRoleId: 2, reason: "Promoted", actingUserId: 1);
+        await users.ChangeRoleAsync(target.Id, newRoleId: 2, reason: "Promoted", actingUserId: 1, password: "pw");
 
         var changed = Assert.Single(await EventsAsync(db, SecurityEventCodes.RoleChanged));
         Assert.Equal(1, changed.ActorUserId);

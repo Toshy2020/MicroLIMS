@@ -20,6 +20,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Persistence.Seed;
 using Xunit;
 
@@ -415,7 +416,7 @@ public class AccessTokenRevalidationTests
             new PermissionService(db), new EmailSender("", 587, "", "", "no-reply@microlims.local", false),
             NullLogger<AuthenticationService>.Instance,
             new SecurityAuditService(db, new SystemSecurityRequestContext()));
-        var roles = new RoleService(db, new PermissionService(db));
+        var roles = new RoleService(db, new PermissionService(db), signatureService: new AcceptingSignatureService(db));
 
         var login = await auth.LoginAsync("holder", "Real-Password-1!");
         Assert.True(login.Success);
@@ -423,7 +424,7 @@ public class AccessTokenRevalidationTests
         Assert.Null(await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(login.Token!)));
 
         var analystCodes = await new PermissionService(db).GetPermissionCodesForRoleAsync(4);
-        await roles.UpdatePermissionsAsync(4, analystCodes.Skip(1).ToList(), actingUserId: 1);
+        await roles.UpdatePermissionsAsync(4, analystCodes.Skip(1).ToList(), actingUserId: 1, "Test reason", "pw");
 
         Assert.Equal("Role permissions have changed since the token was issued.",
             await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(login.Token!)));

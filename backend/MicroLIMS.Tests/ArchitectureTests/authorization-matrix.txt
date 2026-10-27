@@ -1,4 +1,6 @@
-AdminSecurityPolicyController.Get(): SystemAdministrator
+AdminSettingsController.GetAll(CancellationToken): SystemAdministrator
+AdminSettingsController.History(String, CancellationToken): SystemAdministrator
+AdminSettingsController.Update(String, UpdateSystemSettingRequest): SystemAdministrator
 AdminUserSessionsController.List(Int32): SystemAdministrator
 AdminUserSessionsController.Revoke(Int32, RevokeUserSessionsRequest): SystemAdministrator
 AfterCleaningController.Prepare(PrepareAfterCleaningRequest): SectionHead,Reviewer,Analyst

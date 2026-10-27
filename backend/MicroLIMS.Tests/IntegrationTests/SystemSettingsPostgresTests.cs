@@ -79,7 +79,7 @@ public class SystemSettingsPostgresTests
             var before = ids[ids.IndexOf(target) - 1];
 
             await db.Database.MigrateAsync(before);
-            await db.Database.ExecuteSqlRawAsync(@"INSERT INTO ""Roles"" (""Type"", ""Name"") VALUES (0, 'System Administrator');");
+            await db.Database.ExecuteSqlRawAsync(@"INSERT INTO ""Roles"" (""Type"", ""Name"", ""IsSystemRole"") VALUES (0, 'System Administrator', TRUE);");
             await db.Database.ExecuteSqlRawAsync(
                 @"INSERT INTO ""ConfigurationSettings"" (""SettingKey"", ""SettingValue"", ""DataType"", ""SettingGroup"", ""ModifiedAt"")
                   VALUES ('System.TimeZone', 'UTC', 'string', 'System', now()),

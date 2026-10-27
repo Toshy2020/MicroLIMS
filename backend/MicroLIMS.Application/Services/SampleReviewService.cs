@@ -244,7 +244,8 @@ public class SampleReviewService
             foreach (var dependent in dependents)
             {
                 var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
-                if (dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
+                if (dependent.Status != ApprovalStatus.ResultEntered
+                    || dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
                     throw new InvalidOperationException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
             }
         }
@@ -263,14 +264,16 @@ public class SampleReviewService
         return returnEvent;
     }
 
-    // ResultEntered titration orders of the same sample whose active analysis took its moisture value
-    // from one of this order's active results. Must run before those results are superseded.
+    // Live (not cancelled, voided or superseded) titration orders of the same sample, in any status, whose
+    // active analysis took its moisture value from one of this order's active results. The caller refuses
+    // the return when one is already past ResultEntered. Must run before those results are superseded.
     private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder)
     {
         var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync();
         var candidates = await _db.TestAnalyses
             .Where(a => a.IsActive && a.AnalysisType == WorkflowType.Titration && a.TestOrderId != moistureOrder.Id
-                && a.TestOrder!.SampleId == moistureOrder.SampleId && a.TestOrder.Status == ApprovalStatus.ResultEntered)
+                && a.TestOrder!.SampleId == moistureOrder.SampleId && !a.TestOrder.IsSuperseded
+                && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Voided)
             .Select(a => new { a.TestOrder, a.ConditionsJson })
             .ToListAsync();
         return candidates

@@ -172,14 +172,13 @@ public class SampleMoisturePostgresTests
     {
         await using var db = _fixture.CreateDbContext();
         var s = Seed(db);
-        var (lodOrder, lod) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+        var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
         await Record(db, s, TitrationRecorderTests.Payload(s));
         Assert.Equal(ApprovalStatus.ResultEntered, (await db.TestOrders.FindAsync(s.Order.Id))!.Status);
 
-        // an assay of the same sample that used another LOD result, and one past ResultEntered that used this one
+        // an assay of the same sample that used another LOD result
         var (otherLodOrder, otherLod) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 3m, active: false);
         var unrelated = AddAssay(db, s, otherLod.Id, ApprovalStatus.ResultEntered);
-        var reviewed = AddAssay(db, s, lod.Id, ApprovalStatus.Reviewed);
 
         var ret = await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
         Assert.Equal(lodOrder.Id, ret.TestOrderId);
@@ -194,12 +193,10 @@ public class SampleMoisturePostgresTests
         var events = await v.TestReturnEvents.Where(e => e.TestOrderId == s.Order.Id).ToListAsync();
         Assert.Equal("Recalculate: the loss on drying result was returned.", Assert.Single(events).Reason);
 
-        // dependents in another state, or on another result, are untouched
+        // an assay on another result is untouched
         Assert.Equal(ApprovalStatus.ResultEntered, (await v.TestOrders.FindAsync(unrelated.Id))!.Status);
         Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == unrelated.Id)).IsActive);
-        Assert.Equal(ApprovalStatus.Reviewed, (await v.TestOrders.FindAsync(reviewed.Id))!.Status);
-        Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == reviewed.Id)).IsActive);
-        Assert.Empty(await v.TestReturnEvents.Where(e => e.TestOrderId == unrelated.Id || e.TestOrderId == reviewed.Id).ToListAsync());
+        Assert.Empty(await v.TestReturnEvents.Where(e => e.TestOrderId == unrelated.Id).ToListAsync());
     }
 
     [PostgresFact]
@@ -354,6 +351,26 @@ public class SampleMoisturePostgresTests
         Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == lodOrder.Id)).IsActive);
         Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == s.Order.Id)).IsActive);
         Assert.Empty(await v.TestReturnEvents.Where(e => e.TestOrderId == lodOrder.Id || e.TestOrderId == s.Order.Id).ToListAsync());
+    }
+
+    [PostgresFact]
+    public async Task ReturnIsRefused_WhenADependentAssayIsAlreadyReviewed_AndNothingIsWritten()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = Seed(db);
+        var (lodOrder, lod) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
+        var reviewed = AddAssay(db, s, lod.Id, ApprovalStatus.Reviewed);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null));
+        Assert.Equal($"Cannot return {lodOrder.TestCode}: assay {s.Test.Code} has already been reviewed.", ex.Message);
+
+        await using var v = _fixture.CreateDbContext();
+        Assert.Equal(WorkflowStep.Ready, (await v.TestOrders.FindAsync(lodOrder.Id))!.CurrentStep);
+        Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == lodOrder.Id)).IsActive);
+        Assert.Equal(ApprovalStatus.Reviewed, (await v.TestOrders.FindAsync(reviewed.Id))!.Status);
+        Assert.True((await v.TestAnalyses.SingleAsync(x => x.TestOrderId == reviewed.Id)).IsActive);
+        Assert.Empty(await v.TestReturnEvents.Where(e => e.TestOrderId == lodOrder.Id || e.TestOrderId == reviewed.Id).ToListAsync());
     }
 
     [PostgresFact]

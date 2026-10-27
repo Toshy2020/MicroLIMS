@@ -40,6 +40,7 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.EquipmentWorkRecord,
         PermissionConstants.CalendarEventManage,
         PermissionConstants.SectionsViewAll,
+        PermissionConstants.SectionsConfigureAll,
         PermissionConstants.DocumentsTrainingViewMatrix
     };
 

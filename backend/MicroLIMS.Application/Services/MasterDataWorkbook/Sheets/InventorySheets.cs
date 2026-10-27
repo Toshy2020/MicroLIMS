@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Domain.Enums;
@@ -11,13 +12,13 @@ internal static class SectionLookup
 {
     // Resolves the code and runs the create-time section rules (active,
     // user is a member) up front, so a refusal points at SectionCode.
-    public static async Task<int> IdAsync(ImportContext ctx, string code)
+    public static async Task<int> IdAsync(ImportContext ctx, string code, SectionAccess access = SectionAccess.Write)
     {
         var id = await ctx.Db.DocumentSections.Where(s => s.Code.ToLower() == code.ToLower()).Select(s => (int?)s.Id).FirstOrDefaultAsync()
             ?? throw new RowError("SectionCode", $"No laboratory section with code '{code}'.");
         try
         {
-            return await new UserSectionScopeService(ctx.Db).ResolveSectionForCreateAsync(ctx.UserId, id);
+            return await new UserSectionScopeService(ctx.Db).ResolveSectionForCreateAsync(ctx.UserId, id, access: access);
         }
         catch (InvalidOperationException e)
         {
@@ -75,7 +76,7 @@ public sealed class MaterialMasterSheet : SheetHandler
     // activates it (MasterDataWorkbookService.VerifyAsync).
     public override async Task<CreatedRecord> CreateAsync(RowReader r, ImportContext ctx)
     {
-        var sectionId = await SectionLookup.IdAsync(ctx, r.Text("SectionCode"));
+        var sectionId = await SectionLookup.IdAsync(ctx, r.Text("SectionCode"), SectionAccess.Configure);
         var created = await _service.CreateAsync(new SaveMaterialMasterEntryRequest(
             r.Text("Code"), r.Text("Name"), r.Enum<MaterialMasterCategory>("Category"),
             r.OptionalText("Grade"), r.OptionalText("Source"), r.Enum<MaterialUnit>("BaseUnit"), sectionId,

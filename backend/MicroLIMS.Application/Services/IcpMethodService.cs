@@ -88,7 +88,7 @@ public class IcpMethodService
 
     public async Task<IcpMethodResponse> CreateAsync(SaveIcpMethodRequest r, int currentUserId, CancellationToken ct = default)
     {
-        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
 
         var (abbr, levels) = await ValidateAsync(r, sectionId, null, null, ct);
 

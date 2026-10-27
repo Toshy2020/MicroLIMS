@@ -201,7 +201,7 @@ public class MasterDataWorkbookService
 
             // The verifier must be able to see what they verify: material
             // master entries belong to lab sections. Checked before signing.
-            var scope = await new UserSectionScopeService(_db).GetMemberSectionIdsAsync(userId);
+            var scope = await new UserSectionScopeService(_db).GetConfigurableSectionIdsAsync(userId);
             if (scope is not null)
             {
                 var entryIds = import.Records.Where(r => r.EntityType == "MaterialMasterEntry").Select(r => r.EntityId).ToList();

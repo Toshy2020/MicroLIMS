@@ -51,7 +51,7 @@ public class KpiSettingsService
         if (r.LoadHorizonDays is < 1 or > 30)
             throw new InvalidOperationException("The load horizon must be between 1 and 30 working days.");
 
-        await EnsureSectionAccessAsync(sectionId, userId, ct);
+        await EnsureSectionAccessAsync(sectionId, userId, ct, SectionAccess.Configure);
         _db.CurrentUserId = userId;
 
         var row = await _db.KpiSettings.FirstOrDefaultAsync(s => s.SectionId == sectionId, ct);

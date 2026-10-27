@@ -32,6 +32,20 @@ public class UserSectionScopeService : IUserSectionScopeService
         return holdsViewAll ? null : await GetMemberSectionIdsAsync(userId, ct);
     }
 
+    // Master data and settings may be configured in any section by a role holding Sections.ConfigureAll
+    // (the System Administrator); it never opens GxP records, which use GetMemberSectionIdsAsync.
+    public async Task<IReadOnlyList<int>?> GetConfigurableSectionIdsAsync(int userId, CancellationToken ct = default)
+    {
+        var holdsConfigureAll = await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            where u.Id == userId && u.IsActive && rp.Permission!.Code == PermissionConstants.SectionsConfigureAll
+            select rp.Id
+        ).AnyAsync(ct);
+
+        return holdsConfigureAll ? null : await GetMemberSectionIdsAsync(userId, ct);
+    }
+
     public async Task<IReadOnlyList<int>> GetMemberSectionIdsAsync(int userId, CancellationToken ct = default)
     {
         var memberships = await _db.UserOrgMemberships
@@ -86,7 +100,12 @@ public class UserSectionScopeService : IUserSectionScopeService
 
     // Read access may span every section (Sections.ViewAll); write access never does.
     private async Task<IReadOnlyList<int>?> ScopeAsync(int userId, SectionAccess access, CancellationToken ct) =>
-        access == SectionAccess.Read ? await GetReadableSectionIdsAsync(userId, ct) : await GetMemberSectionIdsAsync(userId, ct);
+        access switch
+        {
+            SectionAccess.Read => await GetReadableSectionIdsAsync(userId, ct),
+            SectionAccess.Configure => await GetConfigurableSectionIdsAsync(userId, ct),
+            _ => await GetMemberSectionIdsAsync(userId, ct),
+        };
 
     public async Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
@@ -111,9 +130,12 @@ public class UserSectionScopeService : IUserSectionScopeService
         return both.Where(areas.Contains).ToList();
     }
 
-    public async Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default)
+    public async Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetMemberSectionIdsAsync(userId, ct);
+        // null = every section (Sections.ConfigureAll, configuration only)
+        IReadOnlyList<int>? scope = access == SectionAccess.Configure
+            ? await GetConfigurableSectionIdsAsync(userId, ct)
+            : await GetMemberSectionIdsAsync(userId, ct);
 
         if (requestedSectionId.HasValue)
         {
@@ -126,12 +148,17 @@ public class UserSectionScopeService : IUserSectionScopeService
                 throw new InvalidOperationException("Selected laboratory section was not found or is inactive.");
             }
 
-            if (!scope.Contains(sectionId))
+            if (scope is not null && !scope.Contains(sectionId))
             {
                 throw new InvalidOperationException("You are not a member of the selected laboratory section.");
             }
 
             return sectionId;
+        }
+
+        if (scope is null)
+        {
+            throw new InvalidOperationException("Choose a laboratory section.");
         }
 
         if (scope.Count == 0)

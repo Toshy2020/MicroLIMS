@@ -120,6 +120,9 @@ public static class PermissionConstants
     // Read every laboratory section's records without being a member. Read-only: writes always follow section membership, for administrators too (UserSectionScopeService).
     public const string SectionsViewAll = "Sections.ViewAll";
 
+    // Configure master data and settings in every section, not only the user's own. Configuration only: GxP records still follow membership.
+    public const string SectionsConfigureAll = "Sections.ConfigureAll";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -141,7 +144,7 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        SectionsViewAll
+        SectionsViewAll, SectionsConfigureAll
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -160,7 +163,7 @@ public static class PermissionConstants
         SignaturesManage,   // read-only signature trail
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam,
         SamplesTrackAll, MonitoringPlanView, DocumentsTrainingViewMatrix,
-        SectionsViewAll
+        SectionsViewAll, SectionsConfigureAll
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -178,6 +181,6 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        SectionsViewAll
+        SectionsViewAll, SectionsConfigureAll
     };
 }

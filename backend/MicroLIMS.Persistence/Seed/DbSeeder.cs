@@ -507,6 +507,7 @@ public static class DbSeeder
             (PermissionConstants.EquipmentWorkRecord, "Record and sign calibrations and maintenance logbook entries."),
             (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
             (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
+            (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();

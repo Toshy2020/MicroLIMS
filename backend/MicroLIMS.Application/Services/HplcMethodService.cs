@@ -105,7 +105,7 @@ public partial class HplcMethodService
 
     public async Task<HplcMethodResponse> CreateAsync(SaveHplcMethodRequest r, int currentUserId, CancellationToken ct = default)
     {
-        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
 
         var abbr = await ValidateCommonAsync(r, sectionId, null, null, ct);
 
@@ -215,7 +215,7 @@ public partial class HplcMethodService
         var method = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException($"HPLC method {id} not found.");
 
-        var scope = await _scope.GetMemberSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
             throw new NotFoundException($"HPLC method {id} not found.");
 

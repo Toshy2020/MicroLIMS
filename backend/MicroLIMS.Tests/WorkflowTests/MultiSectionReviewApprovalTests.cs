@@ -522,9 +522,9 @@ public class MultiSectionReviewApprovalTests
 
         // A section must belong to the department it is listed under.
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc + 999, w.Micro) }, w.Admin));
+            org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc + 999, w.Micro) }, "test", w.Admin));
 
-        var result = await org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc, w.Fp) }, w.Admin);
+        var result = await org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc, w.Fp) }, "test", w.Admin);
         Assert.Equal(new[] { new UserOrgMembershipDto(qc, w.Fp) }, result);
         Assert.Equal(new[] { w.Fp }, await new UserSectionScopeService(db).GetReadableSectionIdsAsync(w.ReviewerMicro));
     }

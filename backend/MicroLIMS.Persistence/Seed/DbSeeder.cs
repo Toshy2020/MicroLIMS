@@ -485,7 +485,7 @@ public static class DbSeeder
             (PermissionConstants.DocumentsTrainingAssign, "Assign document reading and training curricula to personnel."),
             (PermissionConstants.DocumentsTrainingViewMatrix, "View and export the document training matrix."),
             (PermissionConstants.DocumentsConfigManage, "Manage Document Control configuration (types, departments, sections, numbering, settings)."),
-            (PermissionConstants.DocumentsReassign, "Hand a deactivated user's document responsibilities to another active member of the same department."),
+            (PermissionConstants.DocumentsReassign, "Hand over the document responsibilities of a deactivated user to another active member of the same department."),
             (PermissionConstants.DashboardsLabOverview, "View the laboratory overview dashboard (section workload, approvals, overdue work)."),
             (PermissionConstants.DashboardsReview, "View the reviewer dashboard."),
             (PermissionConstants.KpiView, "View laboratory KPIs."),

@@ -129,7 +129,7 @@ public class InactiveUserVisibilityTests
         var org = new LaboratoryOrganizationService(db, new UserSectionScopeService(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            org.ReplaceMembershipsAsync(3, new List<UserOrgMembershipDto>(), 1));
+            org.ReplaceMembershipsAsync(3, new List<UserOrgMembershipDto>(), "test", 1));
         Assert.Contains("Inactive", ex.Message);
     }
 

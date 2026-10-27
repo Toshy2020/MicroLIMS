@@ -24,19 +24,21 @@ public class ForcePasswordResetMigrationPostgresTests
 
             await db.Database.ExecuteSqlRawAsync(@"INSERT INTO ""Roles"" (""Type"", ""Name"") VALUES (1, 'Reset Test Role');");
             var roleId = await db.Roles.Where(r => r.Name == "Reset Test Role").Select(r => r.Id).SingleAsync();
-            var active = new User { FullName = "Active", Username = "reset_active", PasswordHash = "x", RoleId = roleId, IsActive = true };
-            var inactive = new User { FullName = "Inactive", Username = "reset_inactive", PasswordHash = "x", RoleId = roleId, IsActive = false };
-            db.Users.AddRange(active, inactive);
-            await db.SaveChangesAsync();
+            // Raw SQL: the model has columns (Users.DeactivatedAt) this older schema does not.
+            await db.Database.ExecuteSqlInterpolatedAsync($@"INSERT INTO ""Users"" (""FullName"", ""Username"", ""PasswordHash"", ""RoleId"", ""IsActive"", ""CreatedAt"", ""FailedLoginAttempts"", ""MustChangePassword"") VALUES
+                ('Active', 'reset_active', 'x', {roleId}, TRUE, {DateTime.UtcNow}, 0, FALSE),
+                ('Inactive', 'reset_inactive', 'x', {roleId}, FALSE, {DateTime.UtcNow}, 0, FALSE)");
+            var activeId = await db.Database.SqlQuery<int>($@"SELECT ""Id"" AS ""Value"" FROM ""Users"" WHERE ""Username"" = 'reset_active'").SingleAsync();
+            var inactiveId = await db.Database.SqlQuery<int>($@"SELECT ""Id"" AS ""Value"" FROM ""Users"" WHERE ""Username"" = 'reset_inactive'").SingleAsync();
 
             var now = DateTime.UtcNow;
             var alreadyRevokedAt = now.AddDays(-2);
             // Raw SQL: the model now has columns this older schema does not.
             await db.Database.ExecuteSqlInterpolatedAsync($@"INSERT INTO ""RefreshTokens"" (""UserId"", ""TokenHash"", ""ExpiresAt"", ""RevokedAt"", ""CreatedAt"") VALUES
-                ({active.Id}, 't1', {now.AddDays(5)}, NULL, {now}),
-                ({active.Id}, 't2', {now.AddDays(5)}, NULL, {now}),
-                ({inactive.Id}, 't3', {now.AddDays(5)}, NULL, {now}),
-                ({inactive.Id}, 't4', {now.AddDays(5)}, {alreadyRevokedAt}, {now})");
+                ({activeId}, 't1', {now.AddDays(5)}, NULL, {now}),
+                ({activeId}, 't2', {now.AddDays(5)}, NULL, {now}),
+                ({inactiveId}, 't3', {now.AddDays(5)}, NULL, {now}),
+                ({inactiveId}, 't4', {now.AddDays(5)}, {alreadyRevokedAt}, {now})");
             Assert.False(await db.Users.AnyAsync(u => u.MustChangePassword));
 
             var auditBefore = await db.AuditLogs.CountAsync();

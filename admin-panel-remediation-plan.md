@@ -86,7 +86,9 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 > | WP1.5 | `SegregationOfDutiesRules`: holding both {Users.Manage, Roles.Manage} and any GxP execute, review or approve code returns 409. `GET /api/roles/sod-rules` exposes the rules, and the permission matrix greys out conflicting codes. |
 > | WP1.6 | Tokens carry `rid` and `pv`, so a role move or a permission edit invalidates them. `roleName` appears in login and `/me`. Signatures snapshot `RoleNameSnapshot`. Audit search labels "current role". |
 >
-> **Consequence to confirm:** writes follow section membership, so an administrator who is not a member of a section can no longer edit that section's master data or configuration.
+> **Resolved (2026-10-27):** the owner decided the administrator may configure any section. A new `Sections.ConfigureAll` permission (System Administrator only, outside every SoD set; migration `GrantSystemAdministratorConfigureAllSections`) opens master-data and settings writes (specifications, test definitions, stage replicates, material/solution/HPLC/ICP method masters, KPI settings, workbook import) in every section. GxP records still follow membership. Equipment, chromatography columns and materials stay on membership because their services share guards with operational flows.
+>
+> **D4 done:** migration `ForcePasswordResetAfterAuditHashExposure` sets `MustChangePassword` for every user, revokes all refresh tokens, and writes one System-actor audit row. Deviation record: `docs/deviations/DEV-2026-AUD-001-credential-hashes-in-audit-trail.md`. Instrument agent keys must be rotated by an administrator (manual step in the deviation).
 
 | WP | Covers | Model | Scope / spec summary | Acceptance |
 |---|---|---|---|---|

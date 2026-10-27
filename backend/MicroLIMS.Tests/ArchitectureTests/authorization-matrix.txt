@@ -105,8 +105,10 @@ DocumentAuditController.SearchAuditTrail(DocumentAuditFilterRequest): SystemAdmi
 DocumentConfigurationController.CreateDepartment(CreateDocumentDepartmentRequest): SystemAdministrator
 DocumentConfigurationController.CreateSection(CreateDocumentSectionRequest): SystemAdministrator
 DocumentConfigurationController.CreateType(CreateDocumentTypeRequest): SystemAdministrator
+DocumentConfigurationController.GetDepartmentImpact(Int32): SystemAdministrator
 DocumentConfigurationController.GetDepartments(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentConfigurationController.GetNumberingConfig(): SystemAdministrator,SectionHead,Reviewer,Analyst
+DocumentConfigurationController.GetSectionImpact(Int32): SystemAdministrator
 DocumentConfigurationController.GetSections(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentConfigurationController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentConfigurationController.GetTypes(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -130,6 +132,10 @@ DocumentEscalationController.ResolveEscalation(ResolveEscalationRequest): System
 DocumentFilesController.DownloadFile(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentFilesController.UploadFile(Int32, IFormFile, FileRole): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentFilesController.ViewFile(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+DocumentReassignmentController.GetCandidates(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+DocumentReassignmentController.GetCount(): SystemAdministrator,SectionHead,Reviewer,Analyst
+DocumentReassignmentController.GetQueue(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+DocumentReassignmentController.Reassign(ReassignRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentReviewController.AddReviewFinding(Int32, AddReviewFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentReviewController.DecideReview(Int32, ReviewDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 DocumentReviewController.GetMyAssignedReviewTasks(): SystemAdministrator,SectionHead,Reviewer,Analyst

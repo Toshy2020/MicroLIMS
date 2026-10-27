@@ -51,10 +51,19 @@ public class HplcMethodServiceRelatedSubstancesTests
     [InlineData("ref-null", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).")]
     [InlineData("ref-zero", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).")]
     [InlineData("ref-over", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).")]
-    [InlineData("disregard-neg", "The disregard limit cannot be negative.")]
+    [InlineData("disregard-neg", "The disregard limit must be between 0 and 100 %.")]
+    [InlineData("disregard-over", "The disregard limit must be between 0 and 100 %.")]
     [InlineData("name-blank", "Each impurity needs a unique name.")]
     [InlineData("name-dup", "Each impurity needs a unique name.")]
-    [InlineData("cf-zero", "The correction factor must be greater than zero.")]
+    [InlineData("cf-zero", "The correction factor must be greater than zero and at most 100.")]
+    [InlineData("cf-negative", "The correction factor must be greater than zero and at most 100.")]
+    [InlineData("cf-over", "The correction factor must be greater than zero and at most 100.")]
+    [InlineData("rrt-zero", "The relative retention must be greater than zero and at most 100.")]
+    [InlineData("rrt-negative", "The relative retention must be greater than zero and at most 100.")]
+    [InlineData("rrt-over", "The relative retention must be greater than zero and at most 100.")]
+    [InlineData("name-long", "Impurity names are at most 100 characters.")]
+    [InlineData("no-analytes", "A related-substances method has exactly one analyte: the principal peak.")]
+    [InlineData("null-analytes", "A related-substances method has exactly one analyte: the principal peak.")]
     [InlineData("gc", "Related substances is available for HPLC methods only.")]
     public async Task Create_RelatedSubstances_Refusals(string field, string message)
     {
@@ -77,7 +86,16 @@ public class HplcMethodServiceRelatedSubstancesTests
             "disregard-neg" => r with { DisregardLimitPercent = -0.01m },
             "name-blank" => r with { Impurities = new() { new(null, "  ", null, null) } },
             "name-dup" => r with { Impurities = new() { new(null, "Imp A", null, null), new(null, "imp a", null, null) } },
+            "disregard-over" => r with { DisregardLimitPercent = 100.5m },
             "cf-zero" => r with { Impurities = new() { new(null, "Imp A", null, 0m) } },
+            "cf-negative" => r with { Impurities = new() { new(null, "Imp A", null, -1m) } },
+            "cf-over" => r with { Impurities = new() { new(null, "Imp A", null, 100.5m) } },
+            "rrt-zero" => r with { Impurities = new() { new(null, "Imp A", 0m, null) } },
+            "rrt-negative" => r with { Impurities = new() { new(null, "Imp A", -0.5m, null) } },
+            "rrt-over" => r with { Impurities = new() { new(null, "Imp A", 100.5m, null) } },
+            "name-long" => r with { Impurities = new() { new(null, new string((char)120, 101), null, null) } },
+            "no-analytes" => r with { Analytes = new() },
+            "null-analytes" => r with { Analytes = null! },
             "gc" => r with { Technique = HplcTechnique.Gc },
             _ => throw new ArgumentOutOfRangeException(nameof(field)),
         };
@@ -160,5 +178,28 @@ public class HplcMethodServiceRelatedSubstancesTests
             new() { new(analyteId, "Principal", 254m, standard.Id, 50m, 50m, 5) }, reason: "switch");
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, assay, userId));
         Assert.Equal("The technique and result mode can't be changed after the method is created.", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("foreign", "Impurity 999999 does not belong to this method.")]
+    [InlineData("duplicate", "Each impurity can appear only once.")]
+    public async Task Update_RefusesForeignAndDuplicateImpurityIds(string field, string message)
+    {
+        await using var db = Base.NewDb();
+        var (section, userId) = await Base.SeedAsync(db);
+        var (diluent, mp, standard) = await Base.SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+        var created = await service.CreateAsync(RsReq(diluent.Id, mp.Id, standard.Id), userId);
+        var principal = new List<HplcAnalyteInput> { new(created.Analytes[0].Id, "Principal", 230m, standard.Id, 0m, 0m, 5) };
+        var d = created.Impurities[0];
+
+        var impurities = field == "foreign"
+            ? new List<HplcImpurityInput> { new(d.Id, "Impurity D", 0.15m, 0.7m), new(999999, "Impurity X", 0.5m, null) }
+            : new List<HplcImpurityInput> { new(d.Id, "Impurity D", 0.15m, 0.7m), new(d.Id, "Impurity E", 0.5m, null) };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateAsync(created.Id, RsReq(diluent.Id, mp.Id, standard.Id, reason: "edit", analytes: principal, impurities: impurities), userId));
+        Assert.Equal(message, ex.Message);
+        Assert.Equal(2, await db.HplcMethodImpurities.CountAsync(i => i.HplcMethodId == created.Id));
     }
 }

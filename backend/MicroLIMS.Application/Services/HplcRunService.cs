@@ -285,6 +285,7 @@ public partial class HplcRunService
             .Include(m => m.GradientSteps)
             .Include(m => m.OvenSteps)
             .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry)
+            .Include(m => m.Impurities)
             .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId, ct)
             ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
 

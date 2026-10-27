@@ -186,6 +186,16 @@ public partial class HplcMethodService
                 throw new InvalidOperationException($"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.");
         }
 
+        var ownImpurityIds = method.Impurities.Select(i => i.Id).ToHashSet();
+        var seenImpurityIds = new HashSet<int>();
+        foreach (var impurityId in (r.Impurities ?? new()).Where(i => i.Id.HasValue).Select(i => i.Id!.Value))
+        {
+            if (!ownImpurityIds.Contains(impurityId))
+                throw new InvalidOperationException($"Impurity {impurityId} does not belong to this method.");
+            if (!seenImpurityIds.Add(impurityId))
+                throw new InvalidOperationException("Each impurity can appear only once.");
+        }
+
         // Same for impurities named by a related-substances specification row.
         var incomingImpurityIds = (r.Impurities ?? new()).Where(i => i.Id.HasValue).Select(i => i.Id!.Value).ToHashSet();
         foreach (var existingImpurity in method.Impurities.Where(i => !incomingImpurityIds.Contains(i.Id)))
@@ -472,24 +482,24 @@ public partial class HplcMethodService
 
     private static void ValidateRelatedSubstances(SaveHplcMethodRequest r)
     {
-        if (r.Analytes.Count > 1)
-            throw new InvalidOperationException("A related-substances method has exactly one analyte: the principal peak.");
         if (r.Analytes.Any(a => a.TheoreticalWeightStdMg != 0m || a.TheoreticalWeightTestMg != 0m))
             throw new InvalidOperationException("Theoretical weights are not used in a related-substances method.");
         if (!(r.ReferenceSolutionPercent > 0m && r.ReferenceSolutionPercent <= 100m))
             throw new InvalidOperationException("Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
-        if (r.DisregardLimitPercent < 0m)
-            throw new InvalidOperationException("The disregard limit cannot be negative.");
+        if (r.DisregardLimitPercent < 0m || r.DisregardLimitPercent > 100m)
+            throw new InvalidOperationException("The disregard limit must be between 0 and 100 %.");
 
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var i in r.Impurities ?? new List<HplcImpurityInput>())
         {
-            if (string.IsNullOrWhiteSpace(i.Name) || i.Name.Trim().Length > 100 || !names.Add(i.Name.Trim()))
+            if (string.IsNullOrWhiteSpace(i.Name) || !names.Add(i.Name.Trim()))
                 throw new InvalidOperationException("Each impurity needs a unique name.");
-            if (i.CorrectionFactor <= 0m)
-                throw new InvalidOperationException("The correction factor must be greater than zero.");
-            if (i.RelativeRetention <= 0m)
-                throw new InvalidOperationException("The relative retention must be greater than zero.");
+            if (i.Name.Trim().Length > 100)
+                throw new InvalidOperationException("Impurity names are at most 100 characters.");
+            if (i.CorrectionFactor <= 0m || i.CorrectionFactor > 100m)
+                throw new InvalidOperationException("The correction factor must be greater than zero and at most 100.");
+            if (i.RelativeRetention <= 0m || i.RelativeRetention > 100m)
+                throw new InvalidOperationException("The relative retention must be greater than zero and at most 100.");
         }
     }
 
@@ -531,6 +541,8 @@ public partial class HplcMethodService
 
         if (r.ResultMode == HplcResultMode.RelatedSubstances && r.Technique != HplcTechnique.Hplc)
             throw new InvalidOperationException("Related substances is available for HPLC methods only.");
+        if (r.ResultMode == HplcResultMode.RelatedSubstances && r.Analytes?.Count != 1)
+            throw new InvalidOperationException("A related-substances method has exactly one analyte: the principal peak.");
         if (r.ResultMode != HplcResultMode.RelatedSubstances
             && (r.Impurities?.Count > 0 || r.ReferenceSolutionPercent.HasValue || r.DisregardLimitPercent.HasValue))
             throw new InvalidOperationException("Impurities and reference-solution values belong to related-substances methods only.");

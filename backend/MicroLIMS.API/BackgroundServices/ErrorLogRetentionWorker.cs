@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.SystemSettings;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -46,16 +47,21 @@ public class ErrorLogRetentionWorker : BackgroundService
     private bool Enabled =>
         _configuration.GetValue<bool?>("ErrorMonitoring:Retention:Enabled") ?? true;
 
-    private int IntervalHours =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:Retention:IntervalHours"), DefaultIntervalHours);
+    // Refreshed from the settings registry at the start of every cycle.
+    private int _intervalHours = DefaultIntervalHours;
+    private int _lowSeverityRetentionDays = DefaultLowSeverityRetentionDays;
+    private int _highSeverityRetentionDays = DefaultHighSeverityRetentionDays;
 
-    private int LowSeverityRetentionDays =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:Retention:LowSeverityRetentionDays"),
-            DefaultLowSeverityRetentionDays);
+    private int IntervalHours => _intervalHours;
+    private int LowSeverityRetentionDays => _lowSeverityRetentionDays;
+    private int HighSeverityRetentionDays => _highSeverityRetentionDays;
 
-    private int HighSeverityRetentionDays =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:Retention:HighSeverityRetentionDays"),
-            DefaultHighSeverityRetentionDays);
+    private async Task RefreshSettingsAsync(IServiceProvider services, CancellationToken ct)
+    {
+        _intervalHours = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.ErrorLogIntervalHours, ct);
+        _lowSeverityRetentionDays = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.ErrorLogLowSeverityDays, ct);
+        _highSeverityRetentionDays = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.ErrorLogHighSeverityDays, ct);
+    }
 
     private static int Positive(int? configured, int fallback) =>
         configured is > 0 ? configured.Value : fallback;
@@ -69,7 +75,6 @@ public class ErrorLogRetentionWorker : BackgroundService
             return;
         }
 
-        var interval = TimeSpan.FromHours(IntervalHours);
         _logger.LogInformation(
             "[{Worker}] Starting. Every {Hours}h; Info/Warning kept {Low} days, Error/Critical kept {High} days.",
             ProcessName, IntervalHours, LowSeverityRetentionDays, HighSeverityRetentionDays);
@@ -89,14 +94,13 @@ public class ErrorLogRetentionWorker : BackgroundService
             _logger.LogError(ex, "[{Worker}] Unhandled error during startup cycle.", ProcessName);
         }
 
-        using var timer = new PeriodicTimer(interval);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                if (await timer.WaitForNextTickAsync(stoppingToken))
-                    await RunCycleAsync(stoppingToken);
+                await Task.Delay(TimeSpan.FromHours(IntervalHours), stoppingToken);
+                await RunCycleAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -124,6 +128,7 @@ public class ErrorLogRetentionWorker : BackgroundService
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
             db.CurrentSystemProcessName = ProcessName;
+            await RefreshSettingsAsync(scope.ServiceProvider, cancellationToken);
 
             var now = DateTime.UtcNow;
             var lowCutoff = now.AddDays(-LowSeverityRetentionDays);

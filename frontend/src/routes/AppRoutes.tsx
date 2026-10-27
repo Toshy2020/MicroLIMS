@@ -86,7 +86,7 @@ const TrainingMatrixPage = lazy(() => import("../modules/documentControl/pages/T
 const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pages/ComplianceDashboardPage").then((m) => ({ default: m.ComplianceDashboardPage })));
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
-const SecurityPolicyPage = lazy(() => import("../modules/admin/SecurityPolicyPage").then((m) => ({ default: m.SecurityPolicyPage })));
+const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
 function LegacyRedirect({ to }: { to: string }) {
@@ -278,7 +278,9 @@ export function AppRoutes() {
               <Route index element={<AdminIndexRedirect />} />
               <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
                 <Route path="users" element={<UsersPage />} />
-                <Route path="security-policy" element={<SecurityPolicyPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
                 <Route path="roles" element={<RolesPage />} />

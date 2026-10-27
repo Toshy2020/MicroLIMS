@@ -34,10 +34,10 @@ describe("AdminLayout", () => {
     expect(screen.getByText("audit page")).toBeTruthy();
   });
 
-  it("shows Security Policy to Users.Manage and marks the current tab selected", () => {
-    auth.permissions = ["Users.Manage"];
+  it("shows Settings to System.ConfigureSettings and marks the current tab selected", () => {
+    auth.permissions = ["Users.Manage", "System.ConfigureSettings"];
     renderAt("/admin/users");
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Security Policy"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Settings"]);
     expect(screen.getByRole("tab", { name: "Users" }).getAttribute("aria-selected")).toBe("true");
   });
 

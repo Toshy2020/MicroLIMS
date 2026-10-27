@@ -8,7 +8,8 @@ export const LEGACY_ADMIN_REDIRECTS: { from: string; to: string }[] = [
   { from: "/roles/new", to: "/admin/roles/new" },
   { from: "/roles/:id", to: "/admin/roles/:id" },
   { from: "/audit-search", to: "/admin/audit" },
-  { from: "/error-monitoring", to: "/admin/error-log" }
+  { from: "/error-monitoring", to: "/admin/error-log" },
+  { from: "/admin/security-policy", to: "/admin/settings" }
 ];
 
 export function LegacyPathRedirect({ to }: { to: string }) {

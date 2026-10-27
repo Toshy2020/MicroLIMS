@@ -263,7 +263,18 @@ public static class ServiceCollectionExtensions
 
         // Read/triage side of the same data - scoped, ordinary querying.
         services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
-        services.AddSingleton<ISecurityPolicyService>(sp => new SecurityPolicyService(sp.GetRequiredService<JwtSettings>().AccessTokenLifetime));
+
+        // Admin Settings registry: consumers read through ISystemSettingsReader (cached, falls back to
+        // legacy config then code default); ISystemSettingsService changes values with reason/signature.
+        services.AddSingleton<MicroLIMS.Application.Services.SystemSettings.SystemSettingsCache>();
+        services.AddScoped<ISystemSettingsReader, MicroLIMS.Application.Services.SystemSettings.SystemSettingsReader>();
+        services.AddScoped<ISystemSettingsService>(sp => new MicroLIMS.Application.Services.SystemSettings.SystemSettingsService(
+            sp.GetRequiredService<MicroLIMS.Application.Abstractions.Persistence.IMicroLimsDbContext>(),
+            sp.GetRequiredService<MicroLIMS.Application.Services.SystemSettings.SystemSettingsCache>(),
+            sp.GetRequiredService<IElectronicSignatureService>(),
+            sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<JwtSettings>().AccessTokenLifetime));
 
         // Critical incident alerting. Disabled unless explicitly enabled,
         // so no environment can mail anyone by accident. Driven by

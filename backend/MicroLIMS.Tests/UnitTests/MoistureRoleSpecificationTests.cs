@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -76,6 +77,50 @@ public class MoistureRoleSpecificationTests
         var (db, item) = await SetupAsync(("KF", WorkflowType.Titration, MoistureRole.Water));
         using var _ = db;
         await new SpecificationService(db).ValidateAsync(TitrationSpec(item, ResultBasis.PercentAnhydrousBasis));
+    }
+
+    [Fact]
+    public async Task AnhydrousBasisTitrationSpec_OnTheWaterTestItself_IsRefused()
+    {
+        // The only water test on the item is the test being specified: it cannot satisfy its own prerequisite.
+        var (db, item) = await SetupAsync(("KF", WorkflowType.Titration, MoistureRole.Water));
+        using var _ = db;
+        var spec = TitrationSpec(item, ResultBasis.PercentAnhydrousBasis);
+        spec.TestCode = "KF";
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(spec));
+        Assert.Contains("Assign a water (Karl Fischer) test to this item", ex.Message);
+    }
+
+    [Fact]
+    public async Task DriedBasisTitrationSpec_InactiveLodTest_IsRefused()
+    {
+        var (db, item) = await SetupAsync(("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying));
+        using var _ = db;
+        (await db.TestDefinitions.SingleAsync(t => t.Code == "LOD")).IsActive = false;
+        await db.SaveChangesAsync();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new SpecificationService(db).ValidateAsync(TitrationSpec(item, ResultBasis.PercentDriedBasis)));
+        Assert.Contains("Assign a loss on drying test to this item", ex.Message);
+    }
+
+    [Fact]
+    public async Task WaterRoleChange_OnTitrationTest_NeedsReasonAndIsAudited()
+    {
+        using var db = NewDb();
+        var s = TitrationScenario.Seed(db, new()
+        {
+            Unit = TitrantStrengthUnit.MgWaterPerMl, Nominal = 5.0m,
+            Tweak = t =>
+            {
+                t.TitrationType = TitrationType.KarlFischer; t.TitrationEquivalencyFactor = null; t.TitrationEndpoint = TitrationEndpoint.Potentiometric;
+                t.TitrationIndicatorEntryId = null; t.TitrationIndicator = null;
+            },
+        });
+        var svc = TestServiceFactory.TestDefinitionMaster(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, new UpdateTestDefinitionRequest(s.Test.Code, s.Test.DisplayName, MoistureRole: MoistureRole.Water)));
+        Assert.Contains("reason for change", ex.Message);
     }
 
     [Fact]

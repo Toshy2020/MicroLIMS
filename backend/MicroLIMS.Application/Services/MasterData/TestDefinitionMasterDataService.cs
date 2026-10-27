@@ -306,7 +306,7 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
 
-        ValidatePerContainerAndMoistureRole(request.WorkflowType, request.TitrationType, request.PerContainer ?? false, request.MoistureRole ?? MoistureRole.None);
+        ValidatePerContainerAndMoistureRole(request.WorkflowType, request.EquationType, request.TitrationType, request.PerContainer ?? false, request.MoistureRole ?? MoistureRole.None);
 
         var entity = new TestDefinition
         {
@@ -753,7 +753,7 @@ public class TestDefinitionMasterDataService
         if (request.TitrationTempCorrection.HasValue) entity.TitrationTempCorrection = request.TitrationTempCorrection;
         if (request.TitrationExpansionCoefficient.HasValue) entity.TitrationExpansionCoefficient = request.TitrationExpansionCoefficient;
         if (request.TitrationStandardEntryId.HasValue) entity.TitrationStandardEntryId = request.TitrationStandardEntryId;
-        ValidatePerContainerAndMoistureRole(entity.WorkflowType, entity.TitrationType, entity.PerContainer, entity.MoistureRole);
+        ValidatePerContainerAndMoistureRole(entity.WorkflowType, entity.EquationType, entity.TitrationType, entity.PerContainer, entity.MoistureRole);
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
 
         (string? Before, string After, string Reason)? titrationAudit = null;
@@ -782,12 +782,12 @@ public class TestDefinitionMasterDataService
         return TestDefinitionResponse.From(entity);
     }
 
-    private static void ValidatePerContainerAndMoistureRole(WorkflowType workflowType, TitrationType? titrationType, bool perContainer, MoistureRole role)
+    private static void ValidatePerContainerAndMoistureRole(WorkflowType workflowType, EquationType equationType, TitrationType? titrationType, bool perContainer, MoistureRole role)
     {
         if (perContainer && workflowType != WorkflowType.Qualitative)
             throw new InvalidOperationException("Per-container results are only available for qualitative tests.");
-        if (role == MoistureRole.LossOnDrying && workflowType != WorkflowType.Gravimetric)
-            throw new InvalidOperationException("Loss on drying role needs a gravimetric test.");
+        if (role == MoistureRole.LossOnDrying && !(workflowType == WorkflowType.Gravimetric && equationType == EquationType.GravimetricLoss))
+            throw new InvalidOperationException("Loss on drying role needs a gravimetric loss test.");
         if (role == MoistureRole.Water && !(workflowType == WorkflowType.Titration && titrationType == TitrationType.KarlFischer))
             throw new InvalidOperationException("Water role needs a Karl Fischer titration test.");
     }

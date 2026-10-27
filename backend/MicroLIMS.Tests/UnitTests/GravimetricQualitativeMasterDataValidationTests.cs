@@ -287,7 +287,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             MoistureRole: MoistureRole.LossOnDrying);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
-        Assert.Contains("Loss on drying role needs a gravimetric test.", ex.Message);
+        Assert.Contains("Loss on drying role needs a gravimetric loss test.", ex.Message);
     }
 
     [Fact]
@@ -327,5 +327,23 @@ public class GravimetricQualitativeMasterDataValidationTests
         var ok = Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(req));
         var created = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(ok.Value).Data);
         Assert.Equal(MoistureRole.LossOnDrying, created.MoistureRole);
+    }
+    [Fact]
+    public async Task LossOnDryingRole_RefusesGravimetricResidueTest()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "GRAV-ROI",
+            DisplayName: "Residue on ignition",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Gravimetric,
+            EquationType: EquationType.GravimetricResidue,
+            ReplicateCount: 1,
+            MoistureRole: MoistureRole.LossOnDrying);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        Assert.Contains("Loss on drying role needs a gravimetric loss test.", ex.Message);
     }
 }

@@ -408,7 +408,7 @@ public class SpecificationService
                 throw new InvalidOperationException("Result basis is required for titration specifications: % as is, % dried basis, % anhydrous basis, % of label claim or mg per unit.");
 
             // A dried/anhydrous basis needs the item to carry the moisture test it corrects with
-            // (assigned test is enough; its spec row may be added later).
+            // (assigned test is enough; its spec row may be added later). The spec's own test never counts.
             var neededRole = spec.ResultBasis switch
             {
                 ResultBasis.PercentDriedBasis => MoistureRole.LossOnDrying,
@@ -418,8 +418,8 @@ public class SpecificationService
             if (neededRole != MoistureRole.None)
             {
                 var hasMoistureTest = await _db.SampleTests.AnyAsync(
-                    st => st.ItemId == spec.ItemId
-                          && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.MoistureRole == neededRole),
+                    st => st.ItemId == spec.ItemId && st.TestCode != spec.TestCode
+                          && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),
                     cancellationToken);
                 if (!hasMoistureTest)
                     throw new InvalidOperationException(neededRole == MoistureRole.LossOnDrying

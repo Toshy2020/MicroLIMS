@@ -80,6 +80,9 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(DocumentNumberingConfiguration), nameof(DocumentNumberingConfiguration.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - numbering modifier"),
         new UserReferenceEntry(typeof(ConfigurationSetting), nameof(ConfigurationSetting.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - setting modifier"),
 
+        // Admin Settings registry (WP3.1)
+        new UserReferenceEntry(typeof(SystemSettingVersion), nameof(SystemSettingVersion.ChangedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - append-only setting history, who changed the setting"),
+
         // Document Control (Release 1b - WP1 Technical Review)
         new UserReferenceEntry(typeof(DocumentReviewTask), nameof(DocumentReviewTask.AssignedReviewerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigned reviewer"),
         new UserReferenceEntry(typeof(DocumentReviewTask), nameof(DocumentReviewTask.AssignedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - review task assigner"),

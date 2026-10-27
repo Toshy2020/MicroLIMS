@@ -204,6 +204,8 @@ public interface IMicroLimsDbContext
     DbSet<UserOrgMembership> UserOrgMemberships { get; }
     DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations { get; }
     DbSet<ConfigurationSetting> ConfigurationSettings { get; }
+    DbSet<SystemSetting> SystemSettings { get; }
+    DbSet<SystemSettingVersion> SystemSettingVersions { get; }
     DbSet<DocumentReviewTask> DocumentReviewTasks { get; }
     DbSet<DocumentReviewFinding> DocumentReviewFindings { get; }
     DbSet<RevisionChangeItem> RevisionChangeItems { get; }

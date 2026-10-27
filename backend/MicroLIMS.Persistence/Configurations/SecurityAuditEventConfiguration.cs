@@ -30,18 +30,18 @@ public class SecurityAuditEventConfiguration : IEntityTypeConfiguration<Security
 
         builder.Property(e => e.Metadata).HasColumnType("jsonb");
 
-        // Security evidence must outlive the accounts it describes:
-        // deleting a user must never silently erase the record of what
-        // was done to that user, or by them.
+        // Security evidence is an immutable regulated record (append-only trigger):
+        // a user row that events reference cannot be deleted (RESTRICT) - the
+        // record of what was done to or by that user must never be erased or nulled.
         builder.HasOne(e => e.Actor)
             .WithMany()
             .HasForeignKey(e => e.ActorUserId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(e => e.Target)
             .WithMany()
             .HasForeignKey(e => e.TargetUserId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
 
         // The three questions a security review actually asks: what
         // happened recently, what happened to this account, and what

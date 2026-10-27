@@ -105,6 +105,7 @@ export function QualitativePanel({
     let active = true;
 
     const loadData = async () => {
+      containerMemoryRef.current.clear();
       setLoading(true);
       setError(null);
 
@@ -678,6 +679,7 @@ export function QualitativePanel({
                       value={row.conforms ? "complies" : "non-comply"}
                       exclusive
                       size="small"
+                      aria-label={`Conformance for ${row.parameterName}`}
                       onChange={(_, val) => {
                         if (val !== null) {
                           handleRowChange(idx, { conforms: val === "complies" });

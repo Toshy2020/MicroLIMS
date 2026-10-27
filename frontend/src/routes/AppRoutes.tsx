@@ -75,6 +75,7 @@ const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
 const AuditSearchPage = lazy(() => import("../modules/auditSearch/AuditSearchPage").then((m) => ({ default: m.AuditSearchPage })));
 const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/MonitoringPlanPage").then((m) => ({ default: m.MonitoringPlanPage })));
+const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
@@ -290,6 +291,7 @@ export function AppRoutes() {
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
                 <Route path="error-log" element={<ErrorMonitoringPage />} />
+                <Route path="overview" element={<DatabaseOverviewPage />} />
               </Route>
             </Route>
 

@@ -74,6 +74,7 @@ DashboardController.GetStatusDistribution(String): SystemAdministrator,SectionHe
 DashboardController.GetTodaysWork(String): SystemAdministrator,SectionHead,Reviewer,Analyst
 DashboardController.MarkAllNotificationsRead(): SystemAdministrator,SectionHead,Reviewer,Analyst
 DashboardController.MarkNotificationRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+DatabaseOverviewController.Get(CancellationToken): SystemAdministrator
 DiscussionController.AddComment(Int32, CreateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 DiscussionController.CreatePost(CreatePostForm): SystemAdministrator,SectionHead,Reviewer,Analyst
 DiscussionController.DeleteComment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

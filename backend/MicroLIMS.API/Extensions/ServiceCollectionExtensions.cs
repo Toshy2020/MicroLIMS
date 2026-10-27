@@ -24,6 +24,7 @@ using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Infrastructure.Word;
 using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Persistence.Diagnostics;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Persistence.Repositories;
 
@@ -289,6 +290,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<JwtSettings>().AccessTokenLifetime));
+        services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
+        services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
 
         // Critical incident alerting. Disabled unless explicitly enabled,
         // so no environment can mail anyone by accident. Driven by

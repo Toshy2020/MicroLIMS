@@ -30,7 +30,7 @@ describe("AdminLayout", () => {
   it("shows only the tabs the user holds the permission for", () => {
     auth.permissions = ["Audit.View", "System.ViewErrorLog"];
     renderAt("/admin/audit");
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Audit Trail", "Error Log"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Audit Trail", "Error Log", "Overview"]);
     expect(screen.getByText("audit page")).toBeTruthy();
   });
 

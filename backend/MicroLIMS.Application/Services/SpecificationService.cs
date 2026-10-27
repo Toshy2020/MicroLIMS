@@ -427,6 +427,16 @@ public class SpecificationService
                         : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
             }
 
+            // One titration run corrects with a single moisture result, so its rows cannot mix the two bases.
+            if (neededRole != MoistureRole.None)
+            {
+                var otherBasis = spec.ResultBasis == ResultBasis.PercentDriedBasis ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
+                if (await _db.Specifications.AnyAsync(
+                        s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ResultBasis == otherBasis,
+                        cancellationToken))
+                    throw new InvalidOperationException("One titration cannot report on both dried and anhydrous basis.");
+            }
+
             bool needsClaim = spec.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit;
             if (needsClaim && (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0))
                 throw new InvalidOperationException("Label claim (mg per unit) must be greater than zero when the result basis is % of label claim or mg per unit.");

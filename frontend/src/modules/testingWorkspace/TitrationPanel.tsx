@@ -32,9 +32,12 @@ import type {
   SampleMoistureResult
 } from "./types/testWorkflowTypes";
 import { formatMoistureLabel, getMissingMoistureMessage } from "./utils/moistureRetentionHelpers";
+import { getErrorMessage } from "../../utils/errorMessage";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
 import { meanAndRsd, previewResult, PreviewInput } from "./titrationPreview";
+
+const MOISTURE_LOAD_FALLBACK = "Could not load the sample's moisture result.";
 
 interface Props {
   testOrderId: number;
@@ -152,6 +155,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   const [tempC, setTempC] = useState("");
   const [moisture, setMoisture] = useState<SampleMoistureResult | null>(null);
   const [moistureStatus, setMoistureStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [moistureError, setMoistureError] = useState("");
   const [avgWt, setAvgWt] = useState("");
   const [lotId, setLotId] = useState<number | "">("");
   const [stdRows, setStdRows] = useState<StdRow[]>([{ weightMg: "", titreMl: "" }]);
@@ -210,9 +214,10 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
               setMoisture(m);
               setMoistureStatus("loaded");
             }
-          } catch {
+          } catch (err: unknown) {
             if (active) {
               setMoisture(null);
+              setMoistureError(getErrorMessage(err, MOISTURE_LOAD_FALLBACK));
               setMoistureStatus("error");
             }
           }
@@ -243,8 +248,9 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
       const m = await TestWorkflowService.getMoisture(testOrderId);
       setMoisture(m);
       setMoistureStatus("loaded");
-    } catch {
+    } catch (err: unknown) {
       setMoisture(null);
+      setMoistureError(getErrorMessage(err, MOISTURE_LOAD_FALLBACK));
       setMoistureStatus("error");
     }
   }, [testOrderId]);
@@ -589,7 +595,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
                   }
                   sx={{ width: "100%", fontSize: 13, py: 0.5 }}
                 >
-                  Could not load the sample's moisture result.
+                  {moistureError || MOISTURE_LOAD_FALLBACK}
                 </Alert>
               ) : moisture ? (
                 <Box sx={{ width: "100%" }}>

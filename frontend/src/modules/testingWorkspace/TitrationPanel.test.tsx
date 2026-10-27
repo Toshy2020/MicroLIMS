@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError } from "axios";
 import { TitrationPanel } from "./TitrationPanel";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import type { TitrationContext } from "./types/testWorkflowTypes";
@@ -412,6 +413,22 @@ describe("TitrationPanel", () => {
 
     expect(getMoisture).not.toHaveBeenCalled();
     expect(screen.queryByText(/Record the sample/)).toBeNull();
+  });
+
+  it("shows the server's message when getMoisture is refused", async () => {
+    getMoisture.mockRejectedValue(
+      new AxiosError("Request failed", "ERR_BAD_REQUEST", undefined, undefined, {
+        data: { message: "No loss on drying result is available for this sample." }
+      } as never)
+    );
+    await renderPanel(baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    }));
+
+    expect(await screen.findByText("No loss on drying result is available for this sample.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeTruthy();
   });
 
   it("shows error alert and Retry button when getMoisture fails, and disables submit", async () => {

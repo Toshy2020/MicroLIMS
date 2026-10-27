@@ -124,6 +124,26 @@ public class MoistureRoleSpecificationTests
     }
 
     [Fact]
+    public async Task TitrationTest_MixingDriedAndAnhydrousBasisRows_IsRefused()
+    {
+        var (db, item) = await SetupAsync(
+            ("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying),
+            ("KF", WorkflowType.Titration, MoistureRole.Water));
+        using var _ = db;
+        var dried = TitrationSpec(item, ResultBasis.PercentDriedBasis);
+        db.Specifications.Add(dried);
+        await db.SaveChangesAsync();
+
+        var anhydrous = TitrationSpec(item, ResultBasis.PercentAnhydrousBasis);
+        anhydrous.ParameterName = "Assay (anhydrous)";
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(anhydrous));
+        Assert.Contains("One titration cannot report on both dried and anhydrous basis.", ex.Message);
+
+        // Re-validating the existing dried row (an edit) is not blocked by itself.
+        await new SpecificationService(db).ValidateAsync(dried);
+    }
+
+    [Fact]
     public async Task AsIsTitrationSpec_NeedsNoMoistureTest()
     {
         var (db, item) = await SetupAsync();

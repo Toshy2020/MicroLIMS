@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Persistence.Seed;
 using Xunit;
 
@@ -29,7 +30,7 @@ public class UserDeletionTests
         return db;
     }
 
-    private static UserDeletionService CreateService(MicroLimsDbContext db) => new(db);
+    private static UserDeletionService CreateService(MicroLimsDbContext db) => new(db, signatureService: new AcceptingSignatureService(db));
 
     // ---- UserHasAnyHistoryAsync ----
 
@@ -172,7 +173,7 @@ public class UserDeletionTests
         db.Users.AddRange(admin, target);
         await db.SaveChangesAsync();
 
-        await service.HardDeleteAsync(target.Id, admin.Id);
+        await service.HardDeleteAsync(target.Id, admin.Id, "Test reason", "pw");
 
         Assert.Null(await db.Users.FirstOrDefaultAsync(u => u.Id == target.Id));
         var auditEntry = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityId == target.Id.ToString() && a.Action == "USER_HARD_DELETED");
@@ -194,7 +195,7 @@ public class UserDeletionTests
         db.NotificationLogs.Add(new NotificationLog { Id = 1, UserId = target.Id, Type = "MediaExpiry", Message = "test" });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, admin.Id));
+        var ex = await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, admin.Id, "Test reason", "pw"));
 
         Assert.Contains("cannot be permanently deleted", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("deactivate", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -211,7 +212,7 @@ public class UserDeletionTests
         db.Users.AddRange(onlyAdmin, otherUser);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(onlyAdmin.Id, otherUser.Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(onlyAdmin.Id, otherUser.Id, "Test reason", "pw"));
         Assert.Contains("last active System Administrator", ex.Message);
         Assert.NotNull(await db.Users.FirstOrDefaultAsync(u => u.Id == onlyAdmin.Id));
 
@@ -220,7 +221,7 @@ public class UserDeletionTests
         db.Users.Add(secondAdmin);
         await db.SaveChangesAsync();
 
-        await service.HardDeleteAsync(onlyAdmin.Id, secondAdmin.Id);
+        await service.HardDeleteAsync(onlyAdmin.Id, secondAdmin.Id, "Test reason", "pw");
         Assert.Null(await db.Users.FirstOrDefaultAsync(u => u.Id == onlyAdmin.Id));
     }
 
@@ -234,7 +235,7 @@ public class UserDeletionTests
         db.Users.AddRange(admin1, admin2);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(admin1.Id, admin1.Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(admin1.Id, admin1.Id, "Test reason", "pw"));
         Assert.Contains("own account", ex.Message);
     }
 
@@ -309,7 +310,7 @@ public class UserDeletionTests
         var customAdmin = await AddCustomRoleAdminAsync(db, 2, MicroLIMS.Shared.Constants.PermissionConstants.UsersManage, MicroLIMS.Shared.Constants.PermissionConstants.RolesManage);
 
         // The custom role is not typed SystemAdministrator - a RoleType count would call this the last administrator.
-        await service.HardDeleteAsync(systemAdmin.Id, customAdmin.Id);
+        await service.HardDeleteAsync(systemAdmin.Id, customAdmin.Id, "Test reason", "pw");
 
         Assert.Null(await db.Users.FirstOrDefaultAsync(u => u.Id == systemAdmin.Id));
     }
@@ -324,7 +325,7 @@ public class UserDeletionTests
         await db.SaveChangesAsync();
         var usersOnly = await AddCustomRoleAdminAsync(db, 2, MicroLIMS.Shared.Constants.PermissionConstants.UsersManage);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(systemAdmin.Id, usersOnly.Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(systemAdmin.Id, usersOnly.Id, "Test reason", "pw"));
 
         Assert.Contains("Roles.Manage", ex.Message);
         Assert.NotNull(await db.Users.FirstOrDefaultAsync(u => u.Id == systemAdmin.Id));
@@ -341,7 +342,7 @@ public class UserDeletionTests
         db.Users.AddRange(systemAdmin, disabledAdmin, analyst);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(systemAdmin.Id, analyst.Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.HardDeleteAsync(systemAdmin.Id, analyst.Id, "Test reason", "pw"));
 
         Assert.Contains("last active System Administrator", ex.Message);
         Assert.NotNull(await db.Users.FirstOrDefaultAsync(u => u.Id == systemAdmin.Id));

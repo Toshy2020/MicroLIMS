@@ -29,5 +29,9 @@ public enum SignatureMeaning
     EquipmentPlanApproved,
     CalibrationRecorded,
     MaintenanceEntryRecorded,
-    MaintenanceEntryVoided
+    MaintenanceEntryVoided,
+    UserDeleted,
+    UserRoleChanged,
+    RolePermissionsChanged,
+    RoleDeleted
 }

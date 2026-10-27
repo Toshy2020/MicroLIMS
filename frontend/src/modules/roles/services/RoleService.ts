@@ -44,17 +44,20 @@ export const RoleService = {
   async getById(id: number): Promise<RoleDetail> {
     return (await apiClient.get(`/roles/${id}`)).data.data;
   },
-  async create(name: string, description: string | null, baseType: string): Promise<RoleDetail> {
-    return (await apiClient.post("/roles", { name, description, baseType })).data.data;
+  // Every change carries the administrator's reason (required by the server).
+  async create(name: string, description: string | null, baseType: string, reason: string): Promise<RoleDetail> {
+    return (await apiClient.post("/roles", { name, description, baseType, reason })).data.data;
   },
-  async update(id: number, name: string, description: string | null, version?: number): Promise<RoleDetail> {
-    return (await apiClient.put(`/roles/${id}`, { name, description }, ifMatch(version))).data.data;
+  async update(id: number, name: string, description: string | null, reason: string, version?: number): Promise<RoleDetail> {
+    return (await apiClient.put(`/roles/${id}`, { name, description, reason }, ifMatch(version))).data.data;
   },
-  async remove(id: number): Promise<void> {
-    await apiClient.delete(`/roles/${id}`);
+  // Electronically signed: password is the administrator's own, re-verified by the server.
+  async remove(id: number, reason: string, password: string): Promise<void> {
+    await apiClient.delete(`/roles/${id}`, { data: { reason, password } });
   },
-  async updatePermissions(id: number, permissionCodes: string[]): Promise<RoleDetail> {
-    return (await apiClient.put(`/roles/${id}/permissions`, { permissionCodes })).data.data;
+  // Electronically signed (password re-entry) with a reason.
+  async updatePermissions(id: number, permissionCodes: string[], reason: string, password: string): Promise<RoleDetail> {
+    return (await apiClient.put(`/roles/${id}/permissions`, { permissionCodes, reason, password })).data.data;
   },
   async getAllPermissions(): Promise<PermissionRecord[]> {
     return (await apiClient.get("/permissions")).data.data;

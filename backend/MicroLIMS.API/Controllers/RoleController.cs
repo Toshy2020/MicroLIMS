@@ -11,9 +11,13 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record CreateRoleRequest(string Name, string? Description, RoleType BaseType);
-public record UpdateRoleRequest(string Name, string? Description);
-public record UpdateRolePermissionsRequest(List<string> PermissionCodes);
+// Reason is required on every request (blank or missing is refused with 400
+// by AdminActionReason). Permission edits and role deletion are also
+// electronically signed with the administrator's own Password.
+public record CreateRoleRequest(string Name, string? Description, RoleType BaseType, string? Reason = null);
+public record UpdateRoleRequest(string Name, string? Description, string? Reason = null);
+public record DeleteRoleRequest(string? Reason = null, string? Password = null);
+public record UpdateRolePermissionsRequest(List<string> PermissionCodes, string? Reason = null, string? Password = null);
 
 [ApiController]
 [Route("api/roles")]
@@ -44,7 +48,7 @@ public class RoleController : ControllerBase
     {
         try
         {
-            var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType);
+            var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType, request.Reason);
             return Ok(ApiResponse<RoleDetailDto>.Ok(created));
         }
         catch (SegregationOfDutiesViolationException ex)
@@ -56,14 +60,14 @@ public class RoleController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, UpdateRoleRequest request)
     {
-        var updated = await _roleService.UpdateAsync(id, request.Name, request.Description);
+        var updated = await _roleService.UpdateAsync(id, request.Name, request.Description, request.Reason);
         return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, [FromBody] DeleteRoleRequest? request)
     {
-        await _roleService.DeleteAsync(id);
+        await _roleService.DeleteAsync(id, request?.Reason, CurrentUserId, request?.Password, HttpContext.Connection.RemoteIpAddress?.ToString());
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -72,7 +76,7 @@ public class RoleController : ControllerBase
     {
         try
         {
-            var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId);
+            var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId, request.Reason, request.Password, HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
         }
         catch (SegregationOfDutiesViolationException ex)

@@ -7,6 +7,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Constants;
 using Xunit;
@@ -36,7 +37,7 @@ public class RoleManagementTests
         return db;
     }
 
-    private static RoleService CreateService(MicroLimsDbContext db) => new(db, new PermissionService(db));
+    private static RoleService CreateService(MicroLimsDbContext db) => new(db, new PermissionService(db), signatureService: new AcceptingSignatureService(db));
 
     [Fact]
     public async Task CreateAsync_CreatesANonSystemRole()
@@ -44,7 +45,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        var created = await service.CreateAsync("QC Trainee", "Trainee reviewer with restricted access", RoleType.Analyst);
+        var created = await service.CreateAsync("QC Trainee", "Trainee reviewer with restricted access", RoleType.Analyst, "Test reason");
 
         Assert.False(created.IsSystemRole);
         Assert.True(created.IsActive);
@@ -62,7 +63,7 @@ public class RoleManagementTests
         var service = CreateService(db);
         var analyst = await service.GetByIdAsync(4);
 
-        var created = await service.CreateAsync("QC Trainee", null, RoleType.Analyst);
+        var created = await service.CreateAsync("QC Trainee", null, RoleType.Analyst, "Test reason");
 
         Assert.NotEmpty(created.PermissionCodes);
         Assert.Equal(analyst!.PermissionCodes.OrderBy(c => c), created.PermissionCodes.OrderBy(c => c));
@@ -74,7 +75,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync("  ", null, RoleType.Analyst));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync("  ", null, RoleType.Analyst, "Test reason"));
     }
 
     [Fact]
@@ -112,9 +113,9 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Old Name", "Old description", RoleType.Analyst);
+        var created = await service.CreateAsync("Old Name", "Old description", RoleType.Analyst, "Test reason");
 
-        var updated = await service.UpdateAsync(created.Id, "New Name", "New description");
+        var updated = await service.UpdateAsync(created.Id, "New Name", "New description", "Test reason");
 
         Assert.Equal("New Name", updated.Name);
         Assert.Equal("New description", updated.Description);
@@ -126,7 +127,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        var updated = await service.UpdateAsync(2, "Section Head", "Renamed description only");
+        var updated = await service.UpdateAsync(2, "Section Head", "Renamed description only", "Test reason");
 
         Assert.True(updated.IsSystemRole); // still a system role - Update never changes this flag
     }
@@ -137,7 +138,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(2)); // Section Head
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(2, "Test reason", 1, "pw")); // Section Head
         Assert.Contains("system role", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -146,11 +147,11 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("In-Use Role", null, RoleType.Analyst);
+        var created = await service.CreateAsync("In-Use Role", null, RoleType.Analyst, "Test reason");
         db.Users.Add(new User { FullName = "Holder", Username = "holder1", RoleId = created.Id });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(created.Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(created.Id, "Test reason", 1, "pw"));
         Assert.Contains("assigned to", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -159,10 +160,10 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Disposable Role", null, RoleType.Analyst);
-        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actingUserId: 1);
+        var created = await service.CreateAsync("Disposable Role", null, RoleType.Analyst, "Test reason");
+        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actingUserId: 1, "Test reason", "pw");
 
-        await service.DeleteAsync(created.Id);
+        await service.DeleteAsync(created.Id, "Test reason", 1, "pw");
 
         Assert.Null(await db.Roles.FirstOrDefaultAsync(r => r.Id == created.Id));
         Assert.Empty(await db.RolePermissions.Where(rp => rp.RoleId == created.Id).ToListAsync());
@@ -173,13 +174,13 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Custom Role", null, RoleType.Analyst);
-        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView, PermissionConstants.SamplesReview }, actingUserId: 1);
+        var created = await service.CreateAsync("Custom Role", null, RoleType.Analyst, "Test reason");
+        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView, PermissionConstants.SamplesReview }, actingUserId: 1, "Test reason", "pw");
 
         var updated = await service.UpdatePermissionsAsync(
             created.Id,
             new List<string> { PermissionConstants.SamplesReview, PermissionConstants.MasterDataManage }, // drop AuditView, add MasterDataManage, keep SamplesReview
-            actingUserId: 1);
+            actingUserId: 1, "Test reason", "pw");
 
         Assert.Equal(2, updated.PermissionCodes.Count);
         Assert.Contains(PermissionConstants.SamplesReview, updated.PermissionCodes);
@@ -192,10 +193,10 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Custom Role", null, RoleType.Analyst);
+        var created = await service.CreateAsync("Custom Role", null, RoleType.Analyst, "Test reason");
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdatePermissionsAsync(created.Id, new List<string> { "NotARealCode" }, actingUserId: 1));
+            service.UpdatePermissionsAsync(created.Id, new List<string> { "NotARealCode" }, actingUserId: 1, "Test reason", "pw"));
         Assert.Contains("Unknown permission code", ex.Message);
     }
 
@@ -204,9 +205,9 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Audited Role", null, RoleType.Analyst);
+        var created = await service.CreateAsync("Audited Role", null, RoleType.Analyst, "Test reason");
 
-        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actingUserId: 7);
+        await service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actingUserId: 7, "Test reason", "pw");
 
         var entry = await db.AuditLogs.FirstOrDefaultAsync(a => a.EntityName == nameof(Role) && a.Action == "ROLE_PERMISSIONS_UPDATED" && a.EntityId == created.Id.ToString());
         Assert.NotNull(entry);
@@ -224,8 +225,8 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        var created = await service.CreateAsync("Auto-Audited Role", null, RoleType.Analyst);
-        await service.UpdateAsync(created.Id, "Renamed", "New description");
+        var created = await service.CreateAsync("Auto-Audited Role", null, RoleType.Analyst, "Test reason");
+        await service.UpdateAsync(created.Id, "Renamed", "New description", "Test reason");
 
         var entries = await db.AuditLogs.Where(a => a.EntityName == nameof(Role) && a.EntityId == created.Id.ToString()).ToListAsync();
         Assert.Contains(entries, a => a.Action == "Create");
@@ -268,7 +269,7 @@ public class RoleManagementTests
     public async Task NewRole_StartsAtPermissionVersionOne()
     {
         var db = CreateDbContext();
-        var created = await CreateService(db).CreateAsync("QC Trainee", null, RoleType.Analyst);
+        var created = await CreateService(db).CreateAsync("QC Trainee", null, RoleType.Analyst, "Test reason");
 
         Assert.Equal(1, await PermissionVersionOf(db, created.Id));
         Assert.Equal(1, await PermissionVersionOf(db, 4));
@@ -287,7 +288,7 @@ public class RoleManagementTests
         // violation that UpdatePermissionsAsync rejects.
         var desired = analyst!.PermissionCodes.Skip(1).Append(PermissionConstants.KpiView).ToList();
 
-        await service.UpdatePermissionsAsync(4, desired, actor.Id);
+        await service.UpdatePermissionsAsync(4, desired, actor.Id, "Test reason", "pw");
 
         Assert.Equal(2, await PermissionVersionOf(db, 4));
         Assert.Equal(1, await PermissionVersionOf(db, 3)); // other roles untouched
@@ -302,8 +303,8 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db, roleId: 3);
         var analyst = await service.GetByIdAsync(4);
 
-        await service.UpdatePermissionsAsync(4, analyst!.PermissionCodes.Skip(1).ToList(), actor.Id);
-        await service.UpdatePermissionsAsync(4, analyst.PermissionCodes, actor.Id);
+        await service.UpdatePermissionsAsync(4, analyst!.PermissionCodes.Skip(1).ToList(), actor.Id, "Test reason", "pw");
+        await service.UpdatePermissionsAsync(4, analyst.PermissionCodes, actor.Id, "Test reason", "pw");
 
         Assert.Equal(3, await PermissionVersionOf(db, 4));
     }
@@ -316,7 +317,7 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db, roleId: 3);
         var analyst = await service.GetByIdAsync(4);
 
-        await service.UpdatePermissionsAsync(4, analyst!.PermissionCodes.ToList(), actor.Id);
+        await service.UpdatePermissionsAsync(4, analyst!.PermissionCodes.ToList(), actor.Id, "Test reason", "pw");
 
         Assert.Equal(1, await PermissionVersionOf(db, 4));
     }
@@ -329,9 +330,9 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db, roleId: 3);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id));
+            service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id, "Test reason", "pw"));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdatePermissionsAsync(4, new List<string> { "No.Such.Code" }, actor.Id));
+            service.UpdatePermissionsAsync(4, new List<string> { "No.Such.Code" }, actor.Id, "Test reason", "pw"));
 
         Assert.Equal(1, await PermissionVersionOf(db, 1));
         Assert.Equal(1, await PermissionVersionOf(db, 4));
@@ -341,7 +342,7 @@ public class RoleManagementTests
     public async Task RenamingARole_DoesNotChangeThePermissionVersion()
     {
         var db = CreateDbContext();
-        await CreateService(db).UpdateAsync(4, "Lab Technician", null);
+        await CreateService(db).UpdateAsync(4, "Lab Technician", null, "Test reason");
 
         Assert.Equal(1, await PermissionVersionOf(db, 4));
     }
@@ -405,7 +406,7 @@ public class RoleManagementTests
         var auditCountBefore = await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED");
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id));
+            service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id, "Test reason", "pw"));
 
         Assert.Contains(permissionCode, ex.Message);
         // Nothing was saved: the role keeps the permission and no audit entry was written.
@@ -423,7 +424,7 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db);
         await AddCustomAdministratorAsync(db);
 
-        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id);
+        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id, "Test reason", "pw");
 
         Assert.DoesNotContain(permissionCode, updated.PermissionCodes);
     }
@@ -437,7 +438,7 @@ public class RoleManagementTests
         await AddCustomAdministratorAsync(db, isActive: false);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.UsersManage), actor.Id));
+            service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.UsersManage), actor.Id, "Test reason", "pw"));
 
         Assert.Contains(PermissionConstants.UsersManage, ex.Message);
     }
@@ -452,7 +453,7 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db);
         await AddCustomAdministratorAsync(db, lockedUntil: DateTime.UtcNow.AddMinutes(10));
 
-        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id);
+        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id, "Test reason", "pw");
 
         Assert.DoesNotContain(PermissionConstants.RolesManage, updated.PermissionCodes);
     }
@@ -462,11 +463,11 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Own Role", null, RoleType.Analyst);
+        var created = await service.CreateAsync("Own Role", null, RoleType.Analyst, "Test reason");
         var actor = await AddActingUserAsync(db, roleId: created.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actor.Id));
+            service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actor.Id, "Test reason", "pw"));
 
         Assert.Equal("You cannot change the permissions of your own role.", ex.Message);
         Assert.DoesNotContain(PermissionConstants.AuditView, await new PermissionService(db).GetPermissionCodesForRoleAsync(created.Id));
@@ -482,14 +483,14 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Mixed Role", null, RoleType.Analyst);
+        var created = await service.CreateAsync("Mixed Role", null, RoleType.Analyst, "Test reason");
         var actor = await AddActingUserAsync(db);
         var grantsBefore = await CountRolePermissionsAsync(db, created.Id);
         var auditCountBefore = await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED");
 
         var ex = await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() =>
             service.UpdatePermissionsAsync(created.Id,
-                new List<string> { PermissionConstants.AuditView, PermissionConstants.UsersManage, PermissionConstants.SamplesApprove }, actor.Id));
+                new List<string> { PermissionConstants.AuditView, PermissionConstants.UsersManage, PermissionConstants.SamplesApprove }, actor.Id, "Test reason", "pw"));
 
         Assert.Contains("Users.Manage + Samples.Approve", ex.Message);
         Assert.Equal(grantsBefore, await CountRolePermissionsAsync(db, created.Id));
@@ -501,13 +502,13 @@ public class RoleManagementTests
     {
         var db = CreateDbContext();
         var service = CreateService(db);
-        var created = await service.CreateAsync("Split Role", null, RoleType.Analyst);
+        var created = await service.CreateAsync("Split Role", null, RoleType.Analyst, "Test reason");
         var actor = await AddActingUserAsync(db);
 
         var administration = await service.UpdatePermissionsAsync(created.Id,
-            new List<string> { PermissionConstants.UsersManage, PermissionConstants.RolesManage, PermissionConstants.AuditView }, actor.Id);
+            new List<string> { PermissionConstants.UsersManage, PermissionConstants.RolesManage, PermissionConstants.AuditView }, actor.Id, "Test reason", "pw");
         var gxp = await service.UpdatePermissionsAsync(created.Id,
-            new List<string> { PermissionConstants.SamplesApprove, PermissionConstants.TestWorkflowExecute }, actor.Id);
+            new List<string> { PermissionConstants.SamplesApprove, PermissionConstants.TestWorkflowExecute }, actor.Id, "Test reason", "pw");
 
         Assert.Empty(administration.SodConflicts);
         Assert.Empty(gxp.SodConflicts);
@@ -524,7 +525,7 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db);
         Assert.NotEmpty((await service.GetByIdAsync(1))!.SodConflicts);
 
-        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept("none"), actor.Id);
+        var updated = await service.UpdatePermissionsAsync(1, AllCodesExcept("none"), actor.Id, "Test reason", "pw");
 
         Assert.Empty(updated.SodConflicts);
         Assert.Empty((await service.GetByIdAsync(1))!.SodConflicts);
@@ -540,7 +541,7 @@ public class RoleManagementTests
         var codes = AllCodesExcept("none");
         codes.Add(PermissionConstants.OosManage);
 
-        await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() => service.UpdatePermissionsAsync(1, codes, actor.Id));
+        await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() => service.UpdatePermissionsAsync(1, codes, actor.Id, "Test reason", "pw"));
     }
 
     [Fact]
@@ -552,7 +553,7 @@ public class RoleManagementTests
         var rolesBefore = await db.Roles.CountAsync();
 
         var ex = await Assert.ThrowsAsync<SegregationOfDutiesViolationException>(() =>
-            service.CreateAsync("Admin Copy", null, RoleType.SystemAdministrator));
+            service.CreateAsync("Admin Copy", null, RoleType.SystemAdministrator, "Test reason"));
 
         Assert.Contains("Roles.Manage + ", ex.Message);
         Assert.Equal(rolesBefore, await db.Roles.CountAsync());
@@ -564,7 +565,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        var created = await service.CreateAsync("Section Copy", null, RoleType.SectionHead);
+        var created = await service.CreateAsync("Section Copy", null, RoleType.SectionHead, "Test reason");
 
         Assert.Empty(created.SodConflicts);
     }
@@ -603,11 +604,11 @@ public class RoleManagementTests
         await SeedAdministratorGxpGrantAsync(db);
         var actor = await AddActingUserAsync(db);
         var controller = CreateController(db, actor.Id);
-        var created = await CreateService(db).CreateAsync("Mixed Role", null, RoleType.Analyst);
+        var created = await CreateService(db).CreateAsync("Mixed Role", null, RoleType.Analyst, "Test reason");
 
         var update = await controller.UpdatePermissions(created.Id,
-            new UpdateRolePermissionsRequest(new List<string> { PermissionConstants.RolesManage, PermissionConstants.MediaRelease }));
-        var create = await controller.Create(new CreateRoleRequest("Admin Copy", null, RoleType.SystemAdministrator));
+            new UpdateRolePermissionsRequest(new List<string> { PermissionConstants.RolesManage, PermissionConstants.MediaRelease }, "Test reason", "pw"));
+        var create = await controller.Create(new CreateRoleRequest("Admin Copy", null, RoleType.SystemAdministrator, "Test reason"));
 
         Assert.IsType<ConflictObjectResult>(update);
         Assert.IsType<ConflictObjectResult>(create);

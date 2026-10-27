@@ -47,11 +47,13 @@ public class UserService
     private readonly IAuthenticationService _authService;
     private readonly ISecurityAuditService _securityAudit;
     private readonly AdministrationContinuityGuard _continuityGuard;
+    private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null)
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null)
     {
         _time = timeProvider ?? TimeProvider.System;
+        _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
         _securityAudit = securityAudit;
         _db = db;
@@ -102,8 +104,9 @@ public class UserService
         return ToDto(user);
     }
 
-    public async Task<UserDto> CreateAsync(User user, string plainPassword)
+    public async Task<UserDto> CreateAsync(User user, string plainPassword, string? reason)
     {
+        var trimmedReason = AdminActionReason.Require(reason, "create a user");
         if (string.IsNullOrWhiteSpace(user.Username))
             throw new InvalidOperationException("Username is required.");
         if (string.IsNullOrWhiteSpace(user.FullName))
@@ -120,6 +123,7 @@ public class UserService
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
         user.MustChangePassword = true;
+        _db.CurrentReason = trimmedReason;
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
@@ -127,8 +131,9 @@ public class UserService
         return ToDto(reloaded);
     }
 
-    public async Task<UserDto> UpdateProfileAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle = null, int actingUserId = 0)
+    public async Task<UserDto> UpdateProfileAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle = null, int actingUserId = 0, string? reason = null)
     {
+        var trimmedReason = AdminActionReason.Require(reason, "change a user's profile");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
         RecordVersion.EnsureCurrent(_db, user);
@@ -141,6 +146,7 @@ public class UserService
         if (user.Username != username && await _db.Users.AnyAsync(u => u.Username == username && u.Id != targetUserId))
             throw new InvalidOperationException($"Username '{username}' is already taken.");
 
+        _db.CurrentReason = trimmedReason;
         var prevData = new { user.FullName, user.Username, user.Email, user.JobTitle };
         user.FullName = fullName;
         user.Username = username;
@@ -154,6 +160,7 @@ public class UserService
             Action = "USER_DATA_UPDATED",
             PreviousValue = JsonSerializer.Serialize(prevData),
             NewValue = JsonSerializer.Serialize(new { FullName = fullName, Username = username, Email = email, JobTitle = jobTitle }),
+            Reason = trimmedReason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });
@@ -162,13 +169,17 @@ public class UserService
         return ToDto(user);
     }
 
-    public async Task<UserDto> ChangeRoleAsync(int targetUserId, int newRoleId, string reason, int actingUserId)
+    // Signed (D7): the administrator re-enters their password and the signature
+    // is linked to the affected user. A refused password changes nothing.
+    public Task<UserDto> ChangeRoleAsync(int targetUserId, int newRoleId, string? reason, int actingUserId, string? password, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => ChangeRoleCoreAsync(targetUserId, newRoleId, reason, actingUserId, password, ipAddress));
+
+    private async Task<UserDto> ChangeRoleCoreAsync(int targetUserId, int newRoleId, string? rawReason, int actingUserId, string? password, string? ipAddress)
     {
+        var reason = AdminActionReason.Require(rawReason, "change a user's role");
+
         if (actingUserId == targetUserId)
             throw new InvalidOperationException("System Administrators cannot modify their own role.");
-
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required to change a user's role.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
@@ -182,6 +193,14 @@ public class UserService
 
         var prevRoleId = user.RoleId;
         var prevRoleName = user.Role?.Name ?? "Unknown";
+
+        // Signs before anything changes: a wrong password throws, and the
+        // refused attempt is recorded by the signature service.
+        _db.CurrentUserId = actingUserId;
+        _db.CurrentReason = reason;
+        await _signatureService.SignAsync(actingUserId, password ?? string.Empty, SignatureMeaning.UserRoleChanged,
+            nameof(User), targetUserId, $"{prevRoleName} -> {newRole.Name}: {reason}", ipAddress);
+
         user.RoleId = newRoleId;
 
         // A role change alters what GMP-controlled actions the account may
@@ -201,6 +220,7 @@ public class UserService
             Action = "USER_ROLE_CHANGED",
             PreviousValue = JsonSerializer.Serialize(new { RoleId = prevRoleId, RoleName = prevRoleName }),
             NewValue = JsonSerializer.Serialize(new { RoleId = newRoleId, RoleName = newRole.Name, Reason = reason }),
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });
@@ -212,11 +232,10 @@ public class UserService
 
     public async Task<UserDto> SetStatusAsync(int targetUserId, bool isActive, string? reason, int actingUserId)
     {
+        reason = AdminActionReason.Require(reason, isActive ? "enable a user account" : "disable a user account");
+
         if (!isActive && actingUserId == targetUserId)
             throw new InvalidOperationException("System Administrators cannot disable their own account.");
-
-        if (!isActive && string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required to disable a user account.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
@@ -224,6 +243,7 @@ public class UserService
         if (!isActive)
             await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.UserDisabledOrDeleted(targetUserId));
 
+        _db.CurrentReason = reason;
         var prevStatus = user.IsActive;
         user.IsActive = isActive;
 
@@ -253,6 +273,7 @@ public class UserService
             Action = isActive ? "USER_ENABLED" : "USER_DISABLED",
             PreviousValue = JsonSerializer.Serialize(new { IsActive = prevStatus }),
             NewValue = JsonSerializer.Serialize(new { IsActive = isActive, Reason = reason }),
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });
@@ -266,19 +287,23 @@ public class UserService
         await SetStatusAsync(userId, false, "Deactivated via legacy service call", userId);
     }
 
-    public async Task UpdateEmailAsync(int userId, string? email)
+    public async Task UpdateEmailAsync(int userId, string? email, string? reason)
     {
+        var trimmedReason = AdminActionReason.Require(reason, "change a user's email address");
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
             ?? throw new NotFoundException($"User {userId} not found.");
+        _db.CurrentReason = trimmedReason;
         user.Email = email;
         await _db.SaveChangesAsync();
     }
 
     public async Task<UserDto> UnlockUserAsync(int targetUserId, string? reason, int actingUserId)
     {
+        reason = AdminActionReason.Require(reason, "unlock a user account");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
 
+        _db.CurrentReason = reason;
         var prevFailed = user.FailedLoginAttempts;
         var prevLocked = user.LockedUntil;
 
@@ -297,6 +322,7 @@ public class UserService
             Action = "USER_UNLOCKED",
             PreviousValue = JsonSerializer.Serialize(new { FailedLoginAttempts = prevFailed, LockedUntil = prevLocked }),
             NewValue = JsonSerializer.Serialize(new { FailedLoginAttempts = 0, LockedUntil = (DateTime?)null, Reason = reason }),
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });
@@ -310,6 +336,8 @@ public class UserService
 
     private async Task InitiatePasswordResetCoreAsync(int targetUserId, string? reason, int actingUserId)
     {
+        reason = AdminActionReason.Require(reason, "reset a user's password");
+        _db.CurrentReason = reason;
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
 
@@ -322,6 +350,7 @@ public class UserService
             Action = "ADMIN_PASSWORD_RESET_REQUESTED",
             PreviousValue = null,
             NewValue = JsonSerializer.Serialize(new { TargetUsername = user.Username, HasEmail = !string.IsNullOrWhiteSpace(user.Email), Reason = reason }),
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });
@@ -329,11 +358,13 @@ public class UserService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<UserDto> ForcePasswordChangeAsync(int targetUserId, int actingUserId)
+    public async Task<UserDto> ForcePasswordChangeAsync(int targetUserId, string? reason, int actingUserId)
     {
+        reason = AdminActionReason.Require(reason, "force a password change");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
 
+        _db.CurrentReason = reason;
         var prevMust = user.MustChangePassword;
         user.MustChangePassword = true;
 
@@ -344,6 +375,7 @@ public class UserService
             Action = "FORCE_PASSWORD_CHANGE_SET",
             PreviousValue = JsonSerializer.Serialize(new { MustChangePassword = prevMust }),
             NewValue = JsonSerializer.Serialize(new { MustChangePassword = true }),
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });

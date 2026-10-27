@@ -1,4 +1,5 @@
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -34,11 +35,13 @@ public class RoleService
     private readonly IMicroLimsDbContext _db;
     private readonly PermissionService _permissionService;
     private readonly AdministrationContinuityGuard _continuityGuard;
+    private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
 
-    public RoleService(IMicroLimsDbContext db, PermissionService permissionService, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null)
+    public RoleService(IMicroLimsDbContext db, PermissionService permissionService, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null)
     {
         _time = timeProvider ?? TimeProvider.System;
+        _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
         _db = db;
         _permissionService = permissionService;
@@ -66,11 +69,12 @@ public class RoleService
     // role-string compatibility. Pick the least-privileged bucket that
     // still makes sense for the role's intended use; it is not the same
     // thing as the role's actual (permission-based) access.
-    public Task<RoleDetailDto> CreateAsync(string name, string? description, RoleType baseType) =>
-        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(name, description, baseType));
+    public Task<RoleDetailDto> CreateAsync(string name, string? description, RoleType baseType, string? reason) =>
+        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(name, description, baseType, reason));
 
-    private async Task<RoleDetailDto> CreateCoreAsync(string name, string? description, RoleType baseType)
+    private async Task<RoleDetailDto> CreateCoreAsync(string name, string? description, RoleType baseType, string? rawReason)
     {
+        var reason = AdminActionReason.Require(rawReason, "create a role");
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidOperationException("Role name is required.");
 
@@ -85,6 +89,7 @@ public class RoleService
         if (baseConflicts.Count > 0)
             throw new SegregationOfDutiesViolationException(baseConflicts);
 
+        _db.CurrentReason = reason;
         var role = new Role { Name = name, Description = description, Type = baseType, IsSystemRole = false, IsActive = true };
         _db.Roles.Add(role);
         await _db.SaveChangesAsync(); // automatic audit capture logs Action="Create" for this row, with the now-assigned Id
@@ -105,8 +110,9 @@ public class RoleService
         return ToDto(role, await _permissionService.GetPermissionCodesForRoleAsync(role.Id));
     }
 
-    public async Task<RoleDetailDto> UpdateAsync(int id, string name, string? description)
+    public async Task<RoleDetailDto> UpdateAsync(int id, string name, string? description, string? reason)
     {
+        var trimmedReason = AdminActionReason.Require(reason, "change a role");
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidOperationException("Role name is required.");
 
@@ -114,6 +120,7 @@ public class RoleService
             ?? throw new NotFoundException($"Role {id} not found.");
         RecordVersion.EnsureCurrent(_db, role);
 
+        _db.CurrentReason = trimmedReason;
         role.Name = name;
         role.Description = description;
         await _db.SaveChangesAsync(); // automatic audit capture logs Action="Update" with the full before/after diff
@@ -122,8 +129,14 @@ public class RoleService
         return ToDto(role, codes);
     }
 
-    public async Task DeleteAsync(int id)
+    // Signed (D7): the administrator's password is re-verified and the
+    // signature is linked to the deleted role's id.
+    public Task DeleteAsync(int id, string? reason, int actingUserId, string? password, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => DeleteCoreAsync(id, reason, actingUserId, password, ipAddress));
+
+    private async Task DeleteCoreAsync(int id, string? rawReason, int actingUserId, string? password, string? ipAddress)
     {
+        var reason = AdminActionReason.Require(rawReason, "delete a role");
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Role {id} not found.");
 
@@ -134,17 +147,24 @@ public class RoleService
         if (inUseCount > 0)
             throw new InvalidOperationException($"Role '{role.Name}' is currently assigned to {inUseCount} user(s) and cannot be deleted.");
 
+        _db.CurrentUserId = actingUserId;
+        _db.CurrentReason = reason;
+        await _signatureService.SignAsync(actingUserId, password ?? string.Empty, SignatureMeaning.RoleDeleted,
+            nameof(Role), id, $"Deleted role {role.Name}: {reason}", ipAddress);
+
         var grantedPermissions = await _db.RolePermissions.Where(rp => rp.RoleId == id).ToListAsync();
         _db.RolePermissions.RemoveRange(grantedPermissions);
         _db.Roles.Remove(role);
         await _db.SaveChangesAsync(); // automatic audit capture logs Action="Delete" for both the Role row and each removed RolePermission row
     }
 
-    public Task<RoleDetailDto> UpdatePermissionsAsync(int id, List<string> permissionCodes, int actingUserId) =>
-        UnitOfWork.RunAsync(_db, () => UpdatePermissionsCoreAsync(id, permissionCodes, actingUserId));
+    // Signed (D7): password re-entry; the signature is linked to the role.
+    public Task<RoleDetailDto> UpdatePermissionsAsync(int id, List<string> permissionCodes, int actingUserId, string? reason, string? password, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => UpdatePermissionsCoreAsync(id, permissionCodes, actingUserId, reason, password, ipAddress));
 
-    private async Task<RoleDetailDto> UpdatePermissionsCoreAsync(int id, List<string> permissionCodes, int actingUserId)
+    private async Task<RoleDetailDto> UpdatePermissionsCoreAsync(int id, List<string> permissionCodes, int actingUserId, string? rawReason, string? password, string? ipAddress)
     {
+        var reason = AdminActionReason.Require(rawReason, "change a role's permissions");
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Role {id} not found.");
 
@@ -170,6 +190,14 @@ public class RoleService
         await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes));
 
         var currentCodes = await _permissionService.GetPermissionCodesForRoleAsync(id);
+
+        // Signs before the first grant/revoke (each of which saves): a wrong
+        // password throws and no permission changes.
+        _db.CurrentUserId = actingUserId;
+        _db.CurrentReason = reason;
+        await _signatureService.SignAsync(actingUserId, password ?? string.Empty, SignatureMeaning.RolePermissionsChanged,
+            nameof(Role), id, $"Permissions of role {role.Name} changed: {reason}", ipAddress);
+
         var toGrant = permissionCodes.Except(currentCodes).ToList();
         var toRevoke = currentCodes.Except(permissionCodes).ToList();
 
@@ -203,6 +231,7 @@ public class RoleService
             Action = "ROLE_PERMISSIONS_UPDATED",
             PreviousValue = JsonSerializer.Serialize(new { PermissionCodes = currentCodes }),
             NewValue = JsonSerializer.Serialize(new { PermissionCodes = permissionCodes, Granted = toGrant, Revoked = toRevoke }),
+            Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime
         });

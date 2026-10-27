@@ -31,12 +31,12 @@ public class ForcePasswordResetMigrationPostgresTests
 
             var now = DateTime.UtcNow;
             var alreadyRevokedAt = now.AddDays(-2);
-            db.RefreshTokens.AddRange(
-                new RefreshToken { UserId = active.Id, TokenHash = "t1", ExpiresAt = now.AddDays(5) },
-                new RefreshToken { UserId = active.Id, TokenHash = "t2", ExpiresAt = now.AddDays(5) },
-                new RefreshToken { UserId = inactive.Id, TokenHash = "t3", ExpiresAt = now.AddDays(5) },
-                new RefreshToken { UserId = inactive.Id, TokenHash = "t4", ExpiresAt = now.AddDays(5), RevokedAt = alreadyRevokedAt });
-            await db.SaveChangesAsync();
+            // Raw SQL: the model now has columns this older schema does not.
+            await db.Database.ExecuteSqlInterpolatedAsync($@"INSERT INTO ""RefreshTokens"" (""UserId"", ""TokenHash"", ""ExpiresAt"", ""RevokedAt"", ""CreatedAt"") VALUES
+                ({active.Id}, 't1', {now.AddDays(5)}, NULL, {now}),
+                ({active.Id}, 't2', {now.AddDays(5)}, NULL, {now}),
+                ({inactive.Id}, 't3', {now.AddDays(5)}, NULL, {now}),
+                ({inactive.Id}, 't4', {now.AddDays(5)}, {alreadyRevokedAt}, {now})");
             Assert.False(await db.Users.AnyAsync(u => u.MustChangePassword));
 
             var auditBefore = await db.AuditLogs.CountAsync();

@@ -39,6 +39,8 @@
 | **D7** | Which admin actions need e-signature vs reason only (Q8). | WP2.2 | E-sign: hard delete, role change, permission change, security-policy change, maintenance mode. Reason only: everything else. |
 | **D8** | Negative-`EntityId` historical rows (Q7). | WP2.9 | Append "correction" audit events via a one-off script; never UPDATE. |
 | **D9** | Remaining report questions Q9–Q14 (time zone, manual job runs, AI/MCP scope, catalogue target, unenforced codes, keep hard delete). | Waves 3–4 | Decide at the Wave 3 gate. |
+| **D10** | ✅ **Decided 2026-10-27:** every environment, the online one included, is development. No production data or production credentials exist. | D0, D6, WP2.9 | D0's history rewrite and credential rotation are hygiene, not incident response. The runbook (D6) and the correction script (WP2.9) apply when a production environment is created. |
+| **Q11** | ✅ **Decided 2026-10-27:** AI agent / MCP controls are **out of scope** for now. | WP4.2 | WP4.2 is deferred. |
 
 ---
 
@@ -145,7 +147,7 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 | WP | Covers | Model | Scope |
 |---|---|---|---|
 | **WP4.1** | Integrations | Sonnet | Instrument agents tab (link/move from `InstrumentAgentController`), SMTP status and test, storage status. |
-| **WP4.2** 🔒 | AI/MCP controls | Opus spec → Sonnet | Scope per Q11: inventory, enable/disable, scopes, and an agent-action audit view (uses the existing System actor + `SystemProcessName`). |
+| ~~**WP4.2**~~ | AI/MCP controls — **deferred (Q11: out of scope)** | Opus spec → Sonnet | Scope per Q11: inventory, enable/disable, scopes, and an agent-action audit view (uses the existing System actor + `SystemProcessName`). |
 | **WP4.3** 🔒 | A5 access review | Sonnet | Periodic access-review report (user × role × effective perms × last login × status history × SoD flags), reviewer e-signature, stored immutable. |
 | **WP4.4** | Ops | Sonnet | Maintenance mode (write-blocking middleware, admin-panel bypass, audited on/off with reason) and announcement banner. |
 | **WP4.5** | Q14 | Haiku | Restrict hard delete to a "created in error within N hours" window, if decided. |

@@ -245,6 +245,22 @@ public class DocumentReassignmentTests
     }
 
     [Fact]
+    public async Task TheDocumentControlSectionPage_ShowsTheCountOnlyToThoseWhoCanAct()
+    {
+        // GetDocumentControlAsync needs only the context, the clock and the reassignment service.
+        var counters = new SectionCountersService(_db, null!, null!, null!, null!, _clock, _svc);
+
+        var head = await counters.GetDocumentControlAsync(_headA.Id);
+        var card = Assert.Single(head, c => c.Card == "reassignments");
+        Assert.Equal(new[] { ("to reassign", 7, "action"), ("overdue", 2, "detected") },
+            card.Counters.Select(c => (c.Label, c.Value, c.Tone)).ToArray());
+
+        Assert.Equal(8, Assert.Single(await counters.GetDocumentControlAsync(_admin.Id), c => c.Card == "reassignments").Counters[0].Value);
+        Assert.DoesNotContain(await counters.GetDocumentControlAsync(_authorA.Id), c => c.Card == "reassignments");
+        Assert.Null(await _svc.TryGetCountAsync(_authorA.Id));
+    }
+
+    [Fact]
     public async Task SectionHead_SeesOnlyTheDepartmentsTheyBelongTo()
     {
         Assert.Equal(7, (await QueueAsync(_headA)).Total);

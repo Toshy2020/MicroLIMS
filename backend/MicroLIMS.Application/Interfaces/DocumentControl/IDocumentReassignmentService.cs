@@ -12,6 +12,9 @@ public interface IDocumentReassignmentService
 
     Task<ReassignmentCountDto> GetCountAsync(int userId);
 
+    // The same count, or null when the user has no authority to reassign (so a badge can simply stay hidden).
+    Task<ReassignmentCountDto?> TryGetCountAsync(int userId);
+
     // Active members of the item's department whose role holds the permission the role needs (and who pass the
     // segregation-of-duties rules), i.e. exactly who ReassignAsync would accept.
     Task<IReadOnlyList<ReassignmentCandidateDto>> GetCandidatesAsync(string itemType, int itemId, int userId);

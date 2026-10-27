@@ -61,7 +61,7 @@ public class DocumentReassignmentService : IDocumentReassignmentService
         public bool Covers(int departmentId) => AllDepartments || DepartmentIds.Contains(departmentId);
     }
 
-    private async Task<Scope> GetScopeAsync(int userId)
+    private async Task<Scope?> TryGetScopeAsync(int userId)
     {
         if (await _auth.HoldsPermissionAsync(userId, PermissionConstants.DocumentsConfigManage))
             return new Scope(true, new HashSet<int>());
@@ -71,8 +71,12 @@ public class DocumentReassignmentService : IDocumentReassignmentService
                 .Where(m => m.UserId == userId).Select(m => m.DepartmentId).Distinct().ToListAsync();
             return new Scope(false, departments.ToHashSet());
         }
-        throw new UnauthorizedAccessException("Reassigning document responsibilities needs the Documents.Reassign or Documents.ConfigManage permission.");
+        return null;
     }
+
+    private async Task<Scope> GetScopeAsync(int userId) =>
+        await TryGetScopeAsync(userId)
+        ?? throw new UnauthorizedAccessException("Reassigning document responsibilities needs the Documents.Reassign or Documents.ConfigManage permission.");
 
     private static void EnsureCovers(Scope scope, int departmentId)
     {
@@ -232,9 +236,14 @@ public class DocumentReassignmentService : IDocumentReassignmentService
         return new ReassignmentQueueDto(items, items.Count, items.Count(i => i.IsOverdue), await EscalationDaysAsync());
     }
 
-    public async Task<ReassignmentCountDto> GetCountAsync(int userId)
+    public async Task<ReassignmentCountDto> GetCountAsync(int userId) =>
+        await TryGetCountAsync(userId)
+        ?? throw new UnauthorizedAccessException("Reassigning document responsibilities needs the Documents.Reassign or Documents.ConfigManage permission.");
+
+    public async Task<ReassignmentCountDto?> TryGetCountAsync(int userId)
     {
-        var scope = await GetScopeAsync(userId);
+        var scope = await TryGetScopeAsync(userId);
+        if (scope is null) return null;
         var items = await BuildItemsAsync(DepartmentFilter(scope, null));
         return new ReassignmentCountDto(items.Count, items.Count(i => i.IsOverdue));
     }

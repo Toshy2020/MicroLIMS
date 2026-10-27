@@ -123,6 +123,9 @@ public static class PermissionConstants
     // Configure master data and settings in every section, not only the user's own. Configuration only: GxP records still follow membership.
     public const string SectionsConfigureAll = "Sections.ConfigureAll";
 
+    // View background-job status and run history, and run housekeeping jobs manually. GxP jobs are status-only for everyone.
+    public const string SystemManageJobs = "System.ManageJobs";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -144,7 +147,7 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        SectionsViewAll, SectionsConfigureAll
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -163,7 +166,7 @@ public static class PermissionConstants
         SignaturesManage,   // read-only signature trail
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam,
         SamplesTrackAll, MonitoringPlanView, DocumentsTrainingViewMatrix,
-        SectionsViewAll, SectionsConfigureAll
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -181,6 +184,6 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        SectionsViewAll, SectionsConfigureAll
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs
     };
 }

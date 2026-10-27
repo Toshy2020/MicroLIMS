@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -12,7 +13,7 @@ namespace MicroLIMS.API.BackgroundServices;
 // Deleting an Incident cascades its ErrorLogs, so the incident is the
 // unit of retention: a half-pruned incident would be worse than either
 // keeping or dropping the whole thing.
-public class ErrorLogRetentionWorker : BackgroundService
+public class ErrorLogRetentionWorker : BackgroundService, IBackgroundJobWork
 {
     public const string ProcessName = "ErrorLogRetentionWorker";
 
@@ -32,12 +33,15 @@ public class ErrorLogRetentionWorker : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly ILogger<ErrorLogRetentionWorker> _logger;
     private readonly SemaphoreSlim _concurrencyLock = new(1, 1);
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
     public ErrorLogRetentionWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
-        ILogger<ErrorLogRetentionWorker> logger)
+        ILogger<ErrorLogRetentionWorker> logger,
+        IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _configuration = configuration;
         _logger = logger;
@@ -78,7 +82,7 @@ public class ErrorLogRetentionWorker : BackgroundService
         // purely interval-driven job might never reach its first tick.
         try
         {
-            await RunCycleAsync(stoppingToken);
+            await ScheduledPassAsync(stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -96,7 +100,7 @@ public class ErrorLogRetentionWorker : BackgroundService
             try
             {
                 if (await timer.WaitForNextTickAsync(stoppingToken))
-                    await RunCycleAsync(stoppingToken);
+                    await ScheduledPassAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -110,6 +114,15 @@ public class ErrorLogRetentionWorker : BackgroundService
 
         _logger.LogInformation("[{Worker}] Background service has stopped gracefully.", ProcessName);
     }
+
+    public string JobName => ProcessName;
+
+    // The pass an administrator's manual run executes: exactly the scheduled one.
+    public async Task<int?> RunOnceAsync(CancellationToken cancellationToken) =>
+        await RunCycleAsync(cancellationToken);
+
+    private Task ScheduledPassAsync(CancellationToken cancellationToken) =>
+        ScheduledJobPass.RunAsync(_recorder, ProcessName, RunOnceAsync, cancellationToken);
 
     public async Task<int> RunCycleAsync(CancellationToken cancellationToken = default)
     {

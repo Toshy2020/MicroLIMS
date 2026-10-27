@@ -39,6 +39,10 @@ public static class SecurityEventCodes
     // ---- Authorization state ----
     public const string RoleChanged = "AUTH_ROLE_CHANGED";
 
+    // ---- Administration ----
+    // An administrator ran a housekeeping background job by hand; carries the stated reason.
+    public const string BackgroundJobManuallyTriggered = "ADMIN_BACKGROUND_JOB_TRIGGERED";
+
     // ---- Instrument agents ----
     // A presented agent key was malformed, unknown, revoked, or its equipment is gone.
     public const string AgentAuthFailed = "AGENT_AUTH_FAILED";

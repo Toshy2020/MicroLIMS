@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 
@@ -22,18 +23,29 @@ public class CriticalAlertWorker : BackgroundService
     private readonly ILogger<CriticalAlertWorker> _logger;
     private readonly TimeSpan _interval;
     private readonly bool _enabled;
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
     public CriticalAlertWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
-        ILogger<CriticalAlertWorker> logger)
+        ILogger<CriticalAlertWorker> logger,
+        IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _logger = logger;
 
         _enabled = configuration.GetValue("ErrorMonitoring:CriticalAlerts:Enabled", false);
         var seconds = configuration.GetValue("ErrorMonitoring:CriticalAlerts:PollIntervalSeconds", 60);
         _interval = TimeSpan.FromSeconds(Math.Max(15, seconds));
+    }
+
+    private async Task<int?> DispatchAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
+        var alerts = scope.ServiceProvider.GetRequiredService<ICriticalAlertService>();
+        return await alerts.DispatchPendingAsync(cancellationToken);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,10 +64,7 @@ public class CriticalAlertWorker : BackgroundService
         {
             try
             {
-                using var scope = _scopeFactory.CreateScope();
-                scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
-                var alerts = scope.ServiceProvider.GetRequiredService<ICriticalAlertService>();
-                await alerts.DispatchPendingAsync(stoppingToken);
+                await ScheduledJobPass.RunAsync(_recorder, ProcessName, DispatchAsync, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

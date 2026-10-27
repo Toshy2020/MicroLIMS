@@ -42,7 +42,8 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.SectionsViewAll,
         PermissionConstants.SectionsConfigureAll,
         PermissionConstants.DocumentsTrainingViewMatrix,
-        PermissionConstants.SystemViewSecurityAudit
+        PermissionConstants.SystemViewSecurityAudit,
+        PermissionConstants.SystemManageJobs
     };
 
     private readonly PostgresTestFixture _fixture;

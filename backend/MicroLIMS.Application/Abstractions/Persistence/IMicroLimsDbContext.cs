@@ -219,6 +219,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentEscalationRecord> DocumentEscalationRecords { get; }
     DbSet<Incident> Incidents { get; }
     DbSet<ErrorLog> ErrorLogs { get; }
+    DbSet<BackgroundJobRun> BackgroundJobRuns { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     DatabaseFacade Database { get; }

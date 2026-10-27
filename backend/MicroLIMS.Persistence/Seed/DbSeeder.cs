@@ -508,6 +508,7 @@ public static class DbSeeder
             (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
             (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
             (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
+            (PermissionConstants.SystemManageJobs, "View background job status and run history; run housekeeping jobs manually."),
         };
 
         // Metadata (Description, IsEnforced) of rows that already exist is

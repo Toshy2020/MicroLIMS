@@ -87,6 +87,7 @@ const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pa
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
 const SecurityPolicyPage = lazy(() => import("../modules/admin/SecurityPolicyPage").then((m) => ({ default: m.SecurityPolicyPage })));
+const JobsPage = lazy(() => import("../modules/admin/JobsPage").then((m) => ({ default: m.JobsPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
 function LegacyRedirect({ to }: { to: string }) {
@@ -279,6 +280,9 @@ export function AppRoutes() {
               <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
                 <Route path="users" element={<UsersPage />} />
                 <Route path="security-policy" element={<SecurityPolicyPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_MANAGE_JOBS} />}>
+                <Route path="jobs" element={<JobsPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
                 <Route path="roles" element={<RolesPage />} />

@@ -84,6 +84,7 @@ const APP_ROUTES = {
   ROLE_NEW: "/admin/roles/new",
   ROLE_DETAIL: (id: number | string) => `/admin/roles/${id}`,
   SECURITY_POLICY: "/admin/security-policy",
+  ADMIN_JOBS: "/admin/jobs",
 
   // Printable Report Pages (standalone rendering outside MainLayout)
   SAMPLE_REPORT: (id: number | string) => `/samples/${id}/report`,
@@ -241,6 +242,7 @@ export const PERMISSIONS = {
   MASTER_DATA_MANAGE: "MasterData.Manage",
   DISCUSSIONS_EDIT_ANY: "Discussions.EditAny",
   SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
+  SYSTEM_MANAGE_JOBS: "System.ManageJobs",
   DOCUMENTS_REGISTER: "Documents.Register",
   DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
   KPI_VIEW: "Kpi.View",

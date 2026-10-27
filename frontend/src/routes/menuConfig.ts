@@ -11,6 +11,7 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 import PolicyOutlinedIcon from "@mui/icons-material/PolicyOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
@@ -111,7 +112,8 @@ const adminItems: MenuItem[] = [
   { label: "Roles", path: "/admin/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ROLES_MANAGE },
   { label: "Audit Trail", path: "/admin/audit", description: "Search the audit trail of every record and signature.", icon: ManageSearchOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
-  { label: "Security Policy", path: "/admin/security-policy", description: "Password, lockout, session and e-signature rules in force.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE }
+  { label: "Security Policy", path: "/admin/security-policy", description: "Password, lockout, session and e-signature rules in force.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE },
+  { label: "Jobs", path: "/admin/jobs", description: "Background job status, run history and housekeeping runs.", icon: ScheduleOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_MANAGE_JOBS }
 ];
 
 // The document audit trail is open server-side to Reviewers and Section Heads

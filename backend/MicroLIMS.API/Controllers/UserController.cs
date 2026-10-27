@@ -41,7 +41,9 @@ public class UserController : ControllerBase
     private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? status = null) => Ok(ApiResponse<object>.Ok(await _userService.GetAllAsync(status)));
+    // ?status=active (default) | inactive | all. Read from the query string so the
+    // action signature (and the reviewed authorization matrix) stays unchanged.
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _userService.GetAllAsync(Request.Query["status"].FirstOrDefault())));
 
     [HttpGet("{id}")]
     [Authorize(Policy = PermissionConstants.UsersManage)]

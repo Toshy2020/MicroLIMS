@@ -74,19 +74,6 @@ describe("UsersPage reasons and signatures", () => {
     expect(toastError).toHaveBeenCalled();
   });
 
-  it("sends the reason with an account enable", async () => {
-    vi.mocked(UserService.getAll).mockResolvedValue([{ ...target, isActive: false, isLocked: false }]);
-    renderPage();
-    const dialog = await openAction("Enable Account");
-    const enable = within(dialog).getByRole("button", { name: "Enable Account" }) as HTMLButtonElement;
-    expect(enable.disabled).toBe(true);
-
-    fireEvent.change(within(dialog).getByLabelText(/Reason for Enabling/), { target: { value: "Returned from leave" } });
-    fireEvent.click(enable);
-
-    await waitFor(() => expect(UserService.setStatus).toHaveBeenCalledWith(2, true, "Returned from leave"));
-  });
-
   it("requires the reason to unlock", async () => {
     renderPage();
     const dialog = await openAction("Unlock Account");

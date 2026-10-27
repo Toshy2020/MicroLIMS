@@ -567,7 +567,7 @@ public static class DbSeeder
                     // override (FRS-1B §3.2:184).
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
-                    PermissionConstants.DocumentsApprove,
+                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,

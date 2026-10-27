@@ -140,7 +140,7 @@ public class RolePermissionSeedDataTests
             // Document Control, per the FRS-1A permission matrix.
             PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
             PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
-            PermissionConstants.DocumentsApprove,
+            PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview,
             PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
             PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
             // HPLC chain S4 - Solution Preparation area.
@@ -154,7 +154,7 @@ public class RolePermissionSeedDataTests
             PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
         };
 
-        Assert.Equal(50, codes.Count);
+        Assert.Equal(51, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -236,11 +236,11 @@ public class RolePermissionSeedDataTests
         // The System Administrator now holds only PermissionConstants.SystemAdministratorGrants
         // (24 system codes, no lab/GxP codes). The total is the sum of the four per-role
         // sets that the tests above assert literally:
-        //   SystemAdministrator 24 + SectionHead 50 + Reviewer 18 + Analyst 17 = 109.
+        //   SystemAdministrator 24 + SectionHead 51 + Reviewer 18 + Analyst 17 = 110.
         // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(109, total);
+        Assert.Equal(110, total);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(109, await db.RolePermissions.CountAsync()); // 24 + 50 + 18 + 17, see TotalGrantCount_MatchesTheCatalog
+        Assert.Equal(110, await db.RolePermissions.CountAsync()); // 24 + 51 + 18 + 17, see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]

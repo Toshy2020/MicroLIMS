@@ -102,6 +102,21 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 
 ### Wave 2 — Admin panel Phase 1 build (gate: D5, D6, D7)
 
+> **Status (2026-10-27): Wave 2 is complete.** D5–D8 were taken as recommended. Validation: full suite with PostgreSQL (3,753 tests), `has-pending-model-changes` clean, `tsc -b`, lint (0 errors), Vitest (505 tests).
+>
+> | WP | Delivered |
+> |---|---|
+> | WP2.1 | `/admin` shell (`frontend/src/modules/admin/`) with Users, Roles, Audit Trail, Error Log and Security Policy tabs; old URLs redirect. The document audit link keeps mirroring the server rule (Reviewer, Section Head, or `Audit.View`). |
+> | WP2.2 | A reason is required on every admin user and role action and is stored in `AuditLog.Reason` (`IMicroLimsDbContext.CurrentReason`). Hard delete, role change, permission edit and role delete are e-signed. |
+> | WP2.3 | `GET/POST /api/admin/users/{id}/sessions[/revoke]` with a reason; `RefreshToken` gains `CreatedIp`, `UserAgent`, `LastUsedAt`. Issued access tokens remain valid until they expire. |
+> | WP2.4 | Audit search uses keyset paging and new filters; CSV export (max 50,000 rows, formula-safe, recorded). Security Events and Login History require `System.ViewSecurityAudit`, which is now enforced — Section Heads lose login history unless granted it. |
+> | WP2.5 | TRUNCATE guards on 10 append-only tables; LoginHistories and SecurityAuditEvents are append-only, with `SecurityAuditEvents` FKs set to RESTRICT. Runbook: `docs/operations/database-roles-runbook.md`. |
+> | WP2.6 | Read-only `GET /api/admin/security-policy` and its page (`Users.Manage`). |
+> | WP2.7 | `SessionTokenCleanupWorker` prunes old revoked or expired refresh and reset tokens daily. |
+> | WP2.8 | The seeder re-syncs `IsEnforced` and `Description`. |
+> | WP2.9 | The audit viewer flags negative-EntityId rows; `scripts/audit/append-negative-entityid-corrections.sql` (dry run by default, append-only, idempotent). |
+> | WP2.10 | No GxP write bypasses the audit capture. The only deliberate bypasses are the agent heartbeat (`LastSeenAt`) and the notification read flag. |
+
 | WP | Covers | Model | Scope | Acceptance |
 |---|---|---|---|---|
 | **WP2.1** | G22, IA | Sonnet (shell) + Haiku (route moves) | `/admin` layout with tabs from report §9; move Users, Roles, Error Log and Audit routes under `/admin/*` with redirects from the old paths; one new sidebar group. Fix the role-gated Document audit link (`menuConfig.ts:108-113`) to a permission. | `menuConfig.test.ts` is updated; the old URLs redirect. |

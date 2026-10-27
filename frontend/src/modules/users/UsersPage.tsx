@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Paper, TextField, Select, MenuItem, Button, Stack, Typography, Alert, Box,
-  Chip, Tooltip, Table,
+  Chip, Tooltip, Table, Tabs, Tab,
   TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -17,8 +17,6 @@ import BlockIcon from "@mui/icons-material/Block";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import KeyIcon from "@mui/icons-material/Key";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 import { PageHeader } from "../../components/PageHeader";
@@ -78,12 +76,10 @@ export function UsersPage() {
   const [forcePwdUser, setForcePwdUser] = useState<UserRecord | null>(null);
   const [forcePwdReason, setForcePwdReason] = useState("");
 
-  const [deleteDialogUser, setDeleteDialogUser] = useState<UserRecord | null>(null);
-  const [deleteReason, setDeleteReason] = useState("");
-  // Role change and permanent delete are electronically signed (password re-entry).
-  const [signing, setSigning] = useState<"role" | "delete" | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  // Role change is electronically signed (password re-entry).
+  const [signing, setSigning] = useState<"role" | null>(null);
+  // Inactive users are listed apart and only here, for reactivation.
+  const [view, setView] = useState<"active" | "inactive">("active");
 
   const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
   const [sessionsUser, setSessionsUser] = useState<UserRecord | null>(null);
@@ -91,15 +87,15 @@ export function UsersPage() {
   // A failed load used to leave the user table (or the role picker) empty
   // with no explanation.
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
-  const load = () => {
+  const load = (which: "active" | "inactive" = view) => {
     resetFailures();
-    UserService.getAll().then(setUsers).catch(fail("users"));
+    UserService.getAll(which).then(setUsers).catch(fail("users"));
     RoleService.getAll().then(setRoles).catch(fail("roles"));
   };
 
-  // Mount-only: load is redefined each render and only runs set-state calls.
+  // Reloads on mount and when the Active/Inactive tab changes; load is redefined each render and only runs set-state calls.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(view); }, [view]);
 
   const handleCreateUser = async () => {
     if (!fullName || !username || !password || !roleId || !createReason.trim()) {
@@ -295,45 +291,6 @@ export function UsersPage() {
     }
   };
 
-  // Permanent Delete
-  const openDeleteDialog = (u: UserRecord) => {
-    setDeleteDialogUser(u);
-    setDeleteError(null);
-    setDeleteReason("");
-  };
-
-  const closeDeleteDialog = () => {
-    if (deleting) return;
-    setDeleteDialogUser(null);
-    setDeleteError(null);
-  };
-
-  const handleHardDelete = () => {
-    if (!deleteDialogUser) return;
-    if (!deleteReason.trim()) {
-      setDeleteError("A reason is required to permanently delete a user.");
-      return;
-    }
-    setDeleteError(null);
-    setSigning("delete");
-  };
-
-  // A refused password stays in the signature dialog; a business refusal
-  // (the user has history) closes it and is shown in the delete dialog.
-  const confirmDeleteSignature = async (signaturePassword: string) => {
-    if (!deleteDialogUser) return;
-    setDeleting(true);
-    try {
-      await UserService.hardDelete(deleteDialogUser.id, deleteReason.trim(), signaturePassword);
-      toast.success(`User "${deleteDialogUser.username}" was permanently deleted.`);
-      setSigning(null);
-      setDeleteDialogUser(null);
-      load();
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
     <>
       <PageHeader title="User Management" subtitle="Manage system users, role assignments, security status, and account access." />
@@ -431,7 +388,11 @@ export function UsersPage() {
         </Box>
       </Paper>
 
-      <SectionTitle>All System Users</SectionTitle>
+      <SectionTitle>System Users</SectionTitle>
+      <Tabs value={view} onChange={(_, v) => { setUsers([]); setView(v); }} sx={{ mb: 1 }} aria-label="User status">
+        <Tab value="active" label="Active" />
+        <Tab value="inactive" label="Inactive" />
+      </Tabs>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -482,6 +443,15 @@ export function UsersPage() {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
+                    {view === "inactive" ? (
+                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                        <Tooltip title="Reactivate Account">
+                          <IconButton aria-label="Reactivate Account" size="small" color="success" onClick={() => openStatusDialog(u)}>
+                            <BlockIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    ) : (
                     <Stack direction="row" spacing={0.5} sx={{
                       justifyContent: "flex-end"
                     }}>
@@ -538,15 +508,8 @@ export function UsersPage() {
                       <Tooltip title="Force Password Change at Next Login">
                         <IconButton size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
                       </Tooltip>
-
-                      <Tooltip title={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"}>
-                        <span>
-                          <IconButton aria-label={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"} size="small" color="error" disabled={isSelf} onClick={() => openDeleteDialog(u)}>
-                            <DeleteForeverIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
                     </Stack>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -605,12 +568,12 @@ export function UsersPage() {
         open={Boolean(statusDialogUser)}
         onClose={() => setStatusDialogUser(null)}
         maxWidth="xs"
-        title={statusDialogUser?.isActive ? "Disable User Account" : "Enable User Account"}
+        title={statusDialogUser?.isActive ? "Disable User Account" : "Reactivate User Account"}
         actions={
           <>
             <Button onClick={() => setStatusDialogUser(null)}>Cancel</Button>
             <Button variant="contained" color={statusDialogUser?.isActive ? "error" : "success"} onClick={handleSaveStatus} disabled={!statusReason.trim()}>
-              {statusDialogUser?.isActive ? "Disable Account" : "Enable Account"}
+              {statusDialogUser?.isActive ? "Disable Account" : "Reactivate Account"}
             </Button>
           </>
         }
@@ -787,57 +750,13 @@ export function UsersPage() {
         </Stack>
       </FloatingDialog>
 
-      {/* Permanent Delete Dialog */}
-      <FloatingDialog
-        open={Boolean(deleteDialogUser)}
-        onClose={closeDeleteDialog}
-        maxWidth="xs"
-        title="Permanently Delete User"
-        actions={
-          <>
-            <Button onClick={closeDeleteDialog} disabled={deleting}>Cancel</Button>
-            <Button variant="contained" color="error" onClick={handleHardDelete} disabled={deleting || !deleteReason.trim()} startIcon={<DeleteForeverIcon />}>
-              {deleting ? "Deleting..." : "Permanently Delete"}
-            </Button>
-          </>
-        }
-      >
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          {deleteError && <Alert severity="error">{deleteError}</Alert>}
-          <Alert severity="warning" icon={<WarningAmberIcon />}>
-            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system. If this fails, deactivate the account instead.
-          </Alert>
-          <Typography variant="body2">
-            Permanently delete <strong>{deleteDialogUser?.fullName} (@{deleteDialogUser?.username})</strong>? You will be asked to sign with your password.
-          </Typography>
-          <TextField label="Reason for Deletion" size="small" multiline rows={2} value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} required fullWidth placeholder="Mandatory justification" />
-        </Stack>
-      </FloatingDialog>
-
-      {/* Electronic signature for the role change and the permanent delete */}
+      {/* Electronic signature for the role change */}
       <SignatureDialog
         open={signing === "role"}
         meaningStatement={`I am changing the role of ${roleDialogUser?.username ?? "this user"} to ${roles.find((r) => r.id === newRoleId)?.name ?? "the selected role"}. Reason: ${roleReason.trim()}`}
         onCancel={() => setSigning(null)}
         onConfirm={confirmRoleSignature}
       />
-      <SignatureDialog
-        open={signing === "delete"}
-        meaningStatement={`I am permanently deleting the account ${deleteDialogUser?.username ?? ""}. Reason: ${deleteReason.trim()}`}
-        onCancel={() => setSigning(null)}
-        onConfirm={async (pw) => {
-          try {
-            await confirmDeleteSignature(pw);
-          } catch (e: any) {
-            // Only a refused password stays in the signature dialog.
-            const msg: string = e?.response?.data?.message ?? "Could not delete user.";
-            if (/password|signature/i.test(msg)) throw e;
-            setSigning(null);
-            setDeleteError(msg);
-          }
-        }}
-      />
-
       {/* Laboratory Sections Dialog */}
       <UserSectionsDialog
         open={Boolean(sectionsUser)}

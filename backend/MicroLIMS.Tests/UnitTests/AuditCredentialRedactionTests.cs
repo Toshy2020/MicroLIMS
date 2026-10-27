@@ -133,8 +133,7 @@ public class AuditCredentialRedactionTests
     };
 
     // Guards against a new credential-like column being added later and
-    // flowing into AuditLogs in clear. Matches by name only, like
-    // UserReferenceRegistry_AccountsForEveryUserIdNamedPropertyInTheModel.
+    // flowing into AuditLogs in clear. Matches by name only.
     [Fact]
     public void EveryCredentialLookingStringProperty_IsRedactedOrExplicitlyAllowlisted()
     {

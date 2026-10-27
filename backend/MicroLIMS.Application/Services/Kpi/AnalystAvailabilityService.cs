@@ -129,8 +129,8 @@ public class AnalystAvailabilityService
 
     private async Task EnsureEditableAsync(int analystId, int editorId, CancellationToken ct)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == analystId, ct))
-            throw new InvalidOperationException("The analyst does not exist.");
+        if (!await _db.Users.AnyAsync(u => u.Id == analystId && u.IsActive, ct))
+            throw new InvalidOperationException("The analyst does not exist or is inactive.");
         var editorScope = await _scope.GetMemberSectionIdsAsync(editorId, ct);
         if (!await KpiUserScope.InScopeAsync(_scope, analystId, editorScope, ct))
             throw new UnauthorizedAccessException("You may only record availability for analysts in your laboratory sections.");

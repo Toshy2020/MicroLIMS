@@ -583,7 +583,6 @@ UserController.Deactivate(Int32): SystemAdministrator
 UserController.ForcePasswordChange(Int32, ForcePasswordChangeRequest): SystemAdministrator
 UserController.GetAll(): SystemAdministrator
 UserController.GetById(Int32): SystemAdministrator
-UserController.HardDelete(Int32, HardDeleteUserRequest): SystemAdministrator
 UserController.InitiatePasswordReset(Int32, AdminResetPasswordRequest): SystemAdministrator
 UserController.SetStatus(Int32, SetStatusRequest): SystemAdministrator
 UserController.Unlock(Int32, UnlockUserRequest): SystemAdministrator

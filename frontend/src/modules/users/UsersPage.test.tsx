@@ -10,7 +10,7 @@ vi.mock("./services/UserService", () => ({
   UserService: {
     getAll: vi.fn(), create: vi.fn(), updateProfile: vi.fn(), changeRole: vi.fn(), setStatus: vi.fn(),
     unlock: vi.fn(), initiatePasswordReset: vi.fn(), adminPasswordRecovery: vi.fn(),
-    forcePasswordChange: vi.fn(), hardDelete: vi.fn()
+    forcePasswordChange: vi.fn()
   }
 }));
 vi.mock("../roles/services/RoleService", () => ({ RoleService: { getAll: vi.fn() } }));
@@ -34,7 +34,6 @@ beforeEach(() => {
     { id: 4, name: "Analyst", description: null, type: "Analyst", isSystemRole: true, isActive: true }
   ]);
   vi.mocked(UserService.changeRole).mockResolvedValue({});
-  vi.mocked(UserService.hardDelete).mockResolvedValue({});
   vi.mocked(UserService.unlock).mockResolvedValue({});
   vi.mocked(UserService.setStatus).mockResolvedValue({});
   vi.mocked(UserService.forcePasswordChange).mockResolvedValue({});
@@ -156,19 +155,29 @@ describe("UsersPage reasons and signatures", () => {
     expect(screen.getByText("Electronic Signature")).toBeTruthy();
   });
 
-  it("deletes a user only with a reason and a signature", async () => {
+  it("loads the active list by default and has no delete action", async () => {
     renderPage();
-    const dialog = await openAction("Permanently Delete User");
-    const remove = within(dialog).getByRole("button", { name: "Permanently Delete" }) as HTMLButtonElement;
-    expect(remove.disabled).toBe(true);
+    await screen.findByText("Jane Analyst");
+    expect(UserService.getAll).toHaveBeenCalledWith("active");
+    expect(screen.queryByRole("button", { name: /Permanently Delete/ })).toBeNull();
+  });
 
-    fireEvent.change(within(dialog).getByLabelText(/Reason for Deletion/), { target: { value: "Created by mistake" } });
-    fireEvent.click(remove);
+  it("shows inactive users only on the Inactive tab, with reactivation as the sole action", async () => {
+    const inactive: UserRecord = { ...target, id: 3, fullName: "Old Timer", username: "oldtimer", isActive: false, isLocked: false };
+    vi.mocked(UserService.getAll).mockImplementation(async (status) => (status === "inactive" ? [inactive] : [target]));
+    renderPage();
+    await screen.findByText("Jane Analyst");
+    expect(screen.queryByText("Old Timer")).toBeNull();
 
-    expect(UserService.hardDelete).not.toHaveBeenCalled();
-    await screen.findByText("Electronic Signature");
-    sign("my-password");
+    fireEvent.click(screen.getByRole("tab", { name: "Inactive" }));
+    await screen.findByText("Old Timer");
+    expect(screen.queryByText("Jane Analyst")).toBeNull();
+    expect(UserService.getAll).toHaveBeenCalledWith("inactive");
+    expect(screen.queryByRole("button", { name: "Change Role" })).toBeNull();
 
-    await waitFor(() => expect(UserService.hardDelete).toHaveBeenCalledWith(2, "Created by mistake", "my-password"));
+    const dialog = await openAction("Reactivate Account");
+    fireEvent.change(within(dialog).getByLabelText(/Reason for Enabling/), { target: { value: "Returned from leave" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reactivate Account" }));
+    await waitFor(() => expect(UserService.setStatus).toHaveBeenCalledWith(3, true, "Returned from leave"));
   });
 });

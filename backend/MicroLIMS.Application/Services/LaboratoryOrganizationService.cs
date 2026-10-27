@@ -60,8 +60,10 @@ public class LaboratoryOrganizationService
     // what laboratory data a user can see and act on.
     public async Task<List<UserOrgMembershipDto>> ReplaceMembershipsAsync(int userId, IReadOnlyCollection<UserOrgMembershipDto> memberships, int actingUserId)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId))
-            throw new NotFoundException($"User {userId} not found.");
+        var memberUser = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.IsActive }).FirstOrDefaultAsync()
+            ?? throw new NotFoundException($"User {userId} not found.");
+        if (!memberUser.IsActive)
+            throw new InvalidOperationException("Inactive users cannot be assigned to laboratory sections. Reactivate the user first.");
 
         // Memberships are keyed by department + section; the last row for a key wins.
         var wanted = memberships.GroupBy(m => (m.DepartmentId, m.SectionId)).Select(g => g.Last()).ToList();

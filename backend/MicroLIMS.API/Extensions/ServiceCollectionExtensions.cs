@@ -131,7 +131,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SpecificationService>();
         services.AddScoped<AdministrationContinuityGuard>();
         services.AddScoped<UserService>();
-        services.AddScoped<UserDeletionService>();
         services.AddScoped<AdminPasswordRecoveryService>();
         services.AddScoped<PermissionService>();
         services.AddScoped<RoleService>();

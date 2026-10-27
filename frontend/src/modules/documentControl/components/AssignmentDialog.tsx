@@ -68,7 +68,7 @@ export function AssignmentDialog({
         const fallbackRes = await apiClient.get("/users");
         const fallbackList: any[] = fallbackRes.data?.data || fallbackRes.data || [];
         setUsers(
-          fallbackList.map((u) => ({
+          fallbackList.filter((u) => u.isActive !== false).map((u) => ({
             id: u.id,
             fullName: u.fullName,
             username: u.username,

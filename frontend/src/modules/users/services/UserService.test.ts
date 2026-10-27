@@ -62,12 +62,14 @@ describe("UserService signed and reasoned actions", () => {
     expect(apiClient.put).toHaveBeenCalledWith("/users/7/role", { roleId: 3, reason: "Promotion", password: "pw" });
   });
 
-  it("sends the reason and password in the body of a hard delete", async () => {
-    vi.mocked(apiClient.delete).mockResolvedValue({ data: { data: {} } } as never);
+  it("requests the active list by default and the inactive list on demand", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: [] } } as never);
 
-    await UserService.hardDelete(7, "Created by mistake", "pw");
+    await UserService.getAll();
+    await UserService.getAll("inactive");
 
-    expect(apiClient.delete).toHaveBeenCalledWith("/users/7", { data: { reason: "Created by mistake", password: "pw" } });
+    expect(apiClient.get).toHaveBeenNthCalledWith(1, "/users", { params: { status: "active" } });
+    expect(apiClient.get).toHaveBeenNthCalledWith(2, "/users", { params: { status: "inactive" } });
   });
 
   it("sends the reason with force-password-change, unlock, status and reset", async () => {

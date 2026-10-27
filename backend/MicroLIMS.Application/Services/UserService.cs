@@ -63,9 +63,22 @@ public class UserService
         _authService = authService;
     }
 
-    public async Task<List<UserDto>> GetAllAsync()
+    // Admin list. "active" (default) and "inactive" are kept apart: inactive
+    // users are only surfaced on the admin Inactive list (for reactivation).
+    // "all" exists solely for screens that resolve historical attribution
+    // (a name for a stored user id) and must never feed a picker or roster.
+    public async Task<List<UserDto>> GetAllAsync(string? status = null)
     {
-        var users = await _db.Users.Include(u => u.Role).OrderBy(u => u.Id).ToListAsync();
+        bool? wantActive = (status?.Trim().ToLowerInvariant()) switch
+        {
+            null or "" or "active" => true,
+            "inactive" => false,
+            "all" => null,
+            _ => throw new InvalidOperationException("Status must be 'active', 'inactive' or 'all'.")
+        };
+        var query = _db.Users.Include(u => u.Role).AsQueryable();
+        if (wantActive.HasValue) query = query.Where(u => u.IsActive == wantActive.Value);
+        var users = await query.OrderBy(u => u.Id).ToListAsync();
         return users.Select(ToDto).ToList();
     }
 

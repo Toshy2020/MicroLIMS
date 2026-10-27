@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, TextField } from "@mui/material";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
+import type { MoistureRole } from "../../../services/masterDataOptions";
 import {
   TitrationFormState,
   titrationFormFromDefinition,
@@ -23,7 +24,8 @@ export function hasTitrationSettingsChanged(
   initialTest: TestDefinitionOption | null,
   currentForm: TitrationFormState,
   currentWorkflowType: string,
-  currentArea?: PhyschemArea | null
+  currentArea?: PhyschemArea | null,
+  currentMoistureRole?: MoistureRole | null
 ): boolean {
   if (!initialTest) return false;
   const wasTitration = initialTest.workflowType === "Titration";
@@ -35,11 +37,13 @@ export function hasTitrationSettingsChanged(
   // Both were/are Titration: compare the normalized payload fields and replicate count
   const before = {
     ...titrationPayloadFields(titrationFormFromDefinition(initialTest), true),
-    replicateCount: initialTest.replicateCount != null ? Number(initialTest.replicateCount) : 3
+    replicateCount: initialTest.replicateCount != null ? Number(initialTest.replicateCount) : 3,
+    moistureRole: initialTest.moistureRole ?? "None"
   };
   const after = {
     ...titrationPayloadFields(currentForm, true),
-    replicateCount: Number(currentForm.replicateCount) || 3
+    replicateCount: Number(currentForm.replicateCount) || 3,
+    moistureRole: currentMoistureRole ?? "None"
   };
 
   // The area is part of the titration snapshot on the server (spec 2026-10-05 section 2).
@@ -76,9 +80,10 @@ export function titrationChangeReasonCheck(
   currentForm: TitrationFormState,
   currentWorkflowType: string,
   reason: string,
-  currentArea?: PhyschemArea | null
+  currentArea?: PhyschemArea | null,
+  currentMoistureRole?: MoistureRole | null
 ): { required: boolean; error: string | null; payload: string | null } {
-  const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType, currentArea);
+  const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType, currentArea, currentMoistureRole);
   return {
     required,
     error: required ? validateTitrationChangeReason(reason) : null,

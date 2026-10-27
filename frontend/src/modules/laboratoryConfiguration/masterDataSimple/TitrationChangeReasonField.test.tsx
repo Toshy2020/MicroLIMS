@@ -105,6 +105,23 @@ describe("TitrationChangeReasonField", () => {
       };
       expect(hasTitrationSettingsChanged(baseTest, changedForm, "Titration")).toBe(true);
     });
+
+    it("returns true when moistureRole changes on Titration test", () => {
+      expect(hasTitrationSettingsChanged(baseTest, baseForm, "Titration", null, "Water")).toBe(true);
+      const kfTest: TestDefinitionOption = {
+        ...baseTest,
+        titrationType: "KarlFischer",
+        moistureRole: "Water"
+      };
+      const kfForm: TitrationFormState = {
+        ...baseForm,
+        type: "KarlFischer"
+      };
+      expect(hasTitrationSettingsChanged(kfTest, kfForm, "Titration", null, "None")).toBe(true);
+      expect(hasTitrationSettingsChanged(kfTest, kfForm, "Titration", null, "Water")).toBe(false);
+      expect(titrationChangeReasonCheck(kfTest, kfForm, "Titration", "", null, "None").required).toBe(true);
+      expect(titrationChangeReasonCheck(kfTest, kfForm, "Titration", "", null, "Water").required).toBe(false);
+    });
   });
 
   describe("validateTitrationChangeReason", () => {

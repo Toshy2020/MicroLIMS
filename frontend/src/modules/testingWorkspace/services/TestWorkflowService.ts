@@ -91,7 +91,7 @@ export const TestWorkflowService = {
         specificationId: number;
         conforms: boolean;
         observation?: string | null;
-        containers?: { index: number; conforms: boolean; observation?: string }[];
+        containers?: { index: number; conforms: boolean; observation?: string | null }[];
       }[];
       password: string;
       comment?: string | null;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -94,6 +94,7 @@ export function QualitativePanel({
   const isPerContainer = Boolean(current.perContainer);
   const [containerCountInput, setContainerCountInput] = useState<string>("");
   const [containerCountTouched, setContainerCountTouched] = useState(false);
+  const containerMemoryRef = useRef<Map<number, Map<number, QualitativeContainerRowState>>>(new Map());
 
   // Outcome / completion view
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string } | null>(null);
@@ -201,16 +202,39 @@ export function QualitativePanel({
     );
   };
 
+  const applyContainerCount = (count: number) => {
+    setRows((prev) =>
+      prev.map((r) => {
+        let specMap = containerMemoryRef.current.get(r.specificationId);
+        if (!specMap) {
+          specMap = new Map();
+          containerMemoryRef.current.set(r.specificationId, specMap);
+        }
+        for (const c of r.containers || []) {
+          specMap.set(c.index, { ...c });
+        }
+        const updatedContainers = buildContainerRows(r.containers || [], count, specMap);
+        for (const c of updatedContainers) {
+          specMap.set(c.index, { ...c });
+        }
+        return {
+          ...r,
+          containers: updatedContainers,
+          conforms: updatedContainers.every((c) => c.conforms)
+        };
+      })
+    );
+  };
+
   const handleContainerCountChange = (val: string) => {
     setContainerCountInput(val);
-    const count = Number(val);
+  };
+
+  const handleContainerCountCommit = () => {
+    setContainerCountTouched(true);
+    const count = Number(containerCountInput);
     if (isValidContainerCount(count)) {
-      setRows((prev) =>
-        prev.map((r) => ({
-          ...r,
-          containers: buildContainerRows(r.containers || [], count)
-        }))
-      );
+      applyContainerCount(count);
     }
   };
 
@@ -222,9 +246,24 @@ export function QualitativePanel({
     setRows((prev) =>
       prev.map((r, pIdx) => {
         if (pIdx !== paramIndex) return r;
-        const nextContainers = (r.containers || []).map((c) =>
-          c.index === containerIndex ? { ...c, ...patch } : c
-        );
+        const nextContainers = (r.containers || []).map((c) => {
+          if (c.index !== containerIndex) return c;
+          const updated = { ...c, ...patch };
+          if (patch.conforms === true) {
+            updated.observation = "";
+          }
+          return updated;
+        });
+
+        let specMap = containerMemoryRef.current.get(r.specificationId);
+        if (!specMap) {
+          specMap = new Map();
+          containerMemoryRef.current.set(r.specificationId, specMap);
+        }
+        for (const c of nextContainers) {
+          specMap.set(c.index, { ...c });
+        }
+
         return {
           ...r,
           containers: nextContainers,
@@ -402,7 +441,13 @@ export function QualitativePanel({
                 placeholder="1–200"
                 value={containerCountInput}
                 onChange={(e) => handleContainerCountChange(e.target.value)}
-                onBlur={() => setContainerCountTouched(true)}
+                onBlur={handleContainerCountCommit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleContainerCountCommit();
+                  }
+                }}
                 slotProps={{ htmlInput: { min: 1, max: 200, step: 1 } }}
                 helperText="Enter the number of containers received (1 to 200)."
                 error={Boolean((containerCountTouched || containerCountInput !== "") && !isCountValid)}
@@ -456,6 +501,8 @@ export function QualitativePanel({
 
                       {/* Read-only conclusion line */}
                       <Box
+                        role="status"
+                        aria-live="polite"
                         sx={{
                           p: 1.5,
                           borderRadius: 1,
@@ -514,6 +561,7 @@ export function QualitativePanel({
                               </Typography>
 
                               <ToggleButtonGroup
+                                aria-label={`Container ${container.index} result`}
                                 value={container.conforms ? "complies" : "non-comply"}
                                 exclusive
                                 size="small"

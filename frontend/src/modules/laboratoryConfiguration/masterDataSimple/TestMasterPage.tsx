@@ -389,7 +389,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     }
 
     const reasonCheck = editingId
-      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null)
+      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null, moistureRole)
       : { required: false, error: null, payload: null };
     setChangeReasonError(reasonCheck.error);
     if (reasonCheck.error) return;
@@ -496,7 +496,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           changeReason: reasonCheck.payload,
           perContainer: isQualitative ? perContainer : false,
-          moistureRole: isGravimetric
+          moistureRole: (isGravimetric && equationType === "GravimetricLoss")
             ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
             : (isTitration && titration.type === "KarlFischer")
             ? (moistureRole === "Water" ? "Water" : "None")
@@ -509,7 +509,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       } else {
         const payload: CreateTestDefinitionPayload = {
           perContainer: isQualitative ? perContainer : false,
-          moistureRole: isGravimetric
+          moistureRole: (isGravimetric && equationType === "GravimetricLoss")
             ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
             : (isTitration && titration.type === "KarlFischer")
             ? (moistureRole === "Water" ? "Water" : "None")
@@ -799,38 +799,61 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                 onChange={(e) => {
                   const next = e.target.value;
                   setWorkflowType(next);
+                  if (next !== "Qualitative") {
+                    setPerContainer(false);
+                  }
                   if (next === "HplcMethodAssay") {
                     setEquationType("HplcMethodAssay");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
                   } else if (next === "IcpMethodAssay") {
                     setEquationType("IcpMethodAssay");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Measurement") {
                     setEquationType("Measurement");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Gravimetric") {
+                    let nextEq = equationType;
                     if (equationType !== "GravimetricLoss" && equationType !== "GravimetricResidue") {
+                      nextEq = "GravimetricLoss";
                       setEquationType("GravimetricLoss");
+                    }
+                    if (nextEq !== "GravimetricLoss" && moistureRole === "LossOnDrying") {
+                      setMoistureRole("None");
+                    } else if (moistureRole === "Water") {
+                      setMoistureRole("None");
                     }
                     setRequiresSystemSuitability(false);
                   } else if (next === "Qualitative") {
                     setEquationType("Qualitative");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Dissolution") {
                     setEquationType("Dissolution");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
                   } else if (next === "Disintegration") {
                     setEquationType("Disintegration");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "WeightVariation") {
                     setEquationType("WeightVariation");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Titration") {
                     setEquationType("Titration");
                     setRequiresSystemSuitability(false);
+                    if (titration.type !== "KarlFischer" && moistureRole === "Water") {
+                      setMoistureRole("None");
+                    } else if (moistureRole === "LossOnDrying") {
+                      setMoistureRole("None");
+                    }
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   }
                 }}
               >
@@ -853,21 +876,34 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                 onChange={(e) => {
                   const next = e.target.value;
                   setEquationType(next);
+                  if (workflowType === "Gravimetric" && next !== "GravimetricLoss" && moistureRole === "LossOnDrying") {
+                    setMoistureRole("None");
+                  }
                   if (next === "HplcMethodAssay") {
                     setWorkflowType("HplcMethodAssay");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "IcpMethodAssay") {
                     setWorkflowType("IcpMethodAssay");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "Disintegration") {
                     setWorkflowType("Disintegration");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "WeightVariation") {
                     setWorkflowType("WeightVariation");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "Dissolution") {
                     setWorkflowType("Dissolution");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   }
                 }}
               >
@@ -1083,18 +1119,20 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
                 />
-                <FormControl size="small" sx={{ maxWidth: 300 }}>
-                  <InputLabel id="gravimetric-moisture-role-label">Moisture role</InputLabel>
-                  <Select<MoistureRole>
-                    labelId="gravimetric-moisture-role-label"
-                    label="Moisture role"
-                    value={moistureRole === "Water" ? "None" : moistureRole}
-                    onChange={(e) => setMoistureRole(e.target.value as MoistureRole)}
-                  >
-                    <MenuItem value="None">None</MenuItem>
-                    <MenuItem value="LossOnDrying">Loss on drying</MenuItem>
-                  </Select>
-                </FormControl>
+                {equationType === "GravimetricLoss" && (
+                  <FormControl size="small" sx={{ maxWidth: 300 }}>
+                    <InputLabel id="gravimetric-moisture-role-label">Moisture role</InputLabel>
+                    <Select<MoistureRole>
+                      labelId="gravimetric-moisture-role-label"
+                      label="Moisture role"
+                      value={moistureRole === "Water" ? "None" : moistureRole}
+                      onChange={(e) => setMoistureRole(e.target.value as MoistureRole)}
+                    >
+                      <MenuItem value="None">None</MenuItem>
+                      <MenuItem value="LossOnDrying">Loss on drying</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
               </Stack>
             </Box>
           )}
@@ -1102,7 +1140,12 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           {workflowType === "Titration" && (
             <TitrationConfigSection
               form={titration}
-              onChange={setTitration}
+              onChange={(nextTitration) => {
+                setTitration(nextTitration);
+                if (nextTitration.type !== "KarlFischer" && moistureRole === "Water") {
+                  setMoistureRole("None");
+                }
+              }}
               sectionId={sectionId}
               moistureRole={moistureRole}
               onMoistureRoleChange={setMoistureRole}
@@ -1111,7 +1154,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
 
           {isFp && area && <TestAreaField pageArea={area} value={physchemArea} onChange={setPhyschemArea} />}
 
-          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null) && (
+          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null, moistureRole) && (
             <TitrationChangeReasonField value={changeReason} onChange={setChangeReason} error={changeReasonError} />
           )}
 

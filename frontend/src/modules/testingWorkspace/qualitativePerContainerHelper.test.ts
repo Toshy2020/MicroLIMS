@@ -7,7 +7,20 @@ import {
 } from "./qualitativePerContainerHelper";
 
 describe("getConclusionLine", () => {
-  it("returns 'All {n} containers comply' when all containers comply", () => {
+  it("returns 'The container complies' when n = 1 and container complies", () => {
+    expect(getConclusionLine(1, [{ index: 1, conforms: true }])).toBe("The container complies");
+  });
+
+  it("returns 'The container does not comply' when n = 1 and container fails", () => {
+    expect(getConclusionLine(1, [{ index: 1, conforms: false }])).toBe("The container does not comply");
+  });
+
+  it("returns 'The container complies' when n = 1 and containers array is empty or null", () => {
+    expect(getConclusionLine(1, [])).toBe("The container complies");
+    expect(getConclusionLine(1, null)).toBe("The container complies");
+  });
+
+  it("returns 'All {n} containers comply' when n > 1 and all containers comply", () => {
     expect(
       getConclusionLine(3, [
         { index: 1, conforms: true },
@@ -17,11 +30,7 @@ describe("getConclusionLine", () => {
     ).toBe("All 3 containers comply");
   });
 
-  it("returns 'All 1 containers comply' for a single complying container", () => {
-    expect(getConclusionLine(1, [{ index: 1, conforms: true }])).toBe("All 1 containers comply");
-  });
-
-  it("returns 'All {n} containers comply' when containers array is empty or null", () => {
+  it("returns 'All {n} containers comply' when n > 1 and containers array is empty or null", () => {
     expect(getConclusionLine(5, [])).toBe("All 5 containers comply");
     expect(getConclusionLine(2, null)).toBe("All 2 containers comply");
   });
@@ -37,7 +46,7 @@ describe("getConclusionLine", () => {
     ).toBe("Container 2 of 4 does not comply");
   });
 
-  it("returns 'Containers {i, j} of {n} do not comply' with ascending indexes when multiple containers fail", () => {
+  it("returns 'Containers {i, j} of {n} do not comply' with ascending indexes when multiple containers fail and string is <= 100 chars", () => {
     expect(
       getConclusionLine(4, [
         { index: 1, conforms: true },
@@ -59,6 +68,16 @@ describe("getConclusionLine", () => {
         { index: 6, conforms: true }
       ])
     ).toBe("Containers 1, 3, 5 of 6 do not comply");
+  });
+
+  it("falls back to '{k} of {n} containers do not comply' when the detailed string exceeds 100 characters", () => {
+    // 30 failing containers out of 50
+    const containers = Array.from({ length: 50 }, (_, i) => ({
+      index: i + 1,
+      conforms: i >= 30 // indexes 1..30 fail
+    }));
+    // Detailed would be: "Containers 1, 2, 3, ... 30 of 50 do not comply" (> 100 chars)
+    expect(getConclusionLine(50, containers)).toBe("30 of 50 containers do not comply");
   });
 });
 
@@ -97,14 +116,30 @@ describe("buildContainerRows", () => {
     ];
     const expanded = buildContainerRows(existing, 3);
     expect(expanded).toEqual([
-      { index: 1, conforms: true, observation: "Pass" },
+      { index: 1, conforms: true, observation: "" },
       { index: 2, conforms: false, observation: "Damaged seal" },
       { index: 3, conforms: true, observation: "" }
     ]);
 
     const shrank = buildContainerRows(existing, 1);
     expect(shrank).toEqual([
-      { index: 1, conforms: true, observation: "Pass" }
+      { index: 1, conforms: true, observation: "" }
+    ]);
+  });
+
+  it("restores removed rows from containerMemory when growing after shrinking", () => {
+    const memory = new Map<number, { conforms: boolean; observation: string }>([
+      [1, { conforms: true, observation: "" }],
+      [2, { conforms: false, observation: "Punctured foil" }],
+      [3, { conforms: false, observation: "Wrong color" }]
+    ]);
+
+    // Growing from 1 container back to 3 containers using memory
+    const restored = buildContainerRows([{ index: 1, conforms: true, observation: "" }], 3, memory);
+    expect(restored).toEqual([
+      { index: 1, conforms: true, observation: "" },
+      { index: 2, conforms: false, observation: "Punctured foil" },
+      { index: 3, conforms: false, observation: "Wrong color" }
     ]);
   });
 
@@ -156,7 +191,7 @@ describe("buildQualitativePayload", () => {
     expect((payload.parameters[1] as { containers?: unknown }).containers).toBeUndefined();
   });
 
-  it("builds payload for per-container qualitative tests with containerCount and parameter containers", () => {
+  it("always sends observation (string or null) for each container, clearing observation for complying containers", () => {
     const payload = buildQualitativePayload({
       analysedAt: "2026-10-26T12:00:00",
       equipmentId: "",
@@ -170,9 +205,9 @@ describe("buildQualitativePayload", () => {
           conforms: false,
           observation: "",
           containers: [
-            { index: 1, conforms: true, observation: "" },
+            { index: 1, conforms: true, observation: "Leftover note" },
             { index: 2, conforms: false, observation: "Foreign particles visible" },
-            { index: 3, conforms: true, observation: "Clear" }
+            { index: 3, conforms: false, observation: "   " }
           ]
         }
       ]
@@ -186,9 +221,9 @@ describe("buildQualitativePayload", () => {
     expect(payload.parameters[0].specificationId).toBe(201);
     expect(payload.parameters[0].conforms).toBe(false);
     expect(payload.parameters[0].containers).toEqual([
-      { index: 1, conforms: true },
+      { index: 1, conforms: true, observation: null },
       { index: 2, conforms: false, observation: "Foreign particles visible" },
-      { index: 3, conforms: true, observation: "Clear" }
+      { index: 3, conforms: false, observation: null }
     ]);
   });
 });

@@ -116,7 +116,12 @@ export function TitrationConfigSection({ form, onChange, sectionId, moistureRole
       {loadError && <Typography color="error" sx={{ fontSize: 12, mb: 1 }}>{loadError}</Typography>}
       <Stack spacing={2}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          {select("titration-type-label", "Titration type", form.type, TITRATION_TYPE_OPTIONS, (t) => set({ type: t, titrantSolutionMasterId: "", excessSolutionMasterId: "" }))}
+          {select("titration-type-label", "Titration type", form.type, TITRATION_TYPE_OPTIONS, (t) => {
+            set({ type: t, titrantSolutionMasterId: "", excessSolutionMasterId: "" });
+            if (t !== "KarlFischer" && moistureRole === "Water") {
+              onMoistureRoleChange?.("None");
+            }
+          })}
           {v.mode && select("titration-mode-label", "Mode", form.mode, TITRATION_MODE_OPTIONS, (m) => set({ mode: m }))}
           {v.calculation && select("titration-calc-label", "Calculation method", form.calculation, TITRATION_CALCULATION_OPTIONS.filter((o) => o.value !== "Relative" || form.mode !== "Residual"), (c) => set({ calculation: c }))}
         </Stack>

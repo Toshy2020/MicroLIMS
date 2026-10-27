@@ -1,37 +1,46 @@
 export interface QualitativeContainerEntry {
   index: number;
   conforms: boolean;
-  observation?: string;
+  observation?: string | null;
 }
 
 /**
  * Returns the exact conclusion line mirroring the backend server wording:
- * - all pass -> "All {n} containers comply"
+ * - n = 1 -> "The container complies" / "The container does not comply"
+ * - n > 1 all pass -> "All {n} containers comply"
  * - one fails -> "Container {i} of {n} does not comply"
  * - several fail -> "Containers {i, j} of {n} do not comply" (indexes ascending, joined with ", ")
+ *   BUT if that several-fail string would be longer than 100 characters use "{k} of {n} containers do not comply".
  */
 export function getConclusionLine(
   containerCount: number,
   containers?: { index: number; conforms: boolean }[] | null
 ): string {
-  if (!containers || containers.length === 0) {
-    return `All ${containerCount} containers comply`;
-  }
-
-  const failedIndexes = containers
+  const failedIndexes = (containers || [])
     .filter((c) => !c.conforms)
     .map((c) => c.index)
     .sort((a, b) => a - b);
 
-  if (failedIndexes.length === 0) {
+  const k = failedIndexes.length;
+
+  if (containerCount === 1) {
+    return k === 0 ? "The container complies" : "The container does not comply";
+  }
+
+  if (k === 0) {
     return `All ${containerCount} containers comply`;
   }
 
-  if (failedIndexes.length === 1) {
+  if (k === 1) {
     return `Container ${failedIndexes[0]} of ${containerCount} does not comply`;
   }
 
-  return `Containers ${failedIndexes.join(", ")} of ${containerCount} do not comply`;
+  const detailed = `Containers ${failedIndexes.join(", ")} of ${containerCount} do not comply`;
+  if (detailed.length > 100) {
+    return `${k} of ${containerCount} containers do not comply`;
+  }
+
+  return detailed;
 }
 
 /**
@@ -44,15 +53,21 @@ export function isValidContainerCount(count: number | null | undefined): boolean
 
 /**
  * Builds or adjusts the container rows (1..count), preserving any existing conforms
- * and observation values for previously existing container indexes.
+ * and observation values for previously existing container indexes (or retrieved from cache).
  */
 export function buildContainerRows<T extends { index: number; conforms: boolean; observation: string }>(
   existingContainers: T[],
-  newCount: number
+  newCount: number,
+  containerMemory?: Map<number, { conforms: boolean; observation: string }>
 ): { index: number; conforms: boolean; observation: string }[] {
   if (newCount < 1) return [];
 
-  const existingMap = new Map<number, T>();
+  const existingMap = new Map<number, { conforms: boolean; observation: string }>();
+  if (containerMemory) {
+    for (const [idx, val] of containerMemory.entries()) {
+      existingMap.set(idx, val);
+    }
+  }
   for (const c of existingContainers) {
     existingMap.set(c.index, c);
   }
@@ -64,7 +79,7 @@ export function buildContainerRows<T extends { index: number; conforms: boolean;
       result.push({
         index: i,
         conforms: existing.conforms,
-        observation: existing.observation
+        observation: existing.conforms ? "" : existing.observation
       });
     } else {
       result.push({
@@ -89,7 +104,7 @@ export interface BuildQualitativePayloadArgs {
     specificationId: number;
     conforms: boolean;
     observation?: string | null;
-    containers?: { index: number; conforms: boolean; observation: string }[];
+    containers?: { index: number; conforms: boolean; observation?: string | null }[];
   }[];
 }
 
@@ -117,7 +132,7 @@ export interface QualitativePerContainerPayload {
     containers: {
       index: number;
       conforms: boolean;
-      observation?: string;
+      observation: string | null;
     }[];
   }[];
   password: string;
@@ -127,7 +142,7 @@ export interface QualitativePerContainerPayload {
 /**
  * Builds the qualitative result payload for the API:
  * - When isPerContainer is true:
- *   Includes containerCount at top level, and containers: [{ index, conforms, observation? }]
+ *   Includes containerCount at top level, and containers: [{ index, conforms, observation: string | null }]
  *   for each parameter.
  * - When isPerContainer is false:
  *   Omits containerCount, and omits containers on parameters (exact legacy shape).
@@ -149,7 +164,7 @@ export function buildQualitativePayload(args: BuildQualitativePayloadArgs): Qual
         const containers = (p.containers || []).map((c) => ({
           index: c.index,
           conforms: c.conforms,
-          ...(c.observation?.trim() ? { observation: c.observation.trim() } : {})
+          observation: c.conforms ? null : (c.observation?.trim() || null)
         }));
         const parameterConforms = containers.every((c) => c.conforms);
 

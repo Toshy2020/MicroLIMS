@@ -168,6 +168,9 @@ public class PostgresTestFixture : IAsyncLifetime
             await db.SaveChangesAsync();
 
             DbSeeder.SeedPermissionsAndGrants(db);
+            // The Document Control workflow tests use these roles for authors and reviewers; the five codes are a
+            // role gate (Q13), so they hold them here. Tests of the gate build their own roles.
+            DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
             var docType = new DocumentType
             {

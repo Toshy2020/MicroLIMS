@@ -71,9 +71,12 @@ public class DocumentControlPermissionEnforcementTests
         _reviewerRole = new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true };
         _analystRole = new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true };
         _bareRole = new Role { Type = RoleType.Reviewer, Name = "Bare reviewer", IsSystemRole = false, IsActive = true };
-        _db.Roles.AddRange(admin, _controllerRole, _reviewerRole, _analystRole, _bareRole);
+        // (added after the seed below: the seeder maps one role per type)
+        _db.Roles.AddRange(admin, _controllerRole, _reviewerRole, _analystRole);
         _db.SaveChanges();
         DbSeeder.SeedPermissionsAndGrants(_db);
+        _db.Roles.Add(_bareRole);
+        _db.SaveChanges();
 
         User U(string n, Role r) => new() { Username = n, FullName = n, Email = $"{n}@lims.local", PasswordHash = "x", RoleId = r.Id, IsActive = true };
         _author = U("author", _analystRole);
@@ -123,7 +126,7 @@ public class DocumentControlPermissionEnforcementTests
             Category: "Testing", Keywords: new List<string> { "QC" },
             InitialRevisionNumber: "01", ReviewCycleMonths: 24), _author.Id);
         await _fileService.UploadRevisionFileAsync(doc.Revisions[0].Id, FileRole.ControlledPdf, "a.pdf", "application/pdf",
-            Encoding.UTF8.GetBytes("%PDF-1.4 mock"), _author.Id);
+            Encoding.UTF8.GetBytes("%PDF-1.4 mock"), _controller.Id);
         return (doc.Id, doc.Revisions[0].Id);
     }
 

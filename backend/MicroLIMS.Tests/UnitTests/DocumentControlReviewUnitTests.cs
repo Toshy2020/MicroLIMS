@@ -63,6 +63,7 @@ public class DocumentControlReviewUnitTests
 
         // Seeds the real production permission grants - see DocumentControlUnitTests.
         DbSeeder.SeedPermissionsAndGrants(_db);
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(_db);
 
         // Seed Users
         var adminUser = new User { Username = "admin", FullName = "System Admin", Email = "admin@lims.local", PasswordHash = "x", RoleId = adminRole.Id, IsActive = true };

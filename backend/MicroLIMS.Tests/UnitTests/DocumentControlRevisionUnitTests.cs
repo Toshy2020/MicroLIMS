@@ -32,6 +32,7 @@ public class DocumentControlRevisionUnitTests
         var controllerRole = new Role { Type = RoleType.SectionHead, Name = "Document Controller", IsActive = true };
         db.Roles.AddRange(analystRole, controllerRole);
         await db.SaveChangesAsync();
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
         var author = new User { FullName = "SOP Author", Username = "author1", RoleId = analystRole.Id, IsActive = true, PasswordHash = "x" };
         var controller = new User { FullName = "Document Controller", Username = "controller1", RoleId = controllerRole.Id, IsActive = true, PasswordHash = "x" };

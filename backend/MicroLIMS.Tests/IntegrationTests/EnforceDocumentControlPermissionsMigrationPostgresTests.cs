@@ -28,7 +28,7 @@ public class EnforceDocumentControlPermissionsMigrationPostgresTests
     private static async Task RunAsync(MicroLimsDbContext db, IEnumerable<MigrationOperation> operations)
     {
         foreach (var op in operations.Cast<SqlOperation>())
-            await db.Database.ExecuteSqlRawAsync(op.Sql);
+            await db.Database.ExecuteSqlRawAsync(op.Sql.Replace("{", "{{").Replace("}", "}}")); // literal braces (array literals), not format items
     }
 
     private static Task UpAsync(MicroLimsDbContext db) => RunAsync(db, new EnforceDocumentControlPermissions().UpOperations);

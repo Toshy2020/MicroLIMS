@@ -72,6 +72,7 @@ public class SystemAdministratorGrantsPostgresTests
             Assert.Contains("Sections.ConfigureAll", configure.NewValue);
             Assert.Contains(PermissionConstants.SectionsConfigureAll, held);
             Assert.Contains(PermissionConstants.SystemManageJobs, held);
+            Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SystemManageJobs && p.IsEnforced));
             Assert.Contains(audits, a => a.Reason!.Contains("background job") && a.NewValue!.Contains("System.ManageJobs"));
             Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SectionsConfigureAll && p.IsEnforced));
 

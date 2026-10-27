@@ -158,6 +158,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>();

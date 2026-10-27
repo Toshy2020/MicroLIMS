@@ -22,6 +22,8 @@ public static class SecurityEventCodes
     public const string RefreshRejectedAccountBlocked = "AUTH_REFRESH_REJECTED_ACCOUNT_BLOCKED";
     public const string Logout = "AUTH_LOGOUT";
     public const string SessionRevoked = "AUTH_SESSION_REVOKED";
+    // Written by SessionTokenCleanupWorker: a count of dead tokens deleted in one pass.
+    public const string SessionTokensPurged = "AUTH_SESSION_TOKENS_PURGED";
 
     // ---- Credentials ----
     public const string PasswordChanged = "AUTH_PASSWORD_CHANGED";

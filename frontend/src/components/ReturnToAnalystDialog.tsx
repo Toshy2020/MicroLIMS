@@ -122,7 +122,7 @@ export function ReturnToAnalystDialog({
           </Box>
 
           <Alert severity="info" sx={{ fontSize: 12 }}>
-            Returning this test order will soft-supersede active count readings, reopen the incubation step, and return the test to the assigned analyst. If the parent sample is Under Review, it will revert to In Testing.
+            Returning this test order will soft-supersede active count readings, reopen the incubation step, and return the test to the assigned analyst. If the parent sample is Under Review, it will revert to In Testing. If this is a loss on drying or water test, the assays that used its result are returned with it.
           </Alert>
 
           <TextField

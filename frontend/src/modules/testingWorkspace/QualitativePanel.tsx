@@ -438,7 +438,7 @@ export function QualitativePanel({
               <TextField
                 size="small"
                 type="number"
-                label="Containers received *"
+                label="Containers received"
                 placeholder="1–200"
                 value={containerCountInput}
                 onChange={(e) => handleContainerCountChange(e.target.value)}

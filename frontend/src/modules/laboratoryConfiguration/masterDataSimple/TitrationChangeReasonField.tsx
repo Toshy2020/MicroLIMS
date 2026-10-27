@@ -66,7 +66,7 @@ export function hasTitrationSettingsChanged(
 export function validateTitrationChangeReason(reason: string | null | undefined): string | null {
   const trimmed = (reason ?? "").trim();
   if (!trimmed || trimmed.length < 5 || trimmed.length > 500) {
-    return "A reason for change is required when titration settings change (5 to 500 characters).";
+    return "A reason for change is required when titration or moisture settings change (5 to 500 characters).";
   }
   return null;
 }
@@ -115,7 +115,7 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
       <TextField
         size="small"
         label="Reason for Change"
-        placeholder="Enter reason for changing titration settings (5–500 characters)"
+        placeholder="Enter reason for changing titration or moisture settings (5–500 characters)"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
@@ -123,7 +123,7 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
         multiline
         minRows={2}
         error={Boolean(error)}
-        helperText={error || "A reason for change is required when titration settings change (5–500 characters)."}
+        helperText={error || "A reason for change is required when titration or moisture settings change (5–500 characters)."}
         slotProps={{ htmlInput: { minLength: 5, maxLength: 500 } }}
         disabled={disabled}
       />

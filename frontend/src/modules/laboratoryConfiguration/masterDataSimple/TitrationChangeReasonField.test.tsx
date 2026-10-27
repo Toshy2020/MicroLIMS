@@ -160,7 +160,7 @@ describe("TitrationChangeReasonField", () => {
       render(<TitrationChangeReasonField value="" onChange={onChange} />);
 
       expect(screen.getByLabelText(/Reason for Change/)).toBeTruthy();
-      const input = screen.getByPlaceholderText(/Enter reason for changing titration settings/);
+      const input = screen.getByPlaceholderText(/Enter reason for changing titration or moisture settings/);
       expect(input).toBeTruthy();
 
       fireEvent.change(input, { target: { value: "Updated factor" } });

@@ -71,6 +71,7 @@ const APP_ROUTES = {
   DOCUMENT_CONTROL_DETAIL: (id: number | string) => `/document-control/documents/${id}`,
   DOCUMENT_CONTROL_AUDIT: "/document-control/audit",
   DOCUMENT_CONTROL_CONFIGURATION: "/document-control/configuration",
+  DOCUMENT_CONTROL_REASSIGNMENTS: "/document-control/reassignments",
 
   // Audit
   AUDIT_SEARCH: "/admin/audit",
@@ -85,6 +86,7 @@ const APP_ROUTES = {
   ROLE_DETAIL: (id: number | string) => `/admin/roles/${id}`,
   SETTINGS: "/admin/settings",
   ADMIN_JOBS: "/admin/jobs",
+  ADMIN_ORGANIZATION: "/admin/organization",
 
   // Printable Report Pages (standalone rendering outside MainLayout)
   SAMPLE_REPORT: (id: number | string) => `/samples/${id}/report`,
@@ -246,6 +248,7 @@ export const PERMISSIONS = {
   SYSTEM_MANAGE_JOBS: "System.ManageJobs",
   DOCUMENTS_REGISTER: "Documents.Register",
   DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
+  DOCUMENTS_REASSIGN: "Documents.Reassign",
   KPI_VIEW: "Kpi.View",
   KPI_VIEW_TEAM: "Kpi.ViewTeam",
   KPI_CONFIGURE_PROFILES: "Kpi.ConfigureProfiles",

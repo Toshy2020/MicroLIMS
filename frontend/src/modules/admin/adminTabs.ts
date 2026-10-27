@@ -13,6 +13,7 @@ export interface AdminTab {
 export const ADMIN_TABS: AdminTab[] = [
   { label: "Users", path: "/admin/users", permission: PERMISSIONS.USERS_MANAGE },
   { label: "Roles", path: "/admin/roles", permission: PERMISSIONS.ROLES_MANAGE },
+  { label: "Organization", path: "/admin/organization", permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },
   { label: "Audit Trail", path: "/admin/audit", permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
   { label: "Settings", path: "/admin/settings", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },

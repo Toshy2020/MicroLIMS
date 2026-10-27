@@ -300,24 +300,40 @@ export interface DocumentDepartmentDto {
   sections: DocumentSectionDto[];
 }
 
+// Every change to the organisation states its reason (stored in the audit trail).
 export interface CreateDocumentDepartmentRequest {
   code: string;
   name: string;
+  reason: string;
 }
 
 export interface UpdateDocumentDepartmentRequest {
   name: string;
   isActive: boolean;
+  reason: string;
+  // Required to deactivate a department that still has documents, active members or open work.
+  confirmDeactivation?: boolean;
 }
 
 export interface CreateDocumentSectionRequest {
   departmentId: number;
   name: string;
+  reason: string;
 }
 
 export interface UpdateDocumentSectionRequest {
   name: string;
   isActive: boolean;
+  reason: string;
+  confirmDeactivation?: boolean;
+}
+
+// What deactivating a department or section would leave behind.
+export interface OrganizationImpactDto {
+  activeDocuments: number;
+  activeMemberships: number;
+  openWork: number;
+  hasReferences: boolean;
 }
 
 export interface DocumentNumberingConfigDto {

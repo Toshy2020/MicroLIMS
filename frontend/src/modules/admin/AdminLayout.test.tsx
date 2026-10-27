@@ -18,6 +18,7 @@ function renderAt(url: string) {
             <Route index element={<AdminIndexRedirect />} />
             <Route path="users" element={<div>users page</div>} />
             <Route path="audit" element={<div>audit page</div>} />
+            <Route path="organization" element={<div>organization page</div>} />
           </Route>
           <Route path="/dashboard" element={<div>dashboard</div>} />
         </Routes>
@@ -39,6 +40,17 @@ describe("AdminLayout", () => {
     renderAt("/admin/users");
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Settings"]);
     expect(screen.getByRole("tab", { name: "Users" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("shows Organization to Documents.ConfigManage holders only", () => {
+    auth.permissions = ["Documents.ConfigManage"];
+    renderAt("/admin/organization");
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Organization"]);
+
+    cleanup();
+    auth.permissions = ["Users.Manage", "Documents.Reassign"]; // the Section Head's code does not open the admin tab
+    renderAt("/admin/users");
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users"]);
   });
 
   it("/admin lands on the first permitted tab", () => {

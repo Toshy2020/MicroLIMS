@@ -88,6 +88,8 @@ const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pa
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
 const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const OrganizationPage = lazy(() => import("../modules/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage })));
+const ReassignmentsPage = lazy(() => import("../modules/documentControl/pages/ReassignmentsPage").then((m) => ({ default: m.ReassignmentsPage })));
 const JobsPage = lazy(() => import("../modules/admin/JobsPage").then((m) => ({ default: m.JobsPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
@@ -273,6 +275,10 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
               <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
             </Route>
+            {/* Hand over a deactivated user's document responsibilities: ConfigManage anywhere, Reassign within one's departments (the server decides per item). */}
+            <Route element={<PermissionRoute code={[PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, PERMISSIONS.DOCUMENTS_REASSIGN]} />}>
+              <Route path="/document-control/reassignments" element={<ReassignmentsPage />} />
+            </Route>
             {/* Administration: one shell, a tab per page, each tab behind
                 its own permission. The panel controls the system, never
                 GxP data. */}
@@ -283,6 +289,9 @@ export function AppRoutes() {
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
                 <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
+                <Route path="organization" element={<OrganizationPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_MANAGE_JOBS} />}>
                 <Route path="jobs" element={<JobsPage />} />

@@ -39,6 +39,8 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ThermostatOutlinedIcon from "@mui/icons-material/ThermostatOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
 import WaterOutlinedIcon from "@mui/icons-material/WaterOutlined";
@@ -113,6 +115,7 @@ const adminItems: MenuItem[] = [
   { label: "Audit Trail", path: "/admin/audit", description: "Search the audit trail of every record and signature.", icon: ManageSearchOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
   { label: "Settings", path: "/admin/settings", description: "Password, lockout, session, e-signature, retention and monitoring settings.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
+  { label: "Organization", path: "/admin/organization", description: "Departments, sections and who belongs to them.", icon: AccountTreeOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },
   { label: "Jobs", path: "/admin/jobs", description: "Background job status, run history and housekeeping runs.", icon: ScheduleOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_MANAGE_JOBS }
 ];
 
@@ -138,6 +141,7 @@ function documentControlItem(role: Role | null, permissions: string[]): MenuItem
       { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", icon: InsightsOutlinedIcon, description: "Training and document compliance across sections." },
       { label: "Document Library", path: "/document-control/library", icon: LocalLibraryOutlinedIcon, description: "Search and open every controlled document and its versions." },
       ...(canQueryDocumentAudit(role, permissions) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
+      { label: "Needs Reassignment", path: "/document-control/reassignments", icon: SwapHorizOutlinedIcon, permission: [PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, PERMISSIONS.DOCUMENTS_REASSIGN], counterKey: "reassignments", description: "Document responsibilities held by deactivated users, waiting for a new owner." },
       { label: "Configuration", path: "/document-control/configuration", icon: TuneOutlinedIcon, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, description: "Document types, sections and workflow settings." }
     ]
   };

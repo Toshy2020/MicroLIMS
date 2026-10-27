@@ -141,6 +141,8 @@ public class UserManagementSecurityTests
         var updated = await userService.SetStatusAsync(user.Id, false, "Left the company", actingUserId: 1);
 
         Assert.False(updated.IsActive);
+        // The deactivation time starts the reassignment clock (DocumentControl.ReassignmentEscalationDays).
+        Assert.NotNull((await db.Users.FindAsync(user.Id))!.DeactivatedAt);
     }
 
     [Fact]
@@ -148,13 +150,14 @@ public class UserManagementSecurityTests
     {
         var db = CreateDbContext();
         var (userService, _, _) = CreateServices(db);
-        var user = new User { Id = 2, FullName = "Analyst User", Username = "analyst2", RoleId = 4, IsActive = false };
+        var user = new User { Id = 2, FullName = "Analyst User", Username = "analyst2", RoleId = 4, IsActive = false, DeactivatedAt = DateTime.UtcNow.AddDays(-3) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
         var updated = await userService.SetStatusAsync(user.Id, true, "Returned to company", actingUserId: 1);
 
         Assert.True(updated.IsActive);
+        Assert.Null((await db.Users.FindAsync(user.Id))!.DeactivatedAt);
     }
 
     [Fact]

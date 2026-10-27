@@ -150,7 +150,7 @@ public class UserDeletionTests
         await db.SaveChangesAsync();
 
         Assert.True(await service.UserHasAnyHistoryAsync(target.Id));
-        var ex = await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, actingUserId: 1));
+        var ex = await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, actingUserId: 1, "Test reason", "pw"));
         Assert.Contains("activity history", ex.Message);
         Assert.NotNull(await db.Users.FindAsync(target.Id));
     }
@@ -167,7 +167,7 @@ public class UserDeletionTests
         db.LoginHistories.Add(new LoginHistory { UserId = target.Id, Username = target.Username, Success = false });
         await db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, actingUserId: 1));
+        await Assert.ThrowsAsync<UserHasHistoryException>(() => service.HardDeleteAsync(target.Id, actingUserId: 1, "Test reason", "pw"));
     }
 
     [Fact]

@@ -185,9 +185,26 @@ public class SpecificationService
         return g.ToUpperInvariant() is "BP" or "USP" ? g.ToUpperInvariant() : g;
     }
 
+    // Default parameter name of a related-substance row when none is typed.
+    public static string RelatedSubstanceParameterName(RelatedSubstanceRow kind, string? impurityName) => kind switch
+    {
+        RelatedSubstanceRow.Named => impurityName ?? "Named impurity",
+        RelatedSubstanceRow.UnspecifiedEach => "Any unspecified impurity",
+        RelatedSubstanceRow.Total => "Total impurities",
+        _ => "Total of others",
+    };
+
+    private static string RelatedSubstanceDuplicateLabel(RelatedSubstanceRow kind, string? impurityName) => kind switch
+    {
+        RelatedSubstanceRow.Named => $"named impurity '{impurityName}'",
+        RelatedSubstanceRow.UnspecifiedEach => "any unspecified impurity",
+        RelatedSubstanceRow.Total => "total impurities",
+        _ => "total of others",
+    };
+
     private async Task ValidateRelatedSubstanceRowAsync(Specification spec, int? methodId, CancellationToken cancellationToken)
     {
-        if (spec.RelatedSubstanceRow is not RelatedSubstanceRow kind)
+        if (spec.RelatedSubstanceRow is not RelatedSubstanceRow kind || !Enum.IsDefined(kind))
             throw new InvalidOperationException("Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.");
 
         if (kind == RelatedSubstanceRow.Named)
@@ -206,10 +223,14 @@ public class SpecificationService
             throw new InvalidOperationException("Related-substance limits are 'not more than' limits.");
         if (spec.ResultBasis != ResultBasis.PercentAsIs)
             throw new InvalidOperationException("Related-substance rows report % (as is).");
+        if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+            throw new InvalidOperationException("Related-substance rows have no label claim.");
     }
 
     public async Task ValidateAsync(Specification spec, CancellationToken cancellationToken = default)
     {
+        if (spec.RelatedSubstanceRow.HasValue && spec.LimitType == LimitType.NotMoreThan && !(spec.UpperLimit > 0m))
+            throw new InvalidOperationException("Enter the limit (above 0 %).");
         Validate(spec);
         spec.Grade = NormalizeGrade(spec.Grade);
         // Grades match case-insensitively ("In-house" = "in-house"); reuse the item's
@@ -278,19 +299,31 @@ public class SpecificationService
                 throw new InvalidOperationException("A specification for this element and basis already exists.");
         }
 
-        var duplicate = await _db.Specifications.AnyAsync(
+        // Related-substance rows are keyed by kind (+ impurity for a Named row) per stage and grade;
+        // that key replaces the parameter-name check, so rows may share a parameter name.
+        if (spec.RelatedSubstanceRow is RelatedSubstanceRow kind)
+        {
+            var relatedDuplicate = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.RelatedSubstanceRow == kind
+                     && s.HplcMethodImpurityId == spec.HplcMethodImpurityId
+                     && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                     && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
+                cancellationToken);
+            if (relatedDuplicate)
+            {
+                string? impurityName = null;
+                if (kind == RelatedSubstanceRow.Named && spec.HplcMethodImpurityId is int impurityId)
+                    impurityName = await _db.HplcMethodImpurities.Where(i => i.Id == impurityId).Select(i => i.Name).FirstOrDefaultAsync(cancellationToken);
+                throw new InvalidOperationException($"A {RelatedSubstanceDuplicateLabel(kind, impurityName)} row already exists for this test, stage and grade.");
+            }
+        }
+
+        var duplicate = spec.RelatedSubstanceRow is null && await _db.Specifications.AnyAsync(
             s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName
                  && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
                  && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
             cancellationToken);
-        // Related-substance rows are keyed by kind (+ impurity for a Named row) per stage and grade.
-        var relatedDuplicate = spec.RelatedSubstanceRow is RelatedSubstanceRow kind && await _db.Specifications.AnyAsync(
-            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.RelatedSubstanceRow == kind
-                 && s.HplcMethodImpurityId == spec.HplcMethodImpurityId
-                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
-                 && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
-            cancellationToken);
-        if (duplicate || relatedDuplicate)
+        if (duplicate)
             throw new InvalidOperationException(spec.Grade is not null
                 ? "A specification for this parameter and grade already exists."
                 : $"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at {StageText(spec.ProductionStageRole)} on this item.");

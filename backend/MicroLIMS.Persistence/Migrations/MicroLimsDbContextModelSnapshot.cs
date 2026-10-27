@@ -9883,10 +9883,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("IcpMethodElementId");
 
-                    b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade")
+                    b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade", "RelatedSubstanceRow", "HplcMethodImpurityId")
                         .IsUnique();
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade"), false);
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade", "RelatedSubstanceRow", "HplcMethodImpurityId"), false);
 
                     b.ToTable("Specifications");
                 });

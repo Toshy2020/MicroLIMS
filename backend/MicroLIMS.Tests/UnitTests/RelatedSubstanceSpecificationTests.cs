@@ -88,6 +88,10 @@ public class RelatedSubstanceSpecificationTests
     [InlineData("non-named-with-impurity", "Only a named-impurity row names an impurity.")]
     [InlineData("limit-type", "Related-substance limits are 'not more than' limits.")]
     [InlineData("basis", "Related-substance rows report % (as is).")]
+    [InlineData("label-claim", "Related-substance rows have no label claim.")]
+    [InlineData("limit-zero", "Enter the limit (above 0 %).")]
+    [InlineData("limit-null", "Enter the limit (above 0 %).")]
+    [InlineData("undefined-kind", "Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.")]
     public async Task RelatedSubstancesSpec_Refusals(string field, string message)
     {
         await using var db = TestDb();
@@ -101,6 +105,10 @@ public class RelatedSubstanceSpecificationTests
             "non-named-with-impurity" => Row(a, "Row", RelatedSubstanceRow.Total, 0.1m, a.ImpurityDId),
             "limit-type" => Row(a, "Row", RelatedSubstanceRow.Total, 0.1m, limitType: LimitType.Range) with { LowerLimit = 0m },
             "basis" => Row(a, "Row", RelatedSubstanceRow.Total, 0.1m, basis: ResultBasis.PercentLabelClaim),
+            "label-claim" => Row(a, "Row", RelatedSubstanceRow.Total, 0.1m) with { LabelClaim = 10m, LabelClaimUnit = "mg" },
+            "limit-zero" => Row(a, "Row", RelatedSubstanceRow.Total, 0m),
+            "limit-null" => Row(a, "Row", RelatedSubstanceRow.Total, 0.1m) with { UpperLimit = null },
+            "undefined-kind" => Row(a, "Row", (RelatedSubstanceRow)99, 0.1m),
             _ => throw new ArgumentOutOfRangeException(nameof(field)),
         };
 
@@ -108,9 +116,9 @@ public class RelatedSubstanceSpecificationTests
     }
 
     [Theory]
-    [InlineData("same-kind")]
-    [InlineData("same-named")]
-    public async Task RelatedSubstancesSpec_DuplicateKindForSameStageAndGrade_Refused(string field)
+    [InlineData("same-kind", "A total impurities row already exists for this test, stage and grade.")]
+    [InlineData("same-named", "A named impurity 'Impurity D' row already exists for this test, stage and grade.")]
+    public async Task RelatedSubstancesSpec_DuplicateKindForSameStageAndGrade_Refused(string field, string message)
     {
         await using var db = TestDb();
         var a = await ArrangeAsync(db);
@@ -121,11 +129,56 @@ public class RelatedSubstanceSpecificationTests
 
         var second = first with { ParameterName = "Renamed row" };
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, second));
-        Assert.Contains("already exists", ex.Message);
+        Assert.Equal(message, ex.Message);
 
         // A different kind, or another stage, is not a duplicate.
         await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "Total of others", RelatedSubstanceRow.TotalOthers, 1.0m));
         await a.Svc.CreateSpecificationAsync(a.UserId, second with { Grade = "USP" });
+    }
+
+    [Fact]
+    public async Task RelatedSubstancesSpec_SharedParameterName_AllFourRowsSave()
+    {
+        await using var db = TestDb();
+        var a = await ArrangeAsync(db);
+
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "Impurities", RelatedSubstanceRow.Named, 0.15m, a.ImpurityDId));
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "Impurities", RelatedSubstanceRow.UnspecifiedEach, 0.10m));
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "Impurities", RelatedSubstanceRow.Total, 0.5m));
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "Impurities", RelatedSubstanceRow.TotalOthers, 1.0m));
+
+        Assert.Equal(4, await db.Specifications.CountAsync(s => s.ParameterName == "Impurities"));
+    }
+
+    [Fact]
+    public async Task RelatedSubstancesSpec_BlankParameterName_DefaultsToTheRowKind()
+    {
+        await using var db = TestDb();
+        var a = await ArrangeAsync(db);
+
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "", RelatedSubstanceRow.Named, 0.15m, a.ImpurityDId));
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, " ", RelatedSubstanceRow.UnspecifiedEach, 0.10m));
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "", RelatedSubstanceRow.Total, 0.5m));
+        await a.Svc.CreateSpecificationAsync(a.UserId, Row(a, "", RelatedSubstanceRow.TotalOthers, 1.0m));
+
+        var names = await db.Specifications.Select(s => s.ParameterName).ToListAsync();
+        Assert.Equal(new[] { "Any unspecified impurity", "Impurity D", "Total impurities", "Total of others" }, names.OrderBy(n => n).ToArray());
+    }
+
+    [Fact]
+    public async Task RelatedSubstanceFields_OnANonHplcTest_Refused()
+    {
+        await using var db = TestDb();
+        var a = await ArrangeAsync(db);
+        db.TestDefinitions.Add(new TestDefinition { Code = "PLAIN-T1", DisplayName = "Plain", SectionId = (await db.DocumentSections.FirstAsync()).Id, WorkflowType = WorkflowType.Measurement });
+        a.Item.AssignedTests.Add(new SampleTest { TestCode = "PLAIN-T1", DisplayName = "Plain" });
+        await db.SaveChangesAsync();
+
+        var req = new CreateSpecificationRequest(ItemId: a.Item.Id, TestCode: "PLAIN-T1", ParameterName: "Plain",
+            LimitType: LimitType.NotMoreThan, UpperLimit: 1m, RelatedSubstanceRow: RelatedSubstanceRow.Total);
+
+        await AssertThrowsAsync("Related-substance rows belong to related-substances methods only.",
+            () => a.Svc.CreateSpecificationAsync(a.UserId, req));
     }
 
     [Fact]
@@ -161,6 +214,7 @@ public class RelatedSubstanceSpecificationTests
 
         await AssertThrowsAsync("Impurity Impurity D is used by a specification and cannot be removed.",
             () => methods.UpdateAsync(method.Id, req, a.UserId));
+        Assert.True(await db.HplcMethodImpurities.AnyAsync(i => i.Id == a.ImpurityDId));
 
         // Keeping it (matched by Id) is fine.
         var ok = await methods.UpdateAsync(method.Id, req with

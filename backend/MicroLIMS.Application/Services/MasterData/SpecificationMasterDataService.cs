@@ -76,6 +76,13 @@ public class SpecificationMasterDataService
 
         var limitType = request.LimitType ?? LimitType.CountTiered;
         var paramName = request.ParameterName;
+        if (string.IsNullOrWhiteSpace(paramName) && request.RelatedSubstanceRow is RelatedSubstanceRow kind && Enum.IsDefined(kind))
+        {
+            var impurityName = request.HplcMethodImpurityId is int impurityId
+                ? await _db.HplcMethodImpurities.Where(i => i.Id == impurityId).Select(i => i.Name).FirstOrDefaultAsync()
+                : null;
+            paramName = SpecificationService.RelatedSubstanceParameterName(kind, impurityName);
+        }
         if (string.IsNullOrWhiteSpace(paramName))
         {
             var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == request.TestCode);

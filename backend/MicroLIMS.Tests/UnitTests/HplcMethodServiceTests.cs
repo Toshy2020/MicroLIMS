@@ -34,7 +34,7 @@ public partial class HplcMethodServiceTests
         return (section, user.Id);
     }
 
-    private static async Task<MaterialMasterEntry> AddEntryAsync(
+    internal static async Task<MaterialMasterEntry> AddEntryAsync(
         MicroLimsDbContext db, int sectionId, string code, bool isActive = true,
         MaterialMasterCategory category = MaterialMasterCategory.ReferenceStandard)
     {
@@ -56,7 +56,7 @@ public partial class HplcMethodServiceTests
         return entry;
     }
 
-    private static async Task<SolutionMaster> AddSolutionAsync(
+    internal static async Task<SolutionMaster> AddSolutionAsync(
         MicroLimsDbContext db, int sectionId, string name, SolutionType type, bool isActive = true)
     {
         var componentEntry = await AddEntryAsync(db, sectionId, "COMP-" + Guid.NewGuid().ToString("N")[..6], category: MaterialMasterCategory.Reagent);

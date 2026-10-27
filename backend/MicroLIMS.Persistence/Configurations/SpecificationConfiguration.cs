@@ -54,7 +54,7 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
 
         // One row per parameter per production stage and grade; NULL (every
         // stage / ungraded) counts as a value of its own, so two such rows still clash.
-        builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName, s.ProductionStageRole, s.Grade })
+        builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName, s.ProductionStageRole, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId })
             .IsUnique()
             .AreNullsDistinct(false);
     }

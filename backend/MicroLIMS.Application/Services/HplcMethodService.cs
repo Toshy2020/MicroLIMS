@@ -198,10 +198,14 @@ public partial class HplcMethodService
 
         // Same for impurities named by a related-substances specification row.
         var incomingImpurityIds = (r.Impurities ?? new()).Where(i => i.Id.HasValue).Select(i => i.Id!.Value).ToHashSet();
-        foreach (var existingImpurity in method.Impurities.Where(i => !incomingImpurityIds.Contains(i.Id)))
+        var removedImpurityIds = method.Impurities.Where(i => !incomingImpurityIds.Contains(i.Id)).Select(i => i.Id).ToList();
+        if (removedImpurityIds.Count > 0)
         {
-            if (await _db.Specifications.AnyAsync(s => s.HplcMethodImpurityId == existingImpurity.Id, ct))
-                throw new InvalidOperationException($"Impurity {existingImpurity.Name} is used by a specification and cannot be removed.");
+            var usedImpurityId = await _db.Specifications
+                .Where(s => s.HplcMethodImpurityId != null && removedImpurityIds.Contains(s.HplcMethodImpurityId.Value))
+                .Select(s => s.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
+            if (usedImpurityId != null)
+                throw new InvalidOperationException($"Impurity {method.Impurities.First(i => i.Id == usedImpurityId).Name} is used by a specification and cannot be removed.");
         }
 
         ApplyFields(method, r, abbr);

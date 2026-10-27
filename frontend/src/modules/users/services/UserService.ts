@@ -19,7 +19,22 @@ export interface UserRecord {
   passwordChangedAt: string | null;
 }
 
+export interface UserSession {
+  id: number;
+  createdAt: string;
+  createdIp: string | null;
+  userAgent: string | null;
+  lastUsedAt: string | null;
+  expiresAt: string;
+}
+
 export const UserService = {
+  async getSessions(id: number): Promise<UserSession[]> {
+    return (await apiClient.get(`/admin/users/${id}/sessions`)).data.data;
+  },
+  async revokeSessions(id: number, reason: string): Promise<{ revokedCount: number }> {
+    return (await apiClient.post(`/admin/users/${id}/sessions/revoke`, { reason })).data.data;
+  },
   async getAll(): Promise<UserRecord[]> {
     return (await apiClient.get("/users")).data.data;
   },

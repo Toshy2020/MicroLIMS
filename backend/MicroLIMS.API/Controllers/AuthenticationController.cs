@@ -36,7 +36,7 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var outcome = await _authService.LoginAsync(request.Username, request.Password, ip);
+        var outcome = await _authService.LoginAsync(request.Username, request.Password, ip, Request.Headers.UserAgent.ToString());
         if (!outcome.Success) return Unauthorized(ApiResponse<object>.Fail(outcome.FailureReason ?? "Login failed."));
         return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, mustChangePassword = outcome.MustChangePassword, roleName = outcome.RoleName }));
     }
@@ -46,7 +46,7 @@ public class AuthenticationController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicies.TokenRefresh)]
     public async Task<IActionResult> Refresh(RefreshRequest request)
     {
-        var outcome = await _authService.RefreshAsync(request.RefreshToken);
+        var outcome = await _authService.RefreshAsync(request.RefreshToken, HttpContext.Connection.RemoteIpAddress?.ToString(), Request.Headers.UserAgent.ToString());
         if (!outcome.Success) return Unauthorized(ApiResponse<object>.Fail(outcome.FailureReason ?? "Refresh failed."));
         return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, roleName = outcome.RoleName }));
     }

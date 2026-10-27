@@ -11,6 +11,9 @@ using MicroLIMS.Shared.Validation;
 
 namespace MicroLIMS.Application.Services;
 
+// Never carries the token hash.
+public record UserSessionDto(int Id, DateTime CreatedAt, string? CreatedIp, string? UserAgent, DateTime? LastUsedAt, DateTime ExpiresAt);
+
 public record RoleDto(int Id, string Name, string Type);
 
 public record UserDirectoryDto(
@@ -295,6 +298,54 @@ public class UserService
         _db.CurrentReason = trimmedReason;
         user.Email = email;
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<UserSessionDto>> GetActiveSessionsAsync(int targetUserId)
+    {
+        if (!await _db.Users.AnyAsync(u => u.Id == targetUserId))
+            throw new NotFoundException($"User {targetUserId} not found.");
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        return await _db.RefreshTokens
+            .AsNoTracking()
+            .Where(r => r.UserId == targetUserId && r.RevokedAt == null && r.ExpiresAt > now)
+            .OrderByDescending(r => r.LastUsedAt ?? r.CreatedAt)
+            .Select(r => new UserSessionDto(r.Id, r.CreatedAt, r.CreatedIp, r.UserAgent, r.LastUsedAt, r.ExpiresAt))
+            .ToListAsync();
+    }
+
+    // Returns how many sessions were revoked. Access tokens already issued
+    // stay valid until they expire (Jwt:AccessTokenMinutes); only refreshing
+    // is cut off immediately.
+    public async Task<int> RevokeSessionsAsync(int targetUserId, string? reason, int actingUserId)
+    {
+        reason = AdminActionReason.Require(reason, "revoke a user's sessions");
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        _db.CurrentReason = reason;
+        var revoked = await _authService.RevokeAllRefreshTokensAsync(targetUserId);
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.SessionRevoked, SecurityEventOutcome.Success,
+            ActorUserId: actingUserId, TargetUserId: targetUserId, TargetUsername: user.Username,
+            Reason: reason,
+            Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = nameof(User),
+            EntityId = targetUserId.ToString(),
+            Action = "USER_SESSIONS_REVOKED",
+            PreviousValue = null,
+            NewValue = JsonSerializer.Serialize(new { RevokedSessionCount = revoked, Reason = reason }),
+            Reason = reason,
+            UserId = actingUserId,
+            Timestamp = _time.GetUtcNow().UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+        return revoked;
     }
 
     public async Task<UserDto> UnlockUserAsync(int targetUserId, string? reason, int actingUserId)

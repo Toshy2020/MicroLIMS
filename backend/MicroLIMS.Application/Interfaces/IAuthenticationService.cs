@@ -17,8 +17,8 @@ public delegate string AccessTokenIssuer(AccessTokenSubject subject);
 
 public interface IAuthenticationService
 {
-    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null);
-    Task<LoginOutcome> RefreshAsync(string refreshToken);
+    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null);
+    Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null);
 
     // Ends the caller's session. When refreshToken identifies one of this
     // user's own tokens only that session is revoked; otherwise every

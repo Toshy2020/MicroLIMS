@@ -70,10 +70,10 @@ public class AuthenticationService : IAuthenticationService
         _securityAudit = securityAudit;
     }
 
-    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress));
+    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null) =>
+        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress, userAgent));
 
-    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null)
+    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null, string? userAgent = null)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
 
@@ -149,15 +149,15 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenIssued, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var refreshToken = await IssueRefreshTokenAsync(user.Id);
+        var refreshToken = await IssueRefreshTokenAsync(user.Id, ipAddress, userAgent);
 
         return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword, user.Role?.Name);
     }
 
-    public Task<LoginOutcome> RefreshAsync(string refreshToken) =>
-        UnitOfWork.RunAsync(_db, () => RefreshCoreAsync(refreshToken));
+    public Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null) =>
+        UnitOfWork.RunAsync(_db, () => RefreshCoreAsync(refreshToken, ipAddress, userAgent));
 
-    private async Task<LoginOutcome> RefreshCoreAsync(string refreshToken)
+    private async Task<LoginOutcome> RefreshCoreAsync(string refreshToken, string? ipAddress, string? userAgent)
     {
         var hash = Hash(refreshToken);
         var stored = await _db.RefreshTokens.Include(r => r.User).ThenInclude(u => u!.Role)
@@ -195,12 +195,13 @@ public class AuthenticationService : IAuthenticationService
 
         // Rotate: revoke the used token and issue a new one. One event,
         // not three - the caller performed a single meaningful action.
-        stored.RevokedAt = _time.GetUtcNow().UtcDateTime;
+        stored.LastUsedAt = _time.GetUtcNow().UtcDateTime;
+        stored.RevokedAt = stored.LastUsedAt;
         _securityAudit.Record(new SecurityEventRequest(
             SecurityEventCodes.RefreshTokenRotated, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId);
+        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true);
         await _db.SaveChangesAsync();
 
         var token = await IssueAccessTokenAsync(user);
@@ -399,14 +400,24 @@ public class AuthenticationService : IAuthenticationService
         return active.Count;
     }
 
-    private async Task<string> IssueRefreshTokenAsync(int userId)
+    private static string? Truncate(string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        value = value.Trim();
+        return value.Length <= max ? value : value[..max];
+    }
+
+    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false)
     {
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _db.RefreshTokens.Add(new RefreshToken
         {
             UserId = userId,
             TokenHash = Hash(rawToken),
-            ExpiresAt = _time.GetUtcNow().UtcDateTime.Add(RefreshTokenLifetime)
+            ExpiresAt = _time.GetUtcNow().UtcDateTime.Add(RefreshTokenLifetime),
+            CreatedIp = Truncate(ipAddress, RefreshToken.MaxIpLength),
+            UserAgent = Truncate(userAgent, RefreshToken.MaxUserAgentLength),
+            LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null
         });
         await _db.SaveChangesAsync();
         return rawToken;

@@ -7796,7 +7796,14 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CreatedIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUsedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("RevokedAt")
@@ -7805,6 +7812,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");

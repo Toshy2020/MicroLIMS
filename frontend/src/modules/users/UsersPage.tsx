@@ -28,6 +28,8 @@ import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
+import { UserSessionsDialog } from "./dialogs/UserSessionsDialog";
+import DevicesIcon from "@mui/icons-material/Devices";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
 
@@ -84,6 +86,7 @@ export function UsersPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
+  const [sessionsUser, setSessionsUser] = useState<UserRecord | null>(null);
 
   // A failed load used to leave the user table (or the role picker) empty
   // with no explanation.
@@ -492,6 +495,12 @@ export function UsersPage() {
                         </IconButton>
                       </Tooltip>
 
+                      <Tooltip title="Sessions">
+                        <IconButton aria-label="Sessions" size="small" onClick={() => setSessionsUser(u)}>
+                          <DevicesIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
                       <Tooltip title={isSelf ? "System Administrators cannot change their own role" : "Change Role"}>
                         <span>
                           <IconButton aria-label={isSelf ? "System Administrators cannot change their own role" : "Change Role"} size="small" color="primary" disabled={isSelf} onClick={() => openChangeRole(u)}>
@@ -838,6 +847,13 @@ export function UsersPage() {
           toast.success(msg);
           setSectionsUser(null);
         }}
+      />
+
+      <UserSessionsDialog
+        open={Boolean(sessionsUser)}
+        onClose={() => setSessionsUser(null)}
+        user={sessionsUser}
+        onRevoked={(msg) => toast.success(msg)}
       />
     </>
   );

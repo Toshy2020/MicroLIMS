@@ -120,6 +120,8 @@ public class SampleReviewService
         // Checked before anything is signed or written.
         var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit);
 
+        _db.CurrentUserId = reviewerUserId;
+
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below
         // commit together in the single SaveChangesAsync at the end).
@@ -157,14 +159,16 @@ public class SampleReviewService
 
         if (retentionUnitCanonical is not null)
         {
-            var previous = sample.RetentionQuantity is null ? null : $"{sample.RetentionQuantity:0.######} {sample.RetentionQuantityUnit}";
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var unchanged = sample.RetentionQuantity == retentionQuantity && sample.RetentionQuantityUnit == retentionUnitCanonical;
+            var previous = sample.RetentionQuantity is null ? null : string.Create(inv, $"{sample.RetentionQuantity:0.######} {sample.RetentionQuantityUnit}");
             sample.RetentionQuantity = retentionQuantity;
             sample.RetentionQuantityUnit = retentionUnitCanonical;
-            _db.CurrentUserId = reviewerUserId;
-            await _audit.RecordUserEventAsync("RetentionQuantityRecorded", AuditActionCategory.Review, ReviewEntityTypes.Sample,
-                reason: "Retention quantity recorded at physicochemical review",
-                changes: new[] { new AuditFieldChange("RetentionQuantity", previous, $"{retentionQuantity:0.######} {retentionUnitCanonical}") },
-                entityId: sampleId.ToString(), sampleId: sampleId);
+            if (!unchanged)
+                await _audit.RecordUserEventAsync("RetentionQuantityRecorded", AuditActionCategory.Review, ReviewEntityTypes.Sample,
+                    reason: "Retention quantity recorded at physicochemical review",
+                    changes: new[] { new AuditFieldChange("RetentionQuantity", previous, string.Create(inv, $"{retentionQuantity:0.######} {retentionUnitCanonical}")) },
+                    entityId: sampleId.ToString(), sampleId: sampleId);
         }
 
         SampleSectionRollup.Apply(sample);
@@ -178,7 +182,7 @@ public class SampleReviewService
     private async Task<string?> ValidateRetentionAsync(Sample sample, int sectionId, decimal? quantity, string? unit)
     {
         var sectionCode = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Code).FirstOrDefaultAsync();
-        var required = sample.Category == SampleCategory.RawMaterial && sectionCode == PhyschemAreas.SectionCode;
+        var required = sample.Category == SampleCategory.RawMaterial && string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
         if (!required)
         {
             if (quantity is not null || !string.IsNullOrWhiteSpace(unit))
@@ -188,6 +192,7 @@ public class SampleReviewService
 
         if (quantity is null) throw new InvalidOperationException("Enter the retention quantity kept for this raw material.");
         if (quantity <= 0) throw new InvalidOperationException("Retention quantity must be greater than zero.");
+        if (quantity >= 1_000_000m) throw new InvalidOperationException("Retention quantity must be less than 1,000,000.");
         return RetentionUnits.FirstOrDefault(u => string.Equals(u, unit?.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("Retention unit must be g, mg, kg, mL or L.");
     }

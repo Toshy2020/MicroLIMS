@@ -231,6 +231,7 @@ public class MultiSectionReviewApprovalTests
     [Theory]
     [InlineData(0, "g", "Retention quantity must be greater than zero.")]
     [InlineData(-5, "g", "Retention quantity must be greater than zero.")]
+    [InlineData(1000000, "g", "Retention quantity must be less than 1,000,000.")]
     [InlineData(50, "lb", "Retention unit must be g, mg, kg, mL or L.")]
     [InlineData(50, "", "Retention unit must be g, mg, kg, mL or L.")]
     public async Task Review_RawMaterialFp_InvalidRetention_IsRefused(int quantity, string unit, string message)
@@ -264,6 +265,36 @@ public class MultiSectionReviewApprovalTests
         var change = Assert.Single(audit.Changes);
         Assert.Null(change.PreviousValue);
         Assert.Equal("50 mL", change.NewValue);
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialFp_SectionCodeCompareIgnoresCase()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+        (await db.DocumentSections.FirstAsync(s => s.Id == w.Fp)).Code = "fp";
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null));
+        Assert.Equal("Enter the retention quantity kept for this raw material.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialFp_UnchangedRetention_WritesNoAuditRow()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+        var s = await db.Samples.FirstAsync(x => x.Id == w.Sample.Id);
+        s.RetentionQuantity = 50m;
+        s.RetentionQuantityUnit = "g";
+        await db.SaveChangesAsync();
+
+        await TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null,
+            retentionQuantity: 50m, retentionUnit: "G");
+
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Empty(await db.AuditLogs.Where(a => a.ActionCode == "RetentionQuantityRecorded").ToListAsync());
     }
 
     [Fact]

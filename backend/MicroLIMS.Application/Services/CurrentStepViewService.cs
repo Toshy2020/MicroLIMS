@@ -257,6 +257,7 @@ public class CurrentStepViewService
         var incMax = shownWindow?.MaxHours ?? 0;
 
         var returnInfo = await TestReturnHelper.GetPendingReturnAsync(_db, testOrderId, hasActiveReadings: facts.ActiveCountReadings.Count > 0);
+        var perContainer = await _db.TestDefinitions.AsNoTracking().Where(t => t.Code == order.TestCode).Select(t => t.PerContainer).FirstOrDefaultAsync();
 
         return new
         {
@@ -297,6 +298,7 @@ public class CurrentStepViewService
             totalSteps = current.TotalSteps,
             testName = order.TestCode,
             workflowType = current.WorkflowType.ToString(),
+            perContainer,
             sampleContext,
             incubationLock,
             returnInfo = returnInfo is null ? null : new

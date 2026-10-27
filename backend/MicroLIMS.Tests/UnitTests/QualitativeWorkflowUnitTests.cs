@@ -339,6 +339,24 @@ public class QualitativeWorkflowUnitTests
     private static List<QualitativeContainerInput> AllConform(int n) =>
         Enumerable.Range(1, n).Select(i => new QualitativeContainerInput(i, true, $"Drum {i} white powder")).ToList();
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CurrentStep_CarriesPerContainerFlag(bool perContainer)
+    {
+        using var db = NewDb();
+        var (order, _, _, testDef) = SeedQualitativeTest(db);
+        testDef.PerContainer = perContainer;
+        db.SaveChanges();
+
+        var view = new MicroLIMS.Application.Services.CurrentStepViewService(db, TestServiceFactory.TestWorkflow(db));
+        var data = await view.GetAsync(order.Id);
+
+        var prop = data.GetType().GetProperty("perContainer");
+        Assert.NotNull(prop);
+        Assert.Equal(perContainer, (bool)prop!.GetValue(data)!);
+    }
+
     [Fact]
     public async Task PerContainer_AllComply()
     {

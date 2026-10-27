@@ -141,12 +141,13 @@ describe("menuConfig document audit link", () => {
     return findItemByPath(groups.flatMap((g) => g.items), "/document-control/audit") !== undefined;
   };
 
-  // A permission check, not a role-name check: the link follows Audit.View whatever the role.
-  it("is offered to whoever holds Audit.View, and to nobody else", () => {
+  // Mirrors the server rule: Reviewers and Section Heads by role, anyone else only with Audit.View.
+  it("is offered to Reviewers, Section Heads and Audit.View holders, and to nobody else", () => {
+    expect(hasAuditLink("Reviewer", [])).toBe(true);
+    expect(hasAuditLink("SectionHead", [])).toBe(true);
     expect(hasAuditLink("Analyst", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
     expect(hasAuditLink("SystemAdministrator", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
-    expect(hasAuditLink("Reviewer", [])).toBe(false);
-    expect(hasAuditLink("SectionHead", [])).toBe(false);
+    expect(hasAuditLink("Analyst", [])).toBe(false);
     expect(hasAuditLink("SystemAdministrator", [])).toBe(false);
   });
 });

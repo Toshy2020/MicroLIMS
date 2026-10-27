@@ -114,7 +114,14 @@ const adminItems: MenuItem[] = [
   { label: "Security Policy", path: "/admin/security-policy", description: "Password, lockout, session and e-signature rules in force.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE }
 ];
 
-function documentControlItem(permissions: string[]): MenuItem {
+// The document audit trail is open server-side to Reviewers and Section Heads
+// by role, and to anyone else only by holding Audit.View
+// (DocumentAuthorizationService.CanQueryGlobalAuditAsync), so its link mirrors that pair.
+function canQueryDocumentAudit(role: Role | null, permissions: string[]): boolean {
+  return role === "Reviewer" || role === "SectionHead" || permissions.includes(PERMISSIONS.AUDIT_VIEW);
+}
+
+function documentControlItem(role: Role | null, permissions: string[]): MenuItem {
   return {
     label: "Document Control",
     description: "Controlled documents, reading lists and training.",
@@ -128,7 +135,7 @@ function documentControlItem(permissions: string[]): MenuItem {
       { label: "Training Matrix", path: "/document-control/training-matrix", icon: SchoolOutlinedIcon, description: "Who is trained on which document, and what is outstanding." },
       { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", icon: InsightsOutlinedIcon, description: "Training and document compliance across sections." },
       { label: "Document Library", path: "/document-control/library", icon: LocalLibraryOutlinedIcon, description: "Search and open every controlled document and its versions." },
-      ...(permissions.includes(PERMISSIONS.AUDIT_VIEW) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
+      ...(canQueryDocumentAudit(role, permissions) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
       { label: "Configuration", path: "/document-control/configuration", icon: TuneOutlinedIcon, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, description: "Document types, sections and workflow settings." }
     ]
   };
@@ -266,7 +273,7 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
 // link needs the permission its page's route guard checks, and each
 // laboratory area also needs membership in that lab (useMyLabs), or the
 // Sections.ViewAll permission for the read-only view of every lab.
-export function getGroupedMenu({ permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
+export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
   const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
   if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
   if (labCodes.includes("FP")) {
@@ -275,7 +282,7 @@ export function getGroupedMenu({ permissions, labCodes, physchemAreas }: MenuCon
   }
   items.push(
     itemsItem, receivingConfigItem, masterDataWorkbookItem,
-    documentControlItem(permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
+    documentControlItem(role, permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
   );
   return groupItems(visibleItems(items, permissions));
 }

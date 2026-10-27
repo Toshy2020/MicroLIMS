@@ -13,8 +13,10 @@ AfterCleaningMasterDataController.UpdateMachinePart(Int32, UpdateMachinePartRequ
 AfterCleaningMasterDataController.UpdateMachinePartConfiguration(Int32, UpdateMachinePartConfigRequest): SystemAdministrator,SectionHead
 ArchivedRecordsController.Download(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 ArchivedRecordsController.GetForEntity(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+AuditController.Export(AuditSearchRequest, CancellationToken): SystemAdministrator,SectionHead
 AuditController.Get(String, String): SystemAdministrator,SectionHead
-AuditController.GetLoginHistory(String, Int32): SystemAdministrator,SectionHead
+AuditController.GetLoginHistory(String, Int32, Nullable`1): SystemAdministrator
+AuditController.GetSecurityEvents(String, String, Nullable`1, Nullable`1, Int32, Nullable`1): SystemAdministrator
 AuditController.GetTraceability(Int32): SystemAdministrator,SectionHead
 AuditController.GetTraceabilityForEntity(String, String): SystemAdministrator,SectionHead
 AuditController.Search(AuditSearchRequest): SystemAdministrator,SectionHead

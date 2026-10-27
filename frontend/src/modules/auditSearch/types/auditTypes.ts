@@ -19,7 +19,60 @@ export interface AuditLogItem {
   cryovialCode: string | null;
   sampleId: number | null;
   testOrderId: number | null;
+  actionCategory: string | null;
+  actorType: string | null;
+  correlationId: string | null;
+  reason: string | null;
+  // EntityId is negative: a temporary key was recorded before the insert (decision D8).
+  entityIdNegative: boolean;
+  // Id of the appended correction row for a negative-EntityId row, when one exists.
+  correctedByAuditLogId: number | null;
 }
+
+export interface AuditSearchPageResult {
+  items: AuditLogItem[];
+  nextCursor: number | null;
+  hasMore: boolean;
+}
+
+export interface SecurityEventItem {
+  id: number;
+  occurredAtUtc: string;
+  eventCode: string;
+  outcome: string;
+  actorUserId: number | null;
+  actorIsSystem: boolean;
+  targetUserId: number | null;
+  targetUsername: string | null;
+  correlationId: string | null;
+  ipAddress: string | null;
+  requestPath: string | null;
+  source: string;
+  reason: string | null;
+}
+
+export interface LoginHistoryItem {
+  id: number;
+  userId: number | null;
+  username: string;
+  success: boolean;
+  failureReason: string | null;
+  ipAddress: string | null;
+  timestamp: string;
+}
+
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor: number | null;
+  hasMore: boolean;
+}
+
+// Mirrors PermissionConstants.SystemViewSecurityAudit; the backend enforces it.
+export const SECURITY_AUDIT_PERMISSION = "System.ViewSecurityAudit";
+
+export const ACTION_CATEGORIES = [
+  "Document", "Review", "Approval", "Training", "Kaf", "Configuration", "Security", "ImportExport", "Other"
+] as const;
 
 export interface AuditSearchFilterState {
   fromDate: string;
@@ -33,6 +86,11 @@ export interface AuditSearchFilterState {
   entityName: string;
   action: string;
   userId: string;
+  actionCategory: string;
+  actorType: string;
+  correlationId: string;
+  reason: string;
+  negativeEntityId: boolean;
 }
 
 export interface AuditFieldDiff {

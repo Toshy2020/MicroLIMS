@@ -22,7 +22,7 @@ public class RelatedSubstancesEvaluatorTests
     private static HplcReplicatePeakInput Peak(int? impurityId, decimal area, decimal? rrt = null) => new(impurityId, rrt, area);
     private static RsReplicate Rep(int no, decimal refArea, params HplcReplicatePeakInput[] peaks) => new(no, refArea, peaks);
 
-    private static List<HplcAssayRow> Run(decimal refPct, decimal disregard, IReadOnlyList<HplcMethodImpurityResponse> impurities,
+    private static List<HplcAssayRow> Run(decimal refPct, decimal? disregard, IReadOnlyList<HplcMethodImpurityResponse> impurities,
         IReadOnlyList<RsReplicate> reps, params Specification[] specs) =>
         RelatedSubstancesEvaluator.Evaluate(7, "Sildenafil", new RelatedSubstancesInput(refPct, disregard, impurities, reps, specs));
 
@@ -236,5 +236,77 @@ public class RelatedSubstancesEvaluatorTests
             Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
 
         Assert.Equal("0.06 %", Assert.Single(rows).Display);
+    }
+
+    [Fact]
+    public void MidpointRounding_MeanOf0125_RoundsTo013()
+    {
+        // Midpoint rounding: a mean of 0.125 gives "0.13 %".
+        var rows = Run(0.1m, 0.05m, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 12500m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+
+        var d = Assert.Single(rows);
+        Assert.Equal(0.13m, d.Value);
+        Assert.Equal("0.13 %", d.Display);
+    }
+
+    [Fact]
+    public void NamedPeak_ExactlyAtDisregardLimit_Counts_AndJustBelow_ShowsLessThan()
+    {
+        // A Named peak exactly at the disregard limit counts, and one just below it shows "< x %".
+        // Ref area 10000, ref % 0.1, disregard 0.05:
+        // Area 5000 -> 0.05% (counted). Area 4990 -> 0.0499% (disregarded).
+        var rowsAt = Run(0.1m, 0.05m, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 5000m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+        var dAt = Assert.Single(rowsAt);
+        Assert.Equal(0.05m, dAt.Value);
+        Assert.Equal("0.05 %", dAt.Display);
+
+        var rowsBelow = Run(0.1m, 0.05m, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 4990m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+        var dBelow = Assert.Single(rowsBelow);
+        Assert.Equal(0m, dBelow.Value);
+        Assert.Equal("< 0.05 %", dBelow.Display);
+    }
+
+    [Fact]
+    public void PeakWithAreaZero_NextToRealPeak_CalculatesCorrectly()
+    {
+        // A peak with area 0 next to a real peak.
+        var rows = Run(0.1m, 0.05m, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 0m), Peak(D, 8000m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"), Row(RelatedSubstanceRow.Total, 0.5m));
+
+        var d = RowFor(rows, RelatedSubstanceRow.Named, D);
+        Assert.Equal(0.08m, d.Value);
+        Assert.Equal("0.08 %", d.Display);
+
+        var total = RowFor(rows, RelatedSubstanceRow.Total);
+        Assert.Equal(0.08m, total.Value);
+        Assert.Equal("0.08 %", total.Display);
+    }
+
+    [Fact]
+    public void NullDisregardLimit_TreatedAsNoDisregard_AndRoundsToZeroShowsLessThan001()
+    {
+        // A null disregard limit means "no disregard limit".
+        // Peak of 0.004% rounds to 0.00% -> "< 0.01 %" with value 0.
+        var rowsSmall = Run(0.1m, null, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 400m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+        var dSmall = Assert.Single(rowsSmall);
+        Assert.Equal(0m, dSmall.Value);
+        Assert.Equal("< 0.01 %", dSmall.Display);
+
+        // Peak of 0.08% is counted.
+        var rowsNormal = Run(0.1m, null, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 8000m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+        var dNormal = Assert.Single(rowsNormal);
+        Assert.Equal(0.08m, dNormal.Value);
+        Assert.Equal("0.08 %", dNormal.Display);
     }
 }

@@ -113,6 +113,7 @@ public sealed class HplcSampleEntryContext
         var analyte = Snapshot.Analytes.First();
         if (Snapshot.ReferenceSolutionPercent is not > 0m)
             return "The method has no reference solution concentration.";
+        // A null disregard limit means "no disregard limit" (some monographs give none).
         foreach (var rep in RunSample.Replicates.OrderBy(r => r.ReplicateNo))
             if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && x.Response > 0))
                 return $"{analyte.Name}: the reference solution area is required.";
@@ -132,7 +133,7 @@ public sealed class HplcSampleEntryContext
             .Select(r => new RsReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response,
                 r.Peaks.OrderBy(p => p.Id).Select(p => new HplcReplicatePeakInput(p.HplcMethodImpurityId, p.RelativeRetention, p.Area)).ToList()))
             .ToList();
-        return new RelatedSubstancesInput(Snapshot.ReferenceSolutionPercent!.Value, Snapshot.DisregardLimitPercent ?? 0m,
+        return new RelatedSubstancesInput(Snapshot.ReferenceSolutionPercent!.Value, Snapshot.DisregardLimitPercent,
             Snapshot.Impurities, reps, Specs.Where(s => s.HplcMethodAnalyteId == analyte.Id).ToList());
     }
 

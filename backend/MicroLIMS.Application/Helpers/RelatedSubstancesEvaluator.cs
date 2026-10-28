@@ -9,7 +9,7 @@ namespace MicroLIMS.Application.Helpers;
 public record RsReplicate(int ReplicateNo, decimal ReferenceArea, IReadOnlyList<HplcReplicatePeakInput> Peaks);
 
 public record RelatedSubstancesInput(
-    decimal ReferenceSolutionPercent, decimal DisregardLimitPercent,
+    decimal ReferenceSolutionPercent, decimal? DisregardLimitPercent,
     IReadOnlyList<HplcMethodImpurityResponse> Impurities, IReadOnlyList<RsReplicate> Replicates, IReadOnlyList<Specification> Specs);
 
 // One counted peak behind a replicate value (Label is the impurity name, or "Unspecified RRT x").
@@ -52,7 +52,7 @@ public static class RelatedSubstancesEvaluator
                 var pct = p.Area * (impurity?.CorrectionFactor ?? 1m) / rep.ReferenceArea * input.ReferenceSolutionPercent;
                 var rrt = p.RelativeRetention ?? impurity?.RelativeRetention;
                 var label = impurity?.Name ?? (rrt is decimal r ? $"Unspecified RRT {r.ToString("0.####", CultureInfo.InvariantCulture)}" : "Unspecified");
-                var counted = p.Area > 0m && (input.DisregardLimitPercent <= 0m || pct >= input.DisregardLimitPercent);
+                var counted = p.Area > 0m && (!input.DisregardLimitPercent.HasValue || input.DisregardLimitPercent.Value <= 0m || pct >= input.DisregardLimitPercent.Value);
                 return new Peak(impurity?.Id, label, rrt, p.Area, pct, counted);
             }).ToList();
             var allPeaks = peaks.Select(p => new RsPeakEvidence(p.ImpurityId, p.Label, p.RelativeRetention, p.Area, p.Percent, !p.Counted)).ToList();
@@ -82,7 +82,7 @@ public static class RelatedSubstancesEvaluator
                         var own = peaks.Where(p => p.ImpurityId == spec.HplcMethodImpurityId).ToList();
                         var pct = own.Sum(p => p.Percent);
                         hasSignal |= own.Any(p => p.Area > 0m);
-                        value = own.Any(p => p.Area > 0m) && pct >= input.DisregardLimitPercent ? pct : 0m;
+                        value = own.Any(p => p.Area > 0m) && (!input.DisregardLimitPercent.HasValue || input.DisregardLimitPercent.Value <= 0m || pct >= input.DisregardLimitPercent.Value) ? pct : 0m;
                         if (value > 0m) counted.AddRange(own.Where(p => p.Area > 0m).Select(Contribution));
                         break;
                     }
@@ -110,7 +110,7 @@ public static class RelatedSubstancesEvaluator
                     {
                         hasSignal |= peaks.Any(p => p.Area > 0m);
                         var named = impurities.Where(i => namedIds.Contains(i.Id)).Select(i => peaks.Where(p => p.ImpurityId == i.Id).ToList())
-                            .Where(g => g.Any(p => p.Area > 0m) && g.Sum(p => p.Percent) >= input.DisregardLimitPercent).SelectMany(g => g).Where(p => p.Area > 0m).ToList();
+                            .Where(g => g.Any(p => p.Area > 0m) && (!input.DisregardLimitPercent.HasValue || input.DisregardLimitPercent.Value <= 0m || g.Sum(p => p.Percent) >= input.DisregardLimitPercent.Value)).SelectMany(g => g).Where(p => p.Area > 0m).ToList();
                         var pool = peaks.Where(p => IsPool(p) && p.Counted).ToList();
                         value = named.Sum(p => p.Percent) + pool.Sum(p => p.Percent);
                         counted.AddRange(named.Concat(pool).Select(Contribution));
@@ -129,12 +129,12 @@ public static class RelatedSubstancesEvaluator
                 finalValue = 0m;
                 display = NotDetected;
             }
-            else if (input.DisregardLimitPercent > 0m)
+            else if (input.DisregardLimitPercent is decimal dl && dl > 0m)
             {
-                if (mean < input.DisregardLimitPercent)
+                if (mean < dl)
                 {
                     finalValue = 0m;
-                    display = $"< {input.DisregardLimitPercent.ToString("0.###", CultureInfo.InvariantCulture)} %";
+                    display = $"< {dl.ToString("0.###", CultureInfo.InvariantCulture)} %";
                 }
                 else
                 {

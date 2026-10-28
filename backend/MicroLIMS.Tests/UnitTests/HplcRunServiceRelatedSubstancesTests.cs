@@ -318,4 +318,104 @@ public partial class HplcRunServiceTests
         var result = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id && p.IsActive);
         Assert.Contains("\"quantity\":\"AssayPercent\"", result.CalculationJson);
     }
+
+    [Fact]
+    public async Task Submit_WhenRowAboveLimit_WritesOutOfSpecificationResult()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+        // Impurity A area 20000m -> 0.20%, exceeding limit 0.15%
+        await f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, new HplcReplicatePeakInput(f.ImpurityA.Id, null, 20000m)), f.S.UserId);
+        await f.Service.UploadEvidenceAsync(f.Run.Id, f.RunSampleId, HplcEvidenceContext.Sample, HplcEvidenceKind.SampleReport, "s.pdf", "application/pdf", PdfBytes(), f.S.UserId);
+
+        await TestServiceFactory.TestWorkflow(db, clock: clock).SubmitHplcMethodAssayAsync(f.RunSampleId, Password, "ok", f.S.UserId, "127.0.0.1");
+
+        var results = await db.ParameterResults.Where(p => p.TestOrderId == f.Order.Id && p.IsActive).ToListAsync();
+        var aResult = results.Single(r => r.ParameterName == "Impurity A");
+        Assert.Equal(ResultStatus.OutOfSpecification, aResult.ComparisonStatus);
+        Assert.Equal("0.20 %", aResult.ReportedDisplay);
+        Assert.Equal(0.20m, aResult.ReportedValue);
+    }
+
+    [Fact]
+    public async Task SaveReplicates_RefusesNegativeReferenceArea()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, -500m, SildenafilPeaks(f)), f.S.UserId));
+        Assert.Equal("Replicate 1: the reference solution area must be zero or more.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveReplicates_RsMode_RefusesNegativeSampleWeight()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        var req = new SaveReplicatesRequest(new List<HplcReplicateInput>
+        {
+            new(-1m, new List<HplcReplicateResponseInput> { new(f.Analyte.Id, 10000m) }, SildenafilPeaks(f).ToList())
+        });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            f.Service.SaveReplicatesAsync(f.RunSampleId, req, f.S.UserId));
+        Assert.Equal("The sample weight cannot be negative.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveReplicates_RefusesPeakAreaAbove1e12()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, new HplcReplicatePeakInput(f.ImpurityD.Id, null, 1_000_000_000_001m)), f.S.UserId));
+        Assert.Equal("Peak area is too large.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveReplicates_RefusesMoreThan50PeaksPerReplicate()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        var fiftyOnePeaks = Enumerable.Range(1, 51)
+            .Select(i => new HplcReplicatePeakInput(null, (decimal)i, 100m))
+            .ToArray();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, fiftyOnePeaks), f.S.UserId));
+        Assert.Equal("At most 50 peaks per replicate.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Submit_NullDisregardLimit_StoresNullInCalculationJson()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        // Update run's snapshot to have disregardLimitPercent: null
+        var run = await db.HplcRuns.FirstAsync(r => r.Id == f.Run.Id);
+        var node = System.Text.Json.Nodes.JsonNode.Parse(run.MethodSnapshotJson)!.AsObject();
+        node["disregardLimitPercent"] = null;
+        run.MethodSnapshotJson = node.ToJsonString();
+        await db.SaveChangesAsync();
+
+        await f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, SildenafilPeaks(f)), f.S.UserId);
+        await f.Service.UploadEvidenceAsync(f.Run.Id, f.RunSampleId, HplcEvidenceContext.Sample, HplcEvidenceKind.SampleReport, "s.pdf", "application/pdf", PdfBytes(), f.S.UserId);
+
+        await TestServiceFactory.TestWorkflow(db, clock: clock).SubmitHplcMethodAssayAsync(f.RunSampleId, Password, "ok", f.S.UserId, "127.0.0.1");
+
+        var result = await db.ParameterResults.FirstAsync(p => p.TestOrderId == f.Order.Id && p.IsActive);
+        var doc = JsonDocument.Parse(result.CalculationJson!);
+        Assert.Equal(JsonValueKind.Null, doc.RootElement.GetProperty("disregardLimitPercent").ValueKind);
+    }
 }

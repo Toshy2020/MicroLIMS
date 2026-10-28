@@ -171,7 +171,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             kind = rs.Kind.ToString(),
             impurityId = rs.ImpurityId,
             referenceSolutionPercent = c.Snapshot.ReferenceSolutionPercent,
-            disregardLimitPercent = c.Snapshot.DisregardLimitPercent ?? 0m,
+            disregardLimitPercent = c.Snapshot.DisregardLimitPercent,
             replicates = rs.Replicates.Select(d => new
             {
                 replicateNo = d.ReplicateNo,

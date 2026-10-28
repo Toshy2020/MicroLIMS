@@ -196,8 +196,15 @@ public partial class HplcRunService
         {
             var input = inputs[i];
             // A related-substances sample is not weighed: its calculation uses no sample weight.
-            if (!context.IsRelatedSubstances && input.ActualWeightMg <= 0)
-                throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+            if (!context.IsRelatedSubstances)
+            {
+                if (input.ActualWeightMg <= 0)
+                    throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+            }
+            else if (input.ActualWeightMg < 0)
+            {
+                throw new InvalidOperationException("The sample weight cannot be negative.");
+            }
             ValidatePeaks(context, input.Peaks);
 
             var responses = input.Responses ?? new List<HplcReplicateResponseInput>();
@@ -241,11 +248,15 @@ public partial class HplcRunService
         if (peaks == null || peaks.Count == 0) return;
         if (!context.IsRelatedSubstances)
             throw new InvalidOperationException("Peaks are entered for related-substances methods only.");
+        if (peaks.Count > 50)
+            throw new InvalidOperationException("At most 50 peaks per replicate.");
         var impurityIds = context.Snapshot.Impurities.Select(i => i.Id).ToHashSet();
         foreach (var peak in peaks)
         {
             if (peak.Area < 0m)
                 throw new InvalidOperationException("Peak areas cannot be negative.");
+            if (peak.Area > 1_000_000_000_000m)
+                throw new InvalidOperationException("Peak area is too large.");
             if (peak.HplcMethodImpurityId is int impurityId && !impurityIds.Contains(impurityId))
                 throw new InvalidOperationException("The impurity does not belong to this method.");
             if (peak.RelativeRetention is <= 0m or > 100m)

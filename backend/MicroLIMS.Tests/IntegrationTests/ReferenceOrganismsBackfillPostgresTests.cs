@@ -104,9 +104,7 @@ public class ReferenceOrganismsBackfillPostgresTests
         }
         finally
         {
-            NpgsqlConnection.ClearAllPools();
-            PostgresTestConfiguration.EnsureSafeToDrop(name, admin);
-            await Exec(admin, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+            await ScratchPostgresDatabase.DropAsync(admin, name);
         }
     }
 

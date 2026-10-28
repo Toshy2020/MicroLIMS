@@ -261,6 +261,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                     label = p.Label,
                     relativeRetention = p.RelativeRetention,
                     area = p.Area,
+                    correctionFactor = p.CorrectionFactor,
                     percent = p.Percent,
                     disregarded = p.Disregarded,
                 }),

@@ -223,4 +223,37 @@ public class HplcMethodServiceRelatedSubstancesTests
         Assert.Equal("Impurity Impurity D has recorded peaks and cannot be removed.", ex.Message);
         Assert.True(await db.HplcMethodImpurities.AnyAsync(i => i.Id == d.Id));
     }
+
+    [Theory]
+    [InlineData(HplcRunStatus.Open, true)]
+    [InlineData(HplcRunStatus.Completed, false)]
+    public async Task Update_RemovingImpurityInAnOpenRunSnapshot_Refused(HplcRunStatus status, bool refused)
+    {
+        await using var db = Base.NewDb();
+        var (section, userId) = await Base.SeedAsync(db);
+        var (diluent, mp, standard) = await Base.SeedBasicsAsync(db, section.Id);
+        var service = TestServiceFactory.HplcMethod(db);
+        var created = await service.CreateAsync(RsReq(diluent.Id, mp.Id, standard.Id), userId);
+        var d = created.Impurities[0];
+        db.HplcRuns.Add(new HplcRun
+        {
+            Code = "HR-1", SectionId = section.Id, HplcMethodId = created.Id, Status = status,
+            MethodSnapshotJson = System.Text.Json.JsonSerializer.Serialize(created, MicroLIMS.Application.Helpers.SnapshotJson.Options),
+        });
+        await db.SaveChangesAsync();
+        var principal = new List<HplcAnalyteInput> { new(created.Analytes[0].Id, "Principal", 230m, standard.Id, 0m, 0m, 5) };
+        var request = RsReq(diluent.Id, mp.Id, standard.Id, reason: "drop", analytes: principal, impurities: new() { new(null, "Impurity Q", 0.5m, null) });
+
+        if (refused)
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, request, userId));
+            Assert.Equal("Impurity Impurity D is used by an open HPLC run and cannot be removed.", ex.Message);
+            Assert.True(await db.HplcMethodImpurities.AnyAsync(i => i.Id == d.Id));
+        }
+        else
+        {
+            await service.UpdateAsync(created.Id, request, userId);
+            Assert.False(await db.HplcMethodImpurities.AnyAsync(i => i.Id == d.Id));
+        }
+    }
 }

@@ -64,7 +64,7 @@ public partial class HplcRunServiceTests
     // A passed run on a related-substances method (reference 0.1 %, disregard 0.05 %, impurities D x0.7 and A) with one
     // assigned sample (one replicate), specs: D <= 0.15, A <= 0.15, any unspecified <= 0.10, total <= 0.5.
     private static async Task<RsFixture> ArrangeRelatedSubstancesAsync(
-        MicroLimsDbContext db, ILabClock clock, bool specs = true)
+        MicroLimsDbContext db, ILabClock clock, bool specs = true, decimal sstWeightMg = 0m)
     {
         var s = await SeedScenarioAsync(db, clock);
         s.Method.ResultMode = HplcResultMode.RelatedSubstances;
@@ -103,7 +103,7 @@ public partial class HplcRunServiceTests
         // The reference standard lot has no purity or moisture and no weight is entered: a related-substances SST needs none.
         var lot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: null, moisturePercent: null);
         await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
-            new(run.Sst!.Analytes[0].Id, lot.Id, 0m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
+            new(run.Sst!.Analytes[0].Id, lot.Id, sstWeightMg, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
         await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "std.pdf", "application/pdf", PdfBytes(), s.UserId);
         run = await service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null);
         run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
@@ -284,6 +284,9 @@ public partial class HplcRunServiceTests
         Assert.Equal(JsonValueKind.Null, belowDisregard.GetProperty("impurityId").ValueKind);
         var dPeak = repPeaks.EnumerateArray().Single(p => p.GetProperty("area").GetDecimal() == 12000m);
         Assert.False(dPeak.GetProperty("disregarded").GetBoolean());
+        Assert.Equal(0.7m, dPeak.GetProperty("correctionFactor").GetDecimal());
+        Assert.Equal(1m, repPeaks.EnumerateArray().Single(p => p.GetProperty("area").GetDecimal() == 9000m).GetProperty("correctionFactor").GetDecimal());
+        Assert.Equal(1m, belowDisregard.GetProperty("correctionFactor").GetDecimal());
         Assert.Equal(f.ImpurityD.Id, dPeak.GetProperty("impurityId").GetInt32());
     }
 
@@ -417,5 +420,38 @@ public partial class HplcRunServiceTests
         var result = await db.ParameterResults.FirstAsync(p => p.TestOrderId == f.Order.Id && p.IsActive);
         var doc = JsonDocument.Parse(result.CalculationJson!);
         Assert.Equal(JsonValueKind.Null, doc.RootElement.GetProperty("disregardLimitPercent").ValueKind);
+    }
+
+    [Fact]
+    public async Task RsSst_StoresNoStandardWeight_EvenWhenOneIsSent()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock, sstWeightMg: 25m);
+
+        Assert.Equal(HplcSstStatus.Passed, f.Run.Sst!.Status);
+        Assert.Null((await db.HplcSstAnalytes.SingleAsync()).StandardWeightMg);
+    }
+
+    [Fact]
+    public async Task SampleEntry_CarriesTheRunSnapshotFields_NotTheLiveMethod()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        // The live method drifts after the run started; the entry must still describe the snapshot.
+        (await db.HplcMethodImpurities.FirstAsync(i => i.Id == f.ImpurityD.Id)).Name = "Renamed live";
+        await db.SaveChangesAsync();
+
+        var entry = await f.Service.GetSampleEntryAsync(f.RunSampleId, f.S.UserId);
+
+        Assert.Equal(HplcResultMode.RelatedSubstances, entry.ResultMode);
+        Assert.Null(entry.InternalStandardName);
+        Assert.Equal(new[] { "Impurity D", "Impurity A" }, entry.Impurities!.Select(i => i.Name).ToArray());
+        Assert.Equal(0.7m, entry.Impurities![0].CorrectionFactor);
+        Assert.Equal(new HplcPrincipalAnalyteDto(f.Analyte.Id, f.Analyte.Name), entry.PrincipalAnalyte);
+        Assert.Equal(0.1m, entry.ReferenceSolutionPercent);
+        Assert.Equal(0.05m, entry.DisregardLimitPercent);
     }
 }

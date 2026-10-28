@@ -19,7 +19,8 @@ public record HplcQualificationEntryDto(
     string MaterialName, string BatchNumber, decimal? MoisturePercent,
     List<HplcMethodWeightDto> MethodWeights, int RequiredReplicates, List<HplcReplicateDto> Replicates,
     WorkingStandardPreviewDto? Preview, List<HplcEvidenceDto> Evidence,
-    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason);
+    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason,
+    string? InternalStandardName = null);
 
 // Working standard qualification samples on an HPLC run (spec 2026-10-03):
 // assigned like a sample after SST passes, six replicates entered against the
@@ -130,6 +131,8 @@ public partial class HplcRunService
         var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
         if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
             throw new InvalidOperationException("This method has no internal standard.");
+        if (inputs.Any(x => x.Peaks is { Count: > 0 }))
+            throw new InvalidOperationException("Peaks are not used for working-standard qualification.");
 
         for (var i = 0; i < inputs.Count; i++)
         {
@@ -301,6 +304,7 @@ public partial class HplcRunService
             c.Q.Id, c.Q.Code, c.Q.Status, c.Q.SourceMaterialName, c.Q.SourceBatchNumber, c.Q.MoisturePercent,
             weights, WorkingStandardRules.Replicates, replicates, preview, evidence,
             editableReason == null, editableReason, c.Q.Status != WorkingStandardQualificationStatus.Draft,
-            submitProblem == null, submitProblem);
+            submitProblem == null, submitProblem,
+            string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName) ? null : c.Snapshot.InternalStandardName);
     }
 }

@@ -39,7 +39,13 @@ public record HplcSampleEntryDto(
     List<HplcMethodWeightDto> MethodWeights, List<HplcReplicateDto> Replicates,
     List<HplcPreviewResultDto> Preview, List<HplcOfficialResultDto> Official, List<HplcEvidenceDto> Evidence,
     bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason,
-    [property: JsonConverter(typeof(JsonStringEnumConverter))] MoistureRole? MoistureRole = null);
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] MoistureRole? MoistureRole = null,
+    // From the run's method snapshot (what the server validates against), not the live method.
+    HplcResultMode ResultMode = HplcResultMode.Assay, string? InternalStandardName = null,
+    List<HplcMethodImpurityResponse>? Impurities = null, HplcPrincipalAnalyteDto? PrincipalAnalyte = null,
+    decimal? ReferenceSolutionPercent = null, decimal? DisregardLimitPercent = null);
+
+public record HplcPrincipalAnalyteDto(int Id, string Name);
 
 // HPLC Workspace Part B: sample assignment after SST passes, replicate entry
 // with a live (preview) assay calculation. Submission itself is
@@ -127,6 +133,8 @@ public partial class HplcRunService
         if (await _db.TestOrders.AnyAsync(o => ids.Contains(o.Id) && dissolutionCodes.Contains(o.TestCode), ct))
         {
             var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)!;
+            if (snapshot.ResultMode != HplcResultMode.Assay)
+                throw new InvalidOperationException("Dissolution needs an HPLC assay method.");
             if (!string.IsNullOrWhiteSpace(snapshot.InternalStandardName))
                 throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
             if (snapshot.Analytes.Count != 1)
@@ -397,7 +405,12 @@ public partial class HplcRunService
             c.RunSample.Status, individual ? "Individual" : "Mean", c.Replicates.SampleReplicates,
             weights, replicates, preview, official, evidence,
             editableReason == null, editableReason, c.Submitted, problem == null, problem,
-            c.MoistureRole != MoistureRole.None ? c.MoistureRole : null);
+            c.MoistureRole != MoistureRole.None ? c.MoistureRole : null,
+            c.Snapshot.ResultMode,
+            string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName) ? null : c.Snapshot.InternalStandardName,
+            c.Snapshot.Impurities.OrderBy(i => i.DisplayOrder).ToList(),
+            c.Snapshot.Analytes.Count == 1 ? new HplcPrincipalAnalyteDto(c.Snapshot.Analytes[0].Id, c.Snapshot.Analytes[0].Name) : null,
+            c.Snapshot.ReferenceSolutionPercent, c.Snapshot.DisregardLimitPercent);
     }
 
     // What HplcMethodAssayRecorder stored; Quantity and replicate number come

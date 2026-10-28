@@ -14,7 +14,7 @@ public record RelatedSubstancesInput(
 
 // One counted peak behind a replicate value (Label is the impurity name, or "Unspecified RRT x").
 public record RsContribution(string Label, decimal Area, decimal Percent);
-public record RsPeakEvidence(int? ImpurityId, string Label, decimal? RelativeRetention, decimal Area, decimal Percent, bool Disregarded);
+public record RsPeakEvidence(int? ImpurityId, string Label, decimal? RelativeRetention, decimal Area, decimal Percent, bool Disregarded, decimal CorrectionFactor = 1m);
 public record RsReplicateDetail(
     int ReplicateNo,
     decimal ReferenceArea,
@@ -30,7 +30,7 @@ public static class RelatedSubstancesEvaluator
 {
     public const string NotDetected = "Not detected";
 
-    private sealed record Peak(int? ImpurityId, string Label, decimal? RelativeRetention, decimal Area, decimal Percent, bool Counted);
+    private sealed record Peak(int? ImpurityId, string Label, decimal? RelativeRetention, decimal Area, decimal Percent, bool Counted, decimal CorrectionFactor);
 
     public static List<HplcAssayRow> Evaluate(int principalAnalyteId, string principalName, RelatedSubstancesInput input) =>
         Calculate(principalAnalyteId, principalName, input).Select(r => r.Row).ToList();
@@ -53,9 +53,9 @@ public static class RelatedSubstancesEvaluator
                 var rrt = p.RelativeRetention ?? impurity?.RelativeRetention;
                 var label = impurity?.Name ?? (rrt is decimal r ? $"Unspecified RRT {r.ToString("0.####", CultureInfo.InvariantCulture)}" : "Unspecified");
                 var counted = p.Area > 0m && (!input.DisregardLimitPercent.HasValue || input.DisregardLimitPercent.Value <= 0m || pct >= input.DisregardLimitPercent.Value);
-                return new Peak(impurity?.Id, label, rrt, p.Area, pct, counted);
+                return new Peak(impurity?.Id, label, rrt, p.Area, pct, counted, impurity?.CorrectionFactor ?? 1m);
             }).ToList();
-            var allPeaks = peaks.Select(p => new RsPeakEvidence(p.ImpurityId, p.Label, p.RelativeRetention, p.Area, p.Percent, !p.Counted)).ToList();
+            var allPeaks = peaks.Select(p => new RsPeakEvidence(p.ImpurityId, p.Label, p.RelativeRetention, p.Area, p.Percent, !p.Counted, p.CorrectionFactor)).ToList();
             return (Rep: rep, Peaks: peaks, AllPeaks: allPeaks);
         }).ToList();
 

@@ -454,7 +454,7 @@ public partial class HplcRunService
             }
 
             analyteRow.StandardMaterialId = lot.Id;
-            analyteRow.StandardWeightMg = input.StandardWeightMg > 0 ? input.StandardWeightMg : null;
+            analyteRow.StandardWeightMg = weighsStandard && input.StandardWeightMg > 0 ? input.StandardWeightMg : null;
             analyteRow.StandardPurityPercent = lot.Purity;
             analyteRow.StandardMoisturePercent = lot.MoisturePercent;
             analyteRow.ReportedRsdPercent = input.ReportedRsdPercent;

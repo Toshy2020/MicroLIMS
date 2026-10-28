@@ -300,6 +300,8 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("The HPLC method is inactive.");
             if (hplcMethod.Technique != HplcTechnique.Hplc)
                 throw new InvalidOperationException("Dissolution needs an HPLC method.");
+            if (hplcMethod.ResultMode != HplcResultMode.Assay)
+                throw new InvalidOperationException("Dissolution needs an HPLC assay method.");
             if (!string.IsNullOrWhiteSpace(hplcMethod.InternalStandardName))
                 throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
         }
@@ -671,6 +673,8 @@ public class TestDefinitionMasterDataService
                 ?? throw new InvalidOperationException("HPLC method not found.");
             if (hplcMethod.SectionId != entity.SectionId)
                 throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (hplcMethod.ResultMode != HplcResultMode.Assay)
+                throw new InvalidOperationException("Dissolution needs an HPLC assay method.");
             if (!string.IsNullOrWhiteSpace(hplcMethod.InternalStandardName))
                 throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
             if (!hplcMethod.IsActive && effectiveHplcMethodId != entity.HplcMethodId)

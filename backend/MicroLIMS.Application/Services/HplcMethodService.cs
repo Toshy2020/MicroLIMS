@@ -220,6 +220,18 @@ public partial class HplcMethodService
                 .Select(p => p.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
             if (peakImpurityId != null)
                 throw new InvalidOperationException($"Impurity {method.Impurities.First(i => i.Id == peakImpurityId).Name} has recorded peaks and cannot be removed.");
+
+            // ... and by the snapshot of an open run, which validates entered peaks against it.
+            var openSnapshots = await _db.HplcRuns
+                .Where(run => run.HplcMethodId == id && run.Status == HplcRunStatus.Open)
+                .Select(run => run.MethodSnapshotJson).ToListAsync(ct);
+            foreach (var json in openSnapshots)
+            {
+                var snapshotImpurities = JsonSerializer.Deserialize<HplcMethodResponse>(json, JsonOptions)?.Impurities;
+                var used = snapshotImpurities?.FirstOrDefault(i => removedImpurityIds.Contains(i.Id));
+                if (used != null)
+                    throw new InvalidOperationException($"Impurity {used.Name} is used by an open HPLC run and cannot be removed.");
+            }
         }
 
         ApplyFields(method, r, abbr);

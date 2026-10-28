@@ -24,7 +24,8 @@ public class HplcDissolutionStandardTests
         HplcSstStatus sst = HplcSstStatus.Passed, HplcRunStatus runStatus = HplcRunStatus.Open,
         decimal? dilution = 2500m, int analyteCount = 1,
         int sectionId = 1, int equipmentId = 7, int columnId = 1, int methodId = 1, int userId = 1,
-        int firstAnalyteId = 1, string codeSuffix = "", string? internalStandardName = null)
+        int firstAnalyteId = 1, string codeSuffix = "", string? internalStandardName = null,
+        HplcResultMode resultMode = HplcResultMode.Assay)
     {
         var analytes = Enumerable.Range(0, analyteCount).Select(i => new HplcMethodAnalyteResponse(
             firstAnalyteId + i, i + 1, $"Analyte {i + 1}", 290m, 1, "STD", 50m, 50m, 5,
@@ -32,7 +33,7 @@ public class HplcDissolutionStandardTests
         var run = new HplcRun
         {
             SectionId = sectionId, Code = "SILD RUN 01/102026" + codeSuffix, EquipmentId = equipmentId, ChromatographyColumnId = columnId, HplcMethodId = methodId,
-            MethodSnapshotJson = JsonSerializer.Serialize(new HplcMethodResponse { Id = methodId, Name = "M", Abbreviation = "SILD", ColumnDesignation = "L1", Analytes = analytes, InternalStandardName = internalStandardName }, SnapshotJson.Options),
+            MethodSnapshotJson = JsonSerializer.Serialize(new HplcMethodResponse { Id = methodId, Name = "M", Abbreviation = "SILD", ColumnDesignation = "L1", Analytes = analytes, InternalStandardName = internalStandardName, ResultMode = resultMode }, SnapshotJson.Options),
             AnalystUserId = userId, StartedAt = DateTime.UtcNow, Status = runStatus,
             Sst = new HplcSstRecord
             {
@@ -115,6 +116,31 @@ public class HplcDissolutionStandardTests
     }
 
     [Fact]
+    public async Task Standard_RelatedSubstancesMethod_IsRefused()
+    {
+        await using var db = NewDb();
+        SeedRun(db, resultMode: HplcResultMode.RelatedSubstances);
+        var result = await HplcDissolutionStandard.ResolveAsync(db, 100);
+        Assert.Equal("Dissolution needs an HPLC assay method.", result.Problem);
+    }
+
+    [Fact]
+    public async Task MasterData_DissolutionWithRelatedSubstancesMethod_IsRefused()
+    {
+        await using var db = NewDb();
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
+        var method = new HplcMethod { Name = "M-RS", Abbreviation = "MRS", SectionId = section.Id, Technique = HplcTechnique.Hplc, ResultMode = HplcResultMode.RelatedSubstances, IsActive = true };
+        db.HplcMethods.Add(method);
+        await db.SaveChangesAsync();
+
+        var master = TestServiceFactory.TestDefinitionMaster(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => master.CreateTestDefinitionAsync(1, new CreateTestDefinitionRequest(
+            Code: "DISS-RS", DisplayName: "Dissolution RS", SectionId: section.Id, WorkflowType: WorkflowType.Dissolution, EquationType: EquationType.Dissolution, RequiresSystemSuitability: true, MethodAbbreviation: "MRS", HplcMethodId: method.Id)));
+        Assert.Equal("Dissolution needs an HPLC assay method.", ex.Message);
+    }
+
+    [Fact]
     public async Task MasterData_DissolutionWithInternalStandardMethod_IsRefused()
     {
         await using var db = NewDb();
@@ -152,6 +178,30 @@ public class HplcDissolutionStandardTests
         var exUpdate = await Assert.ThrowsAsync<InvalidOperationException>(() => master.UpdateTestDefinitionAsync(testDef.Id, 1, new UpdateTestDefinitionRequest(
             Code: "DISS-1", DisplayName: "Diss 1", RequiresSystemSuitability: true, MethodAbbreviation: "MIS", HplcMethodId: method.Id)));
         Assert.Equal("Dissolution does not support internal-standard methods.", exUpdate.Message);
+    }
+
+    [Fact]
+    public async Task MasterData_UpdateDissolutionWithRelatedSubstancesMethod_IsRefused()
+    {
+        await using var db = NewDb();
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
+        var method = new HplcMethod { Name = "M-RS", Abbreviation = "MRS", SectionId = section.Id, Technique = HplcTechnique.Hplc, ResultMode = HplcResultMode.RelatedSubstances, IsActive = true };
+        var testDef = new TestDefinition
+        {
+            Code = "DISS-3", DisplayName = "Diss 3", SectionId = section.Id,
+            WorkflowType = WorkflowType.Dissolution, EquationType = EquationType.Dissolution,
+            RequiresSystemSuitability = true, MethodAbbreviation = "MRS", IsActive = true,
+            DissolutionS1Offset = 5m, DissolutionS2MinOffset = 15m, DissolutionS3MinOffset = 25m, DissolutionS3MaxBelowS2Min = 2m
+        };
+        db.HplcMethods.Add(method);
+        db.TestDefinitions.Add(testDef);
+        await db.SaveChangesAsync();
+
+        var master = TestServiceFactory.TestDefinitionMaster(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => master.UpdateTestDefinitionAsync(testDef.Id, 1, new UpdateTestDefinitionRequest(
+            Code: "DISS-3", DisplayName: "Diss 3", RequiresSystemSuitability: true, MethodAbbreviation: "MRS", HplcMethodId: method.Id)));
+        Assert.Equal("Dissolution needs an HPLC assay method.", ex.Message);
     }
 
     [Fact]

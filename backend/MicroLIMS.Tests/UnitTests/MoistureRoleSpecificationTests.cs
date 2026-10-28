@@ -263,4 +263,49 @@ public class MoistureRoleSpecificationTests
             () => new SpecificationService(db).ValidateAsync(HplcSpec(item, analyte, ResultBasis.Ppm)));
         Assert.Equal("Result basis must be assay % of label claim, amount per unit, % as is, % dried basis or % anhydrous basis.", ex.Message);
     }
+
+    [Fact]
+    public async Task HplcSpec_BasisConflicts_AreScopedPerGradeAndStage()
+    {
+        var (db, item, analyte, _) = await SetupHplcAsync(
+            ("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying),
+            ("KF", WorkflowType.Titration, MoistureRole.Water));
+        using var _ = db;
+        item.Category = SampleCategory.FinishedProduct; // stage-specific rows exist only on finished products
+        var claim = HplcSpec(item, analyte, ResultBasis.PercentLabelClaim);
+        claim.Grade = "USP";
+        db.Specifications.Add(claim);
+        var dried = HplcSpec(item, analyte, ResultBasis.PercentDriedBasis);
+        dried.ParameterName = "Assay (dried)";
+        dried.Grade = "USP";
+        dried.ProductionStageRole = ProductionStageRole.Bulk;
+        db.Specifications.Add(dried);
+        await db.SaveChangesAsync();
+        var service = new SpecificationService(db);
+
+        // Another grade, or another stage, is a different specification set: no conflict either way.
+        var otherGrade = HplcSpec(item, analyte, ResultBasis.PercentDriedBasis);
+        otherGrade.ParameterName = "Assay (dried, in-house)";
+        otherGrade.Grade = "In-house";
+        await service.ValidateAsync(otherGrade);
+
+        var otherStage = HplcSpec(item, analyte, ResultBasis.PercentAnhydrousBasis);
+        otherStage.ParameterName = "Assay (anhydrous, finished)";
+        otherStage.Grade = "USP";
+        otherStage.ProductionStageRole = ProductionStageRole.Finished;
+        await service.ValidateAsync(otherStage);
+
+        // Same grade and stage still conflicts.
+        var sameScope = HplcSpec(item, analyte, ResultBasis.PercentAsIs);
+        sameScope.ParameterName = "Assay (as is)";
+        sameScope.Grade = "usp"; // case-insensitive, like the duplicate check
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(sameScope));
+        Assert.Equal("An HPLC analyte reports either % of label claim or a content basis, not both.", ex.Message);
+        var anhydrousSameScope = HplcSpec(item, analyte, ResultBasis.PercentAnhydrousBasis);
+        anhydrousSameScope.ParameterName = "Assay (anhydrous)";
+        anhydrousSameScope.Grade = "USP";
+        anhydrousSameScope.ProductionStageRole = ProductionStageRole.Bulk;
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(anhydrousSameScope));
+        Assert.Equal("One HPLC test cannot report on both dried and anhydrous basis.", ex2.Message);
+    }
 }

@@ -289,6 +289,25 @@ public partial class HplcRunServiceTests
     }
 
     [Fact]
+    public async Task WsSaveReplicates_Peaks_Refused_AndNonIsEntryHasNoIsName()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+        var (service, _, q, rsId) = await AssignedWsAsync(db, clock, s);
+        var analyteId = (await db.WorkingStandardQualifications.FindAsync(q.Id))!.HplcMethodAnalyteId!.Value;
+
+        var withPeaks = new SaveReplicatesRequest(new List<HplcReplicateInput>
+        {
+            new(50m, new List<HplcReplicateResponseInput> { new(analyteId, 1000m) }, new List<HplcReplicatePeakInput> { new(null, 0.8m, 100m) })
+        });
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveQualificationReplicatesAsync(rsId, withPeaks, s.UserId));
+        Assert.Equal("Peaks are not used for working-standard qualification.", ex.Message);
+
+        Assert.Null((await service.GetQualificationEntryAsync(rsId, s.UserId)).InternalStandardName);
+    }
+
+    [Fact]
     public async Task WsSubmit_WithInternalStandard_ComputesAssayFromRatioAndMovesToAssayed()
     {
         await using var db = NewDb();
@@ -342,6 +361,7 @@ public partial class HplcRunServiceTests
         var entrySaved = await runSvc.SaveQualificationReplicatesAsync(rsId, validReps, s.UserId);
         Assert.NotNull(entrySaved.Preview);
         Assert.Equal(98.00m, entrySaved.Preview!.MeanAssayPercent);
+        Assert.Equal("Benzoic acid", entrySaved.InternalStandardName);
 
         await runSvc.UploadEvidenceAsync(run.Id, rsId, HplcEvidenceContext.Sample, HplcEvidenceKind.SampleReport,
             "s.pdf", "application/pdf", PdfBytes(), s.UserId);

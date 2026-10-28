@@ -431,7 +431,9 @@ public class SpecificationService
                 if (neededRole != MoistureRole.None)
                 {
                     var opposite = neededRole == MoistureRole.LossOnDrying ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
-                    if (await _db.Specifications.AnyAsync(s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ResultBasis == opposite, cancellationToken))
+                    if (await _db.Specifications.AnyAsync(s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ProductionStageRole == spec.ProductionStageRole
+                             && (s.Grade == null ? null : s.Grade.ToLower()) == grade
+                             && s.ResultBasis == opposite, cancellationToken))
                         throw new InvalidOperationException("One HPLC test cannot report on both dried and anhydrous basis.");
                     var hasMoistureTest = await _db.SampleTests.AnyAsync(
                         st => st.ItemId == spec.ItemId && st.TestCode != spec.TestCode
@@ -450,7 +452,8 @@ public class SpecificationService
                 {
                     var conflict = await _db.Specifications.AnyAsync(
                         s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId
-                             && s.Id != spec.Id && s.ResultBasis != spec.ResultBasis,
+                             && s.Id != spec.Id && s.ResultBasis != spec.ResultBasis
+                             && s.ProductionStageRole == spec.ProductionStageRole && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                         cancellationToken);
                     if (conflict)
                         throw new InvalidOperationException("An HPLC analyte reports either % of label claim or a content basis, not both.");
@@ -459,7 +462,9 @@ public class SpecificationService
                 {
                     var conflict = await _db.Specifications.AnyAsync(
                         s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId
-                             && s.Id != spec.Id && (s.ResultBasis == ResultBasis.PercentAsIs || s.ResultBasis == ResultBasis.PercentDriedBasis || s.ResultBasis == ResultBasis.PercentAnhydrousBasis),
+                             && s.Id != spec.Id && s.ProductionStageRole == spec.ProductionStageRole
+                             && (s.Grade == null ? null : s.Grade.ToLower()) == grade
+                             && (s.ResultBasis == ResultBasis.PercentAsIs || s.ResultBasis == ResultBasis.PercentDriedBasis || s.ResultBasis == ResultBasis.PercentAnhydrousBasis),
                         cancellationToken);
                     if (conflict)
                         throw new InvalidOperationException("An HPLC analyte reports either % of label claim or a content basis, not both.");

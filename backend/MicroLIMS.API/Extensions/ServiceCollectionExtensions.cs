@@ -271,7 +271,14 @@ public static class ServiceCollectionExtensions
         var smtpOptions = SmtpConfiguration.Resolve(config);
         services.AddSingleton(smtpOptions);
         services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
-        services.AddScoped<IEmailSender>(sp => new EmailSender(sp.GetRequiredService<SmtpOptions>()));
+        services.AddSingleton<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>(sp => new SmtpStatusProvider(sp.GetRequiredService<SmtpOptions>()));
+        services.AddSingleton<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>();
+        services.AddScoped<IEmailSender>(sp => new MicroLIMS.Application.Services.Integrations.TrackingEmailSender(
+            new EmailSender(sp.GetRequiredService<SmtpOptions>()),
+            sp.GetRequiredService<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>(),
+            sp.GetRequiredService<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>()));
+        services.AddSingleton<MicroLIMS.Application.Services.Integrations.AdminActionThrottle>();
+        services.AddScoped<MicroLIMS.Application.Services.Integrations.IIntegrationsService, MicroLIMS.Application.Services.Integrations.IntegrationsService>();
         // Error capture is a singleton that opens its own DbContext
         // scope per write - the request-scoped context is typically
         // mid-exception when an error is captured.

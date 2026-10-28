@@ -88,6 +88,7 @@ const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pa
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
 const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const IntegrationsPage = lazy(() => import("../modules/admin/IntegrationsPage").then((m) => ({ default: m.IntegrationsPage })));
 const OrganizationPage = lazy(() => import("../modules/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage })));
 const ReassignmentsPage = lazy(() => import("../modules/documentControl/pages/ReassignmentsPage").then((m) => ({ default: m.ReassignmentsPage })));
 const JobsPage = lazy(() => import("../modules/admin/JobsPage").then((m) => ({ default: m.JobsPage })));
@@ -289,6 +290,7 @@ export function AppRoutes() {
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="integrations" element={<IntegrationsPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
                 <Route path="organization" element={<OrganizationPage />} />

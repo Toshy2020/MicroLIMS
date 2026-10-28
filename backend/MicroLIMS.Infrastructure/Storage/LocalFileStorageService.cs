@@ -8,7 +8,7 @@ namespace MicroLIMS.Infrastructure.Storage;
 // SaveAsync returns the relative key rather than the combined path, so what
 // callers persist does not depend on where this directory lives. ReadAsync
 // still accepts the combined paths older rows hold.
-public class LocalFileStorageService : IFileStorageService
+public class LocalFileStorageService : IFileStorageService, IStorageDiagnostics
 {
     private readonly string _basePath;
 
@@ -43,6 +43,28 @@ public class LocalFileStorageService : IFileStorageService
         {
             throw new StoredFileNotFoundException(key, ex);
         }
+    }
+
+    public StorageDescription Describe()
+    {
+        long? free = null, total = null;
+        try
+        {
+            var drive = new DriveInfo(Path.GetFullPath(_basePath));
+            free = drive.AvailableFreeSpace;
+            total = drive.TotalSize;
+        }
+        catch (Exception)
+        {
+            // Free space is informational; some filesystems do not report it.
+        }
+        return new StorageDescription("Local", Path.GetFullPath(_basePath), free, total);
+    }
+
+    public Task DeleteAsync(string key)
+    {
+        File.Delete(ResolvePath(StorageKey.Normalize(key, legacyBasePath: null)));
+        return Task.CompletedTask;
     }
 
     private string ResolvePath(string key) =>

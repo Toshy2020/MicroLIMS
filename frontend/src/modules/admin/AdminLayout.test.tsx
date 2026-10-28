@@ -38,7 +38,7 @@ describe("AdminLayout", () => {
   it("shows Settings to System.ConfigureSettings and marks the current tab selected", () => {
     auth.permissions = ["Users.Manage", "System.ConfigureSettings"];
     renderAt("/admin/users");
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Settings"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Settings", "Integrations"]);
     expect(screen.getByRole("tab", { name: "Users" }).getAttribute("aria-selected")).toBe("true");
   });
 

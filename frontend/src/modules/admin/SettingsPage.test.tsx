@@ -3,8 +3,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { SettingsPage } from "./SettingsPage";
 import { SettingsService, SystemSetting } from "./services/SettingsService";
+import { IntegrationsService } from "./services/IntegrationsService";
 
 vi.mock("./services/SettingsService", () => ({ SettingsService: { getAll: vi.fn(), update: vi.fn(), history: vi.fn() } }));
+vi.mock("./services/IntegrationsService", () => ({ IntegrationsService: { sendTestAlert: vi.fn() } }));
 vi.mock("../../contexts/AuthContext", () => ({ useAuth: () => ({ fullName: "Ada Admin", username: "ada", role: "SystemAdministrator" }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -79,5 +81,40 @@ describe("SettingsPage", () => {
     vi.mocked(SettingsService.getAll).mockRejectedValue(new Error("403"));
     render(<PinnedLightTheme><SettingsPage /></PinnedLightTheme>);
     expect(await screen.findByText(/Could not load the settings/)).toBeTruthy();
+  });
+
+  const recipients: SystemSetting = {
+    ...plain, key: "Alerts.CriticalRecipients", category: "Alerts", description: "Who is emailed.", valueType: "EmailList",
+    value: "a@example.test,b@example.test", defaultValue: "", unit: "addresses", min: null, max: 20
+  };
+
+  it("edits the recipient list one per line, allows clearing it, and sends the text as typed", async () => {
+    vi.mocked(SettingsService.getAll).mockResolvedValue({ settings: [recipients], fixedItems: [] });
+    vi.mocked(SettingsService.update).mockResolvedValue({ ...recipients, value: "" });
+    render(<PinnedLightTheme><SettingsPage /></PinnedLightTheme>);
+    expect(await screen.findByText("a@example.test, b@example.test")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Edit Alerts.CriticalRecipients"));
+    const value = screen.getByLabelText(/^Value/) as HTMLTextAreaElement;
+    expect(value.value).toBe("a@example.test\nb@example.test");
+    fireEvent.change(value, { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText(/Reason for change/), { target: { value: "Stand down" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(SettingsService.update).toHaveBeenCalledWith("Alerts.CriticalRecipients", "", "Stand down", undefined));
+  });
+
+  it("sends a test alert with a reason and shows each recipient's outcome", async () => {
+    vi.mocked(SettingsService.getAll).mockResolvedValue({ settings: [recipients], fixedItems: [] });
+    vi.mocked(IntegrationsService.sendTestAlert).mockResolvedValue({
+      recipientCount: 2, sent: 1,
+      outcomes: [{ recipient: "a@example.test", outcome: "Sent", error: null }, { recipient: "b@example.test", outcome: "Failed", error: "mailbox unavailable" }]
+    });
+    render(<PinnedLightTheme><SettingsPage /></PinnedLightTheme>);
+    fireEvent.click(await screen.findByRole("button", { name: "Send test alert" }));
+    const send = screen.getAllByRole("button", { name: "Send test alert" }).slice(-1)[0] as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: "Drill" } });
+    fireEvent.click(send);
+    await waitFor(() => expect(IntegrationsService.sendTestAlert).toHaveBeenCalledWith("Drill"));
+    expect(await screen.findByText("b@example.test: Failed - mailbox unavailable")).toBeTruthy();
   });
 });

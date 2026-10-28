@@ -17,6 +17,7 @@ export const ADMIN_TABS: AdminTab[] = [
   { label: "Audit Trail", path: "/admin/audit", permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
   { label: "Settings", path: "/admin/settings", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
+  { label: "Integrations", path: "/admin/integrations", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
   { label: "Jobs", path: "/admin/jobs", permission: PERMISSIONS.SYSTEM_MANAGE_JOBS },
   { label: "Overview", path: "/admin/overview", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG }
 ];

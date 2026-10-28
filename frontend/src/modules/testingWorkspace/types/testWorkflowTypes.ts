@@ -50,7 +50,7 @@ export interface TestWorkflowStepDto {
   // Gram Stain + Oxidase + Identification Kit) instead of chaining
   // separate steps - the analyst still submits one combined result.
   phenotypicTestTypes?: string[];
-  stepMedia: { id?: number; materialId: number; materialName: string; tempMin: number; tempMax: number; incubationMinHours?: number; incubationMaxHours?: number; isRequired: boolean }[];
+  stepMedia: { id?: number; mediaProductId: number; mediaProductName: string; tempMin: number; tempMax: number; incubationMinHours?: number; incubationMaxHours?: number; isRequired: boolean }[];
   incubationMinHours: number;
   incubationMaxHours: number;
   temperatureMin: number;
@@ -183,12 +183,16 @@ export interface ConfirmatoryOutcomeDto {
 
 export interface PermittedConfirmatoryMediaEntry {
   stepMediaId: number;
-  materialId: number;
+  mediaProductId: number;
+  // The product's name.
   mediaName: string;
   expectedAppearance: string | null;
   tempMin: number;
   tempMax: number;
-  availableLots: { id: number; lotNumber: string; expiryDate: string }[];
+  // Every lot of the product; the analyst picks a real lot.
+  availableLots: { id: number; lotNumber: string; expiryDate: string; materialId: number }[];
+  // The lot recorded when plating started (null before that); observations are recorded against its material.
+  selection: { materialId: number; mediaId: number; lotNumber: string; equipmentId: number } | null;
 }
 
 export interface PermittedConfirmatoryMediaResponse {

@@ -7,6 +7,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
+import { MediaProductPicker } from "../../../../components/MediaProductPicker";
+import { useMediaProducts } from "../../../../hooks/useMediaProducts";
 import { masterDataOptions, incubationConditionLabel, MediaIncubationConditionOption } from "../../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../../theme";
 import { EQUATION_TYPE_LABELS, PHENOTYPIC_TEST_TYPES, PHENOTYPIC_TEST_TYPE_LABELS, STEP_TYPES, STEP_TYPES_REQUIRING_ORGANISM, STEP_TYPES_SINGLE_MEDIA, STEP_TYPES_WITH_NO_MEDIA, StepFormState, StepMediaRow, WORKFLOW_TYPE_LABELS, WorkflowStepMediaItem, defaultStepForm, stage1Ranges, stepNeedsConfiguration, validateStepForm } from "./testMasterConstants";
@@ -35,14 +37,6 @@ export interface WorkflowStepItem {
   phenotypicTestTypes?: string[];
 }
 
-export interface MaterialOption {
-  id: number;
-  name?: string;
-  materialName?: string;
-  mediaProductId?: number;
-  [key: string]: unknown;
-}
-
 // Shown when a Test Master row is expanded, alongside Approved Media -
 // the configurable workflow template TestWorkflowEngine reads instead
 // of a hardcoded per-test-code chain (see backend TestWorkflowStep.cs).
@@ -51,7 +45,8 @@ export interface MaterialOption {
 export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { test: TestDefinitionOption; workflowTypes: string[]; onWorkflowTypeChanged: () => void }) {
   const [steps, setSteps] = useState<WorkflowStepItem[]>([]);
   const [organisms, setOrganisms] = useState<Array<{ id: number; scientificName: string; commonName?: string }>>([]);
-  const [materials, setMaterials] = useState<MaterialOption[]>([]);
+  // Step media name a Culture Media product; the picker hides inactive ones except a product already on the row.
+  const { options: mediaProducts } = useMediaProducts();
   const [conditions, setConditions] = useState<MediaIncubationConditionOption[]>([]);
   const [form, setForm] = useState<StepFormState>(defaultStepForm);
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
@@ -61,7 +56,6 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const loadSteps = () => masterDataOptions.getTestWorkflowSteps(test.id).then(setSteps);
   useEffect(() => {
     masterDataOptions.getOrganisms().then(setOrganisms);
-    masterDataOptions.getMaterials("DehydratedMedia").then(setMaterials);
     masterDataOptions.getMediaIncubationConditions().then(setConditions);
     loadSteps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +79,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
       stepName: s.stepName, isFinalStep: s.isFinalStep, stepType: s.stepType,
       targetOrganismId: s.targetOrganismId ?? null,
       stepMedia: (s.stepMedia ?? []).map((m) => ({
-        materialId: m.materialId,
+        mediaProductId: m.mediaProductId,
         mediaIncubationConditionId: typeof m.mediaIncubationConditionId === "number" ? m.mediaIncubationConditionId : "",
         isRequired: !!m.isRequired,
         displayOrder: typeof m.displayOrder === "number" ? m.displayOrder : 0
@@ -132,20 +126,19 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const addMediaRow = () => setForm({
     ...form,
     stepMedia: [...form.stepMedia, {
-      materialId: "", mediaIncubationConditionId: "", isRequired: false, displayOrder: form.stepMedia.length
+      mediaProductId: "", mediaIncubationConditionId: "", isRequired: false, displayOrder: form.stepMedia.length
     }]
   });
-  // A condition belongs to one media product, so changing the material
+  // A condition belongs to one media product, so changing the product
   // clears a condition that no longer fits.
   const updateMediaRow = (index: number, patch: Partial<StepMediaRow>) => setForm({
     ...form,
     stepMedia: form.stepMedia.map((m, i) => {
       if (i !== index) return m;
       const next = { ...m, ...patch };
-      if (patch.materialId !== undefined) {
-        const material = materials.find((mat) => mat.id === patch.materialId);
+      if (patch.mediaProductId !== undefined) {
         const matchesProduct = conditions.some(
-          (c) => c.id === next.mediaIncubationConditionId && material?.mediaProductId != null && c.mediaProductId === material.mediaProductId
+          (c) => c.id === next.mediaIncubationConditionId && c.mediaProductId === next.mediaProductId
         );
         if (!matchesProduct) {
           next.mediaIncubationConditionId = "";
@@ -177,7 +170,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
       incubationMinHours: 0, incubationMaxHours: 0, temperatureMin: 0, temperatureMax: 0,
       isFinalStep: !!form.isFinalStep, stepType: form.stepType, targetOrganismId: form.targetOrganismId,
       stepMedia: form.stepMedia.map((m, i) => ({
-        materialId: Number(m.materialId),
+        mediaProductId: Number(m.mediaProductId),
         mediaIncubationConditionId: m.mediaIncubationConditionId === "" ? null : Number(m.mediaIncubationConditionId),
         isRequired: form.stepType === "ConfirmatoryPlating" ? false : !!m.isRequired,
         displayOrder: i
@@ -565,7 +558,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
                         ? (s.phenotypicTestTypes && s.phenotypicTestTypes.length > 0
                             ? s.phenotypicTestTypes.map((t: string) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")
                             : s.phenotypicTestType ? PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType : <em>—</em>)
-                        : (s.stepMedia && s.stepMedia.length > 0 ? s.stepMedia.map((m) => m.materialName).join(", ") : <em>—</em>)}
+                        : (s.stepMedia && s.stepMedia.length > 0 ? s.stepMedia.map((m) => m.mediaProductName).join(", ") : <em>—</em>)}
                     </TableCell>
                     <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
                     <TableCell>
@@ -771,12 +764,11 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
               display: "block",
               mb: 1
             }}>
-            Pick the medium, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added on the Media Configurations page.
+            Pick the culture media product, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added on the Media Configurations page.
           </Typography>
           <Stack spacing={1}>
             {form.stepMedia.map((row, idx) => {
-              const material = materials.find((mat) => mat.id === row.materialId);
-              const productConditions = material?.mediaProductId ? conditions.filter((c) => c.mediaProductId === material.mediaProductId) : [];
+              const productConditions = row.mediaProductId !== "" ? conditions.filter((c) => c.mediaProductId === row.mediaProductId) : [];
               return (
                 <Stack useFlexGap
                   key={idx}
@@ -786,10 +778,13 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
                     alignItems: "center",
                     flexWrap: "wrap"
                   }}>
-                  <Select<number | ""> size="small" displayEmpty value={row.materialId} onChange={(e) => updateMediaRow(idx, { materialId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 200 }} inputProps={{ "aria-label": "Material" }}>
-                    <MenuItem value=""><em>Material</em></MenuItem>
-                    {materials.map((m) => <MenuItem key={m.id} value={m.id}>{m.materialName}</MenuItem>)}
-                  </Select>
+                  <MediaProductPicker
+                    label="Culture media product"
+                    value={row.mediaProductId === "" ? null : row.mediaProductId}
+                    options={mediaProducts}
+                    onChange={(id) => updateMediaRow(idx, { mediaProductId: id ?? "" })}
+                    sx={{ minWidth: 240 }}
+                  />
                   <Select<number | "">
                     size="small"
                     displayEmpty
@@ -805,16 +800,10 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
                       </MenuItem>
                     ))}
                   </Select>
-                  {row.materialId !== "" && (
-                    !material?.mediaProductId ? (
-                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        This batch isn't linked to a media product.
-                      </Typography>
-                    ) : productConditions.length === 0 ? (
-                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        This medium has no incubation conditions yet.
-                      </Typography>
-                    ) : null
+                  {row.mediaProductId !== "" && productConditions.length === 0 && (
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      This medium has no incubation conditions yet.
+                    </Typography>
                   )}
                   {!isConfirmatory && (
                     <FormControlLabel

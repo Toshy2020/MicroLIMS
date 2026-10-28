@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -43,6 +44,64 @@ public class ConfirmatoryPlatingTests
         var result = await db.WorkflowStepResults.Include(r => r.Selections).SingleAsync(r => r.StepName == "Confirmatory Plating");
         Assert.Equal(2, result.Selections.Count);
         Assert.All(result.Selections, s => Assert.False(s.WasAnalystAdded));
+    }
+
+    private static TestWorkflowQueryService QueryService(MicroLimsDbContext db) =>
+        new(db, new IncubatorEligibilityService(db),
+            new MediaAppearanceSnapshotService(db, Microsoft.Extensions.Logging.Abstractions.NullLogger<MediaAppearanceSnapshotService>.Instance));
+
+    private static T Field<T>(object source, string name) => (T)source.GetType().GetProperty(name)!.GetValue(source)!;
+
+    [Fact]
+    public async Task PermittedMedia_ListsLotMaterialAndTheRecordedSelectionPerMedium()
+    {
+        var (orderId, media, incubatorId, engine, db) = await ReadyForConfirmatoryAsync();
+        await using var _ = db;
+        var query = QueryService(db);
+
+        // A second batch (own Material) of the XLD product, with its own released lot.
+        var xldMaterial = await db.Materials.AsNoTracking().SingleAsync(m => m.Id == media.XldMaterialId);
+        var batchB = new Material
+        {
+            MaterialType = MaterialType.DehydratedMedia, MaterialName = xldMaterial.MaterialName, ManufacturerName = "Himedia",
+            BatchNumber = "LOT-XLD-BATCH-B", ReceivingDate = DateTime.UtcNow.AddDays(-5), Location = "Micro Lab",
+            QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram, Code = xldMaterial.Code,
+            MediaProductId = xldMaterial.MediaProductId
+        };
+        db.Materials.Add(batchB);
+        await db.SaveChangesAsync();
+        var lotB = new Media { MaterialId = batchB.Id, LotNumber = "XLD/02/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(60) };
+        db.Media.Add(lotB);
+        await db.SaveChangesAsync();
+
+        object Xld(object response) => Field<System.Collections.IEnumerable>(response, "permittedMedia").Cast<object>()
+            .Single(m => Field<int>(m, "stepMediaId") == media.XldStepMediaId);
+
+        // Before plating: every lot of the product is offered with its material, and nothing is selected.
+        var before = Xld(await query.GetPermittedConfirmatoryMediaAsync(orderId, "Confirmatory Plating"));
+        var lotsBefore = Field<System.Collections.IEnumerable>(before, "availableLots").Cast<object>().ToList();
+        Assert.Equal(2, lotsBefore.Count);
+        Assert.Equal(media.XldMaterialId, Field<int>(lotsBefore.Single(l => Field<int>(l, "Id") == media.XldLotId), "materialId"));
+        Assert.Equal(batchB.Id, Field<int>(lotsBefore.Single(l => Field<int>(l, "Id") == lotB.Id), "materialId"));
+        Assert.Null(before.GetType().GetProperty("selection")!.GetValue(before));
+
+        // Plated with the second lot: the selection is that lot, its material, and incubator.
+        await engine.SubmitConfirmatorySetupAsync(orderId, "Confirmatory Plating", new[]
+        {
+            new ConfirmatorySelectionInput(media.XldStepMediaId, lotB.Id, incubatorId),
+            new ConfirmatorySelectionInput(media.TsiStepMediaId, media.TsiLotId, incubatorId)
+        }, DateTime.UtcNow.AddHours(-30), DateTime.UtcNow.AddHours(-6), 4);
+
+        var response = await query.GetPermittedConfirmatoryMediaAsync(orderId, "Confirmatory Plating");
+        var selection = Xld(response).GetType().GetProperty("selection")!.GetValue(Xld(response))!;
+        Assert.Equal(batchB.Id, Field<int>(selection, "materialId"));
+        Assert.Equal(lotB.Id, Field<int>(selection, "mediaId"));
+        Assert.Equal("XLD/02/26", Field<string>(selection, "lotNumber"));
+        Assert.Equal(incubatorId, Field<int>(selection, "equipmentId"));
+
+        var tsi = Field<System.Collections.IEnumerable>(response, "permittedMedia").Cast<object>()
+            .Single(m => Field<int>(m, "stepMediaId") == media.TsiStepMediaId);
+        Assert.Equal(media.TsiMaterialId, Field<int>(tsi.GetType().GetProperty("selection")!.GetValue(tsi)!, "materialId"));
     }
 
     // The real-world case that motivated the Media Configuration

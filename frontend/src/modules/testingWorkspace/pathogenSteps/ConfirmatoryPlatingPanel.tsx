@@ -44,6 +44,8 @@ interface SetupRow {
 
 interface ReadoutMedium {
   stepMediaId: number;
+  mediaProductId: number;
+  // The analyst's actual lot's material: observations are recorded against the lot used, not the product.
   materialId: number;
   mediaName: string;
   expectedAppearance: string | null;
@@ -124,13 +126,18 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   // When in readout phase and readoutMedia is empty, populate from permitted
   useEffect(() => {
     if (phase === "readout" && readoutMedia.length === 0 && permitted.length > 0) {
-      setReadoutMedia(permitted.map((m) => ({
+      // The server's recorded selection says which lot (and so which material) was plated.
+      const rows = permitted.filter((m) => m.selection).map((m) => ({
         stepMediaId: m.stepMediaId,
-        materialId: m.materialId,
+        mediaProductId: m.mediaProductId,
+        materialId: m.selection!.materialId,
         mediaName: m.mediaName,
         expectedAppearance: m.expectedAppearance
-      })));
-      setReadoutUncertain(true);
+      }));
+      if (rows.length > 0) {
+        setReadoutMedia(rows);
+        setReadoutUncertain(false);
+      }
     }
   }, [phase, permitted, readoutMedia.length]);
 
@@ -159,7 +166,8 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     try {
       await TestWorkflowService.submitConfirmatorySetup(testOrderId, step.stepName, selections, startUtc, endUtc);
       setReadoutMedia(checkedRows.map((r) => ({
-        stepMediaId: r.entry.stepMediaId, materialId: r.entry.materialId,
+        stepMediaId: r.entry.stepMediaId, mediaProductId: r.entry.mediaProductId,
+        materialId: r.entry.availableLots.find((l) => l.id === Number(r.mediaLotId))!.materialId,
         mediaName: r.entry.mediaName, expectedAppearance: r.entry.expectedAppearance
       })));
       setReadoutUncertain(false);

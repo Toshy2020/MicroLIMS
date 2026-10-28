@@ -57,6 +57,15 @@ public class TestWorkflowQueryService
             .FirstOrDefaultAsync(s => s.TestDefinition!.Code == order.TestCode && s.StepName == stepName)
             ?? throw new InvalidOperationException($"Step '{stepName}' is not part of {order.TestCode}.");
 
+        // The run still awaiting its plate readings - the same row
+        // SubmitConfirmatoryObservationsAsync reads; null before plating starts.
+        var awaitingReadout = await _db.WorkflowStepResults
+            .AsNoTracking()
+            .Include(r => r.Selections).ThenInclude(x => x.Media).ThenInclude(m => m!.Material)
+            .Where(r => r.TestOrderId == testOrderId && r.StepName == stepName && r.ConfirmatoryResult == null)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync();
+
         var now = _time.GetUtcNow().UtcDateTime;
         var permitted = new List<object>();
         foreach (var medium in step.StepMedia.OrderBy(m => m.DisplayOrder))
@@ -68,8 +77,13 @@ public class TestWorkflowQueryService
             var lots = await _db.Media
                 .Where(m => m.Material!.MediaProductId == medium.MediaProductId && m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > now)
                 .OrderBy(m => m.ExpiryDate)
-                .Select(m => new { m.Id, lotNumber = m.LotNumber, expiryDate = m.ExpiryDate })
+                .Select(m => new { m.Id, lotNumber = m.LotNumber, expiryDate = m.ExpiryDate, materialId = m.MaterialId })
                 .ToListAsync();
+
+            // What the analyst actually plated for this medium: the observation is
+            // recorded against this lot's material, not the product.
+            var selected = awaitingReadout?.Selections
+                .FirstOrDefault(x => x.Media?.Material?.MediaProductId == medium.MediaProductId);
 
             permitted.Add(new
             {
@@ -79,7 +93,8 @@ public class TestWorkflowQueryService
                 expectedAppearance = expected,
                 tempMin = medium.TempMin,
                 tempMax = medium.TempMax,
-                availableLots = lots
+                availableLots = lots,
+                selection = selected is null ? null : new { materialId = selected.MaterialId, mediaId = selected.MediaId, lotNumber = selected.Media!.LotNumber, equipmentId = selected.EquipmentId }
             });
         }
 

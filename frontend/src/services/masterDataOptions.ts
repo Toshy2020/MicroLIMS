@@ -56,7 +56,7 @@ type TestWorkflowStepPayload = {
   stepName: string; incubationMinHours: number; incubationMaxHours: number;
   temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
   targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
-  stepMedia: { materialId: number; mediaIncubationConditionId: number | null; isRequired: boolean; displayOrder: number }[];
+  stepMedia: { mediaProductId: number; mediaIncubationConditionId: number | null; isRequired: boolean; displayOrder: number }[];
   requiresIncubationTransfer: boolean;
   incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };

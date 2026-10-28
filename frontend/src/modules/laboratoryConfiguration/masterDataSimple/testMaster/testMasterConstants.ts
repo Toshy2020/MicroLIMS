@@ -66,10 +66,10 @@ export const PHENOTYPIC_TEST_TYPE_LABELS: Record<string, string> = {
   Antibiogram: "Antibiogram", IdentificationKit: "Identification Kit"
 };
 
-// Each step medium picks one incubation condition of its material's media
-// product. The server copies that condition's temperature and hours onto
+// Each step medium names a Culture Media product and picks one incubation
+// condition of that product. The server copies that condition's temperature and hours onto
 // the step medium when it saves (MasterDataController.BuildStepMediaAsync).
-export type StepMediaRow = { materialId: number | ""; mediaIncubationConditionId: number | ""; isRequired: boolean; displayOrder: number };
+export type StepMediaRow = { mediaProductId: number | ""; mediaIncubationConditionId: number | ""; isRequired: boolean; displayOrder: number };
 
 export interface StepFormState {
   stepName?: string;
@@ -140,11 +140,11 @@ export function validateStepForm(form: StepFormState): string | null {
   if (form.stepType === "PlateCount" && form.stepMedia.length === 0)
     return "At least one medium is required for this step type.";
   for (const m of form.stepMedia) {
-    if (m.materialId === "") return "Every medium row needs a selected material.";
+    if (m.mediaProductId === "") return "Every medium row needs a selected culture media product.";
     if (m.mediaIncubationConditionId === "") return "Every medium row needs an incubation condition.";
   }
-  const materialIds = form.stepMedia.map((m) => m.materialId);
-  if (new Set(materialIds).size !== materialIds.length) return "The same medium cannot be assigned to this step more than once.";
+  const productIds = form.stepMedia.map((m) => m.mediaProductId);
+  if (new Set(productIds).size !== productIds.length) return "The same medium cannot be assigned to this step more than once.";
 
   // Mirrors WorkflowTemplateValidator rule 7 - the server is still
   // authoritative, this only spares a round trip for the common case.
@@ -172,8 +172,8 @@ export function validateStepForm(form: StepFormState): string | null {
 // (e.g. Confirmatory Plating's XLD vs TSI), so stage 1's display is built
 // from the picked media's own ranges instead, joined when they differ.
 export interface WorkflowStepMediaItem {
-  materialId: number;
-  materialName?: string;
+  mediaProductId: number;
+  mediaProductName?: string;
   mediaIncubationConditionId?: number | string | null;
   isRequired?: boolean;
   displayOrder?: number;

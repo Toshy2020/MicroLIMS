@@ -31,6 +31,19 @@ export const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
   PrimaryStandard: "Primary Standard"
 };
 
+// Types that became categories of Other materials. New lots are never received under
+// them, but lots received before keep the stored type.
+export const LEGACY_MATERIAL_TYPES: MaterialType[] = [
+  "Supplement",
+  "AntibioticDisc",
+  "IdentificationKit",
+  "IdentificationReagent",
+  "ReferenceBuffer",
+  "DisposableTool"
+];
+
+export type MaterialApprovalStatus = "PendingReview" | "Approved" | "Rejected";
+
 export type MaterialUnit =
   | "Gram"
   | "Kilogram"
@@ -97,6 +110,15 @@ export interface MaterialItem {
   materialMasterEntryId?: number | null;
   materialMasterEntryCode?: string | null;
   moisturePercent?: number | null;
+  storageCondition?: string | null;
+  // Release gate: null when the lot's category needs no approval before use.
+  approvalStatus?: MaterialApprovalStatus | null;
+  approvedByUserId?: number | null;
+  approvedAt?: string | null;
+  materialCategoryId?: number | null;
+  categoryName?: string | null;
+  labelRequired?: boolean;
+  isUsable?: boolean;
 }
 
 export interface MaterialFormState {
@@ -109,6 +131,7 @@ export interface MaterialFormState {
   expiryDate: string;
   code: string;
   location: string;
+  storageCondition: string;
   quantityReceived: number | string;
   unit: MaterialUnit;
   minimumStockLevel: number | string;

@@ -7,11 +7,13 @@ import { MaterialMasterService, MaterialMasterEntry, MATERIAL_MASTER_CODE_PREFIX
 interface ChangeMaterialMasterCodeDialogProps {
   open: boolean;
   entry: MaterialMasterEntry | null;
+  // Other materials: the code prefix of the entry's material category (without the dash).
+  categoryPrefix?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function ChangeMaterialMasterCodeDialog({ open, entry, onClose, onSuccess }: ChangeMaterialMasterCodeDialogProps) {
+export function ChangeMaterialMasterCodeDialog({ open, entry, categoryPrefix, onClose, onSuccess }: ChangeMaterialMasterCodeDialogProps) {
   const [newCode, setNewCode] = useState("");
   const [reason, setReason] = useState("");
   const [signatureOpen, setSignatureOpen] = useState(false);
@@ -26,7 +28,7 @@ export function ChangeMaterialMasterCodeDialog({ open, entry, onClose, onSuccess
 
   if (!entry) return null;
 
-  const prefix = MATERIAL_MASTER_CODE_PREFIX[entry.category];
+  const prefix = entry.category === "Other" ? `${categoryPrefix ?? ""}-` : MATERIAL_MASTER_CODE_PREFIX[entry.category];
   const trimmedNewCode = newCode.trim().toUpperCase();
   const trimmedReason = reason.trim();
 

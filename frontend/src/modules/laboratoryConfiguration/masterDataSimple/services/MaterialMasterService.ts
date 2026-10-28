@@ -2,7 +2,7 @@ import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type { ApiResponse } from "./EquipmentConfigurationService";
 import type { MaterialUnit } from "../../../inventory/materials/types/materialTypes";
 
-export type MaterialMasterCategory = "Reagent" | "Indicator" | "ReferenceStandard" | "PrimaryStandard";
+export type MaterialMasterCategory = "Reagent" | "Indicator" | "ReferenceStandard" | "PrimaryStandard" | "Other";
 
 export interface MaterialMasterEntry {
   id: number;
@@ -19,6 +19,9 @@ export interface MaterialMasterEntry {
   code: string;
   name: string;
   category: MaterialMasterCategory;
+  // Other materials only: the material category that carries the entry's rules and code prefix.
+  materialCategoryId?: number | null;
+  materialCategoryName?: string | null;
   grade?: string | null;
   source?: string | null;
   baseUnit: MaterialUnit;
@@ -37,6 +40,8 @@ export interface SaveMaterialMasterEntryRequest {
   code: string;
   name: string;
   category: MaterialMasterCategory;
+  // Required exactly when category is Other.
+  materialCategoryId?: number | null;
   grade?: string | null;
   source?: string | null;
   baseUnit: MaterialUnit;
@@ -49,8 +54,9 @@ export interface SaveMaterialMasterEntryRequest {
   indicatorUse?: string | null;
 }
 
-// Enforced on create and on code change; older codes are grandfathered.
-export const MATERIAL_MASTER_CODE_PREFIX: Record<MaterialMasterCategory, string> = {
+// Enforced on create and on code change; older codes are grandfathered. Other materials take
+// the prefix of their material category instead ("{codePrefix}-").
+export const MATERIAL_MASTER_CODE_PREFIX: Record<Exclude<MaterialMasterCategory, "Other">, string> = {
   Reagent: "RG-",
   Indicator: "IND-",
   ReferenceStandard: "RS-",

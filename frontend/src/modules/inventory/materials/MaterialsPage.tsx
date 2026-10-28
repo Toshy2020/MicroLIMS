@@ -29,12 +29,17 @@ import {
 import { MaterialFilterBar, MATERIAL_TYPE_OPTIONS } from "./components/MaterialFilterBar";
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
+import { MaterialReleaseDialog } from "./components/MaterialReleaseDialog";
 
 const MATERIAL_TYPE_LABEL_MAP = new Map<string, string>(
   MATERIAL_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])
 );
 
-function getMaterialTypeDisplay(item: { materialType: string; customType?: string | null }): string {
+// An Other lot shows its category; lots received before categories fall back to their stored custom type or type.
+function getMaterialTypeDisplay(item: { materialType: string; customType?: string | null; categoryName?: string | null }): string {
+  if (item.categoryName && item.categoryName.trim()) {
+    return item.categoryName.trim();
+  }
   if (item.customType && item.customType.trim()) {
     return item.customType.trim();
   }
@@ -54,6 +59,7 @@ export function MaterialsPage() {
   const theme = useTheme();
   const { permissions } = useAuth();
   const canSeeHistory = permissions.includes(PERMISSIONS.AUDIT_VIEW);
+  const canRelease = permissions.includes(PERMISSIONS.MATERIALS_RELEASE);
 
   // Menu links from each lab workspace (Task 11) append ?lab=MICRO|FP -
   // Material.SectionId is required server-side, so every row carries one
@@ -125,6 +131,7 @@ export function MaterialsPage() {
   const [editingItem, setEditingItem] = useState<MaterialItem | null>(null);
   const [historyFor, setHistoryFor] = useState<number | null>(null);
   const [lotDetailsFor, setLotDetailsFor] = useState<MaterialItem | null>(null);
+  const [releaseFor, setReleaseFor] = useState<MaterialItem | null>(null);
 
   const loadData = async () => {
     try {
@@ -192,6 +199,10 @@ export function MaterialsPage() {
         if (filters.materialType.startsWith("custom:")) {
           const customName = filters.materialType.slice("custom:".length);
           if (item.customType !== customName) {
+            return false;
+          }
+        } else if (filters.materialType.startsWith("category:")) {
+          if (item.materialCategoryId !== Number(filters.materialType.slice("category:".length))) {
             return false;
           }
         } else if (item.materialType !== filters.materialType) {
@@ -289,6 +300,7 @@ export function MaterialsPage() {
     },
     { key: "code", label: "Code", sortable: true, nowrap: true, render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{m.code ?? "—"}</Box> },
     { key: "location", label: "Location", sortable: true, render: (m) => m.location },
+    { key: "storageCondition", label: "Storage Condition", sortable: true, render: (m) => m.storageCondition || "—" },
     { key: "quantityReceived", label: "Qty Received", numeric: true, sortable: true, render: (m) => <NumericCell value={m.quantityReceived} unit={m.unit} /> },
     {
       key: "quantityRemaining", label: "Qty Remaining", numeric: true, sortable: true,
@@ -311,7 +323,13 @@ export function MaterialsPage() {
     { key: "minimumStockLevel", label: "Min Stock", numeric: true, sortable: true, render: (m) => <NumericCell value={m.minimumStockLevel} unit={m.unit} /> },
     {
       key: "status", label: "Status", sortable: true,
-      render: (m) => (isMaterialLowStock(m) ? <StatusBadge status="LowStock" label="Low Stock" /> : <StatusBadge status={m.status} />)
+      render: (m) => (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
+          {isMaterialLowStock(m) ? <StatusBadge status="LowStock" label="Low Stock" /> : <StatusBadge status={m.status} />}
+          {m.approvalStatus === "PendingReview" && <StatusBadge status="PendingReview" label="Awaiting release" />}
+          {m.approvalStatus === "Rejected" && <StatusBadge status="Rejected" label="Rejected" />}
+        </Box>
+      )
     }
   ];
 
@@ -375,6 +393,7 @@ export function MaterialsPage() {
             rowActions={(m) => [
               { label: "Lot details and documents", onClick: () => setLotDetailsFor(m) },
               { label: "Edit material", onClick: () => openEdit(m) },
+              ...(canRelease && m.approvalStatus === "PendingReview" ? [{ label: "Release", onClick: () => setReleaseFor(m) }] : []),
               ...(canSeeHistory ? [{ label: "Audit history", onClick: () => setHistoryFor(m.id) }] : [])
             ]}
             empty={
@@ -407,6 +426,17 @@ export function MaterialsPage() {
         onClose={() => setLotDetailsFor(null)}
       />
 
+      {/* Release gate (approve / reject) */}
+      <MaterialReleaseDialog
+        open={releaseFor != null}
+        material={releaseFor}
+        onClose={() => setReleaseFor(null)}
+        onSuccess={(msg) => {
+          setMessage({ text: msg, ok: true });
+          loadData();
+        }}
+      />
+
       {/* Controlled Printable Document Table */}
       <PrintableTable
         title={printableTableTitle}
@@ -422,6 +452,7 @@ export function MaterialsPage() {
           { label: "Expiry", render: (m) => (m.expiryDate ? formatLabDate(m.expiryDate) : "—") },
           { label: "Code", render: (m) => m.code ?? "—" },
           { label: "Location", render: (m) => m.location },
+          { label: "Storage Condition", render: (m) => m.storageCondition || "—" },
           { label: "Qty Remaining", render: (m) => `${m.quantityRemaining} ${m.unit}` }
         ]}
       />

@@ -21,6 +21,7 @@ export interface SaveMaterialPayload {
   purity?: number | null;
   materialMasterEntryId?: number | null;
   moisturePercent?: number | null;
+  storageCondition?: string | null;
 }
 
 export const MaterialService = {
@@ -38,6 +39,11 @@ export const MaterialService = {
     apiClient.get("/inventory/materials/default-unit", { params: { materialType } }).then((r) => r.data.data.unit),
   create: (payload: SaveMaterialPayload) => apiClient.post("/inventory/materials", payload).then((r) => r.data.data),
   update: (id: number, payload: SaveMaterialPayload, version?: number) => apiClient.put(`/inventory/materials/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
+
+  // Release gate for lots in categories that need approval before use. The server refuses the
+  // lot's receiver and requires a comment to reject; the signature is the password.
+  release: (id: number, payload: { password: string; approved: boolean; comment: string | null }) =>
+    apiClient.post(`/materials/${id}/release`, payload).then((r) => r.data.data),
 
   // ---- Lot Documents ----
   getDocuments: (materialId: number) =>

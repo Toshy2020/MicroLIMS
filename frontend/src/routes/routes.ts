@@ -238,6 +238,8 @@ export const PERMISSIONS = {
   CRYOVIALS_APPROVE: "Cryovials.Approve",
   MATERIALS_MANAGE: "Materials.Manage",
   MATERIALS_DOCUMENT_CONTROL: "Materials.DocumentControl",
+  MATERIALS_RELEASE: "Materials.Release",
+  MATERIAL_CATEGORIES_MANAGE: "MaterialCategories.Manage",
   EQUIPMENT_MANAGE: "Equipment.Manage",
   EQUIPMENT_DOCUMENT_CONTROL: "Equipment.DocumentControl",
   ITEMS_MANAGE: "Items.Manage",

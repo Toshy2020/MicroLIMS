@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -68,7 +69,7 @@ public class AccessReviewPostgresTests
         var id = await NewDraftAsync();
 
         // The snapshot columns never change, even while Draft.
-        var snapshot = await FailAsync("UPDATE \"AccessReviews\" SET \"SnapshotJson\" = '{}' WHERE \"Id\" = {0}", id);
+        var snapshot = await FailAsync("UPDATE \"AccessReviews\" SET \"SnapshotJson\" = 'tampered' WHERE \"Id\" = {0}", id);
         Assert.Contains("only change by being signed", snapshot.Message);
         var label = await FailAsync("UPDATE \"AccessReviews\" SET \"PeriodLabel\" = 'x' WHERE \"Id\" = {0}", id);
         Assert.Contains("only change by being signed", label.Message);
@@ -97,7 +98,7 @@ public class AccessReviewPostgresTests
 
         var update = await FailAsync("UPDATE \"AccessReviews\" SET \"Conclusion\" = 'changed' WHERE \"Id\" = {0}", id);
         Assert.Contains("signed and immutable", update.Message);
-        await FailAsync("UPDATE \"AccessReviews\" SET \"SnapshotJson\" = '{}' WHERE \"Id\" = {0}", id);
+        await FailAsync("UPDATE \"AccessReviews\" SET \"SnapshotJson\" = 'tampered' WHERE \"Id\" = {0}", id);
         await FailAsync("UPDATE \"AccessReviews\" SET \"Status\" = 0 WHERE \"Id\" = {0}", id);
 
         var delete = await FailAsync("DELETE FROM \"AccessReviews\" WHERE \"Id\" = {0}", id);

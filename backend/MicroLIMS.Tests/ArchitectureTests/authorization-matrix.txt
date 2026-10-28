@@ -1,3 +1,10 @@
+AdminAccessReviewsController.AddFinding(Int32, SaveAccessReviewFindingRequest): SystemAdministrator
+AdminAccessReviewsController.Export(Int32): SystemAdministrator
+AdminAccessReviewsController.Generate(GenerateAccessReviewRequest): SystemAdministrator
+AdminAccessReviewsController.Get(Int32, CancellationToken): SystemAdministrator
+AdminAccessReviewsController.List(CancellationToken): SystemAdministrator
+AdminAccessReviewsController.Sign(Int32, SignAccessReviewRequest): SystemAdministrator
+AdminAccessReviewsController.UpdateFinding(Int32, Int32, SaveAccessReviewFindingRequest): SystemAdministrator
 AdminJobsController.List(CancellationToken): SystemAdministrator
 AdminJobsController.Run(String, RunBackgroundJobRequest, CancellationToken): SystemAdministrator
 AdminJobsController.Runs(String, Int32, Int32, CancellationToken): SystemAdministrator

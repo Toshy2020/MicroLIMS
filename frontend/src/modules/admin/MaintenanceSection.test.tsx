@@ -35,7 +35,7 @@ describe("MaintenanceSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Turn maintenance mode on" }));
     const next = screen.getByRole("button", { name: "Continue to sign" }) as HTMLButtonElement;
     expect(next.disabled).toBe(true);
-    fireEvent.change(screen.getAllByLabelText(/Reason for change/).at(-1)!, { target: { value: "Database upgrade" } });
+    fireEvent.change(screen.getAllByLabelText(/Reason for change/).slice(-1)[0], { target: { value: "Database upgrade" } });
     fireEvent.click(next);
 
     fireEvent.change(await screen.findByLabelText(/^Password/), { target: { value: "AdminP@ss1" } });

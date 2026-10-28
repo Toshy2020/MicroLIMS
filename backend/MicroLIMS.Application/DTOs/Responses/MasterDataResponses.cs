@@ -62,14 +62,16 @@ public class DiluentTypeResponse
     public int Id { get; init; }
     public string Name { get; init; } = null!;
     public bool RequiresBatchTracking { get; init; }
-    public int? MaterialId { get; init; }
+    public int? MediaProductId { get; init; }
+    public string? MediaProductName { get; init; }
 
     public static DiluentTypeResponse From(DiluentType e) => new()
     {
         Id = e.Id,
         Name = e.Name,
         RequiresBatchTracking = e.RequiresBatchTracking,
-        MaterialId = e.MaterialId,
+        MediaProductId = e.MediaProductId,
+        MediaProductName = e.MediaProduct?.Name,
     };
 }
 

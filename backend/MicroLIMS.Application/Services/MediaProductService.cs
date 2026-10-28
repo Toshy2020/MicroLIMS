@@ -194,12 +194,20 @@ public class MediaProductService
         }
 
         var stepMediaCount = await _db.TestWorkflowStepMedias
-            .CountAsync(sm => sm.IncubationCondition != null && sm.IncubationCondition.MediaProductId == id);
+            .CountAsync(sm => sm.MediaProductId == id
+                || (sm.IncubationCondition != null && sm.IncubationCondition.MediaProductId == id));
 
         if (stepMediaCount > 0)
         {
             throw new InvalidOperationException(
-                $"Cannot delete media product '{product.Name}' because its incubation conditions are used by {stepMediaCount} Test Master step medium/media.");
+                $"Cannot delete media product '{product.Name}' because it is used by {stepMediaCount} Test Master step medium/media.");
+        }
+
+        var diluentCount = await _db.DiluentTypes.CountAsync(d => d.MediaProductId == id);
+        if (diluentCount > 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot delete media product '{product.Name}' because it is used by {diluentCount} Test Master diluent type(s).");
         }
 
         var unusedConditions = await _db.MediaIncubationConditions

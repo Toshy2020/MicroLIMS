@@ -370,19 +370,19 @@ public static class DbSeeder
         db.SaveChanges();
     }
 
-    // Resolves the medium by Material name, creating nothing - a missing
-    // material means that medium simply is not offered, which the
+    // Resolves the medium by Culture Media product name, creating nothing - a
+    // missing product means that medium simply is not offered, which the
     // template validator will surface the next time the step is saved.
-    private static void AddStepMedium(MicroLimsDbContext db, int stepId, string materialName, decimal tempMin, decimal tempMax, bool isRequired, int order)
+    private static void AddStepMedium(MicroLimsDbContext db, int stepId, string productName, decimal tempMin, decimal tempMax, bool isRequired, int order)
     {
-        var materialId = db.Materials
-            .Where(m => m.MaterialType == MaterialType.DehydratedMedia && m.MaterialName == materialName)
-            .Select(m => (int?)m.Id).FirstOrDefault();
-        if (materialId is null) { Console.WriteLine($"Seed: material '{materialName}' not found - step media skipped."); return; }
+        var productId = db.MediaProducts
+            .Where(p => p.Name == productName)
+            .Select(p => (int?)p.Id).FirstOrDefault();
+        if (productId is null) { Console.WriteLine($"Seed: media product '{productName}' not found - step media skipped."); return; }
 
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
-            TestWorkflowStepId = stepId, MaterialId = materialId.Value,
+            TestWorkflowStepId = stepId, MediaProductId = productId.Value,
             TempMin = tempMin, TempMax = tempMax, IsRequired = isRequired, DisplayOrder = order
         });
     }

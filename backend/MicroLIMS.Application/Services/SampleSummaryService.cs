@@ -194,7 +194,7 @@ public class SampleSummaryService
         var testDefinitions = await _db.TestDefinitions
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.Material)
+                    .ThenInclude(m => m.MediaProduct)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(m => m.IncubationCondition)

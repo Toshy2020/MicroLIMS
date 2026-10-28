@@ -51,7 +51,7 @@ public class TestWorkflowQueryService
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         var step = await _db.TestWorkflowSteps
-            .Include(s => s.StepMedia).ThenInclude(m => m.Material)
+            .Include(s => s.StepMedia).ThenInclude(m => m.MediaProduct)
             .Include(s => s.TargetOrganism)
             .Include(s => s.TestDefinition)
             .FirstOrDefaultAsync(s => s.TestDefinition!.Code == order.TestCode && s.StepName == stepName)
@@ -62,11 +62,11 @@ public class TestWorkflowQueryService
         foreach (var medium in step.StepMedia.OrderBy(m => m.DisplayOrder))
         {
             var expected = step.TargetOrganismId is int organismId
-                ? await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(medium.MaterialId, organismId)
+                ? await _appearanceSnapshot.GetExpectedAppearanceSnapshotForProductAsync(medium.MediaProductId, organismId)
                 : null;
 
             var lots = await _db.Media
-                .Where(m => m.MaterialId == medium.MaterialId && m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > now)
+                .Where(m => m.Material!.MediaProductId == medium.MediaProductId && m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > now)
                 .OrderBy(m => m.ExpiryDate)
                 .Select(m => new { m.Id, lotNumber = m.LotNumber, expiryDate = m.ExpiryDate })
                 .ToListAsync();
@@ -74,8 +74,8 @@ public class TestWorkflowQueryService
             permitted.Add(new
             {
                 stepMediaId = medium.Id,
-                materialId = medium.MaterialId,
-                mediaName = medium.Material!.MaterialName,
+                mediaProductId = medium.MediaProductId,
+                mediaName = medium.MediaProduct!.Name,
                 expectedAppearance = expected,
                 tempMin = medium.TempMin,
                 tempMax = medium.TempMax,

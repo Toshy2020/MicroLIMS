@@ -1594,7 +1594,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("MaterialId")
+                    b.Property<int?>("MediaProductId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -1612,7 +1612,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MaterialId");
+                    b.HasIndex("MediaProductId");
 
                     b.ToTable("DiluentTypes");
                 });
@@ -10841,10 +10841,13 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("IsRequired")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("MaterialId")
+                    b.Property<int?>("MaterialId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("MediaIncubationConditionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MediaProductId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("TempMax")
@@ -10868,7 +10871,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("MediaIncubationConditionId");
 
-                    b.HasIndex("TestWorkflowStepId", "MaterialId")
+                    b.HasIndex("MediaProductId");
+
+                    b.HasIndex("TestWorkflowStepId", "MediaProductId")
                         .IsUnique();
 
                     b.ToTable("TestWorkflowStepMedias");
@@ -12162,11 +12167,11 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DiluentType", b =>
                 {
-                    b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
+                    b.HasOne("MicroLIMS.Domain.Entities.MediaProduct", "MediaProduct")
                         .WithMany()
-                        .HasForeignKey("MaterialId");
+                        .HasForeignKey("MediaProductId");
 
-                    b.Navigation("Material");
+                    b.Navigation("MediaProduct");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DirectMessage", b =>
@@ -15050,12 +15055,16 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
                         .WithMany()
                         .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.MediaIncubationCondition", "IncubationCondition")
                         .WithMany()
                         .HasForeignKey("MediaIncubationConditionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MediaProduct", "MediaProduct")
+                        .WithMany()
+                        .HasForeignKey("MediaProductId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.TestWorkflowStep", "TestWorkflowStep")
@@ -15067,6 +15076,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("IncubationCondition");
 
                     b.Navigation("Material");
+
+                    b.Navigation("MediaProduct");
 
                     b.Navigation("TestWorkflowStep");
                 });

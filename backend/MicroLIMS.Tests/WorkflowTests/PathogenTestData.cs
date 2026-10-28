@@ -71,11 +71,11 @@ public static class PathogenTestData
         // window - these are now the operative source at execution time
         // (see TestWorkflowEngine.cs), not the step-level fields above.
         db.TestWorkflowStepMedias.AddRange(
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MaterialId = brothMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MaterialId = selBrothMaterial.Id, TempMin = 41, TempMax = 43, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[2].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 });
-        var xldStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 1 };
-        var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = tsiMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 2 };
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, brothMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, selBrothMaterial.Id), TempMin = 41, TempMax = 43, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[2].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, platingMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 });
+        var xldStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, platingMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 1 };
+        var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, tsiMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 2 };
         db.TestWorkflowStepMedias.AddRange(xldStepMedia, tsiStepMedia);
 
         var xldProduct = await MediaProductTestData.CreateOrGetAsync(db, "XLD Agar", "XLD");

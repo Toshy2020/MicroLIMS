@@ -80,32 +80,16 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     {
         var medium = step.StepMedia.FirstOrDefault()
             ?? await _db.TestWorkflowStepMedias
-                .Include(m => m.IncubationCondition)
-                .Include(m => m.Material)
                 .FirstOrDefaultAsync(m => m.TestWorkflowStepId == step.Id)
             ?? throw new InvalidOperationException(
                 $"Step \"{step.StepName}\" has no assigned medium - complete this step's template in Test Master before recording results.");
-
-        // StepMediumMatcher reads the product through Material and
-        // IncubationCondition. LoadWithTemplateAsync includes them, but a
-        // template loaded without them would make LoadReleasedLotAsync
-        // silently refuse a lot from another batch of the same product - so
-        // this reloads the medium when they're missing (guarded by
-        // StepMediumProductMatchingTests, which clears the change tracker).
-        if (medium.Material is null || (medium.MediaIncubationConditionId != null && medium.IncubationCondition is null))
-        {
-            medium = await _db.TestWorkflowStepMedias
-                .Include(m => m.IncubationCondition)
-                .Include(m => m.Material)
-                .FirstAsync(m => m.Id == medium.Id);
-        }
 
         return medium;
     }
 
     // The lot the analyst picked must be a released lot of the permitted
-    // material. The class-level check this used to also carry (MediaTypeId
-    // equality) was redundant once the MaterialId check above it existed -
+    // media product (any batch of it). The class-level check this used to also
+    // carry (MediaTypeId equality) was redundant once the product check existed -
     // deleted rather than translated, per the Media Configuration
     // Migration plan §3.
     private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium, int testOrderId)
@@ -115,7 +99,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         if (!lot.IsReleasedForUse || lot.Status == MediaStatus.OutOfStock || lot.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.");
         await SectionMediaRule.EnsureLotForTestOrderAsync(_db, lot, testOrderId);
-        if (!StepMediumMatcher.Matches(stepMedium, lot.MaterialId, lot.Material?.MediaProductId))
+        if (!StepMediumMatcher.Matches(stepMedium, lot.Material?.MediaProductId))
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot {lot.LotNumber} is not a lot of the permitted medium for this step.");
         return lot;
@@ -344,8 +328,8 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         var targetOrganismId = RequireTargetOrganism(step);
 
         // Snapshot taken at observation time, never afterwards (ALCOA+).
-        var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(
-            stepMedium.MaterialId, targetOrganismId);
+        var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotForProductAsync(
+            stepMedium.MediaProductId, targetOrganismId);
 
         var result = new WorkflowStepResult
         {
@@ -438,8 +422,6 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
                 "At least one confirmatory medium must be selected.");
 
         var permitted = await _db.TestWorkflowStepMedias
-            .Include(m => m.IncubationCondition)
-            .Include(m => m.Material)
             .Where(m => m.TestWorkflowStepId == step.Id)
             .ToDictionaryAsync(m => m.Id);
 
@@ -508,7 +490,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         foreach (var (medium, lot, equipmentId) in resolved)
             result.Selections.Add(new ConfirmatoryMediaSelection
             {
-                MaterialId = medium.MaterialId, MediaId = lot.Id, EquipmentId = equipmentId, WasAnalystAdded = false
+                MaterialId = lot.MaterialId, MediaId = lot.Id, EquipmentId = equipmentId, WasAnalystAdded = false
             });
         _db.WorkflowStepResults.Add(result);
         await _db.SaveChangesAsync();

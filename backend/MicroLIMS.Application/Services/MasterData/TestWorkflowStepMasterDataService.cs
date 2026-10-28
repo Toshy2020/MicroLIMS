@@ -57,7 +57,7 @@ public class TestWorkflowStepMasterDataService
                 s.ConfirmatoryMediaCount,
                 stepMedia = s.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
                 {
-                    stepMediaId = m.Id, m.MaterialId, materialName = m.Material!.MaterialName,
+                    stepMediaId = m.Id, m.MediaProductId, mediaProductName = m.MediaProduct!.Name,
                     // The operative incubation window/temperature for this
                     // medium at execution time (see TestWorkflowEngine.cs) -
                     // not the step's own IncubationMinHours/MaxHours/
@@ -131,7 +131,8 @@ public class TestWorkflowStepMasterDataService
             ?? throw new NotFoundException($"Workflow step {stepId} not found.");
         RecordVersion.EnsureCurrent(_db, step);
 
-        var rebuiltStepMedia = await BuildStepMediaAsync(request.StepMedia);
+        var rebuiltStepMedia = await BuildStepMediaAsync(
+            request.StepMedia, step.StepMedia.Where(m => m.MediaProductId != null).Select(m => m.MediaProductId!.Value).ToHashSet());
         var firstMedia = rebuiltStepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
         var tempMin = request.TemperatureMin > 0 ? request.TemperatureMin : (firstMedia?.TempMin ?? 0);
         var tempMax = request.TemperatureMax > 0 ? request.TemperatureMax : (firstMedia?.TempMax ?? 0);
@@ -253,10 +254,14 @@ public class TestWorkflowStepMasterDataService
     // TempMin/Max and IncubationMinHours/MaxHours are copied from the chosen
     // MediaIncubationCondition at save time - single source of truth,
     // conditions are locked once used.
-    private async Task<List<TestWorkflowStepMedia>> BuildStepMediaAsync(List<StepMediaRequest> requests)
+    // Each medium is a Culture Media product (never a stock lot). An inactive
+    // product can't be newly chosen; one already on the step being edited
+    // (alreadyOnStep) keeps working so an untouched row can be saved again.
+    private async Task<List<TestWorkflowStepMedia>> BuildStepMediaAsync(
+        List<StepMediaRequest> requests, IReadOnlySet<int>? alreadyOnStep = null)
     {
-        var materialIds = requests.Select(m => m.MaterialId).Distinct().ToList();
-        var materials = await _db.Materials.Where(m => materialIds.Contains(m.Id)).ToDictionaryAsync(m => m.Id);
+        var productIds = requests.Select(m => m.MediaProductId).Distinct().ToList();
+        var products = await _db.MediaProducts.Where(p => productIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
 
         var conditionIds = requests.Where(m => m.MediaIncubationConditionId.HasValue)
             .Select(m => m.MediaIncubationConditionId!.Value)
@@ -267,24 +272,24 @@ public class TestWorkflowStepMasterDataService
         var result = new List<TestWorkflowStepMedia>();
         foreach (var m in requests)
         {
-            if (!materials.TryGetValue(m.MaterialId, out var material))
-                throw new InvalidOperationException($"Material {m.MaterialId} not found.");
+            if (!products.TryGetValue(m.MediaProductId, out var product))
+                throw new InvalidOperationException($"Media product {m.MediaProductId} not found.");
+
+            if (!product.IsActive && alreadyOnStep?.Contains(product.Id) != true)
+                throw new InvalidOperationException($"Media product '{product.Name}' is inactive and can't be added to a test step.");
 
             if (!m.MediaIncubationConditionId.HasValue)
-                throw new InvalidOperationException($"Choose an incubation condition for medium '{material.MaterialName}'.");
-
-            if (material.MediaProductId is null)
-                throw new InvalidOperationException($"'{material.MaterialName}' isn't linked to a media product. Link it in Inventory > Materials Stock first.");
+                throw new InvalidOperationException($"Choose an incubation condition for medium '{product.Name}'.");
 
             if (!conditions.TryGetValue(m.MediaIncubationConditionId.Value, out var condition))
                 throw new InvalidOperationException($"Incubation condition {m.MediaIncubationConditionId.Value} not found.");
 
-            if (condition.MediaProductId != material.MediaProductId.Value)
-                throw new InvalidOperationException($"The incubation condition chosen for '{material.MaterialName}' belongs to a different media product.");
+            if (condition.MediaProductId != product.Id)
+                throw new InvalidOperationException($"The incubation condition chosen for '{product.Name}' belongs to a different media product.");
 
             var entity = new TestWorkflowStepMedia
             {
-                MaterialId = m.MaterialId,
+                MediaProductId = product.Id,
                 IsRequired = m.IsRequired,
                 DisplayOrder = m.DisplayOrder,
                 MediaIncubationConditionId = condition.Id,

@@ -125,6 +125,7 @@ public partial class HplcRunService
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
         var methodById = snapshot?.Analytes.ToDictionary(a => a.Id) ?? new Dictionary<int, HplcMethodAnalyteResponse>();
         var weighsStandard = StandardIsWeighed(snapshot?.ResultMode ?? HplcResultMode.Assay);
+        var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName);
 
         foreach (var a in run.Sst.Analytes.OrderBy(x => x.Id))
         {
@@ -136,6 +137,12 @@ public partial class HplcRunService
                 var blank = Enumerable.Range(1, m.StandardInjections)
                     .Where(n => !(a.Injections.FirstOrDefault(i => i.InjectionNo == n)?.Response > 0)).ToList();
                 if (blank.Count > 0) fields.Add($"injection {string.Join(", ", blank.Select(n => $"#{n}"))}");
+                if (hasIs)
+                {
+                    var blankIs = Enumerable.Range(1, m.StandardInjections)
+                        .Where(n => !(a.Injections.FirstOrDefault(i => i.InjectionNo == n)?.InternalStandardResponse > 0)).ToList();
+                    if (blankIs.Count > 0) fields.Add($"internal standard injection {string.Join(", ", blankIs.Select(n => $"#{n}"))}");
+                }
                 if (m.SstMinResolution.HasValue && a.Resolution == null) fields.Add("resolution");
                 if (m.SstMaxTailingFactor.HasValue && a.TailingFactor == null) fields.Add("tailing factor");
                 if (m.SstMinTheoreticalPlates.HasValue && a.TheoreticalPlates == null) fields.Add("theoretical plates");
@@ -412,7 +419,7 @@ public partial class HplcRunService
         var today = _clock.LabToday;
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
         var weighsStandard = StandardIsWeighed(snapshot?.ResultMode ?? HplcResultMode.Assay);
-        var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName ?? method.InternalStandardName);
+        var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName);
 
         if (!hasIs && (r.Analytes ?? new()).Any(a => a.InternalStandardResponses != null && a.InternalStandardResponses.Count > 0))
             throw new InvalidOperationException("This method has no internal standard.");
@@ -462,8 +469,11 @@ public partial class HplcRunService
             analyteRow.Injections.Clear();
             var responses = input.Responses ?? new List<decimal>();
             var isResponses = input.InternalStandardResponses;
-            if (hasIs && (isResponses == null || isResponses.Count != responses.Count || isResponses.Any(x => x <= 0m)))
-                throw new InvalidOperationException($"{analyteRow.AnalyteName}: enter an internal standard response (above zero) for every injection.");
+            if (hasIs && (responses.Count > 0 || (isResponses != null && isResponses.Count > 0)))
+            {
+                if (isResponses == null || isResponses.Count != responses.Count || isResponses.Any(x => x <= 0m))
+                    throw new InvalidOperationException($"{analyteRow.AnalyteName}: enter an internal standard response (above zero) for every injection.");
+            }
 
             for (var i = 0; i < responses.Count; i++)
             {
@@ -477,7 +487,7 @@ public partial class HplcRunService
 
             // Shown while entering; Passed/FailureReasons stay untouched until confirmation.
             var effectiveResponses = hasIs && isResponses != null
-                ? responses.Zip(isResponses, (resp, isResp) => HplcResponse.Effective(resp, isResp)).ToList()
+                ? responses.Zip(isResponses, (resp, isResp) => HplcResponse.ForSst(analyteRow.AnalyteName, resp, isResp, hasIs)).ToList()
                 : responses;
             analyteRow.MeanResponse = effectiveResponses.Count > 0 ? effectiveResponses.Average() : null;
             analyteRow.ComputedRsdPercent = StandardComparisonCalculator.CalculatePreparationRsd(effectiveResponses, null).RsdPercent;
@@ -536,7 +546,7 @@ public partial class HplcRunService
 
             var hasIs = !string.IsNullOrWhiteSpace(snapshot.InternalStandardName);
             var effectiveResponses = analyteRow.Injections.OrderBy(i => i.InjectionNo)
-                .Select(i => HplcResponse.Effective(i.Response, hasIs ? i.InternalStandardResponse : null))
+                .Select(i => HplcResponse.ForSst(analyteRow.AnalyteName, i.Response, i.InternalStandardResponse, hasIs))
                 .ToList();
 
             var entered = new SstEntered(

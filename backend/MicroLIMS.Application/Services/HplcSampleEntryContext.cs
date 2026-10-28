@@ -181,7 +181,7 @@ public sealed class HplcSampleEntryContext
             var sstRow = Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == analyte.Id);
             var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
                 .Select(r => new AssayReplicateInput(r.ReplicateNo, r.ActualWeightMg,
-                    HplcResponse.Effective(r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response, hasIs ? r.InternalStandardResponse : null)))
+                    HplcResponse.ForReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response, r.InternalStandardResponse, hasIs)))
                 .ToList();
             var std = new AssayStandard(sstRow.MeanResponse!.Value, sstRow.StandardWeightMg!.Value,
                 sstRow.StandardPurityPercent!.Value, sstRow.StandardMoisturePercent!.Value);

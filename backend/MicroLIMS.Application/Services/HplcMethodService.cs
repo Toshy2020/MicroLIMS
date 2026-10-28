@@ -169,6 +169,9 @@ public partial class HplcMethodService
             throw new InvalidOperationException("The technique and result mode can't be changed after the method is created.");
 
         var normalizedIs = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
+        if (normalizedIs != null && (r.Technique != HplcTechnique.Hplc || r.ResultMode != HplcResultMode.Assay))
+            throw new InvalidOperationException("An internal standard applies to HPLC assay methods only.");
+
         if (normalizedIs != method.InternalStandardName)
             throw new InvalidOperationException("The internal standard can't be changed after the method is created.");
 

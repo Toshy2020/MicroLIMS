@@ -127,10 +127,16 @@ public partial class HplcRunService
             throw new InvalidOperationException(problem);
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
+        var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
+        if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
+            throw new InvalidOperationException("This method has no internal standard.");
+
         for (var i = 0; i < inputs.Count; i++)
         {
             if (inputs[i].ActualWeightMg <= 0)
                 throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+            if (hasIs && inputs[i].InternalStandardResponse is null or <= 0)
+                throw new InvalidOperationException($"Replicate {i + 1}: the internal standard response is required.");
             var responses = inputs[i].Responses ?? new List<HplcReplicateResponseInput>();
             var matches = responses.Where(x => x.HplcMethodAnalyteId == c.Analyte.Id).ToList();
             if (matches.Count != 1 || responses.Count != 1)
@@ -252,7 +258,7 @@ public partial class HplcRunService
         var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
         var reps = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new AssayReplicateInput(r.ReplicateNo, r.ActualWeightMg,
-                HplcResponse.Effective(r.Responses.First(x => x.HplcMethodAnalyteId == c.Analyte.Id).Response, hasIs ? r.InternalStandardResponse : null)))
+                HplcResponse.ForReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == c.Analyte.Id).Response, r.InternalStandardResponse, hasIs)))
             .ToList();
         var assay = HplcAssayCalculator.Calculate(c.Analyte.Id, c.Analyte.Name,
             c.Analyte.TheoreticalWeightStdMg, c.Analyte.TheoreticalWeightTestMg, std, reps);

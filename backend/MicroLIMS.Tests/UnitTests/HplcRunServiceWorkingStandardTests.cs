@@ -268,4 +268,87 @@ public partial class HplcRunServiceTests
         Assert.Equal(6, entry.Preview.ReplicateAssayPercents.Count);
         Assert.True(entry.Preview.Passed);
     }
-}
+
+    [Fact]
+    public async Task WsSaveReplicates_InternalStandard_Validations()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+        var (service, _, q, rsId) = await AssignedWsAsync(db, clock, s);
+        var analyteId = (await db.WorkingStandardQualifications.FindAsync(q.Id))!.HplcMethodAnalyteId!.Value;
+
+        // 1. Non-IS method refuses IS values
+        var repsWithIs = new SaveReplicatesRequest(new List<HplcReplicateInput>
+        {
+            new(50m, new List<HplcReplicateResponseInput> { new(analyteId, 1000m) }, null, InternalStandardResponse: 500m)
+        });
+        var exNoIs = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.SaveQualificationReplicatesAsync(rsId, repsWithIs, s.UserId));
+        Assert.Equal("This method has no internal standard.", exNoIs.Message);
+    }
+
+    [Fact]
+    public async Task WsSubmit_WithInternalStandard_ComputesAssayFromRatioAndMovesToAssayed()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var s = await SeedScenarioAsync(db, clock);
+
+        var methodSvc = TestServiceFactory.HplcMethod(db);
+        var created = await methodSvc.CreateAsync(new SaveHplcMethodRequest(
+            "Vitamin C IS Assay", "VIT-C-IS", DateTime.UtcNow,
+            "L1", 150m, 4.6m, 5m, 30m, ElutionMode.Isocratic, 1m,
+            HplcDetectorType.UV, 20m, 15m, s.Method.DiluentSolutionId,
+            new List<HplcMobilePhaseInput> { new("A", s.MobilePhase.Id, null) },
+            new List<HplcGradientStepInput>(),
+            new List<HplcAnalyteInput> { new(null, "Vitamin C", 254m, s.StandardEntry.Id, 50m, 50m, 3, 2.0m, null) },
+            SectionId: s.Section.Id,
+            InternalStandardName: "Benzoic acid"), s.UserId);
+        var isMethod = await db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == created.Id);
+        var analyte = isMethod.Analytes[0];
+
+        var prep = await PrepareMobilePhaseAsync(db, clock, s.UserId, s.MobilePhase, isMethod, await db.Materials.FirstAsync(m => m.MaterialMasterEntryId == s.MobileEntry.Id));
+        var runSvc = TestServiceFactory.HplcRun(db, clock: clock);
+        var run = await runSvc.StartRunAsync(new StartHplcRunRequest(s.Equipment.Id, isMethod.Id, s.Column.Id,
+            new List<HplcMobilePhaseAssignmentInput> { new("A", prep.Id) }), s.UserId);
+
+        var stdLot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, moisturePercent: 0m);
+        await runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
+            new(run.Sst!.Analytes[0].Id, stdLot.Id, 50m, new List<decimal> { 50000m, 50000m, 50000m }, null, null, null, null, null, null, null,
+                InternalStandardResponses: new List<decimal> { 100000m, 100000m, 100000m }) }), s.UserId);
+        await runSvc.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "std.pdf", "application/pdf", PdfBytes(), s.UserId);
+        await runSvc.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null);
+
+        var q = await AddQualificationAsync(db, s, moisture: 0.0m, code: "WSQ-IS-01");
+        var assignedRun = await runSvc.AssignQualificationsAsync(run.Id, new List<int> { q.Id }, s.UserId);
+        var rsId = assignedRun.Samples.Single(x => x.WorkingStandardQualificationId == q.Id).Id;
+
+        // Refuse missing IS at save time
+        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => runSvc.SaveQualificationReplicatesAsync(rsId,
+            new SaveReplicatesRequest(Enumerable.Range(1, 6).Select(i => new HplcReplicateInput(50m,
+                new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: i == 1 ? null : 100000m)).ToList()), s.UserId));
+        Assert.Equal("Replicate 1: the internal standard response is required.", exNull.Message);
+
+        // Refuse <= 0 IS at save time
+        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() => runSvc.SaveQualificationReplicatesAsync(rsId,
+            new SaveReplicatesRequest(Enumerable.Range(1, 6).Select(i => new HplcReplicateInput(50m,
+                new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: i == 1 ? 0m : 100000m)).ToList()), s.UserId));
+        Assert.Equal("Replicate 1: the internal standard response is required.", exZero.Message);
+
+        // Valid IS responses: 49000 / 100000 = 0.49 ratio -> assay 98%
+        var validReps = new SaveReplicatesRequest(Enumerable.Range(1, 6).Select(_ => new HplcReplicateInput(50m,
+            new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: 100000m)).ToList());
+        var entrySaved = await runSvc.SaveQualificationReplicatesAsync(rsId, validReps, s.UserId);
+        Assert.NotNull(entrySaved.Preview);
+        Assert.Equal(98.00m, entrySaved.Preview!.MeanAssayPercent);
+
+        await runSvc.UploadEvidenceAsync(run.Id, rsId, HplcEvidenceContext.Sample, HplcEvidenceKind.SampleReport,
+            "s.pdf", "application/pdf", PdfBytes(), s.UserId);
+        var entry = await runSvc.SubmitQualificationAsync(rsId, new SubmitHplcSampleRequest(Password, null), s.UserId, null);
+        Assert.True(entry.Preview!.Passed);
+        var saved = await db.WorkingStandardQualifications.AsNoTracking().FirstAsync(x => x.Id == q.Id);
+        Assert.Equal(98.00m, saved.MeanAssayPercent);
+        Assert.Equal(WorkingStandardQualificationStatus.Assayed, saved.Status);
+    }
+    }

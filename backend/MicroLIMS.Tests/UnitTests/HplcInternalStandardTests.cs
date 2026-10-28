@@ -302,6 +302,12 @@ public class HplcInternalStandardTests
         var updateAddIs = CreateMethodRequest(ctx, "NO-IS", "Benzoic acid", reason: "Add IS");
         var exAdd = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(createdWithoutIs.Id, updateAddIs, ctx.UserId));
         Assert.Equal("The internal standard can't be changed after the method is created.", exAdd.Message);
+
+        // Minor 4.3: On update of non-HPLC Assay method, mode validator runs before fixed check
+        var rsDto = await service.CreateAsync(CreateMethodRequest(ctx, "RS-MTH", null, resultMode: HplcResultMode.RelatedSubstances), ctx.UserId);
+        var exUpdateRs = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateAsync(rsDto.Id, CreateMethodRequest(ctx, "RS-MTH", "Benzoic acid", resultMode: HplcResultMode.RelatedSubstances, reason: "Change IS"), ctx.UserId));
+        Assert.Equal("An internal standard applies to HPLC assay methods only.", exUpdateRs.Message);
     }
 
     [Fact]
@@ -516,6 +522,20 @@ public class HplcInternalStandardTests
         // Value1 is the effective response ratio (49000 / 100000 = 0.49)
         Assert.Equal(0.49m, reading.Value1);
         Assert.Equal(98.0m, Math.Round(reading.ComputedValue!.Value, 1));
+
+        // Task 4 Fix 1: Signed CalculationJson contains IS name, ratio, raw responses, and standardMeanRatio
+        using var doc = JsonDocument.Parse(paramResult.CalculationJson!);
+        var root = doc.RootElement;
+        Assert.Equal("Benzoic acid", root.GetProperty("internalStandardName").GetString());
+        Assert.Equal(0.5m, root.GetProperty("standardMeanRatio").GetDecimal());
+        Assert.False(root.TryGetProperty("standardMeanResponse", out _));
+
+        var reps = root.GetProperty("replicates");
+        Assert.Equal(1, reps.GetArrayLength());
+        var rep0 = reps[0];
+        Assert.Equal(49000m, rep0.GetProperty("response").GetDecimal());
+        Assert.Equal(100000m, rep0.GetProperty("internalStandardResponse").GetDecimal());
+        Assert.Equal(0.49m, rep0.GetProperty("ratio").GetDecimal());
     }
 
     [Fact]
@@ -564,6 +584,12 @@ public class HplcInternalStandardTests
             }), ctx.UserId));
         Assert.Equal($"{analyte.Name}: enter an internal standard response (above zero) for every injection.", exZero.Message);
 
+        // Minor 4.2: Empty injection list with IS method saves draft
+        await runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput>
+        {
+            new(sstAnalyteId, stdLot.Id, 50m, new List<decimal>(), null, null, null, null, null, null, null)
+        }), ctx.UserId);
+
         // Complete SST properly so we can test sample replicate entry
         await runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput>
         {
@@ -610,26 +636,20 @@ public class HplcInternalStandardTests
         await runSvc.AssignSamplesAsync(run.Id, new List<int> { order.Id }, ctx.UserId);
         var runSample = await db.HplcRunSamples.FirstAsync(s => s.HplcRunId == run.Id && s.TestOrderId == order.Id);
 
-        // 4. Replicate IS missing or <= 0 → EntryProblem "Replicate {n}: the internal standard response is required."
-        // Save replicate with missing IS response (null)
-        await runSvc.SaveReplicatesAsync(runSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
-        {
-            new(100m, new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: null)
-        }), ctx.UserId);
+        // 4. Replicate IS missing or <= 0 refused at save time
+        var exNullRep = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            runSvc.SaveReplicatesAsync(runSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
+            {
+                new(100m, new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: null)
+            }), ctx.UserId));
+        Assert.Equal("Replicate 1: the internal standard response is required.", exNullRep.Message);
 
-        var entryNull = await runSvc.GetSampleEntryAsync(runSample.Id, ctx.UserId);
-        Assert.False(entryDtoHasCanSubmit(entryNull));
-        Assert.Equal("Replicate 1: the internal standard response is required.", entryNull.CanSubmitReason);
-
-        // Save replicate with IS response = 0
-        await runSvc.SaveReplicatesAsync(runSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
-        {
-            new(100m, new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: 0m)
-        }), ctx.UserId);
-
-        var entryZero = await runSvc.GetSampleEntryAsync(runSample.Id, ctx.UserId);
-        Assert.False(entryDtoHasCanSubmit(entryZero));
-        Assert.Equal("Replicate 1: the internal standard response is required.", entryZero.CanSubmitReason);
+        var exZeroRep = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            runSvc.SaveReplicatesAsync(runSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
+            {
+                new(100m, new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: 0m)
+            }), ctx.UserId));
+        Assert.Equal("Replicate 1: the internal standard response is required.", exZeroRep.Message);
 
         await runSvc.AbandonRunAsync(run.Id, "Finished first part", ctx.UserId);
 
@@ -692,6 +712,77 @@ public class HplcInternalStandardTests
                 new(100m, new List<HplcReplicateResponseInput> { new(noIsMethod.Analytes[0].Id, 49000m) }, null, InternalStandardResponse: 100000m)
             }), ctx.UserId));
         Assert.Equal("This method has no internal standard.", exNoIsRep.Message);
+    }
+
+    [Fact]
+    public void HplcResponse_Effective_AndHelpers_ValidateInternalStandard()
+    {
+        // Non-IS method returns raw response
+        Assert.Equal(50000m, HplcResponse.Effective(50000m, null, hasInternalStandard: false));
+        Assert.Equal(50000m, HplcResponse.Effective(50000m, 0m, hasInternalStandard: false));
+
+        // IS method computes ratio
+        Assert.Equal(0.5m, HplcResponse.Effective(50000m, 100000m, hasInternalStandard: true));
+
+        // IS method refuses null or <= 0
+        var exNull = Assert.Throws<InvalidOperationException>(() =>
+            HplcResponse.Effective(50000m, null, hasInternalStandard: true));
+        Assert.NotNull(exNull.Message);
+
+        var exZero = Assert.Throws<InvalidOperationException>(() =>
+            HplcResponse.Effective(50000m, 0m, hasInternalStandard: true));
+        Assert.NotNull(exZero.Message);
+
+        var exNeg = Assert.Throws<InvalidOperationException>(() =>
+            HplcResponse.Effective(50000m, -1m, hasInternalStandard: true));
+        Assert.NotNull(exNeg.Message);
+
+        // Helper for SST throws exact SST message
+        var exSst = Assert.Throws<InvalidOperationException>(() =>
+            HplcResponse.ForSst("Analyte 1", 50000m, null, hasInternalStandard: true));
+        Assert.Equal("Analyte 1: enter an internal standard response (above zero) for every injection.", exSst.Message);
+
+        // Helper for Replicate throws exact Replicate message
+        var exRep = Assert.Throws<InvalidOperationException>(() =>
+            HplcResponse.ForReplicate(2, 50000m, 0m, hasInternalStandard: true));
+        Assert.Equal("Replicate 2: the internal standard response is required.", exRep.Message);
+    }
+
+    [Fact]
+    public async Task Sst_MissingInternalStandardInjections_ReportedAndConfirmRefused()
+    {
+        await using var db = NewDb();
+        var ctx = await CreateContextAsync(db);
+        var methodSvc = TestServiceFactory.HplcMethod(db);
+
+        var methodDto = await methodSvc.CreateAsync(CreateMethodRequest(ctx, "SST-IS-MISS", "Benzoic acid", standardInjections: 3, thWtStd: 50m), ctx.UserId);
+        var method = await db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == methodDto.Id);
+        var prep = await PrepareMobilePhaseAsync(db, ctx.Clock, ctx.UserId, ctx.MobilePhase, method, ctx.ReagentEntry);
+        var stdLot = await AddStandardLotAsync(db, ctx.Section.Id, ctx.StandardEntry, purity: 100m, moisturePercent: 0m);
+
+        var runSvc = TestServiceFactory.HplcRun(db, clock: ctx.Clock);
+        var run = await runSvc.StartRunAsync(new StartHplcRunRequest(ctx.Equipment.Id, method.Id, ctx.Column.Id,
+            new List<HplcMobilePhaseAssignmentInput> { new("A", prep.Id) }), ctx.UserId);
+
+        var sstAnalyte = await db.HplcSstAnalytes.Include(a => a.Injections).FirstAsync(a => a.HplcSstRecordId == run.Sst!.Id);
+        sstAnalyte.StandardMaterialId = stdLot.Id;
+        sstAnalyte.StandardWeightMg = 50m;
+        sstAnalyte.Injections.Add(new HplcSstInjection { InjectionNo = 1, Response = 50000m, InternalStandardResponse = null });
+        sstAnalyte.Injections.Add(new HplcSstInjection { InjectionNo = 2, Response = 50000m, InternalStandardResponse = null });
+        sstAnalyte.Injections.Add(new HplcSstInjection { InjectionNo = 3, Response = 50000m, InternalStandardResponse = null });
+        await db.SaveChangesAsync();
+
+        var runDto = await runSvc.GetRunAsync(run.Id, ctx.UserId);
+        Assert.False(runDto.CanConfirmSst);
+        Assert.Contains("internal standard", runDto.CanConfirmSstReason);
+
+        var reportContent = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+        await runSvc.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport,
+            "report.pdf", "application/pdf", reportContent, ctx.UserId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            runSvc.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), ctx.UserId, null));
+        Assert.Contains("internal standard", ex.Message);
     }
 
     private static bool entryDtoHasCanSubmit(HplcSampleEntryDto dto) => dto.CanSubmit;

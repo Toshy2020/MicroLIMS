@@ -127,6 +127,8 @@ public partial class HplcRunService
         if (await _db.TestOrders.AnyAsync(o => ids.Contains(o.Id) && dissolutionCodes.Contains(o.TestCode), ct))
         {
             var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)!;
+            if (!string.IsNullOrWhiteSpace(snapshot.InternalStandardName))
+                throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
             if (snapshot.Analytes.Count != 1)
                 throw new InvalidOperationException("Dissolution needs an HPLC method with exactly one analyte.");
             if (snapshot.Analytes[0].StandardDilution is not > 0m)
@@ -200,6 +202,8 @@ public partial class HplcRunService
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
+            if (hasIs && input.InternalStandardResponse is null or <= 0)
+                throw new InvalidOperationException($"Replicate {i + 1}: the internal standard response is required.");
             // A related-substances sample is not weighed: its calculation uses no sample weight.
             if (!context.IsRelatedSubstances)
             {

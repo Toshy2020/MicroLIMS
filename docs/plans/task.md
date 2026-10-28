@@ -2,8 +2,9 @@
 
 | Task ID | Description | Status | Evidence / Notes |
 |---|---|---|---|
-| TASK-01 | Fix 1: Disregard on final value, display "< {disregard} %" / "< 0.01 %", Total / TotalOthers logic | Done | Unit tests in `RelatedSubstancesEvaluatorTests.cs` pass (`FinalMeanBelowDisregard_DisplaysLessThanDisregard_WithValueZero`, `DisregardLimitZero_RoundsToZeroWhileRawAboveZero_DisplaysLessThan001_WithValueZero`, etc.). |
-| TASK-02 | Fix 2: Full peak evidence in signed record CalculationJson with `disregarded: true/false` | Done | Test `Submit_WritesOneParameterResultPerSpecRow_WithDisplays` verifies all entered peaks in `CalculationJson` with `disregarded: true/false` while `ResultReadings` retain contributing peaks only. |
-| TASK-03 | Fix 3: Atomic replicate replace with `UnitOfWork.RunAsync` in HplcRunService.Samples.cs | Done | Integration test `ReplaceReplicates_FailingAtInsert_RollsBackTheDeletion` in `UnitOfWorkPostgresIntegrationTests.cs` verifies rollback on failure under PostgreSQL. |
-| TASK-04 | Fix 4: Add code comment explaining UnspecifiedEach per-replicate max ruling | Done | Comment added to `RelatedSubstancesEvaluator.cs` at `case RelatedSubstanceRow.UnspecifiedEach:`. |
-| TASK-05 | Fix 5: Verification - Local test filter & full test suite with MICROLIMS_TEST_POSTGRES | Done | Local test filter: 61 passed, 0 failed, 1 skipped. Full suite with MICROLIMS_TEST_POSTGRES: 3,800 passed, 0 failed, 0 skipped. |
+| TASK-01 | Phase 1: Backend Search Foundation (DTOs, Service, Controller, Unit Tests, Auth Matrix) | Done | 6 unit tests in `GlobalSearchServiceTests` passed; 99 architecture tests in `AuthorizationMatrixTests` passed. |
+| TASK-02 | Phase 2: Database Indexing for High-Performance Search (EF Core Indices & Migration) | Done | Added indexes for Sample (BatchNumber, ControlNumber) and Material (BatchNumber, MaterialName); migration `20261018085853_AddGlobalSearchIndexes` created; all 7 unit tests pass. |
+| TASK-03 | Phase 3.1: Frontend Global Search API Client & TypeScript Models | Done | Created `globalSearchApi.ts` and verified with passing Vitest unit tests. |
+| TASK-04 | Phase 3.2: Command Palette Modal (`GlobalSearchDialog.tsx`) | Done | Implemented `GlobalSearchDialog.tsx`, `useRecentSearches.ts`, keyboard navigation, and verified with 3 passing Vitest tests. |
+| TASK-05 | Phase 4: Topbar Integration & Keyboard Shortcut (`Ctrl+K` / `Cmd+K`) | Done | Integrated search bar & mobile button in `Header.tsx`, added `useGlobalSearchShortcut.ts`, verified build & 8 frontend tests. |
+| TASK-06 | Phase 5: Verification & Full Regression Testing | Done | `dotnet test` (all 7 GlobalSearch tests + all 99 Architecture tests pass); `npm test` (all 8 search tests pass); `npm run build` succeeds cleanly. |

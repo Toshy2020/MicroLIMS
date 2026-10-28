@@ -158,6 +158,15 @@ Notation: 🔒 = Opus reviews the diff. **Conflicts** = WPs that must not run in
 
 ### Wave 4 — Phase 3: integrations, review, operations (gate: Q11, Q14)
 
+> **Status (2026-10-28): Wave 4 is complete, together with WP3.5.** Validation: full suite with PostgreSQL (3,938 tests), `has-pending-model-changes` clean, `tsc -b`, lint (0 errors), Vitest (565 tests). WP4.2 is deferred (Q11) and WP4.5 is superseded (Q14: hard delete removed).
+>
+> | WP | Delivered |
+> |---|---|
+> | WP3.5 | `Alerts.CriticalRecipients` email-list setting (up to 20; empty switches alerts off; legacy config fallback); each recipient gets their own send. "Send test alert" needs a reason, records a security event and is rate-limited. |
+> | WP4.1 | Integrations tab: instrument agents (rotate/revoke reuse the existing endpoints), SMTP status (password always masked) and a test email, storage status and a write/read/delete probe. Each test needs a reason, is logged and is rate-limited. |
+> | WP4.3 | Access review: a snapshot of every user (role, effective permissions, memberships, last login, 12-month status history, SoD / dormant / never-logged-in flags; `AccessReview.DormantDays`), findings while in Draft, and an e-signature under the new `Access.Review` permission (a signer cannot sign a review that concerns their own access; the snapshot SHA-256 is re-checked). Triggers keep signed reviews immutable and block DELETE and TRUNCATE. CSV export is audited. |
+> | WP4.4 | Maintenance mode (GxP setting, e-signed, security event): non-GET requests get 503, except sign-in/out, the admin settings and `/api/admin/*` for `System.ConfigureSettings` holders; GxP workers skip their passes. An announcement banner (info/warning) appears on every page; `GET /api/system/status` is anonymous. |
+
 | WP | Covers | Model | Scope |
 |---|---|---|---|
 | **WP4.1** | Integrations | Sonnet | Instrument agents tab (link/move from `InstrumentAgentController`), SMTP status and test, storage status. |

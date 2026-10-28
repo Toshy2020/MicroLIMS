@@ -150,4 +150,89 @@ public class MoistureRoleSpecificationTests
         using var _ = db;
         await new SpecificationService(db).ValidateAsync(TitrationSpec(item, ResultBasis.PercentAsIs));
     }
+
+    private static async Task<(MicroLimsDbContext db, Item item, HplcMethodAnalyte analyte, TestDefinition testDef)> SetupHplcAsync(
+        params (string code, WorkflowType wf, MoistureRole role)[] extra)
+    {
+        var db = NewDb();
+        var item = new Item { Code = "RM-1", Name = "Raw material", IsActive = true };
+        db.Items.Add(item);
+
+        var method = new HplcMethod { Name = "HPLC Method", Abbreviation = "HPLC", ResultMode = HplcResultMode.Assay, IsActive = true };
+        db.HplcMethods.Add(method);
+        var analyte = new HplcMethodAnalyte { HplcMethod = method, Name = "Analyte 1", DisplayOrder = 1, WavelengthNm = 254 };
+        db.HplcMethodAnalytes.Add(analyte);
+
+        var testDef = new TestDefinition
+        {
+            Code = "ASSAY-HPLC",
+            DisplayName = "Assay HPLC",
+            WorkflowType = WorkflowType.HplcMethodAssay,
+            EquationType = EquationType.HplcMethodAssay,
+            HplcMethod = method,
+            HplcMethodId = method.Id,
+            IsActive = true
+        };
+        db.TestDefinitions.Add(testDef);
+
+        foreach (var (code, wf, role) in extra)
+            db.TestDefinitions.Add(new TestDefinition { Code = code, DisplayName = code, WorkflowType = wf, MoistureRole = role, IsActive = true });
+        await db.SaveChangesAsync();
+
+        db.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = "ASSAY-HPLC" });
+        foreach (var (code, _, _) in extra)
+            db.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = code });
+        await db.SaveChangesAsync();
+
+        return (db, item, analyte, testDef);
+    }
+
+    private static Specification HplcSpec(Item item, HplcMethodAnalyte analyte, ResultBasis basis) => new()
+    {
+        ItemId = item.Id,
+        TestCode = "ASSAY-HPLC",
+        ParameterName = "Assay",
+        HplcMethodAnalyteId = analyte.Id,
+        LimitType = LimitType.Range,
+        LowerLimit = 98m,
+        UpperLimit = 102m,
+        Unit = "%",
+        ResultBasis = basis
+    };
+
+    [Fact]
+    public async Task HplcSpec_DriedBasis_NeedsLodTest()
+    {
+        var (db, item, analyte, _) = await SetupHplcAsync();
+        using var _ = db;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new SpecificationService(db).ValidateAsync(HplcSpec(item, analyte, ResultBasis.PercentDriedBasis)));
+        Assert.Contains("Assign a loss on drying test to this item before using a dried basis.", ex.Message);
+
+        var (db2, item2, analyte2, _) = await SetupHplcAsync(("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying));
+        using var _2 = db2;
+        await new SpecificationService(db2).ValidateAsync(HplcSpec(item2, analyte2, ResultBasis.PercentDriedBasis));
+    }
+
+    [Fact]
+    public async Task HplcSpec_LabelClaimAndContentBasis_Refused()
+    {
+        var (db, item, analyte, _) = await SetupHplcAsync(("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying));
+        using var _ = db;
+        var claimSpec = HplcSpec(item, analyte, ResultBasis.PercentLabelClaim);
+        db.Specifications.Add(claimSpec);
+        await db.SaveChangesAsync();
+
+        var driedSpec = HplcSpec(item, analyte, ResultBasis.PercentDriedBasis);
+        driedSpec.ParameterName = "Assay (dried)";
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new SpecificationService(db).ValidateAsync(driedSpec));
+        Assert.Contains("An HPLC analyte reports either % of label claim or a content basis, not both.", ex.Message);
+
+        var asIsSpec = HplcSpec(item, analyte, ResultBasis.PercentAsIs);
+        asIsSpec.ParameterName = "Assay (as-is)";
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new SpecificationService(db).ValidateAsync(asIsSpec));
+        Assert.Contains("An HPLC analyte reports either % of label claim or a content basis, not both.", ex2.Message);
+    }
 }

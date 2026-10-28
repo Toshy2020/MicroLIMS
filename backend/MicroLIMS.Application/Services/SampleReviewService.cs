@@ -271,7 +271,7 @@ public class SampleReviewService
     {
         var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync();
         var candidates = await _db.TestAnalyses
-            .Where(a => a.IsActive && a.AnalysisType == WorkflowType.Titration && a.TestOrderId != moistureOrder.Id
+            .Where(a => a.IsActive && (a.AnalysisType == WorkflowType.Titration || a.AnalysisType == WorkflowType.HplcMethodAssay) && a.TestOrderId != moistureOrder.Id
                 && a.TestOrder!.SampleId == moistureOrder.SampleId && !a.TestOrder.IsSuperseded
                 && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Cancelled && a.TestOrder.Status != ApprovalStatus.Voided)
             .Select(a => new { a.TestOrder, a.ConditionsJson })

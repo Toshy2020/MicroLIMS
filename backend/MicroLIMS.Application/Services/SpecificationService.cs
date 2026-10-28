@@ -413,14 +413,54 @@ public class SpecificationService
             }
             else
             {
-                if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
+                if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis))
                     throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
 
                 if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
                     throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
 
-                if (spec.ResultBasis == ResultBasis.PercentLabelClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                if (spec.ResultBasis != ResultBasis.MgPerUnit && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
                     throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
+
+                var neededRole = spec.ResultBasis switch
+                {
+                    ResultBasis.PercentDriedBasis => MoistureRole.LossOnDrying,
+                    ResultBasis.PercentAnhydrousBasis => MoistureRole.Water,
+                    _ => MoistureRole.None
+                };
+                if (neededRole != MoistureRole.None)
+                {
+                    var hasMoistureTest = await _db.SampleTests.AnyAsync(
+                        st => st.ItemId == spec.ItemId && st.TestCode != spec.TestCode
+                              && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),
+                        cancellationToken);
+                    if (!hasMoistureTest)
+                        throw new InvalidOperationException(neededRole == MoistureRole.LossOnDrying
+                            ? "Assign a loss on drying test to this item before using a dried basis."
+                            : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                }
+
+                bool isContent = spec.ResultBasis is ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis;
+                bool isClaim = spec.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit;
+
+                if (isContent)
+                {
+                    var conflict = await _db.Specifications.AnyAsync(
+                        s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId
+                             && s.Id != spec.Id && s.ResultBasis != spec.ResultBasis,
+                        cancellationToken);
+                    if (conflict)
+                        throw new InvalidOperationException("An HPLC analyte reports either % of label claim or a content basis, not both.");
+                }
+                else if (isClaim)
+                {
+                    var conflict = await _db.Specifications.AnyAsync(
+                        s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId
+                             && s.Id != spec.Id && (s.ResultBasis == ResultBasis.PercentAsIs || s.ResultBasis == ResultBasis.PercentDriedBasis || s.ResultBasis == ResultBasis.PercentAnhydrousBasis),
+                        cancellationToken);
+                    if (conflict)
+                        throw new InvalidOperationException("An HPLC analyte reports either % of label claim or a content basis, not both.");
+                }
 
             }
 

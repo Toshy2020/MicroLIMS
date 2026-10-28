@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
@@ -37,7 +38,8 @@ public record HplcSampleEntryDto(
     HplcRunSampleStatus Status, string Basis, int? RequiredReplicates,
     List<HplcMethodWeightDto> MethodWeights, List<HplcReplicateDto> Replicates,
     List<HplcPreviewResultDto> Preview, List<HplcOfficialResultDto> Official, List<HplcEvidenceDto> Evidence,
-    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason);
+    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason,
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] MoistureRole? MoistureRole = null);
 
 // HPLC Workspace Part B: sample assignment after SST passes, replicate entry
 // with a live (preview) assay calculation. Submission itself is
@@ -390,7 +392,8 @@ public partial class HplcRunService
             c.Order.Id, c.Sample.ReferenceNumber, c.Sample.BatchNumber, c.Sample.Item?.Name, c.Order.TestCode, c.StageName,
             c.RunSample.Status, individual ? "Individual" : "Mean", c.Replicates.SampleReplicates,
             weights, replicates, preview, official, evidence,
-            editableReason == null, editableReason, c.Submitted, problem == null, problem);
+            editableReason == null, editableReason, c.Submitted, problem == null, problem,
+            c.MoistureRole != MoistureRole.None ? c.MoistureRole : null);
     }
 
     // What HplcMethodAssayRecorder stored; Quantity and replicate number come

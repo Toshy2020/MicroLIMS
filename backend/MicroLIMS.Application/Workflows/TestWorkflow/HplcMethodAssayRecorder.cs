@@ -31,9 +31,16 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         var (order, _, _, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             c.Order.Id, _clock.UtcNow.UtcDateTime, null, null, password, WorkflowType.HplcMethodAssay, userId);
 
+        SampleMoisture? moisture = null;
+        if (c.Snapshot.ResultMode == HplcResultMode.Assay && c.MoistureRole != MoistureRole.None)
+        {
+            moisture = await new SampleMoistureResolver(_db).ResolveLockedAsync(c.Order.SampleId, c.MoistureRole)
+                ?? throw new InvalidOperationException(SampleMoistureResolver.MissingMessage(c.MoistureRole));
+        }
+
         var relatedSubstances = c.IsRelatedSubstances ? c.CalculateRelatedSubstances() : new List<RsRowResult>();
-        var rows = c.IsRelatedSubstances ? relatedSubstances.Select(r => r.Row).ToList() : c.EvaluateRows();
-        var inputs = c.Snapshot.ResultMode == HplcResultMode.Assay ? c.BuildAnalyteInputs() : new List<HplcAssayAnalyteInput>();
+        var rows = c.IsRelatedSubstances ? relatedSubstances.Select(r => r.Row).ToList() : c.EvaluateRows(moisture?.Percent);
+        var inputs = c.Snapshot.ResultMode == HplcResultMode.Assay ? c.BuildAnalyteInputs(moisture?.Percent) : new List<HplcAssayAnalyteInput>();
         var rsInputs = c.IsResidualSolvents ? c.BuildResidualSolventInputs() : new List<HplcResidualSolventInput>();
         var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var sst = c.Run.Sst!;
@@ -140,12 +147,24 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             parameterResults.Add(parameterResult);
         }
 
+        string? conditionsJson = moisture == null ? null : JsonSerializer.Serialize(new
+        {
+            moisture = new
+            {
+                parameterResultId = moisture.ParameterResultId,
+                testOrderId = moisture.TestOrderId,
+                percent = moisture.Percent,
+                role = moisture.Role.ToString(),
+                testCode = moisture.TestCode,
+            }
+        }, JsonOptions);
+
         return await PersistTestAnalysisAndFinalizeAsync(
             order,
             WorkflowType.HplcMethodAssay,
             c.Run.EquipmentId,
             analysedAtUtc,
-            null,
+            conditionsJson,
             parameterResults,
             ResultType.Numeric,
             password,

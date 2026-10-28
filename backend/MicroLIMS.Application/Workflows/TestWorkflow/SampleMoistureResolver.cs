@@ -79,9 +79,12 @@ public sealed class SampleMoistureResolver
         return new SampleMoisture(percent, results[0].TestOrderId, results[0].Id, results[0].TestCode, role);
     }
 
-    // For the titration screen: the moisture value this order's specification bases will use, or null
+    // For the titration and HPLC screens: the moisture value this order's specification bases will use, or null
     // when it needs none or the sample's moisture test has no result yet.
-    public async Task<SampleMoistureView?> GetForTitrationOrderAsync(int testOrderId, int userId, CancellationToken ct = default)
+    public Task<SampleMoistureView?> GetForTitrationOrderAsync(int testOrderId, int userId, CancellationToken ct = default) =>
+        GetForAssayOrderAsync(testOrderId, userId, ct);
+
+    public async Task<SampleMoistureView?> GetForAssayOrderAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
         var order = await _db.TestOrders.AsNoTracking().Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)

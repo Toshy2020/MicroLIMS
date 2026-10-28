@@ -7,7 +7,8 @@ namespace MicroLIMS.Application.Helpers;
 
 public record HplcAssayAnalyteInput(
     int AnalyteId, string Name, decimal ThWtStdMg, decimal ThWtTestMg, AssayStandard Std,
-    IReadOnlyList<AssayReplicateInput> Reps, Specification AssaySpec, Specification? AmountSpec);
+    IReadOnlyList<AssayReplicateInput> Reps, Specification AssaySpec, Specification? AmountSpec,
+    decimal? MoisturePercent = null);
 
 public record HplcAssayReading(int ReplicateNo, decimal Response, decimal AssayPercent);
 
@@ -37,16 +38,20 @@ public static class HplcSampleAssayEvaluator
             if (HplcAssayCalculator.IsIndividualBasis(stageRole))
             {
                 foreach (var r in calc.Replicates)
+                {
+                    decimal repAssay = HplcAssayCalculator.ApplyBasis(r.AssayPercent, a.AssaySpec.ResultBasis, a.MoisturePercent);
                     rows.Add(new HplcAssayRow(a.AnalyteId, $"{a.Name} – replicate {r.ReplicateNo}", a.AssaySpec,
-                        ResultBasis.PercentLabelClaim, r.ReplicateNo, r.AssayPercent, FormatPercent(r.AssayPercent), "%",
-                        SpecificationEvaluator.Evaluate(a.AssaySpec, r.AssayPercent),
+                        a.AssaySpec.ResultBasis ?? ResultBasis.PercentLabelClaim, r.ReplicateNo, repAssay, FormatPercent(repAssay), "%",
+                        SpecificationEvaluator.Evaluate(a.AssaySpec, repAssay),
                         readings.Where(x => x.ReplicateNo == r.ReplicateNo).ToList()));
+                }
                 continue;
             }
 
             var mean = calc.MeanAssayPercent!.Value;
-            rows.Add(new HplcAssayRow(a.AnalyteId, a.Name, a.AssaySpec, ResultBasis.PercentLabelClaim, null,
-                mean, FormatPercent(mean), "%", SpecificationEvaluator.Evaluate(a.AssaySpec, mean), readings));
+            var reported = HplcAssayCalculator.ApplyBasis(mean, a.AssaySpec.ResultBasis, a.MoisturePercent);
+            rows.Add(new HplcAssayRow(a.AnalyteId, a.Name, a.AssaySpec, a.AssaySpec.ResultBasis ?? ResultBasis.PercentLabelClaim, null,
+                reported, FormatPercent(reported), "%", SpecificationEvaluator.Evaluate(a.AssaySpec, reported), readings));
 
             if (HplcAssayCalculator.JudgesAmountPerUnit(stageRole) && a.AmountSpec?.LabelClaim is decimal claim)
             {

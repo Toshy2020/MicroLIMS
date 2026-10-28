@@ -42,7 +42,7 @@ const OrganismsPage = lazy(() => import("../modules/laboratoryConfiguration/mast
 const MasterDataWorkbookPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataWorkbook/MasterDataWorkbookPage").then((m) => ({ default: m.MasterDataWorkbookPage })));
 const SpecificationsPage = lazy(() => import("../modules/laboratoryConfiguration/specifications/SpecificationsPage").then((m) => ({ default: m.SpecificationsPage })));
 const MediaPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaPage").then((m) => ({ default: m.MediaPage })));
-const MediaConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaConfigurationPage").then((m) => ({ default: m.MediaConfigurationPage })));
+const MasterTestingMaterialsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MasterTestingMaterialsPage").then((m) => ({ default: m.MasterTestingMaterialsPage })));
 const MediaEvaluationPage = lazy(() => import("../modules/laboratoryConfiguration/mediaEvaluation/MediaEvaluationPage").then((m) => ({ default: m.MediaEvaluationPage })));
 const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/water/WaterConfigPage").then((m) => ({ default: m.WaterConfigPage })));
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
@@ -53,7 +53,6 @@ const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfi
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
 const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/FpInstrumentsPage").then((m) => ({ default: m.FpInstrumentsPage })));
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
-const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
 const IcpMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/IcpMethodsPage").then((m) => ({ default: m.IcpMethodsPage })));
@@ -236,7 +235,9 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
               <Route path="/laboratory-configuration/master-data-workbook" element={<MasterDataWorkbookPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />
-              <Route path="/laboratory-configuration/media-configurations" element={<MediaConfigurationPage />} />
+              <Route path="/laboratory-configuration/master-testing-materials" element={<MasterTestingMaterialsPage />} />
+              {/* Old pages: now tabs of Master Testing Materials. */}
+              <Route path="/laboratory-configuration/media-configurations" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=media" replace />} />
               <Route path="/laboratory-configuration/water" element={<WaterConfigPage />} />
               <Route path="/laboratory-configuration/environmental-monitoring" element={<EMConfigPage />} />
               <Route path="/laboratory-configuration/after-cleaning" element={<AfterCleaningConfigPage />} />
@@ -245,7 +246,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/equipment" element={<EquipmentPage />} />
               <Route path="/laboratory-configuration/fp-instruments" element={<FpInstrumentsPage />} />
               <Route path="/laboratory-configuration/columns" element={<ChromatographyColumnsPage />} />
-              <Route path="/laboratory-configuration/material-master" element={<MaterialMasterPage />} />
+              <Route path="/laboratory-configuration/material-master" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=reagents" replace />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
               <Route path="/laboratory-configuration/icp-methods" element={<IcpMethodsPage />} />

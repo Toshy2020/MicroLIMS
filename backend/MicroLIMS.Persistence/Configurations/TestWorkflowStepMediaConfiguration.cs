@@ -12,14 +12,21 @@ public class TestWorkflowStepMediaConfiguration : IEntityTypeConfiguration<TestW
         builder.Property(m => m.TempMin).HasColumnType("decimal(5,2)");
         builder.Property(m => m.TempMax).HasColumnType("decimal(5,2)");
 
-        // The same medium cannot be listed twice on one step.
-        builder.HasIndex(m => new { m.TestWorkflowStepId, m.MaterialId }).IsUnique();
+        // The same media product cannot be listed twice on one step. Rows the
+        // backfill could not resolve have no product and are not constrained.
+        builder.HasIndex(m => new { m.TestWorkflowStepId, m.MediaProductId }).IsUnique();
 
         builder.HasOne(m => m.TestWorkflowStep)
             .WithMany(s => s.StepMedia)
             .HasForeignKey(m => m.TestWorkflowStepId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(m => m.MediaProduct)
+            .WithMany()
+            .HasForeignKey(m => m.MediaProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Legacy stock-lot link, kept for history only.
         builder.HasOne(m => m.Material)
             .WithMany()
             .HasForeignKey(m => m.MaterialId)

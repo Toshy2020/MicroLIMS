@@ -42,6 +42,10 @@ public class Material : IVersionedEntity
     public DateTime ReceivingDate { get; set; }
     public DateTime? ExpiryDate { get; set; } // nullable - a few rows in the source list have no expiry (e.g. NaCl)
     public string? Code { get; set; }
+    // System-generated lot ID the label carries, STK-{lab-local year of receipt}-{running number, one
+    // sequence for the whole app} (StockIdGenerator). Set once at receipt and never edited. Null only on
+    // lots received before stock IDs existed that were expired or depleted when they were introduced.
+    public string? StockId { get; set; }
     public string Location { get; set; } = string.Empty;
 
     // Only for MaterialType.DehydratedMedia; MaterialName and Code are
@@ -57,6 +61,11 @@ public class Material : IVersionedEntity
     public string? AtccNumber { get; set; }
     public int? OrganismId { get; set; }
     public Organism? Organism { get; set; }
+    // The reference strain a new lyophilized lot is received against; OrganismId
+    // and AtccNumber (ATCC strains) are derived from it at receipt. Null on lots
+    // received before strains existed and on lots the backfill could not link.
+    public int? ReferenceOrganismId { get; set; }
+    public ReferenceOrganism? ReferenceOrganism { get; set; }
 
     public decimal QuantityReceived { get; set; }
     public decimal QuantityRemaining { get; set; }
@@ -73,6 +82,15 @@ public class Material : IVersionedEntity
     // Reference standards only: moisture content % (0 <= x < 100), used with Purity in assay calculations.
     public decimal? MoisturePercent { get; set; }
 
+    // Where the lot is kept (e.g. "2-8 C"); defaulted from the category at receipt.
+    public string? StorageCondition { get; set; }
+
+    // Release gate, set at receipt only when the lot's category requires approval
+    // before use; null = no gate. PendingReview and Rejected lots are unusable.
+    public ApprovalGateStatus? ApprovalStatus { get; set; }
+    public int? ApprovedByUserId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int LastModifiedByUserId { get; set; }
@@ -88,7 +106,10 @@ public class Material : IVersionedEntity
 
     // Used by MediaPreparationService's consumption guard before any
     // mutation - same shape as EquipmentGuard-style checks elsewhere.
-    public bool IsUsable => Status == StockStatus.InStock;
+    public bool IsUsable => Status == StockStatus.InStock && !IsAwaitingRelease && !IsRejected;
+
+    public bool IsAwaitingRelease => ApprovalStatus == ApprovalGateStatus.PendingReview;
+    public bool IsRejected => ApprovalStatus == ApprovalGateStatus.Rejected;
 
     // How a lot is named on screens: a working standard by its WS-nn/MM/yyyy
     // code (its BatchNumber is the source raw-material batch), any other lot

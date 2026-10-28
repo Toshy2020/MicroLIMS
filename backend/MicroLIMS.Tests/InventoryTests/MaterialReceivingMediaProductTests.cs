@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -41,7 +42,7 @@ public class MaterialReceivingMediaProductTests
     public async Task Create_DehydratedWithoutProduct_Throws()
     {
         await using var db = NewDb();
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
         var req = CreateRequest(MaterialType.DehydratedMedia, "TSA", "TSA", mediaProductId: null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, 1));
@@ -53,7 +54,7 @@ public class MaterialReceivingMediaProductTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var req = CreateRequest(
             MaterialType.DehydratedMedia, "Ignored Custom Name", "IGNORED", mediaProductId: product.Id);
@@ -70,19 +71,21 @@ public class MaterialReceivingMediaProductTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
-        // Supplement (not Chemical/Indicator/ReferenceStandard) - this test
-        // is only about MediaProductId being forced null for non-dehydrated
-        // types, and Chemical would now require a material master entry (S1).
+        // An Other material - this test is only about MediaProductId being forced
+        // null for non-dehydrated types; its name and code come from the master entry.
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        var category = await OtherMaterialTestData.CreateCategoryAsync(db, "General", "GEN");
+        var entry = await OtherMaterialTestData.CreateEntryAsync(db, category, "Sodium Chloride", "GEN-001", section.Id);
         var req = CreateRequest(
-            MaterialType.Supplement, "Sodium Chloride", "NACL", mediaProductId: product.Id);
+            MaterialType.Other, "Ignored Name", "IGNORED", mediaProductId: product.Id) with { MaterialMasterEntryId = entry.Id };
 
         var material = await service.CreateAsync(req, 1);
 
         Assert.Null(material.MediaProductId);
         Assert.Equal("Sodium Chloride", material.MaterialName);
-        Assert.Equal("NACL", material.Code);
+        Assert.Equal("GEN-001", material.Code);
     }
 
     [Fact]
@@ -109,7 +112,7 @@ public class MaterialReceivingMediaProductTests
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "Different Requested Name", "DIFF", mediaProductId: product.Id);
 
@@ -155,7 +158,7 @@ public class MaterialReceivingMediaProductTests
         });
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "TSA 2", "TSA2", mediaProductId: product2.Id);
 
@@ -196,7 +199,7 @@ public class MaterialReceivingMediaProductTests
         });
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "Tryptic Soy Agar", "TSA", mediaProductId: product.Id);
 
@@ -234,7 +237,7 @@ public class MaterialReceivingMediaProductTests
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "TSA 2", "TSA2", mediaProductId: product2.Id);
 

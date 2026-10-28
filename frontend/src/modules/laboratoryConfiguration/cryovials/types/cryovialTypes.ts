@@ -20,6 +20,10 @@ export interface CryovialItem {
     description?: string | null;
   };
   organismNameSnapshot: string;
+  // The source lot's reference strain, copied at preparation (absent for older batches).
+  referenceOrganismCode?: string | null;
+  cultureCollection?: string | null;
+  strainNumber?: string | null;
   manufacturerName: string;
   expiryDate: string;
   numberOfVialsPrepared: number;

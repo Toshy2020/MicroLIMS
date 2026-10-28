@@ -14,34 +14,57 @@ public record SaveMaterialMasterEntryRequest(
     MaterialUnit BaseUnit, int? SectionId = null,
     string? WorkingConcentration = null, string? Solvent = null,
     decimal? TransitionRangeFrom = null, decimal? TransitionRangeTo = null,
-    string? ColourChange = null, string? IndicatorUse = null);
+    string? ColourChange = null, string? IndicatorUse = null, int? MaterialCategoryId = null);
 
-// Reagent / Indicator / Reference Standard master (HPLC chain S1, spec 3.1).
+// Reagent / Indicator / Reference Standard / Other Materials master (HPLC chain S1, spec 3.1).
 // Chemical stock lots (Material) reference an entry here; lots snapshot the
 // entry's name/code at receipt so a later edit here doesn't retroactively
 // change a lot's record.
+//
+// App-wide: every lab sees and uses every entry, only the owner lab (SectionId)
+// edits it. Codes are unique across the app and carry a category prefix
+// (enforced on create and on code change; older codes are grandfathered).
+// Other Materials entries (Category = Other) point at a MaterialCategory whose
+// CodePrefix is their prefix; the category must be active and offered to the
+// owner lab.
+// Once an entry has stock its code is frozen and changes only through
+// ChangeCodeAsync (reason + electronic signature).
 public class MaterialMasterService
 {
+    public const string CodeChangedActionCode = "MaterialMasterEntryCodeChanged";
+
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly IElectronicSignatureService _signatureService;
+    private readonly IAuditEventService _auditEventService;
     private readonly TimeProvider _time;
 
-    public MaterialMasterService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
+    public MaterialMasterService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService scope,
+        IElectronicSignatureService signatureService,
+        IAuditEventService auditEventService,
+        TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
+        _signatureService = signatureService;
+        _auditEventService = auditEventService;
     }
+
+    public static string PrefixFor(MaterialMasterCategory category) => category switch
+    {
+        MaterialMasterCategory.Indicator => "IND-",
+        MaterialMasterCategory.ReferenceStandard => "RS-",
+        MaterialMasterCategory.PrimaryStandard => "PS-",
+        _ => "RG-"
+    };
 
     public async Task<List<MaterialMasterEntryResponse>> GetAllAsync(int currentUserId, MaterialMasterCategory? category = null, bool activeOnly = false, CancellationToken ct = default)
     {
-        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
-        var query = _db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section).AsQueryable();
-
-        if (scope != null)
-        {
-            query = query.Where(e => scope.Contains(e.SectionId));
-        }
+        // Every lab sees every entry; the owner lab (configurable scope) decides CanEdit.
+        var query = _db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section).Include(e => e.MaterialCategory).AsQueryable();
 
         if (category.HasValue)
         {
@@ -53,7 +76,26 @@ public class MaterialMasterService
             query = query.Where(e => e.IsActive);
         }
 
-        return (await query.OrderBy(e => e.Code).ToListAsync(ct)).Select(MaterialMasterEntryResponse.From).ToList();
+        var entries = await query.OrderBy(e => e.Code).ToListAsync(ct);
+        var editable = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
+        var ids = entries.Select(e => e.Id).ToList();
+        var stocked = (await _db.Materials
+            .Where(m => m.MaterialMasterEntryId != null && ids.Contains(m.MaterialMasterEntryId.Value))
+            .Select(m => m.MaterialMasterEntryId!.Value).Distinct().ToListAsync(ct)).ToHashSet();
+
+        return entries
+            .Select(e => MaterialMasterEntryResponse.From(e, editable == null || editable.Contains(e.SectionId), stocked.Contains(e.Id)))
+            .ToList();
+    }
+
+    private async Task<MaterialMasterEntryResponse> ToResponseAsync(MaterialMasterEntry entry, int currentUserId, CancellationToken ct)
+    {
+        // Owner-lab access was already checked by LoadWithAccessAsync / ResolveSectionForCreateAsync.
+        entry.Section ??= await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == entry.SectionId, ct);
+        if (entry.MaterialCategoryId.HasValue)
+            entry.MaterialCategory ??= await _db.MaterialCategories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == entry.MaterialCategoryId.Value, ct);
+        var hasStock = await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == entry.Id, ct);
+        return MaterialMasterEntryResponse.From(entry, canEdit: true, hasStock);
     }
 
     public async Task<MaterialMasterEntryResponse> CreateAsync(SaveMaterialMasterEntryRequest r, int currentUserId, CancellationToken ct = default)
@@ -62,8 +104,10 @@ public class MaterialMasterService
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
         var normalizedCode = r.Code.Trim().ToUpper();
+        var materialCategory = await ResolveMaterialCategoryAsync(r, sectionId, ct);
+        EnsurePrefix(normalizedCode, r.Category, materialCategory);
 
-        if (await _db.MaterialMasterEntries.AnyAsync(e => e.SectionId == sectionId && e.Code == normalizedCode, ct))
+        if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode, ct))
             throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
 
         var entry = new MaterialMasterEntry
@@ -76,6 +120,8 @@ public class MaterialMasterService
             Source = r.Source?.Trim(),
             BaseUnit = r.BaseUnit,
             IsActive = true,
+            MaterialCategoryId = materialCategory?.Id,
+            MaterialCategory = materialCategory,
             WorkingConcentration = r.WorkingConcentration?.Trim(),
             Solvent = r.Solvent?.Trim(),
             TransitionRangeFrom = r.TransitionRangeFrom,
@@ -91,7 +137,7 @@ public class MaterialMasterService
         _db.MaterialMasterEntries.Add(entry);
         await _db.SaveChangesAsync(ct);
 
-        return MaterialMasterEntryResponse.From(entry);
+        return await ToResponseAsync(entry, currentUserId, ct);
     }
 
     public async Task<MaterialMasterEntryResponse> UpdateAsync(int id, SaveMaterialMasterEntryRequest r, int currentUserId, CancellationToken ct = default)
@@ -102,15 +148,40 @@ public class MaterialMasterService
         RecordVersion.EnsureCurrent(_db, entry);
 
         var normalizedCode = r.Code.Trim().ToUpper();
-        if (await _db.MaterialMasterEntries.AnyAsync(e => e.SectionId == entry.SectionId && e.Code == normalizedCode && e.Id != id, ct))
-            throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
+        var hasStock = await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == id, ct);
 
-        if (r.Category != entry.Category && await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == id, ct))
+        if (r.Category != entry.Category && hasStock)
             throw new InvalidOperationException("This entry has linked stock lots; its category can't change.");
+        var categoryChanged = r.MaterialCategoryId != entry.MaterialCategoryId;
+        if (categoryChanged && hasStock)
+            throw new InvalidOperationException("This entry has linked stock lots; its material category can't change.");
+
+        // The category is checked against the owner lab only when it is being set or changed,
+        // so an entry whose category was later deactivated or narrowed can still be renamed.
+        MaterialCategory? materialCategory = null;
+        if (r.Category == MaterialMasterCategory.Other)
+            materialCategory = categoryChanged
+                ? await ResolveMaterialCategoryAsync(r, entry.SectionId, ct)
+                : await _db.MaterialCategories.FirstAsync(c => c.Id == entry.MaterialCategoryId, ct);
+        else
+            await ResolveMaterialCategoryAsync(r, entry.SectionId, ct); // rejects a category on a non-Other entry
+
+        // Only a changed code (or a changed category, which changes the prefix) is checked:
+        // existing codes without a prefix are grandfathered.
+        if (normalizedCode != entry.Code || categoryChanged)
+        {
+            if (normalizedCode != entry.Code && hasStock)
+                throw new InvalidOperationException("This entry has stock; change its code with a reason and an electronic signature.");
+            EnsurePrefix(normalizedCode, r.Category, materialCategory);
+            if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
+                throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
+        }
 
         entry.Code = normalizedCode;
         entry.Name = r.Name.Trim();
         entry.Category = r.Category;
+        entry.MaterialCategoryId = materialCategory?.Id;
+        entry.MaterialCategory = materialCategory;
         entry.Grade = r.Grade?.Trim();
         entry.Source = r.Source?.Trim();
         entry.BaseUnit = r.BaseUnit;
@@ -124,7 +195,63 @@ public class MaterialMasterService
         entry.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
-        return MaterialMasterEntryResponse.From(entry);
+        return await ToResponseAsync(entry, currentUserId, ct);
+    }
+
+    public Task<MaterialMasterEntryResponse> ChangeCodeAsync(
+        int id, string newCode, string reason, string password, int currentUserId, string? ipAddress, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, async () => await ToResponseAsync(
+            await ChangeCodeCoreAsync(id, newCode, reason, password, currentUserId, ipAddress, ct), currentUserId, ct));
+
+    private async Task<MaterialMasterEntry> ChangeCodeCoreAsync(
+        int id, string newCode, string reason, string password, int currentUserId, string? ipAddress, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("A reason for the code change is required.");
+        var trimmedReason = reason.Trim();
+
+        if (string.IsNullOrWhiteSpace(newCode)) throw new InvalidOperationException("Code is required.");
+        var normalizedCode = newCode.Trim().ToUpper();
+
+        var entry = await LoadWithAccessAsync(id, currentUserId, ct);
+
+        if (normalizedCode == entry.Code)
+            throw new InvalidOperationException("The new code must be different from the current code.");
+        var entryCategory = entry.MaterialCategoryId.HasValue
+            ? await _db.MaterialCategories.FirstOrDefaultAsync(c => c.Id == entry.MaterialCategoryId.Value, ct)
+            : null;
+        EnsurePrefix(normalizedCode, entry.Category, entryCategory);
+        if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
+            throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
+
+        var oldCode = entry.Code;
+
+        // Signs first - a wrong password throws SignatureVerificationException and
+        // nothing may change (same ordering as MediaProductService.ChangeCodeAsync).
+        _db.CurrentUserId = currentUserId;
+        await _signatureService.SignAsync(
+            currentUserId,
+            password,
+            SignatureMeaning.MasterDataChanged,
+            ReviewEntityTypes.MaterialMasterEntry,
+            id,
+            $"Code {oldCode} -> {normalizedCode}: {trimmedReason}",
+            ipAddress);
+
+        entry.Code = normalizedCode;
+        entry.LastModifiedByUserId = currentUserId;
+        entry.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
+
+        // Received lots keep the Material.Code snapshot they were received with.
+        await _auditEventService.RecordUserEventAsync(
+            CodeChangedActionCode,
+            AuditActionCategory.Configuration,
+            ReviewEntityTypes.MaterialMasterEntry,
+            reason: trimmedReason,
+            changes: new[] { new AuditFieldChange("Code", oldCode, normalizedCode) },
+            entityId: id.ToString());
+
+        return entry;
     }
 
     public async Task<MaterialMasterEntryResponse> SetActiveAsync(int id, bool isActive, int currentUserId, CancellationToken ct = default)
@@ -136,7 +263,7 @@ public class MaterialMasterService
         entry.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
-        return MaterialMasterEntryResponse.From(entry);
+        return await ToResponseAsync(entry, currentUserId, ct);
     }
 
     private async Task<MaterialMasterEntry> LoadWithAccessAsync(int id, int currentUserId, CancellationToken ct)
@@ -146,10 +273,49 @@ public class MaterialMasterService
 
         var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(entry.SectionId))
-            throw new NotFoundException($"Material master entry {id} not found.");
+            throw new InvalidOperationException("Only the owner lab of a material master entry can change it.");
 
         return entry;
     }
+
+    // Other Materials entries carry their category's prefix ("SUP-").
+    public static string PrefixFor(MaterialCategory category) => category.CodePrefix + "-";
+
+    // For an Other entry: loads the category and checks it is active and offered to the
+    // owner lab. For any other entry: rejects a stray category. Returns null for non-Other.
+    private async Task<MaterialCategory?> ResolveMaterialCategoryAsync(SaveMaterialMasterEntryRequest r, int ownerSectionId, CancellationToken ct)
+    {
+        if (r.Category != MaterialMasterCategory.Other)
+        {
+            if (r.MaterialCategoryId.HasValue)
+                throw new InvalidOperationException("A material category is only allowed for Other materials.");
+            return null;
+        }
+
+        if (!r.MaterialCategoryId.HasValue)
+            throw new InvalidOperationException("Choose the material category for this Other material.");
+        var category = await _db.MaterialCategories.Include(c => c.Sections).FirstOrDefaultAsync(c => c.Id == r.MaterialCategoryId.Value, ct)
+            ?? throw new InvalidOperationException($"Material category {r.MaterialCategoryId.Value} not found.");
+        if (!category.IsActive)
+            throw new InvalidOperationException($"Material category \"{category.Name}\" is inactive.");
+        if (category.Sections.Count > 0 && category.Sections.All(s => s.SectionId != ownerSectionId))
+            throw new InvalidOperationException($"Material category \"{category.Name}\" is not available to the owner lab of this entry.");
+        return category;
+    }
+
+    private static void EnsurePrefix(string normalizedCode, MaterialMasterCategory category, MaterialCategory? materialCategory = null)
+    {
+        var prefix = materialCategory != null ? PrefixFor(materialCategory) : PrefixFor(category);
+        if (!normalizedCode.StartsWith(prefix, StringComparison.Ordinal) || normalizedCode.Length == prefix.Length)
+            throw new InvalidOperationException($"{materialCategory?.Name ?? CategoryLabel(category)} codes must start with \"{prefix}\".");
+    }
+
+    private static string CategoryLabel(MaterialMasterCategory category) => category switch
+    {
+        MaterialMasterCategory.ReferenceStandard => "Reference standard",
+        MaterialMasterCategory.PrimaryStandard => "Primary standard",
+        _ => category.ToString()
+    };
 
     private static void Validate(SaveMaterialMasterEntryRequest r)
     {

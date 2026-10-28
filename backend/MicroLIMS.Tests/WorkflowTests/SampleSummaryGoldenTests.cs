@@ -81,7 +81,7 @@ public class SampleSummaryGoldenTests
             new WaterSamplingPoint { Id = 2, Code = "WTU-2", Location = "Block B", TestingFrequency = "Weekly" });
         db.SamplingConfigurations.Add(new SamplingConfiguration { Id = 1, WaterSamplingPointId = 2, TestCode = "WATER_TAMC", AlertLimit = "50", ActionLimit = "100", SpecLimit = "200", Unit = "CFU/mL" });
 
-        db.Materials.Add(new Material { Id = 1, SectionId = 1, MaterialType = MaterialType.DehydratedMedia, MaterialName = "Tryptic Soy Agar", ReceivingDate = D(1), Unit = MaterialUnit.Gram });
+        db.Materials.Add(new Material { Id = 1, MediaProductId = 1, SectionId = 1, MaterialType = MaterialType.DehydratedMedia, MaterialName = "Tryptic Soy Agar", ReceivingDate = D(1), Unit = MaterialUnit.Gram });
         db.Media.Add(new Media { Id = 1, MaterialId = 1, LotNumber = "TSA/001/26", PreparedAt = D(1), ExpiryDate = D(28) });
         db.Equipment.AddRange(
             new Equipment { Id = 1, Name = "Incubator 30-35", Code = "INC-001", Type = EquipmentType.Incubator, SectionId = 1 },
@@ -294,8 +294,8 @@ public class SampleSummaryGoldenTests
 
         // ---- Sample 15: still in testing, so the clock-driven workflow states resolve (fixed clock 2026-03-20 12:00 UTC).
         db.TestWorkflowStepMedias.AddRange(
-            new TestWorkflowStepMedia { Id = 1, TestWorkflowStepId = 1, MaterialId = 1, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true },
-            new TestWorkflowStepMedia { Id = 2, TestWorkflowStepId = 3, MaterialId = 1, IncubationMinHours = 72, IncubationMaxHours = 120, TempMin = 30, TempMax = 35, IsRequired = true });
+            new TestWorkflowStepMedia { Id = 1, TestWorkflowStepId = 1, MediaProductId = 1, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true },
+            new TestWorkflowStepMedia { Id = 2, TestWorkflowStepId = 3, MediaProductId = 1, IncubationMinHours = 72, IncubationMaxHours = 120, TempMin = 30, TempMax = 35, IsRequired = true });
         db.Samples.Add(new Sample { Id = 15, ReferenceNumber = "S-2026-0015", Category = SampleCategory.FinishedProduct, ItemId = 1, CauseOfTestingId = 1, ControlNumber = "CTRL-15", SampledBy = "Dan Sampler", ReceivedByUserId = 1, ReceivedAt = D(10, 9), Status = SampleStatus.InTesting });
         db.TestOrders.AddRange(
             new TestOrder { Id = 12, SampleId = 15, TestCode = "TAMC", SectionId = 1, Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Incubating },   // count incubation still inside its minimum window

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Paper, TextField, Button, Stack, Alert } from "@mui/material";
+import { Paper, TextField, Button, Stack, Alert, Tabs, Tab } from "@mui/material";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { LabPage, FilterBar, RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { useOrganisms, OrganismOption } from "../../../hooks/useOrganisms";
+import { ReferenceOrganismsSection } from "./ReferenceOrganismsSection";
 
 // The Organism master list - the canonical ScientificName/AtccNumber
 // referenced everywhere an organism is assigned (Media Challenge Specs,
@@ -22,6 +23,7 @@ export function OrganismsPage() {
   const [pendingDelete, setPendingDelete] = useState<OrganismOption | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"species" | "strains">("species");
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -90,8 +92,16 @@ export function OrganismsPage() {
         title="Organisms"
         subtitle="The canonical organism list referenced by Media Challenge Specs, Materials, and Cryovials."
       >
-        {message && <Alert severity={message.ok ? "success" : "error"}>{message.text}</Alert>}
+        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+          <Tab value="species" label="Species" />
+          <Tab value="strains" label="Reference organisms" />
+        </Tabs>
 
+        {tab === "strains" && <ReferenceOrganismsSection species={options} />}
+
+        {tab === "species" && message && <Alert severity={message.ok ? "success" : "error"}>{message.text}</Alert>}
+
+        {tab === "species" && <>
         <div>
           <SectionTitle>{editingId ? "Edit Organism" : "Add Organism"}</SectionTitle>
           <Paper sx={{ p: 2.5 }}>
@@ -133,6 +143,7 @@ export function OrganismsPage() {
               : { title: "No organisms yet", description: "Add the first organism using the form above." }
           }
         />
+        </>}
       </LabPage>
 
       <ConfirmationDialog

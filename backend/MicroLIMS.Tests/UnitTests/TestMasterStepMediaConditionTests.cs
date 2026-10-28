@@ -49,36 +49,7 @@ public class TestMasterStepMediaConditionTests
         return testDefinition;
     }
 
-    private static async Task<Material> SeedMaterialAsync(
-        MicroLimsDbContext db,
-        MediaProduct? productToLink = null,
-        string materialName = "Tryptic Soy Agar")
-    {
-        var material = new Material
-        {
-            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
-            MaterialType = MaterialType.DehydratedMedia,
-            MaterialName = materialName,
-            ManufacturerName = "Himedia",
-            BatchNumber = "BATCH-1",
-            ReceivingDate = DateTime.UtcNow,
-            Location = "Lab",
-            QuantityReceived = 100,
-            QuantityRemaining = 100,
-            Unit = MaterialUnit.Gram
-        };
-
-        if (productToLink != null)
-        {
-            MediaProductTestData.Link(material, productToLink);
-        }
-
-        db.Materials.Add(material);
-        await db.SaveChangesAsync();
-        return material;
-    }
-
-    private static CreateTestWorkflowStepRequest CreateRequest(int materialId, int? conditionId) =>
+    private static CreateTestWorkflowStepRequest CreateRequest(int productId, int? conditionId) =>
         new(
             "CountIncubation",
             0,
@@ -88,7 +59,7 @@ public class TestMasterStepMediaConditionTests
             true,
             StepType.PlateCount,
             null,
-            new List<StepMediaRequest> { new(materialId, true, 1, conditionId) },
+            new List<StepMediaRequest> { new(productId, true, 1, conditionId) },
             false,
             null,
             null,
@@ -103,13 +74,14 @@ public class TestMasterStepMediaConditionTests
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 18, 24, 35m, 37m);
-        var material = await SeedMaterialAsync(db, product);
 
-        var request = CreateRequest(material.Id, condition.Id);
+        var request = CreateRequest(product.Id, condition.Id);
         var result = await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request);
 
         Assert.IsType<OkObjectResult>(result);
         var stepMedia = await db.TestWorkflowStepMedias.SingleAsync();
+        Assert.Equal(product.Id, stepMedia.MediaProductId);
+        Assert.Null(stepMedia.MaterialId);
         Assert.Equal(condition.Id, stepMedia.MediaIncubationConditionId);
         Assert.Equal(35m, stepMedia.TempMin);
         Assert.Equal(37m, stepMedia.TempMax);
@@ -125,9 +97,8 @@ public class TestMasterStepMediaConditionTests
         var testDefinition = await SeedTestDefinitionAsync(db);
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var material = await SeedMaterialAsync(db, product);
 
-        var request = CreateRequest(material.Id, null);
+        var request = CreateRequest(product.Id, null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
@@ -137,7 +108,7 @@ public class TestMasterStepMediaConditionTests
     }
 
     [Fact]
-    public async Task CreateStep_MaterialNotLinkedToProduct_Throws()
+    public async Task CreateStep_InactiveProduct_Throws()
     {
         using var db = NewDb();
         var controller = CreateController(db);
@@ -145,14 +116,13 @@ public class TestMasterStepMediaConditionTests
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 18, 24, 35m, 37m);
-        var material = await SeedMaterialAsync(db, productToLink: null, materialName: "Tryptic Soy Agar");
-
-        var request = CreateRequest(material.Id, condition.Id);
+        product.IsActive = false;
+        await db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, CreateRequest(product.Id, condition.Id)));
 
-        Assert.Contains("isn't linked to a media product", ex.Message);
+        Assert.Contains("'Tryptic Soy Agar' is inactive", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
     }
 
@@ -164,9 +134,8 @@ public class TestMasterStepMediaConditionTests
         var testDefinition = await SeedTestDefinitionAsync(db);
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var material = await SeedMaterialAsync(db, product);
 
-        var request = CreateRequest(material.Id, 9999);
+        var request = CreateRequest(product.Id, 9999);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
@@ -183,12 +152,11 @@ public class TestMasterStepMediaConditionTests
         var testDefinition = await SeedTestDefinitionAsync(db);
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var material = await SeedMaterialAsync(db, product);
 
         var otherProduct = await MediaProductTestData.CreateOrGetAsync(db, "R2A Agar", "R2A");
         var condition = await MediaProductTestData.AddConditionAsync(db, otherProduct, 18, 24, 35m, 37m);
 
-        var request = CreateRequest(material.Id, condition.Id);
+        var request = CreateRequest(product.Id, condition.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
@@ -198,7 +166,7 @@ public class TestMasterStepMediaConditionTests
     }
 
     [Fact]
-    public async Task CreateStep_UnknownMaterial_Throws()
+    public async Task CreateStep_UnknownProduct_Throws()
     {
         using var db = NewDb();
         var controller = CreateController(db);
@@ -209,11 +177,11 @@ public class TestMasterStepMediaConditionTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
-        Assert.Equal("Material 9999 not found.", ex.Message);
+        Assert.Equal("Media product 9999 not found.", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
     }
 
-    private static UpdateTestWorkflowStepRequest CreateUpdateRequest(int materialId, int? conditionId) =>
+    private static UpdateTestWorkflowStepRequest CreateUpdateRequest(int productId, int? conditionId) =>
         new(
             "CountIncubation",
             0,
@@ -223,7 +191,7 @@ public class TestMasterStepMediaConditionTests
             true,
             StepType.PlateCount,
             null,
-            new List<StepMediaRequest> { new(materialId, true, 1, conditionId) },
+            new List<StepMediaRequest> { new(productId, true, 1, conditionId) },
             false,
             null,
             null,
@@ -237,15 +205,14 @@ public class TestMasterStepMediaConditionTests
         var testDefinition = await SeedTestDefinitionAsync(db);
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var material = await SeedMaterialAsync(db, product);
         var conditionA = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
         var conditionB = await MediaProductTestData.AddConditionAsync(db, product, 48, 72, 20m, 25m);
 
-        var createRequest = CreateRequest(material.Id, conditionA.Id);
+        var createRequest = CreateRequest(product.Id, conditionA.Id);
         await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, createRequest);
         var stepId = (await db.TestWorkflowSteps.SingleAsync()).Id;
 
-        var updateRequest = CreateUpdateRequest(material.Id, conditionB.Id);
+        var updateRequest = CreateUpdateRequest(product.Id, conditionB.Id);
         var result = await controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, updateRequest);
 
         Assert.IsType<OkObjectResult>(result);
@@ -265,14 +232,13 @@ public class TestMasterStepMediaConditionTests
         var testDefinition = await SeedTestDefinitionAsync(db);
 
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var material = await SeedMaterialAsync(db, product);
         var conditionA = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
 
-        var createRequest = CreateRequest(material.Id, conditionA.Id);
+        var createRequest = CreateRequest(product.Id, conditionA.Id);
         await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, createRequest);
         var stepId = (await db.TestWorkflowSteps.SingleAsync()).Id;
 
-        var updateRequest = CreateUpdateRequest(material.Id, null);
+        var updateRequest = CreateUpdateRequest(product.Id, null);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, updateRequest));
 
@@ -285,5 +251,55 @@ public class TestMasterStepMediaConditionTests
         Assert.Equal(35m, stepMedia.TempMax);
         Assert.Equal(24, stepMedia.IncubationMinHours);
         Assert.Equal(48, stepMedia.IncubationMaxHours);
+    }
+
+    [Fact]
+    public async Task UpdateStep_InactiveProductAlreadyOnTheStep_KeepsWorking_ButAnInactiveNewOneIsRefused()
+    {
+        using var db = NewDb();
+        var controller = CreateController(db);
+        var testDefinition = await SeedTestDefinitionAsync(db);
+
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
+        await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, CreateRequest(product.Id, condition.Id));
+        var stepId = (await db.TestWorkflowSteps.SingleAsync()).Id;
+
+        var other = await MediaProductTestData.CreateOrGetAsync(db, "R2A Agar", "R2A");
+        var otherCondition = await MediaProductTestData.AddConditionAsync(db, other, 24, 48, 30m, 35m);
+        product.IsActive = false;
+        other.IsActive = false;
+        await db.SaveChangesAsync();
+
+        // Saving the step again with the product it already has is fine.
+        Assert.IsType<OkObjectResult>(await controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, CreateUpdateRequest(product.Id, condition.Id)));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, CreateUpdateRequest(other.Id, otherCondition.Id)));
+        Assert.Contains("'R2A Agar' is inactive", ex.Message);
+
+        db.ChangeTracker.Clear();
+        Assert.Equal(product.Id, (await db.TestWorkflowStepMedias.SingleAsync()).MediaProductId);
+    }
+
+    [Fact]
+    public async Task CreateStep_SameProductTwice_FailsTemplateValidation()
+    {
+        using var db = NewDb();
+        var controller = CreateController(db);
+        var testDefinition = await SeedTestDefinitionAsync(db);
+
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product, 18, 24, 35m, 37m);
+        var request = CreateRequest(product.Id, condition.Id) with
+        {
+            StepMedia = new List<StepMediaRequest> { new(product.Id, false, 1, condition.Id), new(product.Id, false, 2, condition.Id) }
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
+
+        Assert.Contains("more than once", ex.Message);
+        Assert.Empty(db.TestWorkflowSteps);
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -49,7 +50,7 @@ public class PrimaryStandardMaterialTests
         };
         db.MaterialMasterEntries.Add(entry);
         db.SaveChanges();
-        var svc = new MaterialService(db, new UserSectionScopeService(db));
+        var svc = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var req = new SaveMaterialRequest(MaterialType.PrimaryStandard, "x", "Merck", "LOT-1",
             DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, "Shelf", 10m, MaterialUnit.Gram, null, null, null,

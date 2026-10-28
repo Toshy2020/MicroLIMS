@@ -80,7 +80,7 @@ public class MediaIncubationConditionServiceTests
         var stepMedia = new TestWorkflowStepMedia
         {
             TestWorkflowStepId = step.Id,
-            MaterialId = material.Id,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id),
             MediaIncubationConditionId = condition.Id,
             TempMin = condition.TemperatureMin,
             TempMax = condition.TemperatureMax,

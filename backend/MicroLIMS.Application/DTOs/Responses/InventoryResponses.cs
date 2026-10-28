@@ -61,12 +61,19 @@ public class MaterialResponse
     public DateTime ReceivingDate { get; init; }
     public DateTime? ExpiryDate { get; init; }
     public string? Code { get; init; }
+    // Immutable system-generated lot ID (STK-yyyy-nnnnn); null on old expired/depleted lots.
+    public string? StockId { get; init; }
     public string Location { get; init; } = null!;
     public int? MediaProductId { get; init; }
     public MediaProductResponse? MediaProduct { get; init; }
     public string? AtccNumber { get; init; }
     public int? OrganismId { get; init; }
     public OrganismResponse? Organism { get; init; }
+    // Lyophilized lots: the reference strain (null on older lots).
+    public int? ReferenceOrganismId { get; init; }
+    public string? ReferenceOrganismCode { get; init; }
+    public CultureCollection? CultureCollection { get; init; }
+    public string? StrainNumber { get; init; }
     public decimal QuantityReceived { get; init; }
     public decimal QuantityRemaining { get; init; }
     public MaterialUnit Unit { get; init; }
@@ -75,6 +82,15 @@ public class MaterialResponse
     public int? MaterialMasterEntryId { get; init; }
     public string? MaterialMasterEntryCode { get; init; }
     public decimal? MoisturePercent { get; init; }
+    public string? StorageCondition { get; init; }
+    // Release gate (categories with approval before use): null = no gate.
+    public ApprovalGateStatus? ApprovalStatus { get; init; }
+    public int? ApprovedByUserId { get; init; }
+    public DateTime? ApprovedAt { get; init; }
+    // From the lot's master entry category (Other materials); null otherwise.
+    public int? MaterialCategoryId { get; init; }
+    public string? CategoryName { get; init; }
+    public bool LabelRequired { get; init; }
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
     public int LastModifiedByUserId { get; init; }
@@ -96,12 +112,17 @@ public class MaterialResponse
         ReceivingDate = e.ReceivingDate,
         ExpiryDate = e.ExpiryDate,
         Code = e.Code,
+        StockId = e.StockId,
         Location = e.Location,
         MediaProductId = e.MediaProductId,
         MediaProduct = e.MediaProduct is null ? null : MediaProductResponse.From(e.MediaProduct),
         AtccNumber = e.AtccNumber,
         OrganismId = e.OrganismId,
         Organism = e.Organism is null ? null : OrganismResponse.From(e.Organism),
+        ReferenceOrganismId = e.ReferenceOrganismId,
+        ReferenceOrganismCode = e.ReferenceOrganism?.Code,
+        CultureCollection = e.ReferenceOrganism?.CultureCollection,
+        StrainNumber = e.ReferenceOrganism?.StrainNumber,
         QuantityReceived = e.QuantityReceived,
         QuantityRemaining = e.QuantityRemaining,
         Unit = e.Unit,
@@ -110,6 +131,13 @@ public class MaterialResponse
         MaterialMasterEntryId = e.MaterialMasterEntryId,
         MaterialMasterEntryCode = e.MaterialMasterEntry?.Code,
         MoisturePercent = e.MoisturePercent,
+        StorageCondition = e.StorageCondition,
+        ApprovalStatus = e.ApprovalStatus,
+        ApprovedByUserId = e.ApprovedByUserId,
+        ApprovedAt = e.ApprovedAt,
+        MaterialCategoryId = e.MaterialMasterEntry?.MaterialCategoryId,
+        CategoryName = e.MaterialMasterEntry?.MaterialCategory?.Name,
+        LabelRequired = e.MaterialMasterEntry?.MaterialCategory?.LabelRequired ?? false,
         CreatedByUserId = e.CreatedByUserId,
         CreatedAt = e.CreatedAt,
         LastModifiedByUserId = e.LastModifiedByUserId,

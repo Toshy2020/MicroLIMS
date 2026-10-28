@@ -5,7 +5,7 @@ namespace MicroLIMS.Application.Services;
 
 // GMP segregation of duties: the person who performed a test must not
 // also review or approve it. Shared by sample review and approval, media
-// and cryovial release and pathogen confirmation. Deliberately role-agnostic - it only
+// and cryovial release, stock-lot release and pathogen confirmation. Deliberately role-agnostic - it only
 // ever compares user IDs, so there is no code path for any role
 // (including SystemAdministrator) to bypass it.
 public class SegregationOfDutiesGuard
@@ -64,6 +64,10 @@ public class SegregationOfDutiesGuard
         return await _db.MediaEvaluationChallenges
             .AnyAsync(c => c.MediaEvaluation!.MediaId == mediaId && c.ReadByUserId == userId);
     }
+
+    // A received stock lot has one actor: whoever received (recorded) it.
+    public Task<bool> DidUserReceiveMaterialAsync(int materialId, int userId) =>
+        _db.Materials.AnyAsync(m => m.Id == materialId && m.CreatedByUserId == userId);
 
     // A Cryovial batch has exactly one actor - whoever prepared it and
     // filled in its identity-confirmation panel (IdentityConfirmationEntry

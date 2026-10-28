@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
@@ -315,7 +316,7 @@ public class MaterialDocumentTests
     {
         await using var db = NewDb();
         var material = await SeedMaterial(db, MaterialType.DehydratedMedia);
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.DehydratedMedia, 10m, 1));
@@ -328,7 +329,7 @@ public class MaterialDocumentTests
         var material = await SeedMaterial(db, MaterialType.LyophilizedMicroorganism);
         material.Unit = MaterialUnit.Disc;
         await db.SaveChangesAsync();
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.LyophilizedMicroorganism, 1m, 1));
@@ -339,7 +340,7 @@ public class MaterialDocumentTests
     {
         await using var db = NewDb();
         var material = await SeedMaterial(db, MaterialType.Supplement);
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.Supplement, 5m, 1));
@@ -361,7 +362,7 @@ public class MaterialDocumentTests
             UploadedByUserId = 1, Status = MaterialDocumentStatus.Current
         });
         await db.SaveChangesAsync();
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         // Should not throw
         await materialService.ConsumeAsync(material.Id, MaterialType.DehydratedMedia, 10m, 1);
@@ -384,7 +385,7 @@ public class MaterialDocumentTests
             Status = MaterialDocumentStatus.Superseded // not Current
         });
         await db.SaveChangesAsync();
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.DehydratedMedia, 10m, 1));
@@ -395,7 +396,7 @@ public class MaterialDocumentTests
     {
         await using var db = NewDb();
         var material = await SeedMaterial(db, MaterialType.Chemical); // not mandatory
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         // Should not throw — Chemical does not require a COA
         await materialService.ConsumeAsync(material.Id, MaterialType.Chemical, 5m, 1);
@@ -425,7 +426,7 @@ public class MaterialDocumentTests
     {
         await using var db = NewDb();
         var material = await SeedMaterial(db, MaterialType.Chemical, expiry: DateTime.UtcNow.AddDays(-1));
-        var materialService = new MaterialService(db, new UserSectionScopeService(db));
+        var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.Chemical, 5m, 1));

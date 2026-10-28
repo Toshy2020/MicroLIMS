@@ -69,13 +69,6 @@ public record CoeEligibilityResult(bool IsEligible, bool CoaRequired, bool HasCu
 //  - Every file access is recorded in MaterialDocumentAccessLog.
 public class MaterialDocumentService
 {
-    private static readonly HashSet<MaterialType> CoaRequiredTypes = new()
-    {
-        MaterialType.DehydratedMedia,
-        MaterialType.LyophilizedMicroorganism,
-        MaterialType.Supplement
-    };
-
     private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly MaterialDocumentFileValidator _validator;
@@ -372,7 +365,7 @@ public class MaterialDocumentService
         var material = await _db.Materials.FindAsync(materialId)
             ?? throw new NotFoundException($"Material {materialId} not found.");
 
-        var required = CoaRequiredTypes.Contains(material.MaterialType);
+        var required = MaterialCategoryRules.IsCoaRequired(material.MaterialType, await MaterialCategoryRules.CategoryOfAsync(_db, material));
         if (!required)
             return new CoeEligibilityResult(IsEligible: true, CoaRequired: false, HasCurrentCoa: false);
 

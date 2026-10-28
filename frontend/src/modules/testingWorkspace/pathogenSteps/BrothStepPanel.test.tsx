@@ -31,7 +31,7 @@ const current = {
 describe("BrothStepPanel", () => {
   it("keeps Start Incubation disabled until a lot and an incubator are chosen, and prefetches sibling orders", async () => {
     service.getPermittedConfirmatoryMedia.mockResolvedValue({
-      permittedMedia: [{ stepMediaId: 3, mediaName: "Tryptic soy broth", tempMin: 30, tempMax: 35, availableLots: [{ id: 11, lotNumber: "TSB-2609-014", expiryDate: "2026-11-28" }] }]
+      permittedMedia: [{ stepMediaId: 3, mediaProductId: 8, mediaName: "Tryptic soy broth", tempMin: 30, tempMax: 35, availableLots: [{ id: 11, lotNumber: "TSB-2609-014", expiryDate: "2026-11-28" }] }]
     });
     service.getEligibleIncubators.mockResolvedValue({ eligibleIncubators: [{ id: 21, name: "Incubator 3", code: "INC-03", setTemperature: 32.5 }] });
     service.getSiblingPathogenOrders.mockResolvedValue([]);

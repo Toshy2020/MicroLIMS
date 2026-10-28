@@ -130,7 +130,7 @@ public record SpecificationRowDto(
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
 }
-public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
+public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MediaProductId);
 public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
 public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);
 public record CreateEquipmentRequest(
@@ -161,6 +161,8 @@ public record CreateMachinePartConfigRequest(int MachinePartId, string TestType,
 public record CreateMediaProductRequest(string Name, string Code);
 public record UpdateMediaProductRequest(string Name);
 public record ChangeMediaProductCodeRequest(string Code, string Reason, string Password);
+public record ChangeMaterialMasterEntryCodeRequest(string Code, string Reason, string Password);
+public record ChangeReferenceOrganismCodeRequest(string Code, string Reason, string Password);
 public record CreateMediaIncubationConditionRequest(int MediaProductId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax);
 public record UpdateMediaIncubationConditionRequest(int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax);
 public record CreateMediaConfigurationChallengeRequest(int OrganismId, ChallengeRole? ChallengeRole, string? ExpectedDescription, string? InitialInoculum);
@@ -299,7 +301,7 @@ public record UpdateTestDefinitionRequest(
 }
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
-public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
+public record StepMediaRequest(int MediaProductId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
 // PhenotypicTestType (single) is kept alongside the new PhenotypicTestTypes
 // list for backward compatibility - an older client sending only the single

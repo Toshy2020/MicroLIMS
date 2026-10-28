@@ -257,7 +257,7 @@ public class MediaProductServiceTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = step.Id,
-            MaterialId = material.Id,
+            MediaProductId = product.Id,
             MediaIncubationConditionId = condition.Id,
             TempMin = 30,
             TempMax = 35,
@@ -271,6 +271,20 @@ public class MediaProductServiceTests
         Assert.Contains("used by 1 Test Master step medium/media", ex.Message);
         Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
         Assert.True(await db.MediaIncubationConditions.AnyAsync(c => c.Id == condition.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ProductUsedByDiluentType_Throws()
+    {
+        await using var db = NewDb();
+        var service = TestServiceFactory.MediaProduct(db);
+        var product = await service.CreateAsync("TSB", "TSB");
+        db.DiluentTypes.Add(new DiluentType { Name = "TSB", RequiresBatchTracking = true, MediaProductId = product.Id });
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(product.Id));
+        Assert.Contains("used by 1 Test Master diluent type", ex.Message);
+        Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
     }
 
     [Fact]

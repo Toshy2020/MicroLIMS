@@ -33,6 +33,10 @@ export interface ReferenceStrainListItem {
   approvedByName: string | null;
   approvedAt: string | null;
   directUsageCount: number;
+  // The source lot's reference strain (absent for batches prepared before strains existed).
+  strainCode?: string | null;
+  cultureCollection?: string | null;
+  strainNumber?: string | null;
 }
 
 export interface ReferenceStrainSearchResponse {
@@ -100,6 +104,9 @@ export interface ReferenceStrainDetail {
   distinctQualifiedMediaLotsCount: number;
   indirectTestOrdersCount: number;
   indirectUsageSummary: string;
+  strainCode?: string | null;
+  cultureCollection?: string | null;
+  strainNumber?: string | null;
 }
 
 export interface OrganismOption {

@@ -28,9 +28,9 @@ public class PathogenMultiLocationConfirmationTests
         db.Organisms.Add(organism);
 
         // Seed Materials
-        var tsbMat = new Material { Id = 10, MaterialName = "Tryptic Soy Broth", MaterialType = MaterialType.DehydratedMedia };
-        var xldMat = new Material { Id = 101, MaterialName = "XLD Agar", MaterialType = MaterialType.DehydratedMedia };
-        var tsiMat = new Material { Id = 102, MaterialName = "TSI Agar", MaterialType = MaterialType.DehydratedMedia };
+        var tsbMat = new Material { Id = 10, MediaProductId = 10, MaterialName = "Tryptic Soy Broth", MaterialType = MaterialType.DehydratedMedia };
+        var xldMat = new Material { Id = 101, MediaProductId = 101, MaterialName = "XLD Agar", MaterialType = MaterialType.DehydratedMedia };
+        var tsiMat = new Material { Id = 102, MediaProductId = 102, MaterialName = "TSI Agar", MaterialType = MaterialType.DehydratedMedia };
         db.Materials.AddRange(tsbMat, xldMat, tsiMat);
 
         var tsbMedia = new Media
@@ -85,7 +85,7 @@ public class PathogenMultiLocationConfirmationTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 },
                 new()
@@ -100,7 +100,7 @@ public class PathogenMultiLocationConfirmationTests
                     TargetOrganismId = 1,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 101, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 101, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 }
                     }
                 },
                 new()
@@ -118,8 +118,8 @@ public class PathogenMultiLocationConfirmationTests
                     ConfirmatoryMediaCount = 2, // 2 confirmatory media required (e.g. XLD + TSI)
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 101, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, DisplayOrder = 1 },
-                        new() { MaterialId = 102, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, DisplayOrder = 2 }
+                        new() { MediaProductId = 101, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, DisplayOrder = 1 },
+                        new() { MediaProductId = 102, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, DisplayOrder = 2 }
                     }
                 }
             }
@@ -326,7 +326,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task StartSharedConfirmatorySetup_WindowFromChosenMedia()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var tsi = await db.TestWorkflowStepMedias.FirstAsync(m => m.MaterialId == 102);
+        var tsi = await db.TestWorkflowStepMedias.FirstAsync(m => m.MediaProductId == 102);
         tsi.IncubationMinHours = 24;
         tsi.IncubationMaxHours = 48;
         await db.SaveChangesAsync();
@@ -355,7 +355,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task StartSharedConfirmatorySetup_IncubatorOutsideAChosenMediumRange_Throws()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var tsi = await db.TestWorkflowStepMedias.FirstAsync(m => m.MaterialId == 102);
+        var tsi = await db.TestWorkflowStepMedias.FirstAsync(m => m.MediaProductId == 102);
         tsi.TempMin = 40; // INC-01 is set to 36 °C
         tsi.TempMax = 45;
         await db.SaveChangesAsync();

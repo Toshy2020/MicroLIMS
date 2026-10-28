@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -124,7 +125,7 @@ public class MaterialSectionScopeTests
         var microMat = SeedMaterial(db, microSec.Id, "Micro Peptone");
         var otherMat = SeedMaterial(db, otherSec.Id, "Chem Acetone");
 
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var microList = await service.GetAllAsync(microUser.Id);
         Assert.Single(microList);
@@ -150,7 +151,7 @@ public class MaterialSectionScopeTests
         var (microSec, otherSec, microUser, _) = SeedBase(db);
 
         var otherMat = SeedMaterial(db, otherSec.Id, "Chem Acetone", qty: 100m);
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.ConsumeAsync(otherMat.Id, MaterialType.Chemical, 10m, microUser.Id));
@@ -167,7 +168,7 @@ public class MaterialSectionScopeTests
         var (_, otherSec, microUser, _) = SeedBase(db);
 
         var otherMat = SeedMaterial(db, otherSec.Id, "Chem Acetone", qty: 100m);
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var updateReq = new SaveMaterialRequest(
             MaterialType: MaterialType.Chemical,
@@ -196,7 +197,7 @@ public class MaterialSectionScopeTests
         var (microSec, otherSec, microUser, _) = SeedBase(db);
 
         var microMat = SeedMaterial(db, microSec.Id, "Micro Buffer", qty: 50m);
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var updateReq = new SaveMaterialRequest(
             MaterialType: MaterialType.Chemical,

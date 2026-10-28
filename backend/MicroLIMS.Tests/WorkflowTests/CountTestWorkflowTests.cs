@@ -61,7 +61,7 @@ public class CountTestWorkflowTests
         // SelectMediaAsync now requires the picked lot's MaterialId to be
         // among a step's configured StepMedia (see the Media Configuration
         // Migration plan §3).
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = countStep.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 120 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = countStep.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 120 });
 
         var generalAgarMedia = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         var selectiveAgarMedia = new Media { MaterialId = otherMaterial.Id, LotNumber = "CAM/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
@@ -188,7 +188,7 @@ public class CountTestWorkflowTests
         };
         db.TestWorkflowSteps.Add(transferStep);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = transferStep.Id, MaterialId = generalAgarMedia.MaterialId, TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = transferStep.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, generalAgarMedia.MaterialId), TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
         // Transfer step's 20-25 window is disjoint from the seeded 30-35
         // incubator (Id 1) - a real incubator can't serve both, same as
         // every other two-window fixture in this suite.

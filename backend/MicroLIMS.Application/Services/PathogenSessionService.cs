@@ -519,7 +519,7 @@ public class PathogenSessionService
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.Material)
+                    .ThenInclude(m => m.MediaProduct)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(m => m.IncubationCondition)
@@ -545,10 +545,10 @@ public class PathogenSessionService
             if (tsbStep == null) continue;
             hasTsbTests = true;
 
-            var medium = IncubationWindowResolver.MatchStepMedium(tsbStep.StepMedia, media.MaterialId, media.Material?.MediaProductId);
+            var medium = IncubationWindowResolver.MatchStepMedium(tsbStep.StepMedia, media.Material?.MediaProductId);
             if (medium == null) continue;
 
-            var mediumName = medium.Material?.MaterialName ?? media.Material?.MaterialName ?? "TSB";
+            var mediumName = medium.MediaProduct?.Name ?? media.Material?.MaterialName ?? "TSB";
             var window = IncubationWindowResolver.TryGet(medium)
                 ?? throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowNotConfigured,
                     $"The shared TSB can't start: the incubation window for \"{mediumName}\" on test {to.TestCode} (step \"{tsbStep.StepName}\") is not configured - set its incubation hours and temperature in Test Master.");
@@ -867,7 +867,7 @@ public class PathogenSessionService
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.Material)
+                    .ThenInclude(m => m.MediaProduct)
             .Include(d => d.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(m => m.IncubationCondition)
@@ -965,14 +965,14 @@ public class PathogenSessionService
         var chosen = new List<(TestWorkflowStepMedia Medium, IncubationWindow Window)>();
         foreach (var materialId in materialIds)
         {
-            var medium = IncubationWindowResolver.MatchStepMedium(confirmatoryStep.StepMedia, materialId, productByMaterial.GetValueOrDefault(materialId))
+            var medium = IncubationWindowResolver.MatchStepMedium(confirmatoryStep.StepMedia, productByMaterial.GetValueOrDefault(materialId))
                 ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                     $"Material #{materialId} is not on the permitted media list of step \"{confirmatoryStep.StepName}\".");
             var window = IncubationWindowResolver.Require(medium, confirmatoryStep.StepName);
 
             if (!await _incubatorEligibility.IsWithinRangeAsync(medium.Id, incubator.Id, cancellationToken))
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
-                    $"Incubator {incubator.Code}'s set point is outside the {window.TemperatureText} range of \"{medium.Material?.MaterialName ?? $"material #{materialId}"}\".");
+                    $"Incubator {incubator.Code}'s set point is outside the {window.TemperatureText} range of \"{medium.MediaProduct?.Name ?? $"material #{materialId}"}\".");
 
             chosen.Add((medium, window));
         }

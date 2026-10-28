@@ -17,6 +17,13 @@ function approvalTone(s: CryovialSummary): "" | "is-danger" | "is-warning" | "is
   return "is-warning";
 }
 
+// "ORG-001 (ATCC 8739)"; null when the batch has no reference strain.
+function strainLine(s: CryovialSummary): string | null {
+  if (!s.referenceOrganismCode) return null;
+  const strain = [s.cultureCollection, s.strainNumber].filter(Boolean).join(" ");
+  return strain ? `${s.referenceOrganismCode} (${strain})` : s.referenceOrganismCode;
+}
+
 function approvalLabel(s: CryovialSummary): string {
   if (s.approvalStatus === "Rejected") return "Rejected";
   if (s.isDestroyed) return "Destroyed";
@@ -79,6 +86,7 @@ export function CryovialReportPage() {
             <div className="data-grid">
               <span className="key">Code</span><span className="value mono">{s.code}</span>
               <span className="key">Organism</span><span className="value">{s.organismName}</span>
+              {strainLine(s) && (<><span className="key">Reference strain</span><span className="value mono">{strainLine(s)}</span></>)}
               <span className="key">Source material</span><span className="value">{s.materialName}</span>
               <span className="key">Material batch</span><span className="value mono">{s.materialBatchNumber || "—"}</span>
               <span className="key">Manufacturer</span><span className="value">{s.manufacturerName || "—"}</span>

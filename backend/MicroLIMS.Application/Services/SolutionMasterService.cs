@@ -281,8 +281,6 @@ public class SolutionMasterService
         {
             if (!entries.TryGetValue(entryId, out var entry))
                 throw new InvalidOperationException($"Material master entry {entryId} not found.");
-            if (entry.SectionId != sectionId)
-                throw new InvalidOperationException($"Component entry \"{entry.Code}\" belongs to another laboratory.");
             if (!entry.IsActive && !alreadyUsedEntryIds.Contains(entryId))
                 throw new InvalidOperationException($"Component entry \"{entry.Code}\" is inactive.");
         }
@@ -343,9 +341,6 @@ public class SolutionMasterService
 
             var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.StandardEntryId.Value, ct)
                 ?? throw new InvalidOperationException("Standard entry not found.");
-
-            if (standard.SectionId != sectionId)
-                throw new InvalidOperationException("The standard entry belongs to another laboratory.");
 
             if (standard.Category != MaterialMasterCategory.PrimaryStandard)
                 throw new InvalidOperationException("The primary standard must be a Primary Standard entry in Reagents & Standards.");

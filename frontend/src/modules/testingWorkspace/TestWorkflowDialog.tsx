@@ -112,18 +112,18 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const isTwoStageTransfer = !!step?.requiresIncubationTransfer;
   const stage2Config = (step?.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
 
-  // Permitted materials come directly from the step's own configured
-  // StepMedia (Test Master) - the same set TestWorkflowEngine.SelectMediaAsync
+  // Permitted media come directly from the step's own configured
+  // StepMedia (Test Master, one media product per row) - the same set TestWorkflowEngine.SelectMediaAsync
   // enforces server-side, so the picker can't offer a lot the backend
   // would reject anyway. Replaces the old MediaType-class filter plus a
   // step-name-matching fallback, both of which relied on fields that no
   // longer exist on the step/lot after the Media Configuration Migration.
-  const permittedMaterialIds = new Set((step?.stepMedia ?? []).map((m: any) => m.materialId));
-  const matchingMedia = releasedMedia.filter((m) => permittedMaterialIds.has(m.materialId));
-  const permittedMaterialNames = (step?.stepMedia ?? []).map((m: any) => m.materialName).join(" or ");
+  const permittedProductIds = new Set((step?.stepMedia ?? []).map((m: any) => m.mediaProductId));
+  const matchingMedia = releasedMedia.filter((m) => m.material?.mediaProductId != null && permittedProductIds.has(m.material.mediaProductId));
+  const permittedMaterialNames = (step?.stepMedia ?? []).map((m: any) => m.mediaProductName).join(" or ");
 
   const selectedMediaLot = releasedMedia.find((m) => m.id === mediaId);
-  const selectedStepMedium = (step?.stepMedia ?? []).find((m: any) => m.materialId === selectedMediaLot?.materialId);
+  const selectedStepMedium = (step?.stepMedia ?? []).find((m: any) => selectedMediaLot?.material?.mediaProductId != null && m.mediaProductId === selectedMediaLot.material.mediaProductId);
   const activeStage1Medium = selectedStepMedium ?? ((step?.stepMedia?.length === 1) ? step.stepMedia[0] : null);
 
   // The chosen medium's own Test Master window; otherwise the step window the

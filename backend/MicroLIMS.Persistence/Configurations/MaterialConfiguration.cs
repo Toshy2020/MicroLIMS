@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Entities;
 
 namespace MicroLIMS.Persistence.Configurations;
@@ -14,6 +15,8 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(m => m.ManufacturerName).HasMaxLength(150);
         builder.Property(m => m.BatchNumber).HasMaxLength(100);
         builder.Property(m => m.Code).HasMaxLength(50);
+        builder.Property(m => m.StockId).HasMaxLength(20);
+        builder.Property(m => m.StorageCondition).HasMaxLength(100);
         builder.Property(m => m.Location).HasMaxLength(150);
         builder.Property(m => m.AtccNumber).HasMaxLength(50);
         builder.Property(m => m.QuantityReceived).HasColumnType("decimal(18,6)");
@@ -34,7 +37,11 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         // WS-nn/MM/yyyy codes are generated (WorkingStandardService.ApproveAsync);
         // other types reuse master-entry codes, so the uniqueness is WS-only.
         builder.HasIndex(m => m.Code, "IX_Materials_WorkingStandardCode").IsUnique().HasFilter("\"MaterialType\" = 12");
+        // Backstop for the stock_id_seq-generated lot ID; historical expired/depleted lots stay NULL.
+        builder.HasIndex(m => m.StockId, UniqueIndexNames.MaterialStockId).IsUnique().HasFilter("\"StockId\" IS NOT NULL");
         builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(m => m.ReferenceOrganism).WithMany().HasForeignKey(m => m.ReferenceOrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => m.ReferenceOrganismId);
         builder.HasOne(m => m.MediaProduct).WithMany().HasForeignKey(m => m.MediaProductId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(m => m.Section)
@@ -46,6 +53,8 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
 
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);
+        builder.Ignore(m => m.IsAwaitingRelease);
+        builder.Ignore(m => m.IsRejected);
         builder.Ignore(m => m.LotLabel);
     }
 }

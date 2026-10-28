@@ -422,8 +422,6 @@ public class IcpMethodService
     {
         var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == entryId, ct)
             ?? throw new InvalidOperationException($"{label} not found.");
-        if (entry.SectionId != sectionId)
-            throw new InvalidOperationException($"{label} \"{entry.Code}\" belongs to another laboratory.");
         if (entry.Category != MaterialMasterCategory.ReferenceStandard)
             throw new InvalidOperationException($"{label} \"{entry.Code}\" must be a reference standard.");
         if (!entry.IsActive && !alreadyUsedIds.Contains(entry.Id))

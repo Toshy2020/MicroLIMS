@@ -331,9 +331,8 @@ export function getAvailableMaterialEntries(
   editingEntry: SolutionMaster | null
 ): MaterialMasterEntry[] {
   if (!currentSectionId) return [];
-  const list: MaterialMasterEntry[] = materialMasters.filter(
-    (m) => m.sectionId === currentSectionId
-  );
+  // Master entries are app-wide: every lab can use every entry.
+  const list: MaterialMasterEntry[] = [...materialMasters];
 
   if (editingEntry) {
     for (const comp of editingEntry.components) {

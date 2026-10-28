@@ -1,7 +1,9 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 
@@ -215,6 +217,9 @@ public static class DbSeeder
                 QuantityReceived = 1000,
                 QuantityRemaining = 900,
                 Unit = MaterialUnit.Gram,
+                // Same running number as a real receipt (MaterialService.CreateAsync).
+                StockId = StockIdGenerator.Format(DateTime.UtcNow.Year,
+                    new DatabaseSequenceHelper(db).GetNextSequenceValueAsync(StockIdGenerator.SequenceName).GetAwaiter().GetResult()),
                 CreatedByUserId = adminUserId,
                 LastModifiedByUserId = adminUserId
             };
@@ -370,19 +375,19 @@ public static class DbSeeder
         db.SaveChanges();
     }
 
-    // Resolves the medium by Material name, creating nothing - a missing
-    // material means that medium simply is not offered, which the
+    // Resolves the medium by Culture Media product name, creating nothing - a
+    // missing product means that medium simply is not offered, which the
     // template validator will surface the next time the step is saved.
-    private static void AddStepMedium(MicroLimsDbContext db, int stepId, string materialName, decimal tempMin, decimal tempMax, bool isRequired, int order)
+    private static void AddStepMedium(MicroLimsDbContext db, int stepId, string productName, decimal tempMin, decimal tempMax, bool isRequired, int order)
     {
-        var materialId = db.Materials
-            .Where(m => m.MaterialType == MaterialType.DehydratedMedia && m.MaterialName == materialName)
-            .Select(m => (int?)m.Id).FirstOrDefault();
-        if (materialId is null) { Console.WriteLine($"Seed: material '{materialName}' not found - step media skipped."); return; }
+        var productId = db.MediaProducts
+            .Where(p => p.Name == productName)
+            .Select(p => (int?)p.Id).FirstOrDefault();
+        if (productId is null) { Console.WriteLine($"Seed: media product '{productName}' not found - step media skipped."); return; }
 
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
-            TestWorkflowStepId = stepId, MaterialId = materialId.Value,
+            TestWorkflowStepId = stepId, MediaProductId = productId.Value,
             TempMin = tempMin, TempMax = tempMax, IsRequired = isRequired, DisplayOrder = order
         });
     }
@@ -494,6 +499,8 @@ public static class DbSeeder
             (PermissionConstants.KpiConfigureProfiles, "Create and sign workflow profile versions (work units and analyst-stage targets) used by the KPI page."),
             (PermissionConstants.MediaPrepare, "Prepare media lots and mark them out of stock."),
             (PermissionConstants.MediaRelease, "Release a prepared media lot for use."),
+            (PermissionConstants.MaterialCategoriesManage, "Create and change material categories."),
+            (PermissionConstants.MaterialsRelease, "Release a received stock lot for use."),
             (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
             (PermissionConstants.TestWorkflowSupervise, "Supervisor interventions in a running test: override an incubation's minimum duration, reset a pathogen session."),
             (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
@@ -572,7 +579,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview, PermissionConstants.DocumentsReassign,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialCategoriesManage, PermissionConstants.MaterialsRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
                     PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage

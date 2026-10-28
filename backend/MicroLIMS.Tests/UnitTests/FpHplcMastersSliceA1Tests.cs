@@ -1,4 +1,5 @@
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.Interfaces;
@@ -450,7 +451,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
@@ -484,7 +485,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
@@ -514,7 +515,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
@@ -544,7 +545,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         // ReferenceStandard lots must reference a material master entry (HPLC chain S1).
         var masterEntry = new MicroLIMS.Domain.Entities.MaterialMasterEntry
@@ -586,7 +587,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (microSec, fpSec, microUser, fpUser, _, adminUser) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         // Usable FP standard
         var usableFp = new Material

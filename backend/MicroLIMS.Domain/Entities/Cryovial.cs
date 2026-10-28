@@ -39,6 +39,9 @@ public class Cryovial
     public int OrganismId { get; set; }
     public Organism? Organism { get; set; }
     public string OrganismNameSnapshot { get; set; } = string.Empty;
+    // The source lot's reference strain, copied at preparation (null when the lot had none).
+    public int? ReferenceOrganismId { get; set; }
+    public ReferenceOrganism? ReferenceOrganism { get; set; }
 
     public string ManufacturerName { get; set; } = string.Empty;
     public DateTime ExpiryDate { get; set; }

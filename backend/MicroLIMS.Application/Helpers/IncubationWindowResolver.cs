@@ -41,21 +41,16 @@ public static class IncubationWindowResolver
 
     public static WorkflowStepException NotConfigured(TestWorkflowStepMedia? medium, string? stepName)
     {
-        var what = medium?.Material?.MaterialName is { Length: > 0 } name ? $"medium \"{name}\"" : "this medium";
+        var what = medium?.MediaProduct?.Name is { Length: > 0 } name ? $"medium \"{name}\"" : "this medium";
         var where = stepName is null ? string.Empty : $" on step \"{stepName}\"";
         return new WorkflowStepException(WorkflowErrorCodes.IncubationWindowNotConfigured,
             $"The incubation window for {what}{where} is not configured - set its incubation hours and temperature in Test Master.");
     }
 
-    // Exact batch first, then the same media product - the match
+    // The step medium of the lot's media product - the match
     // SelectMediaAsync uses to accept a lot for a step.
-    public static TestWorkflowStepMedia? MatchStepMedium(IEnumerable<TestWorkflowStepMedia>? stepMedia, int lotMaterialId, int? lotProductId)
-    {
-        if (stepMedia is null) return null;
-        var list = stepMedia as IReadOnlyCollection<TestWorkflowStepMedia> ?? stepMedia.ToList();
-        return list.FirstOrDefault(m => m.MaterialId == lotMaterialId)
-            ?? list.FirstOrDefault(m => StepMediumMatcher.Matches(m, lotMaterialId, lotProductId));
-    }
+    public static TestWorkflowStepMedia? MatchStepMedium(IEnumerable<TestWorkflowStepMedia>? stepMedia, int? lotProductId) =>
+        stepMedia?.FirstOrDefault(m => StepMediumMatcher.Matches(m, lotProductId));
 
     // The step medium a started incubation actually used, resolved from its
     // lot. Null when the lot is unknown or matches none of the step's media -
@@ -67,9 +62,9 @@ public static class IncubationWindowResolver
     {
         if (incubation.MediaId is not int lotId) return null;
         if (mediaLookup != null && mediaLookup.TryGetValue(lotId, out var lot))
-            return MatchStepMedium(step.StepMedia, lot.MaterialId, lot.MediaProductId);
+            return MatchStepMedium(step.StepMedia, lot.MediaProductId);
         if (incubation.Media != null)
-            return MatchStepMedium(step.StepMedia, incubation.Media.MaterialId, incubation.Media.Material?.MediaProductId);
+            return MatchStepMedium(step.StepMedia, incubation.Media.Material?.MediaProductId);
         return null;
     }
 

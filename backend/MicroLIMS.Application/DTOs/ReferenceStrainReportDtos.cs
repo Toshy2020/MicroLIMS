@@ -35,7 +35,10 @@ public record ReferenceStrainListDto(
     string PreparedByName,
     string? ApprovedByName,
     DateTime? ApprovedAt,
-    int DirectUsageCount);
+    int DirectUsageCount,
+    string? StrainCode = null,
+    string? CultureCollection = null,
+    string? StrainNumber = null);
 
 public record ReferenceStrainSearchResult(List<ReferenceStrainListDto> Items, int TotalCount, int Page, int PageSize);
 
@@ -93,7 +96,10 @@ public record ReferenceStrainDetailDto(
     List<ReferenceStrainDirectUsageDto> DirectUsageLog,
     int DistinctQualifiedMediaLotsCount,
     int IndirectTestOrdersCount,
-    string IndirectUsageSummary);
+    string IndirectUsageSummary,
+    string? StrainCode = null,
+    string? CultureCollection = null,
+    string? StrainNumber = null);
 
 public record ReferenceStrainExportRowDto(
     string StrainName,
@@ -116,7 +122,10 @@ public record ReferenceStrainExportRowDto(
     int IdentityConfirmationsCount,
     int ThawEventsCount,
     int DirectGptUsageCount,
-    int IndirectTestOrdersCount);
+    int IndirectTestOrdersCount,
+    string? StrainCode = null,
+    string? CultureCollection = null,
+    string? StrainNumber = null);
 
 public record ReferenceStrainExportResult(List<ReferenceStrainExportRowDto> Items, int TotalCount, bool Exceeded);
 public record OrganismOptionDto(int Id, string ScientificName, string? AtccNumber);

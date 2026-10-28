@@ -112,22 +112,22 @@ export function useTestStepQuickAction({
   const step: TestWorkflowStepDto | null = currentStepData?.step ?? null;
 
   // Derive permitted media
-  const permittedMaterialIds = useMemo(() => {
-    return new Set((step?.stepMedia ?? []).map((m) => m.materialId));
+  const permittedProductIds = useMemo(() => {
+    return new Set((step?.stepMedia ?? []).map((m) => m.mediaProductId));
   }, [step]);
 
   const matchingMedia = useMemo(() => {
     const now = new Date();
     return releasedMedia.filter((m) => {
-      const isAllowedMaterial = permittedMaterialIds.has(m.materialId);
+      const isAllowedMaterial = m.material?.mediaProductId != null && permittedProductIds.has(m.material.mediaProductId);
       const isReleased = m.isReleasedForUse && m.status === "Active";
       const notExpired = !m.expiryDate || new Date(m.expiryDate) > now;
       return isAllowedMaterial && isReleased && notExpired;
     });
-  }, [releasedMedia, permittedMaterialIds]);
+  }, [releasedMedia, permittedProductIds]);
 
   const permittedMaterialNames = useMemo(() => {
-    return (step?.stepMedia ?? []).map((m) => m.materialName).filter(Boolean).join(" or ");
+    return (step?.stepMedia ?? []).map((m) => m.mediaProductName).filter(Boolean).join(" or ");
   }, [step]);
 
   // Derive temperature and duration constraints based on selected media or step media
@@ -136,7 +136,7 @@ export function useTestStepQuickAction({
   }, [releasedMedia, selectedMediaId]);
 
   const selectedStepMedium = useMemo(() => {
-    return (step?.stepMedia ?? []).find((m) => m.materialId === selectedMediaLot?.materialId);
+    return (step?.stepMedia ?? []).find((m) => selectedMediaLot?.material?.mediaProductId != null && m.mediaProductId === selectedMediaLot.material.mediaProductId);
   }, [step, selectedMediaLot]);
 
   const activeMedium = selectedStepMedium ?? (step?.stepMedia?.length === 1 ? step.stepMedia[0] : null);

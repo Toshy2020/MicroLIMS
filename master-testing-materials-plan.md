@@ -1,6 +1,6 @@
 # Master Testing Materials — Plan
 
-**Status:** all 10 open questions answered (2026-10-28, see section 6). Ready for phase planning. No code has been written.
+**Status:** all 10 open questions answered (2026-10-28, see section 6). **Phases 1–5 implemented** on branch `ccr-a9bd0ba9-dwle6o` (see section 7).
 **Date:** 2026-10-28
 **Related:** `barcode-labels-recon-report.md` (gap G1: Material Stock lots have no unique code, so they can't be labelled yet).
 
@@ -168,3 +168,27 @@ Phases 1 and 2 can run in parallel after phase 0. Phase 5's stock ID can be pull
 | Q8 | Stock ID | **`STK-{yyyy}-{seq:D5}`, one sequence for the whole app. Existing lots get one only if still in stock.** |
 | Q9 | Backfill control | **No formal protocol or review step.** One audited run with a summary report. |
 | Q10 | Free-text names at receipt | **Removed completely.** The material must exist in the master first. |
+
+## 7. Implementation record (2026-10-28)
+
+| Phase | Commits | Migration | Notes |
+|---|---|---|---|
+| 1 | `9854cb5` | `GlobalMaterialMasterCodes` | Cross-lab duplicate codes: same name → deactivated + lab suffix; different name → lab suffix. Audit row per change. |
+| 2 | `7f30fc3`, `9494469` | `MaterialCategoriesAndOtherMaterials` | Categories with all rules; `MaterialCategories.Manage` and `Materials.Release` permissions (Section Head). Backfill builds entries from stock names, links lots, links unlinked reagent lots by code or unique name; summary audit row lists unmatched lots. |
+| 3 | `ff142e0`, `31f73c2` | `ReferenceOrganisms` | `ReferenceOrganism` strain records over `Organism` species; challenge matching stays species-level. Media products gain `IsActive`. |
+| 4 | `0060831`, `b6afd58` | `StepMediaDiluentMediaProduct` | Step media and diluent types point at `MediaProduct`; unresolved rows stay empty and are listed in the audit summary (they must be re-saved in Test Master before the step can start). Confirmatory readout uses the recorded selection. |
+| 5 | `0671f24`, this commit | `MaterialStockIds` | `STK-{yyyy}-{seq:D5}` from one app-wide sequence; in-stock lots backfilled. Five-tab page; old menu entries replaced, old routes redirect. |
+
+**Decisions taken during implementation (not in section 6):**
+- Rejecting a lot at release requires a comment.
+- Category prefixes: 2–5 letters; RG, IND, RS, PS, ORG, WS reserved. Backfill adds a digit when a prefix is taken (e.g. `IND2`).
+- Category activate/deactivate needs the permission but no signature.
+- A reference organism's species, collection and strain number are frozen once stocked, not only its code.
+- The Excel workbook cannot create Other Materials entries.
+
+**Verification:** backend 4,012 tests pass (all PostgreSQL integration tests included; the only failures are 4 OCR tests that need the Tesseract binary, also failing before this work). Every migration's backfill is covered by a PostgreSQL test. Frontend: 618 tests pass, type-check clean.
+
+**Not yet built:**
+- Batch-tracked diluent lot selection at Test Preparation (backend helpers exist; diluent became free text in 2026-09).
+- A Diluent Types master screen (none exists in the frontend).
+- Barcode label printing (see `barcode-labels-recon-report.md`; this plan removes its gap G1).

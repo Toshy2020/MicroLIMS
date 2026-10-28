@@ -25,14 +25,22 @@ import ScienceIcon from "@mui/icons-material/Science";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type {
-  HplcMethodSnapshot,
+  HplcMethodImpuritySnapshot,
   HplcMethodWeightDto,
   HplcReplicateDto,
   HplcReplicatePeakInput
 } from "../types";
 
+// The run snapshot's view of the method (taken from the sample entry), not the live method.
+export interface RelatedSubstancesMethodView {
+  analytes?: { id: number; name: string }[];
+  impurities?: HplcMethodImpuritySnapshot[];
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
+}
+
 export interface RelatedSubstancesPeakTableProps {
-  method?: HplcMethodSnapshot | null;
+  method?: RelatedSubstancesMethodView | null;
   methodWeights?: HplcMethodWeightDto[];
   replicates: HplcReplicateDto[];
   onChange: (replicates: HplcReplicateDto[]) => void;

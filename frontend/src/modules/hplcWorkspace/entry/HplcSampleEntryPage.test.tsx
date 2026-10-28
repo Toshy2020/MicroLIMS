@@ -5,7 +5,6 @@ import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { HplcSampleEntryPage, buildReplicatePayload } from "./HplcSampleEntryPage";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
-import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import type { HplcReplicateDto, HplcSampleEntryDto } from "../types";
 
 afterEach(cleanup);
@@ -29,12 +28,6 @@ vi.mock("../services/HplcWorkspaceService", () => ({
 vi.mock("../../testingWorkspace/services/TestWorkflowService", () => ({
   TestWorkflowService: {
     getMoisture: vi.fn()
-  }
-}));
-
-vi.mock("../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService", () => ({
-  HplcMethodService: {
-    getById: vi.fn()
   }
 }));
 
@@ -98,34 +91,31 @@ describe("HplcSampleEntryPage - buildReplicatePayload", () => {
   });
 });
 
+const renderPage = () =>
+  render(
+    <PinnedLightTheme>
+      <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
+        <Routes>
+          <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
+        </Routes>
+      </MemoryRouter>
+    </PinnedLightTheme>
+  );
+
 describe("HplcSampleEntryPage - moisture line display", () => {
   it("shows the moisture line when moistureRole is set and not RS/residual", async () => {
     vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
       ...baseSampleEntry,
-      moistureRole: "LossOnDrying"
+      moistureRole: "LossOnDrying",
+      resultMode: "Assay"
     });
-    vi.mocked(HplcMethodService.getById).mockResolvedValue({
-      id: 1,
-      name: "Assay Method",
-      abbreviation: "ASSAY",
-      resultMode: "Assay",
-      analytes: [{ id: 10, name: "Analyte 1" }]
-    } as never);
     vi.mocked(TestWorkflowService.getMoisture).mockResolvedValue({
       role: "LossOnDrying",
       percent: 0.5,
       testCode: "LOD-101"
     });
 
-    render(
-      <PinnedLightTheme>
-        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
-          <Routes>
-            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
-          </Routes>
-        </MemoryRouter>
-      </PinnedLightTheme>
-    );
+    renderPage();
 
     await waitFor(() => {
       expect(TestWorkflowService.getMoisture).toHaveBeenCalledWith(7);
@@ -137,25 +127,11 @@ describe("HplcSampleEntryPage - moisture line display", () => {
     vi.mocked(TestWorkflowService.getMoisture).mockClear();
     vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
       ...baseSampleEntry,
-      moistureRole: null
+      moistureRole: null,
+      resultMode: "Assay"
     });
-    vi.mocked(HplcMethodService.getById).mockResolvedValue({
-      id: 1,
-      name: "Assay Method",
-      abbreviation: "ASSAY",
-      resultMode: "Assay",
-      analytes: [{ id: 10, name: "Analyte 1" }]
-    } as never);
 
-    render(
-      <PinnedLightTheme>
-        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
-          <Routes>
-            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
-          </Routes>
-        </MemoryRouter>
-      </PinnedLightTheme>
-    );
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("SMP-001")).toBeTruthy();
@@ -169,25 +145,12 @@ describe("HplcSampleEntryPage - moisture line display", () => {
     vi.mocked(TestWorkflowService.getMoisture).mockClear();
     vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
       ...baseSampleEntry,
-      moistureRole: "LossOnDrying"
-    });
-    vi.mocked(HplcMethodService.getById).mockResolvedValue({
-      id: 1,
-      name: "RS Method",
-      abbreviation: "RS",
+      moistureRole: "LossOnDrying",
       resultMode: "RelatedSubstances",
-      analytes: [{ id: 10, name: "Principal Analyte" }]
-    } as never);
+      principalAnalyte: { id: 10, name: "Principal Analyte" }
+    });
 
-    render(
-      <PinnedLightTheme>
-        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
-          <Routes>
-            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
-          </Routes>
-        </MemoryRouter>
-      </PinnedLightTheme>
-    );
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("SMP-001")).toBeTruthy();
@@ -197,29 +160,16 @@ describe("HplcSampleEntryPage - moisture line display", () => {
     expect(screen.queryByText(/Loss on drying/i)).toBeNull();
   });
 
-  it("drives the RS layout by resultMode alone without relying on preview strings or zero weights", async () => {
+  it("drives the RS layout by the entry's resultMode alone without relying on preview strings or zero weights", async () => {
     vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
       ...baseSampleEntry,
       preview: [],
+      resultMode: "RelatedSubstances",
+      principalAnalyte: { id: 10, name: "Principal Analyte" },
       methodWeights: [{ hplcMethodAnalyteId: 10, analyteName: "API", theoreticalWeightStdMg: 50, theoreticalWeightTestMg: 50 }]
     });
-    vi.mocked(HplcMethodService.getById).mockResolvedValue({
-      id: 1,
-      name: "RS Method",
-      abbreviation: "RS",
-      resultMode: "RelatedSubstances",
-      analytes: [{ id: 10, name: "Principal Analyte" }]
-    } as never);
 
-    render(
-      <PinnedLightTheme>
-        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
-          <Routes>
-            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
-          </Routes>
-        </MemoryRouter>
-      </PinnedLightTheme>
-    );
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("Peak area entry")).toBeTruthy();
@@ -227,32 +177,73 @@ describe("HplcSampleEntryPage - moisture line display", () => {
     expect(screen.queryByText("Method & theoretical weights")).toBeNull();
   });
 
+  it("builds the RS peak table from the run snapshot fields on the entry, not the live method", async () => {
+    vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
+      ...baseSampleEntry,
+      resultMode: "RelatedSubstances",
+      principalAnalyte: { id: 10, name: "Principal Analyte" },
+      impurities: [{ id: 101, displayOrder: 1, name: "Snapshot Impurity", relativeRetention: 0.8, correctionFactor: 1 }],
+      referenceSolutionPercent: 0.1,
+      disregardLimitPercent: 0.05,
+      replicates: [{ replicateNo: 1, actualWeightMg: 0, responses: [{ hplcMethodAnalyteId: 10, response: 0 }], peaks: [] }]
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Snapshot Impurity/).length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText("Reference: 0.1%")).toBeTruthy();
+    // The page no longer asks for the run or the live method.
+    expect(HplcWorkspaceService.getRun).not.toHaveBeenCalled();
+  });
+
+  it("takes the internal standard from the entry", async () => {
+    vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
+      ...baseSampleEntry,
+      resultMode: "Assay",
+      internalStandardName: "Benzoic acid",
+      methodWeights: [{ hplcMethodAnalyteId: 10, analyteName: "API", theoreticalWeightStdMg: 50, theoreticalWeightTestMg: 50 }],
+      replicates: [{ replicateNo: 1, actualWeightMg: 50, responses: [{ hplcMethodAnalyteId: 10, response: 100 }], internalStandardResponse: 50 }]
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Benzoic acid Area *")).toBeTruthy();
+    });
+  });
+
   it("shows the table's error instead of 'Enter a positive reference...' caption when principal analyte is missing", async () => {
     vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
       ...baseSampleEntry,
-      editable: true
-    });
-    vi.mocked(HplcMethodService.getById).mockResolvedValue({
-      id: 1,
-      name: "Invalid RS Method",
-      abbreviation: "RS-INV",
+      editable: true,
       resultMode: "RelatedSubstances",
-      analytes: [] // missing analyte
-    } as never);
+      principalAnalyte: null // snapshot has no single analyte
+    });
 
-    render(
-      <PinnedLightTheme>
-        <MemoryRouter initialEntries={["/hplc/1/run/10/sample/100"]}>
-          <Routes>
-            <Route path="/hplc/:instrumentId/run/:runId/sample/:runSampleId" element={<HplcSampleEntryPage />} />
-          </Routes>
-        </MemoryRouter>
-      </PinnedLightTheme>
-    );
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getAllByText("This related-substances method must have exactly one analyte.").length).toBeGreaterThan(0);
     });
     expect(screen.queryByText(/Enter a positive reference solution area/i)).toBeNull();
+  });
+});
+
+describe("HplcSampleEntryPage - empty RS preview", () => {
+  it("asks for peak areas, not weights, before an RS preview exists", async () => {
+    vi.mocked(HplcWorkspaceService.getSampleEntry).mockResolvedValue({
+      ...baseSampleEntry,
+      resultMode: "RelatedSubstances",
+      principalAnalyte: { id: 10, name: "Principal Analyte" },
+      preview: []
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Enter peak areas above and click Save Replicates/i)).toBeTruthy();
+    });
   });
 });

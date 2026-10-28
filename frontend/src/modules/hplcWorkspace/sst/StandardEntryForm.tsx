@@ -46,6 +46,8 @@ export interface StandardEntryFormProps {
   // Outline blank required fields red after a save attempt found gaps.
   showMissing?: boolean;
   isResidualSolvents?: boolean;
+  // Only an assay weighs its standard; the server stores no weight for related-substances and residual-solvent methods.
+  standardIsWeighed?: boolean;
   hasInternalStandard?: boolean;
   internalStandardName?: string | null;
 }
@@ -59,6 +61,7 @@ export function StandardEntryForm({
   disabled = false,
   showMissing = false,
   isResidualSolvents = false,
+  standardIsWeighed = true,
   hasInternalStandard = false,
   internalStandardName
 }: StandardEntryFormProps) {
@@ -252,12 +255,12 @@ export function StandardEntryForm({
               size="small"
               label="Actual Std Weight (mg)"
               type="number"
-              required={!isResidualSolvents}
+              required={standardIsWeighed}
               disabled={disabled}
-              error={showMissing && !isResidualSolvents && !(formValue.standardWeightMg > 0)}
+              error={showMissing && standardIsWeighed && !(formValue.standardWeightMg > 0)}
               value={formValue.standardWeightMg === 0 ? "" : formValue.standardWeightMg}
               onChange={(e) => onChange({ standardWeightMg: e.target.value === "" ? 0 : Number(e.target.value) })}
-              helperText={isResidualSolvents ? "Not required for residual solvents (optional)" : "Weighed on analytical balance"}
+              helperText={standardIsWeighed ? "Weighed on analytical balance" : "Not required for this method (optional)"}
             />
           </Grid>
         </Grid>

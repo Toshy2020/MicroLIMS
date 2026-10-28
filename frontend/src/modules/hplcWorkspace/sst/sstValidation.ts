@@ -5,7 +5,7 @@ export function findMissingSstFields(
   analytes: HplcSstAnalyteDto[],
   inputs: Record<number, SaveSstAnalyteInput>,
   method: HplcMethodResponse | HplcMethodSnapshot | null | undefined,
-  isResidualSolvents = false,
+  standardIsWeighed = true,
   hasInternalStandard = false
 ): string[] {
   const isIS = hasInternalStandard || Boolean((method as HplcMethodSnapshot)?.internalStandardName);
@@ -20,8 +20,8 @@ export function findMissingSstFields(
     if (!v?.standardMaterialId) {
       fields.push("reference standard lot");
     }
-    // Residual solvents runs do not require standard weight (backend stores null)
-    if (!isResidualSolvents && !(v?.standardWeightMg > 0)) {
+    // Only an assay weighs its standard (the backend stores no weight for the other modes)
+    if (standardIsWeighed && !(v?.standardWeightMg > 0)) {
       fields.push("actual standard weight");
     }
 

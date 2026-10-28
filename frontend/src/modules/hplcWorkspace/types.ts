@@ -150,7 +150,6 @@ export interface HplcSstAnalyteDto {
   standardMoisturePercent?: number | null;
   standardWeightMg?: number | null;
   injections: HplcSstInjectionDto[];
-  internalStandardResponses?: number[] | null;
   reportedRsdPercent?: number | null;
   resolution?: number | null;
   tailingFactor?: number | null;
@@ -341,6 +340,13 @@ export interface HplcSampleEntryDto {
   status: HplcRunSampleStatus;
   basis: string;
   moistureRole?: "LossOnDrying" | "Water" | null;
+  // From the run's method snapshot, which is what the server validates against.
+  resultMode?: HplcResultMode;
+  internalStandardName?: string | null;
+  impurities?: HplcMethodImpuritySnapshot[] | null;
+  principalAnalyte?: { id: number; name: string } | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
   requiredReplicates?: number | null;
   methodWeights: HplcMethodWeightDto[];
   replicates: HplcReplicateDto[];
@@ -408,4 +414,5 @@ export interface HplcQualificationEntryDto {
   submitted: boolean;
   canSubmit: boolean;
   canSubmitReason?: string | null;
+  internalStandardName?: string | null;
 }

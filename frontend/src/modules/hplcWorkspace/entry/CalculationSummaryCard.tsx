@@ -112,13 +112,16 @@ export interface CalculationSummaryCardProps {
   basis?: string;
   official?: HplcOfficialResultDto[];
   submitted?: boolean;
+  // From the entry's result mode: an empty preview cannot tell the modes apart by itself.
+  relatedSubstances?: boolean;
 }
 
 export function CalculationSummaryCard({
   preview = [],
   basis = "",
   official,
-  submitted
+  submitted,
+  relatedSubstances = false
 }: CalculationSummaryCardProps) {
   const theme = useTheme();
 
@@ -128,10 +131,6 @@ export function CalculationSummaryCard({
 
   const isResidualSolventsPreview = preview.some(
     (p) => p.quantity === "Residual solvent (ppm)" || p.quantity === "ResidualSolventPpm"
-  );
-
-  const isRelatedSubstancesPreview = preview.some(
-    (p) => p.quantity === "RelatedSubstance"
   );
 
   return (
@@ -153,7 +152,7 @@ export function CalculationSummaryCard({
       {preview.length === 0 ? (
         <Box sx={{ p: 3 }}>
           <Alert severity="info">
-            {isRelatedSubstancesPreview
+            {relatedSubstances
               ? "No preview results available yet. Enter peak areas above and click Save Replicates to generate the preview calculation."
               : `No preview results available yet. Enter actual weights and ${isResidualSolventsPreview ? "areas" : "responses"} above and click Save Replicates to generate the preview calculation.`}
           </Alert>

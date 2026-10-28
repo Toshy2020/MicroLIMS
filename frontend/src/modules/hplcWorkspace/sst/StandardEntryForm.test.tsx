@@ -78,3 +78,32 @@ describe("StandardEntryForm", () => {
     expect(screen.queryByLabelText(/IS area/i)).toBeNull();
   });
 });
+
+describe("StandardEntryForm - standard weight", () => {
+  const renderForm = (standardIsWeighed?: boolean) =>
+    render(
+      <PinnedLightTheme>
+        <StandardEntryForm
+          analyte={mockAnalyte}
+          methodAnalyte={mockMethodAnalyte}
+          standardLots={[]}
+          formValue={{ ...mockFormValue, standardWeightMg: 0 }}
+          onChange={vi.fn()}
+          showMissing
+          standardIsWeighed={standardIsWeighed}
+        />
+      </PinnedLightTheme>
+    );
+
+  it("requires the actual standard weight by default (assay)", () => {
+    renderForm();
+    expect(screen.getByLabelText(/Actual Std Weight/i).hasAttribute("required")).toBe(true);
+    expect(screen.getByLabelText(/Actual Std Weight/i).getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("does not demand a weight when the standard is not weighed (related substances)", () => {
+    renderForm(false);
+    expect(screen.getByLabelText(/Actual Std Weight/i).hasAttribute("required")).toBe(false);
+    expect(screen.getByLabelText(/Actual Std Weight/i).getAttribute("aria-invalid")).toBe("false");
+  });
+});

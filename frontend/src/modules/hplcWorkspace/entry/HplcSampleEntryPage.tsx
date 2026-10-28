@@ -25,7 +25,6 @@ import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
-import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { NumericCell, ResultSection } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -43,8 +42,7 @@ import type { SampleMoistureResult } from "../../testingWorkspace/types/testWork
 import type {
   HplcSampleEntryDto,
   HplcReplicateDto,
-  HplcReplicateInput,
-  HplcMethodSnapshot
+  HplcReplicateInput
 } from "../types";
 
 export function buildReplicatePayload(
@@ -95,7 +93,6 @@ export function HplcSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<HplcSampleEntryDto | null>(null);
-  const [method, setMethod] = useState<HplcMethodSnapshot | null>(null);
   const [replicates, setReplicates] = useState<HplcReplicateDto[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
@@ -121,22 +118,9 @@ export function HplcSampleEntryPage() {
       }));
       setReplicates(normalizedReplicates);
 
-      const runIdToFetch = parsedRunId || data.hplcRunId;
-      let loadedMethod: HplcMethodSnapshot | null = null;
-      if (runIdToFetch) {
-        try {
-          const runData = await HplcWorkspaceService.getRun(runIdToFetch);
-          if (runData?.hplcMethodId) {
-            loadedMethod = await HplcMethodService.getById(runData.hplcMethodId);
-            setMethod(loadedMethod);
-          }
-        } catch {
-          // Method snapshot is optional
-        }
-      }
-
-      const isRS = loadedMethod?.resultMode === "RelatedSubstances";
-      const isResidual = loadedMethod?.resultMode === "ResidualSolvents";
+      // What the server validates against is the run's snapshot, carried on the entry - not the live method.
+      const isRS = data.resultMode === "RelatedSubstances";
+      const isResidual = data.resultMode === "ResidualSolvents";
 
       setMoistureError("");
       if (!isRS && !isResidual && Boolean(data.moistureRole) && data.testOrderId) {
@@ -160,18 +144,18 @@ export function HplcSampleEntryPage() {
     } finally {
       setLoading(false);
     }
-  }, [sampleIdNum, parsedRunId]);
+  }, [sampleIdNum]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const isResidualSolvents = method?.resultMode === "ResidualSolvents";
-  const isRelatedSubstances = method?.resultMode === "RelatedSubstances";
+  const isResidualSolvents = sampleEntry?.resultMode === "ResidualSolvents";
+  const isRelatedSubstances = sampleEntry?.resultMode === "RelatedSubstances";
 
-  const hasInternalStandard = Boolean(method?.internalStandardName);
-  const principalAnalyteId = method?.analytes?.length === 1 ? method.analytes[0].id : null;
-  const hasExactlyOneAnalyte = method?.analytes?.length === 1;
+  const hasInternalStandard = Boolean(sampleEntry?.internalStandardName);
+  const principalAnalyteId = sampleEntry?.principalAnalyte?.id ?? null;
+  const hasExactlyOneAnalyte = principalAnalyteId != null;
 
   const handleSaveReplicates = async () => {
     if (!sampleEntry || !sampleIdNum) return;
@@ -386,7 +370,12 @@ export function HplcSampleEntryPage() {
         >
           {isRelatedSubstances ? (
             <RelatedSubstancesPeakTable
-              method={method}
+              method={{
+                analytes: sampleEntry.principalAnalyte ? [sampleEntry.principalAnalyte] : [],
+                impurities: sampleEntry.impurities ?? [],
+                referenceSolutionPercent: sampleEntry.referenceSolutionPercent,
+                disregardLimitPercent: sampleEntry.disregardLimitPercent
+              }}
               methodWeights={methodWeights}
               replicates={replicates}
               onChange={setReplicates}
@@ -440,7 +429,7 @@ export function HplcSampleEntryPage() {
               disabled={!isEditable || saving}
               isResidualSolvents={isResidualSolvents}
               hasInternalStandard={hasInternalStandard}
-              internalStandardName={method?.internalStandardName}
+              internalStandardName={sampleEntry.internalStandardName}
               footer={
                 <Box
                   sx={{
@@ -490,7 +479,7 @@ export function HplcSampleEntryPage() {
           {sampleEntry.submitted ? (
             <OfficialResultsCard official={sampleEntry.official || []} basis={sampleEntry.basis} />
           ) : (
-            <CalculationSummaryCard preview={sampleEntry.preview || []} basis={sampleEntry.basis} />
+            <CalculationSummaryCard preview={sampleEntry.preview || []} basis={sampleEntry.basis} relatedSubstances={isRelatedSubstances} />
           )}
         </ResultSection>
 

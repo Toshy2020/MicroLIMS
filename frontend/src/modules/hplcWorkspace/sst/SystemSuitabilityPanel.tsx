@@ -32,6 +32,7 @@ export function SystemSuitabilityPanel({
 }: SystemSuitabilityPanelProps) {
   const { label } = useTechnique();
   const isResidualSolvents = method?.resultMode === "ResidualSolvents";
+  const standardIsWeighed = (method?.resultMode ?? "Assay") === "Assay";
   const hasInternalStandard = Boolean(method?.internalStandardName);
   const [currentRun, setCurrentRun] = useState<HplcRunDto>(run);
 
@@ -148,7 +149,7 @@ export function SystemSuitabilityPanel({
 
   // Blank entries per analyte, so the analyst is warned before saving.
   const findMissing = (): string[] =>
-    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, isResidualSolvents, hasInternalStandard);
+    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, standardIsWeighed, hasInternalStandard);
 
   // Save SST inputs
   // refresh=false keeps the page mounted (the parent reload shows a spinner),
@@ -284,6 +285,7 @@ export function SystemSuitabilityPanel({
                   disabled={isConfirmed || !canOperate}
                   showMissing={missing.length > 0}
                   isResidualSolvents={isResidualSolvents}
+                  standardIsWeighed={standardIsWeighed}
                   hasInternalStandard={hasInternalStandard}
                   internalStandardName={method?.internalStandardName}
                 />

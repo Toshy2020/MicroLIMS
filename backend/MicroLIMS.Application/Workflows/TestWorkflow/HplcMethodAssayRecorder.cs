@@ -45,6 +45,17 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var sst = c.Run.Sst!;
 
+        // Content-basis rows: enough to reproduce the reported value (as-is value, moisture used, basis).
+        (string? ResultBasis, decimal? Moisture, decimal? AsIs) ContentFields(HplcAssayRow row, HplcAssayAnalyteInput input)
+        {
+            if (row.Basis is not (ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis))
+                return (null, null, null);
+            var asIs = individual
+                ? row.Readings.Single().AssayPercent
+                : HplcAssayCalculator.Calculate(input.AnalyteId, input.Name, input.ThWtStdMg, input.ThWtTestMg, input.Std, input.Reps).MeanAssayPercent;
+            return (row.Basis.ToString(), input.MoisturePercent, asIs);
+        }
+
         var parameterResults = new List<ParameterResult>();
         foreach (var row in rows)
         {
@@ -83,6 +94,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             else if (!string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName))
             {
                 var input = inputs.First(i => i.AnalyteId == row.AnalyteId);
+                var content = ContentFields(row, input);
                 calculationJson = JsonSerializer.Serialize(new
                 {
                     analyte = input.Name,
@@ -112,6 +124,9 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                             assayPercentDisplay = HplcSampleAssayEvaluator.FormatPercent(r.AssayPercent),
                         };
                     }),
+                    resultBasis = content.ResultBasis,
+                    moisturePercent = content.Moisture,
+                    asIsValue = content.AsIs,
                     reportedValue = row.Value,
                     runCode = c.Run.Code,
                     sstCode = sst.Code,
@@ -123,6 +138,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             else
             {
                 var input = inputs.First(i => i.AnalyteId == row.AnalyteId);
+                var content = ContentFields(row, input);
                 calculationJson = JsonSerializer.Serialize(new
                 {
                     analyte = input.Name,
@@ -145,6 +161,9 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                         assayPercent = r.AssayPercent,
                         assayPercentDisplay = HplcSampleAssayEvaluator.FormatPercent(r.AssayPercent),
                     }),
+                    resultBasis = content.ResultBasis,
+                    moisturePercent = content.Moisture,
+                    asIsValue = content.AsIs,
                     reportedValue = row.Value,
                     runCode = c.Run.Code,
                     sstCode = sst.Code,

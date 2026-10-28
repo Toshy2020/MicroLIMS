@@ -39,7 +39,8 @@ public class HplcMoisturePostgresTests
     }
 
     private static async Task<HplcScenario> SeedScenarioAsync(
-        MicroLimsDbContext db, int userId, ResultBasis basis = ResultBasis.PercentDriedBasis)
+        MicroLimsDbContext db, int userId, ResultBasis basis = ResultBasis.PercentDriedBasis,
+        ProductionStageRole stageRole = ProductionStageRole.Bulk, string? internalStandard = null)
     {
         var tag = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
         var section = TestServiceFactory.EnsureMicroSection(db);
@@ -53,10 +54,10 @@ public class HplcMoisturePostgresTests
         var mp = await Base.AddSolutionAsync(db, section.Id, "Mobile " + tag, SolutionType.MobilePhase);
         var standard = await Base.AddEntryAsync(db, section.Id, "STD-" + tag);
 
-        var stage = await db.ProductionStages.FirstOrDefaultAsync(p => p.Role == ProductionStageRole.Bulk);
+        var stage = await db.ProductionStages.FirstOrDefaultAsync(p => p.Role == stageRole);
         if (stage == null)
         {
-            stage = new ProductionStage { Name = "Bulk " + tag, Role = ProductionStageRole.Bulk, IsActive = true };
+            stage = new ProductionStage { Name = stageRole + " " + tag, Role = stageRole, IsActive = true };
             db.ProductionStages.Add(stage);
             await db.SaveChangesAsync();
         }
@@ -77,6 +78,7 @@ public class HplcMoisturePostgresTests
             SectionId = section.Id,
             DiluentSolutionId = diluent.Id,
             ResultMode = HplcResultMode.Assay,
+            InternalStandardName = internalStandard,
             Technique = HplcTechnique.Hplc,
             IsActive = true,
         };
@@ -111,18 +113,17 @@ public class HplcMoisturePostgresTests
         await db.SaveChangesAsync();
 
         db.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = testDef.Code });
-
-        // If dried basis, also assign an LOD test definition to the item so the prerequisite check succeeds
-        if (basis == ResultBasis.PercentDriedBasis)
+        // dried / anhydrous basis: assign the matching moisture test so the spec prerequisite holds
+        if (basis is ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis)
         {
             var lodDef = new TestDefinition
             {
-                Code = "LOD-" + tag,
-                DisplayName = "Loss on Drying " + tag,
+                Code = (basis == ResultBasis.PercentDriedBasis ? "LOD-" : "KF-") + tag,
+                DisplayName = "Moisture test " + tag,
                 SectionId = section.Id,
-                WorkflowType = WorkflowType.Gravimetric,
-                EquationType = EquationType.GravimetricLoss,
-                MoistureRole = MoistureRole.LossOnDrying,
+                WorkflowType = basis == ResultBasis.PercentDriedBasis ? WorkflowType.Gravimetric : WorkflowType.Titration,
+                EquationType = basis == ResultBasis.PercentDriedBasis ? EquationType.GravimetricLoss : EquationType.Titration,
+                MoistureRole = basis == ResultBasis.PercentDriedBasis ? MoistureRole.LossOnDrying : MoistureRole.Water,
                 IsActive = true,
             };
             db.TestDefinitions.Add(lodDef);
@@ -148,7 +149,7 @@ public class HplcMoisturePostgresTests
         db.TestDefinitionStageReplicates.Add(new TestDefinitionStageReplicate
         {
             TestDefinitionId = testDef.Id,
-            Role = ProductionStageRole.Bulk,
+            Role = stageRole,
             SampleReplicates = 1,
         });
 
@@ -230,7 +231,7 @@ public class HplcMoisturePostgresTests
                 new HplcSstAnalyte
                 {
                     HplcMethodAnalyteId = analyte.Id,
-                    MeanResponse = 1000m,
+                    MeanResponse = internalStandard == null ? 1000m : 1m,
                     StandardWeightMg = 50m,
                     StandardPurityPercent = 100m,
                     StandardMoisturePercent = 0m,
@@ -252,12 +253,13 @@ public class HplcMoisturePostgresTests
                 {
                     ReplicateNo = 1,
                     ActualWeightMg = 50m,
+                    InternalStandardResponse = internalStandard == null ? null : 500m,
                     Responses =
                     {
                         new HplcReplicateResponse
                         {
                             HplcMethodAnalyteId = analyte.Id,
-                            Response = 980m,
+                            Response = internalStandard == null ? 980m : 490m,
                         }
                     }
                 }
@@ -509,5 +511,136 @@ public class HplcMoisturePostgresTests
         Assert.Equal(98.0m, pr.ReportedValue);
         Assert.Equal("98.0 %", pr.ReportedDisplay);
         Assert.Null(analysis.ConditionsJson);
+    }
+
+    private async Task<string?> SubmitAsync(MicroLimsDbContext db, HplcScenario s)
+    {
+        var workflow = TestServiceFactory.TestWorkflow(db);
+        await workflow.SubmitHplcMethodAssayAsync(s.RunSample.Id, Password, "ok", s.UserId, "127.0.0.1");
+        await using var check = _fixture.CreateDbContext();
+        var pr = await check.ParameterResults.SingleAsync(p => p.TestOrderId == s.Order.Id && p.IsActive);
+        return pr.CalculationJson;
+    }
+
+    [PostgresFact]
+    public async Task HplcDriedAssay_MeanPath_UsesLod()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentDriedBasis, ProductionStageRole.Finished);
+        AddMoistureResult(db, s.Sample.Id, MoistureRole.LossOnDrying, 0.5m, s.UserId, s.Section.Id);
+
+        var entry = await TestServiceFactory.HplcRun(db).GetSampleEntryAsync(s.RunSample.Id, s.UserId);
+        Assert.Equal(98.49m, Assert.Single(entry.Preview).Value);
+
+        var json = await SubmitAsync(db, s);
+        using var doc = JsonDocument.Parse(json!);
+        Assert.Equal("Mean", doc.RootElement.GetProperty("basis").GetString());
+        Assert.Equal(98.49m, doc.RootElement.GetProperty("reportedValue").GetDecimal());
+        Assert.Equal(98.0m, doc.RootElement.GetProperty("asIsValue").GetDecimal());
+    }
+
+    [PostgresFact]
+    public async Task HplcDriedAssay_InternalStandard_UsesLod()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentDriedBasis, ProductionStageRole.Finished, "Benzoic acid");
+        AddMoistureResult(db, s.Sample.Id, MoistureRole.LossOnDrying, 0.5m, s.UserId, s.Section.Id);
+
+        var json = await SubmitAsync(db, s);
+        using var doc = JsonDocument.Parse(json!);
+        Assert.Equal("Benzoic acid", doc.RootElement.GetProperty("internalStandardName").GetString());
+        Assert.Equal(98.49m, doc.RootElement.GetProperty("reportedValue").GetDecimal());
+        Assert.Equal("PercentDriedBasis", doc.RootElement.GetProperty("resultBasis").GetString());
+        Assert.Equal(0.5m, doc.RootElement.GetProperty("moisturePercent").GetDecimal());
+        Assert.Equal(98.0m, doc.RootElement.GetProperty("asIsValue").GetDecimal());
+    }
+
+    [PostgresFact]
+    public async Task HplcDriedAssay_Payload_CarriesBasisMoistureAndAsIsValue()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentDriedBasis);
+        AddMoistureResult(db, s.Sample.Id, MoistureRole.LossOnDrying, 0.5m, s.UserId, s.Section.Id);
+        var json = await SubmitAsync(db, s);
+        using var doc = JsonDocument.Parse(json!);
+        Assert.Equal("PercentDriedBasis", doc.RootElement.GetProperty("resultBasis").GetString());
+        Assert.Equal(0.5m, doc.RootElement.GetProperty("moisturePercent").GetDecimal());
+        Assert.Equal(98.0m, doc.RootElement.GetProperty("asIsValue").GetDecimal());
+    }
+
+    [PostgresFact]
+    public async Task HplcAsIsAssay_Payload_HasNullMoisture()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentAsIs);
+        var json = await SubmitAsync(db, s);
+        using var doc = JsonDocument.Parse(json!);
+        Assert.Equal("PercentAsIs", doc.RootElement.GetProperty("resultBasis").GetString());
+        Assert.Equal(JsonValueKind.Null, doc.RootElement.GetProperty("moisturePercent").ValueKind);
+        Assert.Equal(98.0m, doc.RootElement.GetProperty("asIsValue").GetDecimal());
+    }
+
+    [PostgresFact]
+    public async Task HplcAnhydrousAssay_BeforeKf_RefusedWithKfMessage_ThenUsesWater()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentAnhydrousBasis);
+
+        var runService = TestServiceFactory.HplcRun(db);
+        var entry = await runService.GetSampleEntryAsync(s.RunSample.Id, s.UserId);
+        Assert.False(entry.CanSubmit);
+        Assert.Equal("Record the sample's water content (Karl Fischer) result before this assay.", entry.CanSubmitReason);
+        Assert.Equal(MoistureRole.Water, entry.MoistureRole);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.TestWorkflow(db).SubmitHplcMethodAssayAsync(s.RunSample.Id, Password, "ok", s.UserId, "127.0.0.1"));
+        Assert.Contains("water content (Karl Fischer)", ex.Message);
+
+        var (_, kfResult) = AddMoistureResult(db, s.Sample.Id, MoistureRole.Water, 0.5m, s.UserId, s.Section.Id);
+        Assert.Equal(98.49m, Assert.Single((await runService.GetSampleEntryAsync(s.RunSample.Id, s.UserId)).Preview).Value);
+
+        var json = await SubmitAsync(db, s);
+        await using var check = _fixture.CreateDbContext();
+        var analysis = await check.TestAnalyses.SingleAsync(a => a.TestOrderId == s.Order.Id);
+        using var cond = JsonDocument.Parse(analysis.ConditionsJson!);
+        Assert.Equal(kfResult.Id, cond.RootElement.GetProperty("moisture").GetProperty("parameterResultId").GetInt32());
+        Assert.Equal("Water", cond.RootElement.GetProperty("moisture").GetProperty("role").GetString());
+        using var doc = JsonDocument.Parse(json!);
+        Assert.Equal("PercentAnhydrousBasis", doc.RootElement.GetProperty("resultBasis").GetString());
+    }
+
+    [PostgresFact]
+    public async Task HplcDriedAndAnhydrousAcrossAnalytes_IsAnEntryProblem_NotAThrow()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentDriedBasis);
+        var analyte2 = new HplcMethodAnalyte
+        {
+            HplcMethodId = s.Method.Id, Name = "Second", StandardEntryId = s.Analyte.StandardEntryId, WavelengthNm = 254m,
+            DisplayOrder = 2, TheoreticalWeightStdMg = 50m, TheoreticalWeightTestMg = 50m, StandardInjections = 3,
+        };
+        db.HplcMethodAnalytes.Add(analyte2);
+        await db.SaveChangesAsync();
+        // stored directly (bypassing the spec validator): the screen must still not crash
+        db.Specifications.Add(new Specification
+        {
+            ItemId = s.Item.Id, TestCode = s.TestDef.Code, ParameterName = "Second", HplcMethodAnalyteId = analyte2.Id,
+            LimitType = LimitType.Range, LowerLimit = 95m, UpperLimit = 105m, Unit = "%",
+            ResultBasis = ResultBasis.PercentAnhydrousBasis, DisplayOrder = 2,
+        });
+        await db.SaveChangesAsync();
+
+        var entry = await TestServiceFactory.HplcRun(db).GetSampleEntryAsync(s.RunSample.Id, s.UserId);
+        Assert.False(entry.CanSubmit);
+        Assert.Equal("One HPLC test cannot report on both dried and anhydrous basis.", entry.CanSubmitReason);
+    }
+
+    [PostgresFact]
+    public async Task HplcEntryDto_SerializesMoistureRoleAsString()
+    {
+        await using var db = _fixture.CreateDbContext();
+        var s = await SeedScenarioAsync(db, _fixture.SeededUserId, ResultBasis.PercentDriedBasis);
+        var entry = await TestServiceFactory.HplcRun(db).GetSampleEntryAsync(s.RunSample.Id, s.UserId);
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(entry, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        Assert.Equal("LossOnDrying", doc.RootElement.GetProperty("moistureRole").GetString());
     }
 }

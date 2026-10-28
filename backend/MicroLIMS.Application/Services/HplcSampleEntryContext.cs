@@ -233,12 +233,20 @@ public sealed class HplcSampleEntryContext
         var hasReport = run.Evidence.Any(e => e.HplcRunSampleId == runSample.Id
             && e.Kind == HplcEvidenceKind.SampleReport && e.SupersededByEvidenceId == null);
 
-        var moistureRole = snapshot.ResultMode == HplcResultMode.Assay
-            ? SampleMoistureResolver.NeededRole(specs.Select(s => s.ResultBasis))
-            : MoistureRole.None;
+        var moistureRole = MoistureRole.None;
         SampleMoisture? moisture = null;
         string? moistureError = null;
-        if (moistureRole != MoistureRole.None)
+        if (snapshot.ResultMode == HplcResultMode.Assay)
+        {
+            try { moistureRole = SampleMoistureResolver.NeededRole(specs.Select(s => s.ResultBasis), "HPLC test"); }
+            catch (InvalidOperationException ex)
+            {
+                // dried and anhydrous on one test: an entry problem, never a throw. The role is only a marker that EntryProblem reports MoistureError.
+                moistureRole = MoistureRole.LossOnDrying;
+                moistureError = ex.Message;
+            }
+        }
+        if (moistureRole != MoistureRole.None && moistureError == null)
         {
             try
             {

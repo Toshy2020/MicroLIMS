@@ -47,11 +47,11 @@ public sealed class SampleMoistureResolver
     }
 
     // The moisture role a set of specification bases asks for (None when no dried / anhydrous basis).
-    public static MoistureRole NeededRole(IEnumerable<ResultBasis?> bases)
+    public static MoistureRole NeededRole(IEnumerable<ResultBasis?> bases, string test = "titration")
     {
         var list = bases.ToList();
         bool dried = list.Contains(ResultBasis.PercentDriedBasis), anhydrous = list.Contains(ResultBasis.PercentAnhydrousBasis);
-        if (dried && anhydrous) throw new InvalidOperationException("One titration cannot report on both dried and anhydrous basis.");
+        if (dried && anhydrous) throw new InvalidOperationException($"One {test} cannot report on both dried and anhydrous basis.");
         return dried ? MoistureRole.LossOnDrying : anhydrous ? MoistureRole.Water : MoistureRole.None;
     }
 

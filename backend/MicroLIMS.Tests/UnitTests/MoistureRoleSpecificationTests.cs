@@ -235,4 +235,32 @@ public class MoistureRoleSpecificationTests
             () => new SpecificationService(db).ValidateAsync(asIsSpec));
         Assert.Contains("An HPLC analyte reports either % of label claim or a content basis, not both.", ex2.Message);
     }
+
+    [Fact]
+    public async Task HplcTest_MixingDriedAndAnhydrousBasisRows_IsRefused()
+    {
+        var (db, item, analyte, _) = await SetupHplcAsync(
+            ("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying),
+            ("KF", WorkflowType.Titration, MoistureRole.Water));
+        using var _ = db;
+        var analyte2 = new HplcMethodAnalyte { HplcMethodId = analyte.HplcMethodId, Name = "Analyte 2", DisplayOrder = 2, WavelengthNm = 254 };
+        db.HplcMethodAnalytes.Add(analyte2);
+        db.Specifications.Add(HplcSpec(item, analyte, ResultBasis.PercentDriedBasis));
+        await db.SaveChangesAsync();
+
+        var anhydrous = HplcSpec(item, analyte2, ResultBasis.PercentAnhydrousBasis);
+        anhydrous.ParameterName = "Assay 2";
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(anhydrous));
+        Assert.Equal("One HPLC test cannot report on both dried and anhydrous basis.", ex.Message);
+    }
+
+    [Fact]
+    public async Task HplcSpec_BadBasis_MessageListsEveryAllowedBasis()
+    {
+        var (db, item, analyte, _) = await SetupHplcAsync();
+        using var _ = db;
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => new SpecificationService(db).ValidateAsync(HplcSpec(item, analyte, ResultBasis.Ppm)));
+        Assert.Equal("Result basis must be assay % of label claim, amount per unit, % as is, % dried basis or % anhydrous basis.", ex.Message);
+    }
 }

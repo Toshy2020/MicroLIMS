@@ -414,7 +414,7 @@ public class SpecificationService
             else
             {
                 if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis))
-                    throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
+                    throw new InvalidOperationException("Result basis must be assay % of label claim, amount per unit, % as is, % dried basis or % anhydrous basis.");
 
                 if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
                     throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
@@ -430,6 +430,9 @@ public class SpecificationService
                 };
                 if (neededRole != MoistureRole.None)
                 {
+                    var opposite = neededRole == MoistureRole.LossOnDrying ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
+                    if (await _db.Specifications.AnyAsync(s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ResultBasis == opposite, cancellationToken))
+                        throw new InvalidOperationException("One HPLC test cannot report on both dried and anhydrous basis.");
                     var hasMoistureTest = await _db.SampleTests.AnyAsync(
                         st => st.ItemId == spec.ItemId && st.TestCode != spec.TestCode
                               && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),

@@ -42,6 +42,10 @@ public static class SecurityEventCodes
     // ---- Administration ----
     // An administrator ran a housekeeping background job by hand; carries the stated reason.
     public const string BackgroundJobManuallyTriggered = "ADMIN_BACKGROUND_JOB_TRIGGERED";
+    // Integrations tab: an administrator sent a test alert / test email or ran the storage probe.
+    public const string CriticalAlertTestSent = "ADMIN_CRITICAL_ALERT_TEST_SENT";
+    public const string SmtpTestEmailSent = "ADMIN_SMTP_TEST_SENT";
+    public const string StorageProbeRun = "ADMIN_STORAGE_PROBE_RUN";
 
     // ---- Instrument agents ----
     // A presented agent key was malformed, unknown, revoked, or its equipment is gone.

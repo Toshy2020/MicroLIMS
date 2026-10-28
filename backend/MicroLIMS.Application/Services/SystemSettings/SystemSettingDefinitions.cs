@@ -25,6 +25,8 @@ public static class SystemSettingKeys
     public const string SlowQueryThresholdMs = "monitoring.database.slowQueryThresholdMs";
     public const string BlockedQueryThresholdMs = "monitoring.database.blockedQueryThresholdMs";
 
+    public const string AlertsCriticalRecipients = "Alerts.CriticalRecipients";
+
     public const string ReassignmentEscalationDays = "DocumentControl.ReassignmentEscalationDays";
 }
 
@@ -50,6 +52,9 @@ public sealed record SystemSettingDefinition(
     public string Normalize(string? raw)
     {
         var text = raw?.Trim();
+        // An empty list is a valid value: it switches the recipients off.
+        if (Type == SystemSettingValueType.EmailList)
+            return EmailAddressList.Normalize(Key, text, (int)(Max ?? EmailAddressList.DefaultMaxAddresses));
         if (string.IsNullOrEmpty(text))
             throw new InvalidOperationException($"A value is required for '{Key}'.");
 
@@ -103,6 +108,7 @@ public static class SystemSettingDefinitions
     public const string RetentionCategory = "Retention";
     public const string MonitoringCategory = "Monitoring";
     public const string DocumentControlCategory = "Document Control";
+    public const string AlertsCategory = "Alerts";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -156,6 +162,10 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.BlockedQueryThresholdMs, MonitoringCategory, SystemSettingValueType.Integer, "5000",
             "A database query waiting on a lock longer than this is reported as blocked.",
             "ms", 500, 600000, LegacyConfigKey: "ErrorMonitoring:DatabaseHealth:BlockedQueryThresholdMs"),
+
+        new(SystemSettingKeys.AlertsCriticalRecipients, AlertsCategory, SystemSettingValueType.EmailList, "",
+            "Who is emailed when an incident reaches Critical severity, and who receives the test alert. Up to 20 addresses, separated by commas or new lines; empty means nobody. Alerting itself is switched on by ErrorMonitoring:CriticalAlerts:Enabled.",
+            "addresses", Max: EmailAddressList.DefaultMaxAddresses, LegacyConfigKey: "ErrorMonitoring:CriticalAlerts:Recipient"),
 
         new(SystemSettingKeys.ReassignmentEscalationDays, DocumentControlCategory, SystemSettingValueType.Integer, "7",
             "Days a deactivated user's document responsibilities may wait for reassignment before they are flagged overdue and the department's Section Heads are notified. Nothing is reassigned automatically.",

@@ -234,13 +234,13 @@ public class RolePermissionSeedDataTests
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
         // The System Administrator now holds only PermissionConstants.SystemAdministratorGrants
-        // (25 system codes, no lab/GxP codes). The total is the sum of the four per-role
+        // (26 system codes, no lab/GxP codes). The total is the sum of the four per-role
         // sets that the tests above assert literally:
-        //   SystemAdministrator 25 + SectionHead 52 + Reviewer 18 + Analyst 17 = 112.
+        //   SystemAdministrator 26 + SectionHead 52 + Reviewer 18 + Analyst 17 = 113.
         // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(112, total);
+        Assert.Equal(113, total);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(112, await db.RolePermissions.CountAsync()); // 25 + 52 + 18 + 17, see TotalGrantCount_MatchesTheCatalog
+        Assert.Equal(113, await db.RolePermissions.CountAsync()); // 26 + 52 + 18 + 17, see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]

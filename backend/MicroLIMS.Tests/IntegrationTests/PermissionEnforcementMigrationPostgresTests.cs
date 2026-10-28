@@ -50,7 +50,8 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.DocumentsReview,
         PermissionConstants.DocumentsApprove,
         PermissionConstants.DocumentsPeriodicReview,
-        PermissionConstants.DocumentsReassign
+        PermissionConstants.DocumentsReassign,
+        PermissionConstants.AccessReview
     };
 
     private readonly PostgresTestFixture _fixture;

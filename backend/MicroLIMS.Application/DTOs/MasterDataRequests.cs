@@ -162,6 +162,7 @@ public record CreateMediaProductRequest(string Name, string Code);
 public record UpdateMediaProductRequest(string Name);
 public record ChangeMediaProductCodeRequest(string Code, string Reason, string Password);
 public record ChangeMaterialMasterEntryCodeRequest(string Code, string Reason, string Password);
+public record ChangeReferenceOrganismCodeRequest(string Code, string Reason, string Password);
 public record CreateMediaIncubationConditionRequest(int MediaProductId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax);
 public record UpdateMediaIncubationConditionRequest(int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax);
 public record CreateMediaConfigurationChallengeRequest(int OrganismId, ChallengeRole? ChallengeRole, string? ExpectedDescription, string? InitialInoculum);

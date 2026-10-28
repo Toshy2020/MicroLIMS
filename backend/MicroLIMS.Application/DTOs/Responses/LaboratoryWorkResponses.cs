@@ -15,6 +15,11 @@ public class CryovialResponse
     public int OrganismId { get; init; }
     public OrganismResponse? Organism { get; init; }
     public string OrganismNameSnapshot { get; init; } = null!;
+    // The source lot's reference strain, copied at preparation (null when the lot had none).
+    public int? ReferenceOrganismId { get; init; }
+    public string? ReferenceOrganismCode { get; init; }
+    public CultureCollection? CultureCollection { get; init; }
+    public string? StrainNumber { get; init; }
     public string ManufacturerName { get; init; } = null!;
     public DateTime ExpiryDate { get; init; }
     public int NumberOfVialsPrepared { get; init; }
@@ -41,6 +46,10 @@ public class CryovialResponse
         OrganismId = e.OrganismId,
         Organism = e.Organism is null ? null : OrganismResponse.From(e.Organism),
         OrganismNameSnapshot = e.OrganismNameSnapshot,
+        ReferenceOrganismId = e.ReferenceOrganismId,
+        ReferenceOrganismCode = e.ReferenceOrganism?.Code,
+        CultureCollection = e.ReferenceOrganism?.CultureCollection,
+        StrainNumber = e.ReferenceOrganism?.StrainNumber,
         ManufacturerName = e.ManufacturerName,
         ExpiryDate = e.ExpiryDate,
         NumberOfVialsPrepared = e.NumberOfVialsPrepared,

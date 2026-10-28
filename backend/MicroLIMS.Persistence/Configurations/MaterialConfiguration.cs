@@ -36,6 +36,8 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         // other types reuse master-entry codes, so the uniqueness is WS-only.
         builder.HasIndex(m => m.Code, "IX_Materials_WorkingStandardCode").IsUnique().HasFilter("\"MaterialType\" = 12");
         builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(m => m.ReferenceOrganism).WithMany().HasForeignKey(m => m.ReferenceOrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => m.ReferenceOrganismId);
         builder.HasOne(m => m.MediaProduct).WithMany().HasForeignKey(m => m.MediaProductId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(m => m.Section)

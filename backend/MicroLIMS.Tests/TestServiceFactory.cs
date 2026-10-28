@@ -234,6 +234,10 @@ public static class TestServiceFactory
         new(db, new UserSectionScopeService(db), new ElectronicSignatureService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
+    public static ReferenceOrganismService ReferenceOrganism(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db), new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
     public static MaterialCategoryService MaterialCategory(MicroLimsDbContext db, IElectronicSignatureService? signatures = null) =>
         new(db, signatures ?? new ElectronicSignatureService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));

@@ -67,6 +67,11 @@ public class MaterialResponse
     public string? AtccNumber { get; init; }
     public int? OrganismId { get; init; }
     public OrganismResponse? Organism { get; init; }
+    // Lyophilized lots: the reference strain (null on older lots).
+    public int? ReferenceOrganismId { get; init; }
+    public string? ReferenceOrganismCode { get; init; }
+    public CultureCollection? CultureCollection { get; init; }
+    public string? StrainNumber { get; init; }
     public decimal QuantityReceived { get; init; }
     public decimal QuantityRemaining { get; init; }
     public MaterialUnit Unit { get; init; }
@@ -111,6 +116,10 @@ public class MaterialResponse
         AtccNumber = e.AtccNumber,
         OrganismId = e.OrganismId,
         Organism = e.Organism is null ? null : OrganismResponse.From(e.Organism),
+        ReferenceOrganismId = e.ReferenceOrganismId,
+        ReferenceOrganismCode = e.ReferenceOrganism?.Code,
+        CultureCollection = e.ReferenceOrganism?.CultureCollection,
+        StrainNumber = e.ReferenceOrganism?.StrainNumber,
         QuantityReceived = e.QuantityReceived,
         QuantityRemaining = e.QuantityRemaining,
         Unit = e.Unit,

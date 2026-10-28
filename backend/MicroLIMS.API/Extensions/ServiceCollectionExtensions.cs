@@ -183,6 +183,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
         services.AddScoped<MaterialMasterService>();
+        services.AddScoped<ReferenceOrganismService>();
         services.AddScoped<MaterialCategoryService>();
         services.AddScoped<MaterialReleaseService>();
         services.AddScoped<SolutionMasterService>();

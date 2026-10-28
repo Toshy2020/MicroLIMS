@@ -57,6 +57,11 @@ public class Material : IVersionedEntity
     public string? AtccNumber { get; set; }
     public int? OrganismId { get; set; }
     public Organism? Organism { get; set; }
+    // The reference strain a new lyophilized lot is received against; OrganismId
+    // and AtccNumber (ATCC strains) are derived from it at receipt. Null on lots
+    // received before strains existed and on lots the backfill could not link.
+    public int? ReferenceOrganismId { get; set; }
+    public ReferenceOrganism? ReferenceOrganism { get; set; }
 
     public decimal QuantityReceived { get; set; }
     public decimal QuantityRemaining { get; set; }

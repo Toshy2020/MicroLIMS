@@ -1456,6 +1456,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("PreparedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ReferenceOrganismId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("StorageCondition")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1480,6 +1483,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("MaterialId");
 
                     b.HasIndex("OrganismId");
+
+                    b.HasIndex("ReferenceOrganismId");
 
                     b.HasIndex("StorageEquipmentId");
 
@@ -6319,6 +6324,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("ReceivingDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ReferenceOrganismId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SectionId")
                         .HasColumnType("integer");
 
@@ -6350,6 +6358,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("MediaProductId");
 
                     b.HasIndex("OrganismId");
+
+                    b.HasIndex("ReferenceOrganismId");
 
                     b.HasIndex("SectionId");
 
@@ -7046,6 +7056,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -8112,6 +8125,69 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ProductionStages");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ReferenceOrganism", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CultureCollection")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastModifiedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrganismId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OwnerSectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StrainNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("OrganismId");
+
+                    b.HasIndex("OwnerSectionId");
+
+                    b.HasIndex("CultureCollection", "StrainNumber")
+                        .IsUnique()
+                        .HasFilter("\"StrainNumber\" IS NOT NULL");
+
+                    b.ToTable("ReferenceOrganisms");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RefreshToken", b =>
@@ -12065,6 +12141,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ReferenceOrganism", "ReferenceOrganism")
+                        .WithMany()
+                        .HasForeignKey("ReferenceOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.EquipmentInventory", "StorageEquipment")
                         .WithMany()
                         .HasForeignKey("StorageEquipmentId")
@@ -12073,6 +12154,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Material");
 
                     b.Navigation("Organism");
+
+                    b.Navigation("ReferenceOrganism");
 
                     b.Navigation("StorageEquipment");
                 });
@@ -13641,6 +13724,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("OrganismId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ReferenceOrganism", "ReferenceOrganism")
+                        .WithMany()
+                        .HasForeignKey("ReferenceOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
@@ -13652,6 +13740,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("MediaProduct");
 
                     b.Navigation("Organism");
+
+                    b.Navigation("ReferenceOrganism");
 
                     b.Navigation("Section");
                 });
@@ -14124,6 +14214,25 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Role", null)
                         .WithMany("Permissions")
                         .HasForeignKey("RoleId");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ReferenceOrganism", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Organism", "Organism")
+                        .WithMany()
+                        .HasForeignKey("OrganismId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "OwnerSection")
+                        .WithMany()
+                        .HasForeignKey("OwnerSectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organism");
+
+                    b.Navigation("OwnerSection");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RefreshToken", b =>

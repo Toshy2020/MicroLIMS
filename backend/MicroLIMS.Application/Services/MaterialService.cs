@@ -14,11 +14,14 @@ public record SaveMaterialRequest(
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit? Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
     int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null,
-    int? MaterialMasterEntryId = null, decimal? MoisturePercent = null, string? StorageCondition = null);
+    int? MaterialMasterEntryId = null, decimal? MoisturePercent = null, string? StorageCondition = null,
+    int? ReferenceOrganismId = null);
 // Unit null = the category's default unit (Other materials) or the type's default.
 // CustomType is no longer accepted for new lots; the name and code of an Other
 // material come from its master entry. StorageCondition null = the category's default
-// (create) / unchanged (update); blank on update clears it.
+// (create) / unchanged (update); blank on update clears it. A new lyophilized microorganism lot
+// is received against an active ReferenceOrganismId: its OrganismId, AtccNumber (ATCC strains),
+// name and code are derived from the strain and any sent values are ignored.
 
 // Type picker for one laboratory: its offered built-in types plus the custom type
 // names already used in its stock register (history only; no new ones are accepted).
@@ -124,6 +127,16 @@ public class MaterialService
         return entry;
     }
 
+    // Loads the strain; allowInactive is true only when the lot already points at it.
+    private async Task<ReferenceOrganism> ResolveReferenceOrganismAsync(int id, bool allowInactive)
+    {
+        var strain = await _db.ReferenceOrganisms.Include(r => r.Organism).FirstOrDefaultAsync(r => r.Id == id)
+            ?? throw new InvalidOperationException($"Reference organism {id} not found.");
+        if (!strain.IsActive && !allowInactive)
+            throw new InvalidOperationException($"Reference organism \"{strain.Code}\" ({ReferenceOrganismNaming.NameOf(strain)}) is inactive.");
+        return strain;
+    }
+
     public static void ValidateMoisture(MaterialType type, decimal? moisture)
     {
         if (!moisture.HasValue) return;
@@ -134,7 +147,7 @@ public class MaterialService
     public async Task<List<MaterialResponse>> GetAllAsync(int currentUserId, MaterialType? type = null)
     {
         var scope = await _scope.GetReadableSectionIdsAsync(currentUserId);
-        var query = _db.Materials.Include(m => m.Organism).Include(m => m.MediaProduct)
+        var query = _db.Materials.Include(m => m.Organism).Include(m => m.MediaProduct).Include(m => m.ReferenceOrganism)
             .Include(m => m.MaterialMasterEntry).ThenInclude(e => e!.MaterialCategory).AsQueryable();
         if (scope != null)
         {
@@ -171,10 +184,34 @@ public class MaterialService
 
             var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == r.MediaProductId.Value)
                 ?? throw new InvalidOperationException($"Media product with ID {r.MediaProductId.Value} not found.");
+            if (!product.IsActive)
+                throw new InvalidOperationException($"Media product \"{product.Name}\" is inactive and can't be chosen for new lots.");
 
             mediaProductId = product.Id;
             materialName = product.Name;
             code = product.Code;
+        }
+
+        // Lyophilized microorganisms are received against a reference strain (no free-text organism):
+        // the species, ATCC number, name and code of the lot all come from it.
+        ReferenceOrganism? strain = null;
+        var organismId = r.OrganismId;
+        var atccNumber = r.AtccNumber;
+        if (r.MaterialType == MaterialType.LyophilizedMicroorganism)
+        {
+            if (!r.ReferenceOrganismId.HasValue)
+                throw new InvalidOperationException("Choose the reference organism (strain) for this lyophilized microorganism.");
+            strain = await ResolveReferenceOrganismAsync(r.ReferenceOrganismId.Value, allowInactive: false);
+            if (r.OrganismId.HasValue && r.OrganismId.Value != strain.OrganismId)
+                throw new InvalidOperationException("The organism does not match the chosen reference organism.");
+            organismId = strain.OrganismId;
+            atccNumber = ReferenceOrganismNaming.AtccNumberOf(strain);
+            materialName = ReferenceOrganismNaming.NameOf(strain);
+            code = strain.Code;
+        }
+        else if (r.ReferenceOrganismId.HasValue)
+        {
+            throw new InvalidOperationException("A reference organism can only be chosen for lyophilized microorganisms.");
         }
 
         ValidatePurity(r.MaterialType, r.Purity);
@@ -215,8 +252,10 @@ public class MaterialService
             ExpiryDate = r.ExpiryDate,
             Code = code,
             Location = r.Location,
-            AtccNumber = r.AtccNumber,
-            OrganismId = r.OrganismId,
+            AtccNumber = atccNumber,
+            OrganismId = organismId,
+            ReferenceOrganismId = strain?.Id,
+            ReferenceOrganism = strain,
             QuantityReceived = r.QuantityReceived,
             QuantityRemaining = r.QuantityReceived, // full balance at receipt
             Unit = r.Unit ?? category?.DefaultUnit ?? DefaultUnitFor(r.MaterialType),
@@ -282,6 +321,8 @@ public class MaterialService
 
                 var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == r.MediaProductId.Value)
                     ?? throw new InvalidOperationException($"Media product with ID {r.MediaProductId.Value} not found.");
+                if (!product.IsActive)
+                    throw new InvalidOperationException($"Media product \"{product.Name}\" is inactive and can't be chosen for new lots.");
 
                 mediaProductId = product.Id;
                 materialName = product.Name;
@@ -293,6 +334,48 @@ public class MaterialService
                 materialName = entity.MaterialName;
                 code = entity.Code;
             }
+        }
+
+        // A lot with a reference strain keeps it (never cleared by an update without one); setting or
+        // changing the strain re-derives the species, ATCC number, name and code. A lot without a
+        // strain stays editable with the organism fields as before.
+        var referenceOrganismId = entity.ReferenceOrganismId;
+        var organismId = r.OrganismId;
+        var atccNumber = r.AtccNumber;
+        if (r.MaterialType == MaterialType.LyophilizedMicroorganism)
+        {
+            var requestedStrainId = r.ReferenceOrganismId ?? entity.ReferenceOrganismId;
+            if (requestedStrainId.HasValue)
+            {
+                var sameStrain = requestedStrainId == entity.ReferenceOrganismId;
+                var strain = await ResolveReferenceOrganismAsync(requestedStrainId.Value, allowInactive: sameStrain);
+                if (!sameStrain && entity.ReferenceOrganismId.HasValue && await _db.Cryovials.AnyAsync(c => c.MaterialId == entity.Id))
+                    throw new InvalidOperationException($"Cryovials have already been prepared from lot {entity.BatchNumber} - its reference organism can't be changed.");
+                if (r.OrganismId.HasValue && r.OrganismId.Value != strain.OrganismId)
+                    throw new InvalidOperationException("The organism does not match the chosen reference organism.");
+
+                referenceOrganismId = strain.Id;
+                organismId = strain.OrganismId;
+                atccNumber = ReferenceOrganismNaming.AtccNumberOf(strain);
+                if (sameStrain)
+                {
+                    materialName = entity.MaterialName;
+                    code = entity.Code;
+                }
+                else
+                {
+                    materialName = ReferenceOrganismNaming.NameOf(strain);
+                    code = strain.Code;
+                }
+            }
+        }
+        else if (r.ReferenceOrganismId.HasValue)
+        {
+            throw new InvalidOperationException("A reference organism can only be chosen for lyophilized microorganisms.");
+        }
+        else
+        {
+            referenceOrganismId = null;
         }
 
         ValidatePurity(r.MaterialType, r.Purity);
@@ -364,8 +447,9 @@ public class MaterialService
         entity.ExpiryDate = r.ExpiryDate;
         entity.Code = code;
         entity.Location = r.Location;
-        entity.AtccNumber = r.AtccNumber;
-        entity.OrganismId = r.OrganismId;
+        entity.AtccNumber = atccNumber;
+        entity.OrganismId = organismId;
+        entity.ReferenceOrganismId = referenceOrganismId;
         entity.QuantityReceived = r.QuantityReceived;
         entity.QuantityRemaining += receivedDelta;
         entity.Unit = r.Unit ?? entity.Unit;

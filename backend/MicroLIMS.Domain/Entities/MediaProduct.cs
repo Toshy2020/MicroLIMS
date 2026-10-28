@@ -11,6 +11,9 @@ public class MediaProduct : IVersionedEntity
     public uint Version { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
+    // A deactivated product can't be chosen for new dehydrated-media lots or new
+    // configurations; existing lots and configurations keep working.
+    public bool IsActive { get; set; } = true;
     public List<MediaConfiguration> Configurations { get; set; } = new();
     public List<MediaIncubationCondition> IncubationConditions { get; set; } = new();
 }

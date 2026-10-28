@@ -397,6 +397,7 @@ MediaMasterDataController.DeleteMediaProduct(Int32): SystemAdministrator,Section
 MediaMasterDataController.GetMediaConfigurations(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaMasterDataController.GetMediaIncubationConditions(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaMasterDataController.GetMediaProducts(): SystemAdministrator,SectionHead,Reviewer,Analyst
+MediaMasterDataController.SetMediaProductActive(Int32, Boolean): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaConfiguration(Int32, UpdateMediaConfigurationRequest): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaIncubationCondition(Int32, UpdateMediaIncubationConditionRequest): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaProduct(Int32, UpdateMediaProductRequest): SystemAdministrator,SectionHead
@@ -475,6 +476,11 @@ ReferenceListMasterDataController.GetSamplers(): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateCauseOfTesting(Int32, String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateProductionStage(Int32, UpdateProductionStageRequest): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateSampler(Int32, String): SystemAdministrator,SectionHead
+ReferenceOrganismController.ChangeCode(Int32, ChangeReferenceOrganismCodeRequest): SystemAdministrator,SectionHead
+ReferenceOrganismController.Create(SaveReferenceOrganismRequest): SystemAdministrator,SectionHead
+ReferenceOrganismController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+ReferenceOrganismController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
+ReferenceOrganismController.Update(Int32, SaveReferenceOrganismRequest): SystemAdministrator,SectionHead
 ReportingAdminController.Backfill(): SystemAdministrator
 ReportingController.ExportMediaGpt(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 ReportingController.ExportReferenceStrains(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst

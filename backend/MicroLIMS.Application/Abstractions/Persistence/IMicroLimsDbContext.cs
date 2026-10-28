@@ -130,6 +130,7 @@ public interface IMicroLimsDbContext
     DbSet<MediaConfigurationChallenge> MediaConfigurationChallenges { get; }
     DbSet<Material> Materials { get; }
     DbSet<MaterialMasterEntry> MaterialMasterEntries { get; }
+    DbSet<ReferenceOrganism> ReferenceOrganisms { get; }
     DbSet<MaterialCategory> MaterialCategories { get; }
     DbSet<MaterialCategorySection> MaterialCategorySections { get; }
     DbSet<SolutionMaster> SolutionMasters { get; }

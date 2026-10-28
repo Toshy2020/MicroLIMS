@@ -88,6 +88,51 @@ public sealed class MaterialMasterSheet : SheetHandler
     }
 }
 
+public sealed class ReferenceOrganismsSheet : SheetHandler
+{
+    private readonly ReferenceOrganismService _service;
+    public ReferenceOrganismsSheet(ReferenceOrganismService service) { _service = service; }
+
+    public override string Name => "ReferenceOrganisms";
+    public override IReadOnlyList<SheetColumn> Columns { get; } = new[]
+    {
+        new SheetColumn("Code", Required: true, Help: "Unique across all labs, starting with ORG-, e.g. ORG-001."),
+        new SheetColumn("OrganismScientificName", Required: true, SourceSheet: "Organisms", SourceColumn: "ScientificName", Help: "Species on the Organisms sheet."),
+        new SheetColumn("CultureCollection", Required: true, EnumType: typeof(CultureCollection)),
+        new SheetColumn("StrainNumber", Help: "Required unless the collection is Other, e.g. 8739."),
+        new SheetColumn("OwnerSectionCode", Required: true, Help: "Code of the lab section that owns the strain."),
+    };
+
+    public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
+
+    public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
+        (await db.ReferenceOrganisms.AsNoTracking().Include(r => r.Organism).Include(r => r.OwnerSection)
+            .OrderBy(r => r.Code).ToListAsync())
+        .Select(r => new Dictionary<string, string>
+        {
+            ["Code"] = r.Code, ["OrganismScientificName"] = r.Organism?.ScientificName ?? string.Empty,
+            ["CultureCollection"] = r.CultureCollection.ToString(), ["StrainNumber"] = Fmt(r.StrainNumber),
+            ["OwnerSectionCode"] = r.OwnerSection?.Code ?? string.Empty,
+        }).ToList();
+
+    public override async Task<IReadOnlyList<string>> DbChoicesAsync(IMicroLimsDbContext db, string column) =>
+        column == "OwnerSectionCode" ? await SectionLookup.CodesAsync(db) : Array.Empty<string>();
+
+    // Loaded inactive: the second-person verification of the import
+    // activates it (MasterDataWorkbookService.VerifyAsync).
+    public override async Task<CreatedRecord> CreateAsync(RowReader r, ImportContext ctx)
+    {
+        var sectionId = await SectionLookup.IdAsync(ctx, r.Text("OwnerSectionCode"), SectionAccess.Configure);
+        var name = r.Text("OrganismScientificName");
+        var organismId = await ctx.Db.Organisms.Where(o => o.ScientificName.ToLower() == name.ToLower()).Select(o => (int?)o.Id).FirstOrDefaultAsync()
+            ?? throw new RowError("OrganismScientificName", $"No organism named '{name}'. Add it on the Organisms sheet.");
+        var created = await _service.CreateAsync(new SaveReferenceOrganismRequest(
+            r.Text("Code"), organismId, r.Enum<CultureCollection>("CultureCollection"), r.OptionalText("StrainNumber"), sectionId), ctx.UserId);
+        await _service.SetActiveAsync(created.Id, false, ctx.UserId);
+        return Created("ReferenceOrganism", created.Id, r);
+    }
+}
+
 public sealed class MediaProductsSheet : SheetHandler
 {
     private readonly MediaProductService _service;

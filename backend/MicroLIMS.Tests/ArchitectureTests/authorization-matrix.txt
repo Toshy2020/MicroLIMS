@@ -610,6 +610,7 @@ TestWorkflowStepMasterDataController.GetTestWorkflowSteps(Int32): SystemAdminist
 TestWorkflowStepMasterDataController.MoveTestWorkflowStep(Int32, MoveTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateTestWorkflowStep(Int32, UpdateTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateWorkflowType(Int32, UpdateWorkflowTypeRequest): SystemAdministrator,SectionHead
+TestingMaterialCatalogController.GetAll(String, String, Boolean, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestingWorkspaceController.GetActivePaged(TestingWorkspaceFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestingWorkspaceController.GetOne(Int32, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestingWorkspaceController.GetWorkloadCounts(Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst

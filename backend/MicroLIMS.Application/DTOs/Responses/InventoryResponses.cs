@@ -61,6 +61,8 @@ public class MaterialResponse
     public DateTime ReceivingDate { get; init; }
     public DateTime? ExpiryDate { get; init; }
     public string? Code { get; init; }
+    // Immutable system-generated lot ID (STK-yyyy-nnnnn); null on old expired/depleted lots.
+    public string? StockId { get; init; }
     public string Location { get; init; } = null!;
     public int? MediaProductId { get; init; }
     public MediaProductResponse? MediaProduct { get; init; }
@@ -110,6 +112,7 @@ public class MaterialResponse
         ReceivingDate = e.ReceivingDate,
         ExpiryDate = e.ExpiryDate,
         Code = e.Code,
+        StockId = e.StockId,
         Location = e.Location,
         MediaProductId = e.MediaProductId,
         MediaProduct = e.MediaProduct is null ? null : MediaProductResponse.From(e.MediaProduct),

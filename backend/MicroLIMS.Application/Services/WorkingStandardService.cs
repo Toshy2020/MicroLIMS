@@ -30,6 +30,7 @@ public partial class WorkingStandardService
     private readonly IUserSectionScopeService _scope;
     private readonly IElectronicSignatureService _signatures;
     private readonly IFileStorageService _storage;
+    private readonly IDatabaseSequenceHelper _sequences;
     private readonly ILabClock _clock;
 
     public WorkingStandardService(
@@ -37,12 +38,14 @@ public partial class WorkingStandardService
         IUserSectionScopeService scope,
         IElectronicSignatureService signatures,
         IFileStorageService storage,
+        IDatabaseSequenceHelper sequences,
         ILabClock? clock = null)
     {
         _db = db;
         _scope = scope;
         _signatures = signatures;
         _storage = storage;
+        _sequences = sequences;
         _clock = clock ?? LabClock.Default;
     }
 

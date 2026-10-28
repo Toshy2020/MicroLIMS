@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -29,6 +30,7 @@ public class CryovialSummaryService
         var cryovial = await _db.Cryovials
             .Include(c => c.Material)
             .Include(c => c.Organism)
+            .Include(c => c.ReferenceOrganism)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.Media)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.IncubatorEquipment)
             .Include(c => c.ThawHistory).ThenInclude(t => t.UsedInChallenges).ThenInclude(ch => ch.MediaEvaluation!).ThenInclude(e => e.Media)
@@ -60,6 +62,9 @@ public class CryovialSummaryService
             CryovialId = cryovial.Id,
             Code = cryovial.Code,
             OrganismName = cryovial.Organism?.ScientificName ?? cryovial.OrganismNameSnapshot,
+            ReferenceOrganismCode = cryovial.ReferenceOrganism?.Code,
+            CultureCollection = cryovial.ReferenceOrganism?.CultureCollection,
+            StrainNumber = cryovial.ReferenceOrganism?.StrainNumber,
             ManufacturerName = cryovial.ManufacturerName,
             MaterialName = cryovial.Material?.MaterialName ?? string.Empty,
             MaterialBatchNumber = cryovial.Material?.BatchNumber ?? string.Empty,
@@ -133,6 +138,15 @@ public class CryovialSummaryService
     private static string DestructionText(BiologicalWasteDestruction d) =>
         $"{BiologicalWasteDestructionService.ReferenceOf(d.Id)} ({d.AutoclaveEquipment?.Name ?? "autoclave"}, cycle {d.CycleNumber}, {d.CycleStartedAt:dd-MMM-yyyy HH:mm})";
 
+    // "ORG-001 (ATCC 8739)"; "-" on batches without a reference strain.
+    public static string StrainText(CryovialSummaryDto s)
+    {
+        if (s.ReferenceOrganismCode is null) return "-";
+        var collection = s.CultureCollection is null or CultureCollection.Other ? null : s.CultureCollection.ToString();
+        var strain = string.Join(' ', new[] { collection, s.StrainNumber }.Where(p => !string.IsNullOrWhiteSpace(p)));
+        return strain.Length == 0 ? s.ReferenceOrganismCode : $"{s.ReferenceOrganismCode} ({strain})";
+    }
+
     private static string TitleFor(CryovialSummaryDto s) => $"Cryovial Batch Record - {s.Code}";
     private static string FileStemFor(CryovialSummaryDto s) =>
         $"CryovialBatch_{new string(s.Code.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-').ToArray())}";
@@ -152,6 +166,7 @@ public class CryovialSummaryService
             "BATCH IDENTITY",
             $"Code: {s.Code}",
             $"Organism: {s.OrganismName}",
+            $"Reference strain: {StrainText(s)}",
             $"Manufacturer: {s.ManufacturerName}",
             $"Source Material: {s.MaterialName} (batch {s.MaterialBatchNumber})",
             $"Expiry Date: {s.ExpiryDate:dd-MMM-yyyy}",

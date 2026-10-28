@@ -1,7 +1,9 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 
@@ -215,6 +217,9 @@ public static class DbSeeder
                 QuantityReceived = 1000,
                 QuantityRemaining = 900,
                 Unit = MaterialUnit.Gram,
+                // Same running number as a real receipt (MaterialService.CreateAsync).
+                StockId = StockIdGenerator.Format(DateTime.UtcNow.Year,
+                    new DatabaseSequenceHelper(db).GetNextSequenceValueAsync(StockIdGenerator.SequenceName).GetAwaiter().GetResult()),
                 CreatedByUserId = adminUserId,
                 LastModifiedByUserId = adminUserId
             };

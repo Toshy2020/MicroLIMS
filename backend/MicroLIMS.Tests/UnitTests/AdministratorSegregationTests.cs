@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.DocumentControl;
@@ -168,7 +169,7 @@ public class AdministratorSegregationTests
         var microMaterial = new Material { SectionId = w.Micro.Id, MaterialName = "Micro reagent", MaterialType = MaterialType.Chemical, QuantityReceived = 10, QuantityRemaining = 10, BatchNumber = "B2" };
         w.Db.Materials.AddRange(fpMaterial, microMaterial);
         await w.Db.SaveChangesAsync();
-        var service = new MaterialService(w.Db, new UserSectionScopeService(w.Db));
+        var service = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
 
         // Reads: the administrator sees both sections' materials (Sections.ViewAll); the Micro analyst only its own.
         Assert.Equal(2, (await service.GetAllAsync(w.Admin.Id)).Count);

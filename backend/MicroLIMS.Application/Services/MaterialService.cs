@@ -42,13 +42,18 @@ public class MaterialService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly IDatabaseSequenceHelper _sequences;
+    private readonly ILabClock _labClock;
     private readonly TimeProvider _time;
 
-    public MaterialService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
+    public MaterialService(IMicroLimsDbContext db, IUserSectionScopeService scope, IDatabaseSequenceHelper sequences,
+        TimeProvider? timeProvider = null, ILabClock? labClock = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
+        _sequences = sequences;
+        _labClock = labClock ?? LabClock.Default;
     }
 
     // Suggested default unit per material type - the analyst can still
@@ -239,10 +244,13 @@ public class MaterialService
 
         var storageCondition = NormalizeStorage(r.StorageCondition) ?? category?.DefaultStorageCondition;
 
+        var receivedAt = _time.GetUtcNow().UtcDateTime;
         var entity = new Material
         {
             SectionId = sectionId,
             MaterialType = r.MaterialType,
+            // Generated for every new lot and never part of the request or of an update.
+            StockId = await StockIdGenerator.NextAsync(_sequences, _labClock, receivedAt),
             MediaProductId = mediaProductId,
             MaterialMasterEntryId = masterEntryId,
             MaterialName = materialName,

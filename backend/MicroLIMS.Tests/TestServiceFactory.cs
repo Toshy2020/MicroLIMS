@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -159,11 +160,11 @@ public static class TestServiceFactory
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 
     public static CryovialService Cryovial(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, new MaterialService(db, new UserSectionScopeService(db)), new SegregationOfDutiesGuard(db), ReviewGate(db),
+        new(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new SegregationOfDutiesGuard(db), ReviewGate(db),
             CryovialSummary(db), Archive(db, storage));
 
     public static MediaPreparationService MediaPreparation(MicroLimsDbContext db) =>
-        new(db, new MaterialService(db, new UserSectionScopeService(db)), ReviewGate(db));
+        new(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), ReviewGate(db));
 
     public static MediaStorageService MediaStorage(MicroLimsDbContext db) =>
         new(db, ReviewGate(db));
@@ -216,7 +217,7 @@ public static class TestServiceFactory
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
 
     public static MaterialService Material(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
-        new(db, scope ?? new UserSectionScopeService(db));
+        new(db, scope ?? new UserSectionScopeService(db), new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db));
 
     public static WorkingStandardService WorkingStandard(
         MicroLimsDbContext db,
@@ -228,6 +229,7 @@ public static class TestServiceFactory
             scope ?? new UserSectionScopeService(db),
             signatures ?? new ElectronicSignatureService(db),
             storage ?? new InMemoryFileStorageService(),
+            new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db),
             clock);
 
     public static MaterialMasterService MaterialMaster(MicroLimsDbContext db) =>
@@ -265,7 +267,7 @@ public static class TestServiceFactory
         ILabClock? clock = null) =>
         new(db,
             scope ?? new UserSectionScopeService(db),
-            materials ?? new MaterialService(db, scope ?? new UserSectionScopeService(db)),
+            materials ?? new MaterialService(db, scope ?? new UserSectionScopeService(db), new DatabaseSequenceHelper(db)),
             signatures ?? new ElectronicSignatureService(db),
             clock);
 

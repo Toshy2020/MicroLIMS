@@ -6330,6 +6330,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("SectionId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("StockId")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("StorageCondition")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -6362,6 +6366,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("ReferenceOrganismId");
 
                     b.HasIndex("SectionId");
+
+                    b.HasIndex(new[] { "StockId" }, "IX_Materials_StockId")
+                        .IsUnique()
+                        .HasFilter("\"StockId\" IS NOT NULL");
 
                     b.HasIndex(new[] { "Code" }, "IX_Materials_WorkingStandardCode")
                         .IsUnique()

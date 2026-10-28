@@ -42,6 +42,10 @@ public class Material : IVersionedEntity
     public DateTime ReceivingDate { get; set; }
     public DateTime? ExpiryDate { get; set; } // nullable - a few rows in the source list have no expiry (e.g. NaCl)
     public string? Code { get; set; }
+    // System-generated lot ID the label carries, STK-{lab-local year of receipt}-{running number, one
+    // sequence for the whole app} (StockIdGenerator). Set once at receipt and never edited. Null only on
+    // lots received before stock IDs existed that were expired or depleted when they were introduced.
+    public string? StockId { get; set; }
     public string Location { get; set; } = string.Empty;
 
     // Only for MaterialType.DehydratedMedia; MaterialName and Code are

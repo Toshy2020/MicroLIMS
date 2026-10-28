@@ -1,4 +1,5 @@
 using System.Globalization;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -151,7 +152,7 @@ public class ReferenceOrganismTests
         await service.CreateAsync(Strain(ecoli.Id, "ORG-002", CultureCollection.NCTC, "12900"), w.UserId);
         var c = await service.CreateAsync(Strain(staph.Id, "ORG-003", number: "6538"), w.UserId);
         await service.SetActiveAsync(c.Id, false, w.UserId);
-        await new MaterialService(w.Db, new UserSectionScopeService(w.Db)).CreateAsync(Receive(a.Id), w.UserId);
+        await new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db)).CreateAsync(Receive(a.Id), w.UserId);
 
         Assert.Equal(3, (await service.GetAllAsync(w.UserId)).Count);
         Assert.Equal(2, (await service.GetAllAsync(w.UserId, activeOnly: true)).Count);
@@ -169,7 +170,7 @@ public class ReferenceOrganismTests
         var staph = await AddOrganismAsync(w.Db, "Staphylococcus aureus");
         var service = TestServiceFactory.ReferenceOrganism(w.Db);
         var strain = await service.CreateAsync(Strain(ecoli.Id), w.UserId);
-        var lot = await new MaterialService(w.Db, new UserSectionScopeService(w.Db)).CreateAsync(Receive(strain.Id), w.UserId);
+        var lot = await new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db)).CreateAsync(Receive(strain.Id), w.UserId);
 
         var code = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, "ORG-002"), w.UserId));
         Assert.Contains("electronic signature", code.Message);
@@ -219,7 +220,7 @@ public class ReferenceOrganismTests
         var staph = await AddOrganismAsync(w.Db, "Staphylococcus aureus");
         var strains = TestServiceFactory.ReferenceOrganism(w.Db);
         var strain = await strains.CreateAsync(Strain(ecoli.Id), w.UserId);
-        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db));
+        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
 
         var none = await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Receive(null, organismId: ecoli.Id, atcc: "8739"), w.UserId));
         Assert.Contains("reference organism", none.Message);
@@ -243,7 +244,7 @@ public class ReferenceOrganismTests
         var strains = TestServiceFactory.ReferenceOrganism(w.Db);
         var atcc = await strains.CreateAsync(Strain(ecoli.Id, "ORG-001", CultureCollection.ATCC, "8739"), w.UserId);
         var nctc = await strains.CreateAsync(Strain(ecoli.Id, "ORG-002", CultureCollection.NCTC, "12900"), w.UserId);
-        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db));
+        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
 
         var fromAtcc = await materials.CreateAsync(Receive(atcc.Id, organismId: ecoli.Id, atcc: "WRONG", name: "Typed name", code: "TYPED"), w.UserId);
         var fromNctc = await materials.CreateAsync(Receive(nctc.Id, atcc: "WRONG"), w.UserId);
@@ -274,7 +275,7 @@ public class ReferenceOrganismTests
         };
         w.Db.Materials.Add(legacy);
         await w.Db.SaveChangesAsync();
-        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db));
+        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
         SaveMaterialRequest Edit(int? strainId, string location) => new(MaterialType.LyophilizedMicroorganism, "E. coli (old)", "M", "OLD-1",
             legacy.ReceivingDate, legacy.ExpiryDate, "ECO", location, 5, MaterialUnit.Disc, null, "8739", ecoli.Id, ReferenceOrganismId: strainId);
 
@@ -308,7 +309,7 @@ public class ReferenceOrganismTests
         var w = await SeedAsync();
         var ecoli = await AddOrganismAsync(w.Db, "Escherichia coli");
         var strain = await TestServiceFactory.ReferenceOrganism(w.Db).CreateAsync(Strain(ecoli.Id), w.UserId);
-        var lot = await new MaterialService(w.Db, new UserSectionScopeService(w.Db)).CreateAsync(Receive(strain.Id), w.UserId);
+        var lot = await new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db)).CreateAsync(Receive(strain.Id), w.UserId);
         w.Db.MaterialDocuments.Add(new MaterialDocument
         {
             MaterialId = lot.Id, DocumentType = MaterialDocumentType.COA, OriginalFileName = "COA.pdf", StorageKey = "t/" + Guid.NewGuid(),
@@ -398,7 +399,7 @@ public class ReferenceOrganismTests
         var tsa = await products.CreateAsync("Tryptic Soy Agar", "TSA");
         var sda = await products.CreateAsync("Sabouraud Dextrose Agar", "SDA");
         Assert.True(tsa.IsActive);
-        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db));
+        var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
         SaveMaterialRequest Powder(int productId, string batch) => new(MaterialType.DehydratedMedia, "x", "Himedia", batch, DateTime.UtcNow.AddDays(-1),
             DateTime.UtcNow.AddYears(1), null, "Shelf", 500, MaterialUnit.Gram, null, null, null, MediaProductId: productId);
         var existing = await materials.CreateAsync(Powder(tsa.Id, "B-1"), w.UserId);

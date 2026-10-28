@@ -18,6 +18,8 @@ public static class UniqueIndexNames
     // Like SolutionPreparationCode: a clash is reported, not retried
     // (WorkingStandardService asks the user to sign again).
     public const string WorkingStandardCode = "IX_Materials_WorkingStandardCode";
+    // Stock IDs come from a PostgreSQL sequence, so this is only a backstop (never retried).
+    public const string MaterialStockId = "IX_Materials_StockId";
     public const string WorkingStandardQualificationCode = "IX_WorkingStandardQualifications_Code";
 
     // Instrument ingest (InstrumentIngestService.ReceiveAsync): two receipts of

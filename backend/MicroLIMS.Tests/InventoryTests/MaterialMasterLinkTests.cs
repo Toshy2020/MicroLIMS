@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -29,7 +30,7 @@ public class MaterialMasterLinkTests
         db.SaveChanges();
         db.UserOrgMemberships.Add(new UserOrgMembership { UserId = fpUser.Id, DepartmentId = fp.DepartmentId, SectionId = fp.Id });
         db.SaveChanges();
-        return (new MaterialService(db, new UserSectionScopeService(db)), TestServiceFactory.MaterialMaster(db), fpUser.Id, fp, other);
+        return (new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), TestServiceFactory.MaterialMaster(db), fpUser.Id, fp, other);
     }
 
     private static async Task<MicroLIMS.Application.DTOs.Responses.MaterialMasterEntryResponse> SeedEntryAsync(

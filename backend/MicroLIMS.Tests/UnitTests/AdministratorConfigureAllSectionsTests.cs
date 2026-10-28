@@ -124,7 +124,7 @@ public class AdministratorConfigureAllSectionsTests
         var microMaterial = new Material { SectionId = w.Micro.Id, MaterialName = "Micro reagent", MaterialType = MaterialType.Chemical, QuantityReceived = 10, QuantityRemaining = 10, BatchNumber = "B2" };
         w.Db.Materials.AddRange(fpMaterial, microMaterial);
         await w.Db.SaveChangesAsync();
-        var service = new MaterialService(w.Db, new UserSectionScopeService(w.Db));
+        var service = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ConsumeAsync(fpMaterial.Id, MaterialType.Chemical, 1m, w.Admin.Id));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ConsumeAsync(microMaterial.Id, MaterialType.Chemical, 1m, w.Admin.Id));

@@ -185,6 +185,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MaterialMasterService>();
         services.AddScoped<ReferenceOrganismService>();
         services.AddScoped<MaterialCategoryService>();
+        services.AddScoped<TestingMaterialCatalogService>();
         services.AddScoped<MaterialReleaseService>();
         services.AddScoped<SolutionMasterService>();
         services.AddScoped<HplcMethodService>();

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -30,7 +31,7 @@ public class MaterialCustomTypeTests
         TestServiceFactory.AssignUserToMicroSection(db, microUser.Id);
         db.UserOrgMemberships.Add(new UserOrgMembership { UserId = fpUser.Id, DepartmentId = fp.DepartmentId, SectionId = fp.Id });
         db.SaveChanges();
-        return (new MaterialService(db, new UserSectionScopeService(db)), microUser.Id, fpUser.Id, fp);
+        return (new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), microUser.Id, fpUser.Id, fp);
     }
 
     private static SaveMaterialRequest Req(MaterialType type, string? customType = null, decimal? purity = null) =>

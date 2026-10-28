@@ -4,11 +4,14 @@ namespace MicroLIMS.Domain.Entities;
 
 // Defines WHAT a lab chemical is (reagent, indicator or reference standard).
 // Lots, quantities and expiry stay in Material (the stock register), which
-// references this entry. Deactivated, never deleted.
+// references this entry. Deactivated, never deleted. App-wide: every lab can
+// see and use every entry; SectionId is the owner lab, the only one that can
+// edit it. Code is unique across the app.
 public class MaterialMasterEntry : IVersionedEntity
 {
     public int Id { get; set; }
     public uint Version { get; set; }
+    // Owner lab
     public int SectionId { get; set; }
     public DocumentSection? Section { get; set; }
     public string Code { get; set; } = string.Empty;

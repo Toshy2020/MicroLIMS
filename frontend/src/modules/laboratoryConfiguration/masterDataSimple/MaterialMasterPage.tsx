@@ -28,8 +28,10 @@ import {
   MaterialMasterService,
   MaterialMasterEntry,
   MaterialMasterCategory,
-  SaveMaterialMasterEntryRequest
+  SaveMaterialMasterEntryRequest,
+  MATERIAL_MASTER_CODE_PREFIX
 } from "./services/MaterialMasterService";
+import { ChangeMaterialMasterCodeDialog } from "./ChangeMaterialMasterCodeDialog";
 import type { MaterialUnit } from "../../inventory/materials/types/materialTypes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
@@ -96,6 +98,9 @@ export function MaterialMasterPage() {
   // Toggle Active (Activate / Deactivate) Confirmation Dialog
   const [entryToToggle, setEntryToToggle] = useState<MaterialMasterEntry | null>(null);
   const [togglingActive, setTogglingActive] = useState(false);
+
+  // Signed code change (entries with stock)
+  const [entryToRecode, setEntryToRecode] = useState<MaterialMasterEntry | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -174,9 +179,13 @@ export function MaterialMasterPage() {
 
     const errors: typeof fieldErrors = {};
     if (!trimmedCode) errors.code = "Code is required.";
+    // Prefix applies to new codes and changed codes; an unchanged older code is grandfathered.
+    else if ((!editingEntry || trimmedCode !== editingEntry.code) && !trimmedCode.startsWith(MATERIAL_MASTER_CODE_PREFIX[formCategory])) {
+      errors.code = `${CATEGORY_OPTIONS.find((c) => c.value === formCategory)?.label} codes must start with "${MATERIAL_MASTER_CODE_PREFIX[formCategory]}".`;
+    }
     if (!trimmedName) errors.name = "Name is required.";
     if (!formBaseUnit) errors.unit = "Base Unit is required.";
-    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = "Laboratory Section is required.";
+    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = "Owner lab is required.";
 
     if (formCategory === "Indicator") {
       const fromVal = formTransitionRangeFrom !== "" ? Number(formTransitionRangeFrom) : null;
@@ -394,7 +403,7 @@ export function MaterialMasterPage() {
     },
     {
       key: "section",
-      label: "Section",
+      label: "Owner lab",
       sortable: true,
       sortValue: (entry) => resolveSectionDisplay(entry.sectionId, entry.sectionName),
       render: (entry) => (
@@ -416,7 +425,7 @@ export function MaterialMasterPage() {
   return (
     <LabPage
       title="Reagents & Reference Standards"
-      subtitle="Manage master definitions for chemical reagents, indicators, and reference standards across laboratory sections."
+      subtitle="Master definitions for reagents, indicators, and reference standards. Every lab can see and use every entry; only the owner lab can edit it."
       actions={addButton}
       filters={
         <FilterBar
@@ -457,14 +466,14 @@ export function MaterialMasterPage() {
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="entry-section-filter-label">Section</InputLabel>
+            <InputLabel id="entry-section-filter-label">Owner lab</InputLabel>
             <Select
               labelId="entry-section-filter-label"
-              label="Section"
+              label="Owner lab"
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
             >
-              <MenuItem value="ALL">All Sections</MenuItem>
+              <MenuItem value="ALL">All Labs</MenuItem>
               {sections.map((sec) => (
                 <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
                   {sec.sectionName}
@@ -482,12 +491,13 @@ export function MaterialMasterPage() {
         rows={filteredEntries}
         getRowId={(entry) => entry.id}
         loading={loading}
-        onRowClick={handleOpenEdit}
+        onRowClick={(entry) => { if (entry.canEdit) handleOpenEdit(entry); }}
         rowActions={(entry) => [
-          { label: "Edit", onClick: () => handleOpenEdit(entry) },
+          { label: "Edit", onClick: () => handleOpenEdit(entry), disabled: !entry.canEdit },
+          ...(entry.hasStock ? [{ label: "Change code", onClick: () => setEntryToRecode(entry), disabled: !entry.canEdit }] : []),
           entry.isActive
-            ? { label: "Deactivate", onClick: () => setEntryToToggle(entry), danger: true }
-            : { label: "Activate", onClick: () => setEntryToToggle(entry) }
+            ? { label: "Deactivate", onClick: () => setEntryToToggle(entry), danger: true, disabled: !entry.canEdit }
+            : { label: "Activate", onClick: () => setEntryToToggle(entry), disabled: !entry.canEdit }
         ]}
         empty={
           filtersActive
@@ -519,9 +529,15 @@ export function MaterialMasterPage() {
               required
               fullWidth
               size="small"
-              placeholder="e.g. NAOH-01, USP-RS-ASP"
+              placeholder={`e.g. ${MATERIAL_MASTER_CODE_PREFIX[formCategory]}011`}
+              disabled={Boolean(editingEntry?.hasStock)}
               error={!!fieldErrors.code}
-              helperText={fieldErrors.code ?? "Unique code within laboratory section (e.g. NAOH-01)"}
+              helperText={
+                fieldErrors.code ??
+                (editingEntry?.hasStock
+                  ? "This entry has stock; use Change code to change it."
+                  : `Unique across all labs; must start with "${MATERIAL_MASTER_CODE_PREFIX[formCategory]}"`)
+              }
             />
 
             <FormControl fullWidth size="small" required>
@@ -593,11 +609,12 @@ export function MaterialMasterPage() {
             {/* Laboratory Section Select */}
             {(!editingEntry && mySections.length > 1) || (editingEntry && sections.length > 0) ? (
               <FormControl fullWidth size="small" required={!editingEntry && mySections.length > 1} error={!!fieldErrors.section}>
-                <InputLabel id="entry-form-section-label">Laboratory Section</InputLabel>
+                <InputLabel id="entry-form-section-label">Owner Lab</InputLabel>
                 <Select
                   labelId="entry-form-section-label"
-                  label="Laboratory Section"
+                  label="Owner Lab"
                   value={formSectionId}
+                  disabled={Boolean(editingEntry)}
                   onChange={(e) => { setFieldErrors((fe) => ({ ...fe, section: undefined })); setFormSectionId(e.target.value); }}
                 >
                   {(!editingEntry && mySections.length > 1 ? mySections : sections).map((sec) => (
@@ -698,6 +715,13 @@ export function MaterialMasterPage() {
             </FormControl>
           )}
       </FormDialog>
+
+      <ChangeMaterialMasterCodeDialog
+        open={Boolean(entryToRecode)}
+        entry={entryToRecode}
+        onClose={() => setEntryToRecode(null)}
+        onSuccess={() => { toast.success("Material master code changed."); loadData(); }}
+      />
 
       {/* Confirmation Dialog for Activate / Deactivate */}
       <ConfirmationDialog

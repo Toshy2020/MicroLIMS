@@ -58,17 +58,9 @@ export function TitrationConfigSection({ form, onChange, sectionId }: Props) {
   );
   const backUnit = titrants.find((s) => s.id === form.titrantSolutionMasterId)?.strengthUnit;
   const excessOptions = titrantOptions.filter((s) => !backUnit || s.strengthUnit === backUnit);
-  const standardOptions = useMemo(
-    () => standards.filter(inSection),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [standards, sectionId]
-  );
-
-  const indicatorOptions = useMemo(
-    () => indicators.filter(inSection),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [indicators, sectionId]
-  );
+  // Reagent and standard master entries are app-wide, so they aren't filtered by section.
+  const standardOptions = standards;
+  const indicatorOptions = indicators;
 
   const titrantLabel = (s: SolutionMaster) =>
     `${s.name} (${s.nominalStrength ?? "?"} ${s.strengthUnit === "Molar" ? "M" : s.strengthUnit === "MgWaterPerMl" ? "mg H2O/mL" : "N"})`;

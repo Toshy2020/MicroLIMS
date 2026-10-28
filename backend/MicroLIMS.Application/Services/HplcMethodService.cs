@@ -484,8 +484,6 @@ public partial class HplcMethodService
 
             var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == a.StandardEntryId, ct)
                 ?? throw new InvalidOperationException($"Standard entry {a.StandardEntryId} not found.");
-            if (standard.SectionId != sectionId)
-                throw new InvalidOperationException($"Standard entry \"{standard.Code}\" belongs to another laboratory.");
             if (standard.Category != MaterialMasterCategory.ReferenceStandard)
                 throw new InvalidOperationException($"Standard entry \"{standard.Code}\" must be a reference standard.");
             if (!standard.IsActive && !alreadyUsedStandardIds.Contains(standard.Id))

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -8,8 +9,9 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 // Reagent / Indicator / Reference Standard master (HPLC chain S1, spec 3.1).
-// Reads are open to any authenticated user - stock receivers need the
-// picker; writes require MasterDataManage.
+// Reads are open to any authenticated user and cover every lab - stock
+// receivers need the picker; writes require MasterDataManage and the
+// entry's owner lab.
 [ApiController]
 [Route("api/masterdata/material-masters")]
 [Authorize]
@@ -32,6 +34,13 @@ public class MaterialMasterController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] SaveMaterialMasterEntryRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateAsync(id, r, CurrentUserId)));
+
+    // Reason + electronic signature; the only way to change the code once the entry has stock.
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPut("{id:int}/code")]
+    public async Task<IActionResult> ChangeCode(int id, [FromBody] ChangeMaterialMasterEntryCodeRequest r) =>
+        Ok(ApiResponse<object>.Ok(await _service.ChangeCodeAsync(
+            id, r.Code, r.Reason, r.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString())));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("{id:int}/active")]

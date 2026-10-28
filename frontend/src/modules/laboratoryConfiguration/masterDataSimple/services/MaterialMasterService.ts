@@ -8,8 +8,14 @@ export interface MaterialMasterEntry {
   id: number;
   // Row version, sent back as If-Match when this record is edited.
   version?: number;
+  // Owner lab: the only lab that can edit the entry; every lab can see and use it.
   sectionId: number;
   sectionName?: string;
+  sectionCode?: string;
+  // Decided by the server from the user's configurable sections.
+  canEdit?: boolean;
+  // Any stock lot is linked: the code is frozen and changes only with a reason and signature.
+  hasStock?: boolean;
   code: string;
   name: string;
   category: MaterialMasterCategory;
@@ -43,6 +49,14 @@ export interface SaveMaterialMasterEntryRequest {
   indicatorUse?: string | null;
 }
 
+// Enforced on create and on code change; older codes are grandfathered.
+export const MATERIAL_MASTER_CODE_PREFIX: Record<MaterialMasterCategory, string> = {
+  Reagent: "RG-",
+  Indicator: "IND-",
+  ReferenceStandard: "RS-",
+  PrimaryStandard: "PS-"
+};
+
 export const MaterialMasterService = {
   getAll: async (category?: MaterialMasterCategory, activeOnly?: boolean): Promise<MaterialMasterEntry[]> => {
     const params: Record<string, boolean | string> = {};
@@ -65,6 +79,11 @@ export const MaterialMasterService = {
 
   update: async (id: number, req: SaveMaterialMasterEntryRequest, version?: number): Promise<MaterialMasterEntry> => {
     const res = await apiClient.put<ApiResponse<MaterialMasterEntry>>(`/masterdata/material-masters/${id}`, req, ifMatch(version));
+    return res.data?.data;
+  },
+
+  changeCode: async (id: number, code: string, reason: string, password: string): Promise<MaterialMasterEntry> => {
+    const res = await apiClient.put<ApiResponse<MaterialMasterEntry>>(`/masterdata/material-masters/${id}/code`, { code, reason, password });
     return res.data?.data;
   },
 

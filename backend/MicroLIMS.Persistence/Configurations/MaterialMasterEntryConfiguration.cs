@@ -19,7 +19,8 @@ public class MaterialMasterEntryConfiguration : IEntityTypeConfiguration<Materia
         builder.Property(e => e.IndicatorUse).HasMaxLength(100);
         builder.Property(e => e.TransitionRangeFrom).HasColumnType("decimal(5,2)");
         builder.Property(e => e.TransitionRangeTo).HasColumnType("decimal(5,2)");
-        builder.HasIndex(e => new { e.SectionId, e.Code }).IsUnique();
+        builder.HasIndex(e => e.Code).IsUnique();
+        builder.HasIndex(e => e.SectionId);
         builder.HasOne(e => e.Section).WithMany().HasForeignKey(e => e.SectionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -274,10 +274,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     };
   }, [open, form.materialType, editingItem]);
 
-  const availableMasterEntries = useMemo(() => {
-    if (!activeSectionId) return masterEntries;
-    return masterEntries.filter((e) => e.sectionId === activeSectionId || !e.sectionId);
-  }, [masterEntries, activeSectionId]);
+  // Master entries are app-wide: any lab can receive stock against any active entry.
+  const availableMasterEntries = masterEntries;
 
   const selectedMasterEntry = useMemo(() => {
     if (!form.materialMasterEntryId) return null;
@@ -881,17 +879,6 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               onChange={(e) => {
                 const newSecId = e.target.value === "" ? "" : Number(e.target.value);
                 setSelectedSectionId(newSecId);
-                if (newSecId !== "" && form.materialMasterEntryId) {
-                  const match = masterEntries.find((m) => m.id === form.materialMasterEntryId);
-                  if (match && match.sectionId !== newSecId) {
-                    setForm((f) => ({
-                      ...f,
-                      materialMasterEntryId: null,
-                      materialName: "",
-                      code: ""
-                    }));
-                  }
-                }
               }}
               inputProps={{ "aria-label": "Laboratory Section" }}
             >

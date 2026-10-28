@@ -92,8 +92,6 @@ public static class TitrationDefinitionRules
                 throw new InvalidOperationException("The reference standard is required for the relative calculation.");
             var entry = await db.MaterialMasterEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == t.TitrationStandardEntryId.Value)
                 ?? throw new InvalidOperationException("Reference standard master entry not found.");
-            if (entry.SectionId != t.SectionId)
-                throw new InvalidOperationException("The reference standard belongs to another laboratory.");
             if (mode != TitrationMode.Direct)
                 throw new InvalidOperationException("The relative calculation supports direct mode only.");
         }
@@ -115,8 +113,6 @@ public static class TitrationDefinitionRules
                 ?? throw new InvalidOperationException("Indicator master entry not found.");
             if (indicator.Category != MaterialMasterCategory.Indicator)
                 throw new InvalidOperationException("The indicator must be an Indicator entry in Reagents & Reference Standards.");
-            if (indicator.SectionId != t.SectionId)
-                throw new InvalidOperationException("The indicator belongs to another laboratory.");
             t.TitrationIndicator = indicator.Name;
         }
         else

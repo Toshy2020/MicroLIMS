@@ -39,7 +39,7 @@ public sealed class MaterialMasterSheet : SheetHandler
     public override IReadOnlyList<SheetColumn> Columns { get; } = new[]
     {
         new SheetColumn("SectionCode", Required: true, Help: "Code of the lab section that owns the entry."),
-        new SheetColumn("Code", Required: true, Help: "Unique within the section, e.g. RG-011."),
+        new SheetColumn("Code", Required: true, Help: "Unique across all labs, with the category prefix (RG-, IND-, RS-, PS-), e.g. RG-011."),
         new SheetColumn("Name", Required: true),
         new SheetColumn("Category", Required: true, EnumType: typeof(MaterialMasterCategory)),
         new SheetColumn("Grade"),
@@ -53,7 +53,7 @@ public sealed class MaterialMasterSheet : SheetHandler
         new SheetColumn("IndicatorUse", Help: "Indicators only."),
     };
 
-    public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "SectionCode"), Cell(c, "Code"));
+    public override string KeyOf(IReadOnlyDictionary<string, string> c) => Key(Cell(c, "Code"));
 
     public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section)

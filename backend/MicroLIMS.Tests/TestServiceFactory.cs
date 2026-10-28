@@ -231,7 +231,8 @@ public static class TestServiceFactory
             clock);
 
     public static MaterialMasterService MaterialMaster(MicroLimsDbContext db) =>
-        new(db, new UserSectionScopeService(db));
+        new(db, new UserSectionScopeService(db), new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static SolutionMasterService SolutionMaster(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db),

@@ -6562,8 +6562,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SectionId", "Code")
+                    b.HasIndex("Code")
                         .IsUnique();
+
+                    b.HasIndex("SectionId");
 
                     b.ToTable("MaterialMasterEntries");
                 });

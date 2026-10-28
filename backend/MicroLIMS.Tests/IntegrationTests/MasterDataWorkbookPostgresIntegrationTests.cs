@@ -29,7 +29,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
             db, new ClosedXmlWorkbookFormat(), storage ?? new InMemoryFileStorageService(), signatures, TimeProvider.System,
             new OrganismMasterDataService(db), new ReferenceListMasterDataService(db),
             new EnvironmentalMonitoringMasterDataService(db), new WaterMasterDataService(db),
-            new MaterialMasterService(db, scope), new MediaProductService(db, signatures, audit),
+            new MaterialMasterService(db, scope, signatures, audit), new MediaProductService(db, signatures, audit),
             new EquipmentMasterDataService(db, scope), new ItemService(db),
             new SpecificationMasterDataService(db, scope));
     }

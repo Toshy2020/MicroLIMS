@@ -95,11 +95,10 @@ public class MaterialService
     };
 
     // Loads and checks the entry; allowInactive is true only when the lot already points at it.
-    private async Task<MaterialMasterEntry> ResolveMasterEntryAsync(int entryId, MaterialType type, int sectionId, bool allowInactive)
+    private async Task<MaterialMasterEntry> ResolveMasterEntryAsync(int entryId, MaterialType type, bool allowInactive)
     {
         var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == entryId)
             ?? throw new InvalidOperationException($"Material master entry {entryId} not found.");
-        if (entry.SectionId != sectionId) throw new InvalidOperationException("That master entry belongs to another laboratory.");
         if (!entry.IsActive && !allowInactive) throw new InvalidOperationException($"Master entry \"{entry.Code}\" is inactive.");
         if (entry.Category != CategoryFor(type)) throw new InvalidOperationException($"Master entry \"{entry.Code}\" is a {entry.Category}, not a {CategoryFor(type)}.");
         return entry;
@@ -165,7 +164,7 @@ public class MaterialService
             if (!r.MaterialMasterEntryId.HasValue)
                 throw new InvalidOperationException("Choose the material master entry for this lot.");
 
-            var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType, sectionId, allowInactive: false);
+            var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType, allowInactive: false);
             masterEntryId = entry.Id;
             materialName = entry.Name;
             code = entry.Code;
@@ -263,7 +262,7 @@ public class MaterialService
         var masterEntryId = entity.MaterialMasterEntryId;
         if (r.MaterialMasterEntryId.HasValue)
         {
-            var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType, entity.SectionId,
+            var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType,
                 allowInactive: r.MaterialMasterEntryId.Value == entity.MaterialMasterEntryId);
             masterEntryId = entry.Id;
             materialName = entry.Name;

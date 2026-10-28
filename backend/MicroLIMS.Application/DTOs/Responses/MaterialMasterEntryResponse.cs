@@ -9,6 +9,11 @@ public class MaterialMasterEntryResponse
     public uint Version { get; init; }
     public int SectionId { get; init; }
     public string? SectionName { get; init; }
+    public string? SectionCode { get; init; }
+    // Decided by the server from the user's configurable sections (owner lab).
+    public bool CanEdit { get; init; }
+    // Any stock lot is linked: the code is frozen and changes only by signed code change.
+    public bool HasStock { get; init; }
     public string Code { get; init; } = null!;
     public string Name { get; init; } = null!;
     public MaterialMasterCategory Category { get; init; }
@@ -29,12 +34,15 @@ public class MaterialMasterEntryResponse
     public int LastModifiedByUserId { get; init; }
     public DateTime LastModifiedAt { get; init; }
 
-    public static MaterialMasterEntryResponse From(MaterialMasterEntry e) => new()
+    public static MaterialMasterEntryResponse From(MaterialMasterEntry e, bool canEdit = false, bool hasStock = false) => new()
     {
         Id = e.Id,
         Version = e.Version,
         SectionId = e.SectionId,
         SectionName = e.Section?.Name,
+        SectionCode = e.Section?.Code,
+        CanEdit = canEdit,
+        HasStock = hasStock,
         Code = e.Code,
         Name = e.Name,
         Category = e.Category,

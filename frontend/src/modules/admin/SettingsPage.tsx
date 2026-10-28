@@ -10,6 +10,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { MaintenanceSection } from "./MaintenanceSection";
 import { SettingsService, SystemSetting, SystemSettingFixedItem, SystemSettingVersion } from "./services/SettingsService";
 
 const CATEGORY_TITLES: Record<string, string> = {
@@ -77,13 +78,15 @@ export function SettingsPage() {
     SettingsService.history(s.key).then(setHistory).catch(() => setHistory([]));
   };
 
-  const categories = settings ? Array.from(new Set(settings.map((s) => s.category))) : [];
+  // The System category (maintenance mode, announcement) has its own section.
+  const categories = settings ? Array.from(new Set(settings.map((s) => s.category))).filter((c) => c !== "System") : [];
 
   return (
     <>
       <PageHeader title="Settings" subtitle="System operating settings. Changes need a reason; security settings also need your electronic signature." />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {!settings && !error && <LoadingSpinner />}
+      {settings?.some((s) => s.key === "System.MaintenanceMode") && <MaintenanceSection settings={settings} onChanged={load} />}
 
       {categories.map((category) => (
         <Paper key={category} sx={{ mb: 2, p: 2 }}>

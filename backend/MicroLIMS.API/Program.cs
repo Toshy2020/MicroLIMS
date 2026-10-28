@@ -86,7 +86,7 @@ builder.Services.AddCors(options =>
               // client-side error reports cannot be tied to the backend
               // error from the same action. Content-Disposition carries
               // the server's name for a downloaded file (exports, reports).
-              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition"));
+              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition", MicroLIMS.API.Middleware.MaintenanceModeMiddleware.HeaderName));
 });
 
 var app = builder.Build();

@@ -78,7 +78,7 @@ export function LoginPage() {
     <Box
       component="main"
       sx={{
-        minHeight: "100vh",
+        minHeight: "calc(100vh - var(--system-banner-height, 0px))",
         display: "grid",
         gridTemplateColumns: { xs: "1fr", md: "40% 60%" },
         gridTemplateRows: { xs: "auto 1fr", md: "1fr" },

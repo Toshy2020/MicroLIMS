@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { MAINTENANCE_HEADER, notifyMaintenanceRefusal } from "./maintenanceSignal";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 // Single axios instance every module service goes through. No business
@@ -163,11 +164,24 @@ function humanizeError(error: AxiosError): void {
   error.message = friendly;
 }
 
+// While maintenance mode is on the API refuses writes with 503 + X-Maintenance-Mode.
+// Surface the server's own message (screens read error.message / data.message)
+// and let the status provider show it, rather than the generic "server error" text.
+function handleMaintenanceRefusal(error: AxiosError): boolean {
+  if (error.response?.status !== 503 || error.response.headers?.[MAINTENANCE_HEADER] !== "on") return false;
+  const body = error.response.data as { message?: string } | undefined;
+  const message = body?.message || "MicroLIMS is in maintenance mode. Your change was not saved.";
+  error.message = message;
+  notifyMaintenanceRefusal(message);
+  return true;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     rememberCorrelationId(error);
     await decodeBlobErrorBody(error);
+    if (handleMaintenanceRefusal(error)) return Promise.reject(error);
 
     const config = error.config as RetryableRequestConfig | undefined;
     const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");

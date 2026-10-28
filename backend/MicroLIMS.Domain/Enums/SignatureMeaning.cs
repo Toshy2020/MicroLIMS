@@ -36,5 +36,6 @@ public enum SignatureMeaning
     UserRoleChanged,
     RolePermissionsChanged,
     RoleDeleted,
-    SystemSettingChanged
+    SystemSettingChanged,
+    AccessReviewSigned
 }

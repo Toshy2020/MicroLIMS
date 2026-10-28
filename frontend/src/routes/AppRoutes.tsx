@@ -87,6 +87,7 @@ const TrainingMatrixPage = lazy(() => import("../modules/documentControl/pages/T
 const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pages/ComplianceDashboardPage").then((m) => ({ default: m.ComplianceDashboardPage })));
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
+const AccessReviewPage = lazy(() => import("../modules/admin/AccessReviewPage").then((m) => ({ default: m.AccessReviewPage })));
 const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const OrganizationPage = lazy(() => import("../modules/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage })));
 const ReassignmentsPage = lazy(() => import("../modules/documentControl/pages/ReassignmentsPage").then((m) => ({ default: m.ReassignmentsPage })));
@@ -289,6 +290,9 @@ export function AppRoutes() {
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
                 <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.ACCESS_REVIEW} />}>
+                <Route path="access-review" element={<AccessReviewPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
                 <Route path="organization" element={<OrganizationPage />} />

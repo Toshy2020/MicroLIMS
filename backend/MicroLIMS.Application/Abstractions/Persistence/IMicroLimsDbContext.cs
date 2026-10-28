@@ -206,6 +206,8 @@ public interface IMicroLimsDbContext
     DbSet<ConfigurationSetting> ConfigurationSettings { get; }
     DbSet<SystemSetting> SystemSettings { get; }
     DbSet<SystemSettingVersion> SystemSettingVersions { get; }
+    DbSet<AccessReview> AccessReviews { get; }
+    DbSet<AccessReviewFinding> AccessReviewFindings { get; }
     DbSet<DocumentReviewTask> DocumentReviewTasks { get; }
     DbSet<DocumentReviewFinding> DocumentReviewFindings { get; }
     DbSet<RevisionChangeItem> RevisionChangeItems { get; }

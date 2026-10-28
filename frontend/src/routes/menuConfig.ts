@@ -116,7 +116,8 @@ const adminItems: MenuItem[] = [
   { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
   { label: "Settings", path: "/admin/settings", description: "Password, lockout, session, e-signature, retention and monitoring settings.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
   { label: "Organization", path: "/admin/organization", description: "Departments, sections and who belongs to them.", icon: AccountTreeOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },
-  { label: "Jobs", path: "/admin/jobs", description: "Background job status, run history and housekeeping runs.", icon: ScheduleOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_MANAGE_JOBS }
+  { label: "Jobs", path: "/admin/jobs", description: "Background job status, run history and housekeeping runs.", icon: ScheduleOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_MANAGE_JOBS },
+  { label: "Access Review", path: "/admin/access-review", description: "Periodic review of who holds which access, with findings and a signed conclusion.", icon: FactCheckOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ACCESS_REVIEW }
 ];
 
 // The document audit trail is open server-side to Reviewers and Section Heads

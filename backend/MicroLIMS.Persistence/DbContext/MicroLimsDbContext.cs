@@ -127,6 +127,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<KpiSetting> KpiSettings => Set<KpiSetting>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<SystemSettingVersion> SystemSettingVersions => Set<SystemSettingVersion>();
+    public DbSet<AccessReview> AccessReviews => Set<AccessReview>();
+    public DbSet<AccessReviewFinding> AccessReviewFindings => Set<AccessReviewFinding>();
     public DbSet<AnalystAvailability> AnalystAvailabilities => Set<AnalystAvailability>();
 
     // Media Configuration
@@ -530,7 +532,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
         typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit
         typeof(SystemSetting), // audited explicitly (Configuration category, with reason and signature) by SystemSettingsService
-        typeof(SystemSettingVersion) // append-only by DB trigger; is itself the change history
+        typeof(SystemSettingVersion), // append-only by DB trigger; is itself the change history
+        typeof(AccessReview), // immutable snapshot (DB trigger); audited explicitly by AccessReviewService, which would otherwise copy the whole report into AuditLogs
+        typeof(AccessReviewFinding) // immutable once signed (DB trigger); audited explicitly by AccessReviewService
     };
 
     private List<PendingAuditEntry> CapturePendingAuditEntries()

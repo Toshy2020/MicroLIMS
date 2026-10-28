@@ -476,6 +476,7 @@ public static class DbSeeder
             (PermissionConstants.SystemViewErrorLog, "View the technical error log and monitoring page."),
             (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
             (PermissionConstants.SystemConfigureSettings, "Change system operating settings (security thresholds, retention, worker limits) in the admin Settings registry."),
+            (PermissionConstants.AccessReview, "Generate, record findings on and sign the periodic access review (who holds which access)."),
             (PermissionConstants.DocumentsRegister, "Register a new controlled Document Master."),
             (PermissionConstants.DocumentsDraftEdit, "Edit draft metadata and controlled files, and cancel a draft revision."),
             (PermissionConstants.DocumentsRevisionCreate, "Create a new revision from the current effective revision."),

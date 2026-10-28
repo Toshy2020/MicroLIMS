@@ -26,6 +26,8 @@ public static class SystemSettingKeys
     public const string BlockedQueryThresholdMs = "monitoring.database.blockedQueryThresholdMs";
 
     public const string ReassignmentEscalationDays = "DocumentControl.ReassignmentEscalationDays";
+
+    public const string AccessReviewDormantDays = "AccessReview.DormantDays";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -103,6 +105,7 @@ public static class SystemSettingDefinitions
     public const string RetentionCategory = "Retention";
     public const string MonitoringCategory = "Monitoring";
     public const string DocumentControlCategory = "Document Control";
+    public const string AccessReviewCategory = "Access Review";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -160,6 +163,10 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.ReassignmentEscalationDays, DocumentControlCategory, SystemSettingValueType.Integer, "7",
             "Days a deactivated user's document responsibilities may wait for reassignment before they are flagged overdue and the department's Section Heads are notified. Nothing is reassigned automatically.",
             "days", 1, 90),
+
+        new(SystemSettingKeys.AccessReviewDormantDays, AccessReviewCategory, SystemSettingValueType.Integer, "90",
+            "An active account whose last successful sign-in is older than this (or that has never signed in and is older than this) is flagged dormant in the access-review report. A review already generated keeps the value it was generated with.",
+            "days", 1, 3650),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

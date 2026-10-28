@@ -11,7 +11,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
-import { ImpurityRowState } from "./hplcMethodForm";
+import { ImpurityRowState, createImpurityRowState } from "./hplcMethodForm";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 
 export interface HplcImpuritiesSectionProps {
@@ -36,7 +36,7 @@ export function HplcImpuritiesSection({
   const handleAddImpurity = () => {
     onImpuritiesChange([
       ...impurities,
-      { name: "", relativeRetention: "", correctionFactor: "1" }
+      createImpurityRowState()
     ]);
   };
 
@@ -141,9 +141,10 @@ export function HplcImpuritiesSection({
         ) : (
           impurities.map((imp, idx) => {
             const err = (field: string) => errors[`impurities.${idx}.${field}`];
+            const rowKey = imp._clientKey ?? (imp.id != null ? `imp-${imp.id}` : `imp-${idx}`);
             return (
               <Paper
-                key={idx}
+                key={rowKey}
                 elevation={0}
                 sx={{
                   p: 2,

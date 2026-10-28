@@ -36,9 +36,22 @@ export interface GcOvenStepRowState {
 
 export interface ImpurityRowState {
   id?: number | null;
+  _clientKey?: string;
   name: string;
   relativeRetention: string | number;
   correctionFactor: string | number;
+}
+
+let nextImpurityKey = 0;
+export function createImpurityRowState(initial?: Partial<ImpurityRowState>): ImpurityRowState {
+  nextImpurityKey += 1;
+  return {
+    _clientKey: `imp-${nextImpurityKey}-${Date.now()}`,
+    name: "",
+    relativeRetention: "",
+    correctionFactor: "1",
+    ...initial
+  };
 }
 
 export interface AnalyteRowState {
@@ -329,12 +342,14 @@ export function hplcMethodEntityToFormState(m: HplcMethodResponse): HplcMethodFo
       m.disregardLimitPercent != null ? String(m.disregardLimitPercent) : "",
     impurities:
       m.impurities && m.impurities.length > 0
-        ? m.impurities.map((imp) => ({
-            id: imp.id,
-            name: imp.name,
-            relativeRetention: imp.relativeRetention != null ? String(imp.relativeRetention) : "",
-            correctionFactor: imp.correctionFactor != null ? String(imp.correctionFactor) : "1"
-          }))
+        ? m.impurities.map((imp) =>
+            createImpurityRowState({
+              id: imp.id,
+              name: imp.name,
+              relativeRetention: imp.relativeRetention != null ? String(imp.relativeRetention) : "",
+              correctionFactor: imp.correctionFactor != null ? String(imp.correctionFactor) : "1"
+            })
+          )
         : [],
     internalStandardName: m.internalStandardName ?? "",
     ovenSteps:

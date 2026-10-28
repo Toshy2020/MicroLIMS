@@ -68,27 +68,33 @@ export function HplcAnalytesSection({
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <div>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
-            {isResidual
+            {isRelatedSubstances
+              ? "Principal Peak & System Suitability Criteria"
+              : isResidual
               ? "Residual Solvents Analytes & SST Acceptance Criteria (USP <467>)"
               : "Method Analytes & System Suitability Criteria"}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {isResidual
+            {isRelatedSubstances
+              ? "Define the principal peak, detection wavelength, reference standard, standard injections, and SST criteria."
+              : isResidual
               ? "Specify reference standards, calibration standard concentrations (µg/mL), injections, and SST limits for volatile solvent impurities."
               : isGc
               ? "Define active analytes, reference standards, theoretical weights, and SST criteria."
               : "Define active analytes, detection wavelengths, reference standards, theoretical weights, and SST criteria."}
           </Typography>
         </div>
-        <Button
-          size="small"
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={onAddAnalyte}
-          sx={{ textTransform: "none", fontWeight: 600 }}
-        >
-          Add Analyte
-        </Button>
+        {!isRelatedSubstances && (
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={onAddAnalyte}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            Add Analyte
+          </Button>
+        )}
       </Stack>
 
       {/* Residual Solvents method-level preparation volume */}
@@ -128,7 +134,7 @@ export function HplcAnalytesSection({
       )}
 
       <Stack spacing={2}>
-        {analytes.map((a, idx) => {
+        {(isRelatedSubstances ? analytes.slice(0, 1) : analytes).map((a, idx) => {
           const err = (field: string) => errors[`analytes.${idx}.${field}`];
           const hasSstError = Object.keys(errors).some((k) => k.startsWith(`analytes.${idx}.sst`));
           const isSstExpanded = Boolean(expandedSstIndices[idx]) || hasSstError;
@@ -272,7 +278,31 @@ export function HplcAnalytesSection({
               </Box>
 
               {/* Mode-specific Fields */}
-              {isResidual ? (
+              {isRelatedSubstances ? (
+                // Related Substances mode: Standard Injections only (no theoretical weights, no standard dilution)
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr" },
+                    maxWidth: 320,
+                    gap: 2,
+                    mb: 1.5
+                  }}
+                >
+                  <TextField
+                    size="small"
+                    label="Standard Injections *"
+                    type="number"
+                    value={a.standardInjections}
+                    onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
+                    required
+                    error={Boolean(err("standardInjections"))}
+                    helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
+                    slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    fullWidth
+                  />
+                </Box>
+              ) : isResidual ? (
                 // Residual Solvents mode: Standard concentration & Injections
                 <Box
                   sx={{

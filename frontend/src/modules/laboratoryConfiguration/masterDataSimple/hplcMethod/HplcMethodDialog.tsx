@@ -376,48 +376,48 @@ export function HplcMethodDialog({
                   <HplcAnalytesSection
                     technique="Hplc"
                     resultMode={form.resultMode}
-                  analytes={form.analytes}
-                  availableStandards={availableReferenceStandards}
-                  errors={errors}
-                  onAnalyteChange={(idx, field, val) => {
-                    const next = [...form.analytes];
-                    next[idx] = { ...next[idx], [field]: val };
-                    updateField("analytes", next);
-                  }}
-                  onAddAnalyte={() => {
-                    updateField("analytes", [
-                      ...form.analytes,
-                      {
-                        name: "",
-                        wavelengthNm: "254",
-                        standardEntryId: "",
-                        theoreticalWeightStdMg: "50",
-                        theoreticalWeightTestMg: "50",
-                        standardDilution: "",
-                        standardInjections: "5",
-                        sstMaxRsdPercent: "2.0",
-                        sstMinResolution: "",
-                        sstMaxTailingFactor: "2.0",
-                        sstMinTheoreticalPlates: "2000",
-                        sstMinRetentionFactor: "",
-                        sstMinSignalToNoise: "",
-                        sstMinPeakToValley: "",
-                        standardConcentrationUgPerMl: ""
-                      }
-                    ]);
-                  }}
-                  onRemoveAnalyte={(idx) => {
-                    updateField("analytes", form.analytes.filter((_, i) => i !== idx));
-                  }}
-                  onMoveAnalyte={(idx, direction) => {
-                    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
-                    if (targetIdx < 0 || targetIdx >= form.analytes.length) return;
-                    const copy = [...form.analytes];
-                    const temp = copy[idx];
-                    copy[idx] = copy[targetIdx];
-                    copy[targetIdx] = temp;
-                    updateField("analytes", copy);
-                  }}
+                    analytes={form.analytes}
+                    availableStandards={availableReferenceStandards}
+                    errors={errors}
+                    onAnalyteChange={(idx, field, val) => {
+                      const next = [...form.analytes];
+                      next[idx] = { ...next[idx], [field]: val };
+                      updateField("analytes", next);
+                    }}
+                    onAddAnalyte={() => {
+                      updateField("analytes", [
+                        ...form.analytes,
+                        {
+                          name: "",
+                          wavelengthNm: "254",
+                          standardEntryId: "",
+                          theoreticalWeightStdMg: "50",
+                          theoreticalWeightTestMg: "50",
+                          standardDilution: "",
+                          standardInjections: "5",
+                          sstMaxRsdPercent: "2.0",
+                          sstMinResolution: "",
+                          sstMaxTailingFactor: "2.0",
+                          sstMinTheoreticalPlates: "2000",
+                          sstMinRetentionFactor: "",
+                          sstMinSignalToNoise: "",
+                          sstMinPeakToValley: "",
+                          standardConcentrationUgPerMl: ""
+                        }
+                      ]);
+                    }}
+                    onRemoveAnalyte={(idx) => {
+                      updateField("analytes", form.analytes.filter((_, i) => i !== idx));
+                    }}
+                    onMoveAnalyte={(idx, direction) => {
+                      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+                      if (targetIdx < 0 || targetIdx >= form.analytes.length) return;
+                      const copy = [...form.analytes];
+                      const temp = copy[idx];
+                      copy[idx] = copy[targetIdx];
+                      copy[targetIdx] = temp;
+                      updateField("analytes", copy);
+                    }}
                   />
                   {form.resultMode === "RelatedSubstances" && (
                     <HplcImpuritiesSection

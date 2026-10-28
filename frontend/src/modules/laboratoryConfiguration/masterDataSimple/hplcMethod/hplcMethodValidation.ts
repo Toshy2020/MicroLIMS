@@ -79,7 +79,6 @@ export function validateHplcMethodForm(
   const isRelatedSubstances = !isGc && form.resultMode === "RelatedSubstances";
 
   if (isGc && form.resultMode === "RelatedSubstances") {
-    add("form.resultMode", "Related substances is available for HPLC methods only.");
     add("resultMode", "Related substances is available for HPLC methods only.");
   }
 
@@ -89,7 +88,6 @@ export function validateHplcMethodForm(
       (form.referenceSolutionPercent !== "" && form.referenceSolutionPercent != null) ||
       (form.disregardLimitPercent !== "" && form.disregardLimitPercent != null);
     if (hasRsValues) {
-      add("form.resultMode", "Impurities and reference-solution values belong to related-substances methods only.");
       add("resultMode", "Impurities and reference-solution values belong to related-substances methods only.");
     }
   }
@@ -97,7 +95,6 @@ export function validateHplcMethodForm(
   if (form.internalStandardName && form.internalStandardName.trim()) {
     if (form.technique !== "Hplc" || form.resultMode !== "Assay") {
       add("internalStandardName", "An internal standard applies to HPLC assay methods only.");
-      add("form.internalStandardName", "An internal standard applies to HPLC assay methods only.");
     } else if (form.internalStandardName.trim().length > 100) {
       add("internalStandardName", "Internal standard name cannot exceed 100 characters.");
     }
@@ -344,8 +341,8 @@ export function validateHplcMethodForm(
 
     if (form.disregardLimitPercent !== "" && form.disregardLimitPercent != null) {
       const dlp = Number(form.disregardLimitPercent);
-      if (isNaN(dlp) || dlp < 0) {
-        add("disregardLimitPercent", "The disregard limit cannot be negative.");
+      if (isNaN(dlp) || dlp < 0 || dlp > 100) {
+        add("disregardLimitPercent", "The disregard limit must be between 0 and 100 %.");
       }
     }
 
@@ -356,6 +353,8 @@ export function validateHplcMethodForm(
       const key = (field: string) => `impurities.${i}.${field}`;
       if (!impName) {
         add(key("name"), "Each impurity needs a unique name.");
+      } else if (impName.length > 100) {
+        add(key("name"), "Impurity names are at most 100 characters.");
       } else {
         const lower = impName.toLowerCase();
         if (impurityNames.has(lower)) {
@@ -364,12 +363,19 @@ export function validateHplcMethodForm(
         impurityNames.add(lower);
       }
 
+      if (imp.relativeRetention !== "" && imp.relativeRetention != null) {
+        const rrt = Number(imp.relativeRetention);
+        if (isNaN(rrt) || rrt <= 0 || rrt > 100) {
+          add(key("relativeRetention"), "The relative retention must be greater than zero and at most 100.");
+        }
+      }
+
       if (imp.correctionFactor === "" || imp.correctionFactor == null) {
-        add(key("correctionFactor"), "The correction factor must be greater than zero.");
+        add(key("correctionFactor"), "The correction factor must be greater than zero and at most 100.");
       } else {
         const cf = Number(imp.correctionFactor);
-        if (isNaN(cf) || cf <= 0) {
-          add(key("correctionFactor"), "The correction factor must be greater than zero.");
+        if (isNaN(cf) || cf <= 0 || cf > 100) {
+          add(key("correctionFactor"), "The correction factor must be greater than zero and at most 100.");
         }
       }
     }
@@ -389,7 +395,6 @@ export function validateHplcMethodForm(
   if (isRelatedSubstances) {
     if (form.analytes.length !== 1) {
       add("form.analytes", "A related-substances method has exactly one analyte: the principal peak.");
-      add("analytes", "A related-substances method has exactly one analyte: the principal peak.");
     }
   } else {
     if (form.analytes.length === 0) add("form.analytes", "At least one Analyte is required.");

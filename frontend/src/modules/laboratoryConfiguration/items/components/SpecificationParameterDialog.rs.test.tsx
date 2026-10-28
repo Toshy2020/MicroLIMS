@@ -1,3 +1,5 @@
+import { HplcAnalytesSection } from "../../masterDataSimple/hplcMethod/HplcAnalytesSection";
+import { HplcGeneralSection } from "../../masterDataSimple/hplcMethod/HplcGeneralSection";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
@@ -8,15 +10,16 @@ import type { Item } from "../services/ItemService";
 import type { HplcMethodResponse } from "../../masterDataSimple/services/HplcMethodService";
 import type { TestDefinitionSummary } from "./SpecificationParameterDialog";
 
-vi.mock("../../../../hooks/useMyLabs", () => ({
-  useMyLabs: () => ({ codes: ["QC"], labs: [{ sectionId: 1, sectionCode: "QC" }] })
+// Stable references: the dialog memoizes on these, so a mock returning a fresh
+// array per call re-fires its form-reset effect every render (endless loop).
+const { myLabs, labSections } = vi.hoisted(() => ({
+  myLabs: { codes: ["QC"], labs: [{ sectionId: 1, sectionCode: "QC" }] },
+  labSections: { sections: [{ sectionId: 1, sectionCode: "QC", sectionName: "Quality Control" }] }
 }));
 
-vi.mock("../../../../hooks/useLaboratorySections", () => ({
-  useLaboratorySections: () => ({
-    sections: [{ sectionId: 1, sectionCode: "QC", sectionName: "Quality Control" }]
-  })
-}));
+vi.mock("../../../../hooks/useMyLabs", () => ({ useMyLabs: () => myLabs }));
+
+vi.mock("../../../../hooks/useLaboratorySections", () => ({ useLaboratorySections: () => labSections }));
 
 vi.mock("../../specifications/services/SpecificationService", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../specifications/services/SpecificationService")>();
@@ -339,6 +342,174 @@ describe("SpecificationParameterDialog - Related Substances & Raw Material Assay
         unit: "%",
         lowerLimit: 98.0,
         upperLimit: 102.0
+      })
+    );
+  });
+  it("renders RS analyte section with no theoretical weights and no Add Analyte button", () => {
+    render(
+      <HplcAnalytesSection
+        technique="Hplc"
+        resultMode="RelatedSubstances"
+        analytes={[
+          {
+            name: "Sildenafil Principal Peak",
+            wavelengthNm: "230",
+            standardEntryId: 1,
+            theoreticalWeightStdMg: "0",
+            theoreticalWeightTestMg: "0",
+            standardDilution: "",
+            standardInjections: "5",
+            sstMaxRsdPercent: "2.0",
+            sstMinResolution: "",
+            sstMaxTailingFactor: "",
+            sstMinTheoreticalPlates: "",
+            sstMinRetentionFactor: "",
+            sstMinSignalToNoise: "",
+            sstMinPeakToValley: "",
+            standardConcentrationUgPerMl: ""
+          }
+        ]}
+        availableStandards={[{ id: 1, code: "RS-01", name: "Std 1", isActive: true } as any]}
+        errors={{}}
+        onAnalyteChange={vi.fn()}
+        onAddAnalyte={vi.fn()}
+        onRemoveAnalyte={vi.fn()}
+        onMoveAnalyte={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /Add Analyte/i })).toBeNull();
+    expect(screen.queryByLabelText(/Th\. Wt\./i)).toBeNull();
+    expect(screen.queryByLabelText(/Standard Dilution/i)).toBeNull();
+    expect(screen.getByText(/Principal Peak & System Suitability Criteria/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Standard Injections \*/i)).toBeTruthy();
+  });
+
+  it("disables internal standard field when editing an existing method in HplcGeneralSection", () => {
+    render(
+      <HplcGeneralSection
+        editingId={1}
+        technique="Hplc"
+        resultMode="Assay"
+        name="Assay Method"
+        abbreviation="AS-01"
+        effectiveDate="2026-01-01"
+        sectionId={1}
+        internalStandardName="p-hydroxybenzoic acid"
+        mySections={[{ sectionId: 1, sectionName: "QC Section" } as any]}
+        errors={{}}
+        onTechniqueChange={vi.fn()}
+        onResultModeChange={vi.fn()}
+        onInternalStandardNameChange={vi.fn()}
+        onNameChange={vi.fn()}
+        onAbbreviationChange={vi.fn()}
+        onEffectiveDateChange={vi.fn()}
+        onSectionIdChange={vi.fn()}
+      />
+    );
+
+    const isInput = screen.getByRole("textbox", { name: /Internal standard/i });
+    expect((isInput as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("does not offer content bases (% as is, % dried basis, % anhydrous basis) for non-RM items", async () => {
+    const mockFpItem: Item = {
+      id: 300,
+      code: "FP-TAB",
+      sopNumber: "SOP-FP-01",
+      name: "Sildenafil Tablets 50mg",
+      category: "FinishedProduct",
+      isActive: true,
+      assignedTests: [
+        { testCode: "TEST-ASSAY", displayName: "HPLC Assay" }
+      ],
+      specifications: []
+    };
+
+    vi.mocked(HplcMethodService.getById).mockResolvedValue(mockAssayMethod);
+
+    render(
+      <SpecificationParameterDialog
+        open={true}
+        item={mockFpItem}
+        existingSpecs={[]}
+        workflowTypeByCode={{ "TEST-ASSAY": "HplcMethodAssay" }}
+        testDefinitionByCode={mockTestDefs}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    await screen.findByDisplayValue("TEST-ASSAY");
+    await waitFor(() => {
+      expect(HplcMethodService.getById).toHaveBeenCalledWith(20);
+    });
+
+    const analyteSelect = await screen.findByLabelText(/Analyte \*/i);
+    fireEvent.mouseDown(analyteSelect);
+    fireEvent.click(await screen.findByRole("option", { name: /Sildenafil Citrate/i }));
+
+    const basisSelect = await screen.findByLabelText(/Basis \*/i);
+    fireEvent.mouseDown(basisSelect);
+
+    expect(await screen.findByRole("option", { name: /Assay %/i })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Amount per unit/i })).toBeTruthy();
+
+    expect(screen.queryByRole("option", { name: /% as is/i })).toBeNull();
+    expect(screen.queryByRole("option", { name: /% dried basis/i })).toBeNull();
+    expect(screen.queryByRole("option", { name: /% anhydrous basis/i })).toBeNull();
+  });
+
+  it("submits a Total impurities row with hplcMethodImpurityId null", async () => {
+    vi.mocked(HplcMethodService.getById).mockResolvedValue(mockRsMethod);
+    vi.mocked(SpecificationService.create).mockResolvedValue({ id: 1001, testCode: "TEST-RS" });
+
+    render(
+      <SpecificationParameterDialog
+        open={true}
+        item={mockItemRawMaterial}
+        existingSpecs={[]}
+        workflowTypeByCode={{ "TEST-RS": "HplcMethodAssay" }}
+        testDefinitionByCode={mockTestDefs}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    await screen.findByDisplayValue("TEST-RS");
+    const rowSelect = await screen.findByLabelText(/Row \*/i);
+
+    // Pick "Total impurities"
+    fireEvent.mouseDown(rowSelect);
+    const totalOption = await screen.findByRole("option", { name: /Total impurities/i });
+    fireEvent.click(totalOption);
+
+    // Impurity picker should NOT appear
+    expect(screen.queryByLabelText(/Impurity \*/i)).toBeNull();
+
+    // Fill upper limit: 1.00
+    const limitInput = screen.getByLabelText(/NMT \(%\) \*/i);
+    fireEvent.change(limitInput, { target: { value: "1.00" } });
+
+    // Click Add Parameter
+    const saveButton = screen.getByRole("button", { name: /Add Parameter/i });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(SpecificationService.create).toHaveBeenCalledTimes(1);
+    });
+
+    expect(SpecificationService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itemId: 295,
+        testCode: "TEST-RS",
+        relatedSubstanceRow: "Total",
+        hplcMethodImpurityId: null,
+        hplcMethodAnalyteId: 501,
+        limitType: "NotMoreThan",
+        unit: "%",
+        resultBasis: "PercentAsIs",
+        upperLimit: 1.0
       })
     );
   });

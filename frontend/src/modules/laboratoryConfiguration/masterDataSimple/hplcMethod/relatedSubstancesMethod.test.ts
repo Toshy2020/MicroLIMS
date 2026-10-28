@@ -1,3 +1,5 @@
+import { renderHook, act } from "@testing-library/react";
+import { useHplcMethodDialogState } from "./useHplcMethodDialogState";
 import { describe, expect, it } from "vitest";
 import {
   createInitialHplcMethodFormState,
@@ -159,7 +161,7 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
     expect(form.resultMode).toBe("RelatedSubstances");
     expect(form.referenceSolutionPercent).toBe("0.1");
     expect(form.disregardLimitPercent).toBe("0.05");
-    expect(form.impurities).toEqual([
+    expect(form.impurities).toMatchObject([
       { id: 101, name: "Impurity D", relativeRetention: "0.15", correctionFactor: "0.7" },
       { id: 102, name: "Impurity A", relativeRetention: "1.25", correctionFactor: "1" }
     ]);
@@ -268,7 +270,7 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
     form.referenceSolutionPercent = "0.1";
     form.disregardLimitPercent = "-0.01";
     errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
-    expect(Object.values(errors)).toContain("The disregard limit cannot be negative.");
+    expect(Object.values(errors)).toContain("The disregard limit must be between 0 and 100 %.");
 
     // 5. Impurity blank or duplicate name, or CF <= 0
     form.disregardLimitPercent = "0.05";
@@ -283,7 +285,7 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
       { name: "Impurity A", relativeRetention: "0.5", correctionFactor: "0" }
     ];
     errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
-    expect(Object.values(errors)).toContain("The correction factor must be greater than zero.");
+    expect(Object.values(errors)).toContain("The correction factor must be greater than zero and at most 100.");
   });
 
   it("validates that Related Substances is refused for GC, and RS values refused for Assay", () => {
@@ -360,5 +362,200 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
     expect(Object.values(errors)).toContain(
       "An internal standard applies to HPLC assay methods only."
     );
+  });
+  it("clears RS and IS fields when technique is switched in useHplcMethodDialogState", () => {
+    const { result } = renderHook(() =>
+      useHplcMethodDialogState({
+        open: true,
+        editingId: null,
+        initialTechnique: "Hplc",
+        mySections: [],
+        onSaveSuccess: () => {},
+        onClose: () => {}
+      })
+    );
+
+    act(() => {
+      result.current.updateField("resultMode", "RelatedSubstances");
+      result.current.updateField("referenceSolutionPercent", "0.5");
+      result.current.updateField("disregardLimitPercent", "0.05");
+      result.current.updateField("impurities", [
+        { name: "Impurity A", relativeRetention: "0.5", correctionFactor: "1.0" }
+      ]);
+      result.current.updateField("internalStandardName", "IS-1");
+    });
+
+    expect(result.current.form.referenceSolutionPercent).toBe("0.5");
+    expect(result.current.form.disregardLimitPercent).toBe("0.05");
+    expect(result.current.form.impurities).toHaveLength(1);
+    expect(result.current.form.internalStandardName).toBe("IS-1");
+
+    // Switch technique to Gc
+    act(() => {
+      result.current.handleTechniqueChange("Gc");
+    });
+
+    expect(result.current.form.technique).toBe("Gc");
+    expect(result.current.form.referenceSolutionPercent).toBe("");
+    expect(result.current.form.disregardLimitPercent).toBe("");
+    expect(result.current.form.impurities).toEqual([]);
+    expect(result.current.form.internalStandardName).toBe("");
+
+    // Switch technique back to Hplc
+    act(() => {
+      result.current.handleTechniqueChange("Hplc");
+    });
+
+    expect(result.current.form.technique).toBe("Hplc");
+    expect(result.current.form.referenceSolutionPercent).toBe("");
+    expect(result.current.form.disregardLimitPercent).toBe("");
+    expect(result.current.form.impurities).toEqual([]);
+    expect(result.current.form.internalStandardName).toBe("");
+  });
+
+  it("validates server-matching upper-bound and format messages", () => {
+    const form = createInitialHplcMethodFormState(1, "Hplc");
+    form.name = "RS Method";
+    form.abbreviation = "RS-01";
+    form.columnDesignation = "L1";
+    form.diluentSolutionId = 1;
+    form.resultMode = "RelatedSubstances";
+    form.referenceSolutionPercent = "0.1";
+    form.analytes = [
+      {
+        name: "Principal Peak",
+        wavelengthNm: "230",
+        standardEntryId: 1,
+        theoreticalWeightStdMg: "0",
+        theoreticalWeightTestMg: "0",
+        standardDilution: "",
+        standardInjections: "5",
+        sstMaxRsdPercent: "",
+        sstMinResolution: "",
+        sstMaxTailingFactor: "",
+        sstMinTheoreticalPlates: "",
+        sstMinRetentionFactor: "",
+        sstMinSignalToNoise: "",
+        sstMinPeakToValley: "",
+        standardConcentrationUgPerMl: ""
+      }
+    ];
+
+    // Disregard limit > 100
+    form.disregardLimitPercent = "105";
+    let errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
+    expect(errors["disregardLimitPercent"]).toBe("The disregard limit must be between 0 and 100 %.");
+
+    // Disregard limit < 0
+    form.disregardLimitPercent = "-1";
+    errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
+    expect(errors["disregardLimitPercent"]).toBe("The disregard limit must be between 0 and 100 %.");
+
+    form.disregardLimitPercent = "0.05";
+
+    // Correction factor > 100
+    form.impurities = [
+      { name: "Impurity A", relativeRetention: "0.5", correctionFactor: "105" }
+    ];
+    errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
+    expect(errors["impurities.0.correctionFactor"]).toBe(
+      "The correction factor must be greater than zero and at most 100."
+    );
+
+    // Relative retention > 100
+    form.impurities = [
+      { name: "Impurity A", relativeRetention: "105", correctionFactor: "1.0" }
+    ];
+    errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
+    expect(errors["impurities.0.relativeRetention"]).toBe(
+      "The relative retention must be greater than zero and at most 100."
+    );
+
+    // Impurity name > 100 chars
+    form.impurities = [
+      { name: "A".repeat(101), relativeRetention: "0.5", correctionFactor: "1.0" }
+    ];
+    errors = validateHplcMethodForm(form, { isEditing: false, hasMultipleSections: false });
+    expect(errors["impurities.0.name"]).toBe("Impurity names are at most 100 characters.");
+
+    // Internal standard name > 100 chars
+    const assayForm = createInitialHplcMethodFormState(1, "Hplc");
+    assayForm.name = "Assay Method";
+    assayForm.abbreviation = "AS-01";
+    assayForm.columnDesignation = "L1";
+    assayForm.diluentSolutionId = 1;
+    assayForm.resultMode = "Assay";
+    assayForm.internalStandardName = "B".repeat(101);
+    errors = validateHplcMethodForm(assayForm, { isEditing: false, hasMultipleSections: false });
+    expect(errors["internalStandardName"]).toBe("Internal standard name cannot exceed 100 characters.");
+  });
+
+  it("preserves impurity id on entity-to-form conversion and maps it to save request", () => {
+    const entity: HplcMethodResponse = {
+      id: 50,
+      version: 1,
+      technique: "Hplc",
+      resultMode: "RelatedSubstances",
+      name: "RS Method with Existing Impurities",
+      abbreviation: "RS-EXIST",
+      effectiveDate: "2026-01-01",
+      columnDesignation: "L1",
+      columnLengthMm: 150,
+      columnInternalDiameterMm: 4.6,
+      particleSizeUm: 5,
+      columnBrand: null,
+      columnPartNumber: null,
+      columnTemperatureC: 25,
+      elutionMode: "Isocratic",
+      flowRateMlPerMin: 1.0,
+      equilibrationMin: null,
+      detectorType: "UV",
+      injectionVolumeUl: 10,
+      runTimeMin: 20,
+      diluentSolutionId: 1,
+      sectionId: 1,
+      sectionName: "QC",
+      mobilePhases: [],
+      gradientSteps: [],
+      analytes: [
+        {
+          id: 10,
+          name: "Principal Peak",
+          wavelengthNm: 230,
+          standardEntryId: 1,
+          theoreticalWeightStdMg: 0,
+          theoreticalWeightTestMg: 0,
+          standardDilution: null,
+          standardInjections: 5,
+          sstMaxRsdPercent: null,
+          sstMinResolution: null,
+          sstMaxTailingFactor: null,
+          sstMinTheoreticalPlates: null,
+          sstMinRetentionFactor: null,
+          sstMinSignalToNoise: null,
+          sstMinPeakToValley: null,
+          standardConcentrationUgPerMl: null
+        }
+      ],
+      referenceSolutionPercent: 0.2,
+      disregardLimitPercent: 0.05,
+      impurities: [
+        { id: 401, name: "Impurity A", relativeRetention: 0.45, correctionFactor: 1.1 },
+        { id: 402, name: "Impurity B", relativeRetention: 1.35, correctionFactor: 0.9 }
+      ]
+    };
+
+    const form = hplcMethodEntityToFormState(entity);
+    expect(form.impurities).toHaveLength(2);
+    expect(form.impurities[0].id).toBe(401);
+    expect(form.impurities[0].name).toBe("Impurity A");
+    expect(form.impurities[1].id).toBe(402);
+    expect(form.impurities[1].name).toBe("Impurity B");
+
+    const req = formToSaveRequest(form, 1);
+    expect(req.impurities).toEqual([
+      { id: 401, name: "Impurity A", relativeRetention: 0.45, correctionFactor: 1.1 },
+      { id: 402, name: "Impurity B", relativeRetention: 1.35, correctionFactor: 0.9 }
+    ]);
   });
 });

@@ -26,6 +26,12 @@ public static class SystemSettingKeys
     public const string BlockedQueryThresholdMs = "monitoring.database.blockedQueryThresholdMs";
 
     public const string ReassignmentEscalationDays = "DocumentControl.ReassignmentEscalationDays";
+
+    // Maintenance mode and the announcement banner (WP4.4).
+    public const string MaintenanceMode = "System.MaintenanceMode";
+    public const string MaintenanceMessage = "System.MaintenanceMessage";
+    public const string AnnouncementBanner = "System.AnnouncementBanner";
+    public const string AnnouncementSeverity = "System.AnnouncementSeverity";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -43,13 +49,17 @@ public sealed record SystemSettingDefinition(
     long? Max = null,
     IReadOnlyList<string>? AllowedValues = null,
     bool IsGxpRelevant = false,
-    string? LegacyConfigKey = null)
+    string? LegacyConfigKey = null,
+    // Text settings only: an empty value is meaningful (e.g. "no banner").
+    bool AllowEmpty = false)
 {
     // Checks the raw text against type, range and allowed values and returns the
     // canonical text to store. Throws InvalidOperationException (answered as 400).
     public string Normalize(string? raw)
     {
         var text = raw?.Trim();
+        if (string.IsNullOrEmpty(text) && AllowEmpty && Type == SystemSettingValueType.String)
+            return string.Empty;
         if (string.IsNullOrEmpty(text))
             throw new InvalidOperationException($"A value is required for '{Key}'.");
 
@@ -103,6 +113,10 @@ public static class SystemSettingDefinitions
     public const string RetentionCategory = "Retention";
     public const string MonitoringCategory = "Monitoring";
     public const string DocumentControlCategory = "Document Control";
+    public const string SystemCategory = "System";
+
+    public const string DefaultMaintenanceMessage =
+        "MicroLIMS is in maintenance mode. Changes cannot be saved right now; please try again shortly.";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -160,6 +174,18 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.ReassignmentEscalationDays, DocumentControlCategory, SystemSettingValueType.Integer, "7",
             "Days a deactivated user's document responsibilities may wait for reassignment before they are flagged overdue and the department's Section Heads are notified. Nothing is reassigned automatically.",
             "days", 1, 90),
+
+        new(SystemSettingKeys.MaintenanceMode, SystemCategory, SystemSettingValueType.Boolean, "false",
+            "While on, every change made through the application (anything other than reading) is refused with the maintenance message. Sign-in, sign-out and this administration area stay available so maintenance can be ended.",
+            IsGxpRelevant: true),
+        new(SystemSettingKeys.MaintenanceMessage, SystemCategory, SystemSettingValueType.String, DefaultMaintenanceMessage,
+            "Message shown to users, and returned with the refusal, while maintenance mode is on."),
+        new(SystemSettingKeys.AnnouncementBanner, SystemCategory, SystemSettingValueType.String, "",
+            "Announcement shown in a banner on every page, including the sign-in page. Leave empty for no banner.",
+            AllowEmpty: true),
+        new(SystemSettingKeys.AnnouncementSeverity, SystemCategory, SystemSettingValueType.String, "info",
+            "How the announcement banner is styled.",
+            AllowedValues: new[] { "info", "warning" }),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

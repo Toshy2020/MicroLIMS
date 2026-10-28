@@ -67,6 +67,15 @@ public sealed class BackgroundJobRunRecorder : IBackgroundJobRunRecorder
     {
         var startedAt = _time.GetUtcNow().UtcDateTime;
 
+        // Maintenance mode: jobs that change GxP state (or notify) stand down; housekeeping continues.
+        if (trigger == BackgroundJobTrigger.Schedule
+            && BackgroundJobCatalog.Find(jobName) is { Classification: BackgroundJobClassification.Gxp } gxpJob
+            && await IsMaintenanceOnAsync(jobName))
+        {
+            await RecordMaintenanceSkipAsync(gxpJob, startedAt);
+            return new BackgroundJobRunResult(null, BackgroundJobOutcome.Skipped, null, MaintenanceSkipMessage);
+        }
+
         if (!_running.TryAdd(jobName, 0))
         {
             const string message = "A previous pass of this job is still running.";
@@ -123,6 +132,39 @@ public sealed class BackgroundJobRunRecorder : IBackgroundJobRunRecorder
         {
             _running.TryRemove(jobName, out _);
         }
+    }
+
+    internal const string MaintenanceSkipMessage = "Skipped: maintenance mode is on.";
+    private static readonly TimeSpan QuietSkipInterval = TimeSpan.FromHours(1);
+    private readonly ConcurrentDictionary<string, DateTime> _lastSkipRecorded = new(StringComparer.OrdinalIgnoreCase);
+
+    // Failing to read the flag must never stop a job: it runs as before.
+    private async Task<bool> IsMaintenanceOnAsync(string jobName)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var reader = scope.ServiceProvider.GetService<MicroLIMS.Application.Interfaces.ISystemSettingsReader>();
+            return reader is not null && await reader.GetBoolAsync(SystemSettings.SystemSettingKeys.MaintenanceMode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[{Job}] Could not read maintenance mode; running the pass.", jobName);
+            return false;
+        }
+    }
+
+    // High-frequency jobs would write a row a minute for the whole maintenance window,
+    // so those record the skip at most once an hour.
+    private async Task RecordMaintenanceSkipAsync(BackgroundJobDefinition job, DateTime now)
+    {
+        _logger.LogInformation("[{Job}] Skipping the pass: maintenance mode is on.", job.Name);
+        if (!job.RecordIdleScheduledPasses
+            && _lastSkipRecorded.TryGetValue(job.Name, out var last) && now - last < QuietSkipInterval)
+            return;
+        _lastSkipRecorded[job.Name] = now;
+        await TryInsertFinishedAsync(job.Name, BackgroundJobTrigger.Schedule, null, null, now,
+            BackgroundJobOutcome.Skipped, null, MaintenanceSkipMessage);
     }
 
     internal static string Truncate(string text)

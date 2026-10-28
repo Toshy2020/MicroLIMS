@@ -29,6 +29,7 @@ public class SystemSettingsService : ISystemSettingsService
     private readonly IConfiguration? _configuration;
     private readonly TimeProvider _time;
     private readonly TimeSpan? _accessTokenLifetime;
+    private readonly ISecurityAuditService? _securityAudit;
 
     public SystemSettingsService(
         IMicroLimsDbContext db,
@@ -36,8 +37,10 @@ public class SystemSettingsService : ISystemSettingsService
         IElectronicSignatureService signatureService,
         IConfiguration? configuration = null,
         TimeProvider? timeProvider = null,
-        TimeSpan? accessTokenLifetime = null)
+        TimeSpan? accessTokenLifetime = null,
+        ISecurityAuditService? securityAudit = null)
     {
+        _securityAudit = securityAudit;
         _db = db;
         _cache = cache;
         _signatureService = signatureService;
@@ -170,6 +173,16 @@ public class SystemSettingsService : ISystemSettingsService
             UserId = actingUserId,
             Timestamp = now
         });
+
+        // Same transaction as the change: either both land or neither does.
+        if (key == SystemSettingKeys.MaintenanceMode)
+        {
+            _securityAudit?.Record(new SecurityEventRequest(
+                MicroLIMS.Shared.Constants.SecurityEventCodes.MaintenanceModeChanged,
+                ActorUserId: actingUserId,
+                Reason: reason,
+                Metadata: JsonSerializer.Serialize(new { MaintenanceMode = newValue == "true", Previous = previousValue == "true" })));
+        }
 
         await _db.SaveChangesAsync();
 

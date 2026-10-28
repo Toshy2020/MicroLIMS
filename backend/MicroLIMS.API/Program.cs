@@ -204,6 +204,10 @@ app.UseAuthentication();
 app.UseMicroLimsAgentPreAuthThrottle();
 app.UseAuthorization();
 
+// Maintenance mode: refuses writes while on. After authentication so it sees the
+// caller's permissions; before the audit pipeline so a refused request leaves no trace there.
+app.UseMiddleware<MicroLIMS.API.Middleware.MaintenanceModeMiddleware>();
+
 // Stamps the current user onto the DbContext for audit trail capture -
 // must run after UseAuthentication so HttpContext.User is populated.
 app.UseMicroLimsAuditPipeline();

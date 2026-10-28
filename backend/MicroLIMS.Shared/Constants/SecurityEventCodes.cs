@@ -43,6 +43,9 @@ public static class SecurityEventCodes
     // An administrator ran a housekeeping background job by hand; carries the stated reason.
     public const string BackgroundJobManuallyTriggered = "ADMIN_BACKGROUND_JOB_TRIGGERED";
 
+    // Maintenance mode switched on or off; carries the reason and the new state.
+    public const string MaintenanceModeChanged = "ADMIN_MAINTENANCE_MODE_CHANGED";
+
     // ---- Instrument agents ----
     // A presented agent key was malformed, unknown, revoked, or its equipment is gone.
     public const string AgentAuthFailed = "AGENT_AUTH_FAILED";

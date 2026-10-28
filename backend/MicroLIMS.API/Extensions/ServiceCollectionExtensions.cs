@@ -290,7 +290,8 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IElectronicSignatureService>(),
             sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
             sp.GetRequiredService<TimeProvider>(),
-            sp.GetRequiredService<JwtSettings>().AccessTokenLifetime));
+            sp.GetRequiredService<JwtSettings>().AccessTokenLifetime,
+            sp.GetRequiredService<ISecurityAuditService>()));
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
 

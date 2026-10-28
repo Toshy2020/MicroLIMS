@@ -14,9 +14,9 @@ public record SaveMaterialMasterEntryRequest(
     MaterialUnit BaseUnit, int? SectionId = null,
     string? WorkingConcentration = null, string? Solvent = null,
     decimal? TransitionRangeFrom = null, decimal? TransitionRangeTo = null,
-    string? ColourChange = null, string? IndicatorUse = null);
+    string? ColourChange = null, string? IndicatorUse = null, int? MaterialCategoryId = null);
 
-// Reagent / Indicator / Reference Standard master (HPLC chain S1, spec 3.1).
+// Reagent / Indicator / Reference Standard / Other Materials master (HPLC chain S1, spec 3.1).
 // Chemical stock lots (Material) reference an entry here; lots snapshot the
 // entry's name/code at receipt so a later edit here doesn't retroactively
 // change a lot's record.
@@ -24,6 +24,9 @@ public record SaveMaterialMasterEntryRequest(
 // App-wide: every lab sees and uses every entry, only the owner lab (SectionId)
 // edits it. Codes are unique across the app and carry a category prefix
 // (enforced on create and on code change; older codes are grandfathered).
+// Other Materials entries (Category = Other) point at a MaterialCategory whose
+// CodePrefix is their prefix; the category must be active and offered to the
+// owner lab.
 // Once an entry has stock its code is frozen and changes only through
 // ChangeCodeAsync (reason + electronic signature).
 public class MaterialMasterService
@@ -61,7 +64,7 @@ public class MaterialMasterService
     public async Task<List<MaterialMasterEntryResponse>> GetAllAsync(int currentUserId, MaterialMasterCategory? category = null, bool activeOnly = false, CancellationToken ct = default)
     {
         // Every lab sees every entry; the owner lab (configurable scope) decides CanEdit.
-        var query = _db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section).AsQueryable();
+        var query = _db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section).Include(e => e.MaterialCategory).AsQueryable();
 
         if (category.HasValue)
         {
@@ -89,6 +92,8 @@ public class MaterialMasterService
     {
         // Owner-lab access was already checked by LoadWithAccessAsync / ResolveSectionForCreateAsync.
         entry.Section ??= await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == entry.SectionId, ct);
+        if (entry.MaterialCategoryId.HasValue)
+            entry.MaterialCategory ??= await _db.MaterialCategories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == entry.MaterialCategoryId.Value, ct);
         var hasStock = await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == entry.Id, ct);
         return MaterialMasterEntryResponse.From(entry, canEdit: true, hasStock);
     }
@@ -99,7 +104,8 @@ public class MaterialMasterService
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
         var normalizedCode = r.Code.Trim().ToUpper();
-        EnsurePrefix(normalizedCode, r.Category);
+        var materialCategory = await ResolveMaterialCategoryAsync(r, sectionId, ct);
+        EnsurePrefix(normalizedCode, r.Category, materialCategory);
 
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode, ct))
             throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
@@ -114,6 +120,8 @@ public class MaterialMasterService
             Source = r.Source?.Trim(),
             BaseUnit = r.BaseUnit,
             IsActive = true,
+            MaterialCategoryId = materialCategory?.Id,
+            MaterialCategory = materialCategory,
             WorkingConcentration = r.WorkingConcentration?.Trim(),
             Solvent = r.Solvent?.Trim(),
             TransitionRangeFrom = r.TransitionRangeFrom,
@@ -142,22 +150,38 @@ public class MaterialMasterService
         var normalizedCode = r.Code.Trim().ToUpper();
         var hasStock = await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == id, ct);
 
-        // Only a changed code is checked: existing codes without a prefix are grandfathered.
-        if (normalizedCode != entry.Code)
+        if (r.Category != entry.Category && hasStock)
+            throw new InvalidOperationException("This entry has linked stock lots; its category can't change.");
+        var categoryChanged = r.MaterialCategoryId != entry.MaterialCategoryId;
+        if (categoryChanged && hasStock)
+            throw new InvalidOperationException("This entry has linked stock lots; its material category can't change.");
+
+        // The category is checked against the owner lab only when it is being set or changed,
+        // so an entry whose category was later deactivated or narrowed can still be renamed.
+        MaterialCategory? materialCategory = null;
+        if (r.Category == MaterialMasterCategory.Other)
+            materialCategory = categoryChanged
+                ? await ResolveMaterialCategoryAsync(r, entry.SectionId, ct)
+                : await _db.MaterialCategories.FirstAsync(c => c.Id == entry.MaterialCategoryId, ct);
+        else
+            await ResolveMaterialCategoryAsync(r, entry.SectionId, ct); // rejects a category on a non-Other entry
+
+        // Only a changed code (or a changed category, which changes the prefix) is checked:
+        // existing codes without a prefix are grandfathered.
+        if (normalizedCode != entry.Code || categoryChanged)
         {
-            if (hasStock)
+            if (normalizedCode != entry.Code && hasStock)
                 throw new InvalidOperationException("This entry has stock; change its code with a reason and an electronic signature.");
-            EnsurePrefix(normalizedCode, r.Category);
+            EnsurePrefix(normalizedCode, r.Category, materialCategory);
             if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
                 throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
         }
 
-        if (r.Category != entry.Category && hasStock)
-            throw new InvalidOperationException("This entry has linked stock lots; its category can't change.");
-
         entry.Code = normalizedCode;
         entry.Name = r.Name.Trim();
         entry.Category = r.Category;
+        entry.MaterialCategoryId = materialCategory?.Id;
+        entry.MaterialCategory = materialCategory;
         entry.Grade = r.Grade?.Trim();
         entry.Source = r.Source?.Trim();
         entry.BaseUnit = r.BaseUnit;
@@ -193,7 +217,10 @@ public class MaterialMasterService
 
         if (normalizedCode == entry.Code)
             throw new InvalidOperationException("The new code must be different from the current code.");
-        EnsurePrefix(normalizedCode, entry.Category);
+        var entryCategory = entry.MaterialCategoryId.HasValue
+            ? await _db.MaterialCategories.FirstOrDefaultAsync(c => c.Id == entry.MaterialCategoryId.Value, ct)
+            : null;
+        EnsurePrefix(normalizedCode, entry.Category, entryCategory);
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
             throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
 
@@ -251,11 +278,36 @@ public class MaterialMasterService
         return entry;
     }
 
-    private static void EnsurePrefix(string normalizedCode, MaterialMasterCategory category)
+    // Other Materials entries carry their category's prefix ("SUP-").
+    public static string PrefixFor(MaterialCategory category) => category.CodePrefix + "-";
+
+    // For an Other entry: loads the category and checks it is active and offered to the
+    // owner lab. For any other entry: rejects a stray category. Returns null for non-Other.
+    private async Task<MaterialCategory?> ResolveMaterialCategoryAsync(SaveMaterialMasterEntryRequest r, int ownerSectionId, CancellationToken ct)
     {
-        var prefix = PrefixFor(category);
+        if (r.Category != MaterialMasterCategory.Other)
+        {
+            if (r.MaterialCategoryId.HasValue)
+                throw new InvalidOperationException("A material category is only allowed for Other materials.");
+            return null;
+        }
+
+        if (!r.MaterialCategoryId.HasValue)
+            throw new InvalidOperationException("Choose the material category for this Other material.");
+        var category = await _db.MaterialCategories.Include(c => c.Sections).FirstOrDefaultAsync(c => c.Id == r.MaterialCategoryId.Value, ct)
+            ?? throw new InvalidOperationException($"Material category {r.MaterialCategoryId.Value} not found.");
+        if (!category.IsActive)
+            throw new InvalidOperationException($"Material category \"{category.Name}\" is inactive.");
+        if (category.Sections.Count > 0 && category.Sections.All(s => s.SectionId != ownerSectionId))
+            throw new InvalidOperationException($"Material category \"{category.Name}\" is not available to the owner lab of this entry.");
+        return category;
+    }
+
+    private static void EnsurePrefix(string normalizedCode, MaterialMasterCategory category, MaterialCategory? materialCategory = null)
+    {
+        var prefix = materialCategory != null ? PrefixFor(materialCategory) : PrefixFor(category);
         if (!normalizedCode.StartsWith(prefix, StringComparison.Ordinal) || normalizedCode.Length == prefix.Length)
-            throw new InvalidOperationException($"{CategoryLabel(category)} codes must start with \"{prefix}\".");
+            throw new InvalidOperationException($"{materialCategory?.Name ?? CategoryLabel(category)} codes must start with \"{prefix}\".");
     }
 
     private static string CategoryLabel(MaterialMasterCategory category) => category switch

@@ -73,6 +73,15 @@ public class Material : IVersionedEntity
     // Reference standards only: moisture content % (0 <= x < 100), used with Purity in assay calculations.
     public decimal? MoisturePercent { get; set; }
 
+    // Where the lot is kept (e.g. "2-8 C"); defaulted from the category at receipt.
+    public string? StorageCondition { get; set; }
+
+    // Release gate, set at receipt only when the lot's category requires approval
+    // before use; null = no gate. PendingReview and Rejected lots are unusable.
+    public ApprovalGateStatus? ApprovalStatus { get; set; }
+    public int? ApprovedByUserId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int LastModifiedByUserId { get; set; }
@@ -88,7 +97,10 @@ public class Material : IVersionedEntity
 
     // Used by MediaPreparationService's consumption guard before any
     // mutation - same shape as EquipmentGuard-style checks elsewhere.
-    public bool IsUsable => Status == StockStatus.InStock;
+    public bool IsUsable => Status == StockStatus.InStock && !IsAwaitingRelease && !IsRejected;
+
+    public bool IsAwaitingRelease => ApprovalStatus == ApprovalGateStatus.PendingReview;
+    public bool IsRejected => ApprovalStatus == ApprovalGateStatus.Rejected;
 
     // How a lot is named on screens: a working standard by its WS-nn/MM/yyyy
     // code (its BatchNumber is the source raw-material batch), any other lot

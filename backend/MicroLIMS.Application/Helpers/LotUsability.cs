@@ -15,6 +15,11 @@ public static class LotUsability
         if (lot.MaterialMasterEntryId != masterEntryId)
             return new(false, "Lot is not linked to this reagent.");
 
+        if (lot.IsAwaitingRelease)
+            return new(false, "Lot is awaiting release.");
+        if (lot.IsRejected)
+            return new(false, "Lot was rejected.");
+
         if (lot.ExpiryDate.HasValue && DateOnly.FromDateTime(lot.ExpiryDate.Value) < today)
             return new(false, $"Expired on {lot.ExpiryDate:yyyy-MM-dd}.");
 

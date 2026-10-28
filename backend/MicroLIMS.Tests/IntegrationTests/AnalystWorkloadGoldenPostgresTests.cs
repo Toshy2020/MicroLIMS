@@ -18,7 +18,7 @@ public class AnalystWorkloadGoldenPostgresTests
             await db.Database.MigrateAsync();
             // AddOrgSectionSegregation already inserted QC and MICRO into a migrated database (PostgresTestFixture says the same);
             // SeedBaselineAsync inserts its own ids and codes, so clear the migration-seeded org rows first.
-            await db.Database.ExecuteSqlRawAsync("DELETE FROM \"DocumentSections\"; DELETE FROM \"DocumentDepartments\";");
+            await db.Database.ExecuteSqlRawAsync("DELETE FROM \"MaterialCategorySections\"; DELETE FROM \"DocumentSections\"; DELETE FROM \"DocumentDepartments\";");
             await SeedBaselineAsync(db);
 
             await DeliverAsync(db, 1, "TAMC", Bob, At(9, 12), returned: true);

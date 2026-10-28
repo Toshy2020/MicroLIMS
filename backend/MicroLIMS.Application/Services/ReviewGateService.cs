@@ -106,6 +106,8 @@ public static class ReviewEntityTypes
     public const string Cryovial = "Cryovial";
     public const string MediaProduct = "MediaProduct";
     public const string MaterialMasterEntry = "MaterialMasterEntry";
+    public const string MaterialCategory = "MaterialCategory";
+    public const string Material = "Material";
     public const string MasterDataImport = "MasterDataImport";
     public const string WorkflowProfile = "WorkflowProfile";
 }

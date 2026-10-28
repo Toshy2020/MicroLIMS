@@ -21,6 +21,9 @@ public class MaterialMasterEntryResponse
     public string? Source { get; init; }
     public MaterialUnit BaseUnit { get; init; }
     public bool IsActive { get; init; }
+    // Other Materials only.
+    public int? MaterialCategoryId { get; init; }
+    public string? MaterialCategoryName { get; init; }
 
     public string? WorkingConcentration { get; init; }
     public string? Solvent { get; init; }
@@ -50,6 +53,8 @@ public class MaterialMasterEntryResponse
         Source = e.Source,
         BaseUnit = e.BaseUnit,
         IsActive = e.IsActive,
+        MaterialCategoryId = e.MaterialCategoryId,
+        MaterialCategoryName = e.MaterialCategory?.Name,
         WorkingConcentration = e.WorkingConcentration,
         Solvent = e.Solvent,
         TransitionRangeFrom = e.TransitionRangeFrom,

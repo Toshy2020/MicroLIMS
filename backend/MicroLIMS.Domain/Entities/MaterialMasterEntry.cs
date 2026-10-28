@@ -23,6 +23,11 @@ public class MaterialMasterEntry : IVersionedEntity
     public MaterialUnit BaseUnit { get; set; }
     public bool IsActive { get; set; } = true;
 
+    // Other Materials only (Category = Other): the category that sets the entry's
+    // code prefix and its lots' rules. Set exactly when Category is Other.
+    public int? MaterialCategoryId { get; set; }
+    public MaterialCategory? MaterialCategory { get; set; }
+
     // Indicator only (all optional)
     public string? WorkingConcentration { get; set; }
     public string? Solvent { get; set; }

@@ -75,6 +75,15 @@ public class MaterialResponse
     public int? MaterialMasterEntryId { get; init; }
     public string? MaterialMasterEntryCode { get; init; }
     public decimal? MoisturePercent { get; init; }
+    public string? StorageCondition { get; init; }
+    // Release gate (categories with approval before use): null = no gate.
+    public ApprovalGateStatus? ApprovalStatus { get; init; }
+    public int? ApprovedByUserId { get; init; }
+    public DateTime? ApprovedAt { get; init; }
+    // From the lot's master entry category (Other materials); null otherwise.
+    public int? MaterialCategoryId { get; init; }
+    public string? CategoryName { get; init; }
+    public bool LabelRequired { get; init; }
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
     public int LastModifiedByUserId { get; init; }
@@ -110,6 +119,13 @@ public class MaterialResponse
         MaterialMasterEntryId = e.MaterialMasterEntryId,
         MaterialMasterEntryCode = e.MaterialMasterEntry?.Code,
         MoisturePercent = e.MoisturePercent,
+        StorageCondition = e.StorageCondition,
+        ApprovalStatus = e.ApprovalStatus,
+        ApprovedByUserId = e.ApprovedByUserId,
+        ApprovedAt = e.ApprovedAt,
+        MaterialCategoryId = e.MaterialMasterEntry?.MaterialCategoryId,
+        CategoryName = e.MaterialMasterEntry?.MaterialCategory?.Name,
+        LabelRequired = e.MaterialMasterEntry?.MaterialCategory?.LabelRequired ?? false,
         CreatedByUserId = e.CreatedByUserId,
         CreatedAt = e.CreatedAt,
         LastModifiedByUserId = e.LastModifiedByUserId,

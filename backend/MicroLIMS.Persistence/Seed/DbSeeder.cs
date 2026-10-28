@@ -494,6 +494,8 @@ public static class DbSeeder
             (PermissionConstants.KpiConfigureProfiles, "Create and sign workflow profile versions (work units and analyst-stage targets) used by the KPI page."),
             (PermissionConstants.MediaPrepare, "Prepare media lots and mark them out of stock."),
             (PermissionConstants.MediaRelease, "Release a prepared media lot for use."),
+            (PermissionConstants.MaterialCategoriesManage, "Create and change material categories."),
+            (PermissionConstants.MaterialsRelease, "Release a received stock lot for use."),
             (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
             (PermissionConstants.TestWorkflowSupervise, "Supervisor interventions in a running test: override an incubation's minimum duration, reset a pathogen session."),
             (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
@@ -572,7 +574,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview, PermissionConstants.DocumentsReassign,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialCategoriesManage, PermissionConstants.MaterialsRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
                     PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage

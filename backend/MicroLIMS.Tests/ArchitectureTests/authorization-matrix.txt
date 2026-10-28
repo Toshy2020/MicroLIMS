@@ -343,6 +343,10 @@ MasterDataWorkbookController.GetImports(): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Import(IFormFile, String, String): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Validate(IFormFile): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Verify(Int32, VerifyMasterDataImportRequest): SystemAdministrator,SectionHead
+MaterialCategoryController.Create(SaveMaterialCategoryRequest): SectionHead
+MaterialCategoryController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+MaterialCategoryController.SetActive(Int32, Boolean): SectionHead
+MaterialCategoryController.Update(Int32, SaveMaterialCategoryRequest): SectionHead
 MaterialController.Create(SaveMaterialHttpRequest): SectionHead,Analyst
 MaterialController.GetAll(Nullable`1): SectionHead,Analyst
 MaterialController.GetDefaultUnit(MaterialType): SectionHead,Analyst
@@ -361,6 +365,7 @@ MaterialMasterController.Create(SaveMaterialMasterEntryRequest): SystemAdministr
 MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 MaterialMasterController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
 MaterialMasterController.Update(Int32, SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
+MaterialReleaseController.Decide(Int32, DecideMaterialReleaseRequest): SectionHead
 MediaController.AddStorageEntry(Int32, AddMediaStorageEntryRequest): SectionHead,Reviewer,Analyst
 MediaController.DecideRelease(Int32, DecideMediaReleaseRequest): SectionHead
 MediaController.GetAll(): SectionHead,Reviewer,Analyst

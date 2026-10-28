@@ -60,8 +60,12 @@ public class RoleService
     private static List<string> Visible(IEnumerable<string> codes) =>
         codes.Where(c => !PermissionConstants.Hidden.Contains(c)).ToList();
 
-    public async Task<List<PermissionDto>> GetAllPermissionsAsync() =>
-        await _db.Permissions.Where(p => !PermissionConstants.Hidden.Contains(p.Code)).OrderBy(p => p.Code).Select(p => new PermissionDto(p.Code, p.Description, p.IsEnforced)).ToListAsync();
+    public async Task<List<PermissionDto>> GetAllPermissionsAsync()
+    {
+        // An array, not the IReadOnlySet itself: Npgsql cannot translate IReadOnlySet.Contains.
+        var hidden = PermissionConstants.Hidden.ToArray();
+        return await _db.Permissions.Where(p => !hidden.Contains(p.Code)).OrderBy(p => p.Code).Select(p => new PermissionDto(p.Code, p.Description, p.IsEnforced)).ToListAsync();
+    }
 
     // baseType: which of the 4 RoleType values this role's holders are
     // treated as by the still-untouched [Authorize(Roles=...)] attributes

@@ -273,6 +273,18 @@ public partial class HplcRunServiceTests
         Assert.Contains(total.Readings, r => r.Text != null && r.Text.StartsWith("Impurity D: ") && r.Value1 == 12000m);
         Assert.Contains(total.Readings, r => r.Text != null && r.Text.StartsWith("Unspecified RRT 0.85: "));
         Assert.DoesNotContain(results[2].Readings, r => r.Text!.Contains("1.4"));
+
+        // CalculationJson carries every entered peak per replicate: impurity id or unspecified, RRT, area, pct, and disregarded: true/false.
+        var calcDoc = JsonDocument.Parse(results[0].CalculationJson!);
+        var repPeaks = calcDoc.RootElement.GetProperty("replicates")[0].GetProperty("peaks");
+        Assert.Equal(4, repPeaks.GetArrayLength());
+        var belowDisregard = repPeaks.EnumerateArray().Single(p => p.GetProperty("area").GetDecimal() == 3000m);
+        Assert.True(belowDisregard.GetProperty("disregarded").GetBoolean());
+        Assert.Equal(1.4m, belowDisregard.GetProperty("relativeRetention").GetDecimal());
+        Assert.Equal(JsonValueKind.Null, belowDisregard.GetProperty("impurityId").ValueKind);
+        var dPeak = repPeaks.EnumerateArray().Single(p => p.GetProperty("area").GetDecimal() == 12000m);
+        Assert.False(dPeak.GetProperty("disregarded").GetBoolean());
+        Assert.Equal(f.ImpurityD.Id, dPeak.GetProperty("impurityId").GetInt32());
     }
 
     [Fact]

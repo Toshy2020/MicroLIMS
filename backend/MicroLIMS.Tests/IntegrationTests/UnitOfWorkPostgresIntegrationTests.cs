@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs.Responses;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -243,5 +245,154 @@ public class UnitOfWorkPostgresIntegrationTests
         await db.SaveChangesAsync();
 
         return (order.Id, media.Id, incubator.Id);
+    }
+
+    private sealed class FailReplicateInsertSave : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context!.ChangeTracker.Entries<HplcSampleReplicate>().Any(e => e.State == EntityState.Added))
+                throw new InvalidOperationException("replicate insert failed");
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    [PostgresFact]
+    public async Task ReplaceReplicates_FailingAtInsert_RollsBackTheDeletion()
+    {
+        var sectionId = _fixture.SeededSectionId;
+        var userId = _fixture.SeededUserId;
+        int runSampleId;
+        int originalRepId;
+
+        await using (var db = _fixture.CreateDbContext())
+        {
+            var equip = new Equipment { Name = "HPLC UOW", Code = UniqueCode("HPLCUOW-"), Type = EquipmentType.Hplc, SectionId = sectionId };
+            db.Equipment.Add(equip);
+
+            var col = new ChromatographyColumn
+            {
+                Name = "Column UOW", Code = UniqueCode("COL-"), SerialNumber = UniqueCode("SN-"),
+                SectionId = sectionId, IsActive = true, CreatedByUserId = userId, LastModifiedByUserId = userId
+            };
+            db.ChromatographyColumns.Add(col);
+
+            var diluent = new SolutionMaster
+            {
+                SectionId = sectionId, Name = "Diluent UOW", Type = SolutionType.Diluent,
+                ShelfLifeValue = 30, ShelfLifeUnit = ShelfLifeUnit.Days, StorageCondition = "Room", FinalVolumeMl = 1000m,
+                CreatedByUserId = userId, LastModifiedByUserId = userId
+            };
+            var stdEntry = new MaterialMasterEntry
+            {
+                SectionId = sectionId, Code = UniqueCode("STD-"), Name = "Standard UOW",
+                Category = MaterialMasterCategory.ReferenceStandard, BaseUnit = MaterialUnit.Gram,
+                CreatedByUserId = userId, LastModifiedByUserId = userId
+            };
+            db.SolutionMasters.Add(diluent);
+            db.MaterialMasterEntries.Add(stdEntry);
+            await db.SaveChangesAsync();
+
+            var method = new HplcMethod
+            {
+                SectionId = sectionId, Name = "Method RS UOW", Abbreviation = UniqueCode("M"),
+                ColumnDesignation = "L1", DiluentSolutionId = diluent.Id, EffectiveDate = DateTime.UtcNow,
+                ResultMode = HplcResultMode.RelatedSubstances, ReferenceSolutionPercent = 0.1m, DisregardLimitPercent = 0.05m,
+                CreatedByUserId = userId, LastModifiedByUserId = userId,
+                Analytes =
+                {
+                    new HplcMethodAnalyte
+                    {
+                        DisplayOrder = 1, Name = "Analyte", WavelengthNm = 290m, StandardEntryId = stdEntry.Id,
+                        TheoreticalWeightStdMg = 50m, TheoreticalWeightTestMg = 50m, StandardInjections = 5,
+                    }
+                }
+            };
+            db.HplcMethods.Add(method);
+            await db.SaveChangesAsync();
+
+            var run = new HplcRun
+            {
+                Code = UniqueCode("RUN-"),
+                EquipmentId = equip.Id,
+                ChromatographyColumnId = col.Id,
+                HplcMethodId = method.Id,
+                SectionId = sectionId,
+                Status = HplcRunStatus.Open,
+                AnalystUserId = userId,
+                MethodSnapshotJson = JsonSerializer.Serialize(HplcMethodResponse.From(method), SnapshotJson.Options),
+            };
+            db.HplcRuns.Add(run);
+            await db.SaveChangesAsync();
+
+            var cause = new CauseOfTesting { Name = UniqueCode("Routine ") };
+            db.CausesOfTesting.Add(cause);
+            await db.SaveChangesAsync();
+
+            var sample = new Sample
+            {
+                Category = SampleCategory.RawMaterial,
+                ControlNumber = UniqueCode("CTRL-"),
+                ReferenceNumber = UniqueCode("REF-"),
+                CauseOfTestingId = cause.Id,
+                ReceivedByUserId = userId,
+                Status = SampleStatus.Received,
+            };
+            var order = new TestOrder
+            {
+                TestCode = UniqueCode("TST-"),
+                Status = ApprovalStatus.Pending,
+                CurrentStep = WorkflowStep.Waiting,
+                SectionId = sectionId,
+            };
+            sample.TestOrders.Add(order);
+            db.Samples.Add(sample);
+            await db.SaveChangesAsync();
+
+            var runSample = new HplcRunSample
+            {
+                HplcRunId = run.Id,
+                TestOrderId = order.Id,
+                Status = HplcRunSampleStatus.Assigned,
+                AssignedByUserId = userId,
+                AssignedAt = DateTime.UtcNow,
+            };
+            var rep = new HplcSampleReplicate
+            {
+                ReplicateNo = 1,
+                ActualWeightMg = 0m,
+                Responses = new List<HplcReplicateResponse> { new() { HplcMethodAnalyteId = method.Analytes[0].Id, Response = 10000m } },
+                Peaks = new List<HplcReplicatePeak> { new() { Area = 5000m } },
+            };
+            runSample.Replicates.Add(rep);
+            db.HplcRunSamples.Add(runSample);
+            await db.SaveChangesAsync();
+
+            runSampleId = runSample.Id;
+            originalRepId = rep.Id;
+        }
+
+        var failing = new FailReplicateInsertSave();
+        await using (var db = _fixture.CreateDbContext(failing))
+        {
+            var service = TestServiceFactory.HplcRun(db);
+            var analyteId = (await db.HplcSampleReplicates.Include(r => r.Responses).FirstAsync(r => r.Id == originalRepId)).Responses[0].HplcMethodAnalyteId;
+            var newInputs = new SaveReplicatesRequest(new List<HplcReplicateInput>
+            {
+                new(0m, new List<HplcReplicateResponseInput> { new(analyteId, 12000m) }, new List<HplcReplicatePeakInput> { new(null, null, 8000m) }),
+            });
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.SaveReplicatesAsync(runSampleId, newInputs, userId));
+        }
+
+        await using (var check = _fixture.CreateDbContext())
+        {
+            var reps = await check.HplcSampleReplicates.Include(r => r.Peaks).Where(r => r.HplcRunSampleId == runSampleId).ToListAsync();
+            var rep = Assert.Single(reps);
+            Assert.Equal(originalRepId, rep.Id);
+            Assert.Equal(1, rep.ReplicateNo);
+            Assert.Equal(5000m, Assert.Single(rep.Peaks).Area);
+        }
     }
 }

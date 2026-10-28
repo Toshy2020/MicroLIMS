@@ -157,8 +157,8 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             validityRecordId: sst.Id);
     }
 
-    // What the related-substance row was calculated from: the reference solution, and per replicate the
-    // peaks that counted (the ones below the disregard limit are left out, as in the result).
+    // What the related-substance row was calculated from: the reference solution, and per replicate every
+    // entered peak (including disregarded ones, carrying impurity id or unspecified, RRT, area, pct, and disregarded: true/false).
     private static string RelatedSubstancesJson(HplcSampleEntryContext c, RsRowResult rs)
     {
         var analyte = c.Snapshot.Analytes.First();
@@ -177,7 +177,15 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                 replicateNo = d.ReplicateNo,
                 referenceArea = d.ReferenceArea,
                 percent = d.Percent,
-                peaks = d.Contributions.Select(p => new { label = p.Label, area = p.Area, percent = p.Percent }),
+                peaks = d.Peaks.Select(p => new
+                {
+                    impurityId = p.ImpurityId,
+                    label = p.Label,
+                    relativeRetention = p.RelativeRetention,
+                    area = p.Area,
+                    percent = p.Percent,
+                    disregarded = p.Disregarded,
+                }),
             }),
             reportedValue = rs.Row.Value,
             notDetected = rs.Row.Display == RelatedSubstancesEvaluator.NotDetected,

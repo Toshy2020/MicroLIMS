@@ -14,7 +14,13 @@ public record RelatedSubstancesInput(
 
 // One counted peak behind a replicate value (Label is the impurity name, or "Unspecified RRT x").
 public record RsContribution(string Label, decimal Area, decimal Percent);
-public record RsReplicateDetail(int ReplicateNo, decimal ReferenceArea, decimal Percent, IReadOnlyList<RsContribution> Contributions);
+public record RsPeakEvidence(int? ImpurityId, string Label, decimal? RelativeRetention, decimal Area, decimal Percent, bool Disregarded);
+public record RsReplicateDetail(
+    int ReplicateNo,
+    decimal ReferenceArea,
+    decimal Percent,
+    IReadOnlyList<RsContribution> Contributions,
+    IReadOnlyList<RsPeakEvidence> Peaks);
 public record RsRowResult(HplcAssayRow Row, RelatedSubstanceRow Kind, int? ImpurityId, IReadOnlyList<RsReplicateDetail> Replicates);
 
 // Related substances of an HPLC method (spec 2026-10-27): each peak's % is its area against the
@@ -24,7 +30,7 @@ public static class RelatedSubstancesEvaluator
 {
     public const string NotDetected = "Not detected";
 
-    private sealed record Peak(int? ImpurityId, string Label, decimal Area, decimal Percent, bool Counted);
+    private sealed record Peak(int? ImpurityId, string Label, decimal? RelativeRetention, decimal Area, decimal Percent, bool Counted);
 
     public static List<HplcAssayRow> Evaluate(int principalAnalyteId, string principalName, RelatedSubstancesInput input) =>
         Calculate(principalAnalyteId, principalName, input).Select(r => r.Row).ToList();
@@ -44,10 +50,13 @@ public static class RelatedSubstancesEvaluator
             {
                 var impurity = p.HplcMethodImpurityId is int id ? impurities.FirstOrDefault(i => i.Id == id) : null;
                 var pct = p.Area * (impurity?.CorrectionFactor ?? 1m) / rep.ReferenceArea * input.ReferenceSolutionPercent;
-                var label = impurity?.Name ?? (p.RelativeRetention is decimal rrt ? $"Unspecified RRT {rrt.ToString("0.####", CultureInfo.InvariantCulture)}" : "Unspecified");
-                return new Peak(impurity?.Id, label, p.Area, pct, p.Area > 0m && pct >= input.DisregardLimitPercent);
+                var rrt = p.RelativeRetention ?? impurity?.RelativeRetention;
+                var label = impurity?.Name ?? (rrt is decimal r ? $"Unspecified RRT {r.ToString("0.####", CultureInfo.InvariantCulture)}" : "Unspecified");
+                var counted = p.Area > 0m && (input.DisregardLimitPercent <= 0m || pct >= input.DisregardLimitPercent);
+                return new Peak(impurity?.Id, label, rrt, p.Area, pct, counted);
             }).ToList();
-            return (Rep: rep, Peaks: peaks);
+            var allPeaks = peaks.Select(p => new RsPeakEvidence(p.ImpurityId, p.Label, p.RelativeRetention, p.Area, p.Percent, !p.Counted)).ToList();
+            return (Rep: rep, Peaks: peaks, AllPeaks: allPeaks);
         }).ToList();
 
         bool IsPool(Peak p) => p.ImpurityId is null || !namedIds.Contains(p.ImpurityId.Value);
@@ -61,7 +70,7 @@ public static class RelatedSubstancesEvaluator
             var details = new List<RsReplicateDetail>();
             var hasSignal = false;
 
-            foreach (var (rep, peaks) in reps)
+            foreach (var (rep, peaks, allPeaks) in reps)
             {
                 var counted = new List<RsContribution>();
                 decimal value;
@@ -79,6 +88,8 @@ public static class RelatedSubstancesEvaluator
                     }
                     case RelatedSubstanceRow.UnspecifiedEach:
                     {
+                        // Ruling: UnspecifiedEach takes the per-replicate maximum, then the mean.
+                        // RS is usually one injection, and peaks are not tracked across replicates by RRT.
                         var pool = peaks.Where(IsPool).ToList();
                         hasSignal |= pool.Any(p => p.Area > 0m);
                         var top = pool.Where(p => p.Counted).OrderByDescending(p => p.Percent).FirstOrDefault();
@@ -106,21 +117,57 @@ public static class RelatedSubstancesEvaluator
                         break;
                     }
                 }
-                details.Add(new RsReplicateDetail(rep.ReplicateNo, rep.ReferenceArea, value, counted));
+                details.Add(new RsReplicateDetail(rep.ReplicateNo, rep.ReferenceArea, value, counted, allPeaks));
             }
 
             var mean = details.Count == 0 ? 0m : details.Average(d => d.Percent);
-            var rounded = Math.Round(mean, 2, MidpointRounding.AwayFromZero);
-            var display = !hasSignal ? NotDetected
-                : mean == 0m ? $"< {input.DisregardLimitPercent.ToString("0.###", CultureInfo.InvariantCulture)} %"
-                : $"{rounded.ToString("0.00", CultureInfo.InvariantCulture)} %";
+            decimal finalValue;
+            string display;
+
+            if (!hasSignal)
+            {
+                finalValue = 0m;
+                display = NotDetected;
+            }
+            else if (input.DisregardLimitPercent > 0m)
+            {
+                if (mean < input.DisregardLimitPercent)
+                {
+                    finalValue = 0m;
+                    display = $"< {input.DisregardLimitPercent.ToString("0.###", CultureInfo.InvariantCulture)} %";
+                }
+                else
+                {
+                    finalValue = Math.Round(mean, 2, MidpointRounding.AwayFromZero);
+                    display = $"{finalValue.ToString("0.00", CultureInfo.InvariantCulture)} %";
+                }
+            }
+            else
+            {
+                var rounded = Math.Round(mean, 2, MidpointRounding.AwayFromZero);
+                if (rounded == 0.00m && mean > 0m)
+                {
+                    finalValue = 0m;
+                    display = "< 0.01 %";
+                }
+                else if (mean == 0m)
+                {
+                    finalValue = 0m;
+                    display = "< 0.01 %";
+                }
+                else
+                {
+                    finalValue = rounded;
+                    display = $"{rounded.ToString("0.00", CultureInfo.InvariantCulture)} %";
+                }
+            }
 
             var name = string.IsNullOrWhiteSpace(spec.ParameterName)
                 ? SpecificationService.RelatedSubstanceParameterName(kind, impurities.FirstOrDefault(i => i.Id == spec.HplcMethodImpurityId)?.Name)
                 : spec.ParameterName;
             var readings = details.Select(d => new HplcAssayReading(d.ReplicateNo, d.ReferenceArea, d.Percent)).ToList();
             var row = new HplcAssayRow(principalAnalyteId, name, spec, ResultBasis.PercentAsIs, null,
-                rounded, display, "%", SpecificationEvaluator.Evaluate(spec, rounded), readings);
+                finalValue, display, "%", SpecificationEvaluator.Evaluate(spec, finalValue), readings);
             results.Add(new RsRowResult(row, kind, spec.HplcMethodImpurityId, details));
         }
         return results;

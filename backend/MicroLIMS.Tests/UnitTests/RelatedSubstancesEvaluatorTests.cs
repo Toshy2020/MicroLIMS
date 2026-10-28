@@ -119,9 +119,76 @@ public class RelatedSubstancesEvaluatorTests
             Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"), Row(RelatedSubstanceRow.UnspecifiedEach, 0.10m), Row(RelatedSubstanceRow.Total, 0.5m));
 
         Assert.Equal(0.11m, RowFor(rows, RelatedSubstanceRow.Named, D).Value);
-        Assert.Equal("0.03 %", RowFor(rows, RelatedSubstanceRow.UnspecifiedEach).Display);
+        Assert.Equal("< 0.05 %", RowFor(rows, RelatedSubstanceRow.UnspecifiedEach).Display);
+        Assert.Equal(0m, RowFor(rows, RelatedSubstanceRow.UnspecifiedEach).Value);
         // Total: (0.084 + 0.06) = 0.144 and 0.14 -> mean 0.142 -> 0.14.
         Assert.Equal("0.14 %", RowFor(rows, RelatedSubstanceRow.Total).Display);
+    }
+
+    [Fact]
+    public void FinalMeanBelowDisregard_DisplaysLessThanDisregard_WithValueZero()
+    {
+        // Replicate 1 is 0.08% (counted) and replicate 2 is 0%, mean is 0.04% with disregard 0.05%.
+        // The final mean is below the disregard limit: display "< 0.05 %" with value 0.
+        var rows = Run(0.1m, 0.05m, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 8000m)), Rep(2, 10000m) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+
+        var d = Assert.Single(rows);
+        Assert.Equal("< 0.05 %", d.Display);
+        Assert.Equal(0m, d.Value);
+        Assert.Equal(ResultStatus.WithinLimits, d.Status);
+    }
+
+    [Fact]
+    public void DisregardLimitZero_RoundsToZeroWhileRawAboveZero_DisplaysLessThan001_WithValueZero()
+    {
+        // Disregard is 0. Raw value is 0.004% which rounds to 0.00%.
+        // Should display "< 0.01 %" with value 0.
+        var rows = Run(0.1m, 0m, new[] { Imp(D, "Impurity D", 1m) },
+            new[] { Rep(1, 10000m, Peak(D, 400m)) },
+            Row(RelatedSubstanceRow.Named, 0.15m, D, "Impurity D"));
+
+        var d = Assert.Single(rows);
+        Assert.Equal("< 0.01 %", d.Display);
+        Assert.Equal(0m, d.Value);
+        Assert.Equal(ResultStatus.WithinLimits, d.Status);
+    }
+
+    [Fact]
+    public void TotalAndTotalOthers_AllDisregarded_DisplaysLessThanDisregard()
+    {
+        // Peak area > 0 entered for an unspecified peak (4000 area -> 0.04% < disregard 0.05%).
+        // Both Total and TotalOthers final value is 0 because the peak was disregarded.
+        // Because peak area > 0 was entered, they display "< 0.05 %", not "Not detected".
+        var rows = Run(0.1m, 0.05m, Array.Empty<HplcMethodImpurityResponse>(),
+            new[] { Rep(1, 10000m, Peak(null, 4000m, 1.2m)) },
+            Row(RelatedSubstanceRow.TotalOthers, 0.20m), Row(RelatedSubstanceRow.Total, 0.50m));
+
+        var others = RowFor(rows, RelatedSubstanceRow.TotalOthers);
+        var total = RowFor(rows, RelatedSubstanceRow.Total);
+
+        Assert.Equal("< 0.05 %", others.Display);
+        Assert.Equal(0m, others.Value);
+        Assert.Equal("< 0.05 %", total.Display);
+        Assert.Equal(0m, total.Value);
+    }
+
+    [Fact]
+    public void TotalAndTotalOthers_NoPeaksEnteredAtAll_DisplaysNotDetected()
+    {
+        // No peak area > 0 entered at all. Displays "Not detected".
+        var rows = Run(0.1m, 0.05m, Array.Empty<HplcMethodImpurityResponse>(),
+            new[] { Rep(1, 10000m) },
+            Row(RelatedSubstanceRow.TotalOthers, 0.20m), Row(RelatedSubstanceRow.Total, 0.50m));
+
+        var others = RowFor(rows, RelatedSubstanceRow.TotalOthers);
+        var total = RowFor(rows, RelatedSubstanceRow.Total);
+
+        Assert.Equal("Not detected", others.Display);
+        Assert.Equal(0m, others.Value);
+        Assert.Equal("Not detected", total.Display);
+        Assert.Equal(0m, total.Value);
     }
 
     [Fact]

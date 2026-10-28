@@ -368,9 +368,10 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
       useHplcMethodDialogState({
         open: true,
         editingId: null,
-        initialTechnique: "Hplc",
+        solutions: [],
+        materialMasters: [],
         mySections: [],
-        onSaveSuccess: () => {},
+        onSuccess: () => {},
         onClose: () => {}
       })
     );
@@ -494,6 +495,7 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
     const entity: HplcMethodResponse = {
       id: 50,
       version: 1,
+      isActive: true,
       technique: "Hplc",
       resultMode: "RelatedSubstances",
       name: "RS Method with Existing Impurities",
@@ -520,9 +522,11 @@ describe("Related Substances & Internal Standard Method Form & Validation (Task 
       analytes: [
         {
           id: 10,
+          displayOrder: 0,
           name: "Principal Peak",
           wavelengthNm: 230,
           standardEntryId: 1,
+          standardEntryCode: "RS-1",
           theoreticalWeightStdMg: 0,
           theoreticalWeightTestMg: 0,
           standardDilution: null,

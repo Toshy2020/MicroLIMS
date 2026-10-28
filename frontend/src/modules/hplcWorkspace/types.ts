@@ -42,7 +42,8 @@ export interface HplcInstrumentDto {
 
 import type {
   HplcTechnique,
-  HplcMethodResponse
+  HplcMethodResponse,
+  HplcMethodImpurityResponse
 } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export type {
@@ -53,21 +54,8 @@ export type {
 
 export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances";
 
-export interface HplcMethodImpuritySnapshot {
-  id: number;
-  displayOrder: number;
-  name: string;
-  relativeRetention?: number | null;
-  correctionFactor?: number | null;
-}
-
-export interface HplcMethodSnapshot extends Omit<HplcMethodResponse, "resultMode"> {
-  resultMode?: HplcResultMode;
-  impurities?: HplcMethodImpuritySnapshot[];
-  internalStandardName?: string | null;
-  referenceSolutionPercent?: number | null;
-  disregardLimitPercent?: number | null;
-}
+export type HplcMethodImpuritySnapshot = HplcMethodImpurityResponse;
+export type HplcMethodSnapshot = HplcMethodResponse;
 
 export interface HplcMethodOptionDto {
   id: number;

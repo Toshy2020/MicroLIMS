@@ -1,3 +1,9 @@
+AdminIntegrationsController.InstrumentAgents(CancellationToken): SystemAdministrator
+AdminIntegrationsController.Smtp(): SystemAdministrator
+AdminIntegrationsController.Storage(): SystemAdministrator
+AdminIntegrationsController.StorageProbe(StorageProbeRequest, CancellationToken): SystemAdministrator
+AdminIntegrationsController.TestAlert(TestAlertRequest, CancellationToken): SystemAdministrator
+AdminIntegrationsController.TestEmail(TestEmailRequest, CancellationToken): SystemAdministrator
 AdminJobsController.List(CancellationToken): SystemAdministrator
 AdminJobsController.Run(String, RunBackgroundJobRequest, CancellationToken): SystemAdministrator
 AdminJobsController.Runs(String, Int32, Int32, CancellationToken): SystemAdministrator

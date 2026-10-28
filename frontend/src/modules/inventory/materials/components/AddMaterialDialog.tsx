@@ -16,7 +16,6 @@ import {
   useTheme,
   Autocomplete
 } from "@mui/material";
-import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
 import type { MediaProductOption } from "../../../../hooks/useMediaProducts";
 import { MaterialService, SaveMaterialPayload } from "../services/MaterialService";
@@ -44,6 +43,7 @@ import {
   MaterialCategoryService,
   MaterialCategory
 } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialCategoryService";
+import { ReferenceOrganismService, ReferenceOrganism } from "../../../laboratoryConfiguration/masterDataSimple/services/ReferenceOrganismService";
 import { DateField } from "../../../../components/DateField";
 
 // Types a new lot can still be received under. Supplements, discs, kits and the like are now
@@ -109,6 +109,7 @@ const INITIAL_FORM: MaterialFormState = {
   moisturePercent: "",
   atccNumber: "",
   organismId: null,
+  referenceOrganismId: null,
   mediaProductId: null,
   materialMasterEntryId: null
 };
@@ -135,6 +136,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     custom: string[];
   } | null>(null);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
+  // Lyophilized lots are received against a reference strain.
+  const [strains, setStrains] = useState<ReferenceOrganism[]>([]);
   // Other materials: the category chosen at receipt and the categories offered to the lot's lab.
   const [categories, setCategories] = useState<MaterialCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
@@ -169,6 +172,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         moisturePercent: editingItem.moisturePercent != null ? editingItem.moisturePercent : "",
         atccNumber: editingItem.atccNumber ?? "",
         organismId: editingItem.organismId ?? null,
+        referenceOrganismId: editingItem.referenceOrganismId ?? null,
         mediaProductId: editingItem.mediaProductId ?? null,
         materialMasterEntryId: editingItem.materialMasterEntryId ?? null
       });
@@ -407,6 +411,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           ...(defaultUnit ? { unit: defaultUnit } : {}),
           storageCondition: "",
           mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
+          referenceOrganismId: type === "LyophilizedMicroorganism" ? f.referenceOrganismId : null,
           purity: (type === "ReferenceStandard" || type === "PrimaryStandard") ? f.purity : "",
           moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
           materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
@@ -484,6 +489,31 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   // A new Other lot has no free-text name or code: both come from the master entry.
   const nameFromEntryOnly = form.materialType === "Other" && !editingLegacyLot;
 
+  // A lyophilized lot's name and code come from its reference strain; only an old lot with no strain keeps them editable.
+  const isLyophilized = form.materialType === "LyophilizedMicroorganism";
+  const nameFromStrain = isLyophilized && (!editingItem || Boolean(form.referenceOrganismId));
+  const strainOptions = strains.filter((s) => s.isActive || s.id === form.referenceOrganismId);
+
+  useEffect(() => {
+    if (!open || !isLyophilized) return;
+    ReferenceOrganismService.getAll()
+      .then(setStrains)
+      .catch(fail("reference organisms", () => setStrains([])));
+  }, [open, isLyophilized, fail]);
+
+  const handleStrainChange = (strain: ReferenceOrganism | null) => {
+    if (!strain) {
+      setForm((f) => ({
+        ...f,
+        referenceOrganismId: null,
+        materialName: editingItem ? editingItem.materialName : "",
+        code: editingItem ? editingItem.code ?? "" : ""
+      }));
+      return;
+    }
+    setForm((f) => ({ ...f, referenceOrganismId: strain.id, materialName: strain.name, code: strain.code }));
+  };
+
   // Types for the select: an existing lot whose type is not in its lab's list still shows its current type.
   const typeSelectOptions: MaterialType[] =
     editingItem && !newLotTypes.includes(editingItem.materialType) ? [...newLotTypes, editingItem.materialType] : newLotTypes;
@@ -529,6 +559,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     setError(null);
     if (form.materialType === "DehydratedMedia" && !form.mediaProductId) {
       setError("Choose the configured media product for this dehydrated media.");
+      return;
+    }
+
+    if (!editingItem && isLyophilized && !form.referenceOrganismId) {
+      setError("Choose the reference organism for this lyophilized microorganism.");
       return;
     }
 
@@ -608,8 +643,10 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       quantityReceived: Number(form.quantityReceived),
       unit: form.unit,
       minimumStockLevel: form.minimumStockLevel === "" ? null : Number(form.minimumStockLevel),
-      atccNumber: form.materialType === "LyophilizedMicroorganism" ? form.atccNumber.trim() || null : null,
-      organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
+      // With a strain the server derives the organism and ATCC number; only an old lot without one sends its stored values back.
+      atccNumber: isLyophilized && !form.referenceOrganismId ? form.atccNumber.trim() || null : null,
+      organismId: isLyophilized && !form.referenceOrganismId ? form.organismId || null : null,
+      referenceOrganismId: isLyophilized ? form.referenceOrganismId : null,
       mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null,
       purity:
         (form.materialType === "ReferenceStandard" || form.materialType === "PrimaryStandard") && form.purity !== ""
@@ -839,8 +876,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder="e.g. Tryptic Soy Agar Powder"
           value={form.materialName}
           onChange={(e) => setForm({ ...form, materialName: e.target.value })}
-          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId) || nameFromEntryOnly}
-          helperText={form.materialMasterEntryId || nameFromEntryOnly ? "Populated from master entry" : undefined}
+          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId) || nameFromEntryOnly || nameFromStrain}
+          helperText={form.materialMasterEntryId || nameFromEntryOnly ? "Populated from master entry" : nameFromStrain ? "Populated from reference organism" : undefined}
         />
 
         <TextField
@@ -857,25 +894,41 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder={form.materialType === "DehydratedMedia" ? "e.g. TSA" : "e.g. CM0131B"}
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
-          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId) || nameFromEntryOnly}
-          helperText={form.materialMasterEntryId || nameFromEntryOnly ? "Populated from master entry" : undefined}
+          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId) || nameFromEntryOnly || nameFromStrain}
+          helperText={form.materialMasterEntryId || nameFromEntryOnly ? "Populated from master entry" : nameFromStrain ? "Populated from reference organism" : undefined}
         />
 
         {form.materialType === "LyophilizedMicroorganism" && (
           <>
             <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
-              <OrganismPicker
-                value={form.organismId}
-                onChange={(id) => setForm({ ...form, organismId: id })}
+              <Autocomplete
+                size="small"
+                options={strainOptions}
+                value={strains.find((s) => s.id === form.referenceOrganismId) ?? null}
+                getOptionLabel={(s) => `${s.code} · ${s.name}`}
+                isOptionEqualToValue={(o, v) => o.id === v.id}
+                onChange={(_e, v) => handleStrainChange(v)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Reference organism"
+                    required={!editingItem}
+                    placeholder="Select strain"
+                    helperText={
+                      editingItem && !form.referenceOrganismId
+                        ? "Received before reference organisms; pick a strain to link this lot (optional)."
+                        : "Strains are managed under Organisms > Reference organisms."
+                    }
+                  />
+                )}
               />
             </Box>
-            <TextField
-              size="small"
-              label="ATCC No."
-              placeholder="e.g. ATCC 6538"
-              value={form.atccNumber}
-              onChange={(e) => setForm({ ...form, atccNumber: e.target.value })}
-            />
+            {editingItem && !form.referenceOrganismId && (
+              <>
+                <TextField size="small" label="Organism (stored)" value={editingItem.organism?.scientificName ?? "—"} disabled />
+                <TextField size="small" label="ATCC No. (stored)" value={form.atccNumber || "—"} disabled />
+              </>
+            )}
           </>
         )}
 

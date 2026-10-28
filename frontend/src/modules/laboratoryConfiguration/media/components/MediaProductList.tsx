@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Paper, Box, Typography, Stack, IconButton, Chip, useTheme } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ToggleOnIcon from "@mui/icons-material/ToggleOn";
+import ToggleOffIcon from "@mui/icons-material/ToggleOff";
 import { MediaProductOption } from "../types/mediaConfigurationTypes";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { clickable } from "../../../../utils/clickable";
@@ -12,6 +14,7 @@ interface MediaProductListProps {
   onSelectProduct: (product: MediaProductOption) => void;
   onRename: (product: MediaProductOption) => void;
   onDelete: (product: MediaProductOption) => void;
+  onSetActive: (product: MediaProductOption, value: boolean) => void;
   isManager: boolean;
   emptyMessage: string;
 }
@@ -22,6 +25,7 @@ export function MediaProductList({
   onSelectProduct,
   onRename,
   onDelete,
+  onSetActive,
   isManager,
   emptyMessage,
 }: MediaProductListProps) {
@@ -49,6 +53,7 @@ export function MediaProductList({
               onSelectProduct={onSelectProduct}
               onRename={onRename}
               onDelete={(p) => setPendingDelete(p)}
+              onSetActive={onSetActive}
               isManager={isManager}
             />
           );
@@ -80,6 +85,7 @@ function MediaProductRowCard({
   onSelectProduct,
   onRename,
   onDelete,
+  onSetActive,
   isManager,
 }: {
   product: MediaProductOption;
@@ -87,6 +93,7 @@ function MediaProductRowCard({
   onSelectProduct: (product: MediaProductOption) => void;
   onRename: (product: MediaProductOption) => void;
   onDelete: (product: MediaProductOption) => void;
+  onSetActive: (product: MediaProductOption, value: boolean) => void;
   isManager: boolean;
 }) {
   const theme = useTheme();
@@ -157,6 +164,10 @@ function MediaProductRowCard({
                 height: 20,
               }}
             />
+
+            {product.isActive === false && (
+              <Chip label="Inactive" size="small" color="warning" variant="outlined" sx={{ fontSize: 12, fontWeight: 600, height: 20 }} />
+            )}
           </Stack>
         </Box>
 
@@ -171,6 +182,17 @@ function MediaProductRowCard({
               title="Rename Product"
             >
               <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              aria-label={product.isActive === false ? "Activate media product" : "Deactivate media product"}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetActive(product, product.isActive === false);
+              }}
+              title={product.isActive === false ? "Activate Product" : "Deactivate Product"}
+            >
+              {product.isActive === false ? <ToggleOffIcon fontSize="small" /> : <ToggleOnIcon fontSize="small" />}
             </IconButton>
             <IconButton aria-label="Delete media product"
               size="small"

@@ -38,10 +38,16 @@ export function useMediaProducts() {
     return updated as MediaProductOption;
   };
 
+  const setActive = async (id: number, value: boolean) => {
+    const updated = await masterDataOptions.setMediaProductActive(id, value);
+    await reload();
+    return updated as MediaProductOption;
+  };
+
   const remove = async (id: number) => {
     await masterDataOptions.deleteMediaProduct(id);
     await reload();
   };
 
-  return { options, loading, reload, create, rename, changeCode, remove };
+  return { options, loading, reload, create, rename, changeCode, setActive, remove };
 }

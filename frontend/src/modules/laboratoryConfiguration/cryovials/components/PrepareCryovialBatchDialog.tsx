@@ -261,6 +261,9 @@ export function PrepareCryovialBatchDialog({
                     {selectedMaterial.organism?.scientificName ?? "Not set (set an Organism on this Material first)"}
                   </span>
                   {selectedMaterial.organism?.atccNumber ? ` (ATCC ${selectedMaterial.organism.atccNumber})` : ""}
+                  {selectedMaterial.referenceOrganismCode
+                    ? ` · Strain ${selectedMaterial.referenceOrganismCode} (${selectedMaterial.cultureCollection}${selectedMaterial.strainNumber ? ` ${selectedMaterial.strainNumber}` : ""})`
+                    : ""}
                   {" · "}
                   Manufacturer: {selectedMaterial.manufacturerName || "—"}
                 </Typography>

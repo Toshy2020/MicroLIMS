@@ -101,6 +101,11 @@ export interface MaterialItem {
   organismId: number | null;
   organism?: OrganismSummary | null;
   atccNumber: string | null;
+  // Lyophilized lots received against a reference strain (older lots may have none).
+  referenceOrganismId?: number | null;
+  referenceOrganismCode?: string | null;
+  cultureCollection?: string | null;
+  strainNumber?: string | null;
   quantityReceived: number;
   quantityRemaining: number;
   unit: MaterialUnit;
@@ -139,6 +144,7 @@ export interface MaterialFormState {
   moisturePercent: number | string;
   atccNumber: string;
   organismId: number | null;
+  referenceOrganismId: number | null;
   mediaProductId: number | null;
   materialMasterEntryId: number | null;
 }

@@ -16,6 +16,8 @@ export interface SaveMaterialPayload {
   minimumStockLevel: number | null;
   atccNumber: string | null;
   organismId: number | null;
+  // Required for new lyophilized lots; the server derives organism, ATCC number, name and code from it.
+  referenceOrganismId?: number | null;
   mediaProductId: number | null;
   sectionId?: number | null;
   purity?: number | null;

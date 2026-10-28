@@ -5,6 +5,7 @@ import { AddMaterialDialog } from "./AddMaterialDialog";
 import { MaterialService } from "../services/MaterialService";
 import { MaterialCategoryService } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialCategoryService";
 import { MaterialMasterService } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
+import { ReferenceOrganismService } from "../../../laboratoryConfiguration/masterDataSimple/services/ReferenceOrganismService";
 import type { MaterialItem } from "../types/materialTypes";
 
 vi.mock("../services/MaterialService", () => ({
@@ -28,7 +29,9 @@ vi.mock("../../../../services/laboratorySectionService", () => ({
   getMySections: () => Promise.resolve([{ sectionId: 1, sectionCode: "MICRO", sectionName: "Micro" }])
 }));
 vi.mock("../../../../components/MediaProductPicker", () => ({ MediaProductPicker: () => null }));
-vi.mock("../../../../components/OrganismPicker", () => ({ OrganismPicker: () => null }));
+vi.mock("../../../laboratoryConfiguration/masterDataSimple/services/ReferenceOrganismService", () => ({
+  ReferenceOrganismService: { getAll: vi.fn() }
+}));
 // The calendar picker is covered elsewhere; a plain input keeps these tests about the receipt rules.
 vi.mock("../../../../components/DateField", () => ({
   DateField: ({ label, value, onChange, required }: { label?: string; value: string; onChange: (v: string) => void; required?: boolean }) => (
@@ -55,7 +58,14 @@ const legacyItem = {
   unit: "Gram", minimumStockLevel: null, status: "InStock", version: 4
 } as MaterialItem;
 
+const ecoliStrain = {
+  id: 11, code: "ORG-001", organismId: 4, organismScientificName: "Escherichia coli", cultureCollection: "ATCC", strainNumber: "8739",
+  name: "Escherichia coli ATCC 8739", ownerSectionId: 1, isActive: true, canEdit: true, hasStock: false
+} as const;
+const retiredStrain = { ...ecoliStrain, id: 12, code: "ORG-002", name: "Escherichia coli NCTC 9001", cultureCollection: "NCTC", strainNumber: "9001", isActive: false } as const;
+
 beforeEach(() => {
+  vi.mocked(ReferenceOrganismService.getAll).mockResolvedValue([ecoliStrain as never, retiredStrain as never]);
   vi.mocked(MaterialService.getDefaultUnit).mockResolvedValue("Gram");
   vi.mocked(MaterialService.create).mockResolvedValue({});
   vi.mocked(MaterialService.update).mockResolvedValue({});
@@ -211,5 +221,77 @@ describe("AddMaterialDialog editing a lot received before categories", () => {
 
     await waitFor(() => expect(MaterialService.update).toHaveBeenCalledTimes(1));
     expect(vi.mocked(MaterialService.update).mock.calls[0][1]).toMatchObject({ materialType: "Other", customType: "Culture Collection Media" });
+  }, 20000);
+});
+
+describe("AddMaterialDialog lyophilized microorganism receipt", () => {
+  const openLyophilized = async () => {
+    vi.mocked(MaterialService.getTypeOptions).mockResolvedValue({ builtIn: ["LyophilizedMicroorganism"], custom: [] });
+    render(<AddMaterialDialog open onClose={vi.fn()} onSuccess={vi.fn()} editingItem={null} />);
+    await waitFor(() => expect(typeSelect().textContent).toBe("Lyophilized Microorganism"), { timeout: 4000 });
+    await waitFor(() => expect(ReferenceOrganismService.getAll).toHaveBeenCalled());
+  };
+
+  const fillAndSave = async () => {
+    await userEvent.type(screen.getByLabelText(/Batch \/ Lot No\./), "LOT-9");
+    await userEvent.click(screen.getByRole("combobox", { name: /Storage Location/ }));
+    await userEvent.click(await screen.findByRole("option", { name: "Microbiology Lab" }));
+    await userEvent.type(screen.getByLabelText(/Quantity Received/), "1");
+    await userEvent.click(screen.getByRole("button", { name: "Add to Stock" }));
+  };
+
+  it("offers only active strains as 'code · name' and fills name and code read-only", async () => {
+    await openLyophilized();
+    await userEvent.click(screen.getByRole("combobox", { name: /Reference organism/ }));
+    const options = (await screen.findAllByRole("option")).map((o) => o.textContent);
+    expect(options).toEqual(["ORG-001 · Escherichia coli ATCC 8739"]);
+    await userEvent.click(screen.getByRole("option"));
+
+    const name = screen.getByLabelText(/Material Name/) as HTMLInputElement;
+    expect(name.value).toBe("Escherichia coli ATCC 8739");
+    expect(name.disabled).toBe(true);
+    expect((screen.getByLabelText(/Code \/ Catalog No\./) as HTMLInputElement).value).toBe("ORG-001");
+  }, 30000);
+
+  it("requires a strain before sending", async () => {
+    await openLyophilized();
+    await fillAndSave();
+
+    expect(await screen.findByText("Choose the reference organism for this lyophilized microorganism.")).toBeTruthy();
+    expect(MaterialService.create).not.toHaveBeenCalled();
+  }, 30000);
+
+  it("sends the strain id and no organism, ATCC number or typed name", async () => {
+    await openLyophilized();
+    await userEvent.click(screen.getByRole("combobox", { name: /Reference organism/ }));
+    await userEvent.click(await screen.findByRole("option"));
+    await fillAndSave();
+
+    await waitFor(() => expect(MaterialService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(MaterialService.create).mock.calls[0][0]).toMatchObject({
+      materialType: "LyophilizedMicroorganism",
+      referenceOrganismId: 11,
+      organismId: null,
+      atccNumber: null,
+      materialName: "Escherichia coli ATCC 8739",
+      code: "ORG-001"
+    });
+  }, 30000);
+
+  it("still saves an old lot that has no strain, with its stored organism and ATCC number", async () => {
+    const item = {
+      ...legacyItem, materialType: "LyophilizedMicroorganism", materialName: "E. coli", code: "EC-1",
+      organismId: 4, atccNumber: "ATCC 8739", organism: { id: 4, scientificName: "Escherichia coli" }
+    } as MaterialItem;
+    vi.mocked(MaterialService.getTypeOptions).mockResolvedValue({ builtIn: ["LyophilizedMicroorganism"], custom: [] });
+    render(<AddMaterialDialog open onClose={vi.fn()} onSuccess={vi.fn()} editingItem={item} />);
+    await waitFor(() => expect(MaterialService.getTypeOptions).toHaveBeenCalled());
+    expect((screen.getByLabelText(/Material Name/) as HTMLInputElement).disabled).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => expect(MaterialService.update).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(MaterialService.update).mock.calls[0][1]).toMatchObject({
+      organismId: 4, atccNumber: "ATCC 8739", referenceOrganismId: null, materialName: "E. coli"
+    });
   }, 20000);
 });

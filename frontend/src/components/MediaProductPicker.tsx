@@ -48,7 +48,8 @@ export function MediaProductPicker({
 }: MediaProductPickerProps) {
   const theme = useTheme();
   const { options: hookOptions, loading, create } = useMediaProducts();
-  const options = externalOptions ?? hookOptions;
+  // Inactive products can't be used for new lots; one already chosen (an old lot being edited) stays visible.
+  const options = (externalOptions ?? hookOptions).filter((o) => o.isActive !== false || o.id === value);
   const selected = options.find((o) => o.id === value) ?? null;
 
   const [dialogOpen, setDialogOpen] = useState(false);

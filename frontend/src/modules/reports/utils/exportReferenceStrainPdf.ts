@@ -41,6 +41,7 @@ export function exportReferenceStrainPdf(records: ReferenceStrainListItem[], opt
       <td>
         <strong>${escapeHtml(r.strainName)}</strong>
         ${r.atccNumber ? `<br/><small class="text-muted">ATCC ${escapeHtml(r.atccNumber)}</small>` : ""}
+        ${r.strainCode ? `<br/><small class="text-muted">${escapeHtml(r.strainCode)} &middot; ${escapeHtml(r.cultureCollection ?? "")}${r.strainNumber ? ` ${escapeHtml(r.strainNumber)}` : ""}</small>` : ""}
       </td>
       <td><strong>${escapeHtml(r.cryovialCode)}</strong></td>
       <td>

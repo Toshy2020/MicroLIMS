@@ -120,6 +120,20 @@ export function MediaConfigurationPage() {
     }
   };
 
+  const handleSetProductActive = async (product: MediaProductOption, value: boolean) => {
+    setMessage(null);
+    try {
+      await masterDataOptions.setMediaProductActive(product.id, value);
+      setMessage({ text: `Media product "${product.name}" ${value ? "activated" : "deactivated"}.`, ok: true });
+      loadData();
+    } catch (err: unknown) {
+      const text =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Could not change the status of this media product.";
+      setMessage({ text, ok: false });
+    }
+  };
+
   const handleProductRenamed = () => {
     setMessage({ text: "Media product renamed successfully.", ok: true });
     loadData();
@@ -193,6 +207,7 @@ export function MediaConfigurationPage() {
               onSelectProduct={(p) => setSelectedProductId(p.id)}
               onRename={(p) => setRenameProduct(p)}
               onDelete={handleDeleteProduct}
+              onSetActive={handleSetProductActive}
               isManager={isManager}
               emptyMessage={emptyListMessage}
             />
@@ -233,6 +248,7 @@ export function MediaConfigurationPage() {
             onSelectProduct={(p) => setSelectedProductId(p.id)}
             onRename={(p) => setRenameProduct(p)}
             onDelete={handleDeleteProduct}
+            onSetActive={handleSetProductActive}
             isManager={isManager}
             emptyMessage={emptyListMessage}
           />

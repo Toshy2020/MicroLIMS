@@ -51,6 +51,11 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
               <Typography component="span" sx={{ fontSize: 12, color: "text.secondary", ml: 0.5 }}>{atcc}</Typography>
             )}
           </Typography>
+          {c.referenceOrganismCode && (
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
+              Strain {c.referenceOrganismCode} · {c.cultureCollection}{c.strainNumber ? ` ${c.strainNumber}` : ""}
+            </Typography>
+          )}
           {c.material && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
               {c.material.materialName} · Batch {c.material.batchNumber}

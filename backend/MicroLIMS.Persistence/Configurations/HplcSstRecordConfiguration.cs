@@ -56,5 +56,6 @@ public class HplcSstInjectionConfiguration : IEntityTypeConfiguration<HplcSstInj
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Response).HasPrecision(28, 10);
+        builder.Property(e => e.InternalStandardResponse).HasPrecision(28, 10);
     }
 }

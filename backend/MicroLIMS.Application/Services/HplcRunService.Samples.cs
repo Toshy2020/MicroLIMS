@@ -17,12 +17,12 @@ public record EligibleTestDto(
 public record HplcReplicateResponseInput(int HplcMethodAnalyteId, decimal Response);
 // A peak of a related-substances chromatogram: a method impurity, or (no impurity) an unspecified peak.
 public record HplcReplicatePeakInput(int? HplcMethodImpurityId, decimal? RelativeRetention, decimal Area);
-public record HplcReplicateInput(decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses, List<HplcReplicatePeakInput>? Peaks = null);
+public record HplcReplicateInput(decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses, List<HplcReplicatePeakInput>? Peaks = null, decimal? InternalStandardResponse = null);
 public record AssignHplcSamplesRequest(List<int> TestOrderIds);
 public record SaveReplicatesRequest(List<HplcReplicateInput> Replicates);
 public record SubmitHplcSampleRequest(string Password, string? Comment);
 
-public record HplcReplicateDto(int ReplicateNo, decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses, List<HplcReplicatePeakInput> Peaks);
+public record HplcReplicateDto(int ReplicateNo, decimal ActualWeightMg, List<HplcReplicateResponseInput> Responses, List<HplcReplicatePeakInput> Peaks, decimal? InternalStandardResponse = null);
 public record HplcMethodWeightDto(int HplcMethodAnalyteId, string AnalyteName, decimal TheoreticalWeightStdMg, decimal TheoreticalWeightTestMg);
 public record HplcPreviewResultDto(
     int HplcMethodAnalyteId, string ParameterName, string Quantity, int? ReplicateNo,
@@ -191,6 +191,9 @@ public partial class HplcRunService
             throw new InvalidOperationException("Dissolution results are entered on the Testing page, not as replicates.");
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
+        var hasIs = !string.IsNullOrWhiteSpace(context.Snapshot.InternalStandardName);
+        if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
+            throw new InvalidOperationException("This method has no internal standard.");
         var analyteIds = context.Snapshot.Analytes.Select(a => a.Id).ToList();
         for (var i = 0; i < inputs.Count; i++)
         {
@@ -280,6 +283,7 @@ public partial class HplcRunService
                 {
                     ReplicateNo = i + 1,
                     ActualWeightMg = inputs[i].ActualWeightMg,
+                    InternalStandardResponse = inputs[i].InternalStandardResponse,
                     Responses = inputs[i].Responses
                         .Select(x => new HplcReplicateResponse { HplcMethodAnalyteId = x.HplcMethodAnalyteId, Response = x.Response }).ToList(),
                     Peaks = (inputs[i].Peaks ?? new List<HplcReplicatePeakInput>())
@@ -373,7 +377,8 @@ public partial class HplcRunService
         var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new HplcReplicateDto(r.ReplicateNo, r.ActualWeightMg,
                 r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList(),
-                r.Peaks.OrderBy(p => p.Id).Select(p => new HplcReplicatePeakInput(p.HplcMethodImpurityId, p.RelativeRetention, p.Area)).ToList()))
+                r.Peaks.OrderBy(p => p.Id).Select(p => new HplcReplicatePeakInput(p.HplcMethodImpurityId, p.RelativeRetention, p.Area)).ToList(),
+                r.InternalStandardResponse))
             .ToList();
 
         var weights = c.Snapshot.Analytes.OrderBy(a => a.DisplayOrder)

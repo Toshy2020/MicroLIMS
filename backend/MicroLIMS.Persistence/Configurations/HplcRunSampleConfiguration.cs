@@ -35,6 +35,7 @@ public class HplcSampleReplicateConfiguration : IEntityTypeConfiguration<HplcSam
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ActualWeightMg).HasPrecision(28, 10);
+        builder.Property(e => e.InternalStandardResponse).HasPrecision(28, 10);
 
         builder.HasIndex(e => new { e.HplcRunSampleId, e.ReplicateNo }).IsUnique();
 

@@ -16,6 +16,7 @@ public class HplcMethod : IVersionedEntity
     public bool IsActive { get; set; } = true;
     public HplcTechnique Technique { get; set; } = HplcTechnique.Hplc;   // fixed at creation
     public HplcResultMode ResultMode { get; set; } = HplcResultMode.Assay; // fixed at creation
+    public string? InternalStandardName { get; set; }
 
     // Column (USP <621> Appendix A)
     public string ColumnDesignation { get; set; } = string.Empty; // e.g. "L1"

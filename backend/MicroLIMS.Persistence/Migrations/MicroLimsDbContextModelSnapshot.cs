@@ -3606,6 +3606,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("InletTemperatureC")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<string>("InternalStandardName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -4132,6 +4136,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("HplcRunSampleId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("InternalStandardResponse")
+                        .HasPrecision(28, 10)
+                        .HasColumnType("numeric(28,10)");
+
                     b.Property<int>("ReplicateNo")
                         .HasColumnType("integer");
 
@@ -4254,6 +4262,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<int>("InjectionNo")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("InternalStandardResponse")
+                        .HasPrecision(28, 10)
+                        .HasColumnType("numeric(28,10)");
 
                     b.Property<decimal>("Response")
                         .HasPrecision(28, 10)

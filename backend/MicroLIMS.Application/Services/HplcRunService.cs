@@ -34,7 +34,8 @@ public record StartHplcRunRequest(int EquipmentId, int HplcMethodId, int Chromat
 public record SaveSstAnalyteInput(
     int HplcSstAnalyteId, int StandardMaterialId, decimal StandardWeightMg, List<decimal> Responses,
     decimal? ReportedRsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
-    decimal? RetentionFactor, decimal? SignalToNoise, decimal? PeakToValley);
+    decimal? RetentionFactor, decimal? SignalToNoise, decimal? PeakToValley,
+    List<decimal>? InternalStandardResponses = null);
 public record SaveSstRequest(List<SaveSstAnalyteInput> Analytes);
 public record ConfirmSstRequest(string Password, string? Comment);
 
@@ -48,7 +49,7 @@ public record HplcEvidenceDto(
 // ---- Run detail ----
 
 public record HplcRunMobilePhaseDto(int Id, string Channel, int SolutionPreparationId, string? SolutionPreparationCode, string SolutionMasterName, DateTime? ExpiresAt);
-public record HplcSstInjectionDto(int InjectionNo, decimal Response);
+public record HplcSstInjectionDto(int InjectionNo, decimal Response, decimal? InternalStandardResponse = null);
 public record HplcSstAnalyteDto(
     int Id, int HplcMethodAnalyteId, string AnalyteName, int StandardEntryId,
     int? StandardMaterialId, string? StandardMaterialBatch, decimal? StandardPurityPercent, decimal? StandardMoisturePercent, decimal? StandardWeightMg,
@@ -409,7 +410,12 @@ public partial class HplcRunService
         var method = await _db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == run.HplcMethodId, ct);
         var methodAnalyteById = method.Analytes.ToDictionary(a => a.Id);
         var today = _clock.LabToday;
-        var weighsStandard = StandardIsWeighed(JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)?.ResultMode ?? HplcResultMode.Assay);
+        var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
+        var weighsStandard = StandardIsWeighed(snapshot?.ResultMode ?? HplcResultMode.Assay);
+        var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName ?? method.InternalStandardName);
+
+        if (!hasIs && (r.Analytes ?? new()).Any(a => a.InternalStandardResponses != null && a.InternalStandardResponses.Count > 0))
+            throw new InvalidOperationException("This method has no internal standard.");
 
         foreach (var input in r.Analytes ?? new List<SaveSstAnalyteInput>())
         {
@@ -455,12 +461,26 @@ public partial class HplcRunService
             _db.HplcSstInjections.RemoveRange(analyteRow.Injections);
             analyteRow.Injections.Clear();
             var responses = input.Responses ?? new List<decimal>();
+            var isResponses = input.InternalStandardResponses;
+            if (hasIs && (isResponses == null || isResponses.Count != responses.Count || isResponses.Any(x => x <= 0m)))
+                throw new InvalidOperationException($"{analyteRow.AnalyteName}: enter an internal standard response (above zero) for every injection.");
+
             for (var i = 0; i < responses.Count; i++)
-                analyteRow.Injections.Add(new HplcSstInjection { InjectionNo = i + 1, Response = responses[i] });
+            {
+                analyteRow.Injections.Add(new HplcSstInjection
+                {
+                    InjectionNo = i + 1,
+                    Response = responses[i],
+                    InternalStandardResponse = isResponses != null && i < isResponses.Count ? isResponses[i] : null
+                });
+            }
 
             // Shown while entering; Passed/FailureReasons stay untouched until confirmation.
-            analyteRow.MeanResponse = responses.Count > 0 ? responses.Average() : null;
-            analyteRow.ComputedRsdPercent = StandardComparisonCalculator.CalculatePreparationRsd(responses, null).RsdPercent;
+            var effectiveResponses = hasIs && isResponses != null
+                ? responses.Zip(isResponses, (resp, isResp) => HplcResponse.Effective(resp, isResp)).ToList()
+                : responses;
+            analyteRow.MeanResponse = effectiveResponses.Count > 0 ? effectiveResponses.Average() : null;
+            analyteRow.ComputedRsdPercent = StandardComparisonCalculator.CalculatePreparationRsd(effectiveResponses, null).RsdPercent;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -514,8 +534,13 @@ public partial class HplcRunService
                 snapAnalyte.SstMinTheoreticalPlates, snapAnalyte.SstMinRetentionFactor, snapAnalyte.SstMinSignalToNoise,
                 snapAnalyte.SstMinPeakToValley, snapAnalyte.StandardInjections);
 
+            var hasIs = !string.IsNullOrWhiteSpace(snapshot.InternalStandardName);
+            var effectiveResponses = analyteRow.Injections.OrderBy(i => i.InjectionNo)
+                .Select(i => HplcResponse.Effective(i.Response, hasIs ? i.InternalStandardResponse : null))
+                .ToList();
+
             var entered = new SstEntered(
-                analyteRow.Injections.OrderBy(i => i.InjectionNo).Select(i => i.Response).ToList(),
+                effectiveResponses,
                 analyteRow.ReportedRsdPercent, analyteRow.Resolution, analyteRow.TailingFactor,
                 analyteRow.TheoreticalPlates, analyteRow.RetentionFactor, analyteRow.SignalToNoise, analyteRow.PeakToValley);
 
@@ -840,7 +865,7 @@ public partial class HplcRunService
             run.Sst.Analytes.OrderBy(a => a.Id).Select(a => new HplcSstAnalyteDto(
                 a.Id, a.HplcMethodAnalyteId, a.AnalyteName, standardEntryByAnalyte.GetValueOrDefault(a.HplcMethodAnalyteId), a.StandardMaterialId, a.StandardMaterial?.LotLabel,
                 a.StandardPurityPercent, a.StandardMoisturePercent, a.StandardWeightMg,
-                a.Injections.OrderBy(i => i.InjectionNo).Select(i => new HplcSstInjectionDto(i.InjectionNo, i.Response)).ToList(),
+                a.Injections.OrderBy(i => i.InjectionNo).Select(i => new HplcSstInjectionDto(i.InjectionNo, i.Response, i.InternalStandardResponse)).ToList(),
                 a.ReportedRsdPercent, a.Resolution, a.TailingFactor, a.TheoreticalPlates, a.RetentionFactor, a.SignalToNoise, a.PeakToValley,
                 a.MeanResponse, a.ComputedRsdPercent, a.Passed, a.FailureReasons)).ToList());
 

@@ -224,6 +224,12 @@ public partial class HplcRunService
         if (sstRow?.MeanResponse is null or <= 0 || sstRow.StandardWeightMg is null or <= 0
             || sstRow.StandardPurityPercent is null or <= 0 || sstRow.StandardMoisturePercent is null)
             return $"{c.Analyte.Name}: the system suitability standard values are incomplete.";
+        if (!string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName))
+        {
+            foreach (var rep in c.RunSample.Replicates.OrderBy(r => r.ReplicateNo))
+                if (rep.InternalStandardResponse is null or <= 0)
+                    return $"Replicate {rep.ReplicateNo}: the internal standard response is required.";
+        }
         if (c.Q.MoisturePercent == null) return "Enter the moisture content first.";
         return null;
     }
@@ -243,9 +249,10 @@ public partial class HplcRunService
         var sstRow = c.Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == c.Analyte.Id);
         var std = new AssayStandard(sstRow.MeanResponse!.Value, sstRow.StandardWeightMg!.Value,
             sstRow.StandardPurityPercent!.Value, sstRow.StandardMoisturePercent!.Value);
+        var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
         var reps = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new AssayReplicateInput(r.ReplicateNo, r.ActualWeightMg,
-                r.Responses.First(x => x.HplcMethodAnalyteId == c.Analyte.Id).Response))
+                HplcResponse.Effective(r.Responses.First(x => x.HplcMethodAnalyteId == c.Analyte.Id).Response, hasIs ? r.InternalStandardResponse : null)))
             .ToList();
         var assay = HplcAssayCalculator.Calculate(c.Analyte.Id, c.Analyte.Name,
             c.Analyte.TheoreticalWeightStdMg, c.Analyte.TheoreticalWeightTestMg, std, reps);
@@ -275,7 +282,7 @@ public partial class HplcRunService
         var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new HplcReplicateDto(r.ReplicateNo, r.ActualWeightMg,
                 r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList(),
-                new List<HplcReplicatePeakInput>()))
+                new List<HplcReplicatePeakInput>(), r.InternalStandardResponse))
             .ToList();
         var weights = new List<HplcMethodWeightDto>
         {

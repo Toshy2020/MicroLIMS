@@ -14,6 +14,7 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
         builder.Property(e => e.ColumnDesignation).IsRequired().HasMaxLength(20);
         builder.Property(e => e.ColumnBrand).HasMaxLength(100);
         builder.Property(e => e.ColumnPartNumber).HasMaxLength(100);
+        builder.Property(e => e.InternalStandardName).HasMaxLength(100);
 
         builder.Property(e => e.ColumnLengthMm).HasColumnType("decimal(10,3)");
         builder.Property(e => e.ColumnInternalDiameterMm).HasColumnType("decimal(10,3)");

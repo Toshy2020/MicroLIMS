@@ -74,6 +74,7 @@ public class HplcMethodResponse
     public decimal? ReferenceSolutionPercent { get; init; }
     public decimal? DisregardLimitPercent { get; init; }
     public List<HplcMethodImpurityResponse> Impurities { get; init; } = new();
+    public string? InternalStandardName { get; init; }
 
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -142,6 +143,7 @@ public class HplcMethodResponse
             .ToList(),
         ReferenceSolutionPercent = m.ReferenceSolutionPercent,
         DisregardLimitPercent = m.DisregardLimitPercent,
+        InternalStandardName = m.InternalStandardName,
         Impurities = m.Impurities
             .OrderBy(i => i.DisplayOrder)
             .Select(i => new HplcMethodImpurityResponse(i.Id, i.DisplayOrder, i.Name, i.RelativeRetention, i.CorrectionFactor))

@@ -37,7 +37,7 @@ public record SaveHplcMethodRequest(
     decimal? HeadspaceEquilibrationMin = null, decimal? HeadspaceTransferLineTemperatureC = null,
     decimal? SampleSolutionVolumeMl = null,
     decimal? ReferenceSolutionPercent = null, decimal? DisregardLimitPercent = null,
-    List<HplcImpurityInput>? Impurities = null);
+    List<HplcImpurityInput>? Impurities = null, string? InternalStandardName = null);
 
 public record HplcMethodListItem(int Id, string Name, string Abbreviation, bool IsActive, int AnalyteCount, string SectionName, DateTime LastModifiedAt,
     HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay);
@@ -167,6 +167,10 @@ public partial class HplcMethodService
 
         if (r.Technique != method.Technique || r.ResultMode != method.ResultMode)
             throw new InvalidOperationException("The technique and result mode can't be changed after the method is created.");
+
+        var normalizedIs = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
+        if (normalizedIs != method.InternalStandardName)
+            throw new InvalidOperationException("The internal standard can't be changed after the method is created.");
 
         var alreadyUsedSolutionIds = new HashSet<int>(method.MobilePhases.Select(p => p.SolutionMasterId)) { method.DiluentSolutionId };
         var alreadyUsedStandardIds = new HashSet<int>(method.Analytes.Select(a => a.StandardEntryId));
@@ -354,6 +358,7 @@ public partial class HplcMethodService
         method.SampleSolutionVolumeMl = r.SampleSolutionVolumeMl;
         method.ReferenceSolutionPercent = r.ReferenceSolutionPercent;
         method.DisregardLimitPercent = r.DisregardLimitPercent;
+        method.InternalStandardName = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
     }
 
     private void ReplaceOvenSteps(HplcMethod method, SaveHplcMethodRequest r)
@@ -521,6 +526,15 @@ public partial class HplcMethodService
     {
         alreadyUsedSolutionIds ??= new HashSet<int>();
         alreadyUsedStandardIds ??= new HashSet<int>();
+
+        var isName = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
+        if (isName != null)
+        {
+            if (r.Technique != HplcTechnique.Hplc || r.ResultMode != HplcResultMode.Assay)
+                throw new InvalidOperationException("An internal standard applies to HPLC assay methods only.");
+            if (isName.Length > 100)
+                throw new InvalidOperationException("Internal standard name cannot exceed 100 characters.");
+        }
 
         if (string.IsNullOrWhiteSpace(r.Name))
             throw new InvalidOperationException("Name is required.");

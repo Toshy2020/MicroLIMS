@@ -73,6 +73,8 @@ public sealed class HplcSampleEntryContext
             {
                 if (rep.ActualWeightMg <= 0)
                     return $"Replicate {rep.ReplicateNo}: the sample weight is required.";
+                if (!string.IsNullOrWhiteSpace(Snapshot.InternalStandardName) && rep.InternalStandardResponse is null or <= 0)
+                    return $"Replicate {rep.ReplicateNo}: the internal standard response is required.";
                 if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && (IsResidualSolvents ? x.Response >= 0 : x.Response > 0)))
                     return $"Replicate {rep.ReplicateNo}: a response for {analyte.Name} is required.";
             }
@@ -162,13 +164,14 @@ public sealed class HplcSampleEntryContext
 
     public List<HplcAssayAnalyteInput> BuildAnalyteInputs()
     {
+        var hasIs = !string.IsNullOrWhiteSpace(Snapshot.InternalStandardName);
         var inputs = new List<HplcAssayAnalyteInput>();
         foreach (var analyte in Snapshot.Analytes.OrderBy(a => a.DisplayOrder))
         {
             var sstRow = Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == analyte.Id);
             var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
                 .Select(r => new AssayReplicateInput(r.ReplicateNo, r.ActualWeightMg,
-                    r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response))
+                    HplcResponse.Effective(r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response, hasIs ? r.InternalStandardResponse : null)))
                 .ToList();
             var std = new AssayStandard(sstRow.MeanResponse!.Value, sstRow.StandardWeightMg!.Value,
                 sstRow.StandardPurityPercent!.Value, sstRow.StandardMoisturePercent!.Value);

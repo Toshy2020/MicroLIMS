@@ -79,8 +79,14 @@ public class SystemAdministratorGrantsPostgresTests
             // System.ConfigureSettings: granted with its own audit row, enforced.
             Assert.Contains(PermissionConstants.SystemConfigureSettings, held);
             Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.SystemConfigureSettings && p.IsEnforced));
-            var settings = Assert.Single(audits, a => a.NewValue!.Contains(PermissionConstants.SystemConfigureSettings));
+            var settings = Assert.Single(audits, a => a.Reason!.Contains("admin Settings registry"));
+            Assert.Contains(PermissionConstants.SystemConfigureSettings, settings.NewValue);
             Assert.Contains("settings", settings.Reason!, StringComparison.OrdinalIgnoreCase);
+
+            // Access.Review: granted with its own audit row, enforced.
+            Assert.Contains(PermissionConstants.AccessReview, held);
+            Assert.True(await db.Permissions.AnyAsync(p => p.Code == PermissionConstants.AccessReview && p.IsEnforced));
+            Assert.Single(audits, a => a.Reason!.Contains("periodic access review"));
         });
     }
 

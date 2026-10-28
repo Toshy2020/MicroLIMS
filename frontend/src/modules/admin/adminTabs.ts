@@ -19,6 +19,7 @@ export const ADMIN_TABS: AdminTab[] = [
   { label: "Settings", path: "/admin/settings", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
   { label: "Integrations", path: "/admin/integrations", permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
   { label: "Jobs", path: "/admin/jobs", permission: PERMISSIONS.SYSTEM_MANAGE_JOBS },
+  { label: "Access Review", path: "/admin/access-review", permission: PERMISSIONS.ACCESS_REVIEW },
   { label: "Overview", path: "/admin/overview", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG }
 ];
 

@@ -246,6 +246,7 @@ export const PERMISSIONS = {
   SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
   SYSTEM_CONFIGURE_SETTINGS: "System.ConfigureSettings",
   SYSTEM_MANAGE_JOBS: "System.ManageJobs",
+  ACCESS_REVIEW: "Access.Review",
   DOCUMENTS_REGISTER: "Documents.Register",
   DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
   DOCUMENTS_REASSIGN: "Documents.Reassign",

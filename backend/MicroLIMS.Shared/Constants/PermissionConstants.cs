@@ -136,6 +136,9 @@ public static class PermissionConstants
     // View background-job status and run history, and run housekeeping jobs manually. GxP jobs are status-only for everyone.
     public const string SystemManageJobs = "System.ManageJobs";
 
+    // Periodically review who holds which access (EU GMP Annex 11 s.12, 21 CFR 11.10(d)(g)): generate the access-review report, record findings, sign it. Deliberately NOT in a segregation-of-duties set, and held by the System Administrator only because it is read-and-attest, never GxP work.
+    public const string AccessReview = "Access.Review";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -157,7 +160,7 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -176,7 +179,7 @@ public static class PermissionConstants
         SignaturesManage,   // read-only signature trail
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam,
         SamplesTrackAll, MonitoringPlanView, DocumentsTrainingViewMatrix,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -194,7 +197,7 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

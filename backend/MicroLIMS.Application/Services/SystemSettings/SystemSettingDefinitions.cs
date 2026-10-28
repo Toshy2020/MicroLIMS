@@ -34,6 +34,7 @@ public static class SystemSettingKeys
     public const string MaintenanceMessage = "System.MaintenanceMessage";
     public const string AnnouncementBanner = "System.AnnouncementBanner";
     public const string AnnouncementSeverity = "System.AnnouncementSeverity";
+    public const string AccessReviewDormantDays = "AccessReview.DormantDays";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -124,6 +125,7 @@ public static class SystemSettingDefinitions
         "MicroLIMS is in maintenance mode. Changes cannot be saved right now; please try again shortly.";
 
     public const string AlertsCategory = "Alerts";
+    public const string AccessReviewCategory = "Access Review";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -197,6 +199,9 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.AnnouncementSeverity, SystemCategory, SystemSettingValueType.String, "info",
             "How the announcement banner is styled.",
             AllowedValues: new[] { "info", "warning" }),
+        new(SystemSettingKeys.AccessReviewDormantDays, AccessReviewCategory, SystemSettingValueType.Integer, "90",
+            "An active account whose last successful sign-in is older than this (or that has never signed in and is older than this) is flagged dormant in the access-review report. A review already generated keeps the value it was generated with.",
+            "days", 1, 3650),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

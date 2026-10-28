@@ -299,6 +299,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<JwtSettings>().AccessTokenLifetime,
             sp.GetRequiredService<ISecurityAuditService>()));
+        services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
 

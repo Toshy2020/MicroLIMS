@@ -764,7 +764,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
               display: "block",
               mb: 1
             }}>
-            Pick the culture media product, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added on the Media Configurations page.
+            Pick the culture media product, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added under Master Testing Materials, Culture Media tab.
           </Typography>
           <Stack spacing={1}>
             {form.stepMedia.map((row, idx) => {

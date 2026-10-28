@@ -44,7 +44,9 @@ const APP_ROUTES = {
   ORGANISMS: "/laboratory-configuration/organisms",
   MASTER_DATA_WORKBOOK: "/laboratory-configuration/master-data-workbook",
   ITEMS: "/laboratory-configuration/items",
-  MEDIA_CONFIGURATIONS: "/laboratory-configuration/media-configurations",
+  MASTER_TESTING_MATERIALS: "/laboratory-configuration/master-testing-materials",
+  // Old pages, now tabs of Master Testing Materials; the routes redirect.
+  MEDIA_CONFIGURATIONS: "/laboratory-configuration/master-testing-materials?tab=media",
   WATER: "/laboratory-configuration/water",
   ENVIRONMENTAL_MONITORING: "/laboratory-configuration/environmental-monitoring",
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
@@ -52,7 +54,7 @@ const APP_ROUTES = {
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
-  MATERIAL_MASTER: "/laboratory-configuration/material-master",
+  MATERIAL_MASTER: "/laboratory-configuration/master-testing-materials?tab=reagents",
   SOLUTION_MASTER: "/laboratory-configuration/solution-master",
   HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   ICP_METHODS: "/laboratory-configuration/icp-methods",
@@ -151,6 +153,9 @@ export function resolveTraceabilityRoute(
   if (target === "organisms") {
     return APP_ROUTES.ORGANISMS;
   }
+  if (target === "reference-organisms" || target === "referenceorganisms") {
+    return "/laboratory-configuration/master-testing-materials?tab=organisms";
+  }
   if (target === "water") {
     return APP_ROUTES.WATER;
   }
@@ -188,6 +193,9 @@ export function resolveTraceabilityRoute(
   }
   if (type === "organism") {
     return APP_ROUTES.ORGANISMS;
+  }
+  if (type === "referenceorganism") {
+    return "/laboratory-configuration/master-testing-materials?tab=organisms";
   }
   if (type === "equipment" || type === "equipmentdocument" || type === "equipmentstatushistory") {
     return APP_ROUTES.INVENTORY_EQUIPMENT;

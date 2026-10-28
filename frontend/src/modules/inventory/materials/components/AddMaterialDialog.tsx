@@ -667,8 +667,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         await MaterialService.update(editingItem.id, payload, editingItem.version);
         onSuccess("Material stock updated successfully.");
       } else {
-        await MaterialService.create(payload);
-        onSuccess("Material added to stock successfully.");
+        const created = await MaterialService.create(payload);
+        onSuccess(created?.stockId ? `Material added to stock as ${created.stockId}.` : "Material added to stock successfully.");
       }
       onClose();
     } catch (err: unknown) {
@@ -687,7 +687,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       titleSx={{ pb: 1.5 }}
       title={
         <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-          {editingItem ? "Edit Material" : "Add Material to Stock"}
+          {editingItem ? `Edit Material${editingItem.stockId ? ` - ${editingItem.stockId}` : ""}` : "Add Material to Stock"}
         </Typography>
       }
       actions={
@@ -791,7 +791,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               {activeSectionId == null
                 ? "Choose the laboratory section first."
                 : categories.length === 0 && !categoriesLoading
-                ? "No category is available to this lab; a Section Head adds one under Reagents & Standards > Material categories."
+                ? "No category is available to this lab; a Section Head adds one under Master Testing Materials, Other Materials, Material categories."
                 : "Sets the unit, storage and expiry rules for this lot."}
             </FormHelperText>
           </FormControl>

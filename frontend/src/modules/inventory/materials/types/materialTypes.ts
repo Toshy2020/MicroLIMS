@@ -83,6 +83,8 @@ export interface MaterialItem {
   id: number;
   // Row version, sent back as If-Match when this record is edited.
   version?: number;
+  // Generated lot ID the label carries; null on lots received before stock IDs existed.
+  stockId?: string | null;
   // Owning laboratory - Material.SectionId is required server-side
   // (unlike EquipmentInventory's still-nullable column), used here only to
   // honour the ?lab= query param from the menu links (design.md §6).

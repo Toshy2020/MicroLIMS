@@ -18,7 +18,7 @@ import { AddMediaProductDialog } from "./dialogs/AddMediaProductDialog";
 import { RenameMediaProductDialog } from "./dialogs/RenameMediaProductDialog";
 import { ChangeMediaProductCodeDialog } from "./dialogs/ChangeMediaProductCodeDialog";
 
-export function MediaConfigurationPage() {
+export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}) {
   const { role, permissions } = useAuth();
   const isManager = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
   const isSectionHead = role === "SectionHead";
@@ -147,11 +147,13 @@ export function MediaConfigurationPage() {
   return (
     <Box sx={{ pb: 4 }}>
       {/* Top Header with Add Media Product button */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-        <PageHeader
-          title="Media Configurations"
-          subtitle="Configure each dehydrated medium and how it is used."
-        />
+      <Box sx={{ display: "flex", justifyContent: embedded ? "flex-end" : "space-between", alignItems: "flex-start", mb: 2 }}>
+        {!embedded && (
+          <PageHeader
+            title="Media Configurations"
+            subtitle="Configure each dehydrated medium and how it is used."
+          />
+        )}
         {isManager && (
           <Button
             variant="contained"

@@ -24,6 +24,10 @@ export interface CryovialSummary {
   cryovialId: number;
   code: string;
   organismName: string;
+  // Reference strain the batch was prepared from; null on batches made before strains existed.
+  referenceOrganismCode?: string | null;
+  cultureCollection?: string | null;
+  strainNumber?: string | null;
   manufacturerName: string;
   materialName: string;
   materialBatchNumber: string;

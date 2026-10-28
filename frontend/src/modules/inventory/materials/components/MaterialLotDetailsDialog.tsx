@@ -115,6 +115,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
 
         <Box sx={{ mb: 2 }}>
           <MetaRow label="Manufacturer" value={material.manufacturerName || "—"} />
+          <MetaRow label="Stock ID" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.stockId ?? "—"}</span>} />
           <MetaRow label="Batch / Lot" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.batchNumber}</span>} />
           <MetaRow label="Received" value={formatLabDate(material.receivingDate)} />
           <MetaRow label="Expiry" value={material.expiryDate ? formatLabDate(material.expiryDate) : "None"} />

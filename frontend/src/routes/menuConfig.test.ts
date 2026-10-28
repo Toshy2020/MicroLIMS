@@ -183,3 +183,32 @@ describe("menuConfig Administration group", () => {
     expect(groups.find((g) => g.groupName === "SYSTEM")).toBeUndefined();
   });
 });
+
+describe("Master Testing Materials menu entry", () => {
+  const labels = (groups: ReturnType<typeof getGroupedMenu>) => {
+    const out: string[] = [];
+    const walk = (items: MenuItem[]) => items.forEach((i) => { out.push(i.label); if (i.children) walk(i.children); });
+    groups.forEach((g) => walk(g.items));
+    return out;
+  };
+
+  it("is one shared entry that replaces Reagents & Standards, Media Configurations and Organisms", () => {
+    const groups = getGroupedMenu({ role: "Analyst", permissions: [PERMISSIONS.MASTER_DATA_MANAGE], labCodes: ["MICRO", "FP"] });
+    const all = labels(groups);
+    expect(all.filter((l) => l === "Master Testing Materials")).toHaveLength(1);
+    expect(all).not.toContain("Reagents & Standards");
+    expect(all).not.toContain("Media Configurations");
+    expect(all).not.toContain("Organisms");
+    const shared = groups.find((g) => g.groupName === "GENERAL LABORATORY CONFIGURATION");
+    expect(findItemByPath(shared?.items ?? [], "/laboratory-configuration/master-testing-materials")).toBeDefined();
+  });
+
+  it("is shown to either lab alone, and only with the master data permission", () => {
+    for (const lab of ["MICRO", "FP"]) {
+      const withPerm = getGroupedMenu({ role: "Analyst", permissions: [PERMISSIONS.MASTER_DATA_MANAGE], labCodes: [lab] });
+      expect(labels(withPerm)).toContain("Master Testing Materials");
+    }
+    const without = getGroupedMenu({ role: "Analyst", permissions: [], labCodes: ["MICRO"] });
+    expect(labels(without)).not.toContain("Master Testing Materials");
+  });
+});

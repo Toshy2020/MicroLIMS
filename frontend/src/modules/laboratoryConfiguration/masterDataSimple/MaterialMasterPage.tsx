@@ -67,8 +67,20 @@ function codePrefixFor(category: MaterialMasterCategory, materialCategory: Mater
   return MATERIAL_MASTER_CODE_PREFIX[category];
 }
 
-export function MaterialMasterPage() {
+interface MaterialMasterPageProps {
+  // Limits the page to these categories (a Master Testing Materials tab); all categories when omitted.
+  categories?: MaterialMasterCategory[];
+  // Hosted in the Master Testing Materials page, which has the title.
+  embedded?: boolean;
+}
+
+export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageProps = {}) {
   const { sections, sectionName } = useLaboratorySections();
+  const categoryOptions = useMemo(
+    () => (categories ? CATEGORY_OPTIONS.filter((c) => categories.includes(c.value)) : CATEGORY_OPTIONS),
+    [categories]
+  );
+  const defaultCategory = categoryOptions[0]?.value ?? "Reagent";
 
   const [entries, setEntries] = useState<MaterialMasterEntry[]>([]);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
@@ -158,7 +170,7 @@ export function MaterialMasterPage() {
     setEditingEntry(null);
     setFormCode("");
     setFormName("");
-    setFormCategory("Reagent");
+    setFormCategory(defaultCategory);
     setFormMaterialCategoryId("");
     setFormGrade("");
     setFormSource("");
@@ -291,6 +303,8 @@ export function MaterialMasterPage() {
   // Filtered list
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
+      if (categories && !categories.includes(entry.category)) return false;
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -317,7 +331,7 @@ export function MaterialMasterPage() {
 
       return true;
     });
-  }, [entries, searchQuery, categoryFilter, statusFilter, sectionFilter]);
+  }, [entries, categories, searchQuery, categoryFilter, statusFilter, sectionFilter]);
 
   const resolveSectionDisplay = (secId: number, secNameProp?: string) => {
     if (secNameProp) return secNameProp;
@@ -398,9 +412,11 @@ export function MaterialMasterPage() {
 
   const pageActions = (
     <>
-      <Button variant="outlined" startIcon={<CategoryOutlinedIcon />} onClick={() => setCategoriesOpen(true)} sx={{ fontWeight: 600, textTransform: "none" }}>
-        Material categories
-      </Button>
+      {(!categories || categories.includes("Other")) && (
+        <Button variant="outlined" startIcon={<CategoryOutlinedIcon />} onClick={() => setCategoriesOpen(true)} sx={{ fontWeight: 600, textTransform: "none" }}>
+          Material categories
+        </Button>
+      )}
       {addButton}
     </>
   );
@@ -487,6 +503,7 @@ export function MaterialMasterPage() {
       title="Reagents & Reference Standards"
       subtitle="Master definitions for reagents, indicators, and reference standards. Every lab can see and use every entry; only the owner lab can edit it."
       actions={pageActions}
+      embedded={embedded}
       filters={
         <FilterBar
           search={searchQuery}
@@ -505,11 +522,9 @@ export function MaterialMasterPage() {
               onChange={(e) => setCategoryFilter(e.target.value as "ALL" | MaterialMasterCategory)}
             >
               <MenuItem value="ALL">All Categories</MenuItem>
-              <MenuItem value="Reagent">Reagent</MenuItem>
-              <MenuItem value="Indicator">Indicator</MenuItem>
-              <MenuItem value="ReferenceStandard">Reference Standard</MenuItem>
-              <MenuItem value="PrimaryStandard">Primary Standard</MenuItem>
-              <MenuItem value="Other">Other material</MenuItem>
+              {categoryOptions.map((c) => (
+                <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -616,7 +631,7 @@ export function MaterialMasterPage() {
                   setFieldErrors((fe) => ({ ...fe, materialCategory: undefined }));
                 }}
               >
-                {CATEGORY_OPTIONS.map((c) => (
+                {categoryOptions.map((c) => (
                   <MenuItem key={c.value} value={c.value}>
                     {c.label}
                   </MenuItem>

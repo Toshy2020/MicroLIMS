@@ -183,7 +183,7 @@ export function MaterialsPage() {
       const q = filters.search.trim().toLowerCase();
       if (q) {
         const matchesName = item.materialName.toLowerCase().includes(q);
-        const matchesLot = item.batchNumber.toLowerCase().includes(q);
+        const matchesLot = item.batchNumber.toLowerCase().includes(q) || (item.stockId ?? "").toLowerCase().includes(q);
         const matchesCode = (item.code ?? "").toLowerCase().includes(q);
         const matchesMfg = (item.manufacturerName ?? "").toLowerCase().includes(q);
         const matchesLoc = (item.location ?? "").toLowerCase().includes(q);
@@ -278,6 +278,11 @@ export function MaterialsPage() {
       }
     },
     { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (m) => m.manufacturerName || "—" },
+    {
+      key: "stockId", label: "Stock ID", sortable: true, nowrap: true,
+      sortValue: (m) => m.stockId ?? "",
+      render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.stockId ?? "—"}</Box>
+    },
     {
       key: "batchNumber", label: "Batch/Lot No.", sortable: true, nowrap: true,
       render: (m) => <Box id={`lot-${m.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.batchNumber}</Box>
@@ -447,6 +452,7 @@ export function MaterialsPage() {
           { label: "Type", render: (m) => getMaterialTypeDisplay(m) },
           { label: "Name", render: (m) => m.materialName },
           { label: "Manufacturer", render: (m) => m.manufacturerName },
+          { label: "Stock ID", render: (m) => m.stockId ?? "—" },
           { label: "Batch/Lot", render: (m) => m.batchNumber },
           { label: "Received", render: (m) => formatLabDate(m.receivingDate) },
           { label: "Expiry", render: (m) => (m.expiryDate ? formatLabDate(m.expiryDate) : "—") },

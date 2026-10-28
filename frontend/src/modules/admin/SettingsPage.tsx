@@ -10,15 +10,23 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { TestActionDialog } from "./TestActionDialog";
+import { TestSendOutcome } from "./TestSendOutcome";
+import { IntegrationsService } from "./services/IntegrationsService";
 import { SettingsService, SystemSetting, SystemSettingFixedItem, SystemSettingVersion } from "./services/SettingsService";
 
 const CATEGORY_TITLES: Record<string, string> = {
   Security: "Security (passwords, lockout, sessions, e-signature)",
   Retention: "Retention and clean-up",
-  Monitoring: "Monitoring thresholds"
+  Monitoring: "Monitoring thresholds",
+  Alerts: "Alerts"
 };
 
 const withUnit = (value: string, unit: string | null) => (unit ? `${value} ${unit}` : value);
+
+// A list setting is stored comma-separated; show it readably and edit it one per line.
+const displayValue = (s: SystemSetting) =>
+  s.valueType === "EmailList" ? (s.value ? s.value.split(",").join(", ") : "Nobody") : withUnit(s.value, s.unit);
 
 // The admin panel controls the system, never GxP data. Every change needs a
 // reason; security keys also need the administrator's password (electronic
@@ -34,6 +42,7 @@ export function SettingsPage() {
   const [reason, setReason] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+  const [testAlertOpen, setTestAlertOpen] = useState(false);
 
   const [historyFor, setHistoryFor] = useState<SystemSetting | null>(null);
   const [history, setHistory] = useState<SystemSettingVersion[] | null>(null);
@@ -46,7 +55,7 @@ export function SettingsPage() {
   useEffect(load, [load]);
 
   const openEdit = (s: SystemSetting) => {
-    setEditing(s); setDraft(s.value); setReason(""); setEditError(null);
+    setEditing(s); setDraft(s.valueType === "EmailList" ? s.value.split(",").join("\n") : s.value); setReason(""); setEditError(null);
   };
   const closeEdit = () => { setEditing(null); setSigning(false); };
 
@@ -87,7 +96,12 @@ export function SettingsPage() {
 
       {categories.map((category) => (
         <Paper key={category} sx={{ mb: 2, p: 2 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>{CATEGORY_TITLES[category] ?? category}</Typography>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+            <Typography variant="h6" component="h2">{CATEGORY_TITLES[category] ?? category}</Typography>
+            {category === "Alerts" && (
+              <Button variant="outlined" size="small" onClick={() => setTestAlertOpen(true)}>Send test alert</Button>
+            )}
+          </Stack>
           <TableContainer>
             <Table size="small" aria-label={category}>
               <TableHead>
@@ -106,7 +120,7 @@ export function SettingsPage() {
                       <Typography variant="caption" color="text.secondary">{s.description}</Typography>
                     </TableCell>
                     <TableCell>
-                      {withUnit(s.value, s.unit)}
+                      {displayValue(s)}
                       {s.requiresSignature && <Chip size="small" label="Signature" sx={{ ml: 1 }} />}
                     </TableCell>
                     <TableCell>
@@ -170,7 +184,7 @@ export function SettingsPage() {
         actions={
           <>
             <Button onClick={closeEdit}>Cancel</Button>
-            <Button variant="contained" onClick={onSaveClick} disabled={!draft.trim() || !reason.trim()}>
+            <Button variant="contained" onClick={onSaveClick} disabled={(editing?.valueType !== "EmailList" && !draft.trim()) || !reason.trim()}>
               {editing?.requiresSignature ? "Continue to sign" : "Save"}
             </Button>
           </>
@@ -180,8 +194,10 @@ export function SettingsPage() {
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Typography variant="body2">{editing.description}</Typography>
             <Typography variant="caption" color="text.secondary">
-              Default {withUnit(editing.defaultValue, editing.unit)}
-              {editing.min !== null && editing.max !== null ? `. Allowed ${editing.min} to ${editing.max}.` : "."}
+              {editing.valueType === "EmailList"
+                ? `Up to ${editing.max} addresses; empty means nobody.`
+                : <>Default {withUnit(editing.defaultValue, editing.unit)}
+                  {editing.min !== null && editing.max !== null ? `. Allowed ${editing.min} to ${editing.max}.` : "."}</>}
             </Typography>
             {editing.valueType === "Boolean" ? (
               <Select size="small" value={draft} onChange={(e) => setDraft(String(e.target.value))} inputProps={{ "aria-label": "Value" }}>
@@ -192,6 +208,11 @@ export function SettingsPage() {
               <Select size="small" value={draft} onChange={(e) => setDraft(String(e.target.value))} inputProps={{ "aria-label": "Value" }}>
                 {editing.allowedValues.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
               </Select>
+            ) : editing.valueType === "EmailList" ? (
+              <TextField
+                label="Value" size="small" multiline minRows={3} value={draft} onChange={(e) => setDraft(e.target.value)}
+                helperText="One address per line, or separated by commas."
+              />
             ) : (
               <TextField
                 label="Value" size="small" value={draft} onChange={(e) => setDraft(e.target.value)}
@@ -206,6 +227,15 @@ export function SettingsPage() {
           </Stack>
         )}
       </FloatingDialog>
+
+      <TestActionDialog
+        open={testAlertOpen}
+        title="Send test alert"
+        description="Sends a clearly labelled test message to the configured critical-alert recipients."
+        confirmLabel="Send test alert"
+        onClose={() => setTestAlertOpen(false)}
+        onSubmit={async (reason) => <TestSendOutcome result={await IntegrationsService.sendTestAlert(reason)} />}
+      />
 
       <SignatureDialog
         open={signing}

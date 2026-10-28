@@ -4,7 +4,7 @@ export interface SystemSetting {
   key: string;
   category: string;
   description: string;
-  valueType: "Integer" | "Boolean" | "String";
+  valueType: "Integer" | "Boolean" | "String" | "EmailList";
   value: string;
   defaultValue: string;
   // "Database" (changed here), "Configuration" (legacy appsettings key) or "Default".

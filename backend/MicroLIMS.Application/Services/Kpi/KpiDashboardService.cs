@@ -107,7 +107,7 @@ public class KpiDashboardService
             throw new UnauthorizedAccessException("You can only view your own analyst figures.");
         KpiScope.ParseCategory(category);   // reject an unknown category up front, as a 400
 
-        var sections = await _scope.GetAccessibleSectionIdsAsync(userId, ct);   // null = unrestricted, empty = nothing
+        var sections = await _scope.GetReadableSectionIdsAsync(userId, ct);   // null = unrestricted, empty = nothing
         var now = _time.GetUtcNow().UtcDateTime;
         return new KpiQuery(
             from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),

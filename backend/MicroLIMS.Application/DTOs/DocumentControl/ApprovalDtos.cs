@@ -60,7 +60,10 @@ public record ElectronicSignatureDto(
     int EntityId,
     DateTime SignedAt,
     string? Comment,
-    string? IpAddress
+    string? IpAddress,
+    // The role's name at signing; null on rows signed before it was
+    // captured. Display it in preference to RoleSnapshot (the role type).
+    string? RoleNameSnapshot = null
 );
 
 public record ApprovalDossierDto(

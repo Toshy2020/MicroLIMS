@@ -3,6 +3,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 
 namespace MicroLIMS.Application.Services.EquipmentPlan;
@@ -52,7 +53,7 @@ public record StatusLine(
     EquipmentOperationalStatus NewStatus,
     string Comment,
     DateTime ChangedAt,
-    int ChangedByUserId,
+    int? ChangedByUserId,
     string? ChangedByName = null);
 
 public record BaselineLine(
@@ -309,7 +310,7 @@ public class EquipmentCalendarService
             h.Comment,
             h.ChangedAt,
             h.ChangedByUserId,
-            h.ChangedByUser?.FullName
+            h.ChangedByUserId is null ? SystemActor.DisplayName : h.ChangedByUser?.FullName
         )).ToList();
 
         var logbookEntries = await _db.MaintenanceLogEntries

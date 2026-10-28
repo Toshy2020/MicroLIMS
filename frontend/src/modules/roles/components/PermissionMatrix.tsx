@@ -1,5 +1,5 @@
 import { Box, Paper, Typography, Checkbox, FormControlLabel, Tooltip, Stack } from "@mui/material";
-import { PermissionRecord } from "../services/RoleService";
+import { PermissionRecord, SodRules } from "../services/RoleService";
 import { MetaBadge, ToneBadge } from "../../../components/StatusBadge";
 
 // "TestWorkflow.Execute" -> module "TestWorkflow", tier "Execute". Module
@@ -25,9 +25,21 @@ interface PermissionMatrixProps {
   permissions: PermissionRecord[];
   checkedCodes: Set<string>;
   onToggle: (code: string, checked: boolean) => void;
+  // When given, a box that would put administration and GxP codes in one
+  // role is disabled. The server enforces the same rule on save.
+  sodRules?: SodRules | null;
 }
 
-export function PermissionMatrix({ permissions, checkedCodes, onToggle }: PermissionMatrixProps) {
+// The checked code that `code` may not be combined with, if any.
+function conflictingCode(code: string, checkedCodes: Set<string>, rules: SodRules | null | undefined): string | undefined {
+  if (!rules) return undefined;
+  const opposite = rules.administrationCodes.includes(code) ? rules.gxpExecutionAndApprovalCodes
+    : rules.gxpExecutionAndApprovalCodes.includes(code) ? rules.administrationCodes
+    : [];
+  return opposite.find((c) => checkedCodes.has(c));
+}
+
+export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules }: PermissionMatrixProps) {
   const groups = new Map<string, PermissionRecord[]>();
   for (const p of permissions) {
     const mod = moduleOf(p.code);
@@ -48,24 +60,33 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle }: Permis
             {humanizeModule(mod)}
           </Typography>
           <Stack spacing={0.5}>
-            {groups.get(mod)!.map((p) => (
+            {groups.get(mod)!.map((p) => {
+              // A checked box stays enabled so a role that already conflicts can be fixed.
+              const blockedBy = checkedCodes.has(p.code) ? undefined : conflictingCode(p.code, checkedCodes, sodRules);
+              return (
               <Box key={p.code} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, py: 0.25 }}>
-                <FormControlLabel
-                  sx={{ flex: 1, m: 0 }}
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={checkedCodes.has(p.code)}
-                      onChange={(e) => onToggle(p.code, e.target.checked)}
+                <Tooltip title={blockedBy ? `Cannot be combined with ${blockedBy}: a role may not hold both system administration and GxP execution or approval.` : ""}>
+                  {/* Span wrapper: a disabled control does not fire the hover Tooltip listens for. */}
+                  <Box component="span" sx={{ flex: 1 }}>
+                    <FormControlLabel
+                      sx={{ m: 0, width: "100%" }}
+                      disabled={!!blockedBy}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={checkedCodes.has(p.code)}
+                          onChange={(e) => onToggle(p.code, e.target.checked)}
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.code}</Typography>
+                          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{p.description}</Typography>
+                        </Box>
+                      }
                     />
-                  }
-                  label={
-                    <Box>
-                      <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.code}</Typography>
-                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{p.description}</Typography>
-                    </Box>
-                  }
-                />
+                  </Box>
+                </Tooltip>
                 <Tooltip
                   title={
                     p.isEnforced
@@ -79,7 +100,8 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle }: Permis
                   </Box>
                 </Tooltip>
               </Box>
-            ))}
+              );
+            })}
           </Stack>
         </Paper>
       ))}

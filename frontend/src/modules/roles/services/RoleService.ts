@@ -7,6 +7,8 @@ export interface RoleRecord {
   type: string;
   isSystemRole: boolean;
   isActive: boolean;
+  // Administration + GxP pairs the role holds today ("A + B"); empty when it is clean.
+  sodConflicts?: string[];
 }
 
 export interface RoleDetail {
@@ -19,6 +21,14 @@ export interface RoleDetail {
   isSystemRole: boolean;
   isActive: boolean;
   permissionCodes: string[];
+  sodConflicts?: string[];
+}
+
+// The segregation-of-duties rule the server enforces: no role may hold a
+// code from each list.
+export interface SodRules {
+  administrationCodes: string[];
+  gxpExecutionAndApprovalCodes: string[];
 }
 
 export interface PermissionRecord {
@@ -34,19 +44,25 @@ export const RoleService = {
   async getById(id: number): Promise<RoleDetail> {
     return (await apiClient.get(`/roles/${id}`)).data.data;
   },
-  async create(name: string, description: string | null, baseType: string): Promise<RoleDetail> {
-    return (await apiClient.post("/roles", { name, description, baseType })).data.data;
+  // Every change carries the administrator's reason (required by the server).
+  async create(name: string, description: string | null, baseType: string, reason: string): Promise<RoleDetail> {
+    return (await apiClient.post("/roles", { name, description, baseType, reason })).data.data;
   },
-  async update(id: number, name: string, description: string | null, version?: number): Promise<RoleDetail> {
-    return (await apiClient.put(`/roles/${id}`, { name, description }, ifMatch(version))).data.data;
+  async update(id: number, name: string, description: string | null, reason: string, version?: number): Promise<RoleDetail> {
+    return (await apiClient.put(`/roles/${id}`, { name, description, reason }, ifMatch(version))).data.data;
   },
-  async remove(id: number): Promise<void> {
-    await apiClient.delete(`/roles/${id}`);
+  // Electronically signed: password is the administrator's own, re-verified by the server.
+  async remove(id: number, reason: string, password: string): Promise<void> {
+    await apiClient.delete(`/roles/${id}`, { data: { reason, password } });
   },
-  async updatePermissions(id: number, permissionCodes: string[]): Promise<RoleDetail> {
-    return (await apiClient.put(`/roles/${id}/permissions`, { permissionCodes })).data.data;
+  // Electronically signed (password re-entry) with a reason.
+  async updatePermissions(id: number, permissionCodes: string[], reason: string, password: string): Promise<RoleDetail> {
+    return (await apiClient.put(`/roles/${id}/permissions`, { permissionCodes, reason, password })).data.data;
   },
   async getAllPermissions(): Promise<PermissionRecord[]> {
     return (await apiClient.get("/permissions")).data.data;
+  },
+  async getSodRules(): Promise<SodRules> {
+    return (await apiClient.get("/roles/sod-rules")).data.data;
   }
 };

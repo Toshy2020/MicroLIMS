@@ -134,3 +134,52 @@ describe("menuConfig area filtering", () => {
     expect(rmpmTestMasterTrail?.exact).toBe(true);
   });
 });
+
+describe("menuConfig document audit link", () => {
+  const hasAuditLink = (role: "Analyst" | "Reviewer" | "SectionHead" | "SystemAdministrator", permissions: string[]) => {
+    const groups = getGroupedMenu({ role, permissions, labCodes: [] });
+    return findItemByPath(groups.flatMap((g) => g.items), "/document-control/audit") !== undefined;
+  };
+
+  // Mirrors the server rule: Reviewers and Section Heads by role, anyone else only with Audit.View.
+  it("is offered to Reviewers, Section Heads and Audit.View holders, and to nobody else", () => {
+    expect(hasAuditLink("Reviewer", [])).toBe(true);
+    expect(hasAuditLink("SectionHead", [])).toBe(true);
+    expect(hasAuditLink("Analyst", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
+    expect(hasAuditLink("SystemAdministrator", [PERMISSIONS.AUDIT_VIEW])).toBe(true);
+    expect(hasAuditLink("Analyst", [])).toBe(false);
+    expect(hasAuditLink("SystemAdministrator", [])).toBe(false);
+  });
+});
+
+describe("menuConfig Administration group", () => {
+  const adminPaths = (permissions: string[]) => {
+    const group = getGroupedMenu({ role: "Analyst", permissions, labCodes: [] }).find((g) => g.groupName === "ADMINISTRATION");
+    return group?.items.map((i) => i.path) ?? [];
+  };
+
+  it("offers each admin page only to the permission that guards it", () => {
+    expect(adminPaths([])).toEqual([]);
+    expect(adminPaths([PERMISSIONS.USERS_MANAGE])).toEqual(["/admin/users"]);
+    expect(adminPaths([PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS])).toEqual(["/admin/settings"]);
+    expect(adminPaths([PERMISSIONS.ROLES_MANAGE])).toEqual(["/admin/roles"]);
+    expect(adminPaths([PERMISSIONS.AUDIT_VIEW])).toEqual(["/admin/audit"]);
+    expect(adminPaths([PERMISSIONS.SYSTEM_VIEW_ERROR_LOG])).toEqual(["/admin/error-log"]);
+  });
+
+  it("lists all five pages, in tab order, for a full administrator", () => {
+    expect(adminPaths([PERMISSIONS.USERS_MANAGE, PERMISSIONS.ROLES_MANAGE, PERMISSIONS.AUDIT_VIEW, PERMISSIONS.SYSTEM_VIEW_ERROR_LOG, PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS]))
+      .toEqual(["/admin/users", "/admin/roles", "/admin/audit", "/admin/error-log", "/admin/settings"]);
+  });
+
+  it("no longer scatters admin entries under the old groups or paths", () => {
+    const groups = getGroupedMenu({
+      role: "SystemAdministrator",
+      permissions: [PERMISSIONS.USERS_MANAGE, PERMISSIONS.ROLES_MANAGE, PERMISSIONS.AUDIT_VIEW, PERMISSIONS.SYSTEM_VIEW_ERROR_LOG, PERMISSIONS.OOS_MANAGE],
+      labCodes: []
+    });
+    const all = groups.flatMap((g) => g.items);
+    for (const old of ["/users", "/roles", "/audit-search", "/error-monitoring"]) expect(findItemByPath(all, old)).toBeUndefined();
+    expect(groups.find((g) => g.groupName === "SYSTEM")).toBeUndefined();
+  });
+});

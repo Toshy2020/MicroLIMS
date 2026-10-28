@@ -14,6 +14,7 @@ interface SignatureDialogProps {
   open: boolean;
   meaningStatement: string; // plain-language statement, e.g. "I am approving this result."
   showComment?: boolean;
+  commentLabel?: string;
   comment?: string;
   onCommentChange?: (value: string) => void;
   // Changes that need a second, different person (for example skipping a monitoring
@@ -30,7 +31,7 @@ interface SignatureDialogProps {
 // optional comment. On failure the server's message is shown and the
 // password is cleared, but the dialog stays open.
 export function SignatureDialog({
-  open, meaningStatement, showComment = false, comment, onCommentChange,
+  open, meaningStatement, showComment = false, commentLabel = "Comment (optional)", comment, onCommentChange,
   requireSecondSigner = false, secondSignerHint, onCancel, onConfirm
 }: SignatureDialogProps) {
   const { fullName, username, role } = useAuth();
@@ -89,7 +90,7 @@ export function SignatureDialog({
           </Box>
           <Alert severity="info">{meaningStatement}</Alert>
           {showComment && (
-            <TextField label="Comment (optional)" multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
+            <TextField label={commentLabel} multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
           )}
           <TextField
             label="Password" type="password" value={password}

@@ -8,8 +8,9 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
-import { ConfirmationDialog } from "../../components/ConfirmationDialog";
-import { RoleService, RoleDetail, PermissionRecord } from "./services/RoleService";
+import { FloatingDialog } from "../../components/FloatingDialog";
+import { SignatureDialog } from "../../components/SignatureDialog";
+import { RoleService, RoleDetail, PermissionRecord, SodRules } from "./services/RoleService";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { PermissionMatrix } from "./components/PermissionMatrix";
@@ -24,6 +25,7 @@ export function RoleDetailPage() {
   const [role, setRole] = useState<RoleDetail | null>(null);
   const [permissions, setPermissions] = useState<PermissionRecord[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [sodRules, setSodRules] = useState<SodRules | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [checkedCodes, setCheckedCodes] = useState<Set<string>>(new Set());
@@ -31,6 +33,10 @@ export function RoleDetailPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  // Permission edits and role deletion are electronically signed (password re-entry).
+  const [signing, setSigning] = useState<"permissions" | "delete" | null>(null);
 
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
 
@@ -44,6 +50,7 @@ export function RoleDetailPage() {
     }).catch(() => setMessage({ text: "Could not load this role.", ok: false }));
     RoleService.getAllPermissions().then(setPermissions).catch(fail("the permission list"));
     UserService.getAll().then(setUsers).catch(fail("the users holding this role"));
+    RoleService.getSodRules().then(setSodRules).catch(fail("the segregation-of-duties rules"));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [roleId]);
@@ -76,18 +83,40 @@ export function RoleDetailPage() {
     });
   };
 
+  const permissionsChanged = useMemo(() => {
+    if (!role) return false;
+    if (checkedCodes.size !== role.permissionCodes.length) return true;
+    return role.permissionCodes.some((c) => !checkedCodes.has(c));
+  }, [role, checkedCodes]);
+
+  const saveRename = async () => {
+    if (!role) return;
+    if (name !== role.name || description !== (role.description ?? "")) {
+      await RoleService.update(role.id, name, description || null, reason.trim(), role.version);
+    }
+  };
+
   const handleSave = async () => {
     if (!role) return;
     if (!name.trim()) {
       setMessage({ text: "Role name is required.", ok: false });
       return;
     }
-    setSaving(true);
+    if (!reason.trim()) {
+      setMessage({ text: "A reason is required to save changes to a role.", ok: false });
+      return;
+    }
     setMessage(null);
+    // A permission edit is signed first; a rename alone needs only the reason.
+    if (permissionsChanged) {
+      setSigning("permissions");
+      return;
+    }
+    setSaving(true);
     try {
-      await RoleService.update(role.id, name, description || null, role.version);
-      await RoleService.updatePermissions(role.id, Array.from(checkedCodes));
+      await saveRename();
       setMessage({ text: "Role saved.", ok: true });
+      setReason("");
       load();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not save this role.", ok: false });
@@ -96,16 +125,36 @@ export function RoleDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
+  // Errors are thrown back to the signature dialog, which shows them and stays open.
+  const confirmPermissionsSignature = async (password: string) => {
+    if (!role) return;
+    setSaving(true);
+    try {
+      await RoleService.updatePermissions(role.id, Array.from(checkedCodes), reason.trim(), password);
+      await saveRename();
+      setSigning(null);
+      setMessage({ text: "Role saved.", ok: true });
+      setReason("");
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDeleteSignature = async (password: string) => {
     if (!role) return;
     setDeleting(true);
     try {
-      await RoleService.remove(role.id);
+      await RoleService.remove(role.id, deleteReason.trim(), password);
       navigate("/roles", { state: { message: `Role "${role.name}" deleted.` } });
     } catch (e: any) {
-      setConfirmDelete(false);
       setDeleting(false);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this role.", ok: false });
+      const msg: string = e?.response?.data?.message ?? "Could not delete this role.";
+      // Only a refused password stays in the signature dialog.
+      if (/password|signature/i.test(msg)) throw e;
+      setSigning(null);
+      setConfirmDelete(false);
+      setMessage({ text: msg, ok: false });
     }
   };
 
@@ -135,7 +184,7 @@ export function RoleDetailPage() {
           <Button
             startIcon={<DeleteIcon />}
             color="error"
-            onClick={() => setConfirmDelete(true)}
+            onClick={() => { setDeleteReason(""); setConfirmDelete(true); }}
             disabled={deleting}
             sx={{ flexShrink: 0 }}
           >
@@ -163,6 +212,13 @@ export function RoleDetailPage() {
         </Stack>
       </Paper>
 
+      {role.sodConflicts && role.sodConflicts.length > 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          This role mixes system administration with GxP execution or approval ({role.sodConflicts.join("; ")}).
+          Segregation of duties does not allow that: uncheck one side of each pair and save.
+        </Alert>
+      )}
+
       {!role.isSystemRole && (
         <Alert severity="info" sx={{ mb: 3 }}>
           This role behaves like <strong>{role.type}</strong> on screens not yet migrated to the new permission system
@@ -171,7 +227,7 @@ export function RoleDetailPage() {
       )}
 
       <SectionTitle>Permissions</SectionTitle>
-      <PermissionMatrix permissions={permissions} checkedCodes={checkedCodes} onToggle={handleToggle} />
+      <PermissionMatrix permissions={permissions} checkedCodes={checkedCodes} onToggle={handleToggle} sodRules={sodRules} />
 
       <Box
         sx={{
@@ -183,10 +239,13 @@ export function RoleDetailPage() {
         <Typography role="status" sx={{ fontSize: 13, color: "text.secondary", mr: "auto" }}>
           {isDirty ? "You have unsaved changes." : "No unsaved changes."}
         </Typography>
+        {isDirty && (
+          <TextField label="Reason for Change" size="small" value={reason} onChange={(e) => setReason(e.target.value)} required sx={{ minWidth: 280 }} />
+        )}
         <Button variant="outlined" color="inherit" onClick={handleDiscard} disabled={!isDirty || saving}>
           Discard Changes
         </Button>
-        <Button variant="contained" onClick={handleSave} disabled={!isDirty || saving}>
+        <Button variant="contained" onClick={handleSave} disabled={!isDirty || saving || !reason.trim()}>
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </Box>
@@ -215,11 +274,39 @@ export function RoleDetailPage() {
         )}
       </Paper>
 
-      <ConfirmationDialog
-        open={confirmDelete}
-        message={`Delete role "${role.name}"? This cannot be undone.${assignedUsers.length > 0 ? ` It is currently assigned to ${assignedUsers.length} user(s) and cannot be deleted until they are reassigned.` : ""}`}
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
+      <FloatingDialog
+        open={confirmDelete && signing === null}
+        onClose={() => setConfirmDelete(false)}
+        maxWidth="xs"
+        title="Delete Role"
+        actions={
+          <>
+            <Button onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            <Button variant="contained" color="error" disabled={!deleteReason.trim()} onClick={() => setSigning("delete")}>
+              Continue to Sign
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography variant="body2">
+            {`Delete role "${role.name}"? This cannot be undone.${assignedUsers.length > 0 ? ` It is currently assigned to ${assignedUsers.length} user(s) and cannot be deleted until they are reassigned.` : ""}`}
+          </Typography>
+          <TextField label="Reason for Deletion" size="small" value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} required fullWidth multiline rows={2} placeholder="Mandatory justification" />
+        </Stack>
+      </FloatingDialog>
+
+      <SignatureDialog
+        open={signing === "permissions"}
+        meaningStatement={`I am changing the permissions of the role "${role.name}". Reason: ${reason.trim()}`}
+        onCancel={() => setSigning(null)}
+        onConfirm={confirmPermissionsSignature}
+      />
+      <SignatureDialog
+        open={signing === "delete"}
+        meaningStatement={`I am deleting the role "${role.name}". Reason: ${deleteReason.trim()}`}
+        onCancel={() => setSigning(null)}
+        onConfirm={confirmDeleteSignature}
       />
     </>
   );

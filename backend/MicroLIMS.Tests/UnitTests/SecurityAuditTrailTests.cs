@@ -7,6 +7,8 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
+using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Constants;
 using Xunit;
 
@@ -52,18 +54,22 @@ public class SecurityAuditTrailTests
             new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst" }
         );
         db.SaveChanges();
+        DbSeeder.SeedPermissionsAndGrants(db);
+        // Somebody must still be able to administer users and roles after the change under test.
+        db.Users.Add(new User { Id = 900, FullName = "Standing Admin", Username = "standingadmin", RoleId = 1, IsActive = true });
+        db.SaveChanges();
         return db;
     }
 
     private static (UserService UserService, AuthenticationService AuthService) CreateServices(MicroLimsDbContext db)
     {
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, codes) => $"jwt-for-{id}";
+        AccessTokenIssuer tokenIssuer = subject => $"jwt-for-{subject.UserId}";
         var securityAudit = new SecurityAuditService(db, new StubRequestContext());
         var authService = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender,
             NullLogger<AuthenticationService>.Instance, securityAudit);
-        return (new UserService(db, authService, securityAudit), authService);
+        return (new UserService(db, authService, securityAudit, signatureService: new AcceptingSignatureService(db)), authService);
     }
 
     private static User SeedUser(MicroLimsDbContext db, int id = 10, string username = "analyst1", int roleId = 4)
@@ -375,7 +381,7 @@ public class SecurityAuditTrailTests
         var target = SeedUser(db, id: 10, username: "analyst1", roleId: 4);
         var (users, _) = CreateServices(db);
 
-        await users.ChangeRoleAsync(target.Id, newRoleId: 2, reason: "Promoted", actingUserId: 1);
+        await users.ChangeRoleAsync(target.Id, newRoleId: 2, reason: "Promoted", actingUserId: 1, password: "pw");
 
         var changed = Assert.Single(await EventsAsync(db, SecurityEventCodes.RoleChanged));
         Assert.Equal(1, changed.ActorUserId);
@@ -449,7 +455,7 @@ public class SecurityAuditTrailTests
         using var db = CreateDbContext();
         SeedUser(db);
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, codes) => "jwt";
+        AccessTokenIssuer tokenIssuer = _ => "jwt";
         var auth = new AuthenticationService(
             db, tokenIssuer, new PermissionService(db), emailSender,
             NullLogger<AuthenticationService>.Instance,

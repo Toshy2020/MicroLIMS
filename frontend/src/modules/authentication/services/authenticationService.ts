@@ -5,14 +5,16 @@ import { readTokenClaims } from "../tokenClaims";
 export const authenticationService = {
   async login(username: string, password: string): Promise<LoginResult> {
     const res = await apiClient.post("/auth/login", { username, password });
-    const { token, refreshToken, mustChangePassword } = res.data.data as { token: string; refreshToken: string; mustChangePassword: boolean };
+    const { token, refreshToken, mustChangePassword, roleName } = res.data.data as {
+      token: string; refreshToken: string; mustChangePassword: boolean; roleName?: string | null;
+    };
     const { role, permissions } = readTokenClaims(token);
-    return { token, refreshToken, role: role!, permissions, mustChangePassword };
+    return { token, refreshToken, role: role!, permissions, mustChangePassword, roleName };
   },
 
   async refresh(refreshToken: string) {
     const res = await apiClient.post("/auth/refresh", { refreshToken });
-    return res.data.data as { token: string; refreshToken: string };
+    return res.data.data as { token: string; refreshToken: string; roleName?: string | null };
   },
 
   async requestPasswordReset(username: string) {

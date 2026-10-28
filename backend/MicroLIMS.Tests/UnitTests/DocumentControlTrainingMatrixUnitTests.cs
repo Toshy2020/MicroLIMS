@@ -114,7 +114,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var stubService = new TestTrainingMatrixService();
         var controller = new DocumentTrainingMatrixController(stubService)
         {
-            ControllerContext = CreateContext(1, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(1, nameof(RoleType.SectionHead)) // the Document Controller holds Documents.TrainingAssign; the administrator does not
         };
 
         var res = await controller.GetTrainingMatrixGrid(new TrainingMatrixFilterDto());
@@ -124,6 +124,23 @@ public class DocumentControlTrainingMatrixUnitTests
         Assert.NotNull(data);
         Assert.Equal(10, data.TotalUsers);
         Assert.Equal(5, data.TotalDocuments);
+    }
+
+    [Fact]
+    public async Task GetTrainingMatrixGrid_ReviewerWithViewMatrixOnly_ReturnsFullGrid()
+    {
+        // The Reviewer holds Documents.TrainingViewMatrix but not
+        // Documents.TrainingAssign: viewing alone is enough to see every row.
+        var stubService = new TestTrainingMatrixService();
+        var controller = new DocumentTrainingMatrixController(stubService)
+        {
+            ControllerContext = CreateContext(7, nameof(RoleType.Reviewer))
+        };
+
+        var res = await controller.GetTrainingMatrixGrid(new TrainingMatrixFilterDto());
+        Assert.IsType<OkObjectResult>(res);
+        Assert.NotNull(stubService.LastGridFilter);
+        Assert.Null(stubService.LastGridFilter!.UserId);
     }
 
     [Fact]
@@ -147,7 +164,7 @@ public class DocumentControlTrainingMatrixUnitTests
         var stubService = new TestTrainingMatrixService();
         var controller = new DocumentTrainingMatrixController(stubService)
         {
-            ControllerContext = CreateContext(1, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(1, nameof(RoleType.SectionHead)) // the Document Controller holds Documents.TrainingAssign; the administrator does not
         };
 
         var res = await controller.GetComplianceKpis();

@@ -18,10 +18,19 @@ public interface IMicroLimsDbContext
     // if CurrentUserId is set.
     string? CurrentAgentCode { get; set; }
 
+    // The hosted worker making the change, when there is no user or agent.
+    // Audit rows then name the System actor and this process.
+    string? CurrentSystemProcessName { get; set; }
+
     // The Version of the record the client's form was loaded with, from the
     // request's If-Match header. Null when the client sent none. Checked by
     // RecordVersion.EnsureCurrent.
     uint? ExpectedVersion { get; set; }
+
+    // Why the change in progress is being made (an administrator's stated
+    // reason). The automatic audit capture copies it into AuditLog.Reason
+    // for every row the save produces. Set per operation, never from JSON.
+    string? CurrentReason { get; set; }
 
     DbSet<User> Users { get; }
     DbSet<Role> Roles { get; }
@@ -195,6 +204,10 @@ public interface IMicroLimsDbContext
     DbSet<UserOrgMembership> UserOrgMemberships { get; }
     DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations { get; }
     DbSet<ConfigurationSetting> ConfigurationSettings { get; }
+    DbSet<SystemSetting> SystemSettings { get; }
+    DbSet<SystemSettingVersion> SystemSettingVersions { get; }
+    DbSet<AccessReview> AccessReviews { get; }
+    DbSet<AccessReviewFinding> AccessReviewFindings { get; }
     DbSet<DocumentReviewTask> DocumentReviewTasks { get; }
     DbSet<DocumentReviewFinding> DocumentReviewFindings { get; }
     DbSet<RevisionChangeItem> RevisionChangeItems { get; }
@@ -210,6 +223,8 @@ public interface IMicroLimsDbContext
     DbSet<DocumentEscalationRecord> DocumentEscalationRecords { get; }
     DbSet<Incident> Incidents { get; }
     DbSet<ErrorLog> ErrorLogs { get; }
+    DbSet<BackgroundJobRun> BackgroundJobRuns { get; }
+    DbSet<BackupRun> BackupRuns { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     DatabaseFacade Database { get; }

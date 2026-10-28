@@ -8,6 +8,25 @@ namespace MicroLIMS.Application.Services.DocumentControl;
 // Callers must Include those navigations; a missing creator maps to "".
 public static class DocumentDtoMapper
 {
+    // What a deactivated custodian or assignee shows as. Their name is deliberately not exposed to
+    // ordinary viewers; the reassignment queue shows it to the people who hand the work over.
+    public const string InactiveHolderLabel = "Inactive user \u2014 needs reassignment";
+
+    public static string HolderName(User? user) =>
+        user is { IsActive: false } ? InactiveHolderLabel : user?.FullName ?? "";
+
+    public static DocumentMasterAssignmentDto MapAssignment(DocumentMasterAssignment a) => new(
+        a.Id,
+        a.DocumentMasterId,
+        a.UserId,
+        a.User is { IsActive: false } ? "" : a.User?.Username ?? "",
+        HolderName(a.User),
+        a.AssignmentRole,
+        a.IsActive,
+        a.AssignedAt,
+        a.AssignedByUserId,
+        a.AssignedByUser?.FullName ?? "");
+
     // The master's sections, primary first then by name. Falls back to the primary
     // alone when Sections (and Sections.Section) were not loaded.
     public static (IReadOnlyList<int> Ids, IReadOnlyList<string> Names) MapSections(DocumentMaster m)

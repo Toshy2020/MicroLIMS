@@ -13,7 +13,8 @@ import {
   Stack,
   Typography,
   Alert,
-  Divider
+  Divider,
+  TextField
 } from "@mui/material";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { UserRecord } from "../services/UserService";
@@ -59,8 +60,11 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A membership change decides what laboratory data the user can see and act on: the server requires a reason.
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
+    setReason("");
     if (!open || !user) {
       setMemberships([]);
       setError(null);
@@ -170,7 +174,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
           physchemArea: isFp ? (m.physchemArea === "Both" ? null : m.physchemArea ?? null) : null
         };
       });
-      await replaceUserMemberships(user.id, payload);
+      await replaceUserMemberships(user.id, payload, reason.trim());
       onSuccess(`Laboratory sections updated for "${user.username}".`);
       onClose();
     } catch (err: unknown) {
@@ -194,7 +198,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={saving || loading}
+            disabled={saving || loading || !reason.trim()}
             sx={{
               bgcolor: brandColors.sectionTitle,
               px: 3,
@@ -216,6 +220,19 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         Assign laboratory sections to <strong>{user?.fullName} (@{user?.username})</strong>.
         Selecting the entire department grants access to all of its current and future sections.
       </Typography>
+
+      <TextField
+        label="Reason for Change"
+        size="small"
+        multiline
+        rows={2}
+        required
+        fullWidth
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Mandatory administrative justification"
+        sx={{ mb: 2 }}
+      />
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>

@@ -15,5 +15,11 @@ public class Role : IVersionedEntity
     // depends on those 4 names existing.
     public bool IsSystemRole { get; set; }
     public bool IsActive { get; set; } = true;
+    // Bumped every time this role's permission grants change. It is signed
+    // into each access token (the "pv" claim) and compared with this value
+    // on every request, so editing a role's permissions ends the sessions
+    // that were issued with the old grants. Starts at 1 so a token can never
+    // match a role through a missing or zero value.
+    public int PermissionVersion { get; set; } = 1;
     public List<Permission> Permissions { get; set; } = new();
 }

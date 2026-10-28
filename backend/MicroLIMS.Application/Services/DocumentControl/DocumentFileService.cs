@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
@@ -320,9 +321,12 @@ public class DocumentFileService : IDocumentFileService
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.SettingKey == "DocumentControl.ControlledCopy.DownloadPermitted");
 
-            var (isActive, role) = await GetUserRoleAsync(userId);
-            // Admin and Doc Controller can always download
-            var isPrivileged = role == RoleType.SystemAdministrator || role == RoleType.SectionHead;
+            var (isActive, role, roleId) = await GetUserRoleAsync(userId);
+            // Doc Controller and read-only audit oversight (Audit.View) can always download;
+            // being System Administrator no longer implies it.
+            var isPrivileged = role == RoleType.SectionHead
+                || (isActive && await _db.RolePermissions.AsNoTracking()
+                    .AnyAsync(rp => rp.RoleId == roleId && rp.Permission!.Code == PermissionConstants.AuditView));
 
             if (downloadSetting != null &&
                 string.Equals(downloadSetting.SettingValue, "false", StringComparison.OrdinalIgnoreCase) &&
@@ -458,7 +462,7 @@ public class DocumentFileService : IDocumentFileService
                msg.Contains("unique", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)
+    private async Task<(bool IsActive, RoleType? RoleType, int RoleId)> GetUserRoleAsync(int userId)
     {
         var user = await _db.Users
             .Include(u => u.Role)
@@ -466,8 +470,8 @@ public class DocumentFileService : IDocumentFileService
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null || !user.IsActive)
-            return (false, null);
+            return (false, null, 0);
 
-        return (true, user.Role?.Type);
+        return (true, user.Role?.Type, user.RoleId);
     }
 }

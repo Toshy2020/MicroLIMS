@@ -41,7 +41,7 @@ public class TestStageReplicateMasterDataService
         var test = await _db.TestDefinitions.FindAsync(id)
             ?? throw new NotFoundException($"Test {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
@@ -68,7 +68,7 @@ public class TestStageReplicateMasterDataService
         var test = await _db.TestDefinitions.FindAsync(id)
             ?? throw new NotFoundException($"Test {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
@@ -92,7 +92,7 @@ public class TestStageReplicateMasterDataService
         var test = await _db.TestDefinitions.FindAsync(id)
             ?? throw new NotFoundException($"Test {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 

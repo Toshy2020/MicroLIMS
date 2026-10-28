@@ -6,6 +6,8 @@ export interface LoginResult {
   role: Role;
   permissions: string[];
   mustChangePassword: boolean;
+  // The role's display name (Role.Name); `role` above is its base type.
+  roleName?: string | null;
 }
 
 export interface CurrentUserInfo {
@@ -13,6 +15,7 @@ export interface CurrentUserInfo {
   username: string;
   fullName: string;
   role: Role;
+  roleName?: string | null;
   jobTitle?: string | null;
   lastLoginAt: string | null;
   passwordChangedAt: string | null;

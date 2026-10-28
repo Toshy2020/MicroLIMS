@@ -15,7 +15,7 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
         _db = db;
     }
 
-    private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)
+    private async Task<(bool IsActive, RoleType? RoleType, int RoleId)> GetUserRoleAsync(int userId)
     {
         var user = await _db.Users
             .Include(u => u.Role)
@@ -23,10 +23,25 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null || !user.IsActive)
-            return (false, null);
+            return (false, null, 0);
 
-        return (true, user.Role?.Type);
+        return (true, user.Role?.Type, user.RoleId);
     }
+
+    // For callers that already loaded the user, so a permission check costs one
+    // query rather than a second user read.
+    private async Task<bool> RoleHoldsAsync(int roleId, string permissionCode) =>
+        await _db.RolePermissions
+            .AsNoTracking()
+            .AnyAsync(rp => rp.RoleId == roleId && rp.Permission!.Code == permissionCode);
+
+    // Read-only oversight of Document Control records. System Administrators
+    // control the system, never the GxP record (21 CFR Part 11 §11.10(d)(g),
+    // EU GMP Annex 11 §12), so they get no role shortcut here: they read void
+    // records, editable sources, non-effective PDFs and audit trails only
+    // because the built-in role holds Audit.View, and a lab can withdraw it on
+    // the Roles screen. Nothing that writes, reviews or approves uses this.
+    private Task<bool> HoldsAuditViewAsync(int roleId) => RoleHoldsAsync(roleId, PermissionConstants.AuditView);
 
     // Category access comes from the role's granted permissions, so a lab can
     // change who may perform a Document Control function from the Roles screen
@@ -50,6 +65,18 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
             .AsNoTracking()
             .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == permissionCode);
     }
+
+    public Task<bool> HoldsPermissionAsync(int userId, string permissionCode) => HasPermissionAsync(userId, permissionCode);
+
+    public async Task<bool> CanCreateRevisionAsync(int documentMasterId, int userId) =>
+        await HasPermissionAsync(userId, PermissionConstants.DocumentsRevisionCreate) &&
+        await CanEditDraftMetadataAsync(documentMasterId, userId);
+
+    public Task<bool> CanPerformTechnicalReviewAsync(int userId) => HasPermissionAsync(userId, PermissionConstants.DocumentsReview);
+
+    public Task<bool> CanExecuteApprovalAsync(int userId) => HasPermissionAsync(userId, PermissionConstants.DocumentsApprove);
+
+    public Task<bool> CanPerformPeriodicReviewAsync(int userId) => HasPermissionAsync(userId, PermissionConstants.DocumentsPeriodicReview);
 
     private async Task<bool> IsOwnerOrAssignedAuthorAsync(int documentMasterId, int userId)
     {
@@ -88,16 +115,16 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanViewDocumentAsync(int documentMasterId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
         var doc = await _db.DocumentMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentMasterId);
         if (doc == null) return false;
 
-        // Cancelled/Voided records require privileged view (Admin or Document Controller)
+        // Cancelled/Voided records require privileged view (Document Controller, or read-only audit oversight)
         if (doc.RecordStatus == DocumentRecordStatus.Void)
         {
-            return role == RoleType.SystemAdministrator || role == RoleType.SectionHead;
+            return role == RoleType.SectionHead || await HoldsAuditViewAsync(roleId);
         }
 
         return true;
@@ -105,10 +132,13 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanEditDraftMetadataAsync(int documentMasterId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
-        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+        // Role gate: Documents.DraftEdit in addition to the ownership/authorship rule below.
+        if (!await RoleHoldsAsync(roleId, PermissionConstants.DocumentsDraftEdit)) return false;
+
+        if (role == RoleType.SectionHead)
             return true;
 
         return await IsOwnerOrAssignedAuthorAsync(documentMasterId, userId);
@@ -116,14 +146,17 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanUploadOrReplaceDraftFileAsync(int revisionId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
+
+        // Role gate: Documents.DraftEdit in addition to the ownership/authorship rule below.
+        if (!await RoleHoldsAsync(roleId, PermissionConstants.DocumentsDraftEdit)) return false;
 
         var revision = await _db.DocumentRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == revisionId);
         if (revision == null || revision.RevisionStatus != DocumentRevisionStatus.Draft)
             return false;
 
-        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+        if (role == RoleType.SectionHead)
             return true;
 
         return await IsOwnerOrAssignedAuthorAsync(revision.DocumentMasterId, userId);
@@ -131,14 +164,17 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanCancelDraftRevisionAsync(int revisionId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
+
+        // Role gate: Documents.DraftEdit in addition to the ownership/authorship rule below.
+        if (!await RoleHoldsAsync(roleId, PermissionConstants.DocumentsDraftEdit)) return false;
 
         var revision = await _db.DocumentRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == revisionId);
         if (revision == null || revision.RevisionStatus != DocumentRevisionStatus.Draft)
             return false;
 
-        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+        if (role == RoleType.SectionHead)
             return true;
 
         return await IsOwnerOrAssignedAuthorAsync(revision.DocumentMasterId, userId);
@@ -146,7 +182,7 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanVoidDocumentMasterAsync(int documentMasterId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, _) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
         // Quality rule FS-1a-111: strictly Document Controller (SectionHead role), not even SystemAdministrator
@@ -155,7 +191,7 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanAccessSourceFileAsync(int fileId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
         var file = await _db.RevisionFiles
@@ -169,8 +205,8 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
         if (file.FileRole != FileRole.SourceFile)
             return false;
 
-        // 1. Privileged Governance Roles: SystemAdministrator or Document Controller (SectionHead)
-        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+        // 1. Document Controller (SectionHead), or read-only audit oversight (Audit.View)
+        if (role == RoleType.SectionHead || await HoldsAuditViewAsync(roleId))
             return true;
 
         // 2. Author/Owner: Must be the designated Document Owner or assigned Author for THIS specific document
@@ -205,7 +241,7 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
     public async Task<bool> CanAccessControlledPdfAsync(int fileId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
         var file = await _db.RevisionFiles
@@ -219,34 +255,35 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
         if (file.DocumentRevision.RevisionStatus == DocumentRevisionStatus.Effective)
             return true;
 
-        // Draft or other non-effective states: restricted to Admin, Doc Controller, or Owner/Author
-        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead || role == RoleType.Reviewer)
+        // Draft or other non-effective states: restricted to Doc Controller, QA Reviewer, read-only audit oversight, or Owner/Author
+        if (role == RoleType.SectionHead || role == RoleType.Reviewer || await HoldsAuditViewAsync(roleId))
             return true;
 
         return await IsOwnerOrAssignedAuthorAsync(file.DocumentRevision.DocumentMasterId, userId);
     }
 
+    // Configuration is the administrator's job; it is granted by permission so
+    // the Roles screen shows and controls who holds it.
     public async Task<bool> CanManageConfigurationAsync(int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
-        return isActive && role == RoleType.SystemAdministrator;
+        return await HasPermissionAsync(userId, PermissionConstants.DocumentsConfigManage);
     }
 
     public async Task<bool> CanQueryGlobalAuditAsync(int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
-        // Admin, Document Controller, or QA Reviewer/Auditor
-        return role == RoleType.SystemAdministrator || role == RoleType.SectionHead || role == RoleType.Reviewer;
+        // Document Controller, QA Reviewer/Auditor, or read-only audit oversight
+        return role == RoleType.SectionHead || role == RoleType.Reviewer || await HoldsAuditViewAsync(roleId);
     }
 
     public async Task<bool> CanViewRecordAuditAsync(int documentMasterId, int userId)
     {
-        var (isActive, role) = await GetUserRoleAsync(userId);
+        var (isActive, role, roleId) = await GetUserRoleAsync(userId);
         if (!isActive || role == null) return false;
 
-        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead || role == RoleType.Reviewer)
+        if (role == RoleType.SectionHead || role == RoleType.Reviewer || await HoldsAuditViewAsync(roleId))
             return true;
 
         return await IsOwnerOrAssignedAuthorAsync(documentMasterId, userId);

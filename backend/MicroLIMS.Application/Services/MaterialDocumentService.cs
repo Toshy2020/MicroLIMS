@@ -103,7 +103,7 @@ public class MaterialDocumentService
 
     public async Task<List<MaterialDocumentDto>> GetDocumentsAsync(int materialId, int requestingUserId)
     {
-        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId);
+        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId, access: SectionAccess.Read);
 
         // Verify material exists and record a View access event.
         var materialExists = await _db.Materials.AnyAsync(m => m.Id == materialId);
@@ -197,7 +197,7 @@ public class MaterialDocumentService
 
     public async Task<(MaterialDocumentDto Metadata, byte[] Content)> GetContentAsync(int documentId, int materialId, int requestingUserId)
     {
-        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId);
+        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId, access: SectionAccess.Read);
 
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)

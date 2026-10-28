@@ -475,6 +475,8 @@ public static class DbSeeder
             (PermissionConstants.MessagesUse, "Send and receive direct/group messages."),
             (PermissionConstants.SystemViewErrorLog, "View the technical error log and monitoring page."),
             (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
+            (PermissionConstants.SystemConfigureSettings, "Change system operating settings (security thresholds, retention, worker limits) in the admin Settings registry."),
+            (PermissionConstants.AccessReview, "Generate, record findings on and sign the periodic access review (who holds which access)."),
             (PermissionConstants.DocumentsRegister, "Register a new controlled Document Master."),
             (PermissionConstants.DocumentsDraftEdit, "Edit draft metadata and controlled files, and cancel a draft revision."),
             (PermissionConstants.DocumentsRevisionCreate, "Create a new revision from the current effective revision."),
@@ -484,6 +486,7 @@ public static class DbSeeder
             (PermissionConstants.DocumentsTrainingAssign, "Assign document reading and training curricula to personnel."),
             (PermissionConstants.DocumentsTrainingViewMatrix, "View and export the document training matrix."),
             (PermissionConstants.DocumentsConfigManage, "Manage Document Control configuration (types, departments, sections, numbering, settings)."),
+            (PermissionConstants.DocumentsReassign, "Hand over the document responsibilities of a deactivated user to another active member of the same department."),
             (PermissionConstants.DashboardsLabOverview, "View the laboratory overview dashboard (section workload, approvals, overdue work)."),
             (PermissionConstants.DashboardsReview, "View the reviewer dashboard."),
             (PermissionConstants.KpiView, "View laboratory KPIs."),
@@ -506,17 +509,38 @@ public static class DbSeeder
             (PermissionConstants.EquipmentPlanApprove, "Sign an equipment plan revision into force."),
             (PermissionConstants.EquipmentWorkRecord, "Record and sign calibrations and maintenance logbook entries."),
             (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
+            (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
+            (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
+            (PermissionConstants.SystemManageJobs, "View background job status and run history; run housekeeping jobs manually."),
         };
 
-        var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
+        // Metadata (Description, IsEnforced) of rows that already exist is
+        // re-synced from the catalog on every run, so a catalog change - e.g.
+        // a permission becoming enforced - reaches existing databases. Grants
+        // are never touched here.
+        var existing = db.Permissions.ToDictionary(p => p.Code);
         var missing = catalog
-            .Where(c => !existingCodes.Contains(c.Code))
+            .Where(c => !existing.ContainsKey(c.Code))
             .Select(c => new Permission { Code = c.Code, Description = c.Description, IsEnforced = PermissionConstants.Enforced.Contains(c.Code) })
             .ToList();
+
+        var metadataChanged = false;
+        foreach (var c in catalog)
+        {
+            if (!existing.TryGetValue(c.Code, out var row)) continue;
+
+            var isEnforced = PermissionConstants.Enforced.Contains(c.Code);
+            if (row.Description != c.Description) { row.Description = c.Description; metadataChanged = true; }
+            if (row.IsEnforced != isEnforced) { row.IsEnforced = isEnforced; metadataChanged = true; }
+        }
 
         if (missing.Count > 0)
         {
             db.Permissions.AddRange(missing);
+        }
+
+        if (missing.Count > 0 || metadataChanged)
+        {
             db.SaveChanges();
         }
 
@@ -527,7 +551,7 @@ public static class DbSeeder
 
             var grants = new (RoleType Role, string[] Codes)[]
             {
-                (RoleType.SystemAdministrator, PermissionConstants.All.ToArray()),
+                (RoleType.SystemAdministrator, PermissionConstants.SystemAdministratorGrants.ToArray()),
                 (RoleType.SectionHead, new[]
                 {
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
@@ -546,7 +570,7 @@ public static class DbSeeder
                     // override (FRS-1B §3.2:184).
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
-                    PermissionConstants.DocumentsApprove,
+                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview, PermissionConstants.DocumentsReassign,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
@@ -608,14 +632,6 @@ public static class DbSeeder
         if (!db.ConfigurationSettings.Any())
         {
             db.ConfigurationSettings.AddRange(
-                new ConfigurationSetting
-                {
-                    SettingKey = "System.TimeZone",
-                    SettingValue = "UTC",
-                    DataType = "string",
-                    SettingGroup = "System",
-                    ModifiedAt = DateTime.UtcNow
-                },
                 new ConfigurationSetting
                 {
                     SettingKey = "DocumentControl.ControlledCopy.DownloadPermitted",

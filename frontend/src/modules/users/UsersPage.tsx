@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   Paper, TextField, Select, MenuItem, Button, Stack, Typography, Alert, Box,
-  Chip, Tooltip, Table,
+  Chip, Tooltip, Table, Tabs, Tab,
   TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { toast } from "sonner";
 import { tableHeadSx } from "../../theme";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { SignatureDialog } from "../../components/SignatureDialog";
 import EditIcon from "@mui/icons-material/Edit";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockResetIcon from "@mui/icons-material/LockReset";
@@ -16,8 +17,6 @@ import BlockIcon from "@mui/icons-material/Block";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import KeyIcon from "@mui/icons-material/Key";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 import { PageHeader } from "../../components/PageHeader";
@@ -27,6 +26,8 @@ import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
+import { UserSessionsDialog } from "./dialogs/UserSessionsDialog";
+import DevicesIcon from "@mui/icons-material/Devices";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
 
@@ -41,13 +42,17 @@ export function UsersPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [createReason, setCreateReason] = useState("");
 
   // Dialog state variables
   const [editProfileUser, setEditProfileUser] = useState<UserRecord | null>(null);
   const [editFullName, setEditFullName] = useState("");
   const [editUsername, setEditUsername] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editJobTitle, setEditJobTitle] = useState("");
+  const [editReason, setEditReason] = useState("");
 
   const [roleDialogUser, setRoleDialogUser] = useState<UserRecord | null>(null);
   const [newRoleId, setNewRoleId] = useState<number | "">("");
@@ -69,35 +74,38 @@ export function UsersPage() {
   const [codeCopied, setCodeCopied] = useState(false);
 
   const [forcePwdUser, setForcePwdUser] = useState<UserRecord | null>(null);
+  const [forcePwdReason, setForcePwdReason] = useState("");
 
-  const [deleteDialogUser, setDeleteDialogUser] = useState<UserRecord | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  // Role change is electronically signed (password re-entry).
+  const [signing, setSigning] = useState<"role" | null>(null);
+  // Inactive users are listed apart and only here, for reactivation.
+  const [view, setView] = useState<"active" | "inactive">("active");
 
   const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
+  const [sessionsUser, setSessionsUser] = useState<UserRecord | null>(null);
 
   // A failed load used to leave the user table (or the role picker) empty
   // with no explanation.
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
-  const load = () => {
+  const load = (which: "active" | "inactive" = view) => {
     resetFailures();
-    UserService.getAll().then(setUsers).catch(fail("users"));
+    UserService.getAll(which).then(setUsers).catch(fail("users"));
     RoleService.getAll().then(setRoles).catch(fail("roles"));
   };
 
-  // Mount-only: load is redefined each render and only runs set-state calls.
+  // Reloads on mount and when the Active/Inactive tab changes; load is redefined each render and only runs set-state calls.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(view); }, [view]);
 
   const handleCreateUser = async () => {
-    if (!fullName || !username || !password || !roleId) {
-      toast.error("Full Name, Username, Password, and Role are required.");
+    if (!fullName || !username || !password || !roleId || !createReason.trim()) {
+      toast.error("Full Name, Username, Password, Role, and a Reason are required.");
       return;
     }
     try {
-      await UserService.create(fullName, username, password, Number(roleId), email);
+      await UserService.create(fullName, username, password, Number(roleId), createReason.trim(), email, jobTitle);
       toast.success(`User "${username}" created successfully.`);
-      setFullName(""); setUsername(""); setPassword(""); setEmail(""); setRoleId("");
+      setFullName(""); setUsername(""); setPassword(""); setEmail(""); setJobTitle(""); setRoleId(""); setCreateReason("");
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Could not create user.");
@@ -110,12 +118,18 @@ export function UsersPage() {
     setEditFullName(u.fullName);
     setEditUsername(u.username);
     setEditEmail(u.email ?? "");
+    setEditJobTitle(u.jobTitle ?? "");
+    setEditReason("");
   };
 
   const handleSaveProfile = async () => {
     if (!editProfileUser) return;
+    if (!editReason.trim()) {
+      toast.error("A reason is required to change a user's profile.");
+      return;
+    }
     try {
-      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editProfileUser.version);
+      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editJobTitle || null, editReason.trim(), editProfileUser.version);
       toast.success(`Profile updated for ${editUsername}.`);
       setEditProfileUser(null);
       load();
@@ -131,19 +145,23 @@ export function UsersPage() {
     setRoleReason("");
   };
 
-  const handleSaveRole = async () => {
-    if (!roleDialogUser || !newRoleId || !roleReason) {
+  // Opens the signature step; the change is sent only once the password is entered.
+  const handleSaveRole = () => {
+    if (!roleDialogUser || !newRoleId || !roleReason.trim()) {
       toast.error("Selected Role and a Reason are required for role change.");
       return;
     }
-    try {
-      await UserService.changeRole(roleDialogUser.id, Number(newRoleId), roleReason);
-      toast.success(`Role changed for ${roleDialogUser.username}.`);
-      setRoleDialogUser(null);
-      load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not change role.");
-    }
+    setSigning("role");
+  };
+
+  // A failure is thrown back to the signature dialog, which shows it and stays open.
+  const confirmRoleSignature = async (signaturePassword: string) => {
+    if (!roleDialogUser || !newRoleId) return;
+    await UserService.changeRole(roleDialogUser.id, Number(newRoleId), roleReason.trim(), signaturePassword);
+    toast.success(`Role changed for ${roleDialogUser.username}.`);
+    setSigning(null);
+    setRoleDialogUser(null);
+    load();
   };
 
   // Enable/Disable
@@ -155,12 +173,12 @@ export function UsersPage() {
   const handleSaveStatus = async () => {
     if (!statusDialogUser) return;
     const newStatus = !statusDialogUser.isActive;
-    if (!newStatus && !statusReason) {
-      toast.error("A reason is required to disable a user account.");
+    if (!statusReason.trim()) {
+      toast.error(`A reason is required to ${newStatus ? "enable" : "disable"} a user account.`);
       return;
     }
     try {
-      await UserService.setStatus(statusDialogUser.id, newStatus, statusReason);
+      await UserService.setStatus(statusDialogUser.id, newStatus, statusReason.trim());
       toast.success(`Account ${newStatus ? "enabled" : "disabled"} for ${statusDialogUser.username}.`);
       setStatusDialogUser(null);
       load();
@@ -177,8 +195,12 @@ export function UsersPage() {
 
   const handleSaveUnlock = async () => {
     if (!unlockDialogUser) return;
+    if (!unlockReason.trim()) {
+      toast.error("A reason is required to unlock a user account.");
+      return;
+    }
     try {
-      await UserService.unlock(unlockDialogUser.id, unlockReason);
+      await UserService.unlock(unlockDialogUser.id, unlockReason.trim());
       toast.success(`Account unlocked for ${unlockDialogUser.username}.`);
       setUnlockDialogUser(null);
       load();
@@ -195,8 +217,12 @@ export function UsersPage() {
 
   const handleSavePasswordReset = async () => {
     if (!resetDialogUser) return;
+    if (!resetReason.trim()) {
+      toast.error("A reason is required to reset a user's password.");
+      return;
+    }
     try {
-      await UserService.initiatePasswordReset(resetDialogUser.id, resetReason);
+      await UserService.initiatePasswordReset(resetDialogUser.id, resetReason.trim());
       toast.success(`Password reset instructions initiated for ${resetDialogUser.username}.`);
       setResetDialogUser(null);
       load();
@@ -246,45 +272,22 @@ export function UsersPage() {
   // Force Password Change
   const openForcePwdDialog = (u: UserRecord) => {
     setForcePwdUser(u);
+    setForcePwdReason("");
   };
 
   const handleSaveForcePwd = async () => {
     if (!forcePwdUser) return;
+    if (!forcePwdReason.trim()) {
+      toast.error("A reason is required to force a password change.");
+      return;
+    }
     try {
-      await UserService.forcePasswordChange(forcePwdUser.id);
+      await UserService.forcePasswordChange(forcePwdUser.id, forcePwdReason.trim());
       toast.success(`Forced password change set for ${forcePwdUser.username}.`);
       setForcePwdUser(null);
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Could not force password change.");
-    }
-  };
-
-  // Permanent Delete
-  const openDeleteDialog = (u: UserRecord) => {
-    setDeleteDialogUser(u);
-    setDeleteError(null);
-  };
-
-  const closeDeleteDialog = () => {
-    if (deleting) return;
-    setDeleteDialogUser(null);
-    setDeleteError(null);
-  };
-
-  const handleHardDelete = async () => {
-    if (!deleteDialogUser) return;
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      await UserService.hardDelete(deleteDialogUser.id);
-      toast.success(`User "${deleteDialogUser.username}" was permanently deleted.`);
-      setDeleteDialogUser(null);
-      load();
-    } catch (e: any) {
-      setDeleteError(e?.response?.data?.message ?? "Could not delete user.");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -306,7 +309,7 @@ export function UsersPage() {
               xs: "1fr",
               sm: "1fr 1fr",
               md: "repeat(3, 1fr)",
-              lg: "1.2fr 1fr 1.2fr 1.2fr 1.2fr auto"
+              lg: "1.2fr 1fr 1.2fr 1fr 1.2fr 1.2fr 1.2fr auto"
             },
             gap: 2,
             alignItems: "start"
@@ -339,6 +342,13 @@ export function UsersPage() {
           />
           <TextField
             size="small"
+            label="Job Title"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            size="small"
             label="Password"
             type="password"
             value={password}
@@ -358,6 +368,15 @@ export function UsersPage() {
             <MenuItem value=""><em>Select Role *</em></MenuItem>
             {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
           </Select>
+          <TextField
+            size="small"
+            label="Reason"
+            value={createReason}
+            onChange={(e) => setCreateReason(e.target.value)}
+            helperText="Why this account is needed"
+            required
+            fullWidth
+          />
           <Button
             type="submit"
             variant="contained"
@@ -369,7 +388,11 @@ export function UsersPage() {
         </Box>
       </Paper>
 
-      <SectionTitle>All System Users</SectionTitle>
+      <SectionTitle>System Users</SectionTitle>
+      <Tabs value={view} onChange={(_, v) => { setUsers([]); setView(v); }} sx={{ mb: 1 }} aria-label="User status">
+        <Tab value="active" label="Active" />
+        <Tab value="inactive" label="Inactive" />
+      </Tabs>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -420,6 +443,15 @@ export function UsersPage() {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
+                    {view === "inactive" ? (
+                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                        <Tooltip title="Reactivate Account">
+                          <IconButton aria-label="Reactivate Account" size="small" color="success" onClick={() => openStatusDialog(u)}>
+                            <BlockIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    ) : (
                     <Stack direction="row" spacing={0.5} sx={{
                       justifyContent: "flex-end"
                     }}>
@@ -430,6 +462,12 @@ export function UsersPage() {
                       <Tooltip title="Laboratory Sections">
                         <IconButton size="small" color="info" onClick={() => setSectionsUser(u)}>
                           <AccountTreeIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="Sessions">
+                        <IconButton aria-label="Sessions" size="small" onClick={() => setSessionsUser(u)}>
+                          <DevicesIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
 
@@ -470,15 +508,8 @@ export function UsersPage() {
                       <Tooltip title="Force Password Change at Next Login">
                         <IconButton size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
                       </Tooltip>
-
-                      <Tooltip title={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"}>
-                        <span>
-                          <IconButton aria-label={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"} size="small" color="error" disabled={isSelf} onClick={() => openDeleteDialog(u)}>
-                            <DeleteForeverIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
                     </Stack>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -496,7 +527,7 @@ export function UsersPage() {
         actions={
           <>
             <Button onClick={() => setEditProfileUser(null)}>Cancel</Button>
-            <Button variant="contained" onClick={handleSaveProfile}>Save Profile</Button>
+            <Button variant="contained" onClick={handleSaveProfile} disabled={!editReason.trim()}>Save Profile</Button>
           </>
         }
       >
@@ -504,6 +535,8 @@ export function UsersPage() {
           <TextField label="Full Name" size="small" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} fullWidth />
           <TextField label="Username" size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
           <TextField label="Email" size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText="Required for email password resets" />
+          <TextField label="Job Title" size="small" value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} fullWidth />
+          <TextField label="Reason for Change" size="small" multiline rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} required fullWidth placeholder="Mandatory administrative justification" />
         </Stack>
       </FloatingDialog>
 
@@ -516,7 +549,7 @@ export function UsersPage() {
         actions={
           <>
             <Button onClick={() => setRoleDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color="primary" onClick={handleSaveRole} disabled={!newRoleId || !roleReason}>Change Role</Button>
+            <Button variant="contained" color="primary" onClick={handleSaveRole} disabled={!newRoleId || !roleReason.trim()}>Change Role</Button>
           </>
         }
       >
@@ -535,12 +568,12 @@ export function UsersPage() {
         open={Boolean(statusDialogUser)}
         onClose={() => setStatusDialogUser(null)}
         maxWidth="xs"
-        title={statusDialogUser?.isActive ? "Disable User Account" : "Enable User Account"}
+        title={statusDialogUser?.isActive ? "Disable User Account" : "Reactivate User Account"}
         actions={
           <>
             <Button onClick={() => setStatusDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color={statusDialogUser?.isActive ? "error" : "success"} onClick={handleSaveStatus} disabled={statusDialogUser?.isActive && !statusReason}>
-              {statusDialogUser?.isActive ? "Disable Account" : "Enable Account"}
+            <Button variant="contained" color={statusDialogUser?.isActive ? "error" : "success"} onClick={handleSaveStatus} disabled={!statusReason.trim()}>
+              {statusDialogUser?.isActive ? "Disable Account" : "Reactivate Account"}
             </Button>
           </>
         }
@@ -549,9 +582,7 @@ export function UsersPage() {
           <Typography variant="body2">
             Are you sure you want to {statusDialogUser?.isActive ? "disable" : "enable"} account <strong>{statusDialogUser?.fullName} (@{statusDialogUser?.username})</strong>?
           </Typography>
-          {statusDialogUser?.isActive && (
-            <TextField label="Reason for Disabling" size="small" multiline rows={2} value={statusReason} onChange={(e) => setStatusReason(e.target.value)} required fullWidth placeholder="Mandatory justification" />
-          )}
+          <TextField label={statusDialogUser?.isActive ? "Reason for Disabling" : "Reason for Enabling"} size="small" multiline rows={2} value={statusReason} onChange={(e) => setStatusReason(e.target.value)} required fullWidth placeholder="Mandatory justification" />
         </Stack>
       </FloatingDialog>
 
@@ -564,7 +595,7 @@ export function UsersPage() {
         actions={
           <>
             <Button onClick={() => setUnlockDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color="warning" onClick={handleSaveUnlock}>Unlock Account</Button>
+            <Button variant="contained" color="warning" onClick={handleSaveUnlock} disabled={!unlockReason.trim()}>Unlock Account</Button>
           </>
         }
       >
@@ -572,7 +603,7 @@ export function UsersPage() {
           <Typography variant="body2">
             Unlock account for <strong>{unlockDialogUser?.fullName} (@{unlockDialogUser?.username})</strong>? This will clear failed login attempts and reset account lock.
           </Typography>
-          <TextField label="Reason for Unlock (Optional)" size="small" value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} fullWidth />
+          <TextField label="Reason for Unlock" size="small" value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} required fullWidth />
         </Stack>
       </FloatingDialog>
 
@@ -585,7 +616,7 @@ export function UsersPage() {
         actions={
           <>
             <Button onClick={() => setResetDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color="secondary" onClick={handleSavePasswordReset}>Send Reset Link</Button>
+            <Button variant="contained" color="secondary" onClick={handleSavePasswordReset} disabled={!resetReason.trim()}>Send Reset Link</Button>
           </>
         }
       >
@@ -596,7 +627,7 @@ export function UsersPage() {
           <Alert severity="info" sx={{ fontSize: 12 }}>
             The system will generate a secure reset token link and send it via email. Plaintext passwords are never generated or shown to administrators.
           </Alert>
-          <TextField label="Reason for Reset (Optional)" size="small" value={resetReason} onChange={(e) => setResetReason(e.target.value)} fullWidth />
+          <TextField label="Reason for Reset" size="small" value={resetReason} onChange={(e) => setResetReason(e.target.value)} required fullWidth />
         </Stack>
       </FloatingDialog>
 
@@ -707,41 +738,25 @@ export function UsersPage() {
         actions={
           <>
             <Button onClick={() => setForcePwdUser(null)}>Cancel</Button>
-            <Button variant="contained" color="info" onClick={handleSaveForcePwd}>Force Password Change</Button>
-          </>
-        }
-      >
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          Require <strong>{forcePwdUser?.fullName} (@{forcePwdUser?.username})</strong> to change their password on next login?
-        </Typography>
-      </FloatingDialog>
-
-      {/* Permanent Delete Dialog */}
-      <FloatingDialog
-        open={Boolean(deleteDialogUser)}
-        onClose={closeDeleteDialog}
-        maxWidth="xs"
-        title="Permanently Delete User"
-        actions={
-          <>
-            <Button onClick={closeDeleteDialog} disabled={deleting}>Cancel</Button>
-            <Button variant="contained" color="error" onClick={handleHardDelete} disabled={deleting} startIcon={<DeleteForeverIcon />}>
-              {deleting ? "Deleting..." : "Permanently Delete"}
-            </Button>
+            <Button variant="contained" color="info" onClick={handleSaveForcePwd} disabled={!forcePwdReason.trim()}>Force Password Change</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
-          {deleteError && <Alert severity="error">{deleteError}</Alert>}
-          <Alert severity="warning" icon={<WarningAmberIcon />}>
-            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system. If this fails, deactivate the account instead.
-          </Alert>
           <Typography variant="body2">
-            Permanently delete <strong>{deleteDialogUser?.fullName} (@{deleteDialogUser?.username})</strong>?
+            Require <strong>{forcePwdUser?.fullName} (@{forcePwdUser?.username})</strong> to change their password on next login?
           </Typography>
+          <TextField label="Reason" size="small" value={forcePwdReason} onChange={(e) => setForcePwdReason(e.target.value)} required fullWidth />
         </Stack>
       </FloatingDialog>
 
+      {/* Electronic signature for the role change */}
+      <SignatureDialog
+        open={signing === "role"}
+        meaningStatement={`I am changing the role of ${roleDialogUser?.username ?? "this user"} to ${roles.find((r) => r.id === newRoleId)?.name ?? "the selected role"}. Reason: ${roleReason.trim()}`}
+        onCancel={() => setSigning(null)}
+        onConfirm={confirmRoleSignature}
+      />
       {/* Laboratory Sections Dialog */}
       <UserSectionsDialog
         open={Boolean(sectionsUser)}
@@ -751,6 +766,13 @@ export function UsersPage() {
           toast.success(msg);
           setSectionsUser(null);
         }}
+      />
+
+      <UserSessionsDialog
+        open={Boolean(sessionsUser)}
+        onClose={() => setSessionsUser(null)}
+        user={sessionsUser}
+        onRevoked={(msg) => toast.success(msg)}
       />
     </>
   );

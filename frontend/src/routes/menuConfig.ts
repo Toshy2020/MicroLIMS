@@ -6,10 +6,12 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import TableViewOutlinedIcon from "@mui/icons-material/TableViewOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
+import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
+import PolicyOutlinedIcon from "@mui/icons-material/PolicyOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
@@ -37,6 +39,8 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ThermostatOutlinedIcon from "@mui/icons-material/ThermostatOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
 import WaterOutlinedIcon from "@mui/icons-material/WaterOutlined";
@@ -84,10 +88,8 @@ export interface MenuContext {
 // Menu Items
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: "REPORTS" };
-const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", description: "Search the audit trail of every record and signature.", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.AUDIT_VIEW };
 const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
 const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: "REPORTS", permission: PERMISSIONS.MONITORING_PLAN_VIEW };
-const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: "SYSTEM", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
 // gated on privileges rather than role or lab membership - any lab may
@@ -102,17 +104,30 @@ const receiveSampleItem: MenuItem = {
 };
 const trackingBoardItem: MenuItem = { label: "Tracking Board", path: "/receiving/tracking", description: "Every received sample with each lab's stage.", icon: FactCheckOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_TRACK_ALL };
 
-const usersItem: MenuItem = { label: "Users", path: "/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.USERS_MANAGE };
-const rolesItem: MenuItem = { label: "Roles", path: "/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.ROLES_MANAGE };
 
-// The global document audit trail stays a fixed role rule on the server
-// (DocumentAuthorizationService.CanQueryGlobalAuditAsync), so its link
-// follows the role rather than a permission code.
-function canQueryDocumentAudit(role: Role | null): boolean {
-  return role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
+// Administration: one sidebar group, one entry per /admin tab, each behind the
+// permission of its page and endpoint. The panel controls the system, never
+// GxP data. The tabs themselves live in modules/admin/adminTabs.ts.
+const ADMIN_GROUP = "ADMINISTRATION";
+const adminItems: MenuItem[] = [
+  { label: "Users", path: "/admin/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE },
+  { label: "Roles", path: "/admin/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ROLES_MANAGE },
+  { label: "Audit Trail", path: "/admin/audit", description: "Search the audit trail of every record and signature.", icon: ManageSearchOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
+  { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
+  { label: "Settings", path: "/admin/settings", description: "Password, lockout, session, e-signature, retention and monitoring settings.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
+  { label: "Organization", path: "/admin/organization", description: "Departments, sections and who belongs to them.", icon: AccountTreeOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },
+  { label: "Jobs", path: "/admin/jobs", description: "Background job status, run history and housekeeping runs.", icon: ScheduleOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_MANAGE_JOBS },
+  { label: "Access Review", path: "/admin/access-review", description: "Periodic review of who holds which access, with findings and a signed conclusion.", icon: FactCheckOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ACCESS_REVIEW }
+];
+
+// The document audit trail is open server-side to Reviewers and Section Heads
+// by role, and to anyone else only by holding Audit.View
+// (DocumentAuthorizationService.CanQueryGlobalAuditAsync), so its link mirrors that pair.
+function canQueryDocumentAudit(role: Role | null, permissions: string[]): boolean {
+  return role === "Reviewer" || role === "SectionHead" || permissions.includes(PERMISSIONS.AUDIT_VIEW);
 }
 
-function documentControlItem(role: Role | null): MenuItem {
+function documentControlItem(role: Role | null, permissions: string[]): MenuItem {
   return {
     label: "Document Control",
     description: "Controlled documents, reading lists and training.",
@@ -126,7 +141,8 @@ function documentControlItem(role: Role | null): MenuItem {
       { label: "Training Matrix", path: "/document-control/training-matrix", icon: SchoolOutlinedIcon, description: "Who is trained on which document, and what is outstanding." },
       { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard", icon: InsightsOutlinedIcon, description: "Training and document compliance across sections." },
       { label: "Document Library", path: "/document-control/library", icon: LocalLibraryOutlinedIcon, description: "Search and open every controlled document and its versions." },
-      ...(canQueryDocumentAudit(role) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
+      ...(canQueryDocumentAudit(role, permissions) ? [{ label: "Audit Trail", path: "/document-control/audit", icon: HistoryOutlinedIcon, description: "Audit trail of all document actions and signatures." }] : []),
+      { label: "Needs Reassignment", path: "/document-control/reassignments", icon: SwapHorizOutlinedIcon, permission: [PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, PERMISSIONS.DOCUMENTS_REASSIGN], counterKey: "reassignments", description: "Document responsibilities held by deactivated users, waiting for a new owner." },
       { label: "Configuration", path: "/document-control/configuration", icon: TuneOutlinedIcon, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, description: "Document types, sections and workflow settings." }
     ]
   };
@@ -262,9 +278,8 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
 
 // Builds the sidebar from the user's permissions and lab membership: each
 // link needs the permission its page's route guard checks, and each
-// laboratory area also needs membership in that lab (useMyLabs). The role
-// only decides the document audit link, which the server still restricts
-// by role.
+// laboratory area also needs membership in that lab (useMyLabs), or the
+// Sections.ViewAll permission for the read-only view of every lab.
 export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
   const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
   if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
@@ -274,7 +289,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
   }
   items.push(
     itemsItem, receivingConfigItem, masterDataWorkbookItem,
-    documentControlItem(role), usersItem, rolesItem, reportsItem, monitoringPlanItem, auditSearchItem, oosTrackingItem, errorMonitoringItem
+    documentControlItem(role, permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
   );
   return groupItems(visibleItems(items, permissions));
 }

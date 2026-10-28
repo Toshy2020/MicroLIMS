@@ -29,5 +29,13 @@ public enum SignatureMeaning
     EquipmentPlanApproved,
     CalibrationRecorded,
     MaintenanceEntryRecorded,
-    MaintenanceEntryVoided
+    MaintenanceEntryVoided,
+    // Retired: user hard delete was removed (inactive users are kept for GxP
+    // attribution). Kept so persisted enum ints do not shift.
+    UserDeleted,
+    UserRoleChanged,
+    RolePermissionsChanged,
+    RoleDeleted,
+    SystemSettingChanged,
+    AccessReviewSigned
 }

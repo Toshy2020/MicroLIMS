@@ -19,6 +19,8 @@ public class DocumentControlPeriodicReviewUnitTests
     private class TestDbSequenceHelper : IDatabaseSequenceHelper
     {
         private long _current = 500;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(Interlocked.Increment(ref _current));
@@ -48,6 +50,7 @@ public class DocumentControlPeriodicReviewUnitTests
         var adminRole = new Role { Type = RoleType.SystemAdministrator, Name = "Admin", IsActive = true };
         db.Roles.AddRange(analystRole, reviewerRole, sectionHeadRole, adminRole);
         await db.SaveChangesAsync();
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
         var author = new User { FullName = "SOP Author", Username = "author1", RoleId = analystRole.Id, IsActive = true, Role = analystRole };
         var reviewer = new User { FullName = "Tech Reviewer", Username = "rev1", RoleId = reviewerRole.Id, IsActive = true, Role = reviewerRole };

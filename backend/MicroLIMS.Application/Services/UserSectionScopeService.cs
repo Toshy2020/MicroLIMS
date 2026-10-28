@@ -3,6 +3,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services;
 
@@ -15,19 +16,38 @@ public class UserSectionScopeService : IUserSectionScopeService
         _db = db;
     }
 
-    public async Task<IReadOnlyList<int>?> GetAccessibleSectionIdsAsync(int userId, CancellationToken ct = default)
+    // Administrators control the system, never the GxP record (21 CFR Part 11
+    // 11.10(d)(g), EU GMP Annex 11 12), so being System Administrator no longer
+    // opens every section. Reading across sections is the Sections.ViewAll
+    // permission; anything that writes follows membership for everyone.
+    public async Task<IReadOnlyList<int>?> GetReadableSectionIdsAsync(int userId, CancellationToken ct = default)
     {
-        var userRole = await _db.Users
-            .AsNoTracking()
-            .Where(u => u.Id == userId)
-            .Select(u => u.Role != null ? (RoleType?)u.Role.Type : null)
-            .FirstOrDefaultAsync(ct);
+        var holdsViewAll = await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            where u.Id == userId && u.IsActive && rp.Permission!.Code == PermissionConstants.SectionsViewAll
+            select rp.Id
+        ).AnyAsync(ct);
 
-        if (userRole == RoleType.SystemAdministrator)
-        {
-            return null;
-        }
+        return holdsViewAll ? null : await GetMemberSectionIdsAsync(userId, ct);
+    }
 
+    // Master data and settings may be configured in any section by a role holding Sections.ConfigureAll
+    // (the System Administrator); it never opens GxP records, which use GetMemberSectionIdsAsync.
+    public async Task<IReadOnlyList<int>?> GetConfigurableSectionIdsAsync(int userId, CancellationToken ct = default)
+    {
+        var holdsConfigureAll = await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            where u.Id == userId && u.IsActive && rp.Permission!.Code == PermissionConstants.SectionsConfigureAll
+            select rp.Id
+        ).AnyAsync(ct);
+
+        return holdsConfigureAll ? null : await GetMemberSectionIdsAsync(userId, ct);
+    }
+
+    public async Task<IReadOnlyList<int>> GetMemberSectionIdsAsync(int userId, CancellationToken ct = default)
+    {
         var memberships = await _db.UserOrgMemberships
             .AsNoTracking()
             .Where(m => m.UserId == userId)
@@ -78,7 +98,16 @@ public class UserSectionScopeService : IUserSectionScopeService
         return sectionIds;
     }
 
-    public async Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default)
+    // Read access may span every section (Sections.ViewAll); write access never does.
+    private async Task<IReadOnlyList<int>?> ScopeAsync(int userId, SectionAccess access, CancellationToken ct) =>
+        access switch
+        {
+            SectionAccess.Read => await GetReadableSectionIdsAsync(userId, ct),
+            SectionAccess.Configure => await GetConfigurableSectionIdsAsync(userId, ct),
+            _ => await GetMemberSectionIdsAsync(userId, ct),
+        };
+
+    public async Task<IReadOnlyList<WorkspaceArea>> GetPhyschemAreasAsync(int userId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
         var fp = await _db.DocumentSections.AsNoTracking()
             .Where(s => s.Code == PhyschemAreas.SectionCode)
@@ -87,8 +116,8 @@ public class UserSectionScopeService : IUserSectionScopeService
         if (fp is null) return Array.Empty<WorkspaceArea>();
 
         var both = new[] { WorkspaceArea.Fp, WorkspaceArea.RmPm };
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
-        if (scope is null) return both; // system administrator
+        var scope = await ScopeAsync(userId, access, ct);
+        if (scope is null) return both; // holds Sections.ViewAll, reading
         if (!scope.Contains(fp.Id)) return Array.Empty<WorkspaceArea>();
 
         var memberships = await _db.UserOrgMemberships.AsNoTracking()
@@ -101,9 +130,12 @@ public class UserSectionScopeService : IUserSectionScopeService
         return both.Where(areas.Contains).ToList();
     }
 
-    public async Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default)
+    public async Task<int> ResolveSectionForCreateAsync(int userId, int? requestedSectionId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        // null = every section (Sections.ConfigureAll, configuration only)
+        IReadOnlyList<int>? scope = access == SectionAccess.Configure
+            ? await GetConfigurableSectionIdsAsync(userId, ct)
+            : await GetMemberSectionIdsAsync(userId, ct);
 
         if (requestedSectionId.HasValue)
         {
@@ -116,7 +148,7 @@ public class UserSectionScopeService : IUserSectionScopeService
                 throw new InvalidOperationException("Selected laboratory section was not found or is inactive.");
             }
 
-            if (scope != null && !scope.Contains(sectionId))
+            if (scope is not null && !scope.Contains(sectionId))
             {
                 throw new InvalidOperationException("You are not a member of the selected laboratory section.");
             }
@@ -142,9 +174,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         throw new InvalidOperationException("Choose a laboratory section - you belong to more than one.");
     }
 
-    public async Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default)
+    public async Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sectionId = await _db.TestOrders
@@ -161,9 +193,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default)
+    public async Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var idList = testOrderIds as IReadOnlyCollection<int> ?? testOrderIds.Distinct().ToList();
@@ -182,9 +214,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default)
+    public async Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sampleInfo = await _db.Samples
@@ -207,9 +239,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureSectionsAccessAsync(int userId, IEnumerable<int> sectionIds, CancellationToken ct = default)
+    public async Task EnsureSectionsAccessAsync(int userId, IEnumerable<int> sectionIds, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         if (!sectionIds.Any(s => scope.Contains(s)))
@@ -218,9 +250,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default)
+    public async Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var incInfo = await _db.Incubations
@@ -242,9 +274,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default)
+    public async Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sampleExists = await _db.Samples
@@ -268,9 +300,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default)
+    public async Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sectionId = await _db.Materials
@@ -289,9 +321,9 @@ public class UserSectionScopeService : IUserSectionScopeService
 
     private const string OtherSectionsMaterial = "This record was made from another laboratory section's material and you are not assigned to that section.";
 
-    private async Task EnsureSectionAsync(int userId, Func<Task<int?>> sectionOf, CancellationToken ct)
+    private async Task EnsureSectionAsync(int userId, Func<Task<int?>> sectionOf, SectionAccess access, CancellationToken ct)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sectionId = await sectionOf();
@@ -301,27 +333,27 @@ public class UserSectionScopeService : IUserSectionScopeService
             throw new UnauthorizedAccessException(OtherSectionsMaterial);
     }
 
-    public Task EnsureMediaAccessAsync(int userId, int mediaId, CancellationToken ct = default) =>
+    public Task EnsureMediaAccessAsync(int userId, int mediaId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) =>
         EnsureSectionAsync(userId, () => _db.Media.AsNoTracking()
-            .Where(m => m.Id == mediaId).Select(m => (int?)m.Material!.SectionId).FirstOrDefaultAsync(ct), ct);
+            .Where(m => m.Id == mediaId).Select(m => (int?)m.Material!.SectionId).FirstOrDefaultAsync(ct), access, ct);
 
-    public Task EnsureCryovialAccessAsync(int userId, int cryovialId, CancellationToken ct = default) =>
+    public Task EnsureCryovialAccessAsync(int userId, int cryovialId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) =>
         EnsureSectionAsync(userId, () => _db.Cryovials.AsNoTracking()
-            .Where(c => c.Id == cryovialId).Select(c => (int?)c.Material!.SectionId).FirstOrDefaultAsync(ct), ct);
+            .Where(c => c.Id == cryovialId).Select(c => (int?)c.Material!.SectionId).FirstOrDefaultAsync(ct), access, ct);
 
-    public Task EnsureMediaEvaluationAccessAsync(int userId, int evaluationId, CancellationToken ct = default) =>
+    public Task EnsureMediaEvaluationAccessAsync(int userId, int evaluationId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) =>
         EnsureSectionAsync(userId, () => _db.MediaEvaluations.AsNoTracking()
-            .Where(e => e.Id == evaluationId).Select(e => (int?)e.Media!.Material!.SectionId).FirstOrDefaultAsync(ct), ct);
+            .Where(e => e.Id == evaluationId).Select(e => (int?)e.Media!.Material!.SectionId).FirstOrDefaultAsync(ct), access, ct);
 
-    public Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default) =>
+    public Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write) =>
         EnsureSectionAsync(userId, () => _db.MediaEvaluationChallenges.AsNoTracking()
             .Where(c => c.Id == challengeId)
             .Select(c => (int?)_db.MediaEvaluations.Where(e => e.Id == c.MediaEvaluationId).Select(e => e.Media!.Material!.SectionId).FirstOrDefault())
-            .FirstOrDefaultAsync(ct), ct);
+            .FirstOrDefaultAsync(ct), access, ct);
 
-    public async Task EnsureOosGroupAccessAsync(int userId, string oosGroupCode, CancellationToken ct = default)
+    public async Task EnsureOosGroupAccessAsync(int userId, string oosGroupCode, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var groupSections = await _db.TestOrders.AsNoTracking()
@@ -335,9 +367,9 @@ public class UserSectionScopeService : IUserSectionScopeService
             throw new UnauthorizedAccessException("This OOS investigation belongs to a laboratory section you are not assigned to.");
     }
 
-    public async Task EnsureEquipmentAccessAsync(int userId, int equipmentId, CancellationToken ct = default)
+    public async Task EnsureEquipmentAccessAsync(int userId, int equipmentId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sectionId = await _db.Equipment
@@ -354,9 +386,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureEquipmentInventoryAccessAsync(int userId, int inventoryId, CancellationToken ct = default)
+    public async Task EnsureEquipmentInventoryAccessAsync(int userId, int inventoryId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var found = await _db.EquipmentInventories
@@ -367,8 +399,8 @@ public class UserSectionScopeService : IUserSectionScopeService
 
         if (found is null) return; // not found - left to the caller's own not-found handling
 
-        // Legacy rows with SectionId null are visible only to a System
-        // Administrator (scope == null, already returned above) until
+        // Legacy rows with SectionId null are visible only to a role holding
+        // Sections.ViewAll (scope == null, already returned above) until
         // someone assigns them a laboratory.
         if (found.SectionId is null || !scope.Contains(found.SectionId.Value))
         {
@@ -376,9 +408,9 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
-    public async Task EnsureColumnAccessAsync(int userId, int columnId, CancellationToken ct = default)
+    public async Task EnsureColumnAccessAsync(int userId, int columnId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
         var sectionId = await _db.ChromatographyColumns

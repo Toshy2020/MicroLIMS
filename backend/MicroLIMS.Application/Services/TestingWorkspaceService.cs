@@ -29,7 +29,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
 
         var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, filter.LabSectionId);
@@ -271,7 +271,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var parsed = PhyschemAreas.Parse(area)
             ?? throw new InvalidOperationException("area is required for the Physicochemical Laboratory workspace.");
-        if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value)).Contains(parsed))
+        if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value, access: SectionAccess.Read)).Contains(parsed))
             throw new UnauthorizedAccessException("You do not have access to this Physicochemical Laboratory area.");
         return PhyschemAreas.CategoriesOf(parsed);
     }
@@ -279,7 +279,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
     public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null, string? area = null)
     {
         var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, labSectionId);
@@ -431,7 +431,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
     public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null)
     {
         var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for - same
         // pattern as GetActiveSamplesAsync/GetWorkloadCountsAsync, so a card

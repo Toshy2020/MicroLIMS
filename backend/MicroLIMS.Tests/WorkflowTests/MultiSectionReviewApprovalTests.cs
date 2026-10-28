@@ -187,7 +187,7 @@ public class MultiSectionReviewApprovalTests
     }
 
     [Fact]
-    public async Task Admin_WithTwoSectionsWaiting_MustChooseASection()
+    public async Task Admin_NotAMemberOfAnySection_CannotReviewEither()
     {
         await using var db = NewDb();
         var w = await SeedAsync(db);
@@ -195,12 +195,12 @@ public class MultiSectionReviewApprovalTests
         await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        // Administrators control the system, never review GxP data: no section is theirs to review, named or not.
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null));
-        Assert.Contains("Choose a laboratory section", ex.Message);
-
-        await review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null, sectionId: w.Micro);
-        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null, sectionId: w.Micro));
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
     }
 
     [Fact]
@@ -357,17 +357,17 @@ public class MultiSectionReviewApprovalTests
         // whole is still InTesting.
         Assert.Equal(SampleStatus.InTesting, await StatusAsync(db, w.Sample.Id));
 
-        var microQueue = await dashboard.GetReviewerDashboardAsync(w.ReviewerMicro, await scope.GetAccessibleSectionIdsAsync(w.ReviewerMicro));
+        var microQueue = await dashboard.GetReviewerDashboardAsync(w.ReviewerMicro, await scope.GetReadableSectionIdsAsync(w.ReviewerMicro));
         var row = Assert.Single(microQueue.ReviewQueue);
         Assert.Equal(w.Micro, row.SectionId);
         Assert.Equal("Microbiology Laboratory", row.SectionName);
         Assert.Equal(new[] { "TAMC", "TYMC" }, row.Tests.Select(t => t.TestCode).OrderBy(c => c).ToArray());
 
-        var fpQueue = await dashboard.GetReviewerDashboardAsync(w.ReviewerFp, await scope.GetAccessibleSectionIdsAsync(w.ReviewerFp));
+        var fpQueue = await dashboard.GetReviewerDashboardAsync(w.ReviewerFp, await scope.GetReadableSectionIdsAsync(w.ReviewerFp));
         Assert.Empty(fpQueue.ReviewQueue);
 
         // The Micro Section Head's review tile counts the waiting section.
-        var head = await dashboard.GetSectionHeadDashboardAsync(await scope.GetAccessibleSectionIdsAsync(w.HeadMicro));
+        var head = await dashboard.GetSectionHeadDashboardAsync(await scope.GetReadableSectionIdsAsync(w.HeadMicro));
         Assert.Equal(1, head.PendingReview);
 
         // The workspace's awaiting-review filter finds the sample for Micro only.
@@ -432,7 +432,7 @@ public class MultiSectionReviewApprovalTests
         {
             var now = DateTime.UtcNow;
             var q = new MicroLIMS.Application.Services.Kpi.KpiQuery(
-                now.AddDays(-30), now.AddDays(1), await scope.GetAccessibleSectionIdsAsync(headUserId),
+                now.AddDays(-30), now.AddDays(1), await scope.GetReadableSectionIdsAsync(headUserId),
                 null, null, null, null, now, headUserId, true);
             return (await workload.GetAsync(q, default)).Rows.Select(r => r.UserId).ToList();
         }
@@ -454,8 +454,8 @@ public class MultiSectionReviewApprovalTests
         var oos = new OosTrackingService(db);
 
         // The origin also carries FP tests, but the OOS is Microbiology's.
-        Assert.Single(await oos.GetOosGroupsAsync(await scope.GetAccessibleSectionIdsAsync(w.HeadMicro)));
-        Assert.Empty(await oos.GetOosGroupsAsync(await scope.GetAccessibleSectionIdsAsync(w.HeadFp)));
+        Assert.Single(await oos.GetOosGroupsAsync(await scope.GetReadableSectionIdsAsync(w.HeadMicro)));
+        Assert.Empty(await oos.GetOosGroupsAsync(await scope.GetReadableSectionIdsAsync(w.HeadFp)));
 
         await scope.EnsureOosGroupAccessAsync(w.HeadMicro, groupCode);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => scope.EnsureOosGroupAccessAsync(w.HeadFp, groupCode));
@@ -470,7 +470,7 @@ public class MultiSectionReviewApprovalTests
         await db.SaveChangesAsync();
         var scope = new UserSectionScopeService(db);
 
-        var fpView = await TestServiceFactory.SampleSummary(db).GetSummaryAsync(w.Sample.Id, await scope.GetAccessibleSectionIdsAsync(w.ReviewerFp));
+        var fpView = await TestServiceFactory.SampleSummary(db).GetSummaryAsync(w.Sample.Id, await scope.GetReadableSectionIdsAsync(w.ReviewerFp));
         Assert.Equal(new[] { "ASSAY" }, fpView!.TestOrders.Select(t => t.TestCode).ToArray());
         Assert.False(fpView.AllSectionsVisible);
         var microRow = fpView.Sections.Single(s => s.SectionId == w.Micro);
@@ -493,7 +493,7 @@ public class MultiSectionReviewApprovalTests
         await using var db = NewDb();
         var w = await SeedUnderApprovalAsync(db);
         var scope = new UserSectionScopeService(db);
-        var fpScope = await scope.GetAccessibleSectionIdsAsync(w.ReviewerFp);
+        var fpScope = await scope.GetReadableSectionIdsAsync(w.ReviewerFp);
         var summaries = TestServiceFactory.SampleSummary(db);
         var approval = TestServiceFactory.SampleApproval(db);
 
@@ -522,11 +522,11 @@ public class MultiSectionReviewApprovalTests
 
         // A section must belong to the department it is listed under.
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc + 999, w.Micro) }, w.Admin));
+            org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc + 999, w.Micro) }, "test", w.Admin));
 
-        var result = await org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc, w.Fp) }, w.Admin);
+        var result = await org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc, w.Fp) }, "test", w.Admin);
         Assert.Equal(new[] { new UserOrgMembershipDto(qc, w.Fp) }, result);
-        Assert.Equal(new[] { w.Fp }, await new UserSectionScopeService(db).GetAccessibleSectionIdsAsync(w.ReviewerMicro));
+        Assert.Equal(new[] { w.Fp }, await new UserSectionScopeService(db).GetReadableSectionIdsAsync(w.ReviewerMicro));
     }
 
     [Fact]

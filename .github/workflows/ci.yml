@@ -241,5 +241,9 @@ jobs:
       - name: TypeScript
         run: npx tsc -b
 
+      # Runs `vitest run` via the package.json test script.
+      - name: Unit tests (Vitest)
+        run: npm test
+
       - name: Build
         run: npm run build

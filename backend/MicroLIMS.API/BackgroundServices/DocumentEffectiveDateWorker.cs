@@ -1,7 +1,9 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 
 namespace MicroLIMS.API.BackgroundServices;
@@ -12,6 +14,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly ILogger<DocumentEffectiveDateWorker> _logger;
     private readonly SemaphoreSlim _concurrencyLock = new(1, 1);
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
     public const string ProcessName = "DocumentEffectiveDateWorker";
     public const int DefaultIntervalMinutes = 60;
@@ -19,8 +22,10 @@ public class DocumentEffectiveDateWorker : BackgroundService
     public DocumentEffectiveDateWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
-        ILogger<DocumentEffectiveDateWorker> logger)
+        ILogger<DocumentEffectiveDateWorker> logger,
+        IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _configuration = configuration;
         _logger = logger;
@@ -49,7 +54,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
         {
             _logger.LogInformation(
                 "[{Worker}] Executing initial startup / downtime recovery catch-up cycle.", ProcessName);
-            await RunCycleAsync(stoppingToken);
+            await ScheduledJobPass.RunAsync(_recorder, ProcessName, async ct => await RunCycleAsync(ct), stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -70,7 +75,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
             {
                 if (await timer.WaitForNextTickAsync(stoppingToken))
                 {
-                    await RunCycleAsync(stoppingToken);
+                    await ScheduledJobPass.RunAsync(_recorder, ProcessName, async ct => await RunCycleAsync(ct), stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -86,7 +91,8 @@ public class DocumentEffectiveDateWorker : BackgroundService
         _logger.LogInformation("[{Worker}] Background service has stopped gracefully.", ProcessName);
     }
 
-    public async Task RunCycleAsync(CancellationToken cancellationToken = default)
+    // Returns the number of items acted on: revisions activated, review tasks created, escalations created, Section Heads notified.
+    public async Task<int> RunCycleAsync(CancellationToken cancellationToken = default)
     {
         // Non-overlapping execution guard: if a cycle is already actively executing, skip (concurrency-safe)
         if (!await _concurrencyLock.WaitAsync(0, cancellationToken))
@@ -94,12 +100,14 @@ public class DocumentEffectiveDateWorker : BackgroundService
             _logger.LogWarning(
                 "[{Worker}] A previous processing cycle is still in progress. Skipping overlapping execution tick.",
                 ProcessName);
-            return;
+            return 0;
         }
 
+        var processed = 0;
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
             var effectiveDateService = scope.ServiceProvider.GetRequiredService<IDocumentEffectiveDateService>();
             var periodicReviewService = scope.ServiceProvider.GetService<IPeriodicReviewService>();
 
@@ -108,6 +116,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
                 utcNowOverride: null,
                 cancellationToken: cancellationToken);
 
+            processed += result.SuccessfullyActivatedCount;
             if (result.EligibleRevisionsCount > 0)
             {
                 _logger.LogInformation(
@@ -125,6 +134,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
                     utcNowOverride: null,
                     cancellationToken: cancellationToken);
 
+                processed += reviewResult.CreatedTasksCount;
                 if (reviewResult.CreatedTasksCount > 0 || reviewResult.Errors.Count > 0)
                 {
                     _logger.LogInformation(
@@ -145,6 +155,7 @@ public class DocumentEffectiveDateWorker : BackgroundService
                     processName: ProcessName,
                     cancellationToken: cancellationToken);
 
+                processed += escalationResult.TotalEscalationsCreated;
                 if (escalationResult.TotalEscalationsCreated > 0 || escalationResult.Errors.Count > 0)
                 {
                     _logger.LogInformation(
@@ -158,6 +169,22 @@ public class DocumentEffectiveDateWorker : BackgroundService
                         escalationResult.Errors.Count);
                 }
             }
+
+            // 4. Reassignment safety net: tell each department's Section Heads about responsibilities of
+            // deactivated users that have waited too long. Notification only - nothing is reassigned.
+            var reassignmentService = scope.ServiceProvider.GetService<IDocumentReassignmentService>();
+            if (reassignmentService != null)
+            {
+                var notified = await reassignmentService.NotifyOverdueAsync(cancellationToken: cancellationToken);
+                processed += notified;
+                if (notified > 0)
+                {
+                    _logger.LogInformation(
+                        "[{Worker}] Reassignment escalation notified {Count} Section Head(s) about overdue hand-overs.",
+                        ProcessName, notified);
+                }
+            }
+            return processed;
         }
         finally
         {

@@ -29,7 +29,7 @@ public class WorkflowProfileVersion : IVersionedEntity
     public int? ElectronicSignatureId { get; set; }
     public ElectronicSignature? ElectronicSignature { get; set; }
 
-    // Plain int, no FK (registered in UserReferenceRegistry). 0 = created by a migration.
+    // Plain int, no FK. 0 = created by a migration.
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -41,6 +41,9 @@ public static class PermissionConstants
     // and are deliberately not granted together.
     public const string SystemViewSecurityAudit = "System.ViewSecurityAudit";
 
+    // Change system operating settings (security thresholds, retention, worker limits) in the admin Settings registry. Never GxP data.
+    public const string SystemConfigureSettings = "System.ConfigureSettings";
+
     // Document Control module. URS v1.1 §5 splits authority in two: "Global role
     // permissions determine which categories of function a user may access" and
     // "per-document assignments determine on which documents a user may exercise
@@ -50,9 +53,8 @@ public static class PermissionConstants
     // Deliberately NOT permissions, and left as fixed rules in
     // DocumentAuthorizationService:
     //   * Voiding a Document Master. FS-1a-111 reserves it for the Document
-    //     Controller "not even SystemAdministrator", and System Administrator is
-    //     seeded with All - so a Documents.Void code would hand admins exactly
-    //     the capability the specification denies them.
+    //     Controller "not even SystemAdministrator", so a Documents.Void code
+    //     could hand admins exactly the capability the specification denies them.
     //   * The segregation-of-duties invariants (author != reviewer != approver).
     //     BR-013 states the restriction "cannot be overridden administratively",
     //     so it must not be expressible as a grant.
@@ -75,6 +77,13 @@ public static class PermissionConstants
     public const string DocumentsTrainingAssign = "Documents.TrainingAssign";
     public const string DocumentsTrainingViewMatrix = "Documents.TrainingViewMatrix";
     public const string DocumentsConfigManage = "Documents.ConfigManage";
+
+    // Hand a deactivated user's document responsibilities (custodianship, assignments, open review,
+    // approval and periodic-review tasks) to another active member of the same department. Held by the
+    // Section Head; it only applies within a department the holder is a member of, unless the holder
+    // also has Documents.ConfigManage. Not a signing or SoD code: the new holder still meets every
+    // permission and segregation rule of the role being handed over.
+    public const string DocumentsReassign = "Documents.Reassign";
 
     // Gates that were [Authorize(Roles=...)] only, with no catalogue code
     // of their own. Each is granted by default to exactly the roles the
@@ -118,6 +127,18 @@ public static class PermissionConstants
     public const string EquipmentWorkRecord = "EquipmentWork.Record";
     public const string CalendarEventManage = "CalendarEvent.Manage";
 
+    // Read every laboratory section's records without being a member. Read-only: writes always follow section membership, for administrators too (UserSectionScopeService).
+    public const string SectionsViewAll = "Sections.ViewAll";
+
+    // Configure master data and settings in every section, not only the user's own. Configuration only: GxP records still follow membership.
+    public const string SectionsConfigureAll = "Sections.ConfigureAll";
+
+    // View background-job status and run history, and run housekeeping jobs manually. GxP jobs are status-only for everyone.
+    public const string SystemManageJobs = "System.ManageJobs";
+
+    // Periodically review who holds which access (EU GMP Annex 11 s.12, 21 CFR 11.10(d)(g)): generate the access-review report, record findings, sign it. Deliberately NOT in a segregation-of-duties set, and held by the System Administrator only because it is read-and-attest, never GxP work.
+    public const string AccessReview = "Access.Review";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -129,16 +150,36 @@ public static class PermissionConstants
         ItemsManage, ItemsDocumentUpload,
         MasterDataManage,
         DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse,
-        SystemViewErrorLog, SystemViewSecurityAudit,
+        SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         DocumentsRegister, DocumentsDraftEdit, DocumentsRevisionCreate,
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
-        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage,
+        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage, DocumentsReassign,
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
-        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
+    };
+
+    // What the built-in System Administrator role holds. Segregation of duties
+    // (21 CFR Part 11 §11.10(d)(g), EU GMP Annex 11 §12): administrators control
+    // the system - users, roles, configuration, master data - and may read the
+    // GxP record, but never execute, review or approve GxP data. Codes that
+    // perform or sign laboratory work (sample review/approval, test workflow,
+    // media, cryovials, OOS, document review/approval, plan approval and so on)
+    // must never be added here.
+    public static readonly IReadOnlyList<string> SystemAdministratorGrants = new[]
+    {
+        UsersManage, RolesManage, AuditView, ReportingAdmin,
+        SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
+        MasterDataManage, ItemsManage, DocumentsConfigManage, KpiConfigureProfiles,
+        DiscussionsView, DiscussionsCreate, MessagesUse,
+        SignaturesManage,   // read-only signature trail
+        DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam,
+        SamplesTrackAll, MonitoringPlanView, DocumentsTrainingViewMatrix,
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -147,14 +188,24 @@ public static class PermissionConstants
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
-        DiscussionsEditAny, DocumentsConfigManage, DocumentsRegister, DocumentsTrainingAssign,
+        DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
-        SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,
+        SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
-        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
+    };
+
+    // Declared and granted, but no feature checks them yet. Kept in the
+    // database (rows and grants are never deleted) and left off the Roles
+    // screen: the Roles API neither lists them nor lets them be granted, and a
+    // permission edit preserves the grants a role already holds.
+    public static readonly IReadOnlySet<string> Hidden = new HashSet<string>
+    {
+        DiscussionsView, DiscussionsCreate, MessagesUse
     };
 }

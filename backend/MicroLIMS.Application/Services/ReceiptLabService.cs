@@ -23,8 +23,8 @@ public class ReceiptLabService
     {
         var codes = await _db.Items.Where(i => i.Id == itemId).SelectMany(i => i.AssignedTests.Select(t => t.TestCode)).ToListAsync();
         // Same rule as ReceiptLabGuard: without the any-lab privilege only the
-        // user's accessible sections count; a null scope means unrestricted.
-        var userScope = canReceiveForAnyLab ? null : await _scope.GetAccessibleSectionIdsAsync(userId);
+        // user's own sections count.
+        var userScope = canReceiveForAnyLab ? null : await _scope.GetMemberSectionIdsAsync(userId);
         var defs = _db.TestDefinitions.Where(t => codes.Contains(t.Code));
         if (userScope is not null)
             defs = defs.Where(t => userScope.Contains(t.SectionId));

@@ -226,6 +226,11 @@ public class MessageService
         if (allParticipantIds.Count < 2)
             throw new InvalidOperationException("A conversation must have at least one other participant.");
 
+        // Inactive users cannot be added to (or start) a conversation.
+        var inactiveCount = await _db.Users.CountAsync(u => allParticipantIds.Contains(u.Id) && !u.IsActive);
+        if (inactiveCount > 0)
+            throw new InvalidOperationException("Inactive users cannot be added to a conversation.");
+
         // For 1-on-1 conversations, check if one already exists between these 2 users
         if (!request.IsGroup && allParticipantIds.Count == 2)
         {
@@ -424,7 +429,12 @@ public class MessageService
     {
         try
         {
-            var otherParticipants = allParticipants.Where(id => id != senderUserId).ToList();
+            var candidateIds = allParticipants.Where(id => id != senderUserId).ToList();
+            // Inactive users are never notified.
+            var otherParticipants = await _db.Users
+                .Where(u => candidateIds.Contains(u.Id) && u.IsActive)
+                .Select(u => u.Id)
+                .ToListAsync();
             var snippet = content.Length > 80 ? content[..80] + "..." : content;
 
             foreach (var recipientId in otherParticipants)

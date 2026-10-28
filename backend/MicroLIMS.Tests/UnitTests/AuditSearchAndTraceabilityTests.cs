@@ -60,7 +60,7 @@ public class AuditSearchAndTraceabilityTests
         Assert.Single(results);
         var entry = results[0];
         Assert.Equal("Ahmed Hassan", entry.UserName);
-        Assert.Equal("Microbiology Analyst", entry.UserRole);
+        Assert.Equal("Microbiology Analyst", entry.UserCurrentRole);
         Assert.Equal("ahmed.hassan", entry.UserUsername);
         Assert.Equal(5, entry.UserId);
         Assert.Equal("FP0107026", entry.SampleReferenceNumber);
@@ -88,7 +88,7 @@ public class AuditSearchAndTraceabilityTests
 
         Assert.Single(history);
         Assert.Equal("Ahmed Hassan", history[0].UserName);
-        Assert.Equal("Microbiology Analyst", history[0].UserRole);
+        Assert.Equal("Microbiology Analyst", history[0].UserCurrentRole);
         Assert.Equal(5, history[0].UserId);
     }
 
@@ -198,5 +198,60 @@ public class AuditSearchAndTraceabilityTests
         Assert.Equal("EquipmentRegister", trace.PrimaryCategory);
         Assert.Equal("ATC-003", trace.RootIdentifier);
         Assert.Contains(trace.Nodes, n => n.NodeType == "Equipment" && n.Identifier == "ATC-003");
+    }
+
+    [Fact]
+    public async Task AuditSearch_HugeTake_IsClampedToMaxTake()
+    {
+        await using var db = NewDb();
+        var searchService = new AuditSearchService(db);
+
+        for (var i = 0; i < AuditSearchService.MaxTake + 5; i++)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "Sample",
+                EntityId = i.ToString(),
+                Action = "Create",
+                UserId = 5,
+                Timestamp = DateTime.UtcNow.AddSeconds(-i)
+            });
+        }
+        await db.SaveChangesAsync();
+
+        var results = await searchService.SearchAsync(new AuditSearchRequest(
+            null, null, null, null, null, null, null, null, null, null, null, null, null, Take: 1_000_000));
+
+        Assert.Equal(AuditSearchService.MaxTake, results.Count);
+    }
+
+    [Fact]
+    public async Task AuditSearch_ZeroTake_IsClampedToOneRow()
+    {
+        await using var db = NewDb();
+        var searchService = new AuditSearchService(db);
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Sample",
+            EntityId = "1",
+            Action = "Create",
+            UserId = 5,
+            Timestamp = DateTime.UtcNow
+        });
+        db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Sample",
+            EntityId = "2",
+            Action = "Create",
+            UserId = 5,
+            Timestamp = DateTime.UtcNow.AddSeconds(-1)
+        });
+        await db.SaveChangesAsync();
+
+        var results = await searchService.SearchAsync(new AuditSearchRequest(
+            null, null, null, null, null, null, null, null, null, null, null, null, null, Take: 0));
+
+        Assert.Single(results);
     }
 }

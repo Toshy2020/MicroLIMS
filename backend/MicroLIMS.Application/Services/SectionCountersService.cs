@@ -3,6 +3,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 
@@ -30,6 +31,7 @@ public class SectionCountersService
     private readonly ITestWorkspaceService _workspace;
     private readonly ILabClock _clock;
     private readonly TimeProvider _time;
+    private readonly IDocumentReassignmentService? _reassignments;
 
     public SectionCountersService(
         IMicroLimsDbContext db,
@@ -37,8 +39,10 @@ public class SectionCountersService
         IUserSectionScopeService sectionScope,
         ITestWorkspaceService workspace,
         ILabClock clock,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IDocumentReassignmentService? reassignments = null)
     {
+        _reassignments = reassignments;
         _db = db;
         _labScope = labScope;
         _sectionScope = sectionScope;
@@ -74,7 +78,7 @@ public class SectionCountersService
         else
         {
             // Only the areas this user works in have a workspace card.
-            var areas = await _sectionScope.GetPhyschemAreasAsync(userId, ct);
+            var areas = await _sectionScope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Read);
             if (areas.Contains(WorkspaceArea.Fp))
                 cards.Add(await WorkspaceCardAsync(SectionCardKeys.FpWorkspace, userId, sectionIds[0], "fp"));
             if (areas.Contains(WorkspaceArea.RmPm))
@@ -115,14 +119,24 @@ public class SectionCountersService
             (a.Status == TrainingAssignmentStatus.Assigned || a.Status == TrainingAssignmentStatus.Reading)
             && a.DueDateUtc >= nowUtc, ct);
 
-        return new[]
+        var cards = new List<SectionCardCountersDto>
         {
-            new SectionCardCountersDto(SectionCardKeys.ReadingList, new[]
+            new(SectionCardKeys.ReadingList, new[]
             {
                 new SectionCounterDto("to read", toRead, toRead > 0 ? "info" : "pending"),
                 new SectionCounterDto("overdue", overdue, overdue > 0 ? "detected" : "pending")
             })
         };
+
+        // Only for people who can act on it (Documents.ConfigManage, or Documents.Reassign in their department).
+        var reassignments = _reassignments is null ? null : await _reassignments.TryGetCountAsync(userId);
+        if (reassignments is not null)
+            cards.Add(new SectionCardCountersDto(SectionCardKeys.Reassignments, new[]
+            {
+                new SectionCounterDto("to reassign", reassignments.Total, reassignments.Total > 0 ? "action" : "pending"),
+                new SectionCounterDto("overdue", reassignments.Overdue, reassignments.Overdue > 0 ? "detected" : "pending")
+            }));
+        return cards;
     }
 
     // The same queues as the workspace's own tabs (GET /api/testorders/counts).

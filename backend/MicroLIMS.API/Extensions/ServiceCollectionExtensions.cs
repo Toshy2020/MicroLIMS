@@ -24,6 +24,7 @@ using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Infrastructure.Word;
 using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Persistence.Diagnostics;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Persistence.Repositories;
 
@@ -129,13 +130,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ItemService>();
         services.AddScoped<ItemStmService>();
         services.AddScoped<SpecificationService>();
+        services.AddScoped<AdministrationContinuityGuard>();
         services.AddScoped<UserService>();
-        services.AddScoped<UserDeletionService>();
         services.AddScoped<AdminPasswordRecoveryService>();
         services.AddScoped<PermissionService>();
         services.AddScoped<RoleService>();
         services.AddScoped<ReferenceNumberGenerator>();
         services.AddScoped<AuditSearchService>();
+        services.AddScoped<AuditExportService>();
         services.AddScoped<AuditTraceabilityService>();
         services.AddScoped<IGlobalSearchService, GlobalSearchService>();
         services.AddScoped<IDatabaseSequenceHelper, DatabaseSequenceHelper>();
@@ -154,13 +156,29 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITrainingMatrixService, TrainingMatrixService>();
         services.AddScoped<IDocumentAcknowledgementService, DocumentAcknowledgementService>();
         services.AddScoped<IDocumentEscalationService, DocumentEscalationService>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>();
-        services.AddHostedService<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>();
+        services.AddScoped<IDocumentReassignmentService, DocumentReassignmentService>();
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>());
+        services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobWork>(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>());
+        services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobWork>(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>());
+        services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobWork>(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>());
+        // Background job run log and the admin Jobs screen. Singleton recorder: it owns the per-job run gate.
+        services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobRunRecorder, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobRunRecorder>();
+        services.AddScoped<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobAdminService, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobAdminService>();
         services.AddScoped<IUserSectionScopeService, UserSectionScopeService>();
         services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
@@ -253,7 +271,14 @@ public static class ServiceCollectionExtensions
         var smtpOptions = SmtpConfiguration.Resolve(config);
         services.AddSingleton(smtpOptions);
         services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
-        services.AddScoped<IEmailSender>(sp => new EmailSender(sp.GetRequiredService<SmtpOptions>()));
+        services.AddSingleton<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>(sp => new SmtpStatusProvider(sp.GetRequiredService<SmtpOptions>()));
+        services.AddSingleton<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>();
+        services.AddScoped<IEmailSender>(sp => new MicroLIMS.Application.Services.Integrations.TrackingEmailSender(
+            new EmailSender(sp.GetRequiredService<SmtpOptions>()),
+            sp.GetRequiredService<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>(),
+            sp.GetRequiredService<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>()));
+        services.AddSingleton<MicroLIMS.Application.Services.Integrations.AdminActionThrottle>();
+        services.AddScoped<MicroLIMS.Application.Services.Integrations.IIntegrationsService, MicroLIMS.Application.Services.Integrations.IntegrationsService>();
         // Error capture is a singleton that opens its own DbContext
         // scope per write - the request-scoped context is typically
         // mid-exception when an error is captured.
@@ -261,6 +286,22 @@ public static class ServiceCollectionExtensions
 
         // Read/triage side of the same data - scoped, ordinary querying.
         services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
+
+        // Admin Settings registry: consumers read through ISystemSettingsReader (cached, falls back to
+        // legacy config then code default); ISystemSettingsService changes values with reason/signature.
+        services.AddSingleton<MicroLIMS.Application.Services.SystemSettings.SystemSettingsCache>();
+        services.AddScoped<ISystemSettingsReader, MicroLIMS.Application.Services.SystemSettings.SystemSettingsReader>();
+        services.AddScoped<ISystemSettingsService>(sp => new MicroLIMS.Application.Services.SystemSettings.SystemSettingsService(
+            sp.GetRequiredService<MicroLIMS.Application.Abstractions.Persistence.IMicroLimsDbContext>(),
+            sp.GetRequiredService<MicroLIMS.Application.Services.SystemSettings.SystemSettingsCache>(),
+            sp.GetRequiredService<IElectronicSignatureService>(),
+            sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<JwtSettings>().AccessTokenLifetime,
+            sp.GetRequiredService<ISecurityAuditService>()));
+        services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
+        services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
+        services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
 
         // Critical incident alerting. Disabled unless explicitly enabled,
         // so no environment can mail anyone by accident. Driven by
@@ -335,10 +376,10 @@ public static class ServiceCollectionExtensions
 
         // AuthenticationService needs a token-issuing delegate - wire it
         // from IJwtTokenService so Application does not reference Infrastructure directly.
-        services.AddScoped<Func<string, string, IEnumerable<string>, string>>(sp =>
+        services.AddScoped<AccessTokenIssuer>(sp =>
         {
             var jwt = sp.GetRequiredService<IJwtTokenService>();
-            return (userId, role, permissionCodes) => jwt.IssueToken(userId, role, permissionCodes);
+            return subject => jwt.IssueToken(subject.UserId, subject.Role, subject.PermissionCodes, subject.RoleId, subject.PermissionVersion);
         });
 
         return services;

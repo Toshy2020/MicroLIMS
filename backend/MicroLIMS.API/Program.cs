@@ -86,7 +86,7 @@ builder.Services.AddCors(options =>
               // client-side error reports cannot be tied to the backend
               // error from the same action. Content-Disposition carries
               // the server's name for a downloaded file (exports, reports).
-              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition"));
+              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition", MicroLIMS.API.Middleware.MaintenanceModeMiddleware.HeaderName));
 });
 
 var app = builder.Build();
@@ -203,6 +203,10 @@ app.UseAuthentication();
 // after authentication: its per-user and per-agent partitions need the user.
 app.UseMicroLimsAgentPreAuthThrottle();
 app.UseAuthorization();
+
+// Maintenance mode: refuses writes while on. After authentication so it sees the
+// caller's permissions; before the audit pipeline so a refused request leaves no trace there.
+app.UseMiddleware<MicroLIMS.API.Middleware.MaintenanceModeMiddleware>();
 
 // Stamps the current user onto the DbContext for audit trail capture -
 // must run after UseAuthentication so HttpContext.User is populated.

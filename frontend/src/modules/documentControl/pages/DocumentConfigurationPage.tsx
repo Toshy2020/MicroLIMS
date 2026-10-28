@@ -29,6 +29,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { Link as RouterLink } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "../../../components/PageHeader";
@@ -46,7 +47,8 @@ import type {
 export function DocumentConfigurationPage() {
   const theme = useTheme();
   const { permissions } = useAuth();
-  const isAdmin = permissions.includes(PERMISSIONS.DOCUMENTS_CONFIG_MANAGE);
+  // Configuration is the Documents.ConfigManage permission (the System Administrator holds it by default), not a role.
+  const canConfigure = permissions.includes(PERMISSIONS.DOCUMENTS_CONFIG_MANAGE);
 
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -62,15 +64,6 @@ export function DocumentConfigurationPage() {
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<DocumentTypeDto | null>(null);
   const [typeForm, setTypeForm] = useState({ code: "", name: "", cycle: 24, isActive: true });
-
-  const [deptDialogOpen, setDeptDialogOpen] = useState(false);
-  const [editingDept, setEditingDept] = useState<DocumentDepartmentDto | null>(null);
-  const [deptForm, setDeptForm] = useState({ code: "", name: "", isActive: true });
-
-  const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
-  const [targetDeptId, setTargetDeptId] = useState<number>(0);
-  const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
-  const [sectionForm, setSectionForm] = useState({ name: "", isActive: true });
 
   const [numberingForm, setNumberingForm] = useState({ prefix: "DOC-", format: "0000000", isEnabled: true });
   const [savingNumbering, setSavingNumbering] = useState(false);
@@ -106,14 +99,15 @@ export function DocumentConfigurationPage() {
   };
 
   useEffect(() => {
-    loadAll();
-  }, []);
+    // Without the permission the server would only answer 403.
+    if (canConfigure) loadAll();
+  }, [canConfigure]);
 
-  if (!isAdmin) {
+  if (!canConfigure) {
     return (
       <Box sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
         <Alert severity="error">
-          <strong>Access Denied:</strong> Only System Administrators can access and modify Document Control module configuration.
+          <strong>Access Denied:</strong> Your role has not been granted Document Control configuration management.
         </Alert>
       </Box>
     );
@@ -140,50 +134,6 @@ export function DocumentConfigurationPage() {
       toast.success("Document Type saved successfully.");
     } catch (err: any) {
       toast.error("Failed to save Document Type: " + (err.response?.data?.message || err.message));
-    }
-  };
-
-  // Department actions
-  const handleSaveDept = async () => {
-    try {
-      if (editingDept) {
-        await documentControlService.updateDepartment(editingDept.id, {
-          name: deptForm.name,
-          isActive: deptForm.isActive
-        }, editingDept.version);
-      } else {
-        await documentControlService.createDepartment({
-          code: deptForm.code,
-          name: deptForm.name
-        });
-      }
-      setDeptDialogOpen(false);
-      loadAll();
-      toast.success("Department saved successfully.");
-    } catch (err: any) {
-      toast.error("Failed to save Department: " + (err.response?.data?.message || err.message));
-    }
-  };
-
-  // Section actions
-  const handleSaveSection = async () => {
-    try {
-      if (editingSectionId) {
-        await documentControlService.updateSection(editingSectionId, {
-          name: sectionForm.name,
-          isActive: sectionForm.isActive
-        }, departments.flatMap((d) => d.sections ?? []).find((s) => s.id === editingSectionId)?.version);
-      } else {
-        await documentControlService.createSection({
-          departmentId: targetDeptId,
-          name: sectionForm.name
-        });
-      }
-      setSectionDialogOpen(false);
-      loadAll();
-      toast.success("Section saved successfully.");
-    } catch (err: any) {
-      toast.error("Failed to save Section: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -314,118 +264,20 @@ export function DocumentConfigurationPage() {
               </Box>
             )}
 
-            {/* Tab 1: Departments & Sections */}
+            {/* Tab 1: Departments & Sections - edited in Administration > Organization (one editor, with reasons and deactivation checks) */}
             {currentTab === 1 && (
-              <Box sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Departments and Laboratory Sections
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => {
-                      setEditingDept(null);
-                      setDeptForm({ code: "", name: "", isActive: true });
-                      setDeptDialogOpen(true);
-                    }}
-                  >
-                    Add Department
-                  </Button>
-                </Box>
-
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {departments.map((dept) => (
-                    <Paper key={dept.id} variant="outlined" sx={{ p: 2, opacity: dept.isActive ? 1 : 0.6 }}>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "primary.main" }}>
-                            {dept.code}: {dept.name}
-                          </Typography>
-                          {dept.isActive ? (
-                            <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
-                          ) : (
-                            <Chip label="DEACTIVATED" size="small" color="default" sx={compactChipSx} />
-                          )}
-                        </Box>
-
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<AddIcon />}
-                            onClick={() => {
-                              setTargetDeptId(dept.id);
-                              setEditingSectionId(null);
-                              setSectionForm({ name: "", isActive: true });
-                              setSectionDialogOpen(true);
-                            }}
-                          >
-                            Add Section
-                          </Button>
-                          <IconButton aria-label={`Edit department ${dept.code}`}
-                            size="small"
-                            onClick={() => {
-                              setEditingDept(dept);
-                              setDeptForm({ code: dept.code, name: dept.name, isActive: dept.isActive });
-                              setDeptDialogOpen(true);
-                            }}
-                          >
-                            <EditOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Box>
-
-                      {/* Sections Table */}
-                      <TableContainer component={Paper} variant="outlined">
-                        <Table size="small">
-                          <TableHead sx={tableHeadSx(theme)}>
-                            <TableRow>
-                              <TableCell sx={{ fontWeight: 700 }}>Section Name</TableCell>
-                              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                              <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Action</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {dept.sections.map((sec) => (
-                              <TableRow key={sec.id} hover sx={{ opacity: sec.isActive ? 1 : 0.6 }}>
-                                <TableCell>{sec.name}</TableCell>
-                                <TableCell>
-                                  {sec.isActive ? (
-                                    <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
-                                  ) : (
-                                    <Chip label="DEACTIVATED" size="small" color="default" sx={compactChipSx} />
-                                  )}
-                                </TableCell>
-                                <TableCell align="right">
-                                  <IconButton aria-label={`Edit section ${sec.name}`}
-                                    size="small"
-                                    onClick={() => {
-                                      setTargetDeptId(dept.id);
-                                      setEditingSectionId(sec.id);
-                                      setSectionForm({ name: sec.name, isActive: sec.isActive });
-                                      setSectionDialogOpen(true);
-                                    }}
-                                  >
-                                    <EditOutlinedIcon fontSize="small" />
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                            {dept.sections.length === 0 && (
-                              <TableRow>
-                                <TableCell colSpan={3} align="center" sx={{ py: 1.5, color: "text.secondary" }}>
-                                  No sections registered under this department.
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Paper>
-                  ))}
-                </Box>
+              <Box sx={{ p: 3, maxWidth: 650 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                  Departments and Laboratory Sections
+                </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  {departments.length} department(s) are configured. Departments, sections and who belongs to them are now managed
+                  in Administration &gt; Organization, where every change asks for a reason and deactivating one that is still in use
+                  asks for confirmation.
+                </Alert>
+                <Button component={RouterLink} to="/admin/organization" variant="contained">
+                  Open Organization
+                </Button>
               </Box>
             )}
 
@@ -594,66 +446,6 @@ export function DocumentConfigurationPage() {
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setTypeDialogOpen(false)} color="inherit">Cancel</Button>
           <Button onClick={handleSaveType} variant="contained">Save</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Department Dialog */}
-      <Dialog open={deptDialogOpen} onClose={() => setDeptDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{editingDept ? "Edit Department" : "Add Department"}</DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {!editingDept && (
-            <TextField
-              label="Department Code *"
-              value={deptForm.code}
-              onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value })}
-              placeholder="e.g. QC, QA, PROD"
-            />
-          )}
-          <TextField
-            label="Department Name *"
-            value={deptForm.name}
-            onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
-            placeholder="e.g. Quality Control"
-          />
-          {editingDept && (
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Typography variant="body2">Active Status</Typography>
-              <Switch
-                checked={deptForm.isActive}
-                onChange={(e) => setDeptForm({ ...deptForm, isActive: e.target.checked })}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setDeptDialogOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleSaveDept} variant="contained">Save</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Section Dialog */}
-      <Dialog open={sectionDialogOpen} onClose={() => setSectionDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{editingSectionId ? "Edit Section" : "Add Section"}</DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <TextField
-            label="Section Name *"
-            value={sectionForm.name}
-            onChange={(e) => setSectionForm({ ...sectionForm, name: e.target.value })}
-            placeholder="e.g. Sterility Testing Lab"
-          />
-          {editingSectionId && (
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Typography variant="body2">Active Status</Typography>
-              <Switch
-                checked={sectionForm.isActive}
-                onChange={(e) => setSectionForm({ ...sectionForm, isActive: e.target.checked })}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setSectionDialogOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleSaveSection} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
 

@@ -1,13 +1,24 @@
 namespace MicroLIMS.Application.Interfaces;
 
-public record LoginOutcome(bool Success, string? Token, string? RefreshToken, string? FailureReason, bool MustChangePassword = false);
+// RoleName is the role's display name (Role.Name), as opposed to the base
+// type carried in the token's role claim.
+public record LoginOutcome(bool Success, string? Token, string? RefreshToken, string? FailureReason, bool MustChangePassword = false, string? RoleName = null);
 
-public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword);
+public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword, string RoleName);
+
+// What an access token is issued for. RoleId and PermissionVersion are signed
+// into the token so the API can tell, on every request, whether the user's
+// role or its permission grants have changed since it was issued.
+public record AccessTokenSubject(string UserId, string Role, int RoleId, int PermissionVersion, IReadOnlyCollection<string> PermissionCodes);
+
+// Wired to IJwtTokenService in the API project so Application does not
+// reference Infrastructure directly.
+public delegate string AccessTokenIssuer(AccessTokenSubject subject);
 
 public interface IAuthenticationService
 {
-    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null);
-    Task<LoginOutcome> RefreshAsync(string refreshToken);
+    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null);
+    Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null);
 
     // Ends the caller's session. When refreshToken identifies one of this
     // user's own tokens only that session is revoked; otherwise every

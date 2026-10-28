@@ -52,7 +52,7 @@ public class TitrationContextService
 
     public async Task<TitrationContextDto> GetContextAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
-        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId);
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, access: SectionAccess.Read);
 
         var order = await _db.TestOrders.AsNoTracking().Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)

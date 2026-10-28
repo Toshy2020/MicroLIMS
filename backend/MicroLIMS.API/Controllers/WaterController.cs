@@ -51,5 +51,5 @@ public class WaterController : ControllerBase
 
     [HttpGet("daily-report")]
     public async Task<IActionResult> DailyReport([FromQuery] DateTime date) =>
-        Ok(ApiResponse<object>.Ok(await _waterService.GetDailyAggregateAsync(date, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
+        Ok(ApiResponse<object>.Ok(await _waterService.GetDailyAggregateAsync(date, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId))));
 }

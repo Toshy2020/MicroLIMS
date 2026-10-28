@@ -617,9 +617,9 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
             ), users.Author.Id)
         );
 
-        // 3. System Administrator cannot bypass SoD to approve author's document if admin was author
+        // 3. A System Administrator controls the system, not the document: it cannot register one at all
         string adminDocCode = $"SOP-ADM-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
-        var adminMaster = await harness.MasterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => harness.MasterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(
             CompanyDocumentCode: adminDocCode,
             Title: "Admin Authored SOP",
             DocumentTypeId: _fixture.SeededDocTypeId,
@@ -631,17 +631,33 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
             Keywords: new List<string> { "Admin", "SoD" },
             InitialRevisionNumber: "01",
             ReviewCycleMonths: 12
-        ), users.Admin.Id);
+        ), users.Admin.Id));
 
-        var adminRev = await db.DocumentRevisions.FirstAsync(r => r.DocumentMasterId == adminMaster.Id);
+        // 4. The Document Controller who authored a document cannot approve it either
+        string controllerDocCode = $"SOP-CTL-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+        var controllerMaster = await harness.MasterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(
+            CompanyDocumentCode: controllerDocCode,
+            Title: "Controller Authored SOP",
+            DocumentTypeId: _fixture.SeededDocTypeId,
+            DepartmentId: _fixture.SeededDepartmentId,
+            SectionId: _fixture.SeededSectionId,
+            DocumentOwnerUserId: users.Approver.Id,
+            Confidentiality: DocumentConfidentiality.Internal,
+            Category: "Compliance",
+            Keywords: new List<string> { "Controller", "SoD" },
+            InitialRevisionNumber: "01",
+            ReviewCycleMonths: 12
+        ), users.Approver.Id);
 
-        // Admin attempting to create approval task nominating themselves as Approver
+        var controllerRev = await db.DocumentRevisions.FirstAsync(r => r.DocumentMasterId == controllerMaster.Id);
+
+        // The Document Controller attempting to create an approval task nominating themselves as Approver
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.ApprovalService.CreateApprovalTaskAsync(adminRev.Id, new CreateApprovalTaskRequest(
-                ApproverUserId: users.Admin.Id,
+            harness.ApprovalService.CreateApprovalTaskAsync(controllerRev.Id, new CreateApprovalTaskRequest(
+                ApproverUserId: users.Approver.Id,
                 TargetEffectiveDate: DateTime.UtcNow.AddDays(7),
-                SubmissionNotes: "Admin approving own document"
-            ), users.Admin.Id)
+                SubmissionNotes: "Controller approving own document"
+            ), users.Approver.Id)
         );
     }
 

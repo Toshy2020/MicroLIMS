@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
+using MicroLIMS.Application.Services.SystemSettings;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
@@ -14,7 +16,7 @@ namespace MicroLIMS.API.BackgroundServices;
 // never see a connection that never opened, so those are caught
 // client-side by ExceptionMiddleware instead. Duplicating them here
 // would produce double rows, or a false sense of coverage.
-public class DatabaseHealthMonitorWorker : BackgroundService
+public class DatabaseHealthMonitorWorker : BackgroundService, IBackgroundJobWork
 {
     public const string ProcessName = "DatabaseHealthMonitorWorker";
 
@@ -36,6 +38,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly ILogger<DatabaseHealthMonitorWorker> _logger;
     private readonly SemaphoreSlim _concurrencyLock = new(1, 1);
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
     // Cumulative counters from the previous cycle, keyed by queryid. Only
     // the growth between cycles is reported, so a query that was slow last
@@ -62,8 +65,10 @@ public class DatabaseHealthMonitorWorker : BackgroundService
     public DatabaseHealthMonitorWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
-        ILogger<DatabaseHealthMonitorWorker> logger)
+        ILogger<DatabaseHealthMonitorWorker> logger,
+        IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _configuration = configuration;
         _logger = logger;
@@ -75,11 +80,18 @@ public class DatabaseHealthMonitorWorker : BackgroundService
     private int PollIntervalSeconds =>
         Positive(_configuration.GetValue<int?>("ErrorMonitoring:DatabaseHealth:PollIntervalSeconds"), DefaultPollIntervalSeconds);
 
-    private int SlowQueryThresholdMs =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:DatabaseHealth:SlowQueryThresholdMs"), DefaultSlowQueryThresholdMs);
+    // Refreshed from the settings registry at the start of every cycle.
+    private int _slowQueryThresholdMs = DefaultSlowQueryThresholdMs;
+    private int _blockedQueryThresholdMs = DefaultBlockedQueryThresholdMs;
 
-    private int BlockedQueryThresholdMs =>
-        Positive(_configuration.GetValue<int?>("ErrorMonitoring:DatabaseHealth:BlockedQueryThresholdMs"), DefaultBlockedQueryThresholdMs);
+    private int SlowQueryThresholdMs => _slowQueryThresholdMs;
+    private int BlockedQueryThresholdMs => _blockedQueryThresholdMs;
+
+    private async Task RefreshSettingsAsync(IServiceProvider services, CancellationToken ct)
+    {
+        _slowQueryThresholdMs = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.SlowQueryThresholdMs, ct);
+        _blockedQueryThresholdMs = await WorkerSettings.GetIntAsync(services, _configuration, SystemSettingKeys.BlockedQueryThresholdMs, ct);
+    }
 
     private static int Positive(int? configured, int fallback) =>
         configured is > 0 ? configured.Value : fallback;
@@ -106,7 +118,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService
             {
                 if (await timer.WaitForNextTickAsync(stoppingToken))
                 {
-                    await RunCycleAsync(stoppingToken);
+                    await ScheduledPassAsync(stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -124,6 +136,19 @@ public class DatabaseHealthMonitorWorker : BackgroundService
         _logger.LogInformation("[{Worker}] Background service has stopped gracefully.", ProcessName);
     }
 
+    public string JobName => ProcessName;
+
+    // The pass an administrator's manual run executes: exactly the scheduled one.
+    // Findings are reported as incidents, so there is no item count to return.
+    public async Task<int?> RunOnceAsync(CancellationToken cancellationToken)
+    {
+        await RunCycleAsync(cancellationToken);
+        return null;
+    }
+
+    private Task ScheduledPassAsync(CancellationToken cancellationToken) =>
+        ScheduledJobPass.RunAsync(_recorder, ProcessName, RunOnceAsync, cancellationToken);
+
     public async Task RunCycleAsync(CancellationToken cancellationToken = default)
     {
         if (!await _concurrencyLock.WaitAsync(0, cancellationToken))
@@ -137,6 +162,8 @@ public class DatabaseHealthMonitorWorker : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+            db.CurrentSystemProcessName = ProcessName;
+            await RefreshSettingsAsync(scope.ServiceProvider, cancellationToken);
             var capture = scope.ServiceProvider.GetRequiredService<IErrorCaptureService>();
 
             var connection = (NpgsqlConnection)db.Database.GetDbConnection();

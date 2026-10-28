@@ -20,13 +20,12 @@ public class EquipmentStatusAndDocumentTests
             .Options;
         var db = new MicroLimsDbContext(options);
 
-        // Seed test user as a System Administrator (unrestricted scope) -
-        // these tests exercise status/document traceability, not lab
-        // scoping, so the caller must see equipment regardless of
-        // SectionId (rows here are seeded without one).
+        // The test user is a member of the Microbiology section, which owns the
+        // seeded equipment: these tests exercise status/document traceability,
+        // not lab scoping, and writes follow membership for everyone.
         if (!db.Users.Any())
         {
-            db.Roles.Add(new Role { Id = 1, Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true });
+            db.Roles.Add(new Role { Id = 1, Name = "Analyst", Type = RoleType.Analyst, IsActive = true });
             db.Users.Add(new User
             {
                 Id = 1,
@@ -37,6 +36,7 @@ public class EquipmentStatusAndDocumentTests
                 IsActive = true
             });
             db.SaveChanges();
+            TestServiceFactory.AssignUserToMicroSection(db, 1);
         }
 
         return db;

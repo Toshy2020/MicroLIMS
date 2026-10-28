@@ -34,7 +34,7 @@ public class ReportingController : ControllerBase
     private readonly IUserSectionScopeService _scopeService;
 
     // Every report covers only the caller's laboratory sections.
-    private Task<IReadOnlyList<int>?> Scope() => _scopeService.GetAccessibleSectionIdsAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value));
+    private Task<IReadOnlyList<int>?> Scope() => _scopeService.GetReadableSectionIdsAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value));
 
     public ReportingController(
         ReportingQueryService query,
@@ -207,7 +207,7 @@ public class ReportingController : ControllerBase
     [HttpGet("media-gpt/{id}")]
     public async Task<IActionResult> GetMediaGptById([FromRoute] int id)
     {
-        await _scopeService.EnsureMediaAccessAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value), id);
+        await _scopeService.EnsureMediaAccessAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value), id, access: SectionAccess.Read);
         var detail = await _mediaGptReport.GetDetailAsync(id);
         if (detail is null) return NotFound(ApiResponse<object>.Fail($"Media lot {id} not found."));
 
@@ -297,7 +297,7 @@ public class ReportingController : ControllerBase
     [HttpGet("reference-strains/{id}")]
     public async Task<IActionResult> GetReferenceStrainById([FromRoute] int id)
     {
-        await _scopeService.EnsureCryovialAccessAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value), id);
+        await _scopeService.EnsureCryovialAccessAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value), id, access: SectionAccess.Read);
         var detail = await _referenceStrainReport.GetDetailAsync(id);
         if (detail is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
 

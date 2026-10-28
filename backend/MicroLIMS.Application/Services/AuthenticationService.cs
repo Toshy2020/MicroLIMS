@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,11 +18,11 @@ namespace MicroLIMS.Application.Services;
 // reset (gap analysis "Missing Security").
 public class AuthenticationService : IAuthenticationService
 {
-    private const int MaxFailedAttempts = 5;
-    private const int PasswordHistoryLimit = 5;
-    private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
-    private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
+    public const int MaxFailedAttempts = 5;
+    public const int PasswordHistoryLimit = 5;
+    public static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
+    public static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
+    public static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
     // Every failed login - unknown user, locked, disabled, wrong password -
     // gets this same message and costs the same one BCrypt check, so the
@@ -52,15 +53,17 @@ public class AuthenticationService : IAuthenticationService
         new(() => BCrypt.Net.BCrypt.HashPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))));
 
     private readonly IMicroLimsDbContext _db;
-    private readonly Func<string, string, IEnumerable<string>, string> _tokenIssuer; // (userId, role, permissionCodes) -> JWT
+    private readonly AccessTokenIssuer _tokenIssuer;
     private readonly PermissionService _permissionService;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly ISecurityAuditService _securityAudit;
     private readonly TimeProvider _time;
+    private readonly ISystemSettingsReader? _settings;
 
-    public AuthenticationService(IMicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
+    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _tokenIssuer = tokenIssuer;
@@ -70,10 +73,10 @@ public class AuthenticationService : IAuthenticationService
         _securityAudit = securityAudit;
     }
 
-    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress));
+    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null) =>
+        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress, userAgent));
 
-    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null)
+    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null, string? userAgent = null)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
 
@@ -111,9 +114,11 @@ public class AuthenticationService : IAuthenticationService
                 SecurityEventOutcome.Failure,
                 TargetUserId: user.Id, TargetUsername: username));
 
-            if (user.FailedLoginAttempts >= MaxFailedAttempts)
+            var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutMaxFailedAttempts);
+            if (user.FailedLoginAttempts >= maxFailedAttempts)
             {
-                user.LockedUntil = _time.GetUtcNow().UtcDateTime.Add(LockDuration);
+                var lockMinutes = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutDurationMinutes);
+                user.LockedUntil = _time.GetUtcNow().UtcDateTime.AddMinutes(lockMinutes);
                 // Locking the account has to end the sessions it already
                 // has, or the lockout only blocks the login form while an
                 // existing refresh token keeps minting new access tokens.
@@ -124,7 +129,7 @@ public class AuthenticationService : IAuthenticationService
                 _securityAudit.Record(new SecurityEventRequest(
                     SecurityEventCodes.AccountLocked, SecurityEventOutcome.Success,
                     ActorIsSystem: true, TargetUserId: user.Id, TargetUsername: username,
-                    Reason: $"Automatic lockout after {MaxFailedAttempts} failed login attempts.",
+                    Reason: $"Automatic lockout after {maxFailedAttempts} failed login attempts.",
                     Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
             }
 
@@ -139,8 +144,7 @@ public class AuthenticationService : IAuthenticationService
         await _db.SaveChangesAsync();
         await RecordLoginAsync(user.Id, username, true, null, ipAddress);
 
-        var permissionCodes = user.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(user.Role.Id) : new List<string>();
-        var token = _tokenIssuer(user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst", permissionCodes);
+        var token = await IssueAccessTokenAsync(user);
 
         // Self-service: the actor and the target are the same person.
         _securityAudit.Record(new SecurityEventRequest(
@@ -150,15 +154,15 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenIssued, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var refreshToken = await IssueRefreshTokenAsync(user.Id);
+        var refreshToken = await IssueRefreshTokenAsync(user.Id, ipAddress, userAgent);
 
-        return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword);
+        return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword, user.Role?.Name);
     }
 
-    public Task<LoginOutcome> RefreshAsync(string refreshToken) =>
-        UnitOfWork.RunAsync(_db, () => RefreshCoreAsync(refreshToken));
+    public Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null) =>
+        UnitOfWork.RunAsync(_db, () => RefreshCoreAsync(refreshToken, ipAddress, userAgent));
 
-    private async Task<LoginOutcome> RefreshCoreAsync(string refreshToken)
+    private async Task<LoginOutcome> RefreshCoreAsync(string refreshToken, string? ipAddress, string? userAgent)
     {
         var hash = Hash(refreshToken);
         var stored = await _db.RefreshTokens.Include(r => r.User).ThenInclude(u => u!.Role)
@@ -196,17 +200,29 @@ public class AuthenticationService : IAuthenticationService
 
         // Rotate: revoke the used token and issue a new one. One event,
         // not three - the caller performed a single meaningful action.
-        stored.RevokedAt = _time.GetUtcNow().UtcDateTime;
+        stored.LastUsedAt = _time.GetUtcNow().UtcDateTime;
+        stored.RevokedAt = stored.LastUsedAt;
         _securityAudit.Record(new SecurityEventRequest(
             SecurityEventCodes.RefreshTokenRotated, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId);
+        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true);
         await _db.SaveChangesAsync();
 
-        var permissionCodes = stored.User?.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(stored.User.Role.Id) : new List<string>();
-        var token = _tokenIssuer(stored.UserId.ToString(), stored.User?.Role?.Type.ToString() ?? "Analyst", permissionCodes);
-        return new LoginOutcome(true, token, newRefreshToken, null, stored.User?.MustChangePassword ?? false);
+        var token = await IssueAccessTokenAsync(user);
+        return new LoginOutcome(true, token, newRefreshToken, null, user.MustChangePassword, user.Role?.Name);
+    }
+
+    // The role's CURRENT permission set and PermissionVersion are read in the
+    // same call, so the token's pv claim describes the codes it carries.
+    // Login and refresh both go through here; AccessTokenRevalidator holds
+    // every later request to the pv this stamps.
+    private async Task<string> IssueAccessTokenAsync(User user)
+    {
+        var permissionCodes = user.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(user.Role.Id) : new List<string>();
+        return _tokenIssuer(new AccessTokenSubject(
+            user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst",
+            user.RoleId, user.Role?.PermissionVersion ?? 0, permissionCodes));
     }
 
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
@@ -244,7 +260,7 @@ public class AuthenticationService : IAuthenticationService
             ?? throw new InvalidOperationException("If that account exists, a reset link has been sent."); // don't leak existence
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var expiresAt = _time.GetUtcNow().UtcDateTime.Add(PasswordResetTokenLifetime);
+        var expiresAt = _time.GetUtcNow().UtcDateTime.AddMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordResetLifetimeMinutes));
         _db.PasswordResetTokens.Add(new PasswordResetToken
         {
             UserId = user.Id,
@@ -291,7 +307,7 @@ public class AuthenticationService : IAuthenticationService
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return null;
         return new CurrentUserInfo(user.Id, user.Username, user.FullName, user.Role?.Type.ToString() ?? "Analyst",
-            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword);
+            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword, user.Role?.Name ?? string.Empty);
     }
 
     // Shared by ChangePasswordAsync and ConfirmPasswordResetAsync: enforces
@@ -301,17 +317,18 @@ public class AuthenticationService : IAuthenticationService
     // marking a reset token used) in one transaction.
     private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword)
     {
-        var failures = PasswordPolicy.Validate(newPassword);
+        var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", failures));
 
+        var historyLimit = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordHistoryLimit);
         var existingHistory = await _db.PasswordHistories
             .Where(h => h.UserId == user.Id)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
 
-        if (existingHistory.Take(PasswordHistoryLimit).Any(h => BCrypt.Net.BCrypt.Verify(newPassword, h.PasswordHash)))
-            throw new InvalidOperationException($"New password must not match any of your last {PasswordHistoryLimit} passwords.");
+        if (existingHistory.Take(historyLimit).Any(h => BCrypt.Net.BCrypt.Verify(newPassword, h.PasswordHash)))
+            throw new InvalidOperationException($"New password must not match any of your last {historyLimit} passwords.");
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;
@@ -319,8 +336,8 @@ public class AuthenticationService : IAuthenticationService
         user.MustChangePassword = false;
 
         _db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = newHash });
-        if (existingHistory.Count >= PasswordHistoryLimit)
-            _db.PasswordHistories.RemoveRange(existingHistory.Skip(PasswordHistoryLimit - 1));
+        if (existingHistory.Count >= historyLimit)
+            _db.PasswordHistories.RemoveRange(existingHistory.Skip(historyLimit - 1));
 
         // Changing or resetting the password ends every existing session:
         // whoever knew the old password must not keep a refresh token that
@@ -389,14 +406,24 @@ public class AuthenticationService : IAuthenticationService
         return active.Count;
     }
 
-    private async Task<string> IssueRefreshTokenAsync(int userId)
+    private static string? Truncate(string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        value = value.Trim();
+        return value.Length <= max ? value : value[..max];
+    }
+
+    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false)
     {
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _db.RefreshTokens.Add(new RefreshToken
         {
             UserId = userId,
             TokenHash = Hash(rawToken),
-            ExpiresAt = _time.GetUtcNow().UtcDateTime.Add(RefreshTokenLifetime)
+            ExpiresAt = _time.GetUtcNow().UtcDateTime.AddDays(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.RefreshTokenLifetimeDays)),
+            CreatedIp = Truncate(ipAddress, RefreshToken.MaxIpLength),
+            UserAgent = Truncate(userAgent, RefreshToken.MaxUserAgentLength),
+            LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null
         });
         await _db.SaveChangesAsync();
         return rawToken;

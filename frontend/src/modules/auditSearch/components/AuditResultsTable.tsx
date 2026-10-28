@@ -22,7 +22,8 @@ import { tableHeadSx } from "../../../theme";
 
 interface Props {
   items: AuditLogItem[];
-  totalCount: number;
+  // Server-paged (keyset): `items` is exactly the current page; there is no total, only "has more".
+  hasMore: boolean;
   page: number;
   rowsPerPage: number;
   onPageChange: (newPage: number) => void;
@@ -38,15 +39,13 @@ const ACTION_COLORS: Record<string, "success" | "warning" | "error" | "default">
 
 export function AuditResultsTable({
   items,
-  totalCount,
+  hasMore,
   page,
   rowsPerPage,
   onPageChange,
   onRowsPerPageChange,
   onSelectEvent
 }: Props) {
-  const paginatedItems = items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   if (items.length === 0) {
     return (
       <Paper sx={{ p: 5, textAlign: "center", border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
@@ -77,7 +76,7 @@ export function AuditResultsTable({
           </TableHead>
 
           <TableBody>
-            {paginatedItems.map((item) => {
+            {items.map((item) => {
               const friendlyEntity = ENTITY_DISPLAY_NAMES[item.entityName] ?? item.entityName;
               const hasRecordRef = item.sampleReferenceNumber || item.batchNumber || item.controlNumber || item.mediaLotNumber || item.cryovialCode;
 
@@ -107,7 +106,7 @@ export function AuditResultsTable({
                       {item.userName}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
-                      {item.userRole ?? "User"}
+                      {item.userCurrentRole ? `Current role: ${item.userCurrentRole}` : "User"}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary", fontFamily: "monospace" }}>
                       ID: #{item.userId}
@@ -122,6 +121,22 @@ export function AuditResultsTable({
                     <Typography sx={{ fontSize: 12, fontFamily: "monospace", color: "text.secondary" }}>
                       ID: {item.entityId}
                     </Typography>
+                    {item.entityIdNegative && (
+                      <Tooltip
+                        title={
+                          item.correctedByAuditLogId
+                            ? `This row recorded a temporary negative record ID. A correction was appended as audit event #${item.correctedByAuditLogId}; the original row is unchanged.`
+                            : "This row recorded a temporary negative record ID (captured before the insert). It cannot be edited; a correction row is appended by the data-integrity script."
+                        }
+                      >
+                        <Chip
+                          label={item.correctedByAuditLogId ? `Corrected (#${item.correctedByAuditLogId})` : "Needs correction"}
+                          size="small"
+                          color={item.correctedByAuditLogId ? "info" : "warning"}
+                          sx={{ fontSize: 11, fontWeight: 700, height: 18, mt: 0.5 }}
+                        />
+                      </Tooltip>
+                    )}
                   </TableCell>
 
                   {/* Action */}
@@ -215,7 +230,9 @@ export function AuditResultsTable({
       <TablePagination
         rowsPerPageOptions={[10, 25, 50, 100]}
         component="div"
-        count={totalCount}
+        count={-1}
+        labelDisplayedRows={({ from, to }) => `${from}-${to}`}
+        slotProps={{ actions: { nextButton: { disabled: !hasMore } } }}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={(_, newPage) => onPageChange(newPage)}

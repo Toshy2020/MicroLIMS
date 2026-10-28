@@ -89,7 +89,7 @@ public class DocumentApprovalService : IDocumentApprovalService
                 $"An active approval task (ID: {existingPending.Id}) is already pending for this revision.");
         }
 
-        // Authorization: Assigning user must be Owner, assigned Author, SectionHead, or Admin
+        // Authorization: Assigning user must be Owner, assigned Author, or SectionHead
         var canEdit = await _auth.CanEditDraftMetadataAsync(revision.DocumentMasterId, userId);
         if (!canEdit)
             throw new UnauthorizedAccessException("User is not authorized to create approval tasks for this document.");
@@ -102,14 +102,18 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (approver == null || !approver.IsActive)
             throw new InvalidOperationException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
 
-        // Approver role eligibility: Reviewer, SectionHead, or SystemAdministrator
+        // Approver role eligibility: Reviewer or SectionHead. A System Administrator
+        // controls the system, never approves GxP data (21 CFR Part 11 §11.10(d)(g)).
         if (approver.Role == null ||
             (approver.Role.Type != RoleType.Reviewer &&
-             approver.Role.Type != RoleType.SectionHead &&
-             approver.Role.Type != RoleType.SystemAdministrator))
+             approver.Role.Type != RoleType.SectionHead))
         {
             throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
         }
+
+        // ...and the role must hold Documents.Approve, or the approver could never act on the task.
+        if (!await _auth.CanExecuteApprovalAsync(request.ApproverUserId))
+            throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver: the role does not hold the Documents.Approve permission.");
 
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Approver, Reviewer != Approver. SystemAdministrator is NOT exempt!
@@ -370,7 +374,8 @@ public class DocumentApprovalService : IDocumentApprovalService
                 s.EntityId,
                 s.SignedAt,
                 s.Comment,
-                s.IpAddress
+                s.IpAddress,
+                s.RoleNameSnapshot
             ))
             .FirstOrDefaultAsync();
 
@@ -413,10 +418,13 @@ public class DocumentApprovalService : IDocumentApprovalService
         ValidateDecisionSegregationOfDuties(revision, userId);
 
         // Verify assignment: Must be the assigned approver or Document Controller (SectionHead)
-        if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead && actorRole != RoleType.SystemAdministrator)
+        if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead)
         {
             throw new UnauthorizedAccessException("Only the assigned approver or Document Controller may execute an approval decision.");
         }
+
+        if (!await _auth.CanExecuteApprovalAsync(userId))
+            throw new UnauthorizedAccessException("Your role does not hold the Documents.Approve permission required to execute an approval decision.");
 
         var actorUser = await _db.Users.FindAsync(userId);
         var now = _time.GetUtcNow().UtcDateTime;
@@ -611,13 +619,14 @@ public class DocumentApprovalService : IDocumentApprovalService
             recordType: nameof(ElectronicSignature),
             documentMasterId: master.Id,
             documentRevisionId: revision.Id,
-            reason: $"21 CFR Part 11 Electronic Signature ({SignatureMeaning.Approved}) applied by {signature.UserFullNameSnapshot} ({signature.RoleSnapshot})",
+            reason: $"21 CFR Part 11 Electronic Signature ({SignatureMeaning.Approved}) applied by {signature.UserFullNameSnapshot} ({signature.RoleNameSnapshot ?? signature.RoleSnapshot})",
             changes: new[]
             {
                 new AuditFieldChange("SignatureId", null, signature.Id.ToString()),
                 new AuditFieldChange("SignerUsername", null, signature.UsernameSnapshot),
                 new AuditFieldChange("SignerFullName", null, signature.UserFullNameSnapshot),
                 new AuditFieldChange("SignerRole", null, signature.RoleSnapshot),
+                new AuditFieldChange("SignerRoleName", null, signature.RoleNameSnapshot),
                 new AuditFieldChange("Meaning", null, signature.MeaningOfSignature.ToString()),
                 new AuditFieldChange("SignedAt", null, signature.SignedAt.ToString("O"))
             },
@@ -833,7 +842,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             m.SectionId,
             m.Section?.Name ?? "",
             m.DocumentOwnerUserId,
-            m.DocumentOwnerUser?.FullName ?? "",
+            DocumentDtoMapper.HolderName(m.DocumentOwnerUser),
             m.Confidentiality,
             m.Category,
             m.RecordOrigin,
@@ -851,18 +860,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             m.VoidedByUser?.FullName,
             m.VoidReason,
             m.Keywords.Select(k => k.Keyword).ToList(),
-            m.Assignments.Where(a => a.IsActive).Select(a => new DocumentMasterAssignmentDto(
-                a.Id,
-                a.DocumentMasterId,
-                a.UserId,
-                a.User?.Username ?? "",
-                a.User?.FullName ?? "",
-                a.AssignmentRole,
-                a.IsActive,
-                a.AssignedAt,
-                a.AssignedByUserId,
-                a.AssignedByUser?.FullName ?? ""
-            )).ToList(),
+            m.Assignments.Where(a => a.IsActive).Select(DocumentDtoMapper.MapAssignment).ToList(),
             m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(DocumentDtoMapper.MapRevision).ToList(),
             sectionIds,
             sectionNames

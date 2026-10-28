@@ -596,6 +596,8 @@ public class DiscussionService
 
             // Exclude the person who edited the post
             participantUserIds.Remove(editorUserId);
+            // Inactive users are never notified.
+            participantUserIds = await ActiveUserIdsAsync(participantUserIds);
 
             foreach (var userId in participantUserIds)
             {
@@ -624,6 +626,9 @@ public class DiscussionService
         }
     }
 
+    private Task<List<int>> ActiveUserIdsAsync(List<int> ids) =>
+        _db.Users.Where(u => ids.Contains(u.Id) && u.IsActive).Select(u => u.Id).ToListAsync();
+
     private async Task NotifyCommentAddedAsync(DiscussionPost post, DiscussionComment comment, string commenterName)
     {
         try
@@ -639,6 +644,9 @@ public class DiscussionService
             {
                 targetUserIds.Add(post.AuthorUserId);
             }
+
+            // Inactive users are never notified.
+            targetUserIds = await ActiveUserIdsAsync(targetUserIds);
 
             foreach (var userId in targetUserIds)
             {

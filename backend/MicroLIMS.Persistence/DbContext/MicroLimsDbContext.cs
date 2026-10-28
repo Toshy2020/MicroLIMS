@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Persistence.Helpers;
+using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text.Json;
 
 namespace MicroLIMS.Persistence.DbContext;
@@ -15,7 +19,14 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // Set by AuditMiddleware for an instrument agent (AgentKey scheme), which
     // has no user id. Only used when CurrentUserId is null: a user always wins.
     public string? CurrentAgentCode { get; set; }
+
+    // Set by a hosted worker that writes outside any request (e.g. the
+    // calibration-overdue job): the audit trail records the System actor and
+    // this process name instead of "user 0". Only used when there is no user
+    // and no agent code.
+    public string? CurrentSystemProcessName { get; set; }
     public uint? ExpectedVersion { get; set; }
+    public string? CurrentReason { get; set; }
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
 
@@ -114,6 +125,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<WorkloadWeightHistory> WorkloadWeightHistories => Set<WorkloadWeightHistory>();
     public DbSet<WorkflowProfileVersion> WorkflowProfileVersions => Set<WorkflowProfileVersion>();
     public DbSet<KpiSetting> KpiSettings => Set<KpiSetting>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<SystemSettingVersion> SystemSettingVersions => Set<SystemSettingVersion>();
+    public DbSet<AccessReview> AccessReviews => Set<AccessReview>();
+    public DbSet<AccessReviewFinding> AccessReviewFindings => Set<AccessReviewFinding>();
     public DbSet<AnalystAvailability> AnalystAvailabilities => Set<AnalystAvailability>();
 
     // Media Configuration
@@ -233,6 +248,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // record. Excluded from CaptureAuditEntries below and prunable.
     public DbSet<Incident> Incidents => Set<Incident>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
+    public DbSet<BackupRun> BackupRuns => Set<BackupRun>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -281,6 +298,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         // IsActive = false is saved as false rather than replaced by the
         // column default.
         modelBuilder.Entity<Department>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+
+        // Existing roles start at revision 1; the application increments it.
+        modelBuilder.Entity<Role>().Property(e => e.PermissionVersion).HasDefaultValue(1).ValueGeneratedNever();
         modelBuilder.Entity<Room>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
 
         // An LAF's parent Room. Restrict: a Room with LAFs cannot be removed
@@ -495,19 +515,34 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         string? PreviousValue,
         AuditLog? Completed);
 
+    // Entity types the automatic capture skips. Public so the redaction
+    // architecture test scans exactly the entities that DO reach AuditLogs.
+    public static readonly IReadOnlySet<Type> AuditCaptureExcludedTypes = new HashSet<Type>
+    {
+        typeof(AuditLog),
+        typeof(AuditEventChange), // append-only; excluded to prevent recursive audit
+        typeof(MaterialDocumentAccessLog), // append-only; excluded to prevent recursive audit
+        typeof(EquipmentDocumentAccessLog), // append-only; excluded to prevent recursive audit
+        typeof(Incident), // operational error monitoring; not a GxP record
+        typeof(ErrorLog), // operational error monitoring; not a GxP record
+        typeof(BackgroundJobRun), // operational run log; a row per pass would be noise. Manual triggers are audited as security events
+        typeof(BackupRun), // operational backup status, written by backup.sh; not a GxP record
+        typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
+        typeof(NotificationLog), // derived reminders and read state; not a GxP record
+        typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
+        typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit
+        typeof(SystemSetting), // audited explicitly (Configuration category, with reason and signature) by SystemSettingsService
+        typeof(SystemSettingVersion), // append-only by DB trigger; is itself the change history
+        typeof(AccessReview), // immutable snapshot (DB trigger); audited explicitly by AccessReviewService, which would otherwise copy the whole report into AuditLogs
+        typeof(AccessReviewFinding) // immutable once signed (DB trigger); audited explicitly by AccessReviewService
+    };
+
     private List<PendingAuditEntry> CapturePendingAuditEntries()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.Entity is not AuditLog &&
-                        e.Entity is not AuditEventChange && // append-only; excluded to prevent recursive audit
-                        e.Entity is not MaterialDocumentAccessLog && // append-only; excluded to prevent recursive audit
-                        e.Entity is not EquipmentDocumentAccessLog && // append-only; excluded to prevent recursive audit
-                        e.Entity is not Incident && // operational error monitoring; not a GxP record
-                        e.Entity is not ErrorLog && // operational error monitoring; not a GxP record
-                        e.Entity is not RefreshToken && // session state; recorded in the Security Audit Trail instead
-                        e.Entity is not NotificationLog && // derived reminders and read state; not a GxP record
-                        e.Entity is not InstrumentIngestPayload && // append-only by DB trigger; hashes carried by the explicit ingest audit event
-                        e.Entity is not SecurityAuditEvent && // security evidence, not a GxP record; also prevents recursive audit
+            // IsInstanceOfType, not an exact-type lookup: a subclass of an
+            // excluded type stays excluded, as the original `is not` chain did.
+            .Where(e => !AuditCaptureExcludedTypes.Any(t => t.IsInstanceOfType(e.Entity)) &&
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 
@@ -541,8 +576,19 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         }
     }
 
+    // A credential hash (marked [AuditRedacted]) must never reach the
+    // immutable audit table: the change is still recorded, the value is not.
+    private static readonly ConcurrentDictionary<PropertyInfo, bool> RedactedProperties = new();
+
+    private static bool IsAuditRedacted(IProperty property) =>
+        // Shadow properties have no CLR member, so nothing can mark them.
+        property.PropertyInfo is { } member &&
+        RedactedProperties.GetOrAdd(member, m => m.IsDefined(typeof(AuditRedactedAttribute), inherit: true));
+
     private static string SerializeValues(Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues values) =>
-        JsonSerializer.Serialize(values.Properties.ToDictionary(p => p.Name, p => values[p]));
+        JsonSerializer.Serialize(values.Properties.ToDictionary(
+            p => p.Name,
+            p => IsAuditRedacted(p) ? AuditRedactedAttribute.RedactedValue : values[p]));
 
     private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
     {
@@ -550,8 +596,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
 
         // An instrument agent has no user id: record it as the System actor
         // with the agent's code, and no user. If a user id is also present the
-        // user wins and the agent code is ignored.
+        // user wins and the agent code is ignored. A background worker (a
+        // process name and neither of the above) is recorded the same way.
         var byAgent = CurrentUserId is null && !string.IsNullOrEmpty(CurrentAgentCode);
+        var byProcess = CurrentUserId is null && !byAgent && !string.IsNullOrEmpty(CurrentSystemProcessName);
+        var bySystem = byAgent || byProcess;
 
         return new AuditLog
         {
@@ -560,10 +609,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             Action = action,
             PreviousValue = previousValue,
             NewValue = newValue,
-            UserId = byAgent ? null : CurrentUserId ?? 0,
-            ActorType = byAgent ? Domain.Enums.ActorType.System : null,
-            SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : null,
+            UserId = bySystem ? null : CurrentUserId ?? 0,
+            ActorType = bySystem ? Domain.Enums.ActorType.System : null,
+            SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = DateTime.UtcNow,
+            Reason = CurrentReason,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
             SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),

@@ -30,11 +30,13 @@ export async function getUserMemberships(userId: number): Promise<UserMembership
   return (await apiClient.get(`/org/users/${userId}/memberships`)).data.data;
 }
 
+// A membership change decides what laboratory data the user can see and act on, so the server requires the reason.
 export async function replaceUserMemberships(
   userId: number,
-  memberships: UserMembership[]
+  memberships: UserMembership[],
+  reason: string
 ): Promise<UserMembership[]> {
-  return (await apiClient.put(`/org/users/${userId}/memberships`, { memberships })).data.data;
+  return (await apiClient.put(`/org/users/${userId}/memberships`, { memberships, reason })).data.data;
 }
 
 export const laboratorySectionService = {

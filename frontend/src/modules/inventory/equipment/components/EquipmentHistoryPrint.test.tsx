@@ -94,4 +94,25 @@ describe("EquipmentHistoryPrint", () => {
     expect(screen.getAllByText(/Baseline/i).length).toBeGreaterThan(0);
     expect(screen.getByText("EQ-001")).toBeTruthy();
   });
+
+  it("shows an automatic status change as System (automatic), not a user", () => {
+    const automatic: InstrumentHistoryResponse = {
+      ...mockHistory,
+      statusChanges: [
+        {
+          id: 2,
+          previousStatus: "InService",
+          newStatus: "OutOfService",
+          comment: "Calibration overdue since 2026-03-10 (automatic)",
+          changedAt: "2026-04-15T00:05:00Z",
+          changedByUserId: null,
+          changedByName: null
+        }
+      ]
+    };
+    render(<EquipmentHistoryPrint history={automatic} />);
+
+    expect(screen.getByText("System (automatic)")).toBeTruthy();
+    expect(screen.queryByText(/User #/)).toBeNull();
+  });
 });

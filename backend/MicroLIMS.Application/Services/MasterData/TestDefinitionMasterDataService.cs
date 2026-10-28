@@ -44,7 +44,7 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
 
         var userId = currentUserId;
-        var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId, access: SectionAccess.Configure);
 
         string? methodAbbr = string.IsNullOrWhiteSpace(request.MethodAbbreviation)
             ? null
@@ -389,11 +389,11 @@ public class TestDefinitionMasterDataService
 
         // Only a member of the test's section may change it, and only into a
         // section they belong to.
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
         if (scope is not null && !scope.Contains(entity.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
-            entity.SectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId);
+            entity.SectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, access: SectionAccess.Configure);
 
         var effectiveRequiresSst = request.RequiresSystemSuitability ?? entity.RequiresSystemSuitability;
         var effectiveEquationType = request.EquationType ?? entity.EquationType;

@@ -71,9 +71,13 @@ export function MainLayout() {
       sx={{
         // dvh where supported: on mobile browsers 100vh includes the area
         // under the address bar, which cut off the bottom of every page.
-        height: "100vh",
-        maxHeight: "100vh",
-        "@supports (height: 100dvh)": { height: "100dvh", maxHeight: "100dvh" },
+        // Less the global status banner (announcement / maintenance notice), when shown.
+        height: "calc(100vh - var(--system-banner-height, 0px))",
+        maxHeight: "calc(100vh - var(--system-banner-height, 0px))",
+        "@supports (height: 100dvh)": {
+          height: "calc(100dvh - var(--system-banner-height, 0px))",
+          maxHeight: "calc(100dvh - var(--system-banner-height, 0px))"
+        },
         bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",

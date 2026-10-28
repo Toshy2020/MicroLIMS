@@ -35,7 +35,7 @@ public class MaterialMasterService
 
     public async Task<List<MaterialMasterEntryResponse>> GetAllAsync(int currentUserId, MaterialMasterCategory? category = null, bool activeOnly = false, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         var query = _db.MaterialMasterEntries.AsNoTracking().Include(e => e.Section).AsQueryable();
 
         if (scope != null)
@@ -60,7 +60,7 @@ public class MaterialMasterService
     {
         Validate(r);
 
-        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
         var normalizedCode = r.Code.Trim().ToUpper();
 
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.SectionId == sectionId && e.Code == normalizedCode, ct))
@@ -144,7 +144,7 @@ public class MaterialMasterService
         var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == id, ct)
             ?? throw new NotFoundException($"Material master entry {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(entry.SectionId))
             throw new NotFoundException($"Material master entry {id} not found.");
 

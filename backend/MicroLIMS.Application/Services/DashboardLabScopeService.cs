@@ -6,7 +6,7 @@ using MicroLIMS.Shared.Constants;
 namespace MicroLIMS.Application.Services;
 
 // The section scope one dashboard view may draw from.
-//   SectionIds: null = unrestricted (System Administrator, no lab chosen).
+//   SectionIds: null = unrestricted (a role holding Sections.ViewAll, no lab chosen).
 //   LabCode:    the laboratory the view is for, or null for the legacy
 //               all-of-my-labs view.
 public record DashboardLabScope(IReadOnlyList<int>? SectionIds, string? LabCode)
@@ -16,7 +16,7 @@ public record DashboardLabScope(IReadOnlyList<int>? SectionIds, string? LabCode)
 
 // Narrows a user's section scope to one laboratory, so a Microbiology
 // dashboard never counts Physicochemical work and vice versa. Users who
-// belong to both laboratories (and administrators) choose the laboratory per
+// belong to both laboratories (and roles holding Sections.ViewAll) choose the laboratory per
 // view; a user may only ask for a laboratory they belong to.
 public class DashboardLabScopeService
 {
@@ -31,7 +31,7 @@ public class DashboardLabScopeService
 
     public async Task<DashboardLabScope> ResolveAsync(int userId, string? labCode, CancellationToken ct = default)
     {
-        var accessible = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var accessible = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (string.IsNullOrWhiteSpace(labCode))
         {
             return new DashboardLabScope(accessible, null);

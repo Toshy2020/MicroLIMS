@@ -61,7 +61,7 @@ public class IcpMethodService
 
     public async Task<List<IcpMethodListItem>> GetAllAsync(int currentUserId, bool activeOnly = false, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         var query = _db.IcpMethods.Include(m => m.Section).Include(m => m.Elements).AsNoTracking().AsQueryable();
 
         if (scope != null)
@@ -79,7 +79,7 @@ public class IcpMethodService
         var method = await QueryWithIncludes().AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException($"ICP method {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
             throw new NotFoundException($"ICP method {id} not found.");
 
@@ -88,7 +88,7 @@ public class IcpMethodService
 
     public async Task<IcpMethodResponse> CreateAsync(SaveIcpMethodRequest r, int currentUserId, CancellationToken ct = default)
     {
-        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
 
         var (abbr, levels) = await ValidateAsync(r, sectionId, null, null, ct);
 
@@ -229,7 +229,7 @@ public class IcpMethodService
         var method = await _db.IcpMethods.FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException($"ICP method {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
             throw new NotFoundException($"ICP method {id} not found.");
 

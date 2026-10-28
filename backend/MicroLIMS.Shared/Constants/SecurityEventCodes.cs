@@ -22,6 +22,8 @@ public static class SecurityEventCodes
     public const string RefreshRejectedAccountBlocked = "AUTH_REFRESH_REJECTED_ACCOUNT_BLOCKED";
     public const string Logout = "AUTH_LOGOUT";
     public const string SessionRevoked = "AUTH_SESSION_REVOKED";
+    // Written by SessionTokenCleanupWorker: a count of dead tokens deleted in one pass.
+    public const string SessionTokensPurged = "AUTH_SESSION_TOKENS_PURGED";
 
     // ---- Credentials ----
     public const string PasswordChanged = "AUTH_PASSWORD_CHANGED";
@@ -36,6 +38,17 @@ public static class SecurityEventCodes
 
     // ---- Authorization state ----
     public const string RoleChanged = "AUTH_ROLE_CHANGED";
+
+    // ---- Administration ----
+    // An administrator ran a housekeeping background job by hand; carries the stated reason.
+    public const string BackgroundJobManuallyTriggered = "ADMIN_BACKGROUND_JOB_TRIGGERED";
+    // Integrations tab: an administrator sent a test alert / test email or ran the storage probe.
+    public const string CriticalAlertTestSent = "ADMIN_CRITICAL_ALERT_TEST_SENT";
+    public const string SmtpTestEmailSent = "ADMIN_SMTP_TEST_SENT";
+    public const string StorageProbeRun = "ADMIN_STORAGE_PROBE_RUN";
+
+    // Maintenance mode switched on or off; carries the reason and the new state.
+    public const string MaintenanceModeChanged = "ADMIN_MAINTENANCE_MODE_CHANGED";
 
     // ---- Instrument agents ----
     // A presented agent key was malformed, unknown, revoked, or its equipment is gone.

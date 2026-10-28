@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { MAINTENANCE_HEADER, notifyMaintenanceRefusal } from "./maintenanceSignal";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 // Single axios instance every module service goes through. No business
@@ -65,6 +66,7 @@ const AUTH_STORAGE_KEYS = [
   "microlims_refresh_token",
   "microlims_username",
   "microlims_role",
+  "microlims_role_name",
   "microlims_permissions",
   "microlims_full_name",
   "microlims_user_id",
@@ -88,7 +90,7 @@ function refreshAccessToken(): Promise<string | null> {
     refreshPromise = axios
       .post(`${baseURL}/auth/refresh`, { refreshToken: storedRefreshToken })
       .then((res) => {
-        const { token, refreshToken } = res.data.data as { token: string; refreshToken: string };
+        const { token, refreshToken, roleName } = res.data.data as { token: string; refreshToken: string; roleName?: string | null };
         localStorage.setItem("microlims_token", token);
         localStorage.setItem("microlims_refresh_token", refreshToken);
         // The new token carries the user's current role and permissions -
@@ -97,6 +99,9 @@ function refreshAccessToken(): Promise<string | null> {
         const { role, permissions } = readTokenClaims(token);
         if (role) localStorage.setItem("microlims_role", role);
         localStorage.setItem("microlims_permissions", JSON.stringify(permissions));
+        // Renaming a role does not invalidate tokens, so this is how an open
+        // session learns the new name: on its next refresh.
+        if (roleName) localStorage.setItem("microlims_role_name", roleName);
         window.dispatchEvent(new Event(TOKEN_REFRESHED_EVENT));
         return token;
       })
@@ -159,11 +164,24 @@ function humanizeError(error: AxiosError): void {
   error.message = friendly;
 }
 
+// While maintenance mode is on the API refuses writes with 503 + X-Maintenance-Mode.
+// Surface the server's own message (screens read error.message / data.message)
+// and let the status provider show it, rather than the generic "server error" text.
+function handleMaintenanceRefusal(error: AxiosError): boolean {
+  if (error.response?.status !== 503 || error.response.headers?.[MAINTENANCE_HEADER] !== "on") return false;
+  const body = error.response.data as { message?: string } | undefined;
+  const message = body?.message || "MicroLIMS is in maintenance mode. Your change was not saved.";
+  error.message = message;
+  notifyMaintenanceRefusal(message);
+  return true;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     rememberCorrelationId(error);
     await decodeBlobErrorBody(error);
+    if (handleMaintenanceRefusal(error)) return Promise.reject(error);
 
     const config = error.config as RetryableRequestConfig | undefined;
     const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");

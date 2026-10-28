@@ -65,15 +65,18 @@ public class EquipmentWorkService
     private readonly IMicroLimsDbContext _db;
     private readonly ILabClock _clock;
     private readonly IElectronicSignatureService _signatures;
+    private readonly IDatabaseSequenceHelper _sequences;
 
     public EquipmentWorkService(
         IMicroLimsDbContext db,
         ILabClock clock,
-        IElectronicSignatureService signatures)
+        IElectronicSignatureService signatures,
+        IDatabaseSequenceHelper sequences)
     {
         _db = db;
         _clock = clock;
         _signatures = signatures;
+        _sequences = sequences;
     }
 
     public async Task<EquipmentTaskResponse> RecordCalibrationAsync(
@@ -202,7 +205,7 @@ public class EquipmentWorkService
                 Reason = "Calibration recorded",
                 PerformedByUserId = userId,
                 PerformedAt = now,
-                ElectronicSignatureId = signature.Id
+                ElectronicSignature = signature
             };
             _db.EquipmentTaskEvents.Add(completedEvent);
 
@@ -262,7 +265,7 @@ public class EquipmentWorkService
                             Reason = $"Re-projected from calibration on {r.CalibratedOn:yyyy-MM-dd}",
                             PerformedByUserId = userId,
                             PerformedAt = now,
-                            ElectronicSignatureId = signature.Id
+                            ElectronicSignature = signature
                         });
                     }
                 }
@@ -369,12 +372,16 @@ public class EquipmentWorkService
 
         return await UnitOfWork.RunAsync(_db, async () =>
         {
+            // The entry is saved together with its signature, which must
+            // already carry the entry's id (a saved signature can never be
+            // updated), so the id is taken from the sequence first.
+            var entryId = await _sequences.ReserveIdAsync<MaintenanceLogEntry>();
             var signature = await _signatures.SignAsync(
                 userId,
                 r.Password,
                 SignatureMeaning.MaintenanceEntryRecorded,
                 nameof(MaintenanceLogEntry),
-                0,
+                entryId,
                 r.WorkDone.Trim(),
                 ip);
 
@@ -382,6 +389,7 @@ public class EquipmentWorkService
 
             var entry = new MaintenanceLogEntry
             {
+                Id = entryId,
                 EquipmentInventoryId = equipmentId,
                 EntryType = r.EntryType,
                 PerformedOn = r.PerformedOn,
@@ -389,14 +397,12 @@ public class EquipmentWorkService
                 WorkDone = r.WorkDone.Trim(),
                 PartsReplaced = string.IsNullOrWhiteSpace(r.PartsReplaced) ? null : r.PartsReplaced.Trim(),
                 Findings = string.IsNullOrWhiteSpace(r.Findings) ? null : r.Findings.Trim(),
-                ElectronicSignatureId = signature.Id,
+                ElectronicSignature = signature,
                 RecordedAt = now,
                 CalendarEventId = r.CalendarEventId
             };
             _db.MaintenanceLogEntries.Add(entry);
             await _db.SaveChangesAsync();
-
-            signature.EntityId = entry.Id;
 
             if (r.EntryType == MaintenanceEntryType.PreventiveMaintenance)
             {
@@ -624,7 +630,6 @@ public class EquipmentWorkService
 
         if (overdue.Count == 0) return 0;
 
-        var systemUserId = await ResolveSystemUserIdAsync();
         var now = _clock.UtcNow.UtcDateTime;
 
         await UnitOfWork.RunAsync(_db, async () =>
@@ -636,7 +641,8 @@ public class EquipmentWorkService
                 inst.Status = EquipmentOperationalStatus.OutOfService;
                 inst.AutoOutOfServiceSince = today;
                 inst.LastModifiedAt = now;
-                inst.LastModifiedByUserId = systemUserId;
+                // Changed by the system, not a user: no user id is recorded.
+                inst.LastModifiedByUserId = null;
 
                 _db.EquipmentStatusHistories.Add(new EquipmentStatusHistory
                 {
@@ -644,7 +650,7 @@ public class EquipmentWorkService
                     PreviousStatus = prevStatus,
                     NewStatus = EquipmentOperationalStatus.OutOfService,
                     Comment = $"Calibration overdue since {due:yyyy-MM-dd} (automatic)",
-                    ChangedByUserId = systemUserId,
+                    ChangedByUserId = null,
                     ChangedAt = now
                 });
             }
@@ -653,19 +659,5 @@ public class EquipmentWorkService
         });
 
         return overdue.Count;
-    }
-
-    private async Task<int> ResolveSystemUserIdAsync()
-    {
-        var adminId = await _db.Users
-            .Where(u => (u.Role != null && u.Role.Type == RoleType.SystemAdministrator) || u.Username == "admin" || u.Username == "system")
-            .OrderBy(u => u.Id)
-            .Select(u => u.Id)
-            .FirstOrDefaultAsync();
-
-        if (adminId != 0) return adminId;
-
-        var fallbackId = await _db.Users.OrderBy(u => u.Id).Select(u => u.Id).FirstOrDefaultAsync();
-        return fallbackId != 0 ? fallbackId : 1;
     }
 }

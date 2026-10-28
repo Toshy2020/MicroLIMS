@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Attributes;
+
 namespace MicroLIMS.Domain.Entities;
 
 // One row per password a user has ever set, so ChangePasswordAsync /
@@ -7,6 +9,7 @@ public class PasswordHistory
     public int Id { get; set; }
     public int UserId { get; set; }
     public User? User { get; set; }
+    [AuditRedacted]
     public string PasswordHash { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

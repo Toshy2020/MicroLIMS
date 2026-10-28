@@ -72,3 +72,9 @@ workbook_copy.xlsx
 /.claude/scripts/
 /.ua/
 /scripts/demo-video/
+
+# Database backups must never be committed: they hold password hashes and
+# GxP records. Keep them on controlled backup storage instead.
+/backups/
+*.dump
+*.backup

@@ -26,8 +26,8 @@ namespace MicroLIMS.Application.Workflows;
 // its own class under Workflows/TestWorkflow: TestStepNavigator,
 // IncubationStepRecorder, PathogenConfirmationRecorder,
 // SingleResultRecorder, DissolutionRecorder,
-// DisintegrationRecorder, WeightVariationRecorder
-// and HplcMethodAssayRecorder. They all derive from TestWorkflowSupport,
+// DisintegrationRecorder, WeightVariationRecorder,
+// HplcMethodAssayRecorder, TitrationRecorder and UvRecorder. They all derive from TestWorkflowSupport,
 // which holds what they share.
 public class TestWorkflowEngine : ITestWorkflowEngine
 {
@@ -41,6 +41,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly HplcMethodAssayRecorder _hplcMethodAssayRecorder;
     private readonly IcpMethodAssayRecorder _icpMethodAssayRecorder;
     private readonly TitrationRecorder _titrationRecorder;
+    private readonly UvRecorder _uvRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
 
     public TestWorkflowEngine(
@@ -67,6 +68,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _hplcMethodAssayRecorder = new HplcMethodAssayRecorder(deps);
         _icpMethodAssayRecorder = new IcpMethodAssayRecorder(deps);
         _titrationRecorder = new TitrationRecorder(deps);
+        _uvRecorder = new UvRecorder(deps);
         _pathogenConfirmationRecorder = new PathogenConfirmationRecorder(deps);
     }
 
@@ -136,6 +138,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> RecordTitrationResultAsync(
         int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null) =>
         _titrationRecorder.RecordTitrationResultAsync(testOrderId, payload, userId, ipAddress);
+
+    public Task<TestWorkflowResult> RecordUvResultAsync(
+        int testOrderId, UvPayload payload, int userId, string? ipAddress = null) =>
+        _uvRecorder.RecordUvResultAsync(testOrderId, payload, userId, ipAddress);
 
     public Task<TestWorkflowResult> RecordGravimetricResultAsync(
         int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null) =>

@@ -579,6 +579,55 @@ public class SpecificationService
                 throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for titration specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
             }
         }
+        else if (testDef?.WorkflowType == WorkflowType.UvSpectrophotometry)
+        {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
+            if (spec.IcpMethodElementId.HasValue)
+                throw new InvalidOperationException("Method element is only allowed for ICP method assay specifications.");
+            if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                throw new InvalidOperationException("Label claim is not used for UV specifications.");
+
+            if (testDef.UvCalculationMode == UvCalculationMode.AbsorbanceLimit)
+            {
+                // The limit is a reference absorbance typed at recording time, so the row carries text only.
+                if (spec.LimitType != LimitType.Qualitative)
+                    throw new InvalidOperationException("An absorbance limit test takes a Qualitative specification.");
+                if (spec.ResultBasis.HasValue)
+                    throw new InvalidOperationException("Result basis is not used for an absorbance limit test.");
+            }
+            else
+            {
+                if (spec.LimitType is not (LimitType.Range or LimitType.NotMoreThan or LimitType.NotLessThan))
+                    throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for this UV test. Must be Range, NotMoreThan or NotLessThan.");
+                if (spec.ResultBasis is not (null or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis))
+                    throw new InvalidOperationException("Result basis must be % as is, % dried basis, % anhydrous basis or left empty for a UV test.");
+
+                var neededRole = spec.ResultBasis switch
+                {
+                    ResultBasis.PercentDriedBasis => MoistureRole.LossOnDrying,
+                    ResultBasis.PercentAnhydrousBasis => MoistureRole.Water,
+                    _ => MoistureRole.None
+                };
+                if (neededRole != MoistureRole.None)
+                {
+                    var hasMoistureTest = await _db.SampleTests.AnyAsync(
+                        st => st.ItemId == spec.ItemId && st.TestCode != spec.TestCode
+                              && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),
+                        cancellationToken);
+                    if (!hasMoistureTest)
+                        throw new InvalidOperationException(neededRole == MoistureRole.LossOnDrying
+                            ? "Assign a loss on drying test to this item before using a dried basis."
+                            : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+
+                    var otherBasis = spec.ResultBasis == ResultBasis.PercentDriedBasis ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
+                    if (await _db.Specifications.AnyAsync(
+                            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ResultBasis == otherBasis,
+                            cancellationToken))
+                        throw new InvalidOperationException("One UV test cannot report on both dried and anhydrous basis.");
+                }
+            }
+        }
         else if (testDef?.EquationType == EquationType.CalibrationCurve || testDef?.WorkflowType == WorkflowType.ElementalAssay)
         {
             throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");

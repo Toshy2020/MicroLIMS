@@ -260,6 +260,24 @@ public class TestWorkflowController : ControllerBase
         });
     }
 
+    [HttpPost("{testOrderId}/record-uv-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordUvResult(int testOrderId, RecordUvResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new UvPayload(
+                request.AnalysedAt, request.EquipmentId, request.StandardMaterialId, request.StandardWeightG, request.StandardAbsorbance,
+                request.Parameters?.Select(p => new UvParameterInput(
+                    p.SpecificationId, p.WavelengthNm, p.ReferenceAbsorbance,
+                    p.Replicates?.Select(r => new UvReplicateInput(r.WeightG, r.Absorbance)).ToList() ?? new List<UvReplicateInput>())).ToList()
+                    ?? new List<UvParameterInput>(),
+                request.Password, request.Comment);
+            return _engine.RecordUvResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
     [HttpPost("{testOrderId}/record-qualitative-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
     public async Task<IActionResult> RecordQualitativeResult(int testOrderId, RecordQualitativeResultRequest request)

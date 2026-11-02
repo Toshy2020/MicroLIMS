@@ -41,7 +41,6 @@ public class ForcePasswordResetMigrationPostgresTests
                 ({inactiveId}, 't4', {now.AddDays(5)}, {alreadyRevokedAt}, {now})");
             Assert.False(await db.Users.AnyAsync(u => u.MustChangePassword));
 
-            var auditBefore = await db.AuditLogs.CountAsync();
             var hashesBefore = await db.Users.AsNoTracking().OrderBy(u => u.Id).Select(u => u.PasswordHash).ToListAsync();
 
             await db.Database.MigrateAsync(); // applies ForcePasswordResetAfterAuditHashExposure
@@ -56,7 +55,8 @@ public class ForcePasswordResetMigrationPostgresTests
             Assert.True(Math.Abs((tokens.Single(t => t.TokenHash == "t4").RevokedAt!.Value - alreadyRevokedAt).TotalSeconds) < 1);
 
             var audit = await db.AuditLogs.AsNoTracking().SingleAsync(a => a.SystemProcessName == ProcessName);
-            Assert.Equal(auditBefore + 1, await db.AuditLogs.CountAsync());
+            // Later migrations (all applied here) write their own system audit rows; only this one's is counted.
+            Assert.Equal(1, await db.AuditLogs.CountAsync(a => a.SystemProcessName == ProcessName));
             Assert.Equal(ActorType.System, audit.ActorType);
             Assert.Equal(AuditActionCategory.Security, audit.ActionCategory);
             Assert.Equal("FORCED_PASSWORD_RESET", audit.Action);

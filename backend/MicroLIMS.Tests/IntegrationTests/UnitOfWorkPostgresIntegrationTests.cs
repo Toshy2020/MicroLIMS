@@ -219,7 +219,7 @@ public class UnitOfWorkPostgresIntegrationTests
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 120 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 120 });
         var media = new Media { MaterialId = material.Id, LotNumber = UniqueCode("TSA/"), IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(media);
         var incubator = new Equipment { Name = "Incubator", Code = UniqueCode("INC-"), Type = EquipmentType.Incubator, SetPointTemperature = 32, SectionId = sectionId };

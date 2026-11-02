@@ -1456,6 +1456,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("PreparedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ReferenceOrganismId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("StorageCondition")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1480,6 +1483,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("MaterialId");
 
                     b.HasIndex("OrganismId");
+
+                    b.HasIndex("ReferenceOrganismId");
 
                     b.HasIndex("StorageEquipmentId");
 
@@ -1589,7 +1594,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("MaterialId")
+                    b.Property<int?>("MediaProductId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -1607,7 +1612,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MaterialId");
+                    b.HasIndex("MediaProductId");
 
                     b.ToTable("DiluentTypes");
                 });
@@ -6233,6 +6238,15 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ApprovalStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("AtccNumber")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -6310,8 +6324,19 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime>("ReceivingDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ReferenceOrganismId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SectionId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("StockId")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StorageCondition")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("Unit")
                         .HasColumnType("integer");
@@ -6338,13 +6363,112 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("OrganismId");
 
+                    b.HasIndex("ReferenceOrganismId");
+
                     b.HasIndex("SectionId");
+
+                    b.HasIndex(new[] { "StockId" }, "IX_Materials_StockId")
+                        .IsUnique()
+                        .HasFilter("\"StockId\" IS NOT NULL");
 
                     b.HasIndex(new[] { "Code" }, "IX_Materials_WorkingStandardCode")
                         .IsUnique()
                         .HasFilter("\"MaterialType\" = 12");
 
                     b.ToTable("Materials");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MaterialCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("ApprovalBeforeUse")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CoaRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("CodePrefix")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DefaultStorageCondition")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("DefaultUnit")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ExpiryRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("LabelRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastModifiedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("QuantityTracked")
+                        .HasColumnType("boolean");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodePrefix")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("MaterialCategories");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MaterialCategorySection", b =>
+                {
+                    b.Property<int>("MaterialCategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("MaterialCategoryId", "SectionId");
+
+                    b.HasIndex("SectionId");
+
+                    b.ToTable("MaterialCategorySections");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MaterialDocument", b =>
@@ -6528,6 +6652,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("LastModifiedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("MaterialCategoryId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -6562,8 +6689,12 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SectionId", "Code")
+                    b.HasIndex("Code")
                         .IsUnique();
+
+                    b.HasIndex("MaterialCategoryId");
+
+                    b.HasIndex("SectionId");
 
                     b.ToTable("MaterialMasterEntries");
                 });
@@ -6933,6 +7064,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -7999,6 +8133,69 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ProductionStages");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ReferenceOrganism", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CultureCollection")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastModifiedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrganismId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OwnerSectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StrainNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("OrganismId");
+
+                    b.HasIndex("OwnerSectionId");
+
+                    b.HasIndex("CultureCollection", "StrainNumber")
+                        .IsUnique()
+                        .HasFilter("\"StrainNumber\" IS NOT NULL");
+
+                    b.ToTable("ReferenceOrganisms");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RefreshToken", b =>
@@ -10652,10 +10849,13 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("IsRequired")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("MaterialId")
+                    b.Property<int?>("MaterialId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("MediaIncubationConditionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MediaProductId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("TempMax")
@@ -10679,7 +10879,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("MediaIncubationConditionId");
 
-                    b.HasIndex("TestWorkflowStepId", "MaterialId")
+                    b.HasIndex("MediaProductId");
+
+                    b.HasIndex("TestWorkflowStepId", "MediaProductId")
                         .IsUnique();
 
                     b.ToTable("TestWorkflowStepMedias");
@@ -11952,6 +12154,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ReferenceOrganism", "ReferenceOrganism")
+                        .WithMany()
+                        .HasForeignKey("ReferenceOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.EquipmentInventory", "StorageEquipment")
                         .WithMany()
                         .HasForeignKey("StorageEquipmentId")
@@ -11961,16 +12168,18 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Navigation("Organism");
 
+                    b.Navigation("ReferenceOrganism");
+
                     b.Navigation("StorageEquipment");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DiluentType", b =>
                 {
-                    b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
+                    b.HasOne("MicroLIMS.Domain.Entities.MediaProduct", "MediaProduct")
                         .WithMany()
-                        .HasForeignKey("MaterialId");
+                        .HasForeignKey("MediaProductId");
 
-                    b.Navigation("Material");
+                    b.Navigation("MediaProduct");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DirectMessage", b =>
@@ -13528,6 +13737,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("OrganismId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ReferenceOrganism", "ReferenceOrganism")
+                        .WithMany()
+                        .HasForeignKey("ReferenceOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
@@ -13539,6 +13753,27 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("MediaProduct");
 
                     b.Navigation("Organism");
+
+                    b.Navigation("ReferenceOrganism");
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MaterialCategorySection", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.MaterialCategory", "MaterialCategory")
+                        .WithMany("Sections")
+                        .HasForeignKey("MaterialCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MaterialCategory");
 
                     b.Navigation("Section");
                 });
@@ -13570,11 +13805,18 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MaterialMasterEntry", b =>
                 {
+                    b.HasOne("MicroLIMS.Domain.Entities.MaterialCategory", "MaterialCategory")
+                        .WithMany()
+                        .HasForeignKey("MaterialCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("MaterialCategory");
 
                     b.Navigation("Section");
                 });
@@ -13985,6 +14227,25 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Role", null)
                         .WithMany("Permissions")
                         .HasForeignKey("RoleId");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ReferenceOrganism", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Organism", "Organism")
+                        .WithMany()
+                        .HasForeignKey("OrganismId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "OwnerSection")
+                        .WithMany()
+                        .HasForeignKey("OwnerSectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organism");
+
+                    b.Navigation("OwnerSection");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RefreshToken", b =>
@@ -14802,12 +15063,16 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
                         .WithMany()
                         .HasForeignKey("MaterialId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.MediaIncubationCondition", "IncubationCondition")
                         .WithMany()
                         .HasForeignKey("MediaIncubationConditionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.MediaProduct", "MediaProduct")
+                        .WithMany()
+                        .HasForeignKey("MediaProductId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.TestWorkflowStep", "TestWorkflowStep")
@@ -14819,6 +15084,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("IncubationCondition");
 
                     b.Navigation("Material");
+
+                    b.Navigation("MediaProduct");
 
                     b.Navigation("TestWorkflowStep");
                 });
@@ -15284,6 +15551,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MasterDataImport", b =>
                 {
                     b.Navigation("Records");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MaterialCategory", b =>
+                {
+                    b.Navigation("Sections");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Media", b =>

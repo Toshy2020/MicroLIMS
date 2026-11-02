@@ -50,7 +50,7 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = minHours, IncubationMaxHours = minHours + 24 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 30, TempMax = 35, IncubationMinHours = minHours, IncubationMaxHours = minHours + 24 });
 
         var media = new Media
         {
@@ -86,8 +86,8 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step1.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 96 });
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step2.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step1.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 96 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step2.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
 
         var window1Media = new Media
         {
@@ -138,7 +138,7 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media
         {

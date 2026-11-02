@@ -366,7 +366,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .AsNoTracking()
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(sm => sm.Material)
+                    .ThenInclude(sm => sm.MediaProduct)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(sm => sm.IncubationCondition)

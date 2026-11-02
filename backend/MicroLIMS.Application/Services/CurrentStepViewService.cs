@@ -219,7 +219,7 @@ public class CurrentStepViewService
                 : null;
 
             var tsbStep = await _db.TestWorkflowSteps
-                .Include(s => s.StepMedia).ThenInclude(m => m.Material)
+                .Include(s => s.StepMedia).ThenInclude(m => m.MediaProduct)
                 .Include(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
                 .Where(s => s.TestDefinition != null && s.TestDefinition.Code == order.TestCode && (s.StepName == tsbStepName || s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB")))
                 .OrderBy(s => s.StepName == tsbStepName ? 0 : 1)
@@ -281,7 +281,7 @@ public class CurrentStepViewService
                 stepMedia = current.Step.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
                 {
                     m.Id,
-                    m.MaterialId, materialName = m.Material!.MaterialName, m.TempMin, m.TempMax,
+                    m.MediaProductId, mediaProductName = m.MediaProduct!.Name, m.TempMin, m.TempMax,
                     m.IncubationMinHours, m.IncubationMaxHours, m.IsRequired
                 }),
                 incubationStages = current.Step.IncubationStages.OrderBy(x => x.StageNumber).Select(x => new

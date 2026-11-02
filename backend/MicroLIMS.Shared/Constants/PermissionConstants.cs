@@ -99,6 +99,11 @@ public static class PermissionConstants
     public const string KpiConfigureProfiles = "Kpi.ConfigureProfiles";
     public const string MediaPrepare = "Media.Prepare";
     public const string MediaRelease = "Media.Release";
+
+    // Master Testing Materials: create and change Other Materials categories (reason + electronic signature).
+    public const string MaterialCategoriesManage = "MaterialCategories.Manage";
+    // Release a received stock lot whose category requires approval before use.
+    public const string MaterialsRelease = "Materials.Release";
     public const string OosManage = "Oos.Manage";
     public const string TestWorkflowSupervise = "TestWorkflow.Supervise";
     public const string SamplesReceiveOwnLab = "Samples.ReceiveOwnLab";
@@ -155,7 +160,7 @@ public static class PermissionConstants
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
         DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage, DocumentsReassign,
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
-        MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
+        MediaPrepare, MediaRelease, MaterialCategoriesManage, MaterialsRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
@@ -190,7 +195,7 @@ public static class PermissionConstants
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
         DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
-        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
+        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,

@@ -31,6 +31,30 @@ public class LotUsabilityTests
         Assert.Equal("Lot is not linked to this reagent.", result.Reason);
     }
 
+    [Theory]
+    [InlineData(ApprovalGateStatus.PendingReview, "Lot is awaiting release.")]
+    [InlineData(ApprovalGateStatus.Rejected, "Lot was rejected.")]
+    public void Check_LotHeldOrRejectedByTheReleaseGate_NotUsable(ApprovalGateStatus status, string reason)
+    {
+        var lot = Lot();
+        lot.ApprovalStatus = status;
+
+        var result = LotUsability.Check(lot, masterEntryId: 10, requiredQuantity: null, Today);
+
+        Assert.False(result.Usable);
+        Assert.Equal(reason, result.Reason);
+        Assert.False(lot.IsUsable);
+    }
+
+    [Fact]
+    public void Check_ApprovedLot_Usable()
+    {
+        var lot = Lot();
+        lot.ApprovalStatus = ApprovalGateStatus.Approved;
+
+        Assert.True(LotUsability.Check(lot, masterEntryId: 10, requiredQuantity: null, Today).Usable);
+    }
+
     [Fact]
     public void Check_ExpiredYesterday_NotUsable()
     {

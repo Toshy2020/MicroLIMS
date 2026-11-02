@@ -100,6 +100,7 @@ public partial class WorkingStandardService
             q.WorkingStandardMaterial = new Material
             {
                 SectionId = q.SectionId, MaterialType = MaterialType.WorkingStandard,
+                StockId = await StockIdGenerator.NextAsync(_sequences, _clock, nowUtc, ct),
                 MaterialMasterEntryId = q.MaterialMasterEntryId, MaterialName = q.MaterialMasterEntry!.Name,
                 ManufacturerName = "In-house", BatchNumber = q.SourceBatchNumber,
                 ReceivingDate = nowUtc, ExpiryDate = expiry, Code = code, Location = q.Location!,

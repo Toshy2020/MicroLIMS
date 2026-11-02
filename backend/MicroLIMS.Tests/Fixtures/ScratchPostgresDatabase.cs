@@ -20,9 +20,29 @@ public static class ScratchPostgresDatabase
         }
         finally
         {
-            NpgsqlConnection.ClearAllPools();
-            PostgresTestConfiguration.EnsureSafeToDrop(name, admin);
-            await Exec(admin, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+            await DropAsync(admin, name);
+        }
+    }
+
+    // WITH (FORCE) cannot terminate a backend the CI role does not own (autovacuum, a straggling pooled
+    // session), which fails with 42501. Retry briefly; a leftover uniquely named database is harmless
+    // and must not fail an otherwise green test.
+    public static async Task DropAsync(string admin, string name)
+    {
+        NpgsqlConnection.ClearAllPools();
+        PostgresTestConfiguration.EnsureSafeToDrop(name, admin);
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            try
+            {
+                await Exec(admin, $"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)");
+                return;
+            }
+            catch (PostgresException ex) when (ex.SqlState == "42501" || ex.SqlState == "55006")
+            {
+                if (attempt == 5) return;
+                await Task.Delay(500 * attempt);
+            }
         }
     }
 

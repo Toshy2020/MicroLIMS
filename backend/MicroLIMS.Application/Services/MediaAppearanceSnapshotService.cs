@@ -40,6 +40,19 @@ public class MediaAppearanceSnapshotService
             return null;
         }
 
+        return await GetExpectedAppearanceSnapshotForProductAsync(productId, organismId, cancellationToken);
+    }
+
+    // Same lookup when the Culture Media product is already known (a Test Master step medium).
+    public async Task<string?> GetExpectedAppearanceSnapshotForProductAsync(
+        int? productId, int organismId, CancellationToken cancellationToken = default)
+    {
+        if (productId is null)
+        {
+            _logger.LogWarning("No media product configured - appearance snapshot recorded as null.");
+            return null;
+        }
+
         var expected = await _db.MediaConfigurationChallenges
             .Where(c => c.MediaConfiguration!.MediaProductId == productId && c.OrganismId == organismId)
             .Select(c => c.ExpectedDescription)

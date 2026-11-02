@@ -95,7 +95,7 @@ public class WaterBatchResultTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25, IncubationMinHours = 18, IncubationMaxHours = 24 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 20, TempMax = 25, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media
         {

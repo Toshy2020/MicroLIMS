@@ -13,72 +13,50 @@ namespace MicroLIMS.Tests.WorkflowTests;
 public class StepMediumProductMatchingTests
 {
     [Fact]
-    public void StepMediumMatcher_ExactBatch_Matches()
+    public void StepMediumMatcher_SameProduct_Matches()
     {
-        var stepMedium = new TestWorkflowStepMedia { MaterialId = 10 };
-
-        Assert.True(StepMediumMatcher.Matches(stepMedium, 10, null));
-        Assert.True(StepMediumMatcher.Matches(stepMedium, 10, 99));
-    }
-
-    [Fact]
-    public void StepMediumMatcher_SameProductViaIncubationCondition_Matches()
-    {
-        var stepMedium = new TestWorkflowStepMedia
-        {
-            MaterialId = 10,
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
-        };
-
-        Assert.True(StepMediumMatcher.Matches(stepMedium, 20, 5));
-    }
-
-    [Fact]
-    public void StepMediumMatcher_ConditionProductTakesPrecedenceOverMaterialProduct()
-    {
-        var stepMedium = new TestWorkflowStepMedia
-        {
-            MaterialId = 10,
-            Material = new Material { MediaProductId = 6 },
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
-        };
+        var stepMedium = new TestWorkflowStepMedia { MediaProductId = 5 };
 
         Assert.Equal(5, StepMediumMatcher.ProductOf(stepMedium));
-        Assert.True(StepMediumMatcher.Matches(stepMedium, 20, 5));
-        Assert.False(StepMediumMatcher.Matches(stepMedium, 20, 6));
-    }
-
-    [Fact]
-    public void StepMediumMatcher_SameProductViaMaterial_Matches()
-    {
-        var stepMedium = new TestWorkflowStepMedia
-        {
-            MaterialId = 10,
-            Material = new Material { MediaProductId = 5 }
-        };
-
-        Assert.True(StepMediumMatcher.Matches(stepMedium, 20, 5));
+        Assert.True(StepMediumMatcher.Matches(stepMedium, 5));
     }
 
     [Fact]
     public void StepMediumMatcher_DifferentProduct_Rejected()
     {
-        var stepMedium = new TestWorkflowStepMedia
-        {
-            MaterialId = 10,
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
-        };
+        var stepMedium = new TestWorkflowStepMedia { MediaProductId = 5 };
 
-        Assert.False(StepMediumMatcher.Matches(stepMedium, 20, 6));
+        Assert.False(StepMediumMatcher.Matches(stepMedium, 6));
     }
 
     [Fact]
-    public void StepMediumMatcher_BothProductsNull_ExactBatchOnly()
+    public void StepMediumMatcher_LegacyStockLotAndConditionAreIgnored()
     {
-        var stepMedium = new TestWorkflowStepMedia { MaterialId = 10 };
+        // The retired rules: the exact batch, and the product read through the condition or the lot.
+        var stepMedium = new TestWorkflowStepMedia
+        {
+            MaterialId = 10,
+            Material = new Material { Id = 10, MediaProductId = 6 },
+            IncubationCondition = new MediaIncubationCondition { MediaProductId = 7 },
+            MediaProductId = 5
+        };
 
-        Assert.False(StepMediumMatcher.Matches(stepMedium, 20, null));
-        Assert.True(StepMediumMatcher.Matches(stepMedium, 10, null));
+        Assert.Equal(5, StepMediumMatcher.ProductOf(stepMedium));
+        Assert.True(StepMediumMatcher.Matches(stepMedium, 5));
+        Assert.False(StepMediumMatcher.Matches(stepMedium, 6));
+        Assert.False(StepMediumMatcher.Matches(stepMedium, 7));
+    }
+
+    [Fact]
+    public void StepMediumMatcher_NoProductOnEitherSide_NeverMatches()
+    {
+        // No fallback to the exact batch: a row without a product, or a lot without one, fits nothing.
+        var legacyRow = new TestWorkflowStepMedia { MaterialId = 10 };
+        var configured = new TestWorkflowStepMedia { MediaProductId = 5 };
+
+        Assert.False(StepMediumMatcher.Matches(legacyRow, null));
+        Assert.False(StepMediumMatcher.Matches(legacyRow, 5));
+        Assert.False(StepMediumMatcher.Matches(configured, null));
     }
 
     private static async Task<(int orderId, SeededMedia media, int incubatorId, ITestWorkflowEngine engine, MicroLimsDbContext db)> SetupReadyForPlatingAsync()
@@ -153,12 +131,30 @@ public class StepMediumProductMatchingTests
     }
 
     [Fact]
+    public async Task SelectMediaAsync_StepMediumWithoutProduct_RefusesEvenTheLotItWasConfiguredWith()
+    {
+        var db = PathogenTestData.NewDb();
+        await using var _ = db;
+        var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        // A row the backfill could not resolve: it has no product, whatever stock lot it still names.
+        foreach (var row in await db.TestWorkflowStepMedias.ToListAsync())
+            row.MediaProductId = null;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.SelectMediaAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, userId: 4));
+        Assert.Contains("This step requires a different medium", ex.Message);
+    }
+
+    [Fact]
     public async Task StartSelectivePlatingIncubationAsync_ConfiguredWithBatchA_AcceptsLotFromBatchBOfSameProduct()
     {
         var (orderId, media, incubatorId, engine, db) = await SetupReadyForPlatingAsync();
         await using var _ = db;
 
-        // Step medium was configured with batch A of XLD Agar.
+        // Step medium is the XLD Agar product (seeded from batch A).
         // Seed batch B under the same XLD Agar product.
         var xldProduct = await MediaProductTestData.CreateOrGetAsync(db, "XLD Agar", "XLD");
         var batchB = new Material
@@ -190,9 +186,7 @@ public class StepMediumProductMatchingTests
         await db.SaveChangesAsync();
 
         // Forget everything seeded above, so the engine loads the step medium
-        // from the store the way a real request does - without this, change
-        // tracking fills in its Material/IncubationCondition and the test
-        // would pass even if RequireSingleStepMediumAsync never loaded them.
+        // from the store the way a real request does.
         db.ChangeTracker.Clear();
 
         var start = DateTime.UtcNow;

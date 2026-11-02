@@ -52,7 +52,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
         var stepMedia = await _db.TestWorkflowStepMedias
             .Include(m => m.IncubationCondition)
-            .Include(m => m.Material)
+            .Include(m => m.MediaProduct)
             .Where(m => m.TestWorkflowStepId == step.Id)
             .ToListAsync();
 
@@ -64,7 +64,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         // gave this method (see the Media Configuration Migration plan
         // §3 - flagged there as a real gap, closed here). Applies to
         // every step type that reaches this method, not just broth ones.
-        var permitted = stepMedia.Any(sm => StepMediumMatcher.Matches(sm, media.MaterialId, media.Material?.MediaProductId));
+        var permitted = stepMedia.Any(sm => StepMediumMatcher.Matches(sm, media.Material?.MediaProductId));
         if (!permitted)
             throw new InvalidOperationException(
                 $"This step requires a different medium. The selected lot is {media.Material?.MaterialName ?? "unknown"}.");
@@ -75,7 +75,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         // that check at all, a pre-existing gap unrelated to this
         // migration's origin, closed here so every step type is held to
         // the same standard.
-        var selectedStepMedium = IncubationWindowResolver.MatchStepMedium(stepMedia, media.MaterialId, media.Material?.MediaProductId)!;
+        var selectedStepMedium = IncubationWindowResolver.MatchStepMedium(stepMedia, media.Material?.MediaProductId)!;
         var window = IncubationWindowResolver.Require(selectedStepMedium, stepName);
         await RequireEligibleIncubatorAsync(selectedStepMedium.Id, incubatorEquipmentId);
 
@@ -140,7 +140,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         {
             if (sibling.ExistingIncubation is not null) continue;
 
-            var mediumName = sibling.Medium.Material?.MaterialName ?? lot.Material?.MaterialName ?? "TSB";
+            var mediumName = sibling.Medium.MediaProduct?.Name ?? lot.Material?.MaterialName ?? "TSB";
             if (IncubationWindowResolver.TryGet(sibling.Medium) is null)
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowNotConfigured,
                     $"The shared TSB can't start: the incubation window for \"{mediumName}\" on test {sibling.Order.TestCode} (step \"{sibling.Step.StepName}\") is not configured - set its incubation hours and temperature in Test Master.");

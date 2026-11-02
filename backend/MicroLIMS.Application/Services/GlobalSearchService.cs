@@ -248,13 +248,18 @@ public class GlobalSearchService : IGlobalSearchService
             m.MaterialName.ToLower().Contains(q) ||
             m.BatchNumber.ToLower().Contains(q) ||
             (m.Code != null && m.Code.ToLower().Contains(q)) ||
+            (m.StockId != null && m.StockId.ToLower().Contains(q)) ||
             m.ManufacturerName.ToLower().Contains(q)
         );
 
-        var matches = await query.Take(limit * 2).ToListAsync(ct);
+        // A scanned stock ID (exact match) always makes the cut, ahead of the general limit.
+        var matches = await query
+            .OrderByDescending(m => m.StockId != null && m.StockId.ToLower() == q)
+            .Take(limit * 2).ToListAsync(ct);
 
         return matches
-            .OrderByDescending(m => m.MaterialName.Equals(rawQuery, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(m => m.StockId != null && m.StockId.Equals(rawQuery, StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(m => m.MaterialName.Equals(rawQuery, StringComparison.OrdinalIgnoreCase))
             .ThenByDescending(m => m.BatchNumber.Equals(rawQuery, StringComparison.OrdinalIgnoreCase))
             .ThenByDescending(m => m.MaterialName.StartsWith(rawQuery, StringComparison.OrdinalIgnoreCase))
             .Take(limit)
@@ -262,10 +267,12 @@ public class GlobalSearchService : IGlobalSearchService
                 m.Id,
                 "Material",
                 m.MaterialName,
-                $"Batch: {m.BatchNumber} • Location: {m.Location}",
+                $"{(m.StockId != null ? m.StockId + " • " : "")}Batch: {m.BatchNumber} • Location: {m.Location}",
                 m.MaterialType.ToString(),
-                m.BatchNumber.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "BatchNumber" : "MaterialName",
-                m.BatchNumber.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? m.BatchNumber : m.MaterialName,
+                m.StockId != null && m.StockId.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "StockId"
+                    : m.BatchNumber.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "BatchNumber" : "MaterialName",
+                m.StockId != null && m.StockId.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? m.StockId
+                    : m.BatchNumber.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? m.BatchNumber : m.MaterialName,
                 "primary",
                 "/inventory/materials",
                 new Dictionary<string, string>

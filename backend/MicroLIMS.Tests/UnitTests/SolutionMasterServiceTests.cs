@@ -172,7 +172,7 @@ public class SolutionMasterServiceTests
     }
 
     [Fact]
-    public async Task Create_ComponentFromOtherSection_Throws()
+    public async Task Create_ComponentFromOtherLabEntry_Succeeds()
     {
         await using var db = NewDb();
         var (section, userId) = await SeedAsync(db);
@@ -187,9 +187,10 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, otherSection.Id, "BUF-01");
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.CreateAsync(Req(components: OneComponent(entry.Id)), userId));
-        Assert.Contains("another laboratory", ex.Message);
+        // Reagent master entries are app-wide: any lab's solution can use another lab's entry.
+        var created = await service.CreateAsync(Req(components: OneComponent(entry.Id)), userId);
+        Assert.Equal(section.Id, created.SectionId);
+        Assert.Equal(entry.Id, Assert.Single(created.Components).MaterialMasterEntryId);
     }
 
     [Fact]

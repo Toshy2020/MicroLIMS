@@ -8,6 +8,10 @@ export type MediaProductOption = {
   version?: number;
   name: string;
   code: string;
+  // Inactive products can't be chosen for new lots or configurations; existing data keeps working.
+  isActive: boolean;
+  // Any stock lot uses it.
+  hasStock: boolean;
   configurationCount: number;
   batchCount: number;
   incubationConditionCount: number;
@@ -52,7 +56,7 @@ type TestWorkflowStepPayload = {
   stepName: string; incubationMinHours: number; incubationMaxHours: number;
   temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
   targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
-  stepMedia: { materialId: number; mediaIncubationConditionId: number | null; isRequired: boolean; displayOrder: number }[];
+  stepMedia: { mediaProductId: number; mediaIncubationConditionId: number | null; isRequired: boolean; displayOrder: number }[];
   requiresIncubationTransfer: boolean;
   incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };
@@ -226,6 +230,8 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/media-products/${id}`, { name }, ifMatch(version)).then((r) => r.data.data),
   changeMediaProductCode: (id: number, code: string, reason: string, password: string) =>
     apiClient.put(`/masterdata/media-products/${id}/code`, { code, reason, password }).then((r) => r.data.data),
+  setMediaProductActive: (id: number, value: boolean) =>
+    apiClient.put(`/masterdata/media-products/${id}/active`, null, { params: { value } }).then((r) => r.data.data),
   deleteMediaProduct: (id: number) => apiClient.delete(`/masterdata/media-products/${id}`),
   getMediaIncubationConditions: (mediaProductId?: number): Promise<MediaIncubationConditionOption[]> =>
     apiClient.get("/masterdata/media-incubation-conditions", { params: mediaProductId ? { mediaProductId } : {} }).then((r) => r.data.data),

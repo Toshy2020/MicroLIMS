@@ -31,6 +31,19 @@ export const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
   PrimaryStandard: "Primary Standard"
 };
 
+// Types that became categories of Other materials. New lots are never received under
+// them, but lots received before keep the stored type.
+export const LEGACY_MATERIAL_TYPES: MaterialType[] = [
+  "Supplement",
+  "AntibioticDisc",
+  "IdentificationKit",
+  "IdentificationReagent",
+  "ReferenceBuffer",
+  "DisposableTool"
+];
+
+export type MaterialApprovalStatus = "PendingReview" | "Approved" | "Rejected";
+
 export type MaterialUnit =
   | "Gram"
   | "Kilogram"
@@ -70,6 +83,8 @@ export interface MaterialItem {
   id: number;
   // Row version, sent back as If-Match when this record is edited.
   version?: number;
+  // Generated lot ID the label carries; null on lots received before stock IDs existed.
+  stockId?: string | null;
   // Owning laboratory - Material.SectionId is required server-side
   // (unlike EquipmentInventory's still-nullable column), used here only to
   // honour the ?lab= query param from the menu links (design.md §6).
@@ -88,6 +103,11 @@ export interface MaterialItem {
   organismId: number | null;
   organism?: OrganismSummary | null;
   atccNumber: string | null;
+  // Lyophilized lots received against a reference strain (older lots may have none).
+  referenceOrganismId?: number | null;
+  referenceOrganismCode?: string | null;
+  cultureCollection?: string | null;
+  strainNumber?: string | null;
   quantityReceived: number;
   quantityRemaining: number;
   unit: MaterialUnit;
@@ -97,6 +117,15 @@ export interface MaterialItem {
   materialMasterEntryId?: number | null;
   materialMasterEntryCode?: string | null;
   moisturePercent?: number | null;
+  storageCondition?: string | null;
+  // Release gate: null when the lot's category needs no approval before use.
+  approvalStatus?: MaterialApprovalStatus | null;
+  approvedByUserId?: number | null;
+  approvedAt?: string | null;
+  materialCategoryId?: number | null;
+  categoryName?: string | null;
+  labelRequired?: boolean;
+  isUsable?: boolean;
 }
 
 export interface MaterialFormState {
@@ -109,6 +138,7 @@ export interface MaterialFormState {
   expiryDate: string;
   code: string;
   location: string;
+  storageCondition: string;
   quantityReceived: number | string;
   unit: MaterialUnit;
   minimumStockLevel: number | string;
@@ -116,6 +146,7 @@ export interface MaterialFormState {
   moisturePercent: number | string;
   atccNumber: string;
   organismId: number | null;
+  referenceOrganismId: number | null;
   mediaProductId: number | null;
   materialMasterEntryId: number | null;
 }

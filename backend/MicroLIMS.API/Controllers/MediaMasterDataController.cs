@@ -49,6 +49,12 @@ public class MediaMasterDataController : ControllerBase
     public async Task<IActionResult> UpdateMediaProduct(int id, UpdateMediaProductRequest request) =>
         Ok(ApiResponse<object>.Ok(await _mediaProductService.RenameAsync(id, request.Name)));
 
+    // Deactivated products can't be chosen for new lots or configurations; existing data keeps working.
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPut("media-products/{id}/active")]
+    public async Task<IActionResult> SetMediaProductActive(int id, [FromQuery] bool value) =>
+        Ok(ApiResponse<object>.Ok(await _mediaProductService.SetActiveAsync(id, value)));
+
     [Authorize(Roles = RoleConstants.SectionHead)]
     [HttpPut("media-products/{id}/code")]
     public async Task<IActionResult> ChangeMediaProductCode(int id, ChangeMediaProductCodeRequest request) =>

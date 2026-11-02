@@ -22,7 +22,6 @@ import AirOutlinedIcon from "@mui/icons-material/AirOutlined";
 import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 import BubbleChartOutlinedIcon from "@mui/icons-material/BubbleChartOutlined";
 import CleaningServicesOutlinedIcon from "@mui/icons-material/CleaningServicesOutlined";
-import CoronavirusOutlinedIcon from "@mui/icons-material/CoronavirusOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import FunctionsOutlinedIcon from "@mui/icons-material/FunctionsOutlined";
 import GrainOutlinedIcon from "@mui/icons-material/GrainOutlined";
@@ -37,7 +36,6 @@ import OpacityOutlinedIcon from "@mui/icons-material/OpacityOutlined";
 import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import ThermostatOutlinedIcon from "@mui/icons-material/ThermostatOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
@@ -178,8 +176,6 @@ const microConfigArea: MenuItem = {
   permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
     { label: "Test Master", path: "/laboratory-configuration/test-master", icon: ListAltOutlinedIcon, description: "Microbiology test definitions, steps, media and limits." },
-    { label: "Organisms", path: "/laboratory-configuration/organisms", icon: CoronavirusOutlinedIcon, description: "Organism master list used in tests and identification." },
-    { label: "Media Configurations", path: "/laboratory-configuration/media-configurations", icon: ThermostatOutlinedIcon, description: "Media products, incubation times and temperatures." },
     { label: "Water", path: "/laboratory-configuration/water", icon: WaterDropOutlinedIcon, description: "Water sampling points and their test plans." },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, description: "EM locations, sampling methods and alert/action limits." },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", icon: CleaningServicesOutlinedIcon, description: "After-cleaning swab points and acceptance limits." },
@@ -229,7 +225,6 @@ const physchemConfigArea: MenuItem = {
     { label: "Equation Types", path: "/laboratory-configuration/equation-types", icon: FunctionsOutlinedIcon, description: "Calculation equations used by physicochemical tests." },
     { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", icon: MemoryOutlinedIcon, description: "Instrument types available to physicochemical tests." },
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns", icon: ViewColumnOutlinedIcon, description: "Chromatography columns and their usage history." },
-    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master", icon: GrainOutlinedIcon, description: "Reagent and reference standard master data." },
     { label: "Solutions", path: "/laboratory-configuration/solution-master", icon: WaterOutlinedIcon, description: "Solution recipes and standardization rules." },
     { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, description: "HPLC methods: conditions, analytes and suitability criteria." },
     { label: "ICP Methods", path: "/laboratory-configuration/icp-methods", icon: BlurOnOutlinedIcon, description: "ICP methods: elements, wavelengths and limits." }
@@ -238,6 +233,7 @@ const physchemConfigArea: MenuItem = {
 
 // Shared across both labs, not tied to either one's membership.
 const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", description: "Items the labs test and the tests auto-assigned on receipt.", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.ITEMS_MANAGE };
+const masterTestingMaterialsItem: MenuItem = { label: "Master Testing Materials", description: "Reagents, standards, culture media, reference organisms and other materials the labs receive into stock.", path: "/laboratory-configuration/master-testing-materials", icon: GrainOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const receivingConfigItem: MenuItem = { label: "Receiving Configuration", description: "Reference lists offered on the sample receiving form.", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const masterDataWorkbookItem: MenuItem = { label: "Master Data Workbook", description: "Load master data and specifications from one Excel workbook.", path: "/laboratory-configuration/master-data-workbook", icon: TableViewOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 
@@ -288,7 +284,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
     items.push(buildPhyschemArea(areas), physchemConfigArea);
   }
   items.push(
-    itemsItem, receivingConfigItem, masterDataWorkbookItem,
+    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem,
     documentControlItem(role, permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
   );
   return groupItems(visibleItems(items, permissions));

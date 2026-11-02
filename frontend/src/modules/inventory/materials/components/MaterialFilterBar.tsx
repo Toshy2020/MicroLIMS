@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Select, MenuItem, FormControl, InputLabel, Button, Divider } from "@mui/material";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
-import { MaterialItem, MaterialFilterState, MaterialType, MATERIAL_TYPE_LABELS } from "../types/materialTypes";
+import { MaterialItem, MaterialFilterState, MaterialType, MATERIAL_TYPE_LABELS, LEGACY_MATERIAL_TYPES } from "../types/materialTypes";
 import { MaterialService } from "../services/MaterialService";
 import { FilterBar } from "../../../../components/lab";
 
@@ -63,11 +63,27 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
     if (typeOptionsData) {
       return typeOptionsData.builtIn.map((bt) => ({
         value: bt,
-        label: MATERIAL_TYPE_LABELS[bt] ?? MATERIAL_TYPE_OPTIONS.find((o) => o.value === bt)?.label ?? bt
+        label: bt === "Other" ? "Other material" : MATERIAL_TYPE_LABELS[bt] ?? MATERIAL_TYPE_OPTIONS.find((o) => o.value === bt)?.label ?? bt
       }));
     }
-    return MATERIAL_TYPE_OPTIONS;
+    return MATERIAL_TYPE_OPTIONS.filter((o) => !LEGACY_MATERIAL_TYPES.includes(o.value));
   }, [typeOptionsData]);
+
+  // Types the server no longer offers for new lots (supplements, discs, ...) stay filterable
+  // while lots received under them are still in stock.
+  const legacyTypes = useMemo(
+    () => LEGACY_MATERIAL_TYPES.filter((t) => items.some((i) => i.materialType === t)),
+    [items]
+  );
+
+  // Categories of the Other materials in stock.
+  const categoryOptions = useMemo(() => {
+    const byId = new Map<number, string>();
+    items.forEach((i) => {
+      if (i.materialCategoryId != null && i.categoryName) byId.set(i.materialCategoryId, i.categoryName);
+    });
+    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [items]);
 
   // Extract unique dynamic dropdown options from current dataset + section options
   const customTypes = useMemo(() => {
@@ -128,6 +144,18 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
           {typeOptions.map((opt) => (
             <MenuItem key={opt.value} value={opt.value}>
               {opt.label}
+            </MenuItem>
+          ))}
+          {legacyTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}
+          {legacyTypes.map((t) => (
+            <MenuItem key={t} value={t}>
+              {MATERIAL_TYPE_LABELS[t]} (earlier lots)
+            </MenuItem>
+          ))}
+          {categoryOptions.length > 0 && <Divider sx={{ my: 0.5 }} />}
+          {categoryOptions.map((c) => (
+            <MenuItem key={`category:${c.id}`} value={`category:${c.id}`}>
+              Category: {c.name}
             </MenuItem>
           ))}
           {customTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}

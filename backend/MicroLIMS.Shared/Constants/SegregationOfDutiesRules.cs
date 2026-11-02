@@ -24,7 +24,7 @@ public static class SegregationOfDutiesRules
         PermissionConstants.SamplesReceive, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesAssignAnalyst,
         PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.TestWorkflowSupervise,
         PermissionConstants.HplcOperate, PermissionConstants.SolutionsPrepare, PermissionConstants.WorkingStandardsQualify,
-        PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease,
+        PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialsRelease,
         PermissionConstants.CryovialsManage, PermissionConstants.CryovialsApprove,
         PermissionConstants.MonitoringPlanApprove, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord,
         PermissionConstants.OosManage,

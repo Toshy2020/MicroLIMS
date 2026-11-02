@@ -5,6 +5,8 @@ export interface ReleasedMediaItem {
   lotNumber: string;
   materialId: number;
   materialName?: string;
+  // The stock lot's product link (MediaResponse.Material.MediaProductId); step media match by product.
+  material?: { mediaProductId?: number | null } | null;
   expiryDate: string;
   isReleasedForUse: boolean;
   status: string;

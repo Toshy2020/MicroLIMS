@@ -29,7 +29,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
             db, new ClosedXmlWorkbookFormat(), storage ?? new InMemoryFileStorageService(), signatures, TimeProvider.System,
             new OrganismMasterDataService(db), new ReferenceListMasterDataService(db),
             new EnvironmentalMonitoringMasterDataService(db), new WaterMasterDataService(db),
-            new MaterialMasterService(db, scope), new MediaProductService(db, signatures, audit),
+            new MaterialMasterService(db, scope, signatures, audit), new ReferenceOrganismService(db, scope, signatures, audit), new MediaProductService(db, signatures, audit),
             new EquipmentMasterDataService(db, scope), new ItemService(db),
             new SpecificationMasterDataService(db, scope));
     }
@@ -48,7 +48,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         using var wb = new XLWorkbook(new MemoryStream(content));
         Assert.Equal(
             new[] { "Instructions", "Organisms", "ProductionStages", "EmDepartments", "EmRooms", "WaterDepartments", "WaterPoints",
-                    "MaterialMaster", "MediaProducts", "Equipment", "Items", "Specifications", "SpecificationStages", "Lists" },
+                    "MaterialMaster", "ReferenceOrganisms", "MediaProducts", "Equipment", "Items", "Specifications", "SpecificationStages", "Lists" },
             wb.Worksheets.Select(w => w.Name));
         Assert.Contains(wb.Worksheet("Organisms").Column(1).CellsUsed(), c => c.GetString() == "Dl organism " + tag);
     }

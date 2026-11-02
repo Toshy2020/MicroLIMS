@@ -16,7 +16,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks(); });
 
 const step = {
   id: 1, stepOrder: 1, stepName: "TAMC", stepType: "PlateCount", targetOrganismId: null,
-  stepMedia: [{ materialId: 5, materialName: "Tryptic soy agar", tempMin: 30, tempMax: 35, incubationMinHours: 72, incubationMaxHours: 120, isRequired: true }],
+  stepMedia: [{ mediaProductId: 5, mediaProductName: "Tryptic soy agar", tempMin: 30, tempMax: 35, incubationMinHours: 72, incubationMaxHours: 120, isRequired: true }],
   incubationMinHours: 72, incubationMaxHours: 120, temperatureMin: 30, temperatureMax: 35, isFinalStep: true
 };
 

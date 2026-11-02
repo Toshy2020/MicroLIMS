@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -101,7 +102,7 @@ public class MediaReleaseTests
         db.Cryovials.Add(cryovial);
         await db.SaveChangesAsync();
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, PreparerId);
         var incubation = await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: autoclave.Id, PreparerId);
         incubation.ExpectedReadingAt = DateTime.UtcNow.AddMinutes(-1); // simulate the incubation period elapsing

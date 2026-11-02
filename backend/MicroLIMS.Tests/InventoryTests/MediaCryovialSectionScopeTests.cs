@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -147,7 +148,7 @@ public class MediaCryovialSectionScopeTests
     {
         await using var db = NewDb();
         var w = await SeedAsync(db);
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
 
         // A user who belongs to both laboratories passes the scope guard, so only the media-section rule is under test.
         var bothLabs = new User { FullName = "Both Labs", Username = "both", RoleId = db.Roles.First(r => r.Type == RoleType.Analyst).Id };

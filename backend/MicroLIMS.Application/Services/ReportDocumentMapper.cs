@@ -852,6 +852,7 @@ public static class ReportDocumentMapper
             {
                 ("Code", s.Code),
                 ("Organism", s.OrganismName),
+                ("Reference strain", CryovialSummaryService.StrainText(s)),
                 ("Source material", s.MaterialName),
                 ("Material batch", string.IsNullOrEmpty(s.MaterialBatchNumber) ? "-" : s.MaterialBatchNumber),
                 ("Manufacturer", string.IsNullOrEmpty(s.ManufacturerName) ? "-" : s.ManufacturerName),

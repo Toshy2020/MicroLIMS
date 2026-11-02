@@ -30,6 +30,7 @@ public partial class WorkingStandardService
     private readonly IUserSectionScopeService _scope;
     private readonly IElectronicSignatureService _signatures;
     private readonly IFileStorageService _storage;
+    private readonly IDatabaseSequenceHelper _sequences;
     private readonly ILabClock _clock;
 
     public WorkingStandardService(
@@ -37,12 +38,14 @@ public partial class WorkingStandardService
         IUserSectionScopeService scope,
         IElectronicSignatureService signatures,
         IFileStorageService storage,
+        IDatabaseSequenceHelper sequences,
         ILabClock? clock = null)
     {
         _db = db;
         _scope = scope;
         _signatures = signatures;
         _storage = storage;
+        _sequences = sequences;
         _clock = clock ?? LabClock.Default;
     }
 
@@ -178,7 +181,6 @@ public partial class WorkingStandardService
                 throw new InvalidOperationException("Choose the reference standard master entry.");
             var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.MaterialMasterEntryId.Value, ct)
                 ?? throw new NotFoundException("Master entry not found.");
-            await EnsureSectionAsync(entry.SectionId, userId, ct, "Material master entry not found.");
             if (entry.Category != MaterialMasterCategory.ReferenceStandard)
                 throw new InvalidOperationException($"Master entry \"{entry.Name}\" is not a reference standard.");
             if (!entry.IsActive)
@@ -210,7 +212,11 @@ public partial class WorkingStandardService
             if (string.IsNullOrWhiteSpace(r.Location))
                 throw new InvalidOperationException("Enter the storage location.");
 
-            q.SectionId = entry.SectionId;
+            // The master entry is app-wide; the qualification (a GxP record) belongs to the analyst's own lab.
+            var writeScope = await _scope.GetSectionIdsAsync(userId, SectionAccess.Write, ct);
+            q.SectionId = writeScope == null || writeScope.Contains(entry.SectionId)
+                ? entry.SectionId
+                : await _scope.ResolveSectionForCreateAsync(userId, null, ct);
             q.MaterialMasterEntryId = entry.Id;
             q.QuantityGrams = r.QuantityGrams;
             q.Location = r.Location.Trim();

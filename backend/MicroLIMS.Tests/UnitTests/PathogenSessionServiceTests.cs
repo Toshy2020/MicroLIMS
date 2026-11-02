@@ -39,7 +39,7 @@ public class PathogenSessionServiceTests
         db.Equipment.AddRange(inc3, inc4);
 
         // Seed Material & Released TSB Media Lot
-        var tsbMat = new Material { Id = 10, MaterialName = "Tryptic Soy Broth Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "TSB-MAT-01" };
+        var tsbMat = new Material { Id = 10, MediaProductId = 10, MaterialName = "Tryptic Soy Broth Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "TSB-MAT-01" };
         db.Materials.Add(tsbMat);
 
         var tsbMedia = new Media
@@ -55,7 +55,7 @@ public class PathogenSessionServiceTests
         };
         db.Media.Add(tsbMedia);
 
-        var bcaMat = new Material { Id = 11, MaterialName = "BCA Selective Medium Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BCA-MAT-01" };
+        var bcaMat = new Material { Id = 11, MediaProductId = 11, MaterialName = "BCA Selective Medium Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BCA-MAT-01" };
         db.Materials.Add(bcaMat);
 
         var bcaMedia = new Media
@@ -71,7 +71,7 @@ public class PathogenSessionServiceTests
         };
         db.Media.Add(bcaMedia);
 
-        var rvsMat = new Material { Id = 12, MaterialName = "RVS Selective Broth Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "RVS-MAT-01" };
+        var rvsMat = new Material { Id = 12, MediaProductId = 12, MaterialName = "RVS Selective Broth Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "RVS-MAT-01" };
         db.Materials.Add(rvsMat);
 
         var rvsMedia = new Media
@@ -87,7 +87,7 @@ public class PathogenSessionServiceTests
         };
         db.Media.Add(rvsMedia);
 
-        var plateMat = new Material { Id = 13, MaterialName = "Plate Incubation Agar Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "PLATE-MAT-01" };
+        var plateMat = new Material { Id = 13, MediaProductId = 13, MaterialName = "Plate Incubation Agar Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "PLATE-MAT-01" };
         db.Materials.Add(plateMat);
 
         var plateMedia = new Media
@@ -133,7 +133,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 },
                 new()
@@ -147,7 +147,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 37,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 11, IncubationMinHours = 24, IncubationMaxHours = 48, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 11, IncubationMinHours = 24, IncubationMaxHours = 48, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 }
                     }
                 }
             }
@@ -172,7 +172,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 },
                 new()
@@ -186,7 +186,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 42.5m,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 12, IncubationMinHours = 24, IncubationMaxHours = 24, TempMin = 41.5m, TempMax = 42.5m, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 12, IncubationMinHours = 24, IncubationMaxHours = 24, TempMin = 41.5m, TempMax = 42.5m, IsRequired = true, DisplayOrder = 1 }
                     }
                 }
             }
@@ -211,7 +211,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 13, IncubationMinHours = 48, IncubationMaxHours = 72, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 13, IncubationMinHours = 48, IncubationMaxHours = 72, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 }
             }
@@ -236,7 +236,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 }
             }
@@ -261,7 +261,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 }
             }
@@ -286,7 +286,7 @@ public class PathogenSessionServiceTests
                     TemperatureMax = 35,
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                        new() { MediaProductId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
                     }
                 }
             }
@@ -460,8 +460,8 @@ public class PathogenSessionServiceTests
     public async Task StartSharedTsbAsync_TestWithDifferentTsbMedium_DoesNotJoin()
     {
         var (db, sampleId, _) = SetupTestEnvironment(1);
-        db.Materials.Add(new Material { Id = 14, MaterialName = "Buffered Peptone Water", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BPW-MAT-01" });
-        (await TsbMediumAsync(db, "S. aureus")).MaterialId = 14;
+        db.Materials.Add(new Material { Id = 14, MediaProductId = 14, MaterialName = "Buffered Peptone Water", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BPW-MAT-01" });
+        (await TsbMediumAsync(db, "S. aureus")).MediaProductId = 14;
         await db.SaveChangesAsync();
 
         var service = new PathogenSessionService(db);
@@ -557,8 +557,8 @@ public class PathogenSessionServiceTests
     public async Task PropagateSharedTsb_SiblingWithDifferentTsbMedium_NotLinked()
     {
         var (db, sampleId, _) = SetupTestEnvironment(1);
-        db.Materials.Add(new Material { Id = 14, MaterialName = "Buffered Peptone Water", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BPW-MAT-01" });
-        (await TsbMediumAsync(db, "S. aureus")).MaterialId = 14;
+        db.Materials.Add(new Material { Id = 14, MediaProductId = 14, MaterialName = "Buffered Peptone Water", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BPW-MAT-01" });
+        (await TsbMediumAsync(db, "S. aureus")).MediaProductId = 14;
         var start = DateTime.UtcNow.AddHours(-2);
         var inc = new Incubation
         {

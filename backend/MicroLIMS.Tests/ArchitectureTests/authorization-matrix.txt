@@ -343,6 +343,10 @@ MasterDataWorkbookController.GetImports(): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Import(IFormFile, String, String): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Validate(IFormFile): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Verify(Int32, VerifyMasterDataImportRequest): SystemAdministrator,SectionHead
+MaterialCategoryController.Create(SaveMaterialCategoryRequest): SectionHead
+MaterialCategoryController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+MaterialCategoryController.SetActive(Int32, Boolean): SectionHead
+MaterialCategoryController.Update(Int32, SaveMaterialCategoryRequest): SectionHead
 MaterialController.Create(SaveMaterialHttpRequest): SectionHead,Analyst
 MaterialController.GetAll(Nullable`1): SectionHead,Analyst
 MaterialController.GetDefaultUnit(MaterialType): SectionHead,Analyst
@@ -356,10 +360,12 @@ MaterialDocumentController.GetDocuments(Int32): SectionHead,Analyst
 MaterialDocumentController.Supersede(Int32, IFormFile, String, Int32): SectionHead
 MaterialDocumentController.Upload(Int32, IFormFile, MaterialDocumentType): SectionHead,Analyst
 MaterialDocumentController.Void(Int32, Int32, VoidDocumentHttpRequest): SectionHead
+MaterialMasterController.ChangeCode(Int32, ChangeMaterialMasterEntryCodeRequest): SystemAdministrator,SectionHead
 MaterialMasterController.Create(SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
 MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 MaterialMasterController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
 MaterialMasterController.Update(Int32, SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
+MaterialReleaseController.Decide(Int32, DecideMaterialReleaseRequest): SectionHead
 MediaController.AddStorageEntry(Int32, AddMediaStorageEntryRequest): SectionHead,Reviewer,Analyst
 MediaController.DecideRelease(Int32, DecideMediaReleaseRequest): SectionHead
 MediaController.GetAll(): SectionHead,Reviewer,Analyst
@@ -391,6 +397,7 @@ MediaMasterDataController.DeleteMediaProduct(Int32): SystemAdministrator,Section
 MediaMasterDataController.GetMediaConfigurations(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaMasterDataController.GetMediaIncubationConditions(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaMasterDataController.GetMediaProducts(): SystemAdministrator,SectionHead,Reviewer,Analyst
+MediaMasterDataController.SetMediaProductActive(Int32, Boolean): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaConfiguration(Int32, UpdateMediaConfigurationRequest): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaIncubationCondition(Int32, UpdateMediaIncubationConditionRequest): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaProduct(Int32, UpdateMediaProductRequest): SystemAdministrator,SectionHead
@@ -469,6 +476,11 @@ ReferenceListMasterDataController.GetSamplers(): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateCauseOfTesting(Int32, String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateProductionStage(Int32, UpdateProductionStageRequest): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateSampler(Int32, String): SystemAdministrator,SectionHead
+ReferenceOrganismController.ChangeCode(Int32, ChangeReferenceOrganismCodeRequest): SystemAdministrator,SectionHead
+ReferenceOrganismController.Create(SaveReferenceOrganismRequest): SystemAdministrator,SectionHead
+ReferenceOrganismController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+ReferenceOrganismController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
+ReferenceOrganismController.Update(Int32, SaveReferenceOrganismRequest): SystemAdministrator,SectionHead
 ReportingAdminController.Backfill(): SystemAdministrator
 ReportingController.ExportMediaGpt(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
 ReportingController.ExportReferenceStrains(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
@@ -598,6 +610,7 @@ TestWorkflowStepMasterDataController.GetTestWorkflowSteps(Int32): SystemAdminist
 TestWorkflowStepMasterDataController.MoveTestWorkflowStep(Int32, MoveTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateTestWorkflowStep(Int32, UpdateTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateWorkflowType(Int32, UpdateWorkflowTypeRequest): SystemAdministrator,SectionHead
+TestingMaterialCatalogController.GetAll(String, String, Boolean, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestingWorkspaceController.GetActivePaged(TestingWorkspaceFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestingWorkspaceController.GetOne(Int32, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst
 TestingWorkspaceController.GetWorkloadCounts(Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst

@@ -54,9 +54,9 @@ public class ActionableGroupBuilderTests
     }
 
     [Fact]
-    public void PermittedMedia_AddsEverySiblingBatchOfTheSameProduct()
+    public void PermittedMedia_IsEveryBatchOfTheStepMediaProducts()
     {
-        var medium = new TestWorkflowStepMedia { MaterialId = 5, Material = new Material { MaterialName = "TSB", MediaProductId = 9 } };
+        var medium = new TestWorkflowStepMedia { MediaProductId = 9, MediaProduct = new MediaProduct { Name = "TSB" } };
 
         var (ids, names) = ActionableGroupBuilder.PermittedMedia(new[] { medium }, new() { [9] = new List<int> { 5, 6 } });
 

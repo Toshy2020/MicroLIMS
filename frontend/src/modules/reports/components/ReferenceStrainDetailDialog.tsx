@@ -102,6 +102,11 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
             <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
               {detail.strainName} {detail.atccNumber ? `(ATCC ${detail.atccNumber})` : ""}
             </Typography>
+            {detail.strainCode && (
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                Strain {detail.strainCode} · {detail.cultureCollection}{detail.strainNumber ? ` ${detail.strainNumber}` : ""}
+              </Typography>
+            )}
           </Grid>
           <Grid
             size={{

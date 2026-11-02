@@ -82,7 +82,7 @@ public class IncubationWindowResolverTests
     {
         var medium = new TestWorkflowStepMedia
         {
-            Material = new Material { MaterialName = "TSB" },
+            MediaProduct = new MediaProduct { Name = "TSB" },
             IncubationMinHours = 0
         };
 
@@ -95,33 +95,19 @@ public class IncubationWindowResolverTests
     }
 
     [Fact]
-    public void MatchStepMedium_ExactMaterialWinsOverSameProductFirst_FallsBackToProduct_OrReturnsNull()
+    public void MatchStepMedium_MatchesOnProductOnly_OrReturnsNull()
     {
-        var sameProductFirst = new TestWorkflowStepMedia
-        {
-            Id = 1,
-            MaterialId = 10,
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
-        };
-        var exactMaterial = new TestWorkflowStepMedia
-        {
-            Id = 2,
-            MaterialId = 20,
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
-        };
-        var stepMedia = new List<TestWorkflowStepMedia> { sameProductFirst, exactMaterial };
+        var first = new TestWorkflowStepMedia { Id = 1, MaterialId = 10, MediaProductId = 5 };
+        var second = new TestWorkflowStepMedia { Id = 2, MaterialId = 20, MediaProductId = 6 };
+        var stepMedia = new List<TestWorkflowStepMedia> { first, second };
 
-        // Exact MaterialId wins over a same-product medium listed first
-        var exactMatch = IncubationWindowResolver.MatchStepMedium(stepMedia, lotMaterialId: 20, lotProductId: 5);
-        Assert.Same(exactMaterial, exactMatch);
+        // Any batch of the product fits; the legacy stock lot on the row plays no part
+        Assert.Same(second, IncubationWindowResolver.MatchStepMedium(stepMedia, lotProductId: 6));
+        Assert.Same(first, IncubationWindowResolver.MatchStepMedium(stepMedia, lotProductId: 5));
 
-        // Product match through MediaConfiguration when the lot is another batch of product 5
-        var productMatch = IncubationWindowResolver.MatchStepMedium(new[] { sameProductFirst }, lotMaterialId: 99, lotProductId: 5);
-        Assert.Same(sameProductFirst, productMatch);
-
-        // Null when nothing matches
-        var noMatch = IncubationWindowResolver.MatchStepMedium(stepMedia, lotMaterialId: 999, lotProductId: 999);
-        Assert.Null(noMatch);
+        // Null when nothing matches, including a lot without a product
+        Assert.Null(IncubationWindowResolver.MatchStepMedium(stepMedia, lotProductId: 999));
+        Assert.Null(IncubationWindowResolver.MatchStepMedium(stepMedia, lotProductId: null));
     }
 
     [Fact]
@@ -130,14 +116,12 @@ public class IncubationWindowResolverTests
         var medium1 = new TestWorkflowStepMedia
         {
             Id = 1,
-            MaterialId = 10,
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
+            MediaProductId = 5
         };
         var medium2 = new TestWorkflowStepMedia
         {
             Id = 2,
-            MaterialId = 20,
-            IncubationCondition = new MediaIncubationCondition { MediaProductId = 6 }
+            MediaProductId = 6
         };
         var step = new TestWorkflowStep
         {

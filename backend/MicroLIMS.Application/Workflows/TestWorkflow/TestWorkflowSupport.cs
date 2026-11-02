@@ -55,7 +55,7 @@ public class TestWorkflowSupport
 
     protected IQueryable<TestDefinition> TemplatesWithSteps() => _db.TestDefinitions
         .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
-        .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
+        .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.MediaProduct)
         .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
         .Include(t => t.Steps).ThenInclude(s => s.PhenotypicTests);
 
@@ -503,7 +503,7 @@ public class TestWorkflowSupport
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.Material)
+                    .ThenInclude(m => m.MediaProduct)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(m => m.IncubationCondition)
@@ -524,7 +524,7 @@ public class TestWorkflowSupport
             var tsbStep = def.Steps.OrderBy(s => s.StepOrder).FirstOrDefault(TsbDetectionHelper.IsSharedTsbStep);
             if (tsbStep is null) continue;
 
-            var medium = IncubationWindowResolver.MatchStepMedium(tsbStep.StepMedia, lot.MaterialId, lotProductId);
+            var medium = IncubationWindowResolver.MatchStepMedium(tsbStep.StepMedia, lotProductId);
             if (medium is null) continue;
 
             var existing = incubations
@@ -785,17 +785,17 @@ public class TestWorkflowSupport
     protected async Task<TestWorkflowStepMedia> ResolveSelectedStepMediumAsync(int stepId, int mediaLotId)
     {
         var mediaRow = await _db.Media.Where(m => m.Id == mediaLotId)
-            .Select(m => new { m.MaterialId, m.Material!.MediaProductId })
+            .Select(m => new { m.Material!.MediaProductId })
             .FirstOrDefaultAsync()
             ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
 
         var stepMedia = await _db.TestWorkflowStepMedias
             .Include(m => m.IncubationCondition)
-            .Include(m => m.Material)
+            .Include(m => m.MediaProduct)
             .Where(m => m.TestWorkflowStepId == stepId)
             .ToListAsync();
 
-        return IncubationWindowResolver.MatchStepMedium(stepMedia, mediaRow.MaterialId, mediaRow.MediaProductId)
+        return IncubationWindowResolver.MatchStepMedium(stepMedia, mediaRow.MediaProductId)
             ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 "That medium is not on this step's permitted list.");
     }

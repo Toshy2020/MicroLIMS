@@ -32,12 +32,46 @@ public static class SampleWorkflowQueues
     public static readonly Expression<Func<Sample, bool>> NeedsPreparation = s =>
         s.PreparationStatus == SamplePreparationStatus.NeedsPreparation && !ClosedSampleStatuses.Contains(s.Status);
 
+    /// <summary>
+    /// Water, Environmental Monitoring and After Cleaning samples are received
+    /// without tests: their test orders are created when the Microbiology lab
+    /// prepares them (picks the sampling points, rooms or machine locations).
+    /// </summary>
+    public static readonly SampleCategory[] TestsCreatedAtPreparationCategories =
+    {
+        SampleCategory.Water,
+        SampleCategory.EnvironmentalMonitoring,
+        SampleCategory.AfterCleaning
+    };
+
+    /// <summary>
+    /// A received location-based sample that has no test orders yet. It belongs
+    /// to no section through its tests, so a section filter alone would hide it
+    /// from the very workspace that has to prepare it. The query form is the
+    /// second half of <see cref="VisibleInSections"/>.
+    /// </summary>
+    public static bool IsAwaitingPreparationWithoutTests(Sample s) =>
+        TestsCreatedAtPreparationCategories.Contains(s.Category)
+        && s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
+        && !s.TestOrders.Any(t => !t.IsSuperseded);
+
     // Preparation is only pending work for a lab whose tests wait for it:
     // in a Physicochemical-only view a mixed sample awaiting Microbiology
     // preparation is not in the queue. No scope (both labs) = the plain rule.
-    public static Expression<Func<Sample, bool>> NeedsPreparationIn(IReadOnlyCollection<int>? sectionIds)
+    // includesPreparingLab: the scope holds the Microbiology section, which
+    // also prepares the location-based samples that have no tests yet.
+    public static Expression<Func<Sample, bool>> NeedsPreparationIn(IReadOnlyCollection<int>? sectionIds, bool includesPreparingLab = false)
     {
         if (sectionIds == null) return NeedsPreparation;
+        if (includesPreparingLab)
+        {
+            return s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
+                && !ClosedSampleStatuses.Contains(s.Status)
+                && (s.TestOrders.Any(t => !t.IsSuperseded
+                        && sectionIds.Contains(t.SectionId)
+                        && t.Section!.Code != MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode)
+                    || (TestsCreatedAtPreparationCategories.Contains(s.Category) && !s.TestOrders.Any(t => !t.IsSuperseded)));
+        }
         return s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
             && !ClosedSampleStatuses.Contains(s.Status)
             && s.TestOrders.Any(t => !t.IsSuperseded
@@ -47,6 +81,21 @@ public static class SampleWorkflowQueues
 
     public static Expression<Func<Sample, bool>> HasTestInSections(IReadOnlyCollection<int> sectionIds) =>
         s => s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId));
+
+    /// <summary>
+    /// Which samples a section-scoped workspace lists: those with a test in the
+    /// sections, plus - for a scope holding the Microbiology lab - the
+    /// location-based samples it still has to prepare (see
+    /// <see cref="IsAwaitingPreparationWithoutTests"/>).
+    /// </summary>
+    public static Expression<Func<Sample, bool>> VisibleInSections(IReadOnlyCollection<int> sectionIds, bool includesPreparingLab)
+    {
+        if (!includesPreparingLab) return HasTestInSections(sectionIds);
+        return s => s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId))
+            || (TestsCreatedAtPreparationCategories.Contains(s.Category)
+                && s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
+                && !s.TestOrders.Any(t => !t.IsSuperseded));
+    }
 
     /// <summary>
     /// A sample with an active (non-superseded, Pending/InProgress) test holding an open incubation that

@@ -585,6 +585,24 @@ describe("UvPanel", () => {
     expect(payload.parameters[0].replicates[0].absorbance).toBe(0.12);
   });
 
+  it("a blank limit absorbance leaves signing disabled, and 0 enables it", async () => {
+    const user = userEvent.setup();
+    mockGetForTestOrder.mockResolvedValue([mockAbsLimitSpec]);
+    renderUvPanel({ testCode: "UV-INORG-P", testOrderId: 778 });
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Reference absorbance/i)).toBeTruthy();
+    });
+    await user.type(screen.getByLabelText(/Reference absorbance/i), "0.15");
+    const wavelengthInput = screen.getByLabelText(/Wavelength/i);
+    await user.clear(wavelengthInput);
+    await user.type(wavelengthInput, "700");
+
+    const signBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect(signBtn).toHaveProperty("disabled", true);
+    await user.type(screen.getByLabelText(/Absorbance 1/i), "0");
+    expect(signBtn).toHaveProperty("disabled", false);
+  });
+
   it("submits payload for StandardComparison with standard fields set", async () => {
     const user = userEvent.setup();
     mockGetForTestOrder.mockResolvedValue([mockStdCompSpec]);

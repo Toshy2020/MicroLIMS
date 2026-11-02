@@ -256,7 +256,7 @@ public class SampleReportDocumentTests
                     {
                         ParameterName = "Assay", ReportedDisplay = "99.1 %", Unit = "%", SpecLimit = "98 - 102",
                         ComparisonStatus = ResultStatus.WithinLimits,
-                        CalculationJson = "{\"quantity\":\"Uv\",\"mode\":\"StandardComparison\",\"standard\":{\"code\":\"RS-77\",\"purityPercent\":99.5,\"moisturePercent\":0.2,\"weightG\":0.025,\"absorbance\":0.48}}"
+                        CalculationJson = "{\"quantity\":\"Uv\",\"mode\":\"StandardComparison\",\"standard\":{\"code\":\"RS-77\",\"purityPercent\":99.5,\"moisturePercent\":0.2,\"weightG\":0.025,\"absorbance\":0.48,\"volumeMl\":5}}"
                     }
                 }
             }
@@ -269,6 +269,67 @@ public class SampleReportDocumentTests
         Assert.Contains("99.5", line);
         Assert.Contains("0.025", line);
         Assert.Contains("0.48", line);
+        Assert.Contains("moisture 0.2 %", line);
+        Assert.Contains("volume 5 mL", line);
+    }
+
+    [Fact]
+    public void SignedUvRiboflavin_PrintsWhatItWasJudgedOnExactly_AndLabelsTheAsIsResult()
+    {
+        var sample = FinishedProduct();
+        sample.TestOrders.Add(new TestOrderSummaryDetailDto
+        {
+            TestCode = "UV-RIBO", TestDisplayName = "Riboflavin assay (UV)", Status = "Approved",
+            Analysis = new AnalysisDetailDto
+            {
+                AnalysisType = WorkflowType.UvSpectrophotometry, EquipmentCode = "UV-01", EnteredByName = "Ahmed shawky",
+                ParameterResults =
+                {
+                    new ParameterResultDetailDto
+                    {
+                        ParameterName = "Riboflavin", ReportedDisplay = "78.63 %", Unit = "%", SpecLimit = "73 - 79",
+                        ComparisonStatus = ResultStatus.WithinLimits,
+                        CalculationJson = "{\"quantity\":\"Uv\",\"mode\":\"SpecificAbsorbanceAssay\",\"totalVolumeMl\":5000,\"specificAbsorbance\":328,\"moisturePercent\":5}",
+                        Readings = { new ResultReadingDetailDto { Index = 1, Value1 = 0.1m, Value2 = 0.5m, Value3 = 444m, ComputedValue = 74.7m } }
+                    }
+                }
+            }
+        });
+
+        var blocks = ReportDocumentMapper.ForSample(sample).Blocks;
+        var card = blocks.OfType<CardBlock>().Single(c => c.Title.StartsWith("UV-RIBO"));
+        var readings = blocks.OfType<TableBlock>().Single(b => b.Label.StartsWith("UV-RIBO readings"));
+
+        Assert.Equal("Judged on: Total volume 5000 mL · A1% 328", Assert.Single(card.MetaLines, l => l.StartsWith("Judged on:")));
+        Assert.Equal("Result (as is)", readings.Table.Columns[^1].Header);
+        Assert.Equal("74.70", readings.Table.Rows.Single()[^1]);
+    }
+
+    [Fact]
+    public void SignedUvLimitTest_PrintsTheReferenceAsTyped()
+    {
+        var sample = FinishedProduct();
+        sample.TestOrders.Add(new TestOrderSummaryDetailDto
+        {
+            TestCode = "UV-PO4", TestDisplayName = "Inorganic phosphate limit", Status = "Approved",
+            Analysis = new AnalysisDetailDto
+            {
+                AnalysisType = WorkflowType.UvSpectrophotometry, EquipmentCode = "UV-01", EnteredByName = "Ahmed shawky",
+                ParameterResults =
+                {
+                    new ParameterResultDetailDto
+                    {
+                        ParameterName = "Phosphate", ReportedDisplay = "0.120 AU", Unit = "AU", SpecLimit = "NMT reference",
+                        ComparisonStatus = ResultStatus.WithinLimits,
+                        CalculationJson = "{\"quantity\":\"Uv\",\"mode\":\"AbsorbanceLimit\",\"referenceAbsorbance\":0.1496}"
+                    }
+                }
+            }
+        });
+
+        var card = ReportDocumentMapper.ForSample(sample).Blocks.OfType<CardBlock>().Single(c => c.Title.StartsWith("UV-PO4"));
+
+        Assert.Equal("Judged on: Reference absorbance 0.1496", Assert.Single(card.MetaLines, l => l.StartsWith("Judged on:")));
     }
 
     [Fact]

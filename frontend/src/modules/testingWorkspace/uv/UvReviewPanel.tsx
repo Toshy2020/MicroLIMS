@@ -252,7 +252,7 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {calc.referenceAbsorbance != null
                 ? (typeof calc.referenceAbsorbance === "number"
-                    ? calc.referenceAbsorbance.toFixed(3)
+                    ? calc.referenceAbsorbance.toFixed(6).replace(/(\.\d{3}\d*?)0+$/, "$1")
                     : String(calc.referenceAbsorbance))
                 : "—"}
             </Typography>

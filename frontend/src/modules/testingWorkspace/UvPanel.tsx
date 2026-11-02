@@ -488,6 +488,7 @@ export function UvPanel({
       if (p.replicates.length !== replicateCount) return false;
 
       for (const r of p.replicates) {
+        if (r.absorbance.trim() === "") return false;
         const a = Number(r.absorbance);
         if (isLimitMode) {
           if (isNaN(a) || a < 0 || a > 5) return false;

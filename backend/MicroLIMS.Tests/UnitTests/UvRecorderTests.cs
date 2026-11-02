@@ -80,7 +80,7 @@ public class UvRecorderTests
         ArrangeOn(db, TitrationScenario.Seed(db, so), mode, replicates, tweakTest,
             specTweak == null ? Array.Empty<Action<Specification>>() : new[] { specTweak });
 
-    private static UvParameterInput Param(Specification spec, decimal absorbance, decimal? weightG = 0.1m, decimal wavelength = 444m, decimal? reference = null) =>
+    private static UvParameterInput Param(Specification spec, decimal? absorbance, decimal? weightG = 0.1m, decimal wavelength = 444m, decimal? reference = null) =>
         new(spec.Id, wavelength, reference, new List<UvReplicateInput> { new(weightG, absorbance) });
 
     private static UvPayload Payload(UvCase c, params UvParameterInput[] parameters) =>
@@ -335,6 +335,21 @@ public class UvRecorderTests
             var ex = await Refused(db, c, Payload(c, Param(c.Specs[0], bad, null, 700m, 0.150m)));
             Assert.Contains("Absorbance must be at least 0 and at most 5.", ex.Message);
         }
+    }
+
+    [Theory]
+    [InlineData(UvCalculationMode.AbsorbanceLimit)]
+    [InlineData(UvCalculationMode.SpecificAbsorbanceAssay)]
+    [InlineData(UvCalculationMode.SpecificAbsorbanceValue)]
+    public async Task BlankAbsorbance_IsRefused_InEveryMode(UvCalculationMode mode)
+    {
+        using var db = NewDb();
+        var limit = mode == UvCalculationMode.AbsorbanceLimit;
+        var c = Arrange(db, mode, specTweak: limit
+            ? sp => { sp.LimitType = LimitType.Qualitative; sp.ExpectedResultText = "NMT reference"; sp.ResultBasis = null; }
+            : null);
+        var ex = await Refused(db, c, Payload(c, Param(c.Specs[0], null, limit ? null : 0.1m, 700m, limit ? 0.150m : null)));
+        Assert.Equal("Enter the absorbance for every replicate.", ex.Message);
     }
 
     [Theory]

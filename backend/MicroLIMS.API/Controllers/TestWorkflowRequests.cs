@@ -55,7 +55,7 @@ public record RecordTitrationResultRequest(
     List<TitrationStandardRequest>? Standards, List<int> SpecificationIds, List<TitrationReplicateRequest> Replicates,
     string Password, string? Comment = null, bool? DueTitrantAcknowledged = null, string? DueTitrantJustification = null);
 
-public record UvReplicateRequest(decimal? WeightG, decimal Absorbance);
+public record UvReplicateRequest(decimal? WeightG, decimal? Absorbance);
 public record RecordUvParameterRequest(int SpecificationId, decimal WavelengthNm, decimal? ReferenceAbsorbance, List<UvReplicateRequest> Replicates);
 public record RecordUvResultRequest(
     DateTime AnalysedAt, int EquipmentId, int? StandardMaterialId, decimal? StandardWeightG, decimal? StandardAbsorbance,

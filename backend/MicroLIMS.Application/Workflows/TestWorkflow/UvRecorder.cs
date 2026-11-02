@@ -84,8 +84,10 @@ public sealed class UvRecorder : TestWorkflowSupport
             for (int i = 0; i < param.Replicates.Count; i++)
             {
                 var rep = param.Replicates[i];
-                bool aboveZero = limitMode ? rep.Absorbance >= 0m : rep.Absorbance > 0m;
-                if (!aboveZero || rep.Absorbance > MaxAbsorbance)
+                if (rep.Absorbance is not { } absorbance)
+                    throw new InvalidOperationException("Enter the absorbance for every replicate.");
+                bool aboveZero = limitMode ? absorbance >= 0m : absorbance > 0m;
+                if (!aboveZero || absorbance > MaxAbsorbance)
                     throw new InvalidOperationException(limitMode
                         ? "Absorbance must be at least 0 and at most 5."
                         : "Absorbance must be above 0 and at most 5.");
@@ -175,12 +177,12 @@ public sealed class UvRecorder : TestWorkflowSupport
                 var rep = input.Replicates[i];
                 values.Add(mode switch
                 {
-                    UvCalculationMode.SpecificAbsorbanceAssay => UvCalculator.SpecificAbsorbanceAssay(rep.Absorbance, volume!.Value, a1!.Value, rep.WeightG!.Value),
-                    UvCalculationMode.SpecificAbsorbanceValue => UvCalculator.SpecificAbsorbanceValue(rep.Absorbance, volume!.Value, rep.WeightG!.Value),
+                    UvCalculationMode.SpecificAbsorbanceAssay => UvCalculator.SpecificAbsorbanceAssay(rep.Absorbance!.Value, volume!.Value, a1!.Value, rep.WeightG!.Value),
+                    UvCalculationMode.SpecificAbsorbanceValue => UvCalculator.SpecificAbsorbanceValue(rep.Absorbance!.Value, volume!.Value, rep.WeightG!.Value),
                     UvCalculationMode.StandardComparison => UvCalculator.StandardComparison(
-                        rep.Absorbance, p.StandardAbsorbance!.Value, p.StandardWeightG!.Value, stdVolume!.Value, volume!.Value,
+                        rep.Absorbance!.Value, p.StandardAbsorbance!.Value, p.StandardWeightG!.Value, stdVolume!.Value, volume!.Value,
                         rep.WeightG!.Value, lot!.Purity!.Value, lot.MoisturePercent!.Value),
-                    _ => rep.Absorbance,
+                    _ => rep.Absorbance!.Value,
                 });
             }
             decimal asIs = values.Average();
@@ -248,7 +250,7 @@ public sealed class UvRecorder : TestWorkflowSupport
                 pr.Readings.Add(new ResultReading
                 {
                     Kind = ReadingKind.Absorbance, Index = i + 1,
-                    Value1 = input.Replicates[i].WeightG, Value2 = input.Replicates[i].Absorbance, Value3 = input.WavelengthNm,
+                    Value1 = input.Replicates[i].WeightG, Value2 = input.Replicates[i].Absorbance!.Value, Value3 = input.WavelengthNm,
                     ComputedValue = values[i],
                 });
             parameterResults.Add(pr);

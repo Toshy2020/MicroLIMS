@@ -144,7 +144,7 @@ public record GravimetricPayload(
     string Password,
     string? Comment = null);
 
-public record UvReplicateInput(decimal? WeightG, decimal Absorbance);
+public record UvReplicateInput(decimal? WeightG, decimal? Absorbance);
 
 public record UvParameterInput(int SpecificationId, decimal WavelengthNm, decimal? ReferenceAbsorbance, List<UvReplicateInput> Replicates);
 

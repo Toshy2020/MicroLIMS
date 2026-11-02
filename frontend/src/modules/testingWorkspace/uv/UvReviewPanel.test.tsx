@@ -186,6 +186,25 @@ describe("UvReviewPanel", () => {
     expect(container.textContent).not.toContain("undefined");
   });
 
+  it("prints a reference absorbance of 0.1496 as typed", () => {
+    const calc = {
+      engineVersion: "uv-1", quantity: "Uv", mode: "AbsorbanceLimit", wavelengthNm: 700,
+      totalVolumeMl: null, specificAbsorbance: null, standard: null, referenceAbsorbance: 0.1496,
+      resultBasis: null, asIsValue: 0.120, moisturePercent: null,
+      replicates: [{ replicateNo: 1, weightG: null, absorbance: 0.120, value: 0.120 }],
+      reportedValue: 0.120
+    };
+    const param: ParameterResultDetail = {
+      ...baseParameter, unit: "AU", reportedDisplay: "0.120 AU", calculationJson: JSON.stringify(calc)
+    };
+    render(
+      <PinnedLightTheme>
+        <UvReviewPanel parameter={param} testOrderId={104} />
+      </PinnedLightTheme>
+    );
+    expect(screen.getByText("0.1496")).toBeTruthy();
+  });
+
   it("shows neither Conforms nor Does not conform and hides As-is Value in limit mode", () => {
     const calc = {
       engineVersion: "uv-1",

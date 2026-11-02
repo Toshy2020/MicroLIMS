@@ -15,6 +15,7 @@ import { StepChainStrip } from "./components/StepChainStrip";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
 import { TitrationPanel } from "./TitrationPanel";
+import { UvPanel } from "./UvPanel";
 import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
@@ -327,6 +328,22 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "Titration") {
     return (
       <TitrationPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // UV Spectrophotometry (Plan 4)
+  if (current.workflowType === "UvSpectrophotometry") {
+    return (
+      <UvPanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

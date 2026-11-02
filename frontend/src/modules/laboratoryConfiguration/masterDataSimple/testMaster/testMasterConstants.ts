@@ -7,7 +7,7 @@ export type TestMasterLab = "micro" | "fp";
 export const FP_SECTION_CODE = "FP";
 export const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcMethodAssay", "IcpMethodAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation", "Titration"]
+  fp: ["HplcMethodAssay", "IcpMethodAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation", "Titration", "UvSpectrophotometry"]
 };
 export const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
@@ -20,7 +20,8 @@ export const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   Dissolution: "Dissolution",
   Disintegration: "Disintegration",
   WeightVariation: "Weight Variation",
-  Titration: "Titration (assay)"
+  Titration: "Titration (assay)",
+  UvSpectrophotometry: "UV Spectrophotometry"
 };
 
 export const EQUATION_TYPES = [
@@ -35,7 +36,8 @@ export const EQUATION_TYPES = [
   "Dissolution",
   "Disintegration",
   "WeightVariation",
-  "Titration"
+  "Titration",
+  "UvSpectrophotometry"
 ];
 export const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
@@ -49,7 +51,8 @@ export const EQUATION_TYPE_LABELS: Record<string, string> = {
   Dissolution: "Dissolution (HPLC finish, staged S1-S3)",
   Disintegration: "Disintegration (time per unit, staged)",
   WeightVariation: "Weight Variation (USP <2091>, staged)",
-  Titration: "Titration (USP <541>)"
+  Titration: "Titration (USP <541>)",
+  UvSpectrophotometry: "UV Spectrophotometry"
 };
 export const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 export const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];

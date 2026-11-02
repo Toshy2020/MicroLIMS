@@ -23,7 +23,8 @@ export type WorkflowType =
   | "WeightVariation"
   | "Titration"
   | "HplcMethodAssay"
-  | "IcpMethodAssay";
+  | "IcpMethodAssay"
+  | "UvSpectrophotometry";
 
 export interface TestWorkflowResult {
   outcomeSummary: string;
@@ -384,4 +385,34 @@ export interface RecordTitrationResultRequest {
   dueTitrantJustification?: string | null;
   password: string;
   comment: string | null;
+}
+
+// ---- UV Spectrophotometry (Plan 4) ----
+export type UvCalculationMode =
+  | "StandardComparison"
+  | "SpecificAbsorbanceAssay"
+  | "SpecificAbsorbanceValue"
+  | "AbsorbanceLimit";
+
+export interface UvReplicateRequest {
+  weightG?: number | null;
+  absorbance: number;
+}
+
+export interface RecordUvParameterRequest {
+  specificationId: number;
+  wavelengthNm: number;
+  referenceAbsorbance?: number | null;
+  replicates: UvReplicateRequest[];
+}
+
+export interface RecordUvResultRequest {
+  analysedAt: string;
+  equipmentId: number;
+  standardMaterialId?: number | null;
+  standardWeightG?: number | null;
+  standardAbsorbance?: number | null;
+  parameters: RecordUvParameterRequest[];
+  password: string;
+  comment?: string | null;
 }

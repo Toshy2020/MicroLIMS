@@ -4,7 +4,8 @@ import {
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
   GrowthObservation, SiblingPathogenOrder,
   ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
-  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest, SampleMoistureResult
+  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest, SampleMoistureResult,
+  RecordUvResultRequest
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -82,6 +83,10 @@ export const TestWorkflowService = {
 
   recordTitrationResult: (testOrderId: number, payload: RecordTitrationResultRequest): Promise<TestWorkflowResult> =>
     apiClient.post(`/test-workflow/${testOrderId}/record-titration-result`, payload).then((r) => r.data.data),
+
+  // UV Spectrophotometry (Plan 4). Server is authoritative.
+  recordUvResult: (testOrderId: number, payload: RecordUvResultRequest): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-uv-result`, payload).then((r) => r.data.data),
 
   // Qualitative analysis (appearance, ID, odor, etc.). Signed.
   recordQualitativeResult: (

@@ -95,6 +95,12 @@ export interface UpdateTestDefinitionStageReplicateRequest {
 
 export type MoistureRole = "None" | "LossOnDrying" | "Water";
 
+export type UvCalculationMode =
+  | "StandardComparison"
+  | "SpecificAbsorbanceAssay"
+  | "SpecificAbsorbanceValue"
+  | "AbsorbanceLimit";
+
 export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   code: string;
   displayName: string;
@@ -137,6 +143,10 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  uvCalculationMode?: UvCalculationMode | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -182,6 +192,10 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   perContainer?: boolean;
   moistureRole?: MoistureRole;
   changeReason?: string | null;
+  uvCalculationMode?: UvCalculationMode | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

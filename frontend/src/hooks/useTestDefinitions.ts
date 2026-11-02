@@ -5,10 +5,11 @@ import {
   masterDataOptions,
   CreateTestDefinitionPayload,
   UpdateTestDefinitionPayload,
-  MoistureRole
+  MoistureRole,
+  UvCalculationMode
 } from "../services/masterDataOptions";
 
-export type { MoistureRole };
+export type { MoistureRole, UvCalculationMode };
 
 export interface TestDefinitionOption extends TitrationDefinitionFields {
   id: number;
@@ -61,6 +62,10 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  uvCalculationMode?: UvCalculationMode | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
 }
 
 // Backs every TestCode picker in the app (Items, Water Sampling Points,

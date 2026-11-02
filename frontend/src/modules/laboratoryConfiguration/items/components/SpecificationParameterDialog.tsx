@@ -59,6 +59,10 @@ export interface TestDefinitionSummary {
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
   physchemArea?: PhyschemArea | null;
+  uvCalculationMode?: string | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
 }
 
 interface SpecificationParameterDialogProps {
@@ -253,6 +257,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     currentTestDef?.workflowType === "WeightVariation" ||
     limitType === "WeightVariation";
 
+  const isUv =
+    workflowTypeByCode[testCode] === "UvSpectrophotometry" ||
+    currentTestDef?.workflowType === "UvSpectrophotometry";
+  const uvCalculationMode = currentTestDef?.uvCalculationMode;
+  const isUvLimit = isUv && uvCalculationMode === "AbsorbanceLimit";
+
   const isHplcMethodAssay =
     currentTestDef?.equationType === "HplcMethodAssay" ||
     currentTestDef?.workflowType === "HplcMethodAssay" ||
@@ -422,11 +432,26 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       const def = testDefs[initialCode];
       const isInitHplc = def?.equationType === "HplcMethodAssay" || def?.workflowType === "HplcMethodAssay" || workflowTypeByCode[initialCode] === "HplcMethodAssay";
       const isInitIcp = def?.equationType === "IcpMethodAssay" || def?.workflowType === "IcpMethodAssay" || workflowTypeByCode[initialCode] === "IcpMethodAssay";
-      const defaultType = isInitHplc || isInitIcp ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
+      const isInitUv = def?.workflowType === "UvSpectrophotometry" || workflowTypeByCode[initialCode] === "UvSpectrophotometry";
+      const defaultType = isInitHplc || isInitIcp
+        ? "Range"
+        : isInitUv
+        ? (def?.uvCalculationMode === "AbsorbanceLimit" ? "Qualitative" : "Range")
+        : getDefaultLimitType(workflowTypeByCode[initialCode]);
       setLimitType(defaultType);
 
       setReferenceStandard("");
-      setUnit(isInitHplc || isInitIcp ? "%" : defaultType === "WeightVariation" ? "mg" : defaultType === "DisintegrationTime" ? "min" : "");
+      setUnit(
+        isInitHplc || isInitIcp
+          ? "%"
+          : isInitUv
+          ? (def?.uvCalculationMode === "AbsorbanceLimit" ? "AU" : def?.uvCalculationMode === "SpecificAbsorbanceValue" ? "" : "%")
+          : defaultType === "WeightVariation"
+          ? "mg"
+          : defaultType === "DisintegrationTime"
+          ? "min"
+          : ""
+      );
       setDilutionFactor("");
       setDosageForm("");
       setProductionStageRole("");
@@ -479,8 +504,26 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
     const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
     const isTit = workflowTypeByCode[newCode] === "Titration" || def?.workflowType === "Titration";
+    const isUvAssay = workflowTypeByCode[newCode] === "UvSpectrophotometry" || def?.workflowType === "UvSpectrophotometry";
 
-    if (isTit) {
+    if (isUvAssay) {
+      const mode = def?.uvCalculationMode;
+      if (mode === "AbsorbanceLimit") {
+        setLimitType("Qualitative");
+        setResultBasis("");
+        setUnit("AU");
+      } else {
+        setLimitType("Range");
+        setResultBasis(mode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs");
+        setUnit(mode === "SpecificAbsorbanceValue" ? "" : "%");
+      }
+      setDilutionFactor("");
+      setHplcMethodAnalyteId("");
+      setIcpMethodElementId("");
+      setRelatedSubstanceRow("");
+      setLabelClaim("");
+      setLabelClaimUnit("");
+    } else if (isTit) {
       setLimitType("Range");
       setDilutionFactor("");
       setResultBasis("PercentAsIs");
@@ -800,6 +843,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         ? "PercentAsIs"
         : isIcpMethodAssay
         ? (resultBasis as ResultBasis)
+        : isUv
+        ? (isUvLimit ? null : resultBasis ? (resultBasis as ResultBasis) : null)
         : (isHplcMethodAssay || isTitration) && resultBasis
         ? (resultBasis as ResultBasis)
         : null,
@@ -1258,6 +1303,28 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             />
           )}
 
+          {isUv && !isUvLimit && (
+            <Box sx={{ border: "1px dashed", borderColor: "divider", borderRadius: 1, p: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main", textTransform: "uppercase", display: "block", mb: 1.5 }}>
+                UV Spectrophotometry Basis
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <InputLabel id="uv-spec-basis-label">Basis</InputLabel>
+                <Select
+                  labelId="uv-spec-basis-label"
+                  label="Basis"
+                  value={resultBasis ?? ""}
+                  onChange={(e) => setResultBasis(e.target.value as ResultBasis)}
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value="PercentAsIs">% as is</MenuItem>
+                  <MenuItem value="PercentDriedBasis">% dried basis</MenuItem>
+                  <MenuItem value="PercentAnhydrousBasis">% anhydrous basis</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+
           {/* ICP Method Assay Parameters Block */}
           {isIcpMethodAssay && (
             <IcpSpecFields
@@ -1337,6 +1404,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
                   : isDissolution
                   ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
+                  : isUv
+                  ? (isUvLimit
+                    ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "Qualitative")
+                    : LIMIT_TYPE_OPTIONS.filter((opt) =>
+                        ["Range", "NotMoreThan", "NotLessThan"].includes(opt.value)
+                      ))
                   : (isHplcMethodAssay || isIcpMethodAssay || isTitration)
                   ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                       ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
@@ -1826,7 +1899,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          {!isHplcMethodAssay && !isIcpMethodAssay && !isTitration && limitType !== "WeightVariation" && (
+          {!isHplcMethodAssay && !isIcpMethodAssay && !isTitration && !isUv && limitType !== "WeightVariation" && (
             <TextField
               size="small"
               label="Dilution Factor"

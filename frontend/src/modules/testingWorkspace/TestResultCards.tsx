@@ -7,6 +7,7 @@ import { formatAnalysisConditions } from "./utils/moistureRetentionHelpers";
 import { HplcReviewPanel, hplcPanelResults } from "../hplcWorkspace/review/HplcReviewPanel";
 import { IcpReviewPanel } from "./icp/IcpReviewPanel";
 import { isIcpCalculation } from "./icp/icpReviewTypes";
+import { UvReviewPanel, isUvCalculation } from "./uv/UvReviewPanel";
 import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
@@ -155,8 +156,19 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                 />
               ))}
 
-          {a.analysisType !== "HplcMethodAssay" && a.analysisType !== "IcpMethodAssay" && a.parameterResults.map((p, idx) => {
-            if (!p.readings || p.readings.length === 0 || isIcpCalculation(p.calculationJson)) return null;
+          {(a.analysisType === "UvSpectrophotometry" || a.parameterResults.some((p) => isUvCalculation(p.calculationJson))) &&
+            a.parameterResults
+              .filter((p) => isUvCalculation(p.calculationJson) || a.analysisType === "UvSpectrophotometry")
+              .map((p) => (
+                <UvReviewPanel
+                  key={`uv-review-${p.id}`}
+                  parameter={p}
+                  testOrderId={a.testOrderId}
+                />
+              ))}
+
+          {a.analysisType !== "HplcMethodAssay" && a.analysisType !== "IcpMethodAssay" && a.analysisType !== "UvSpectrophotometry" && a.parameterResults.map((p, idx) => {
+            if (!p.readings || p.readings.length === 0 || isIcpCalculation(p.calculationJson) || isUvCalculation(p.calculationJson)) return null;
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";
             const isWeightVariation = a.analysisType === "WeightVariation";

@@ -285,7 +285,8 @@ export type ReadingKind =
   | "Vessel"
   | "TimePoint"
   | "Weight"
-  | "Titration";
+  | "Titration"
+  | "Absorbance";
 
 export type ResultBasis =
   | "MgPerKg"

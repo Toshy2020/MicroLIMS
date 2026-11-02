@@ -5,6 +5,7 @@ import { HplcReviewPanel, hplcPanelResults } from "../../hplcWorkspace/review/Hp
 import { formatAnalysisConditions } from "../utils/moistureRetentionHelpers";
 import { IcpReviewPanel } from "../icp/IcpReviewPanel";
 import { isIcpCalculation } from "../icp/icpReviewTypes";
+import { UvReviewPanel, isUvCalculation } from "../uv/UvReviewPanel";
 import { humanize } from "../SampleReportPage";
 import { parseTitrationSnapshot } from "../utils/titrationSnapshot";
 import { decimalsOf, withoutUnit } from "../utils/resultDisplay";
@@ -94,9 +95,19 @@ export function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) 
               testOrderId={analysis.testOrderId}
             />
           ))}
-      {analysis.analysisType !== "HplcMethodAssay" && analysis.analysisType !== "IcpMethodAssay" &&
+      {(analysis.analysisType === "UvSpectrophotometry" || analysis.parameterResults.some((p) => isUvCalculation(p.calculationJson))) &&
         analysis.parameterResults
-          .filter((p) => p.readings.length > 0 && !isIcpCalculation(p.calculationJson))
+          .filter((p) => isUvCalculation(p.calculationJson) || analysis.analysisType === "UvSpectrophotometry")
+          .map((p) => (
+            <UvReviewPanel
+              key={`uv-review-${p.id}`}
+              parameter={p}
+              testOrderId={analysis.testOrderId}
+            />
+          ))}
+      {analysis.analysisType !== "HplcMethodAssay" && analysis.analysisType !== "IcpMethodAssay" && analysis.analysisType !== "UvSpectrophotometry" &&
+        analysis.parameterResults
+          .filter((p) => p.readings.length > 0 && !isIcpCalculation(p.calculationJson) && !isUvCalculation(p.calculationJson))
           .map((p) => (
             <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
           ))}

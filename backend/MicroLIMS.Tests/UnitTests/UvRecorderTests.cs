@@ -476,6 +476,157 @@ public class UvRecorderTests
         Assert.Equal(5000m, calc.RootElement.GetProperty("totalVolumeMl").GetDecimal());
     }
 
+    // ---- fix round 1 ----
+
+    private static void LimitSpec(Specification sp)
+    {
+        sp.LimitType = LimitType.Qualitative; sp.ExpectedResultText = "Not more than the reference";
+        sp.LowerLimit = null; sp.UpperLimit = null; sp.ResultBasis = null; sp.Unit = "";
+    }
+
+    [Fact]
+    public async Task AbsorbanceLimit_AFailingReplicateIsNotMaskedByTheMean()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.AbsorbanceLimit, replicates: 2, specTweak: LimitSpec);
+        var param = new UvParameterInput(c.Specs[0].Id, 700m, 0.150m, new() { new(null, 0.140m), new(null, 0.160m) });
+
+        var result = await Record(db, c, Payload(c, param));
+
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
+        var pr = await db.ParameterResults.SingleAsync(r => r.TestOrderId == c.Order.Id);
+        Assert.Equal(0.150m, pr.ReportedValue); // the reported value stays the mean
+        Assert.Equal("0.150 AU", pr.ReportedDisplay);
+    }
+
+    [Fact]
+    public async Task AbsorbanceLimit_IsJudgedUnrounded()
+    {
+        using (var db = NewDb())
+        {
+            var c = Arrange(db, UvCalculationMode.AbsorbanceLimit, specTweak: LimitSpec);
+            var result = await Record(db, c, Payload(c, Param(c.Specs[0], 0.1504m, null, 700m, 0.1501m)));
+            Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
+        }
+        using (var db = NewDb())
+        {
+            var c = Arrange(db, UvCalculationMode.AbsorbanceLimit, specTweak: LimitSpec);
+            var result = await Record(db, c, Payload(c, Param(c.Specs[0], 0.150m, null, 700m, 0.150m)));
+            Assert.Equal(ResultStatus.WithinLimits, result.Status);
+        }
+    }
+
+    [Fact]
+    public async Task StandardComparison_TakesOneParameter()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.StandardComparison, 1, null, WithStandard(), Wide);
+        var second = new Specification
+        {
+            ItemId = c.Specs[0].ItemId, TestCode = c.Test.Code, ParameterName = "Second", DisplayOrder = 2,
+            LimitType = LimitType.Range, LowerLimit = 90m, UpperLimit = 110m, Unit = "%", ResultBasis = ResultBasis.PercentAsIs,
+        };
+        db.Specifications.Add(second); db.SaveChanges();
+        var p = StandardPayload(c);
+        p = p with { Parameters = new() { p.Parameters[0], Param(second, 0.50m, 0.1m) } };
+
+        var ex = await Refused(db, c, p);
+        Assert.Equal("A UV test against a standard takes one parameter.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SpecificAbsorbanceValue_WithAnEmptyUnit_HasNoPercentSign()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.SpecificAbsorbanceValue, specTweak: sp =>
+        { sp.LowerLimit = 425m; sp.UpperLimit = 445m; sp.ResultBasis = null; sp.Unit = ""; });
+        await Record(db, c, Payload(c, Param(c.Specs[0], 0.435m, 2.5m, 253m)));
+        var pr = await db.ParameterResults.SingleAsync(r => r.TestOrderId == c.Order.Id);
+        Assert.Equal("435.00", pr.ReportedDisplay);
+    }
+
+    [Fact]
+    public async Task SpecificAbsorbanceAssay_WithAnEmptyUnit_StillReadsAsPercent()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.SpecificAbsorbanceAssay, specTweak: sp => sp.Unit = "");
+        await Record(db, c, Payload(c, Param(c.Specs[0], 0.49m)));
+        Assert.Equal("74.70 %", (await db.ParameterResults.SingleAsync(r => r.TestOrderId == c.Order.Id)).ReportedDisplay);
+    }
+
+    [Fact]
+    public async Task EquipmentIdZero_IsRefusedLikeMissingEquipment()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.SpecificAbsorbanceAssay);
+        var ex = await Refused(db, c, Payload(c, Param(c.Specs[0], 0.49m)) with { EquipmentId = 0 });
+        Assert.Contains("spectrophotometer", ex.Message);
+    }
+
+    [Fact]
+    public async Task StandardLot_WithNoMoistureValue_IsRefused()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.StandardComparison, 1, null, WithStandard(), Wide);
+        c.S.StandardLot!.MoisturePercent = null; db.SaveChanges();
+        var ex = await Refused(db, c, StandardPayload(c));
+        Assert.Contains("standard values are incomplete", ex.Message);
+        Assert.Empty(db.TestAnalyses.Where(x => x.TestOrderId == c.Order.Id));
+    }
+
+    [Fact]
+    public async Task AnhydrousBasis_UsesTheSampleWaterResult()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.SpecificAbsorbanceAssay, specTweak: sp => sp.ResultBasis = ResultBasis.PercentAnhydrousBasis);
+        var refused = await Refused(db, c, Payload(c, Param(c.Specs[0], 0.49m)));
+        Assert.Equal(SampleMoistureResolver.MissingMessage(MoistureRole.Water), refused.Message);
+
+        c.S.AddMoistureResult(db, MoistureRole.Water, 5m);
+        var result = await Record(db, c, Payload(c, Param(c.Specs[0], 0.49m)));
+
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
+        var a = await db.TestAnalyses.Include(x => x.ParameterResults).SingleAsync(x => x.TestOrderId == c.Order.Id);
+        Assert.Equal(78.63m, Assert.Single(a.ParameterResults).ReportedValue);
+        using var cond = JsonDocument.Parse(a.ConditionsJson!);
+        Assert.Equal("Water", cond.RootElement.GetProperty("moisture").GetProperty("role").GetString());
+    }
+
+    [Fact]
+    public async Task DriedBasis_WithStandardComparison_CorrectsTheMean()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.StandardComparison, 1, null, WithStandard(), sp => { Wide(sp); sp.ResultBasis = ResultBasis.PercentDriedBasis; });
+        c.S.AddMoistureResult(db, MoistureRole.LossOnDrying, 5m);
+
+        await Record(db, c, StandardPayload(c));
+
+        // as-is 99.7002 (see the calculator test) x 100 / 95 = 104.9476 -> 104.95, inside 90-110
+        var expected = Math.Round(Math.Round(
+            StandardComparisonCalculator.CalculatePreparationAssay(0.50m, 0.50m, 0.1m, 100m, 100m, 0.1m, 0.1m, 99.8m) * 100m / 95m, 2), 2);
+        var pr = await db.ParameterResults.SingleAsync(r => r.TestOrderId == c.Order.Id);
+        Assert.Equal(expected, pr.ReportedValue);
+        Assert.Equal(104.95m, pr.ReportedValue);
+        Assert.Equal(ResultBasis.PercentDriedBasis, pr.ResultBasis);
+    }
+
+    [Fact]
+    public async Task DriedAndAnhydrousSpecs_OnOneTest_AreRefusedAtRecordTime()
+    {
+        using var db = NewDb();
+        var s = TitrationScenario.Seed(db);
+        var c = ArrangeOn(db, s, UvCalculationMode.SpecificAbsorbanceValue, 1, null, new Action<Specification>[]
+        {
+            sp => { sp.ResultBasis = ResultBasis.PercentDriedBasis; },
+            sp => { sp.ResultBasis = ResultBasis.PercentAnhydrousBasis; },
+        });
+        s.AddMoistureResult(db, MoistureRole.LossOnDrying, 5m);
+        s.AddMoistureResult(db, MoistureRole.Water, 5m);
+
+        var ex = await Refused(db, c, Payload(c, Param(c.Specs[0], 0.435m, 2.5m), Param(c.Specs[1], 0.435m, 2.5m)));
+        Assert.Equal("One UV test cannot report on both dried and anhydrous basis.", ex.Message);
+    }
+
     // ---- the return cascade ----
 
     [Fact]

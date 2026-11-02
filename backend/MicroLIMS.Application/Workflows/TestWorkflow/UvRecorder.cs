@@ -32,6 +32,9 @@ public sealed class UvRecorder : TestWorkflowSupport
     private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, UvPayload p, int userId, string? ipAddress)
     {
         var parameters = p.Parameters ?? new List<UvParameterInput>();
+        // checked before anything is loaded: a request that omits the id arrives as 0
+        if (!(p.EquipmentId > 0))
+            throw new InvalidOperationException("Select the spectrophotometer used.");
         var (order, t, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, p.AnalysedAt, p.EquipmentId, parameters.Select(x => x.SpecificationId).ToList(),
             p.Password, WorkflowType.UvSpectrophotometry, userId);
@@ -64,11 +67,12 @@ public sealed class UvRecorder : TestWorkflowSupport
         }
 
         // ---- request shape ----
-        if (!p.EquipmentId.HasValue)
-            throw new InvalidOperationException("Select the spectrophotometer used.");
         var equipmentType = await _db.Equipment.Where(e => e.Id == p.EquipmentId.Value).Select(e => e.Type).FirstAsync();
         if (equipmentType is not (EquipmentType.UvVis or EquipmentType.Other))
             throw new InvalidOperationException("The selected equipment is not a UV spectrophotometer.");
+
+        if (standardMode && parameters.Count > 1)
+            throw new InvalidOperationException("A UV test against a standard takes one parameter.");
 
         foreach (var param in parameters)
         {
@@ -155,6 +159,8 @@ public sealed class UvRecorder : TestWorkflowSupport
                 throw new InvalidOperationException($"Standard lot {lot.LotLabel} has no stock left.");
             if (!(lot.Purity > 0m))
                 throw new InvalidOperationException($"Standard lot {lot.LotLabel} has no purity recorded.");
+            if (!lot.MoisturePercent.HasValue)
+                throw new InvalidOperationException($"Standard lot {lot.LotLabel}: the standard values are incomplete (no moisture value recorded).");
         }
 
         // ---- one ParameterResult per specification ----
@@ -173,7 +179,7 @@ public sealed class UvRecorder : TestWorkflowSupport
                     UvCalculationMode.SpecificAbsorbanceValue => UvCalculator.SpecificAbsorbanceValue(rep.Absorbance, volume!.Value, rep.WeightG!.Value),
                     UvCalculationMode.StandardComparison => UvCalculator.StandardComparison(
                         rep.Absorbance, p.StandardAbsorbance!.Value, p.StandardWeightG!.Value, stdVolume!.Value, volume!.Value,
-                        rep.WeightG!.Value, lot!.Purity!.Value, lot.MoisturePercent ?? 0m),
+                        rep.WeightG!.Value, lot!.Purity!.Value, lot.MoisturePercent!.Value),
                     _ => rep.Absorbance,
                 });
             }
@@ -185,10 +191,11 @@ public sealed class UvRecorder : TestWorkflowSupport
             decimal? moistureUsed = null;
             if (limitMode)
             {
-                // Absorbances are read to three decimals; the mean is judged as it is shown.
+                // The reported value is the mean, but every replicate is judged on its own unrounded reading:
+                // a failing replicate must not be masked by the mean.
                 reported = Math.Round(asIs, 3, MidpointRounding.AwayFromZero);
                 display = $"{reported.ToString("0.000", CultureInfo.InvariantCulture)} {(string.IsNullOrWhiteSpace(spec.Unit) ? "AU" : spec.Unit.Trim())}";
-                status = UvCalculator.WithinReference(reported, input.ReferenceAbsorbance!.Value)
+                status = values.All(v => UvCalculator.WithinReference(v, input.ReferenceAbsorbance!.Value))
                     ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification;
             }
             else
@@ -198,6 +205,9 @@ public sealed class UvRecorder : TestWorkflowSupport
                     .Where(x => x.HasValue).Select(x => MeasurementCalculator.GetSpecDecimalPlaces(x!.Value)).DefaultIfEmpty(0).Max());
                 reported = Math.Round(HplcAssayCalculator.ApplyBasis(asIs, spec.ResultBasis, moistureUsed), decimals, MidpointRounding.AwayFromZero);
                 display = GravimetricCalculator.FormatReportedDisplay(reported, spec);
+                // the helper defaults an empty unit to "%", which a specific absorbance does not have
+                if (mode == UvCalculationMode.SpecificAbsorbanceValue && string.IsNullOrWhiteSpace(spec.Unit) && display.EndsWith(" %"))
+                    display = display[..^2];
                 status = SpecificationEvaluator.Evaluate(spec, reported);
             }
 
@@ -222,7 +232,7 @@ public sealed class UvRecorder : TestWorkflowSupport
                     specificAbsorbance = a1,
                     standard = lot == null ? null : new
                     {
-                        lotId = lot.Id, code = lot.LotLabel, purityPercent = lot.Purity, moisturePercent = lot.MoisturePercent ?? 0m,
+                        lotId = lot.Id, code = lot.LotLabel, purityPercent = lot.Purity, moisturePercent = lot.MoisturePercent,
                         weightG = p.StandardWeightG, absorbance = p.StandardAbsorbance, volumeMl = stdVolume,
                     },
                     referenceAbsorbance = input.ReferenceAbsorbance,

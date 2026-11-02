@@ -552,13 +552,25 @@ public static class ReportDocumentMapper
         {
             using var parsed = JsonDocument.Parse(json);
             if (parsed.RootElement.ValueKind != JsonValueKind.Object) return parsed.RootElement.GetRawText();
-            var parts = parsed.RootElement.EnumerateObject().Select(p => $"{p.Name}: {JsonText(p.Value)}").ToList();
+            var parts = parsed.RootElement.EnumerateObject()
+                .Select(p => p.Name == "moisture" && MoistureText(p.Value) is { } m ? m : $"{p.Name}: {JsonText(p.Value)}").ToList();
             return parts.Count == 0 ? null : string.Join(" · ", parts);
         }
         catch (JsonException)
         {
             return json;
         }
+    }
+
+    // The loss on drying / water result a dried or anhydrous assay used (UV, titration), in words.
+    private static string? MoistureText(JsonElement m)
+    {
+        if (m.ValueKind != JsonValueKind.Object || Pick(m, "percent") is not { } pct
+            || !decimal.TryParse(JsonText(pct), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)) return null;
+        var role = Pick(m, "role") is { } r ? Humanize(JsonText(r)).ToLowerInvariant() : null;
+        var test = Pick(m, "testCode") is { } t ? $"test {JsonText(t)}" : null;
+        var detail = string.Join(", ", new[] { role, test }.Where(x => x is not null));
+        return $"Moisture: {Num(percent)} %" + (detail.Length > 0 ? $" ({detail})" : "");
     }
 
     // The TitrationSnapshot TitrationRecorder stores on ConditionsJson:

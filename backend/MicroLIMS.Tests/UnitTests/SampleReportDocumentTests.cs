@@ -172,6 +172,43 @@ public class SampleReportDocumentTests
     }
 
     [Fact]
+    public void SignedUvDriedAssay_ShowsValueAndLimit_AndNamesTheMoistureInWords()
+    {
+        // The ConditionsJson UvRecorder signs for a dried-basis assay: only the moisture entry it used.
+        const string conditions = "{\"moisture\":{\"parameterResultId\":41,\"testOrderId\":17,\"percent\":5,\"role\":\"LossOnDrying\",\"testCode\":\"LOD\"}}";
+        var sample = FinishedProduct();
+        sample.TestOrders.Add(new TestOrderSummaryDetailDto
+        {
+            TestCode = "UV-ASSAY", TestDisplayName = "Riboflavin assay (UV)", Status = "Approved",
+            Analysis = new AnalysisDetailDto
+            {
+                AnalysisType = WorkflowType.UvSpectrophotometry, EquipmentCode = "UV-01", EnteredByName = "Ahmed shawky",
+                ConditionsJson = conditions,
+                ParameterResults =
+                {
+                    new ParameterResultDetailDto
+                    {
+                        ParameterName = "Riboflavin", ReportedDisplay = "78.63 %", Unit = "%", SpecLimit = "73 - 79",
+                        ComparisonStatus = ResultStatus.WithinLimits, CalculationJson = "{\"quantity\":\"Uv\"}"
+                    }
+                }
+            }
+        });
+
+        var card = ReportDocumentMapper.ForSample(sample).Blocks.OfType<CardBlock>().Single(c => c.Title.StartsWith("UV-ASSAY"));
+
+        Assert.Equal("78.63 %", card.HeadlineValue);
+        Assert.Equal(new[] { "Riboflavin", "78.63", "%", "73 - 79", "WithinLimits" }, card.TableRows.Single());
+        var line = Assert.Single(card.MetaLines, l => l.StartsWith("Conditions:"));
+        Assert.Contains("Moisture", line);
+        Assert.Contains("5 %", line);
+        Assert.Contains("loss on drying", line, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LOD", line);
+        Assert.DoesNotContain("{", line);
+        Assert.DoesNotContain("parameterResultId", line);
+    }
+
+    [Fact]
     public void SignatureMeaning_ComesFromTheSharedVocabulary()
     {
         var sig = ReportDocumentMapper.ForSample(FinishedProduct()).Blocks.OfType<SignatureBlock>().Single().Signatures.Single();

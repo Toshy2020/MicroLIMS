@@ -331,6 +331,8 @@ public partial class HplcRunServiceTests
         var runSvc = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await runSvc.StartRunAsync(new StartHplcRunRequest(s.Equipment.Id, isMethod.Id, s.Column.Id,
             new List<HplcMobilePhaseAssignmentInput> { new("A", prep.Id) }), s.UserId);
+        Assert.Equal("Benzoic acid", run.InternalStandardName);
+        Assert.Equal(HplcResultMode.Assay, run.ResultMode);
 
         var stdLot = await AddStandardLotAsync(db, s.Section.Id, s.StandardEntry, purity: 100m, moisturePercent: 0m);
         await runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {

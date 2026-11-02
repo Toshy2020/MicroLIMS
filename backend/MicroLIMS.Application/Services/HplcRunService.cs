@@ -73,7 +73,9 @@ public record HplcRunDto(
     int HplcMethodId, string HplcMethodAbbreviation,
     int AnalystUserId, string? AnalystUserName, DateTime StartedAt, HplcRunStatus Status, DateTime? ClosedAt, string? CloseReason,
     List<HplcRunMobilePhaseDto> MobilePhases, HplcSstRecordDto? Sst, List<HplcRunSampleSummaryDto> Samples, List<HplcEvidenceDto> Evidence,
-    bool CanConfirmSst, string? CanConfirmSstReason, bool CanAssignSamples, string? CanAssignSamplesReason);
+    bool CanConfirmSst, string? CanConfirmSstReason, bool CanAssignSamples, string? CanAssignSamplesReason,
+    // From the run's method snapshot, not the live method.
+    HplcResultMode ResultMode = HplcResultMode.Assay, string? InternalStandardName = null);
 
 public record HplcRunListItem(int Id, string Code, string MethodAbbreviation, string AnalystUserName, DateTime StartedAt, HplcRunStatus Status, HplcSstStatus SstStatus, DateTime? ClosedAt);
 
@@ -910,6 +912,8 @@ public partial class HplcRunService
                 ? "The run is closed."
                 : "Sample assignment is locked until system suitability passes.";
 
+        var runSnapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
+
         return new HplcRunDto(
             run.Id, run.Version, run.Code, run.SectionId,
             run.EquipmentId, run.Equipment?.Code ?? string.Empty, run.Equipment?.Name ?? string.Empty,
@@ -917,6 +921,8 @@ public partial class HplcRunService
             run.HplcMethodId, run.HplcMethod?.Abbreviation ?? string.Empty,
             run.AnalystUserId, NameOf(run.AnalystUserId), run.StartedAt, run.Status, run.ClosedAt, run.CloseReason,
             mobilePhases, sstDto, samples, evidence,
-            canConfirmSst, canConfirmSstReason, canAssignSamples, canAssignSamplesReason);
+            canConfirmSst, canConfirmSstReason, canAssignSamples, canAssignSamplesReason,
+            runSnapshot?.ResultMode ?? HplcResultMode.Assay,
+            string.IsNullOrWhiteSpace(runSnapshot?.InternalStandardName) ? null : runSnapshot!.InternalStandardName);
     }
 }

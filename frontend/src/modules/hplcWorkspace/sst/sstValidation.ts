@@ -8,8 +8,6 @@ export function findMissingSstFields(
   standardIsWeighed = true,
   hasInternalStandard = false
 ): string[] {
-  const isIS = hasInternalStandard || Boolean((method as HplcMethodSnapshot)?.internalStandardName);
-
   return analytes.flatMap((a) => {
     const v = inputs[a.id];
     const ma = method?.analytes.find(
@@ -32,7 +30,7 @@ export function findMissingSstFields(
       fields.push(`injection ${blank.map((n) => `#${n}`).join(", ")}`);
     }
 
-    if (isIS) {
+    if (hasInternalStandard) {
       const isBlank = Array.from({ length: injectionCount }, (_, i) => i + 1)
         .filter((n) => !((v?.internalStandardResponses?.[n - 1] ?? 0) > 0));
       if (isBlank.length > 0) {

@@ -232,6 +232,9 @@ export interface HplcRunDto {
   canConfirmSstReason?: string | null;
   canAssignSamples: boolean;
   canAssignSamplesReason?: string | null;
+  // From the run's method snapshot, not the live method.
+  resultMode: HplcResultMode;
+  internalStandardName?: string | null;
 }
 
 export interface HplcRunListItem {

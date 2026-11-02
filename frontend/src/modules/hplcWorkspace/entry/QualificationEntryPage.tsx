@@ -17,7 +17,7 @@ import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { NumericCell, ResultSection } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
-import { buildReplicatePayload } from "./HplcSampleEntryPage";
+import { buildReplicatePayload } from "./replicatePayload";
 import { WorkingStandardPreviewCard } from "./WorkingStandardPreviewCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";

@@ -29,6 +29,7 @@ import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { NumericCell, ResultSection } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
+import { buildReplicatePayload } from "./replicatePayload";
 import { RelatedSubstancesPeakTable, rsReplicatesComplete } from "./RelatedSubstancesPeakTable";
 import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummaryCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
@@ -42,37 +43,7 @@ import type { SampleMoistureResult } from "../../testingWorkspace/types/testWork
 import type {
   HplcSampleEntryDto,
   HplcReplicateDto,
-  HplcReplicateInput
 } from "../types";
-
-export function buildReplicatePayload(
-  replicates: HplcReplicateDto[],
-  isRelatedSubstances: boolean,
-  hasInternalStandard: boolean
-): HplcReplicateInput[] {
-  return replicates.map((r) => {
-    const item: HplcReplicateInput = {
-      actualWeightMg: isRelatedSubstances ? 0 : (r.actualWeightMg ?? 0),
-      responses: r.responses.map((resp) => ({
-        hplcMethodAnalyteId: resp.hplcMethodAnalyteId,
-        response: resp.response
-      }))
-    };
-    if (hasInternalStandard) {
-      item.internalStandardResponse = r.internalStandardResponse ?? null;
-    }
-    if (isRelatedSubstances && r.peaks) {
-      item.peaks = r.peaks
-        .filter((p) => p.hplcMethodImpurityId != null || (typeof p.area === "number" && p.area > 0))
-        .map((p) => ({
-          hplcMethodImpurityId: p.hplcMethodImpurityId ?? null,
-          relativeRetention: p.relativeRetention ?? null,
-          area: p.area
-        }));
-    }
-    return item;
-  });
-}
 
 export function HplcSampleEntryPage() {
   const theme = useTheme();

@@ -31,9 +31,9 @@ export function SystemSuitabilityPanel({
   onRunUpdated
 }: SystemSuitabilityPanelProps) {
   const { label } = useTechnique();
-  const isResidualSolvents = method?.resultMode === "ResidualSolvents";
-  const standardIsWeighed = (method?.resultMode ?? "Assay") === "Assay";
-  const hasInternalStandard = Boolean(method?.internalStandardName);
+  const isResidualSolvents = run.resultMode === "ResidualSolvents";
+  const standardIsWeighed = run.resultMode === "Assay";
+  const hasInternalStandard = Boolean(run.internalStandardName);
   const [currentRun, setCurrentRun] = useState<HplcRunDto>(run);
 
   useEffect(() => {
@@ -287,7 +287,7 @@ export function SystemSuitabilityPanel({
                   isResidualSolvents={isResidualSolvents}
                   standardIsWeighed={standardIsWeighed}
                   hasInternalStandard={hasInternalStandard}
-                  internalStandardName={method?.internalStandardName}
+                  internalStandardName={run.internalStandardName}
                 />
               );
             })}

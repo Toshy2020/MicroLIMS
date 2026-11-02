@@ -423,6 +423,22 @@ public partial class HplcRunServiceTests
     }
 
     [Fact]
+    public async Task RunDto_CarriesTheSnapshotResultModeAndInternalStandard()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+
+        Assert.Equal(HplcResultMode.RelatedSubstances, f.Run.ResultMode);
+        Assert.Null(f.Run.InternalStandardName);
+
+        // The live method drifts afterwards; a fresh read still reports the snapshot.
+        (await db.HplcMethods.FirstAsync(m => m.Id == f.S.Method.Id)).ResultMode = HplcResultMode.Assay;
+        await db.SaveChangesAsync();
+        Assert.Equal(HplcResultMode.RelatedSubstances, (await f.Service.GetRunAsync(f.Run.Id, f.S.UserId)).ResultMode);
+    }
+
+    [Fact]
     public async Task RsSst_StoresNoStandardWeight_EvenWhenOneIsSent()
     {
         await using var db = NewDb();

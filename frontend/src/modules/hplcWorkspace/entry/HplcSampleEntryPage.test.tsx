@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
-import { HplcSampleEntryPage, buildReplicatePayload } from "./HplcSampleEntryPage";
+import { HplcSampleEntryPage } from "./HplcSampleEntryPage";
+import { buildReplicatePayload } from "./replicatePayload";
+import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
 import type { HplcReplicateDto, HplcSampleEntryDto } from "../types";
@@ -23,6 +25,10 @@ vi.mock("../services/HplcWorkspaceService", () => ({
     getRun: vi.fn().mockResolvedValue({ id: 10, hplcMethodId: 1 }),
     saveReplicates: vi.fn()
   }
+}));
+
+vi.mock("../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService", () => ({
+  HplcMethodService: { getById: vi.fn() }
 }));
 
 vi.mock("../../testingWorkspace/services/TestWorkflowService", () => ({
@@ -196,6 +202,7 @@ describe("HplcSampleEntryPage - moisture line display", () => {
     expect(screen.getByText("Reference: 0.1%")).toBeTruthy();
     // The page no longer asks for the run or the live method.
     expect(HplcWorkspaceService.getRun).not.toHaveBeenCalled();
+    expect(HplcMethodService.getById).not.toHaveBeenCalled();
   });
 
   it("takes the internal standard from the entry", async () => {

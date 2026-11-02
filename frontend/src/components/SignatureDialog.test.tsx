@@ -25,6 +25,21 @@ describe("SignatureDialog", () => {
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith("pw-1", undefined));
   });
 
+  it("ignores a second Enter while the first confirm is pending", async () => {
+    let finish: () => void = () => {};
+    const onConfirm = vi.fn().mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
+    render(<SignatureDialog open meaningStatement="I am approving this." onCancel={() => {}} onConfirm={onConfirm} />);
+
+    const password = screen.getByLabelText(/^Password/);
+    fireEvent.change(password, { target: { value: "pw-1" } });
+    fireEvent.keyDown(password, { key: "Enter" });
+    fireEvent.keyDown(password, { key: "Enter" });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    finish();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sign" })).toBeTruthy());
+  });
+
   it("with a second signer, waits for both and passes both", async () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
     render(<SignatureDialog open meaningStatement="I am skipping it." requireSecondSigner onCancel={() => {}} onConfirm={onConfirm} />);

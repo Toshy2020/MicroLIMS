@@ -344,6 +344,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "UvSpectrophotometry") {
     return (
       <UvPanel
+        key={testOrderId}
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

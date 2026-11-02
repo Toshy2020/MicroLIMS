@@ -128,6 +128,8 @@ public class TestDefinitionMasterDataService
         {
             if (!request.UvCalculationMode.HasValue)
                 throw new InvalidOperationException("A UV test needs a calculation mode.");
+            if (!Enum.IsDefined(request.UvCalculationMode.Value))
+                throw new InvalidOperationException("Unknown UV calculation mode.");
 
             if (request.UvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceAssay)
             {
@@ -549,6 +551,8 @@ public class TestDefinitionMasterDataService
         {
             if (!effectiveUvCalculationMode.HasValue)
                 throw new InvalidOperationException("A UV test needs a calculation mode.");
+            if (!Enum.IsDefined(effectiveUvCalculationMode.Value))
+                throw new InvalidOperationException("Unknown UV calculation mode.");
 
             if (effectiveUvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceAssay)
             {

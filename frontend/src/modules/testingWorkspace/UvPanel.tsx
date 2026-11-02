@@ -88,7 +88,6 @@ export function UvPanel({
   testOrderId,
   displayName,
   testCode,
-  itemId,
   sampleId,
   current,
   onRecorded
@@ -133,6 +132,7 @@ export function UvPanel({
   useEffect(() => {
     if (!showCompleted || sampleId == null) return;
     let active = true;
+    setSummaryError(null);
     SampleSummaryService.getSummary(sampleId)
       .then((summary) => {
         const ord = summary.testOrders?.find((t) => t.testOrderId === testOrderId);
@@ -297,7 +297,7 @@ export function UvPanel({
     return () => {
       active = false;
     };
-  }, [effectiveTestCode, itemId, current.sampleContext?.sampleName, testOrderId]);
+  }, [effectiveTestCode, testOrderId]);
 
   const replicateCount = useMemo(() => {
     return testDef?.replicateCount && testDef.replicateCount >= 1 && testDef.replicateCount <= 30
@@ -422,7 +422,6 @@ export function UvPanel({
     } else if (isValueMode) {
       if (v <= 0) return "—";
       asIs = (a * v) / (w * 100);
-      return asIs.toFixed(2);
     } else if (isStandardMode) {
       const stdA = Number(standardAbsorbance);
       const stdW = Number(standardWeightG);
@@ -434,14 +433,17 @@ export function UvPanel({
       asIs = (a / stdA) * (stdW / w) * (v / stdV) * purity * ((100 - lotMc) / 100);
     }
 
+    // A specific absorbance has no unit of its own; the others are percentages.
+    const suffix = isValueMode ? (spec.unit?.trim() === "%" ? " %" : "") : " %";
+
     // Basis conversion
     if (spec.resultBasis === "PercentDriedBasis" || spec.resultBasis === "PercentAnhydrousBasis") {
-      if (!moisture) return `${asIs.toFixed(2)} % (as-is)`;
+      if (!moisture) return `${asIs.toFixed(2)}${suffix} (as-is)`;
       const dried = asIs / ((100 - moisture.percent) / 100);
-      return `${dried.toFixed(2)} %`;
+      return `${dried.toFixed(2)}${suffix}`;
     }
 
-    return `${asIs.toFixed(2)} %`;
+    return `${asIs.toFixed(2)}${suffix}`;
   };
 
   // Validation
@@ -561,7 +563,7 @@ export function UvPanel({
       s.specLimit ||
       s.expectedResultText ||
       (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} \u2013 ${s.upperLimit ?? ""}` : "\u2014"),
-    unit: s.unit || "%",
+    unit: s.unit || (isValueMode ? "" : "%"),
     source: "Specification"
   }));
 
@@ -589,39 +591,6 @@ export function UvPanel({
 
         {summaryError && (
           <Alert severity="error">{summaryError}</Alert>
-        )}
-
-        {testDef && (
-          <ResultSection title="Analysis summary">
-            <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Mode
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {testDef.uvCalculationMode ?? "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Replicates
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {replicateCount}
-                </Typography>
-              </Box>
-              {testDef.uvTotalVolumeMl != null && (
-                <Box>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Total Volume
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {testDef.uvTotalVolumeMl} mL
-                  </Typography>
-                </Box>
-              )}
-            </Stack>
-          </ResultSection>
         )}
 
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}

@@ -209,6 +209,69 @@ public class SampleReportDocumentTests
     }
 
     [Fact]
+    public void SignedUvLimitTest_ShowsTheReadingAndTheReferenceItWasJudgedOn_WithNamedColumns()
+    {
+        var sample = FinishedProduct();
+        sample.TestOrders.Add(new TestOrderSummaryDetailDto
+        {
+            TestCode = "UV-PO4", TestDisplayName = "Inorganic phosphate limit", Status = "Approved",
+            Analysis = new AnalysisDetailDto
+            {
+                AnalysisType = WorkflowType.UvSpectrophotometry, EquipmentCode = "UV-01", EnteredByName = "Ahmed shawky",
+                ParameterResults =
+                {
+                    new ParameterResultDetailDto
+                    {
+                        ParameterName = "Phosphate", ReportedDisplay = "0.151 AU", Unit = "AU", SpecLimit = "NMT 0.150",
+                        ComparisonStatus = ResultStatus.OutOfSpecification,
+                        CalculationJson = "{\"quantity\":\"Uv\",\"mode\":\"AbsorbanceLimit\",\"wavelengthNm\":830,\"referenceAbsorbance\":0.150}",
+                        Readings = { new ResultReadingDetailDto { Index = 1, Value2 = 0.151m, Value3 = 830m, ComputedValue = 0.151m } }
+                    }
+                }
+            }
+        });
+
+        var blocks = ReportDocumentMapper.ForSample(sample).Blocks;
+        var card = blocks.OfType<CardBlock>().Single(c => c.Title.StartsWith("UV-PO4"));
+        var readings = blocks.OfType<TableBlock>().Single(b => b.Label.StartsWith("UV-PO4 readings"));
+
+        Assert.Contains("Reference absorbance 0.150", Assert.Single(card.MetaLines, l => l.StartsWith("Judged on:")));
+        Assert.Equal(new[] { "#", "Absorbance", "Wavelength (nm)", "Result" }, readings.Table.Columns.Select(c => c.Header));
+        Assert.Equal(new[] { "1", "0.151", "830", "0.151" }, readings.Table.Rows.Single());
+    }
+
+    [Fact]
+    public void SignedUvStandardComparison_NamesTheStandardLotAndItsValues()
+    {
+        var sample = FinishedProduct();
+        sample.TestOrders.Add(new TestOrderSummaryDetailDto
+        {
+            TestCode = "UV-STD", TestDisplayName = "Assay against standard", Status = "Approved",
+            Analysis = new AnalysisDetailDto
+            {
+                AnalysisType = WorkflowType.UvSpectrophotometry, EquipmentCode = "UV-01", EnteredByName = "Ahmed shawky",
+                ParameterResults =
+                {
+                    new ParameterResultDetailDto
+                    {
+                        ParameterName = "Assay", ReportedDisplay = "99.1 %", Unit = "%", SpecLimit = "98 - 102",
+                        ComparisonStatus = ResultStatus.WithinLimits,
+                        CalculationJson = "{\"quantity\":\"Uv\",\"mode\":\"StandardComparison\",\"standard\":{\"code\":\"RS-77\",\"purityPercent\":99.5,\"moisturePercent\":0.2,\"weightG\":0.025,\"absorbance\":0.48}}"
+                    }
+                }
+            }
+        });
+
+        var card = ReportDocumentMapper.ForSample(sample).Blocks.OfType<CardBlock>().Single(c => c.Title.StartsWith("UV-STD"));
+        var line = Assert.Single(card.MetaLines, l => l.StartsWith("Judged on:"));
+
+        Assert.Contains("RS-77", line);
+        Assert.Contains("99.5", line);
+        Assert.Contains("0.025", line);
+        Assert.Contains("0.48", line);
+    }
+
+    [Fact]
     public void SignatureMeaning_ComesFromTheSharedVocabulary()
     {
         var sig = ReportDocumentMapper.ForSample(FinishedProduct()).Blocks.OfType<SignatureBlock>().Single().Signatures.Single();

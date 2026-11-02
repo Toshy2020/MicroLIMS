@@ -191,6 +191,36 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
                 {calc.standard.code || "—"}
               </Typography>
             </Box>
+            {calc.standard.purityPercent != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  Std Purity
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {calc.standard.purityPercent} %
+                </Typography>
+              </Box>
+            )}
+            {calc.standard.moisturePercent != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  Std Moisture
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {calc.standard.moisturePercent} %
+                </Typography>
+              </Box>
+            )}
+            {calc.standard.volumeMl != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  Std Volume
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {calc.standard.volumeMl} mL
+                </Typography>
+              </Box>
+            )}
             {calc.standard.weightG != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
@@ -247,7 +277,7 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
                 </TableCell>
                 {!isLimitMode && (
                   <TableCell align="right" sx={{ fontSize: 12 }}>
-                    Result
+                    {calc.moisturePercent != null ? "Result (as is)" : "Result"}
                   </TableCell>
                 )}
               </TableRow>

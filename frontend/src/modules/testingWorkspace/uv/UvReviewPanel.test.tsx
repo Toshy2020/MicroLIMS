@@ -73,6 +73,31 @@ describe("UvReviewPanel", () => {
     expect(container.textContent).not.toContain("undefined");
   });
 
+  it("labels the replicate column as-is when the reported value is moisture-corrected", () => {
+    const calc = {
+      engineVersion: "uv-1", quantity: "Uv", mode: "SpecificAbsorbanceAssay", wavelengthNm: 444,
+      totalVolumeMl: 5000, specificAbsorbance: 328, standard: null, referenceAbsorbance: null,
+      resultBasis: "PercentDriedBasis", asIsValue: 74.7, moisturePercent: 5,
+      replicates: [{ replicateNo: 1, weightG: 0.1, absorbance: 0.49, value: 74.7 }],
+      reportedValue: 78.63
+    };
+    const { unmount } = render(
+      <PinnedLightTheme>
+        <UvReviewPanel parameter={{ ...baseParameter, calculationJson: JSON.stringify(calc) }} testOrderId={105} />
+      </PinnedLightTheme>
+    );
+    expect(screen.getByText("Result (as is)")).toBeTruthy();
+    unmount();
+
+    render(
+      <PinnedLightTheme>
+        <UvReviewPanel parameter={{ ...baseParameter, calculationJson: JSON.stringify({ ...calc, moisturePercent: null }) }} testOrderId={106} />
+      </PinnedLightTheme>
+    );
+    expect(screen.getByText("Result")).toBeTruthy();
+    expect(screen.queryByText("Result (as is)")).toBeNull();
+  });
+
   it("shows the standard lot for StandardComparison", () => {
     const calc = {
       engineVersion: "uv-1",
@@ -114,6 +139,12 @@ describe("UvReviewPanel", () => {
 
     expect(screen.getAllByText(/Standard Comparison/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/STD-LOT-999/)).toBeTruthy();
+    expect(screen.getByText("99.8 %")).toBeTruthy();
+    expect(screen.getByText("0.1 %")).toBeTruthy();
+    expect(screen.getAllByText("100 mL").length).toBe(2); // total volume and standard volume
+    expect(screen.getByText("Std Purity")).toBeTruthy();
+    expect(screen.getByText("Std Moisture")).toBeTruthy();
+    expect(screen.getByText("Std Volume")).toBeTruthy();
     expect(container.textContent).not.toContain("undefined");
   });
 

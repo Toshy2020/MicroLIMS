@@ -432,10 +432,28 @@ describe("UvPanel", () => {
 
     renderUvPanel({ testCode: "UV-VITD" });
 
-    await waitFor(() => {
-      const wavelengthInput = screen.getByLabelText(/Wavelength/i) as HTMLInputElement;
-      expect(wavelengthInput.value).toBe("");
-    });
+    // Loading has finished once the form is on screen; only then can the wavelength be judged.
+    await screen.findByLabelText(/Sample weight/i);
+    expect((screen.getByLabelText(/Wavelength/i) as HTMLInputElement).value).toBe("");
+  });
+
+  it("value mode applies the dried-basis correction to the preview, with no percent sign", async () => {
+    const user = userEvent.setup();
+    mockGetForTestOrder.mockResolvedValue([
+      { id: 40, testCode: "UV-VAL", parameterName: "E1% 1cm", limitType: "Range", lowerLimit: 4, upperLimit: 6, unit: "", resultBasis: "PercentDriedBasis", displayOrder: 1 }
+    ]);
+    mockGetTestDefinitions.mockResolvedValue([
+      { id: 6, code: "UV-VAL", displayName: "Specific absorbance", workflowType: "UvSpectrophotometry", uvCalculationMode: "SpecificAbsorbanceValue", replicateCount: 1, uvTotalVolumeMl: 1000 }
+    ]);
+    mockGetMoisture.mockResolvedValue({ percent: 5, role: "LossOnDrying", testCode: "LOD-UI" });
+
+    renderUvPanel({ testCode: "UV-VAL" });
+
+    await user.type(await screen.findByLabelText(/Sample weight/i), "1");
+    await user.type(screen.getByLabelText(/Absorbance 1/i), "0.5");
+
+    // 0.5 x 1000 / (1 x 100) = 5.00 as is; 5.00 / 0.95 = 5.26 dried
+    expect(await screen.findByText("5.26")).toBeTruthy();
   });
 
   it("a rejected equipment load shows the error message", async () => {

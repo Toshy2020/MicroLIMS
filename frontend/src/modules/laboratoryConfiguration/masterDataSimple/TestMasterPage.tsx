@@ -1614,8 +1614,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {/* Titration uses its own replicate count, not replicates per stage. */}
-          {workflowType !== "Titration" && (isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
+          {/* Titration and UV use their own replicate count, not replicates per stage. */}
+          {workflowType !== "Titration" && workflowType !== "UvSpectrophotometry" && (isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
             editingId ? (
               <TestStageReplicatesSection testDefinitionId={editingId} />
             ) : (

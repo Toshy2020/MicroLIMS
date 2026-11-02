@@ -95,7 +95,7 @@ export function SignatureDialog({
             label="Password" type="password" value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus required
-            onKeyDown={(e) => { if (e.key === "Enter" && complete) handleConfirm(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
           />
           {requireSecondSigner && (
             <>
@@ -113,7 +113,7 @@ export function SignatureDialog({
               <TextField
                 label="Second signer password" type="password" value={secondPassword} autoComplete="off" required
                 onChange={(e) => setSecondPassword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && complete) handleConfirm(); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
               />
             </>
           )}

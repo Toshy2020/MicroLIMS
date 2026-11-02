@@ -201,6 +201,35 @@ public class UvTestMasterValidationTests
     }
 
     [Fact]
+    public async Task Uv_UndefinedCalculationMode_RefusedOnCreateAndUpdate()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "UV-BADMODE",
+            DisplayName: "UV with bad mode",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.UvSpectrophotometry,
+            EquationType: EquationType.UvSpectrophotometry,
+            ReplicateCount: 1,
+            UvCalculationMode: (UvCalculationMode)9,
+            PhyschemArea: PhyschemArea.Both);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        Assert.Equal("Unknown UV calculation mode.", ex.Message);
+
+        var created = Assert.IsType<TestDefinitionResponse>(
+            Assert.IsType<ApiResponse<object>>(
+                Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(
+                    req with { Code = "UV-GOODMODE", UvCalculationMode = UvCalculationMode.AbsorbanceLimit })).Value).Data);
+
+        var exUpd = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(
+            created.Id, new UpdateTestDefinitionRequest(Code: "UV-GOODMODE", DisplayName: "UV with bad mode", UvCalculationMode: (UvCalculationMode)9)));
+        Assert.Equal("Unknown UV calculation mode.", exUpd.Message);
+    }
+
+    [Fact]
     public async Task CreateTestDefinition_Uv_SpecificAbsorbanceAssay_RequiresConstants()
     {
         using var db = NewDb();

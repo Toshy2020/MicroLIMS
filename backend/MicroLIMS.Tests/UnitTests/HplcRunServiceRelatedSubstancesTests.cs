@@ -124,6 +124,65 @@ public partial class HplcRunServiceTests
         new(f.ImpurityD.Id, null, 12000m), new(f.ImpurityA.Id, null, 9000m), new(null, 0.85m, 6000m), new(null, 1.4m, 3000m),
     };
 
+    // Raw and packaging materials have no production stage: entry must not wait for one.
+    private static async Task MakeStagelessAsync(MicroLimsDbContext db, RsFixture f, SampleCategory category)
+    {
+        var sample = await db.Samples.FirstAsync(x => x.Id == f.Order.SampleId);
+        sample.Category = category;
+        sample.ProductionStageId = null;
+        await db.SaveChangesAsync();
+    }
+
+    [Theory]
+    [InlineData(SampleCategory.RawMaterial)]
+    [InlineData(SampleCategory.PackagingMaterial)]
+    public async Task StagelessMaterialSample_GetsAPreview(SampleCategory category)
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+        await MakeStagelessAsync(db, f, category);
+
+        var entry = await f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, SildenafilPeaks(f)), f.S.UserId);
+
+        Assert.Null(entry.RequiredReplicates);
+        Assert.Equal(new[] { "0.08 %", "0.09 %", "0.06 %", "0.23 %" }, entry.Preview.Select(p => p.Display).ToArray());
+        Assert.Equal("Upload the sample report before sending for review.", entry.CanSubmitReason);
+    }
+
+    [Fact]
+    public async Task StagelessMaterialSample_FollowsTheTestReplicateCount_AndNeedsOneReplicate()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+        await MakeStagelessAsync(db, f, SampleCategory.RawMaterial);
+
+        var none = await f.Service.SaveReplicatesAsync(f.RunSampleId, new SaveReplicatesRequest(new List<HplcReplicateInput>()), f.S.UserId);
+        Assert.Contains("at least one replicate", none.CanSubmitReason);
+
+        (await db.TestDefinitions.FirstAsync(x => x.Code == "RS_SILD")).ReplicateCount = 2;
+        await db.SaveChangesAsync();
+        var entry = await f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, SildenafilPeaks(f)), f.S.UserId);
+        Assert.Equal(2, entry.RequiredReplicates);
+        Assert.Equal("Expected exactly 2 replicates, but 1 entered.", entry.CanSubmitReason);
+        Assert.Empty(entry.Preview);
+    }
+
+    [Fact]
+    public async Task StagelessFinishedProductSample_IsStillRefused()
+    {
+        await using var db = NewDb();
+        var (_, clock) = NewClock(SepFirst);
+        var f = await ArrangeRelatedSubstancesAsync(db, clock);
+        await MakeStagelessAsync(db, f, SampleCategory.FinishedProduct);
+
+        var entry = await f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, SildenafilPeaks(f)), f.S.UserId);
+
+        Assert.Contains("no reconciled production stage", entry.CanSubmitReason);
+        Assert.Empty(entry.Preview);
+    }
+
     [Fact]
     public async Task RsSst_AcceptsALotWithoutWeightPurityOrMoisture()
     {

@@ -64,10 +64,16 @@ public sealed class HplcSampleEntryContext
         if (Run.Sst?.Status != HplcSstStatus.Passed) return "System suitability has not passed.";
         if (!Replicates.IsConfigured) return Replicates.Message ?? "Stage replicate configuration could not be resolved.";
 
-        var required = Replicates.SampleReplicates!.Value;
         var entered = RunSample.Replicates.Count;
-        if (entered != required)
-            return $"Expected exactly {required} replicates for stage role {Replicates.StageRole}, but {entered} entered.";
+        if (Replicates.SampleReplicates is not int required)
+        {
+            if (entered == 0) return "Enter at least one replicate.";
+        }
+        else if (entered != required)
+        {
+            var forStage = Replicates.StageRole is { } role ? $" for stage role {role}" : "";
+            return $"Expected exactly {required} replicates{forStage}, but {entered} entered.";
+        }
 
         if (IsRelatedSubstances) return RelatedSubstancesEntryProblem();
 

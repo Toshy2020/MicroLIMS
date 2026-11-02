@@ -84,7 +84,8 @@ public record EquipmentConfigurationSummaryDto(
     string? InventoryLocation,
     int ConfiguredProgramCount,
     string? SerialNumber = null,
-    string? ManufacturerName = null)
+    string? ManufacturerName = null,
+    int? SectionId = null)
 {
     // The equipment's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
@@ -130,7 +131,8 @@ public class EquipmentConfigurationService
                 inv?.Location ?? eq.Location,
                 pCount,
                 inv?.SerialNumber,
-                inv?.ManufacturerName
+                inv?.ManufacturerName,
+                eq.SectionId
             ) { Version = eq.Version });
         }
 

@@ -39,7 +39,7 @@ import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../la
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
 import { MaterialService } from "../inventory/materials/services/MaterialService";
 import { formatMoistureLabel, getMissingMoistureMessage } from "./utils/moistureRetentionHelpers";
-import { UvReviewPanel } from "./uv/UvReviewPanel";
+import { UvReviewPanel, UV_MODE_LABELS } from "./uv/UvReviewPanel";
 
 interface Props {
   testOrderId: number;
@@ -636,8 +636,11 @@ export function UvPanel({
           title="Analysis configuration"
           actions={
             <Stack direction="row" spacing={1}>
-              <Chip size="small" variant="outlined" label={testDef?.uvCalculationMode ?? "UV"} />
+              <Chip size="small" variant="outlined" label={UV_MODE_LABELS[mode] ?? mode} />
               <Chip size="small" variant="outlined" label={`Replicates: ${replicateCount}`} />
+              {testDef?.uvSpecificAbsorbance != null && (
+                <Chip size="small" variant="outlined" label={`A1%: ${testDef.uvSpecificAbsorbance}`} />
+              )}
               {testDef?.uvTotalVolumeMl != null && (
                 <Chip size="small" variant="outlined" label={`Volume: ${testDef.uvTotalVolumeMl} mL`} />
               )}

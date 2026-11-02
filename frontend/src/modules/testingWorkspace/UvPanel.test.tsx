@@ -258,6 +258,9 @@ describe("UvPanel", () => {
       expect(screen.getByLabelText(/Wavelength/i)).toBeTruthy();
     });
 
+    expect(screen.getByText("Specific Absorbance Assay")).toBeTruthy();
+    expect(screen.getByText(/^A1%: /)).toBeTruthy();
+
     // Should NOT show standard fields
     expect(screen.queryByLabelText(/Standard lot/i)).toBeNull();
     expect(screen.queryByLabelText(/Standard weight/i)).toBeNull();

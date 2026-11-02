@@ -73,7 +73,7 @@ export interface UvReviewPanelProps {
   testOrderId: number;
 }
 
-const UV_MODE_LABELS: Record<string, string> = {
+export const UV_MODE_LABELS: Record<string, string> = {
   SpecificAbsorbanceAssay: "Specific Absorbance Assay",
   SpecificAbsorbanceValue: "Specific Absorbance Value",
   StandardComparison: "Standard Comparison",

@@ -403,4 +403,216 @@ describe("UvPanel", () => {
       ]
     });
   });
+
+  it("a parameter named 'Vitamin D3 400 IU' leaves the wavelength empty", async () => {
+    const specWith400IU: SpecificationDto = {
+      id: 20,
+      testCode: "UV-VITD",
+      parameterName: "Vitamin D3 400 IU",
+      limitType: "Range",
+      lowerLimit: 90,
+      upperLimit: 110,
+      unit: "%",
+      resultBasis: "PercentAsIs",
+      displayOrder: 1
+    };
+    mockGetForTestOrder.mockResolvedValue([specWith400IU]);
+    mockGetTestDefinitions.mockResolvedValue([
+      {
+        id: 4,
+        code: "UV-VITD",
+        displayName: "Vitamin D3",
+        workflowType: "UvSpectrophotometry",
+        uvCalculationMode: "SpecificAbsorbanceAssay",
+        replicateCount: 1,
+        uvSpecificAbsorbance: 400,
+        uvTotalVolumeMl: 100
+      }
+    ]);
+
+    renderUvPanel({ testCode: "UV-VITD" });
+
+    await waitFor(() => {
+      const wavelengthInput = screen.getByLabelText(/Wavelength/i) as HTMLInputElement;
+      expect(wavelengthInput.value).toBe("");
+    });
+  });
+
+  it("a rejected equipment load shows the error message", async () => {
+    mockGetForTestOrder.mockResolvedValue([mockRiboflavinSpec]);
+    mockGetConfiguredSummary.mockRejectedValue(new Error("Network failed loading equipment"));
+
+    renderUvPanel({ testCode: "UV-RIB" });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Could not load laboratory equipment/i)).toBeTruthy();
+    });
+  });
+
+  it("an HPLC instrument in the load is not offered", async () => {
+    mockGetForTestOrder.mockResolvedValue([mockRiboflavinSpec]);
+    mockGetConfiguredSummary.mockResolvedValue([
+      { id: 1, name: "UV Spectrophotometer 01", type: "UvVis", section: { code: "FP" } },
+      { id: 2, name: "HPLC Agilent 1260", type: "Hplc", section: { code: "FP" } }
+    ]);
+
+    renderUvPanel({ testCode: "UV-RIB" });
+
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: /Equipment/i })).toBeTruthy();
+    });
+
+    const equipSelect = screen.getByRole("combobox", { name: /Equipment/i });
+    fireEvent.mouseDown(equipSelect);
+
+    expect(await screen.findByRole("option", { name: /UV Spectrophotometer 01/i })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /HPLC Agilent 1260/i })).toBeNull();
+  });
+
+  it("weight prefill with two specs: mirrors param 1 to param 2 until param 2 is edited", async () => {
+    const user = userEvent.setup();
+    const spec1: SpecificationDto = {
+      id: 101,
+      testCode: "UV-DUAL",
+      parameterName: "Parameter A",
+      limitType: "Range",
+      displayOrder: 1
+    };
+    const spec2: SpecificationDto = {
+      id: 102,
+      testCode: "UV-DUAL",
+      parameterName: "Parameter B",
+      limitType: "Range",
+      displayOrder: 2
+    };
+    mockGetForTestOrder.mockResolvedValue([spec1, spec2]);
+    mockGetTestDefinitions.mockResolvedValue([
+      {
+        id: 5,
+        code: "UV-DUAL",
+        displayName: "UV Dual Spec Test",
+        workflowType: "UvSpectrophotometry",
+        uvCalculationMode: "SpecificAbsorbanceAssay",
+        replicateCount: 1,
+        uvSpecificAbsorbance: 100,
+        uvTotalVolumeMl: 100
+      }
+    ]);
+
+    renderUvPanel({ testCode: "UV-DUAL" });
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText(/Sample weight/i).length).toBe(2);
+    });
+
+    const [weightInput1, weightInput2] = screen.getAllByLabelText(/Sample weight/i) as HTMLInputElement[];
+
+    // Type in parameter 1 replicate 1
+    await user.type(weightInput1, "0.123");
+    // Parameter 2 replicate 1 should mirror it
+    expect(weightInput2.value).toBe("0.123");
+
+    // Edit parameter 2 replicate 1
+    await user.clear(weightInput2);
+    await user.type(weightInput2, "0.456");
+    expect(weightInput2.value).toBe("0.456");
+
+    // Change parameter 1 replicate 1
+    await user.clear(weightInput1);
+    await user.type(weightInput1, "0.789");
+
+    // Parameter 2 keeps its own value
+    expect(weightInput2.value).toBe("0.456");
+  });
+
+  it("submits payload for AbsorbanceLimit with weightG null and referenceAbsorbance set", async () => {
+    const user = userEvent.setup();
+    mockGetForTestOrder.mockResolvedValue([mockAbsLimitSpec]);
+    mockRecordUvResult.mockResolvedValue({
+      outcomeSummary: "Inorganic phosphate: Conforms",
+      status: "WithinLimits"
+    });
+
+    renderUvPanel({ testCode: "UV-INORG-P", testOrderId: 777 });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Reference absorbance/i)).toBeTruthy();
+    });
+
+    const refInput = screen.getByLabelText(/Reference absorbance/i);
+    await user.type(refInput, "0.15");
+
+    const wavelengthInput = screen.getByLabelText(/Wavelength/i);
+    await user.clear(wavelengthInput);
+    await user.type(wavelengthInput, "700");
+
+    const absInput = screen.getByLabelText(/Absorbance 1/i);
+    await user.type(absInput, "0.12");
+
+    const signBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect(signBtn).toHaveProperty("disabled", false);
+    await user.click(signBtn);
+
+    const confirmBtn = await screen.findByText("confirm-signature");
+    await user.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockRecordUvResult).toHaveBeenCalledTimes(1);
+    });
+
+    const [orderId, payload] = mockRecordUvResult.mock.calls[0];
+    expect(orderId).toBe(777);
+    expect(payload.parameters[0].referenceAbsorbance).toBe(0.15);
+    expect(payload.parameters[0].replicates[0].weightG).toBeNull();
+    expect(payload.parameters[0].replicates[0].absorbance).toBe(0.12);
+  });
+
+  it("submits payload for StandardComparison with standard fields set", async () => {
+    const user = userEvent.setup();
+    mockGetForTestOrder.mockResolvedValue([mockStdCompSpec]);
+    mockRecordUvResult.mockResolvedValue({
+      outcomeSummary: "Standard comparison: 99.8 %",
+      status: "WithinLimits"
+    });
+
+    renderUvPanel({ testCode: "UV-STD-COMP", testOrderId: 888 });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Standard weight/i)).toBeTruthy();
+    });
+
+    const stdWeightInput = screen.getByLabelText(/Standard weight/i);
+    await user.type(stdWeightInput, "0.05");
+
+    const stdAbsInput = screen.getByLabelText(/Standard absorbance/i);
+    await user.type(stdAbsInput, "0.45");
+
+    const wavelengthInput = screen.getByLabelText(/Wavelength/i);
+    await user.clear(wavelengthInput);
+    await user.type(wavelengthInput, "275");
+
+    const sampleWeightInput = screen.getByLabelText(/Sample weight/i);
+    await user.type(sampleWeightInput, "0.05");
+
+    const absInput = screen.getByLabelText(/Absorbance 1/i);
+    await user.type(absInput, "0.45");
+
+    const signBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    await user.click(signBtn);
+
+    const confirmBtn = await screen.findByText("confirm-signature");
+    await user.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockRecordUvResult).toHaveBeenCalledTimes(1);
+    });
+
+    const [orderId, payload] = mockRecordUvResult.mock.calls[0];
+    expect(orderId).toBe(888);
+    expect(payload.standardMaterialId).toBe(101);
+    expect(payload.standardWeightG).toBe(0.05);
+    expect(payload.standardAbsorbance).toBe(0.45);
+    expect(payload.parameters[0].replicates[0].weightG).toBe(0.05);
+    expect(payload.parameters[0].replicates[0].absorbance).toBe(0.45);
+  });
 });

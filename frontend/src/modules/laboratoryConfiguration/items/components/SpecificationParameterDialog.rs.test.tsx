@@ -513,4 +513,112 @@ describe("SpecificationParameterDialog - Related Substances & Raw Material Assay
       })
     );
   });
+
+  it("first open of a UV AbsorbanceLimit test sends resultBasis null and Qualitative", async () => {
+    vi.mocked(SpecificationService.create).mockResolvedValue({ id: 2001, testCode: "TEST-UV-LIM" });
+    const mockUvItem: Item = {
+      id: 300,
+      code: "RM-UV",
+      name: "UV Test Item",
+      category: "RawMaterial",
+      sopNumber: "SOP-UV",
+      isActive: true,
+      assignedTests: [{ testCode: "TEST-UV-LIM", displayName: "UV Inorganic Phosphates" }],
+      specifications: []
+    };
+    const uvDefs: Record<string, TestDefinitionSummary> = {
+      "TEST-UV-LIM": {
+        id: 10,
+        code: "TEST-UV-LIM",
+        displayName: "UV Inorganic Phosphates",
+        workflowType: "UvSpectrophotometry",
+        uvCalculationMode: "AbsorbanceLimit"
+      }
+    };
+
+    render(
+      <SpecificationParameterDialog
+        open={true}
+        item={mockUvItem}
+        existingSpecs={[]}
+        workflowTypeByCode={{ "TEST-UV-LIM": "UvSpectrophotometry" }}
+        testDefinitionByCode={uvDefs}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const textInput = await screen.findByLabelText(/Expected Result Text \*/i);
+    fireEvent.change(textInput, { target: { value: "Conforms" } });
+
+    const saveButton = screen.getByRole("button", { name: /Add Parameter/i });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(SpecificationService.create).toHaveBeenCalledTimes(1);
+    });
+
+    expect(SpecificationService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        testCode: "TEST-UV-LIM",
+        limitType: "Qualitative",
+        resultBasis: null
+      })
+    );
+  });
+
+  it("first open of a UV SpecificAbsorbanceAssay test sends resultBasis PercentAsIs", async () => {
+    vi.mocked(SpecificationService.create).mockResolvedValue({ id: 2002, testCode: "TEST-UV-ASSAY" });
+    const mockUvItem: Item = {
+      id: 301,
+      code: "RM-UV2",
+      name: "UV Test Item 2",
+      category: "RawMaterial",
+      sopNumber: "SOP-UV2",
+      isActive: true,
+      assignedTests: [{ testCode: "TEST-UV-ASSAY", displayName: "UV Riboflavin Assay" }],
+      specifications: []
+    };
+    const uvDefs: Record<string, TestDefinitionSummary> = {
+      "TEST-UV-ASSAY": {
+        id: 11,
+        code: "TEST-UV-ASSAY",
+        displayName: "UV Riboflavin Assay",
+        workflowType: "UvSpectrophotometry",
+        uvCalculationMode: "SpecificAbsorbanceAssay"
+      }
+    };
+
+    render(
+      <SpecificationParameterDialog
+        open={true}
+        item={mockUvItem}
+        existingSpecs={[]}
+        workflowTypeByCode={{ "TEST-UV-ASSAY": "UvSpectrophotometry" }}
+        testDefinitionByCode={uvDefs}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const minInput = await screen.findByLabelText(/Lower Limit \(NLT\) \*/i);
+    fireEvent.change(minInput, { target: { value: "98.0" } });
+    const maxInput = screen.getByLabelText(/Upper Limit \(NMT\) \*/i);
+    fireEvent.change(maxInput, { target: { value: "102.0" } });
+
+    const saveButton = screen.getByRole("button", { name: /Add Parameter/i });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(SpecificationService.create).toHaveBeenCalledTimes(1);
+    });
+
+    expect(SpecificationService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        testCode: "TEST-UV-ASSAY",
+        limitType: "Range",
+        resultBasis: "PercentAsIs"
+      })
+    );
+  });
 });

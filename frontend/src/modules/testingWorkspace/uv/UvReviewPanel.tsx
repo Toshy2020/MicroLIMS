@@ -53,7 +53,7 @@ export function isUvCalculation(json: string | null | undefined): boolean {
     const parsed = JSON.parse(json);
     return typeof parsed?.quantity === "string" && parsed.quantity === "Uv";
   } catch {
-    return typeof json === "string" && json.includes('"quantity"') && json.includes('"Uv"');
+    return false;
   }
 }
 
@@ -159,7 +159,7 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
           </Box>
         )}
 
-        {calc.asIsValue != null && (
+        {!isLimitMode && calc.asIsValue != null && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
               As-is Value
@@ -214,15 +214,17 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
           </>
         )}
 
-        {isLimitMode && calc.referenceAbsorbance != null && (
+        {isLimitMode && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
               Reference Absorbance
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {typeof calc.referenceAbsorbance === "number"
-                ? calc.referenceAbsorbance.toFixed(3)
-                : String(calc.referenceAbsorbance)}
+              {calc.referenceAbsorbance != null
+                ? (typeof calc.referenceAbsorbance === "number"
+                    ? calc.referenceAbsorbance.toFixed(3)
+                    : String(calc.referenceAbsorbance))
+                : "—"}
             </Typography>
           </Box>
         )}
@@ -243,41 +245,36 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
                 <TableCell align="right" sx={{ fontSize: 12 }}>
                   Absorbance
                 </TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>
-                  {isLimitMode ? "Conforms" : "Result"}
-                </TableCell>
+                {!isLimitMode && (
+                  <TableCell align="right" sx={{ fontSize: 12 }}>
+                    Result
+                  </TableCell>
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
-              {calc.replicates.map((r) => {
-                const conforms = isLimitMode && calc.referenceAbsorbance != null
-                  ? r.absorbance <= calc.referenceAbsorbance
-                  : null;
-                return (
-                  <TableRow key={r.replicateNo} hover>
-                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                      Rep {r.replicateNo}
-                    </TableCell>
-                    {hasWeights && (
-                      <TableCell align="right" sx={{ fontSize: 12 }}>
-                        {r.weightG != null ? r.weightG : "—"}
-                      </TableCell>
-                    )}
+              {calc.replicates.map((r) => (
+                <TableRow key={r.replicateNo} hover>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
+                    Rep {r.replicateNo}
+                  </TableCell>
+                  {hasWeights && (
                     <TableCell align="right" sx={{ fontSize: 12 }}>
-                      {typeof r.absorbance === "number" ? r.absorbance.toFixed(3) : String(r.absorbance ?? "—")}
+                      {r.weightG != null ? r.weightG : "—"}
                     </TableCell>
+                  )}
+                  <TableCell align="right" sx={{ fontSize: 12 }}>
+                    {typeof r.absorbance === "number" ? r.absorbance.toFixed(3) : String(r.absorbance ?? "—")}
+                  </TableCell>
+                  {!isLimitMode && (
                     <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-                      {isLimitMode
-                        ? conforms
-                          ? "Conforms"
-                          : "Does not conform"
-                        : typeof r.value === "number"
+                      {typeof r.value === "number"
                         ? r.value.toFixed(2)
                         : String(r.value ?? "—")}
                     </TableCell>
-                  </TableRow>
-                );
-              })}
+                  )}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>

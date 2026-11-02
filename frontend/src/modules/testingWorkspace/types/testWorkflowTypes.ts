@@ -388,11 +388,8 @@ export interface RecordTitrationResultRequest {
 }
 
 // ---- UV Spectrophotometry (Plan 4) ----
-export type UvCalculationMode =
-  | "StandardComparison"
-  | "SpecificAbsorbanceAssay"
-  | "SpecificAbsorbanceValue"
-  | "AbsorbanceLimit";
+import type { UvCalculationMode } from "../../../services/masterDataOptions";
+export type { UvCalculationMode };
 
 export interface UvReplicateRequest {
   weightG?: number | null;

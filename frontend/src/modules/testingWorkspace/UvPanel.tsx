@@ -33,7 +33,6 @@ import type {
   SampleMoistureResult
 } from "./types/testWorkflowTypes";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
-import { ItemService } from "../laboratoryConfiguration/items/services/ItemService";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { TestDefinitionOption } from "../../hooks/useTestDefinitions";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
@@ -85,11 +84,6 @@ const getLocalIsoString = (date: Date = new Date()): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const extractWavelength = (name: string): string => {
-  const match = name.match(/\b(19[0-9]|[2-9][0-9]{2}|10[0-9]{2}|1100)\b/);
-  return match ? match[1] : "";
-};
-
 export function UvPanel({
   testOrderId,
   displayName,
@@ -130,6 +124,7 @@ export function UvPanel({
   // Outcome / completion view
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string } | null>(null);
   const [recorded, setRecorded] = useState<ParameterResultDetail[]>([]);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const effectiveTestCode = current.testName || testCode || "";
   const showCompleted = Boolean(current.allStepsComplete || outcome);
@@ -143,7 +138,14 @@ export function UvPanel({
         const ord = summary.testOrders?.find((t) => t.testOrderId === testOrderId);
         if (active) setRecorded(ord?.analysis?.parameterResults ?? []);
       })
-      .catch(() => {});
+      .catch((err: unknown) => {
+        if (active) {
+          setSummaryError(
+            (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+              "Could not load test analysis summary."
+          );
+        }
+      });
     return () => {
       active = false;
     };
@@ -162,23 +164,7 @@ export function UvPanel({
         const defs: TestDefinitionOption[] = await masterDataOptions.getTestDefinitions();
         const matchedDef = defs.find((d) => d.code === effectiveTestCode) ?? null;
 
-        // 2. Resolve itemId if not provided
-        let resolvedItemId = itemId;
-        if (resolvedItemId == null) {
-          try {
-            const allItems = await ItemService.getAll();
-            const matched = allItems.find(
-              (i) =>
-                i.name === current.sampleContext?.sampleName ||
-                i.assignedTests?.some((t) => t.testCode === effectiveTestCode)
-            );
-            resolvedItemId = matched?.id ?? null;
-          } catch {
-            // fallback
-          }
-        }
-
-        // 3. Fetch specifications for this item and test
+        // 2. Fetch specifications for this item and test
         const itemSpecs = await SpecificationService.getForTestOrder(testOrderId);
         const loadedSpecs: SpecificationDto[] = (itemSpecs ?? [])
           .filter((s) => s.testCode === effectiveTestCode)
@@ -192,7 +178,7 @@ export function UvPanel({
           return;
         }
 
-        // 4. Load FP section equipment
+        // 3. Load FP section equipment (UvVis or Other only)
         let fpInstruments: ConfiguredEquipmentSummary[] = [];
         try {
           const [sections, allEquip] = await Promise.all([
@@ -200,14 +186,26 @@ export function UvPanel({
             EquipmentConfigurationService.getConfiguredSummary()
           ]);
           const fpSec = (sections ?? []).find((s: LaboratorySection) => s.sectionCode === "FP");
+          const isUvType = (t: string | number | undefined) => t === "UvVis" || t === "Other";
           fpInstruments = (allEquip ?? []).filter(
-            (e) => (fpSec && e.sectionId === fpSec.sectionId) || e.section?.code === "FP" || e.section?.sectionCode === "FP"
+            (e) =>
+              isUvType(e.type) &&
+              ((fpSec && e.sectionId === fpSec.sectionId) ||
+                e.section?.code === "FP" ||
+                e.section?.sectionCode === "FP")
           );
-        } catch {
-          // fallback
+        } catch (err: unknown) {
+          if (active) {
+            setError(
+              (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+                "Could not load laboratory equipment."
+            );
+            setLoading(false);
+          }
+          return;
         }
 
-        // 5. Load usable standard lots if standard comparison
+        // 4. Load usable standard lots if standard comparison
         const mode = matchedDef?.uvCalculationMode;
         if (mode === "StandardComparison") {
           try {
@@ -218,12 +216,19 @@ export function UvPanel({
                 setStandardMaterialId(lots[0].id);
               }
             }
-          } catch {
-            // fallback
+          } catch (err: unknown) {
+            if (active) {
+              setError(
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+                  "Could not load reference standard lots."
+              );
+              setLoading(false);
+            }
+            return;
           }
         }
 
-        // 6. Check moisture requirement
+        // 5. Check moisture requirement
         const hasLod = loadedSpecs.some(
           (s) => s.resultBasis === "PercentDriedBasis" || s.resultBasis === "PercentAnhydrousBasis"
         );
@@ -250,7 +255,7 @@ export function UvPanel({
           setMoistureStatus("idle");
         }
 
-        // 7. Initialize parameters and replicates
+        // 6. Initialize parameters and replicates (wavelength starts empty)
         const repCount =
           matchedDef?.replicateCount && matchedDef.replicateCount >= 1 && matchedDef.replicateCount <= 30
             ? matchedDef.replicateCount
@@ -259,7 +264,7 @@ export function UvPanel({
         const initParams: Record<number, SpecParamState> = {};
         for (const s of loadedSpecs) {
           initParams[s.id!] = {
-            wavelengthNm: extractWavelength(s.parameterName ?? ""),
+            wavelengthNm: "",
             referenceAbsorbance: "",
             replicates: Array.from({ length: repCount }, () => ({
               weightG: "",
@@ -400,10 +405,7 @@ export function UvPanel({
     if (isNaN(a) || rep.absorbance.trim() === "") return "—";
 
     if (isLimitMode) {
-      const refState = paramStates[spec.id!]?.referenceAbsorbance;
-      const refA = Number(refState);
-      if (isNaN(refA) || !refState || refA <= 0) return `${a.toFixed(3)} AU`;
-      return a <= refA ? `${a.toFixed(3)} AU (Conforms)` : `${a.toFixed(3)} AU (Fails)`;
+      return `${a.toFixed(3)} AU`;
     }
 
     const w = Number(rep.weightG);
@@ -583,6 +585,10 @@ export function UvPanel({
           <VerdictBanner verdict={verdict} detail={`${headline} (${serverStatus})`} />
         ) : (
           <Typography sx={{ fontWeight: 600 }}>{headline}</Typography>
+        )}
+
+        {summaryError && (
+          <Alert severity="error">{summaryError}</Alert>
         )}
 
         {testDef && (

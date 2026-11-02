@@ -387,7 +387,18 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         editDef?.equationType === "IcpMethodAssay" ||
         editDef?.workflowType === "IcpMethodAssay" ||
         workflowTypeByCode[editingSpec.testCode] === "IcpMethodAssay";
-      setResultBasis((editingSpec.resultBasis as ResultBasis) || (isEditHplcAssay || isEditIcpAssay ? "PercentLabelClaim" : "MgPerKg"));
+      const isEditUv =
+        editDef?.workflowType === "UvSpectrophotometry" ||
+        workflowTypeByCode[editingSpec.testCode] === "UvSpectrophotometry";
+      const editUvMode = editDef?.uvCalculationMode;
+      const editBasisFallback = isEditUv
+        ? (editUvMode === "AbsorbanceLimit" || editUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
+        : (isEditHplcAssay || isEditIcpAssay ? "PercentLabelClaim" : "MgPerKg");
+      setResultBasis(
+        editingSpec.resultBasis === null
+          ? ""
+          : (editingSpec.resultBasis as ResultBasis) || editBasisFallback
+      );
       setLabelClaim(formatTrimmedDecimal(editingSpec.labelClaim));
       setLabelClaimUnit(editingSpec.labelClaimUnit ?? "");
 
@@ -461,7 +472,14 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setHplcMethodImpurityId("");
       setRelatedSubstanceRow("");
       setIcpMethodElementId("");
-      setResultBasis(isInitHplc || isInitIcp ? "PercentLabelClaim" : "MgPerKg");
+      const initUvMode = def?.uvCalculationMode;
+      const defaultBasis: ResultBasis | "" =
+        isInitHplc || isInitIcp
+          ? "PercentLabelClaim"
+          : isInitUv
+          ? (initUvMode === "AbsorbanceLimit" || initUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
+          : "MgPerKg";
+      setResultBasis(defaultBasis);
       setLabelClaim("");
       setLabelClaimUnit("");
 

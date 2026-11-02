@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
-import { UvReviewPanel } from "./UvReviewPanel";
+import { UvReviewPanel, isUvCalculation } from "./UvReviewPanel";
 import type { ParameterResultDetail } from "../types/sampleSummaryTypes";
 
 afterEach(() => {
@@ -153,5 +153,84 @@ describe("UvReviewPanel", () => {
     expect(screen.getByText(/Absorbance Limit/i)).toBeTruthy();
     expect(screen.getByText(/0\.150/)).toBeTruthy();
     expect(container.textContent).not.toContain("undefined");
+  });
+
+  it("shows neither Conforms nor Does not conform and hides As-is Value in limit mode", () => {
+    const calc = {
+      engineVersion: "uv-1",
+      quantity: "Uv",
+      mode: "AbsorbanceLimit",
+      wavelengthNm: 700,
+      totalVolumeMl: null,
+      specificAbsorbance: null,
+      standard: null,
+      referenceAbsorbance: 0.150,
+      resultBasis: null,
+      asIsValue: 0.120,
+      moisturePercent: null,
+      replicates: [
+        { replicateNo: 1, weightG: null, absorbance: 0.120, value: 0.120 }
+      ],
+      reportedValue: 0.120
+    };
+
+    const param: ParameterResultDetail = {
+      ...baseParameter,
+      parameterName: "Inorganic phosphate",
+      unit: "AU",
+      reportedDisplay: "0.120 AU",
+      calculationJson: JSON.stringify(calc)
+    };
+
+    const { container } = render(
+      <PinnedLightTheme>
+        <UvReviewPanel parameter={param} testOrderId={103} />
+      </PinnedLightTheme>
+    );
+
+    expect(container.textContent).not.toContain("Conforms");
+    expect(container.textContent).not.toContain("Does not conform");
+    expect(screen.queryByText(/As-is Value/i)).toBeNull();
+  });
+
+  it("shows '—' for a null reference in limit mode", () => {
+    const calc = {
+      engineVersion: "uv-1",
+      quantity: "Uv",
+      mode: "AbsorbanceLimit",
+      wavelengthNm: 700,
+      totalVolumeMl: null,
+      specificAbsorbance: null,
+      standard: null,
+      referenceAbsorbance: null,
+      resultBasis: null,
+      asIsValue: 0.120,
+      moisturePercent: null,
+      replicates: [
+        { replicateNo: 1, weightG: null, absorbance: 0.120, value: 0.120 }
+      ],
+      reportedValue: 0.120
+    };
+
+    const param: ParameterResultDetail = {
+      ...baseParameter,
+      parameterName: "Inorganic phosphate",
+      unit: "AU",
+      reportedDisplay: "0.120 AU",
+      calculationJson: JSON.stringify(calc)
+    };
+
+    render(
+      <PinnedLightTheme>
+        <UvReviewPanel parameter={param} testOrderId={104} />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.getByText(/Reference Absorbance/i)).toBeTruthy();
+    expect(screen.getByText("—")).toBeTruthy();
+  });
+
+  it("isUvCalculation returns false on malformed JSON instead of string matching", () => {
+    expect(isUvCalculation('{"quantity": "Uv", malformed json')).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -34,6 +35,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, filter.LabSectionId);
         var categories = await ResolveAreaAsync(filter.LabSectionId, filter.Area, currentUserId);
+        var includesPreparingLab = await IncludesPreparingLabAsync(scope);
 
         var query = _db.Samples.AsNoTracking();
         if (categories != null)
@@ -42,7 +44,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
         if (scope != null)
         {
-            query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
+            query = query.Where(SampleWorkflowQueues.VisibleInSections(scope, includesPreparingLab));
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -53,7 +55,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             var wf = filter.WorkloadFilter.Trim();
             if (string.Equals(wf, "needsPreparation", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(SampleWorkflowQueues.NeedsPreparationIn(scope));
+                query = query.Where(SampleWorkflowQueues.NeedsPreparationIn(scope, includesPreparingLab));
             }
             else if (string.Equals(wf, "readyToRead", StringComparison.OrdinalIgnoreCase))
             {
@@ -261,6 +263,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
+    // Water, EM and After Cleaning samples get their tests when the Microbiology
+    // lab prepares them, so until then only a scope holding that lab lists them.
+    // No scope (Sections.ViewAll, no lab picked) is unfiltered anyway.
+    private async Task<bool> IncludesPreparingLabAsync(IReadOnlyCollection<int>? scope) =>
+        scope == null || await _db.DocumentSections.AsNoTracking()
+            .AnyAsync(d => scope.Contains(d.Id) && d.Code == LaboratoryCodes.Microbiology);
+
     // The Physicochemical workspace is split into FP and RM & PM areas by sample category.
     // Returns the categories to keep, or null for any other laboratory (unchanged behaviour).
     private async Task<IReadOnlyList<SampleCategory>?> ResolveAreaAsync(int? labSectionId, string? area, int? userId)
@@ -284,6 +293,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, labSectionId);
         var categories = await ResolveAreaAsync(labSectionId, area, currentUserId);
+        var includesPreparingLab = await IncludesPreparingLabAsync(scope);
 
         var now = _time.GetUtcNow().UtcDateTime;
 
@@ -294,11 +304,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
         if (scope != null)
         {
-            baseQuery = baseQuery.Where(SampleWorkflowQueues.HasTestInSections(scope));
+            baseQuery = baseQuery.Where(SampleWorkflowQueues.VisibleInSections(scope, includesPreparingLab));
         }
 
         var needsPrep = await baseQuery
-            .CountAsync(SampleWorkflowQueues.NeedsPreparationIn(scope));
+            .CountAsync(SampleWorkflowQueues.NeedsPreparationIn(scope, includesPreparingLab));
 
         var readyToRead = await baseQuery
             .CountAsync(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
@@ -459,7 +469,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
         if (scope != null)
         {
             var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId));
-            if (!hasInScopeNonSuperseded) return null;
+            if (!hasInScopeNonSuperseded
+                && !(SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample) && await IncludesPreparingLabAsync(scope)))
+                return null;
         }
 
         var dtos = await MapSamplesToDtosAsync(new List<Sample> { sample }, scope);

@@ -13,6 +13,22 @@ export function formatMoistureLabel(moisture: SampleMoistureResult): string {
   return `${prefix} ${moisture.percent} % (from ${moisture.testCode})`;
 }
 
+/** Readable text for a test analysis's stored conditions; a moisture entry reads like the entry screen's line. */
+export function formatAnalysisConditions(conditionsJson: string | null | undefined): string | null {
+  if (!conditionsJson) return null;
+  try {
+    const parsed = JSON.parse(conditionsJson);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return JSON.stringify(parsed);
+    const entries = Object.entries(parsed);
+    if (entries.length === 0) return null;
+    return entries
+      .map(([k, v]) => (k === "moisture" && v ? formatMoistureLabel(v as SampleMoistureResult) : `${k}: ${String(v)}`))
+      .join(" · ");
+  } catch {
+    return conditionsJson;
+  }
+}
+
 /**
  * Generates the prompt message when a dried or anhydrous basis assay needs
  * a moisture result but none has been recorded yet.

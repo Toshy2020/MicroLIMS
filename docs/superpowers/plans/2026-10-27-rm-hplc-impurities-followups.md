@@ -25,3 +25,12 @@
   - The SST panel still takes injection counts and SST limits from the live method. Mode and internal standard come from the run snapshot.
 - Final review minors
   - Dissolution vs RS interaction, a dead preview check, an unused type, working-standard peaks unchecked, and the conflict check ignoring grade and stage.
+
+## Browser check (2026-11-02): passed on local LIMSV2
+- Found and fixed:
+  - HPLC entry refused every raw and packaging material sample because they have no production stage (319ad9d5).
+  - The reviewer's related-substances panel used the assay layout, and internal-standard results showed "moisture: [object Object]".
+- Open decision: with no stage, the test's `ReplicateCount` sets the replicates; with none set, the analyst enters at least one. The Test Master screen doesn't offer that field for HPLC tests, so a fixed count can only be set through the API today.
+- Noticed, not fixed: an assay stores 98.49 and displays 98.5 (one decimal); the sample was judged within limits either way.
+- Not exercised in the browser: method and SST screens for the IS method (created by API), and approval after review.
+- Local test data left in LIMSV2: items E2E-RM-HPLC (296) and E2E-RM-GRADE (295, gained tests E2E-RS-T and E2E-IS-T plus their spec rows), methods E2E-RS (15) and E2E-IS (16), column COL-E2E-L1, preparations 12 and 13, samples RM1126001 and RM1126002, runs 17-20 (all completed).

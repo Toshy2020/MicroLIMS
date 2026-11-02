@@ -3,7 +3,8 @@ import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } fr
 import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
-import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
+import { formatAnalysisConditions } from "./utils/moistureRetentionHelpers";
+import { HplcReviewPanel, hplcPanelResults } from "../hplcWorkspace/review/HplcReviewPanel";
 import { IcpReviewPanel } from "./icp/IcpReviewPanel";
 import { isIcpCalculation } from "./icp/icpReviewTypes";
 import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
@@ -39,21 +40,6 @@ export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
   return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
 }
 
-function formatConditions(conditionsJson: string | null): string | null {
-  if (!conditionsJson) return null;
-  try {
-    const parsed = JSON.parse(conditionsJson);
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      const entries = Object.entries(parsed);
-      if (entries.length === 0) return null;
-      return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
-    }
-    return JSON.stringify(parsed);
-  } catch {
-    return conditionsJson;
-  }
-}
-
 // Generic TestAnalysis: headline parameter results, conditions, and per-parameter raw readings.
 export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
   const a = test.analysis!;
@@ -73,7 +59,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
           ? `Due titrant acknowledged: ${titration.dueTitrantAcknowledgement.justification}`
           : null
       ].filter(Boolean).join(" · ") || null
-    : formatConditions(a.conditionsJson);
+    : formatAnalysisConditions(a.conditionsJson);
 
   return (
     <CollapsibleTestCard
@@ -150,7 +136,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
           </div>
 
           {a.analysisType === "HplcMethodAssay" &&
-            a.parameterResults.map((p) => (
+            hplcPanelResults(a.parameterResults).map((p) => (
               <HplcReviewPanel
                 key={`hplc-review-${p.id}`}
                 parameter={p}

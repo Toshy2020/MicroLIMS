@@ -1,7 +1,8 @@
 import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, TableContainer } from "@mui/material";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { AnalysisDetail, ParameterResultDetail, ResultReadingDetail } from "../types/sampleSummaryTypes";
-import { HplcReviewPanel } from "../../hplcWorkspace/review/HplcReviewPanel";
+import { HplcReviewPanel, hplcPanelResults } from "../../hplcWorkspace/review/HplcReviewPanel";
+import { formatAnalysisConditions } from "../utils/moistureRetentionHelpers";
 import { IcpReviewPanel } from "../icp/IcpReviewPanel";
 import { isIcpCalculation } from "../icp/icpReviewTypes";
 import { humanize } from "../SampleReportPage";
@@ -17,7 +18,7 @@ export function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) 
   const cellSx = { fontSize: 12, py: 0.75 };
   const headSx = { fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
 
-  let conditionsDisplay: string | null = null;
+  let conditionsDisplay: string | null;
   const titration = analysis.analysisType === "Titration" ? parseTitrationSnapshot(analysis.conditionsJson) : null;
   if (titration) {
     conditionsDisplay =
@@ -29,17 +30,8 @@ export function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) 
           ? `Due titrant acknowledged: ${titration.dueTitrantAcknowledgement.justification}`
           : null
       ].filter(Boolean).join(" · ") || null;
-  } else if (analysis.conditionsJson) {
-    try {
-      const parsed = JSON.parse(analysis.conditionsJson);
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        conditionsDisplay = Object.entries(parsed).map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
-      } else {
-        conditionsDisplay = JSON.stringify(parsed);
-      }
-    } catch {
-      conditionsDisplay = analysis.conditionsJson;
-    }
+  } else {
+    conditionsDisplay = formatAnalysisConditions(analysis.conditionsJson);
   }
 
   return (
@@ -85,7 +77,7 @@ export function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) 
         </Table>
       </TableContainer>
       {analysis.analysisType === "HplcMethodAssay" &&
-        analysis.parameterResults.map((p) => (
+        hplcPanelResults(analysis.parameterResults).map((p) => (
           <HplcReviewPanel
             key={`hplc-review-${p.id}`}
             parameter={p}

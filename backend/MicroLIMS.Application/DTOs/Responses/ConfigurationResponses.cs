@@ -228,6 +228,10 @@ public class TestDefinitionResponse
     public bool? TitrationTempCorrection { get; init; }
     public decimal? TitrationExpansionCoefficient { get; init; }
     public int? TitrationStandardEntryId { get; init; }
+    public UvCalculationMode? UvCalculationMode { get; init; }
+    public decimal? UvSpecificAbsorbance { get; init; }
+    public decimal? UvTotalVolumeMl { get; init; }
+    public decimal? UvStandardVolumeMl { get; init; }
 
     public static TestDefinitionResponse From(TestDefinition e) => new()
     {
@@ -292,6 +296,10 @@ public class TestDefinitionResponse
         TitrationTempCorrection = e.TitrationTempCorrection,
         TitrationExpansionCoefficient = e.TitrationExpansionCoefficient,
         TitrationStandardEntryId = e.TitrationStandardEntryId,
+        UvCalculationMode = e.UvCalculationMode,
+        UvSpecificAbsorbance = e.UvSpecificAbsorbance,
+        UvTotalVolumeMl = e.UvTotalVolumeMl,
+        UvStandardVolumeMl = e.UvStandardVolumeMl,
     };
 }
 

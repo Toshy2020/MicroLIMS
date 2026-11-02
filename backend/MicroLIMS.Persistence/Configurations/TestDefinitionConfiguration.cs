@@ -47,6 +47,10 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.TitrationIndicator).HasMaxLength(200);
         builder.Property(t => t.TitrationExpansionCoefficient).HasPrecision(8, 6);
 
+        builder.Property(t => t.UvSpecificAbsorbance).HasPrecision(10, 4);
+        builder.Property(t => t.UvTotalVolumeMl).HasPrecision(14, 4);
+        builder.Property(t => t.UvStandardVolumeMl).HasPrecision(14, 4);
+
         builder.HasOne(t => t.TitrantSolutionMaster).WithMany()
             .HasForeignKey(t => t.TitrantSolutionMasterId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(t => t.TitrationExcessSolutionMaster).WithMany()

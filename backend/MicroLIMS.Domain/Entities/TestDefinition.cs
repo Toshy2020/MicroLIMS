@@ -121,6 +121,12 @@ public class TestDefinition : IVersionedEntity
     public int? TitrationStandardEntryId { get; set; }         // Relative: reference standard master entry
     public MaterialMasterEntry? TitrationStandardEntry { get; set; }
 
+    // Finished Product / Raw Material UV Spectrophotometry criteria
+    public UvCalculationMode? UvCalculationMode { get; set; }
+    public decimal? UvSpecificAbsorbance { get; set; }
+    public decimal? UvTotalVolumeMl { get; set; }
+    public decimal? UvStandardVolumeMl { get; set; }
+
     // Finished Product / Standard-Comparison Assay - per-stage-role
     // standard/sample replicate counts. See TestDefinitionStageReplicate.
     public List<TestDefinitionStageReplicate> StageReplicates { get; set; } = new();

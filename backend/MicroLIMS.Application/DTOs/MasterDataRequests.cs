@@ -233,7 +233,11 @@ public record CreateTestDefinitionRequest(
     int? IcpMethodId = null,
     PhyschemArea? PhyschemArea = null,
     bool? PerContainer = null,
-    MoistureRole? MoistureRole = null)
+    MoistureRole? MoistureRole = null,
+    UvCalculationMode? UvCalculationMode = null,
+    decimal? UvSpecificAbsorbance = null,
+    decimal? UvTotalVolumeMl = null,
+    decimal? UvStandardVolumeMl = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
@@ -299,7 +303,11 @@ public record UpdateTestDefinitionRequest(
     int? IcpMethodId = null,
     PhyschemArea? PhyschemArea = null,
     bool? PerContainer = null,
-    MoistureRole? MoistureRole = null)
+    MoistureRole? MoistureRole = null,
+    UvCalculationMode? UvCalculationMode = null,
+    decimal? UvSpecificAbsorbance = null,
+    decimal? UvTotalVolumeMl = null,
+    decimal? UvStandardVolumeMl = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and

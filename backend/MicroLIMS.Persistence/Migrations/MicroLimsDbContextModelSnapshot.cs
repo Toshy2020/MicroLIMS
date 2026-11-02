@@ -10209,6 +10209,21 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool?>("UsesTare")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("UvCalculationMode")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("UvSpecificAbsorbance")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)");
+
+                    b.Property<decimal?>("UvStandardVolumeMl")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("numeric(14,4)");
+
+                    b.Property<decimal?>("UvTotalVolumeMl")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("numeric(14,4)");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()

@@ -7,5 +7,6 @@ public enum ReadingKind
     Vessel = 3,
     TimePoint = 4,
     Weight = 5,
-    Titration = 6
+    Titration = 6,
+    Absorbance = 7
 }

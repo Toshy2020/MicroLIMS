@@ -124,6 +124,9 @@ public static class PermissionConstants
     public const string NotApplicableTestsFinalApprove = "tests.not-applicable.final-approve";
     public const string TestsOutsource = "tests.outsource";
 
+    // Sample Preparation writes (prepare, confirm, batch confirm). Every working role holds it; QC Manager (approval-only) does not.
+    public const string SamplesPrepare = "samples.prepare";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -145,7 +148,8 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
+        SamplesPrepare
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -164,6 +168,7 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
+        SamplesPrepare
     };
 }

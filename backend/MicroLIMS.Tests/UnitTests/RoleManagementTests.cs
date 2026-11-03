@@ -83,8 +83,8 @@ public class RoleManagementTests
         // carries as technical reviewer / QA auditor, and the 4 codes that
         // replaced role-only gates (review dashboard, media preparation,
         // receiving for their own lab, correcting a sample), and
-        // MonitoringPlan.View.
-        Assert.Equal(18, reviewer!.PermissionCodes.Count);
+        // MonitoringPlan.View, and samples.prepare.
+        Assert.Equal(19, reviewer!.PermissionCodes.Count);
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }

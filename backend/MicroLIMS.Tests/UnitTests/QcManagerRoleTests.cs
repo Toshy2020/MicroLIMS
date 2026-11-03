@@ -68,4 +68,13 @@ public class QcManagerRoleTests
         Assert.DoesNotContain(PermissionConstants.NotApplicableTestsFinalApprove, codes);
         Assert.DoesNotContain(PermissionConstants.TestsOutsource, codes);
     }
+
+    [Fact]
+    public async Task SamplesPrepare_IsHeldByEveryRoleButQcManager()
+    {
+        var db = Seeded();
+        foreach (var role in new[] { RoleType.SystemAdministrator, RoleType.SectionHead, RoleType.Reviewer, RoleType.Analyst })
+            Assert.Contains(PermissionConstants.SamplesPrepare, await CodesOf(db, role));
+        Assert.DoesNotContain(PermissionConstants.SamplesPrepare, await CodesOf(db, RoleType.QcManager));
+    }
 }

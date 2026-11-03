@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, CircularProgress } from "@mui/material";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { TestPreparationForm } from "./TestPreparationForm";
 import { ConfirmPreparationForm } from "./ConfirmPreparationForm";
 import { EMPreparationForm } from "../laboratoryConfiguration/environmentalMonitoring/EMPreparationForm";
@@ -38,6 +40,7 @@ function isItemCategory(category: string) {
 // Preparation" - routes to the right form by category, reusing the same
 // forms the standalone EM/After Cleaning/Water/Test Preparation pages use.
 export function PreparationDialog({ open, sample, onClose }: Props) {
+  const canPrepare = useAuth().permissions.includes(PERMISSIONS.SAMPLES_PREPARE);
   const [config, setConfig] = useState<ItemPreparationConfiguration | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -79,7 +82,11 @@ export function PreparationDialog({ open, sample, onClose }: Props) {
         <WaterPreparationForm sampleId={sample.sampleId} waterDepartmentId={sample.waterDepartmentId} onComplete={onClose} />
       )}
 
-      {isItemCategory(sample.category) && (
+      {isItemCategory(sample.category) && !canPrepare && (
+        <Alert severity="info">Preparing a sample needs the samples.prepare permission, which your role does not hold.</Alert>
+      )}
+
+      {isItemCategory(sample.category) && canPrepare && (
         <>
           {loadingConfig && (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>

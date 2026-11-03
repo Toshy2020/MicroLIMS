@@ -117,10 +117,11 @@ public class RolePermissionSeedDataTests
             // Annual Monitoring Plan.
             PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
             PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
-            PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource
+            PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
+            PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(52, codes.Count);
+        Assert.Equal(53, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -147,10 +148,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
             PermissionConstants.MonitoringPlanView,
             // Equipment plan: record calibrations and logbook entries, add calendar events.
-            PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+            PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+            PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(18, codes.Count);
+        Assert.Equal(19, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
         // A reviewer does not register documents or edit drafts.
@@ -184,10 +186,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.WorkingStandardsQualify,
             PermissionConstants.MonitoringPlanView,
             // Equipment plan: record calibrations and logbook entries.
-            PermissionConstants.EquipmentWorkRecord
+            PermissionConstants.EquipmentWorkRecord,
+            PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(17, codes.Count);
+        Assert.Equal(18, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -205,10 +208,10 @@ public class RolePermissionSeedDataTests
         // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
         // 110 (SystemAdministrator holds it via PermissionConstants.All).
         // Hplc.Operate (HPLC chain S6) is granted to the same three roles -
-        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123. MonitoringPlan.View (all four roles) +4, Manage and Approve (SystemAdministrator, SectionHead) +4, for 131. Not-applicable manage and outsource (SystemAdministrator, SectionHead) +4, QC Manager (final approve, Discussions.View, MonitoringPlan.View) +3: 142 before them, 149 now.
+        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123. MonitoringPlan.View (all four roles) +4, Manage and Approve (SystemAdministrator, SectionHead) +4, for 131. Not-applicable manage and outsource (SystemAdministrator, SectionHead) +4, QC Manager (final approve, Discussions.View, MonitoringPlan.View) +3: 142 before them, 149 before samples.prepare (+4: every role but QC Manager), 153 now.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(149, total);
+        Assert.Equal(153, total);
     }
 
     [Fact]
@@ -218,7 +221,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(149, await db.RolePermissions.CountAsync());
+        Assert.Equal(153, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

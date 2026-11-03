@@ -489,11 +489,11 @@ SampleDocumentController.List(Int32, CancellationToken): SystemAdministrator,Sec
 SampleDocumentController.Upload(Int32, IFormFile, CancellationToken, SampleDocumentType): SystemAdministrator,SectionHead,Reviewer,Analyst
 SampleDocumentController.UploadExternalReport(Int32, IFormFile, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 SampleDocumentController.Void(Int32, VoidDocumentHttpRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer
-SamplePreparationController.BatchConfirm(BatchConfirmPreparationHttpRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SamplePreparationController.Confirm(ConfirmPreparationHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SamplePreparationController.BatchConfirm(BatchConfirmPreparationHttpRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
+SamplePreparationController.Confirm(ConfirmPreparationHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 SamplePreparationController.GetGroups(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SamplePreparationController.IsPrepared(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SamplePreparationController.Prepare(PrepareSampleHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SamplePreparationController.Prepare(PrepareSampleHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst
 SampleReviewController.Complete(Int32, CompleteSampleReviewRequest): SystemAdministrator,SectionHead,Reviewer
 SampleReviewController.ReturnTestToAnalyst(Int32, ReturnTestToAnalystRequest): SystemAdministrator,SectionHead,Reviewer
 SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager

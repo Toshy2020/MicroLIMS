@@ -517,6 +517,7 @@ public static class DbSeeder
             (PermissionConstants.NotApplicableTestsManage, "Mark a test not applicable to an item and manage that request until final approval."),
             (PermissionConstants.NotApplicableTestsFinalApprove, "Give the final approval of a not-applicable test (QC Manager only)."),
             (PermissionConstants.TestsOutsource, "Outsource a test to an outside laboratory."),
+            (PermissionConstants.SamplesPrepare, "Prepare a sample for testing: record, confirm or batch-confirm a sample preparation."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -564,7 +565,8 @@ public static class DbSeeder
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
                     PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
-                    PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource
+                    PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
+                    PermissionConstants.SamplesPrepare
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -578,7 +580,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
-                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+                    PermissionConstants.SamplesPrepare
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -596,7 +599,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate,
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
-                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord,
+                    PermissionConstants.SamplesPrepare
                 })
             };
 

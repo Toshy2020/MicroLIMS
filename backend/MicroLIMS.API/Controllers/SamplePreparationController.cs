@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -40,6 +41,7 @@ public class SamplePreparationController : ControllerBase
     private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     [HttpPost]
+    [Authorize(Policy = PermissionConstants.SamplesPrepare)]
     public async Task<IActionResult> Prepare(PrepareSampleHttpRequest r)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, r.SampleId);
@@ -51,6 +53,7 @@ public class SamplePreparationController : ControllerBase
     }
 
     [HttpPost("confirm")]
+    [Authorize(Policy = PermissionConstants.SamplesPrepare)]
     public async Task<IActionResult> Confirm(ConfirmPreparationHttpRequest r)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, r.SampleId);
@@ -81,6 +84,7 @@ public class SamplePreparationController : ControllerBase
     }
 
     [HttpPost("batch-confirm")]
+    [Authorize(Policy = PermissionConstants.SamplesPrepare)]
     public async Task<IActionResult> BatchConfirm(BatchConfirmPreparationHttpRequest r, CancellationToken ct = default)
     {
         if (r.SampleIds != null && r.SampleIds.Count > 0)

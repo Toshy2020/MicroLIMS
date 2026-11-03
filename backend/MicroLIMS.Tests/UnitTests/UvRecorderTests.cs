@@ -204,6 +204,24 @@ public class UvRecorderTests
         }
     }
 
+    // The spec is a sentence: the CoA must not print "...the reference AU". The reading keeps its unit.
+    [Fact]
+    public async Task AbsorbanceLimit_KeepsTheUnitOnTheReadingOnly()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.AbsorbanceLimit, specTweak: sp =>
+        {
+            sp.LimitType = LimitType.Qualitative; sp.ExpectedResultText = "Not more than the reference";
+            sp.LowerLimit = null; sp.UpperLimit = null; sp.ResultBasis = null; sp.Unit = "AU";
+        });
+
+        await Record(db, c, Payload(c, Param(c.Specs[0], 0.120m, null, 700m, 0.150m)));
+
+        var pr = await db.ParameterResults.SingleAsync(r => r.TestOrderId == c.Order.Id);
+        Assert.Null(pr.Unit);
+        Assert.Equal("0.120 AU", pr.ReportedDisplay);
+    }
+
     // ---- standard comparison ----
 
     private static TitrationScenario.Options WithStandard(Action<TitrationScenario.Options>? tweak = null)

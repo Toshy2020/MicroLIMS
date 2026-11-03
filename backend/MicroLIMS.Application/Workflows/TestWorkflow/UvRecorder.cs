@@ -220,7 +220,8 @@ public sealed class UvRecorder : TestWorkflowSupport
                 ParameterName = spec.ParameterName,
                 ReportedValue = reported,
                 ReportedDisplay = display,
-                Unit = spec.Unit,
+                // a limit test's spec is a sentence, and the CoA appends this unit to it; the reading keeps its AU
+                Unit = limitMode ? null : spec.Unit,
                 SpecLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit) ? spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(spec),
                 ResultBasis = spec.ResultBasis,
                 ComparisonStatus = status,

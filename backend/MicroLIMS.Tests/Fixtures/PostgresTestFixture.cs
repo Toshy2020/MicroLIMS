@@ -56,7 +56,8 @@ public class PostgresTestFixture : IAsyncLifetime
             throw new InvalidOperationException(PostgresTestConfiguration.SkipReason);
 
         var builder = new DbContextOptionsBuilder<MicroLimsDbContext>()
-            .UseNpgsql(_testConnectionString);
+            .UseNpgsql(_testConnectionString)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
         if (interceptors is { Length: > 0 })
         {

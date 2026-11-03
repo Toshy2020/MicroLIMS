@@ -38,17 +38,17 @@ public class SupplierStatedAttributeService
 
     public async Task<SupplierStatedAttributeDto> CreateAsync(int userId, SupplierStatedAttributeRequest r)
     {
-        _db.CurrentUserId = userId;
-
-        var itemExists = await _db.Items.AnyAsync(i => i.Id == r.ItemId);
-        if (!itemExists)
-            throw new NotFoundException($"Item {r.ItemId} not found.");
-
-        var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
-        var validatedGrade = await ValidateGradeAsync(r.ItemId, r.Grade);
-
         return await UnitOfWork.RunAsync(_db, async () =>
         {
+            _db.CurrentUserId = userId;
+
+            var itemExists = await _db.Items.AnyAsync(i => i.Id == r.ItemId);
+            if (!itemExists)
+                throw new NotFoundException($"Item {r.ItemId} not found.");
+
+            var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
+            var validatedGrade = await ValidateGradeAsync(r.ItemId, r.Grade);
+
             var entity = new SupplierStatedAttribute
             {
                 ItemId = r.ItemId,
@@ -61,102 +61,95 @@ public class SupplierStatedAttributeService
             _db.SupplierStatedAttributes.Add(entity);
             await _db.SaveChangesAsync();
 
-            try
+            var changes = new List<AuditFieldChange>
             {
-                var changes = new List<AuditFieldChange>
-                {
-                    new("Name", null, trimmedName),
-                    new("StatedValue", null, trimmedValue),
-                    new("Grade", null, validatedGrade),
-                    new("SortOrder", null, r.SortOrder.ToString())
-                };
+                new("Name", null, trimmedName),
+                new("StatedValue", null, trimmedValue),
+                new("Grade", null, validatedGrade),
+                new("SortOrder", null, r.SortOrder.ToString())
+            };
 
-                await _auditEventService.RecordUserEventAsync(
-                    CreatedActionCode,
-                    AuditActionCategory.Configuration,
-                    RecordType,
-                    changes: changes,
-                    entityId: entity.Id.ToString());
+            await _auditEventService.RecordUserEventAsync(
+                CreatedActionCode,
+                AuditActionCategory.Configuration,
+                RecordType,
+                changes: changes,
+                entityId: entity.Id.ToString());
 
-                return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
-            }
-            catch
-            {
-                if (!_db.Database.IsRelational())
-                {
-                    _db.SupplierStatedAttributes.Remove(entity);
-                    await _db.SaveChangesAsync();
-                }
-                throw;
-            }
+            return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
         });
     }
 
     public async Task<SupplierStatedAttributeDto> UpdateAsync(int userId, int id, SupplierStatedAttributeRequest r)
     {
-        _db.CurrentUserId = userId;
-
-        var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
-
-        var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
-        var validatedGrade = await ValidateGradeAsync(entity.ItemId, r.Grade);
-
-        var changes = new List<AuditFieldChange>();
-        if (entity.Name != trimmedName)
-            changes.Add(new AuditFieldChange("Name", entity.Name, trimmedName));
-        if (entity.StatedValue != trimmedValue)
-            changes.Add(new AuditFieldChange("StatedValue", entity.StatedValue, trimmedValue));
-        if (entity.Grade != validatedGrade)
-            changes.Add(new AuditFieldChange("Grade", entity.Grade, validatedGrade));
-        if (entity.SortOrder != r.SortOrder)
-            changes.Add(new AuditFieldChange("SortOrder", entity.SortOrder.ToString(), r.SortOrder.ToString()));
-
-        entity.Name = trimmedName;
-        entity.StatedValue = trimmedValue;
-        entity.Grade = validatedGrade;
-        entity.SortOrder = r.SortOrder;
-
-        if (changes.Count > 0)
+        return await UnitOfWork.RunAsync(_db, async () =>
         {
-            await _auditEventService.RecordUserEventAsync(
-                UpdatedActionCode,
-                AuditActionCategory.Configuration,
-                RecordType,
-                changes: changes,
-                entityId: entity.Id.ToString());
-        }
-        else
-        {
+            _db.CurrentUserId = userId;
+
+            var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
+                ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
+
+            var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
+            var validatedGrade = await ValidateGradeAsync(entity.ItemId, r.Grade);
+
+            var changes = new List<AuditFieldChange>();
+            if (entity.Name != trimmedName)
+                changes.Add(new AuditFieldChange("Name", entity.Name, trimmedName));
+            if (entity.StatedValue != trimmedValue)
+                changes.Add(new AuditFieldChange("StatedValue", entity.StatedValue, trimmedValue));
+            if (entity.Grade != validatedGrade)
+                changes.Add(new AuditFieldChange("Grade", entity.Grade, validatedGrade));
+            if (entity.SortOrder != r.SortOrder)
+                changes.Add(new AuditFieldChange("SortOrder", entity.SortOrder.ToString(), r.SortOrder.ToString()));
+
+            entity.Name = trimmedName;
+            entity.StatedValue = trimmedValue;
+            entity.Grade = validatedGrade;
+            entity.SortOrder = r.SortOrder;
+
             await _db.SaveChangesAsync();
-        }
 
-        return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
+            if (changes.Count > 0)
+            {
+                await _auditEventService.RecordUserEventAsync(
+                    UpdatedActionCode,
+                    AuditActionCategory.Configuration,
+                    RecordType,
+                    changes: changes,
+                    entityId: entity.Id.ToString());
+            }
+
+            return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
+        });
     }
 
     public async Task DeleteAsync(int userId, int id)
     {
-        _db.CurrentUserId = userId;
-
-        var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
-
-        var changes = new List<AuditFieldChange>
+        await UnitOfWork.RunAsync(_db, async () =>
         {
-            new("Name", entity.Name, null),
-            new("StatedValue", entity.StatedValue, null),
-            new("Grade", entity.Grade, null),
-            new("SortOrder", entity.SortOrder.ToString(), null)
-        };
+            _db.CurrentUserId = userId;
 
-        _db.SupplierStatedAttributes.Remove(entity);
+            var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
+                ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
 
-        await _auditEventService.RecordUserEventAsync(
-            DeletedActionCode,
-            AuditActionCategory.Configuration,
-            RecordType,
-            changes: changes,
-            entityId: id.ToString());
+            var changes = new List<AuditFieldChange>
+            {
+                new("Name", entity.Name, null),
+                new("StatedValue", entity.StatedValue, null),
+                new("Grade", entity.Grade, null),
+                new("SortOrder", entity.SortOrder.ToString(), null)
+            };
+
+            _db.SupplierStatedAttributes.Remove(entity);
+            await _db.SaveChangesAsync();
+
+            await _auditEventService.RecordUserEventAsync(
+                DeletedActionCode,
+                AuditActionCategory.Configuration,
+                RecordType,
+                changes: changes,
+                entityId: id.ToString());
+        });
     }
 
     public Task<List<SupplierStatedAttributeDto>> ForSampleAsync(int itemId, string? grade) =>

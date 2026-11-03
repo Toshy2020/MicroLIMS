@@ -20,7 +20,9 @@ public static class CertificateOfAnalysisBuilder
 
     public static CertificateOfAnalysisDto Build(SampleSummaryDto summary, IReadOnlyList<CoaSimpleRowDto>? supporting = null, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: supporting?.Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value)).ToList());
+        // A restricted viewer never receives another lab's supporting rows, in any scope.
+        var visibleSupporting = supporting?.Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value)).ToList();
+        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: visibleSupporting);
 
         // A rejected sample still gets a certificate; it names the rejecting
         // laboratories instead of restating the result verdict.
@@ -40,7 +42,7 @@ public static class CertificateOfAnalysisBuilder
                     SectionId = s.SectionId,
                     SectionName = s.SectionName,
                     Scope = BuildScope(summary.TestOrders.Where(t => t.SectionId == s.SectionId).ToList(), noResultsText: SampleCompliesNoResultsText,
-                        supportingRows: supporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList())
+                        supportingRows: visibleSupporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList())
                 })
                 .ToList()
         };

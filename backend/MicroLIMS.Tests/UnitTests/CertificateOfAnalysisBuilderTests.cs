@@ -316,6 +316,19 @@ public class CertificateOfAnalysisBuilderTests
     }
 
     [Fact]
+    public void RestrictedSections_ASectionTheViewerCannotSeeCarriesNoOtherLabRows()
+    {
+        var coa = CertificateOfAnalysisBuilder.Build(TwoLabSummary(), TwoLabSupporting(), sectionIds: new[] { 1 });
+
+        var hidden = coa.Sections.Single(s => s.SectionId == 2).Scope;
+        Assert.DoesNotContain(hidden.SupportingRows, r => r.SectionId == 2);
+        Assert.DoesNotContain(hidden.SupportingRows, r => r.TestDisplayName == "Heavy metals");
+
+        var visible = coa.Sections.Single(s => s.SectionId == 1).Scope;
+        Assert.Contains(visible.SupportingRows, r => r.TestDisplayName == "Mould");
+    }
+
+    [Fact]
     public void CountTestWithoutAReading_IsNotCertified()
     {
         // A saved reading always carries a status, so the unread count

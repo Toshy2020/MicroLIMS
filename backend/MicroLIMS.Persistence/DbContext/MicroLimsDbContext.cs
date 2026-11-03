@@ -33,6 +33,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
     public DbSet<SpecificationStage> SpecificationStages => Set<SpecificationStage>();
+    public DbSet<SupplierStatedAttribute> SupplierStatedAttributes => Set<SupplierStatedAttribute>();
     public DbSet<Media> Media => Set<Media>();
     public DbSet<MediaEvaluation> MediaEvaluations => Set<MediaEvaluation>();
     public DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges => Set<MediaEvaluationChallenge>();

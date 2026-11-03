@@ -37,6 +37,7 @@ public interface IMicroLimsDbContext
     DbSet<Item> Items { get; }
     DbSet<Specification> Specifications { get; }
     DbSet<SpecificationStage> SpecificationStages { get; }
+    DbSet<SupplierStatedAttribute> SupplierStatedAttributes { get; }
     DbSet<Media> Media { get; }
     DbSet<MediaEvaluation> MediaEvaluations { get; }
     DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges { get; }

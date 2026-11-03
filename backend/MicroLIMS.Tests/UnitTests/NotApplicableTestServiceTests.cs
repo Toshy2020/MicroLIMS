@@ -385,8 +385,206 @@ public class NotApplicableTestServiceTests
         var withdrawn = await service.WithdrawAsync(head.Id, created.Id, Password, "Reason for withdrawal");
         Assert.Equal(NotApplicableStatus.Withdrawn, withdrawn.Status);
 
+        var withdrawSig = await db.ElectronicSignatures.FirstOrDefaultAsync(s =>
+            s.EntityType == "NotApplicableTest" && s.EntityId == created.Id && s.MeaningOfSignature == SignatureMeaning.NotApplicableWithdrawn);
+        Assert.NotNull(withdrawSig);
+        Assert.Equal("Reason for withdrawal", withdrawSig.Comment);
+
         var withdrawAudit = await db.AuditLogs.FirstOrDefaultAsync(a => a.ActionCode == NotApplicableTestService.WithdrawnActionCode && a.EntityId == created.Id.ToString());
         Assert.NotNull(withdrawAudit);
         Assert.Equal("Reason for withdrawal", withdrawAudit.Reason);
+    }
+
+    private class ThrowingAuditService : IAuditEventService
+    {
+        public Task<AuditLog> RecordUserEventAsync(string actionCode, AuditActionCategory actionCategory, string recordType, int? documentMasterId = null, int? documentRevisionId = null, string? reason = null, Guid? correlationId = null, string? sourceContext = null, IEnumerable<AuditFieldChange>? changes = null, string? entityId = null, CancellationToken cancellationToken = default, int? sampleId = null) =>
+            throw new InvalidOperationException("Audit write failure simulated.");
+
+        public Task<AuditLog> RecordSystemEventAsync(string systemProcessName, string actionCode, AuditActionCategory actionCategory, string recordType, int? documentMasterId = null, int? documentRevisionId = null, string? reason = null, Guid? correlationId = null, string? sourceContext = null, IEnumerable<AuditFieldChange>? changes = null, string? entityId = null, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Audit write failure simulated.");
+    }
+
+    [Fact]
+    public async Task Create_WhenAuditWriteThrows_NoRecordRemains()
+    {
+        using var db = NewDb();
+        var user = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = new NotApplicableTestService(
+            db,
+            new ElectronicSignatureService(db),
+            new ThrowingAuditService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateAsync(user.Id, MakeCreateRequest(item.Id, "TAMC")));
+
+        Assert.Empty(await db.NotApplicableTests.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Withdraw_WritesSignatureRowWithNotApplicableWithdrawn()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        await service.WithdrawAsync(head.Id, created.Id, Password, "Withdraw reason", "10.0.0.1");
+
+        var sig = await db.ElectronicSignatures.FirstOrDefaultAsync(s =>
+            s.EntityType == "NotApplicableTest" && s.EntityId == created.Id);
+        Assert.NotNull(sig);
+        Assert.Equal(SignatureMeaning.NotApplicableWithdrawn, sig.MeaningOfSignature);
+        Assert.Equal("Withdraw reason", sig.Comment);
+        Assert.Equal("10.0.0.1", sig.IpAddress);
+    }
+
+    [Fact]
+    public async Task Withdraw_WrongPassword_RefusedAndGoesThroughFailedAttemptHandling()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+
+        var ex = await Assert.ThrowsAsync<SignatureVerificationException>(
+            () => service.WithdrawAsync(head.Id, created.Id, "WrongPassword", "Withdraw reason"));
+
+        Assert.Contains("Password verification failed. The signature was not applied.", ex.Message);
+
+        var failedAudit = await db.AuditLogs.FirstOrDefaultAsync(a =>
+            a.EntityName == "ElectronicSignature" &&
+            a.Action == "SignatureFailed" &&
+            a.UserId == head.Id);
+        Assert.NotNull(failedAudit);
+        Assert.Contains("NotApplicableTest", failedAudit.NewValue);
+
+        var record = await db.NotApplicableTests.FindAsync(created.Id);
+        Assert.Equal(NotApplicableStatus.Draft, record!.Status);
+    }
+
+    [Theory]
+    [InlineData(NotApplicableStatus.Draft)]
+    [InlineData(NotApplicableStatus.HeadApproved)]
+    [InlineData(NotApplicableStatus.Approved)]
+    public async Task Withdraw_WorksFromDraft_HeadApproved_AndApproved(NotApplicableStatus initialStatus)
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var qc = CreateUser(db, RoleType.QcManager, "QC Manager", "qcman");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        if (initialStatus is NotApplicableStatus.HeadApproved or NotApplicableStatus.Approved)
+        {
+            await service.HeadApproveAsync(head.Id, created.Id, Password, "Head approve");
+        }
+        if (initialStatus == NotApplicableStatus.Approved)
+        {
+            await service.FinalApproveAsync(qc.Id, created.Id, Password, "Final approve");
+        }
+
+        var withdrawn = await service.WithdrawAsync(head.Id, created.Id, Password, "Withdrawing now");
+        Assert.Equal(NotApplicableStatus.Withdrawn, withdrawn.Status);
+
+        var loaded = await db.NotApplicableTests.FindAsync(created.Id);
+        Assert.Equal(NotApplicableStatus.Withdrawn, loaded!.Status);
+    }
+
+    [Fact]
+    public async Task FinalApprove_WhenHeadSignerCannotBeFound_Refuses()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var qc = CreateUser(db, RoleType.QcManager, "QC Manager", "qcman");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        var entity = await db.NotApplicableTests.FindAsync(created.Id);
+        entity!.Status = NotApplicableStatus.HeadApproved;
+        entity.HeadSignatureId = 99999;
+        entity.HeadSignature = null;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.FinalApproveAsync(qc.Id, created.Id, Password, "QC approval"));
+
+        Assert.Equal("The Section Head approval could not be verified.", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReceiveAsync_UngradedReceipt_WhenAllTestsNotApplicable_Refuses()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var qc = CreateUser(db, RoleType.QcManager, "QC Manager", "qcman");
+        var (item, _, routine, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+        var engine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
+
+        var record = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC", grade: null));
+        await service.HeadApproveAsync(head.Id, record.Id, Password, "Head signed");
+        await service.FinalApproveAsync(qc.Id, record.Id, Password, "QC signed");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+            item.Id, routine.Id, "100 g", "Sampler", "LOT-1", "CTRL-1",
+            DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, head.Id, Grade: null)));
+
+        Assert.Equal($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.", ex.Message);
+    }
+
+    [Fact]
+    public async Task HeadApprove_WhenNotDraft_Throws()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        await service.HeadApproveAsync(head.Id, created.Id, Password, "First approval");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.HeadApproveAsync(head.Id, created.Id, Password, "Second approval"));
+
+        Assert.Equal("Only draft records can be approved by the Section Head.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_DuplicateCreate_RefusedWithFriendlyMessage()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC")));
+
+        Assert.Equal($"A non-withdrawn not-applicable record already exists for item {item.Id}, test 'TAMC'.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_WhenPreviousRecordWithdrawn_FreesSlotForNewRecord()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        var service = CreateService(db);
+
+        var first = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        await service.WithdrawAsync(head.Id, first.Id, Password, "Withdrawing to replace");
+
+        var second = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        Assert.NotNull(second);
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.Equal(NotApplicableStatus.Draft, second.Status);
     }
 }

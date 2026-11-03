@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -40,7 +41,10 @@ public class NotApplicableTestService
             .Where(n => n.ItemId == itemId && n.Status == NotApplicableStatus.Approved)
             .ToListAsync(ct);
 
-    public async Task<NotApplicableTestDto> CreateAsync(int userId, CreateNotApplicableTestRequest r)
+    public Task<NotApplicableTestDto> CreateAsync(int userId, CreateNotApplicableTestRequest r) =>
+        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(userId, r));
+
+    private async Task<NotApplicableTestDto> CreateCoreAsync(int userId, CreateNotApplicableTestRequest r)
     {
         var sampleTest = await _db.SampleTests
             .FirstOrDefaultAsync(st => st.ItemId == r.ItemId && st.TestCode == r.TestCode);
@@ -99,13 +103,24 @@ public class NotApplicableTestService
         await _db.SaveChangesAsync();
 
         _db.CurrentUserId = userId;
-        await _audit.RecordUserEventAsync(
-            CreatedActionCode,
-            AuditActionCategory.Configuration,
-            "NotApplicableTest",
-            reason: entity.Justification,
-            entityId: entity.Id.ToString());
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _audit.RecordUserEventAsync(
+                CreatedActionCode,
+                AuditActionCategory.Configuration,
+                "NotApplicableTest",
+                reason: entity.Justification,
+                entityId: entity.Id.ToString());
+        }
+        catch
+        {
+            if (!_db.Database.IsRelational())
+            {
+                _db.NotApplicableTests.Remove(entity);
+                await _db.SaveChangesAsync();
+            }
+            throw;
+        }
 
         return MapToDto(entity, sampleTest.DisplayName);
     }
@@ -136,7 +151,6 @@ public class NotApplicableTestService
 
         entity.Status = NotApplicableStatus.HeadApproved;
         entity.HeadSignature = signature;
-        entity.HeadSignatureId = signature.Id;
 
         _db.CurrentUserId = userId;
         await _audit.RecordUserEventAsync(
@@ -145,7 +159,6 @@ public class NotApplicableTestService
             "NotApplicableTest",
             reason: comment,
             entityId: id.ToString());
-        await _db.SaveChangesAsync();
 
         var displayName = await ResolveDisplayNameAsync(entity.ItemId, entity.TestCode);
         return MapToDto(entity, displayName);
@@ -170,7 +183,10 @@ public class NotApplicableTestService
         var headSignerUserId = entity.HeadSignature?.UserId
             ?? (entity.HeadSignatureId.HasValue
                 ? await _db.ElectronicSignatures.Where(s => s.Id == entity.HeadSignatureId.Value).Select(s => s.UserId).FirstOrDefaultAsync()
-                : 0);
+                : (int?)null);
+
+        if (headSignerUserId is null or 0)
+            throw new InvalidOperationException("The Section Head approval could not be verified.");
 
         if (headSignerUserId == userId)
             throw new InvalidOperationException("The QC Manager approval must come from a different person than the Section Head approval.");
@@ -186,7 +202,6 @@ public class NotApplicableTestService
 
         entity.Status = NotApplicableStatus.Approved;
         entity.FinalSignature = signature;
-        entity.FinalSignatureId = signature.Id;
 
         _db.CurrentUserId = userId;
         await _audit.RecordUserEventAsync(
@@ -195,7 +210,6 @@ public class NotApplicableTestService
             "NotApplicableTest",
             reason: comment,
             entityId: id.ToString());
-        await _db.SaveChangesAsync();
 
         var displayName = await ResolveDisplayNameAsync(entity.ItemId, entity.TestCode);
         return MapToDto(entity, displayName);
@@ -205,7 +219,8 @@ public class NotApplicableTestService
         int userId,
         int id,
         string password,
-        string reason)
+        string reason,
+        string? ipAddress = null)
     {
         var entity = await _db.NotApplicableTests
             .Include(x => x.HeadSignature)
@@ -219,11 +234,14 @@ public class NotApplicableTestService
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("Reason is required.");
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
-            ?? throw new InvalidOperationException("User not found.");
-
-        if (!user.IsActive || user.IsLocked || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            throw new SignatureVerificationException("Password verification failed. The record was not withdrawn.");
+        var signature = await _signatures.SignAsync(
+            userId,
+            password,
+            SignatureMeaning.NotApplicableWithdrawn,
+            "NotApplicableTest",
+            id,
+            reason.Trim(),
+            ipAddress);
 
         entity.Status = NotApplicableStatus.Withdrawn;
 
@@ -234,7 +252,6 @@ public class NotApplicableTestService
             "NotApplicableTest",
             reason: reason.Trim(),
             entityId: id.ToString());
-        await _db.SaveChangesAsync();
 
         var displayName = await ResolveDisplayNameAsync(entity.ItemId, entity.TestCode);
         return MapToDto(entity, displayName);

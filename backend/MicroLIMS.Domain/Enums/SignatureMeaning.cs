@@ -32,5 +32,6 @@ public enum SignatureMeaning
     MaintenanceEntryVoided,
     TestsSelected,
     NotApplicableHeadApproved,
-    NotApplicableFinalApproved
+    NotApplicableFinalApproved,
+    NotApplicableWithdrawn
 }

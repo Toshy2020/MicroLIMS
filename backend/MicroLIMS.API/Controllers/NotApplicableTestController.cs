@@ -43,5 +43,5 @@ public class NotApplicableTestController : ControllerBase
     [HttpPost("api/not-applicable-tests/{id:int}/withdraw")]
     [Authorize(Policy = PermissionConstants.NotApplicableTestsManage)]
     public async Task<IActionResult> Withdraw(int id, [FromBody] NotApplicableWithdrawRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.WithdrawAsync(CurrentUserId, id, r.Password, r.Reason)));
+        Ok(ApiResponse<object>.Ok(await _service.WithdrawAsync(CurrentUserId, id, r.Password, r.Reason, ClientIpAddress)));
 }

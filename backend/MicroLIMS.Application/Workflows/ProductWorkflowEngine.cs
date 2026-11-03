@@ -112,8 +112,12 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         // callers that predate this).
         var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, item.Id);
         var assigned = item.AssignedTests.Where(t => AppliesToGrade(itemSpecs, notApplicable, t.TestCode, grade)).ToList();
-        if (assigned.Count == 0 && grade is not null)
-            throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
+        if (assigned.Count == 0)
+        {
+            if (grade is not null)
+                throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
+            throw new InvalidOperationException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
+        }
         if (request.TargetSectionIds is { } targets)
         {
             foreach (var sectionId in targets)

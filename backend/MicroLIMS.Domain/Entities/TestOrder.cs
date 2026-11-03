@@ -40,6 +40,10 @@ public class TestOrder
     public WorkflowStep? CancelledAtStep { get; set; }
     public int? CancelledAtStage { get; set; }
 
+    public string? OutsourcedToLab { get; set; }
+    public DateTime? OutsourcedAt { get; set; }
+    public int? OutsourcedByUserId { get; set; }
+
     public List<Result> Results { get; set; } = new();
     public List<Incubation> Incubations { get; set; } = new();
     public List<WorkflowHistory> WorkflowHistory { get; set; } = new();

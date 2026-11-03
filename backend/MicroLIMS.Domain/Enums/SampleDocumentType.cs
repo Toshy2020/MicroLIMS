@@ -3,7 +3,8 @@ namespace MicroLIMS.Domain.Enums;
 public enum SampleDocumentType
 {
     SupplierCoa = 0,
-    Other = 1
+    Other = 1,
+    ExternalLabReport = 2
 }
 
 // Documents are never deleted; voiding keeps the file and marks the row.

@@ -148,6 +148,7 @@ public class TestOrderSummaryDetailDto
     public bool IsResultEntryAllowed { get; set; }
     public string? ResultLockReason { get; set; }
     public bool IsSuperseded { get; set; }
+    public string? OutsourcedToLab { get; set; }
 
     // Set only when this section closed testing after another lab
     // rejected the sample: the step (and incubation stage, if any) this

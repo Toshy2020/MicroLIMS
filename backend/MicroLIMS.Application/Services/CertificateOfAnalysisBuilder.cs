@@ -280,7 +280,7 @@ public static class CertificateOfAnalysisBuilder
         TestDisplayName = displayName,
         Specification = specification,
         Result = result,
-        AnalystName = string.IsNullOrEmpty(analystName) ? null : analystName,
+        AnalystName = !string.IsNullOrEmpty(t.OutsourcedToLab) ? $"External lab: {t.OutsourcedToLab}" : (string.IsNullOrEmpty(analystName) ? null : analystName),
         AnalystAt = analystAt,
         Conform = outcome == ResultConformance.Conforms,
         LimitsNotConfigured = outcome == ResultConformance.LimitsNotConfigured,

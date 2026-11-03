@@ -278,6 +278,35 @@ public class TestWorkflowController : ControllerBase
         });
     }
 
+    [HttpPost("{testOrderId}/outsource")]
+    [Authorize(Policy = PermissionConstants.TestsOutsource)]
+    public async Task<IActionResult> Outsource(int testOrderId, OutsourceTestRequest request)
+    {
+        return await RunAsync(async () =>
+        {
+            var payload = new OutsourceTestPayload(request.ExternalLab, request.Reason, request.Password);
+            await _engine.OutsourceTestAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return true;
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-outsourced-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordOutsourcedResult(int testOrderId, RecordOutsourcedResultRequest request)
+    {
+        return await RunAsync(() =>
+        {
+            var payload = new RecordOutsourcedResultPayload(
+                request.ReportedAt,
+                request.ExternalReportNumber,
+                request.ReportDocumentId,
+                request.Parameters?.Select(p => new OutsourcedParameterInput(p.SpecificationId, p.Value, p.Text)).ToList() ?? new List<OutsourcedParameterInput>(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordOutsourcedResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
     [HttpPost("{testOrderId}/record-qualitative-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
     public async Task<IActionResult> RecordQualitativeResult(int testOrderId, RecordQualitativeResultRequest request)

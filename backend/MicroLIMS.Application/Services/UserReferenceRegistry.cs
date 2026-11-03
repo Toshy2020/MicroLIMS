@@ -174,6 +174,7 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(ItemPreparationConfiguration), nameof(ItemPreparationConfiguration.ApprovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(SampleLocation), nameof(SampleLocation.EnteredByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(TestOrder), nameof(TestOrder.AssignedAnalystId), UserReferenceDisposition.Blocks, "No DB FK - non-'UserId'-named FK to User, found only by manual review"),
+        new UserReferenceEntry(typeof(TestOrder), nameof(TestOrder.OutsourcedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, signer of the decision to outsource a test"),
         new UserReferenceEntry(typeof(WorkflowHistory), nameof(WorkflowHistory.PerformedByUserId), UserReferenceDisposition.Blocks, "No DB FK - workflow provenance"),
         new UserReferenceEntry(typeof(WorkflowStepResult), nameof(WorkflowStepResult.AnalystDecisionByUserId), UserReferenceDisposition.Blocks, "No DB FK - workflow provenance"),
         new UserReferenceEntry(typeof(WorkflowStepResult), nameof(WorkflowStepResult.ReturnedByUserId), UserReferenceDisposition.Blocks, "No DB FK - workflow provenance"),

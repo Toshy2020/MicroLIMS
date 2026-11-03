@@ -240,6 +240,10 @@ public record BatchLocationObservation(int SampleLocationId, bool GrowthObserved
 
 public record SiblingPathogenOrderDto(int TestOrderId, string PathogenName, string TestCode);
 
+public record OutsourceTestPayload(string ExternalLab, string Reason, string Password);
+public record OutsourcedParameterInput(int SpecificationId, decimal? Value, string? Text);
+public record RecordOutsourcedResultPayload(DateTime ReportedAt, string ExternalReportNumber, int ReportDocumentId, List<OutsourcedParameterInput> Parameters, string Password, string? Comment = null);
+
 public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
@@ -257,6 +261,8 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordTitrationResultAsync(int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordUvResultAsync(int testOrderId, UvPayload payload, int userId, string? ipAddress = null);
+    Task OutsourceTestAsync(int testOrderId, OutsourceTestPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordOutsourcedResultAsync(int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordQualitativeResultAsync(int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordDissolutionResultAsync(int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordDissolutionStageAsync(int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null);

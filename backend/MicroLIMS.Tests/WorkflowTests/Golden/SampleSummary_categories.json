@@ -164,6 +164,7 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [],
@@ -433,6 +434,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "Count incubation in progress. Available from: 23/03/2026 08:00",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -481,6 +483,7 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -529,6 +532,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "TSB broth enrichment setup required",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [],
@@ -558,6 +562,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "Locked until TSB incubation is complete",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -606,6 +611,7 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -654,6 +660,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "The incubation window for step \"Yeast Count\" is not configured - set it on the medium in Test Master.",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [

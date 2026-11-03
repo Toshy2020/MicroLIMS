@@ -249,6 +249,38 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         return listed.Length <= 100 ? listed : $"{failed.Count} of {n} containers do not comply";
     }
 
+    public static (string Display, ResultStatus Status, string CanonicalLimit) BuildQualitativeOutcome(
+        Specification spec, bool conforms)
+    {
+        var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+            ? spec.SpecLimit
+            : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+        var display = conforms ? "Complies" : "Does not comply";
+        var status = conforms ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification;
+        return (display, status, canonicalLimit);
+    }
+
+    private static readonly string[] CompliesWords = { "Complies", "Conforms", "Pass" };
+    private static readonly string[] DoesNotComplyWords = { "Does not comply", "Does not conform", "Fail" };
+    private static readonly string[] ExpectedPresencePresentWords = { "Present", "Positive" };
+    private static readonly string[] ExpectedPresenceAbsentWords = { "Absent", "Negative" };
+
+    // Whether a reported text (an external lab's wording) conforms to a qualitative specification. Anything
+    // that is not a recognised conforming statement or the specification's own expected text does not conform.
+    public static bool JudgeQualitativeText(Specification spec, string? text)
+    {
+        var t = text?.Trim();
+        if (string.IsNullOrEmpty(t)) return false;
+        bool Is(IEnumerable<string> words) => words.Any(w => string.Equals(t, w, StringComparison.OrdinalIgnoreCase));
+
+        if (Is(CompliesWords)) return true;
+        if (Is(DoesNotComplyWords)) return false;
+        if (spec.LimitType == LimitType.PresenceAbsence)
+            return Is(spec.ExpectedState == ExpectedPresence.Presence ? ExpectedPresencePresentWords : ExpectedPresenceAbsentWords);
+        return Is(new[] { spec.ExpectedResultText?.Trim() ?? "", spec.SpecLimit?.Trim() ?? "" }.Where(w => w.Length > 0));
+    }
+
     public Task<TestWorkflowResult> RecordQualitativeResultAsync(
         int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null) =>
         UnitOfWork.RunAsync(_db, () => RecordQualitativeResultCoreAsync(testOrderId, payload, userId, ipAddress));
@@ -312,15 +344,11 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         foreach (var param in payload.Parameters)
         {
             var spec = specById[param.SpecificationId];
-            var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
-                ? spec.SpecLimit
-                : SpecificationService.BuildCanonicalSpecLimit(spec);
 
             var failed = perContainer ? param.Containers!.Where(c => !c.Conforms).Select(c => c.Index).Order().ToList() : null;
             var conforms = perContainer ? failed!.Count == 0 : param.Conforms;
-            var display = !perContainer
-                ? (conforms ? "Complies" : "Does not comply")
-                : PerContainerDisplay(containerCount, failed!);
+            var (defaultDisplay, status, canonicalLimit) = BuildQualitativeOutcome(spec, conforms);
+            var display = perContainer ? PerContainerDisplay(containerCount, failed!) : defaultDisplay;
 
             var calcData = new QualitativeCalculationData(
                 canonicalLimit, conforms, perContainer ? containerCount : null, failed);
@@ -336,7 +364,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
                 Unit = spec.Unit,
                 SpecLimit = canonicalLimit,
                 ResultBasis = null,
-                ComparisonStatus = conforms ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification,
+                ComparisonStatus = status,
                 OverRange = false,
                 BelowLoq = false,
                 CalculationJson = calculationJson,

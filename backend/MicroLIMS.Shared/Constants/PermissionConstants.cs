@@ -164,6 +164,6 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
-        NotApplicableTestsManage, NotApplicableTestsFinalApprove
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource
     };
 }

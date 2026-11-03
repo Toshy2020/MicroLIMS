@@ -28,6 +28,13 @@ public class SampleDocumentConfiguration : IEntityTypeConfiguration<SampleDocume
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(d => d.TestOrder)
+            .WithMany()
+            .HasForeignKey(d => d.TestOrderId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(d => new { d.SampleId, d.Status });
+        builder.HasIndex(d => d.TestOrderId);
     }
 }

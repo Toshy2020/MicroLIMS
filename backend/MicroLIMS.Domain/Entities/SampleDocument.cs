@@ -30,4 +30,7 @@ public class SampleDocument
     public DateTime? VoidedAt { get; set; }
     public int? VoidedByUserId { get; set; }
     public string? VoidReason { get; set; }
+
+    public int? TestOrderId { get; set; }
+    public TestOrder? TestOrder { get; set; }
 }

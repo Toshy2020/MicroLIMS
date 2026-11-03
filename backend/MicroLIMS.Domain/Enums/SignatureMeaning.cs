@@ -33,5 +33,6 @@ public enum SignatureMeaning
     TestsSelected,
     NotApplicableHeadApproved,
     NotApplicableFinalApproved,
-    NotApplicableWithdrawn
+    NotApplicableWithdrawn,
+    TestOutsourced
 }

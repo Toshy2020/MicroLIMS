@@ -66,6 +66,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -221,6 +222,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -428,6 +430,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -544,6 +547,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -645,6 +649,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -708,6 +713,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -774,6 +780,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": true,
+      "OutsourcedToLab": null,
       "CancelledAtStep": "Incubating",
       "CancelledAtStage": 1,
       "Incubations": [
@@ -822,6 +829,7 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": true,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [
@@ -888,6 +896,7 @@
       "IsResultEntryAllowed": true,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
       "Incubations": [

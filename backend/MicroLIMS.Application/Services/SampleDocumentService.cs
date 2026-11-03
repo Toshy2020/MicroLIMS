@@ -14,12 +14,13 @@ namespace MicroLIMS.Application.Services;
 public record SampleDocumentDto(
     int Id, int SampleId, SampleDocumentType DocumentType, string OriginalFileName, string FileExtension,
     string ContentType, long FileSizeBytes, string ContentSha256, int UploadedByUserId, string UploadedByName,
-    DateTime UploadedAt, SampleDocumentStatus Status, DateTime? VoidedAt, int? VoidedByUserId, string? VoidReason);
+    DateTime UploadedAt, SampleDocumentStatus Status, DateTime? VoidedAt, int? VoidedByUserId, string? VoidReason,
+    int? TestOrderId = null);
 
-// Documents attached to a received sample (the supplier's CoA). Same file
+// Documents attached to a received sample (the supplier's CoA, external lab report). Same file
 // handling as MaterialDocumentService - server-built storage key, shared file
-// validator, SHA-256 checked on every read - but every action is limited to
-// users who can access at least one of the sample's laboratories. Uploads and
+// validator, SHA-256 checked on every read - but actions are limited to
+// users who can access the sample's laboratories or the test order. Uploads and
 // voids write an audit event; reads are not audited (material documents keep a
 // separate access log for that; samples do not).
 public class SampleDocumentService
@@ -60,13 +61,27 @@ public class SampleDocumentService
     }
 
     public Task<SampleDocumentDto> UploadAsync(int sampleId, string fileName, string contentType, byte[] content,
-        SampleDocumentType type, int userId, CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => UploadCoreAsync(sampleId, fileName, contentType, content, type, userId, ct));
+        SampleDocumentType type, int userId, int? testOrderId = null, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => UploadCoreAsync(sampleId, fileName, contentType, content, type, userId, testOrderId, ct));
 
     private async Task<SampleDocumentDto> UploadCoreAsync(int sampleId, string fileName, string contentType, byte[] content,
-        SampleDocumentType type, int userId, CancellationToken ct)
+        SampleDocumentType type, int userId, int? testOrderId, CancellationToken ct)
     {
-        await EnsureAccessAsync(sampleId, userId, ct);
+        if (type == SampleDocumentType.ExternalLabReport)
+        {
+            if (!testOrderId.HasValue)
+                throw new InvalidOperationException("An external lab report must specify a test order.");
+            var outsourcedTo = await _db.TestOrders.Where(t => t.Id == testOrderId.Value && t.SampleId == sampleId)
+                .Select(t => t.OutsourcedToLab).FirstOrDefaultAsync(ct)
+                ?? throw new InvalidOperationException($"Test order {testOrderId.Value} is not an outsourced test of sample {sampleId}.");
+            await _scope.EnsureTestOrderAccessAsync(userId, testOrderId.Value, ct);
+        }
+        else
+        {
+            if (testOrderId.HasValue)
+                throw new InvalidOperationException("Only an external lab report belongs to a test order.");
+            await EnsureAccessAsync(sampleId, userId, ct);
+        }
         await EnsureSampleOpenAsync(sampleId, ct);
 
         var error = _validator.Validate(fileName, contentType, content.Length, content.Take(16).ToArray());
@@ -78,6 +93,7 @@ public class SampleDocumentService
         var document = new SampleDocument
         {
             SampleId = sampleId,
+            TestOrderId = testOrderId,
             DocumentType = type,
             OriginalFileName = CleanFileName(fileName),
             StorageKey = "pending", // needs the Id, set below
@@ -105,13 +121,19 @@ public class SampleDocumentService
             throw new InvalidOperationException("Document storage failed. The upload was not completed.", ex);
         }
 
+        var changes = new List<AuditFieldChange>
+        {
+            new AuditFieldChange("Document", null, document.OriginalFileName),
+            new AuditFieldChange("Type", null, type.ToString()),
+            new AuditFieldChange("Sha256", null, document.ContentSha256)
+        };
+        if (testOrderId.HasValue)
+        {
+            changes.Add(new AuditFieldChange("TestOrderId", null, testOrderId.Value.ToString()));
+        }
+
         await _audit.RecordUserEventAsync(UploadedActionCode, AuditActionCategory.Other, ReviewEntityTypes.Sample,
-            changes: new[]
-            {
-                new AuditFieldChange("Document", null, document.OriginalFileName),
-                new AuditFieldChange("Type", null, type.ToString()),
-                new AuditFieldChange("Sha256", null, document.ContentSha256)
-            },
+            changes: changes,
             entityId: sampleId.ToString(), sampleId: sampleId, cancellationToken: ct);
 
         var uploader = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.FullName).FirstOrDefaultAsync(ct);
@@ -197,5 +219,5 @@ public class SampleDocumentService
     private static SampleDocumentDto ToDto(SampleDocument d, string? uploadedByName = null) => new(
         d.Id, d.SampleId, d.DocumentType, d.OriginalFileName, d.FileExtension, d.ContentType, d.FileSizeBytes,
         d.ContentSha256, d.UploadedByUserId, uploadedByName ?? d.UploadedByUser?.FullName ?? "Unknown", d.UploadedAt, d.Status,
-        d.VoidedAt, d.VoidedByUserId, d.VoidReason);
+        d.VoidedAt, d.VoidedByUserId, d.VoidReason, d.TestOrderId);
 }

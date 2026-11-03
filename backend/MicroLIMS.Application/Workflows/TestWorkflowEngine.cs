@@ -42,6 +42,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly IcpMethodAssayRecorder _icpMethodAssayRecorder;
     private readonly TitrationRecorder _titrationRecorder;
     private readonly UvRecorder _uvRecorder;
+    private readonly OutsourcedRecorder _outsourcedRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
 
     public TestWorkflowEngine(
@@ -69,6 +70,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _icpMethodAssayRecorder = new IcpMethodAssayRecorder(deps);
         _titrationRecorder = new TitrationRecorder(deps);
         _uvRecorder = new UvRecorder(deps);
+        _outsourcedRecorder = new OutsourcedRecorder(deps);
         _pathogenConfirmationRecorder = new PathogenConfirmationRecorder(deps);
     }
 
@@ -138,6 +140,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> RecordTitrationResultAsync(
         int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null) =>
         _titrationRecorder.RecordTitrationResultAsync(testOrderId, payload, userId, ipAddress);
+
+    public Task OutsourceTestAsync(int testOrderId, OutsourceTestPayload payload, int userId, string? ipAddress = null) =>
+        _outsourcedRecorder.OutsourceTestAsync(testOrderId, payload, userId, ipAddress);
+
+    public Task<TestWorkflowResult> RecordOutsourcedResultAsync(int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null) =>
+        _outsourcedRecorder.RecordOutsourcedResultAsync(testOrderId, payload, userId, ipAddress);
 
     public Task<TestWorkflowResult> RecordUvResultAsync(
         int testOrderId, UvPayload payload, int userId, string? ipAddress = null) =>

@@ -67,3 +67,7 @@ public record SubmitConfirmatoryObservationsRequest(string StepName, List<Confir
 public record AnalystDecisionRequest(AnalystDecision Decision);
 public record SubmitBiochemicalRequest(string StepName, string BiochemicalResultText, int? AttachmentId, bool OrganismDetected);
 public record BiochemicalReviewRequest(bool Approve, string Comment);
+
+public record OutsourceTestRequest(string ExternalLab, string Reason, string Password);
+public record OutsourcedParameterRequest(int SpecificationId, decimal? Value, string? Text);
+public record RecordOutsourcedResultRequest(DateTime ReportedAt, string ExternalReportNumber, int ReportDocumentId, List<OutsourcedParameterRequest> Parameters, string Password, string? Comment = null);

@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -140,6 +141,113 @@ public class CertificateOfAnalysisBuilderTests
         Assert.True(row.Conform);
         Assert.Equal("Absent", row.Result);
         Assert.Equal("Test results of the sample are Conform according to specification and decision rule.", coa.Sample.ConclusionText);
+    }
+
+    // ---- Supporting rows: not-applicable tests and supplier-stated attributes ----
+
+    private static TestOrderSummaryDetailDto AbsentBiochemical(int id = 1) => new()
+    {
+        TestOrderId = id, SectionId = 1, TestCode = "SALM", TestDisplayName = "Salmonella", Status = "Approved",
+        BiochemicalResults = { new BiochemicalResultDetailDto { OrganismDetected = false, SubmittedAt = DateTime.UtcNow } }
+    };
+
+    private static NotApplicableTest Na(string code, string? grade, NotApplicableStatus status, string? reference) => new()
+    {
+        ItemId = 7, TestCode = code, Grade = grade, Status = status, Reference = reference
+    };
+
+    private static readonly IReadOnlyDictionary<string, (string Name, int? SectionId)> TestNames =
+        new Dictionary<string, (string, int?)> { ["HM"] = ("Heavy metals", 1), ["PS"] = ("Particle size", 1) };
+
+    private static List<(int? SectionId, CoaSimpleRowDto Row)> Supporting(string? grade, NotApplicableTest[] na, params SupplierStatedAttributeDto[] supplier) =>
+        CertificateOfAnalysisBuilder.BuildSupportingRows(grade, na, TestNames, supplier);
+
+    [Fact]
+    public void NotApplicableRow_PrintsWithReference_AndDoesNotChangeTheVerdict()
+    {
+        var supporting = Supporting(null, new[]
+        {
+            Na("HM", null, NotApplicableStatus.Approved, "QC form NA-01"),
+            Na("PS", null, NotApplicableStatus.Approved, null)
+        });
+
+        var coa = CertificateOfAnalysisBuilder.Build(Summary(AbsentBiochemical()), supporting);
+
+        Assert.True(coa.Sample.Complies);
+        Assert.Equal("Test results of the sample are Conform according to specification and decision rule.", coa.Sample.ConclusionText);
+        Assert.True(coa.Sample.Simple!.OverallComplies);
+        Assert.Single(coa.Sample.Simple.Rows);
+        Assert.Equal(2, coa.Sample.Simple.SupportingRows.Count);
+        var row = coa.Sample.Simple.SupportingRows[0];
+        Assert.Equal("NotApplicable", row.Kind);
+        Assert.Equal("Heavy metals", row.TestDisplayName);
+        Assert.Null(row.Specification);
+        Assert.Equal("Not applicable (QC form NA-01)", row.Result);
+        Assert.Null(row.AnalystName);
+        Assert.Equal("Not applicable", coa.Sample.Simple.SupportingRows[1].Result);
+        Assert.Equal("Tested", coa.Sample.Simple.Rows[0].Kind);
+    }
+
+    [Fact]
+    public void SupplierRow_PrintsStatedBySupplier()
+    {
+        var supporting = Supporting(null, Array.Empty<NotApplicableTest>(),
+            new SupplierStatedAttributeDto(1, 7, null, "Particle size", "20 mesh", 0));
+
+        var coa = CertificateOfAnalysisBuilder.Build(Summary(AbsentBiochemical()), supporting);
+
+        var row = Assert.Single(coa.Sample.Simple!.SupportingRows);
+        Assert.Equal("SupplierStated", row.Kind);
+        Assert.Equal("Particle size", row.TestDisplayName);
+        Assert.Null(row.Specification);
+        Assert.Equal("20 mesh (stated by supplier)", row.Result);
+        Assert.Null(row.AnalystName);
+        Assert.True(coa.Sample.Complies);
+    }
+
+    [Fact]
+    public void FailingTestedRow_StillFails_WithSupportingRowsPresent()
+    {
+        var failing = new TestOrderSummaryDetailDto
+        {
+            TestOrderId = 2, SectionId = 1, TestCode = "SALM", TestDisplayName = "Salmonella", Status = "Approved",
+            BiochemicalResults = { new BiochemicalResultDetailDto { OrganismDetected = true, SubmittedAt = DateTime.UtcNow } }
+        };
+        var supporting = Supporting(null, new[] { Na("HM", null, NotApplicableStatus.Approved, "QC form NA-01") },
+            new SupplierStatedAttributeDto(1, 7, null, "Particle size", "20 mesh", 0));
+
+        var coa = CertificateOfAnalysisBuilder.Build(Summary(failing), supporting);
+
+        Assert.False(coa.Sample.Complies);
+        Assert.Equal("Test results of the sample are Non-Conform according to specification and decision rule.", coa.Sample.ConclusionText);
+        Assert.Equal(2, coa.Sample.Simple!.SupportingRows.Count);
+    }
+
+    [Fact]
+    public void OnlyApprovedNotApplicableRecordsOfTheSampleGrade_Print()
+    {
+        var supporting = Supporting("USP", new[]
+        {
+            Na("HM", "USP", NotApplicableStatus.Approved, "usp-grade"),
+            Na("HM", "usp", NotApplicableStatus.Approved, "case-insensitive"),
+            Na("HM", null, NotApplicableStatus.Approved, "all-grades"),
+            Na("HM", "BP", NotApplicableStatus.Approved, "other-grade"),
+            Na("HM", "USP", NotApplicableStatus.Draft, "draft"),
+            Na("HM", "USP", NotApplicableStatus.HeadApproved, "head-approved"),
+            Na("HM", "USP", NotApplicableStatus.Withdrawn, "withdrawn")
+        });
+
+        Assert.Equal(
+            new[] { "Not applicable (usp-grade)", "Not applicable (case-insensitive)", "Not applicable (all-grades)" },
+            supporting.Select(s => s.Row.Result).ToArray());
+
+        // An ungraded sample only takes the all-grade record.
+        var ungraded = Supporting(null, new[]
+        {
+            Na("HM", "USP", NotApplicableStatus.Approved, "usp-grade"),
+            Na("HM", null, NotApplicableStatus.Approved, "all-grades")
+        });
+        Assert.Equal("Not applicable (all-grades)", Assert.Single(ungraded).Row.Result);
     }
 
     [Fact]

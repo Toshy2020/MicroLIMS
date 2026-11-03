@@ -330,15 +330,20 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         string testCode,
         string? grade)
     {
-        if (notApplicable.Any(na => na.Status == NotApplicableStatus.Approved
-            && string.Equals(na.TestCode, testCode, StringComparison.OrdinalIgnoreCase)
-            && (na.Grade == null || (grade != null && string.Equals(na.Grade, grade, StringComparison.OrdinalIgnoreCase)))))
+        if (notApplicable.Any(na => string.Equals(na.TestCode, testCode, StringComparison.OrdinalIgnoreCase)
+            && IsApprovedNotApplicableFor(na, grade)))
         {
             return false;
         }
 
         return TestAppliesToGrade(itemSpecs.Where(s => s.TestCode == testCode), grade);
     }
+
+    // An approved not-applicable record covers a sample when it names no
+    // grade or the sample's grade (the test code is matched separately).
+    public static bool IsApprovedNotApplicableFor(NotApplicableTest na, string? grade) =>
+        na.Status == NotApplicableStatus.Approved
+        && (na.Grade == null || (grade != null && string.Equals(na.Grade, grade, StringComparison.OrdinalIgnoreCase)));
 
     // The grade to store for a receipt / correction: required (and must match
     // one of the item's grades, case-insensitively) when the item has graded

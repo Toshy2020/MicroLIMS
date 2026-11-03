@@ -710,6 +710,7 @@
         "Simple": {
           "Rows": [
             {
+              "Kind": "Tested",
               "TestOrderId": 12,
               "TestCode": "TAMC",
               "TestDisplayName": "Total Aerobic Microbial Count",
@@ -722,6 +723,7 @@
               "NoResult": true
             },
             {
+              "Kind": "Tested",
               "TestOrderId": 17,
               "TestCode": "TYMC",
               "TestDisplayName": "Total Yeast and Mold Count",
@@ -734,6 +736,7 @@
               "NoResult": true
             },
             {
+              "Kind": "Tested",
               "TestOrderId": 14,
               "TestCode": "ECOLI",
               "TestDisplayName": "E. coli",
@@ -746,7 +749,8 @@
               "NoResult": true
             }
           ],
-          "OverallComplies": false
+          "OverallComplies": false,
+          "SupportingRows": []
         },
         "Complies": false,
         "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
@@ -761,6 +765,7 @@
             "Simple": {
               "Rows": [
                 {
+                  "Kind": "Tested",
                   "TestOrderId": 12,
                   "TestCode": "TAMC",
                   "TestDisplayName": "Total Aerobic Microbial Count",
@@ -773,6 +778,7 @@
                   "NoResult": true
                 },
                 {
+                  "Kind": "Tested",
                   "TestOrderId": 17,
                   "TestCode": "TYMC",
                   "TestDisplayName": "Total Yeast and Mold Count",
@@ -785,6 +791,7 @@
                   "NoResult": true
                 },
                 {
+                  "Kind": "Tested",
                   "TestOrderId": 14,
                   "TestCode": "ECOLI",
                   "TestDisplayName": "E. coli",
@@ -797,7 +804,8 @@
                   "NoResult": true
                 }
               ],
-              "OverallComplies": false
+              "OverallComplies": false,
+              "SupportingRows": []
             },
             "Complies": false,
             "ConclusionText": "Cannot certify because one or more tests has no recorded result.",

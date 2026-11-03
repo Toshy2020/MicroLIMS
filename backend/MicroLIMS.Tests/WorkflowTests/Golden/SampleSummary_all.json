@@ -1365,6 +1365,7 @@
           "Simple": {
             "Rows": [
               {
+                "Kind": "Tested",
                 "TestOrderId": 3,
                 "TestCode": "PH:pH",
                 "TestDisplayName": "pH",
@@ -1377,6 +1378,7 @@
                 "NoResult": false
               },
               {
+                "Kind": "Tested",
                 "TestOrderId": 6,
                 "TestCode": "BCC",
                 "TestDisplayName": "BCC",
@@ -1389,7 +1391,8 @@
                 "NoResult": true
               }
             ],
-            "OverallComplies": false
+            "OverallComplies": false,
+            "SupportingRows": []
           },
           "Complies": false,
           "ConclusionText": "Cannot certify because one or more tests has no recorded result.",

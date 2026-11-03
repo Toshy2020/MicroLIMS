@@ -115,6 +115,25 @@ public class SampleReportDocumentTests
     }
 
     [Fact]
+    public void SupportingRecords_ListedAfterTheTestCards_FromTheCertificate()
+    {
+        var sample = FinishedProduct();
+        sample.Certificate.Sample.Simple = new CoaSimpleResultDto
+        {
+            SupportingRows =
+            {
+                new CoaSimpleRowDto { Kind = "NotApplicable", TestDisplayName = "Heavy metals", Result = "Not applicable (QC form NA-01)" },
+                new CoaSimpleRowDto { Kind = "SupplierStated", TestDisplayName = "Particle size", Result = "20 mesh (stated by supplier)" }
+            }
+        };
+
+        var list = ReportDocumentMapper.ForSample(sample).Blocks.OfType<ListBlock>().Single(b => b.Label == "supporting records");
+
+        Assert.Equal(new[] { ("Heavy metals", "Not applicable (QC form NA-01)"), ("Particle size", "20 mesh (stated by supplier)") }, list.Rows);
+        Assert.DoesNotContain(ReportDocumentMapper.ForSample(FinishedProduct()).Blocks.OfType<ListBlock>(), b => b.Label == "supporting records");
+    }
+
+    [Fact]
     public void ResultsMatrix_CrossesLocatedTestsWithLocations()
     {
         var sample = FinishedProduct();

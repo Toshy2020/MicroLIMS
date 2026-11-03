@@ -2,6 +2,8 @@ using MicroLIMS.Domain.Enums;
 using System.Text.RegularExpressions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Workflows;
+using MicroLIMS.Domain.Entities;
 
 namespace MicroLIMS.Application.Services;
 
@@ -16,9 +18,9 @@ public static class CertificateOfAnalysisBuilder
 {
     public const string SampleCompliesNoResultsText = "Cannot certify because no results are recorded.";
 
-    public static CertificateOfAnalysisDto Build(SampleSummaryDto summary)
+    public static CertificateOfAnalysisDto Build(SampleSummaryDto summary, IReadOnlyList<(int? SectionId, CoaSimpleRowDto Row)>? supporting = null)
     {
-        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText);
+        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: supporting?.Select(s => s.Row).ToList());
 
         // A rejected sample still gets a certificate; it names the rejecting
         // laboratories instead of restating the result verdict.
@@ -37,16 +39,19 @@ public static class CertificateOfAnalysisBuilder
                 {
                     SectionId = s.SectionId,
                     SectionName = s.SectionName,
-                    Scope = BuildScope(summary.TestOrders.Where(t => t.SectionId == s.SectionId).ToList(), noResultsText: SampleCompliesNoResultsText)
+                    Scope = BuildScope(summary.TestOrders.Where(t => t.SectionId == s.SectionId).ToList(), noResultsText: SampleCompliesNoResultsText,
+                        supportingRows: supporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).Select(x => x.Row).ToList())
                 })
                 .ToList()
         };
     }
 
-    public static CoaScopeDto BuildScope(IReadOnlyList<TestOrderSummaryDetailDto> testOrders, string noResultsText)
+    public static CoaScopeDto BuildScope(IReadOnlyList<TestOrderSummaryDetailDto> testOrders, string noResultsText,
+        IReadOnlyList<CoaSimpleRowDto>? supportingRows = null)
     {
         var matrix = BuildMatrix(testOrders);
         var simple = matrix is null ? BuildSimpleRows(testOrders) : null;
+        if (simple is not null && supportingRows is not null) simple.SupportingRows = supportingRows.ToList();
 
         return new CoaScopeDto
         {
@@ -294,6 +299,45 @@ public static class CertificateOfAnalysisBuilder
         return unconfigured && missing ? "Cannot certify because one or more results has no configured limit, and one or more tests has no recorded result."
             : missing ? "Cannot certify because one or more tests has no recorded result."
             : "Cannot certify because one or more results has no configured limit.";
+    }
+
+    // ---- Supporting rows: printed below the results, never part of the verdict ----
+
+    // Approved not-applicable records covering the sample's grade, then the
+    // supplier-stated attributes (already filtered to the grade). The section
+    // is the test's own laboratory; null (supplier rows, unknown test) shows
+    // in every laboratory's certificate.
+    public static List<(int? SectionId, CoaSimpleRowDto Row)> BuildSupportingRows(
+        string? grade,
+        IEnumerable<NotApplicableTest> notApplicable,
+        IReadOnlyDictionary<string, (string Name, int? SectionId)> tests,
+        IEnumerable<SupplierStatedAttributeDto> supplierAttributes)
+    {
+        var rows = new List<(int? SectionId, CoaSimpleRowDto Row)>();
+
+        foreach (var na in notApplicable.Where(n => ProductWorkflowEngine.IsApprovedNotApplicableFor(n, grade)))
+        {
+            tests.TryGetValue(na.TestCode, out var test);
+            rows.Add((test.SectionId, new CoaSimpleRowDto
+            {
+                Kind = "NotApplicable",
+                TestCode = na.TestCode,
+                TestDisplayName = test.Name ?? na.TestCode,
+                Result = string.IsNullOrWhiteSpace(na.Reference) ? "Not applicable" : $"Not applicable ({na.Reference})",
+                Conform = true
+            }));
+        }
+
+        foreach (var a in supplierAttributes)
+            rows.Add((null, new CoaSimpleRowDto
+            {
+                Kind = "SupplierStated",
+                TestDisplayName = a.Name,
+                Result = $"{a.StatedValue} (stated by supplier)",
+                Conform = true
+            }));
+
+        return rows;
     }
 
     // ---- Shared ----

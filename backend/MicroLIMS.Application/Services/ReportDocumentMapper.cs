@@ -150,6 +150,15 @@ public static class ReportDocumentMapper
         if (s.TestOrders.Count == 0)
             doc.Blocks.Add(new ListBlock { Label = "test results", Rows = new(), EmptyText = "No tests recorded." });
 
+        // Not-applicable tests and supplier-stated attributes, as the
+        // Certificate of Analysis prints them: supporting records, never results.
+        var supporting = s.Certificate.Sample.Simple?.SupportingRows;
+        if (supporting is { Count: > 0 })
+        {
+            doc.Blocks.Add(new HeadingBlock { Text = "supporting records" });
+            doc.Blocks.Add(new ListBlock { Label = "supporting records", Rows = supporting.Select(r => (r.TestDisplayName, r.Result)).ToList() });
+        }
+
         doc.Blocks.Add(new HeadingBlock { Text = "lifecycle timeline" });
         doc.Blocks.Add(ToSampleTimelineBlock(s));
 

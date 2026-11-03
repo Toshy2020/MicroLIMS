@@ -95,10 +95,16 @@ public class CoaSimpleResultDto
 {
     public List<CoaSimpleRowDto> Rows { get; set; } = new();
     public bool OverallComplies { get; set; }
+
+    // Not-applicable tests and supplier-stated attributes, printed below
+    // the tested rows. They never enter OverallComplies or the conclusion.
+    public List<CoaSimpleRowDto> SupportingRows { get; set; } = new();
 }
 
 public class CoaSimpleRowDto
 {
+    // "Tested", "NotApplicable" or "SupplierStated".
+    public string Kind { get; set; } = "Tested";
     public int TestOrderId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;

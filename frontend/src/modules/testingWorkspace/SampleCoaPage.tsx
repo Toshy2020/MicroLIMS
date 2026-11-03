@@ -264,6 +264,17 @@ function CoaSimpleTable({ simple, testOrders }: { simple: CoaSimpleResult; testO
               </tr>
             );
           })}
+          {/* Supporting records: not-applicable tests and supplier-stated
+              attributes. Listed after the results; the server's verdict
+              ignores them. */}
+          {simple.supportingRows?.map((r, i) => (
+            <tr key={`support-${i}`}>
+              <td>{r.testDisplayName || r.testCode}</td>
+              <td>—</td>
+              <td style={{ color: "var(--coa-ink3)", fontStyle: "italic" }}>{r.result}</td>
+              <td>—</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

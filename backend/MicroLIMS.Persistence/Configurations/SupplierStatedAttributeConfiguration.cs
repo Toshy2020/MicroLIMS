@@ -13,6 +13,7 @@ public class SupplierStatedAttributeConfiguration : IEntityTypeConfiguration<Sup
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.Property(x => x.StatedValue).IsRequired().HasMaxLength(500);
         builder.Property(x => x.SortOrder).HasDefaultValue(0);
+        builder.HasIndex(x => x.ItemId);
 
         builder.HasOne(x => x.Item)
             .WithMany()

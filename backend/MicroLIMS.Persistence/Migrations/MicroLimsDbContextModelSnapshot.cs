@@ -10054,6 +10054,49 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("SpecificationStages");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SupplierStatedAttribute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("StatedValue")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("SupplierStatedAttributes");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.Property<int>("Id")
@@ -14617,6 +14660,17 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Specification");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SupplierStatedAttribute", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>

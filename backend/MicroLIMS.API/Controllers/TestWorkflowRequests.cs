@@ -69,5 +69,5 @@ public record SubmitBiochemicalRequest(string StepName, string BiochemicalResult
 public record BiochemicalReviewRequest(bool Approve, string Comment);
 
 public record OutsourceTestRequest(string ExternalLab, string Reason, string Password);
-public record OutsourcedParameterRequest(int SpecificationId, decimal? Value, string? Text);
+public record OutsourcedParameterRequest(int SpecificationId, decimal? Value, bool? Conforms, string? Observation);
 public record RecordOutsourcedResultRequest(DateTime ReportedAt, string ExternalReportNumber, int ReportDocumentId, List<OutsourcedParameterRequest> Parameters, string Password, string? Comment = null);

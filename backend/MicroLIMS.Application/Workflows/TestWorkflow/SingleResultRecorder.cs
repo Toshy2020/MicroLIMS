@@ -261,26 +261,6 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         return (display, status, canonicalLimit);
     }
 
-    private static readonly string[] CompliesWords = { "Complies", "Conforms", "Pass" };
-    private static readonly string[] DoesNotComplyWords = { "Does not comply", "Does not conform", "Fail" };
-    private static readonly string[] ExpectedPresencePresentWords = { "Present", "Positive" };
-    private static readonly string[] ExpectedPresenceAbsentWords = { "Absent", "Negative" };
-
-    // Whether a reported text (an external lab's wording) conforms to a qualitative specification. Anything
-    // that is not a recognised conforming statement or the specification's own expected text does not conform.
-    public static bool JudgeQualitativeText(Specification spec, string? text)
-    {
-        var t = text?.Trim();
-        if (string.IsNullOrEmpty(t)) return false;
-        bool Is(IEnumerable<string> words) => words.Any(w => string.Equals(t, w, StringComparison.OrdinalIgnoreCase));
-
-        if (Is(CompliesWords)) return true;
-        if (Is(DoesNotComplyWords)) return false;
-        if (spec.LimitType == LimitType.PresenceAbsence)
-            return Is(spec.ExpectedState == ExpectedPresence.Presence ? ExpectedPresencePresentWords : ExpectedPresenceAbsentWords);
-        return Is(new[] { spec.ExpectedResultText?.Trim() ?? "", spec.SpecLimit?.Trim() ?? "" }.Where(w => w.Length > 0));
-    }
-
     public Task<TestWorkflowResult> RecordQualitativeResultAsync(
         int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null) =>
         UnitOfWork.RunAsync(_db, () => RecordQualitativeResultCoreAsync(testOrderId, payload, userId, ipAddress));

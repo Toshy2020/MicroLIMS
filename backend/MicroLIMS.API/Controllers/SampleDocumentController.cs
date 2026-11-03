@@ -7,9 +7,8 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-// Documents attached to a sample (the supplier's CoA, external lab report). Upload needs
-// SamplesReceiveOwnLab for supplier CoA/other, or TestWorkflowExecute for external lab reports;
-// void needs SamplesCorrect (as voiding the sample does:
+// Documents attached to a sample (the supplier's CoA). Upload needs
+// SamplesReceiveOwnLab; void needs SamplesCorrect (as voiding the sample does:
 // Section Head, Supervisor, Administrator); listing and content need only a signed-in user who can
 // access one of the sample's laboratories (checked in the service).
 [ApiController]
@@ -17,13 +16,8 @@ namespace MicroLIMS.API.Controllers;
 public class SampleDocumentController : ControllerBase
 {
     private readonly SampleDocumentService _service;
-    private readonly IAuthorizationService _authorization;
 
-    public SampleDocumentController(SampleDocumentService service, IAuthorizationService authorization)
-    {
-        _service = service;
-        _authorization = authorization;
-    }
+    public SampleDocumentController(SampleDocumentService service) => _service = service;
 
     private int CurrentUserId =>
         int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -33,25 +27,32 @@ public class SampleDocumentController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.ListAsync(sampleId, CurrentUserId, ct)));
 
     [HttpPost("api/samples/{sampleId:int}/documents")]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> Upload(int sampleId, IFormFile file, CancellationToken ct,
-        [FromForm] SampleDocumentType documentType = SampleDocumentType.SupplierCoa,
-        [FromForm] int? testOrderId = null)
+        [FromForm] SampleDocumentType documentType = SampleDocumentType.SupplierCoa)
     {
-        var requiredPolicy = documentType == SampleDocumentType.ExternalLabReport
-            ? PermissionConstants.TestWorkflowExecute
-            : PermissionConstants.SamplesReceiveOwnLab;
-
-        var auth = await _authorization.AuthorizeAsync(User, requiredPolicy);
-        if (!auth.Succeeded)
-            return Forbid();
-
         if (file == null || file.Length == 0)
             return BadRequest(ApiResponse<object>.Fail("No file was provided."));
 
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms, ct);
-        var result = await _service.UploadAsync(sampleId, file.FileName, file.ContentType, ms.ToArray(), documentType, CurrentUserId, testOrderId, ct);
+        var result = await _service.UploadAsync(sampleId, file.FileName, file.ContentType, ms.ToArray(), documentType, CurrentUserId, ct);
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    // The external lab's report for an outsourced test; its own route so the permission is an attribute.
+    [HttpPost("api/test-workflow/{testOrderId:int}/external-report")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    [RequestSizeLimit(30 * 1024 * 1024)]
+    public async Task<IActionResult> UploadExternalReport(int testOrderId, IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse<object>.Fail("No file was provided."));
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, ct);
+        var result = await _service.UploadExternalReportAsync(testOrderId, file.FileName, file.ContentType, ms.ToArray(), CurrentUserId, ct);
         return Ok(ApiResponse<object>.Ok(result));
     }
 

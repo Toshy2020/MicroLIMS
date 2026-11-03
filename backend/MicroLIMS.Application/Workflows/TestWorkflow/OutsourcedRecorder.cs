@@ -17,6 +17,12 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
     public const string EngineVersion = "outsourced-1";
     public const string OutsourcedActionCode = "TestOrder.Outsourced";
 
+    // What an external lab report can carry: a number judged against a limit, or the analyst's conforms decision.
+    // The outsource gate and the record loop both read these, so they cannot drift.
+    private static readonly HashSet<LimitType> NumericLimitTypes = new() { LimitType.Range, LimitType.NotMoreThan, LimitType.NotLessThan };
+    private static readonly HashSet<LimitType> QualitativeLimitTypes = new() { LimitType.Qualitative, LimitType.PresenceAbsence };
+    private static bool IsReportable(LimitType type) => NumericLimitTypes.Contains(type) || QualitativeLimitTypes.Contains(type);
+
     public OutsourcedRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task OutsourceTestAsync(int testOrderId, OutsourceTestPayload payload, int userId, string? ipAddress = null) =>
@@ -43,8 +49,20 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
             throw new InvalidOperationException($"This test is already outsourced to {order.OutsourcedToLab}.");
         if (order.IsSuperseded || order.Status is not (ApprovalStatus.Pending or ApprovalStatus.InProgress))
             throw new InvalidOperationException("Only a pending or in-progress test can be outsourced.");
-        if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == testOrderId && a.IsActive))
-            throw new InvalidOperationException("This test already has a recorded result and cannot be outsourced.");
+        if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == testOrderId))
+            throw new InvalidOperationException("This test already has an in-house result; it cannot be outsourced.");
+
+        // the signed decision is irreversible and every ordinary recorder is refused afterwards, so the
+        // specifications must all be ones an external lab report can carry
+        if (order.Sample?.ItemId is not int itemId)
+            throw new InvalidOperationException("Test order sample must be linked to an item with specifications.");
+        var specs = await SpecificationLookup.ForSampleAsync(_db, order.SampleId, itemId, order.TestCode);
+        if (specs.Count == 0)
+            throw new InvalidOperationException("No specifications configured for this test and item.");
+        var unreportable = specs.FirstOrDefault(s => !IsReportable(s.LimitType));
+        if (unreportable != null)
+            throw new InvalidOperationException(
+                $"Specification \"{unreportable.ParameterName}\" ({unreportable.LimitType}) cannot be reported from an external lab; this test cannot be outsourced.");
 
         _db.CurrentUserId = userId;
         await _signatureService.SignAsync(userId, p.Password, SignatureMeaning.TestOutsourced, "TestOrder", order.Id, reason, ipAddress);
@@ -115,27 +133,33 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
         {
             var input = parameters.First(x => x.SpecificationId == spec.Id);
             ParameterResult pr;
-            if (spec.LimitType is LimitType.Range or LimitType.NotMoreThan or LimitType.NotLessThan)
+            if (NumericLimitTypes.Contains(spec.LimitType))
             {
-                if (input.Value is not { } entered || !string.IsNullOrWhiteSpace(input.Text))
+                if (input.Value is not { } entered || input.Conforms.HasValue || !string.IsNullOrWhiteSpace(input.Observation))
                     throw new InvalidOperationException($"Enter a numeric value for \"{spec.ParameterName}\".");
                 int decimals = Math.Max(2, new[] { spec.LowerLimit, spec.UpperLimit }
                     .Where(x => x.HasValue).Select(x => MeasurementCalculator.GetSpecDecimalPlaces(x!.Value)).DefaultIfEmpty(0).Max());
                 var reported = Math.Round(entered, decimals, MidpointRounding.AwayFromZero);
-                pr = NewResult(order, spec, reported, GravimetricCalculator.FormatReportedDisplay(reported, spec),
+                var display = GravimetricCalculator.FormatReportedDisplay(reported, spec);
+                // the helper defaults an empty unit to "%", which a unitless result (pH) does not have
+                if (string.IsNullOrWhiteSpace(spec.Unit) && display.EndsWith(" %")) display = display[..^2];
+                pr = NewResult(order, spec, reported, display,
                     SpecificationEvaluator.Evaluate(spec, reported), spec.ResultBasis, p, number, entered);
                 pr.Readings.Add(new ResultReading { Kind = ReadingKind.Replicate, Index = 1, Value1 = entered, ComputedValue = reported });
             }
-            else if (spec.LimitType is LimitType.Qualitative or LimitType.PresenceAbsence)
+            else if (QualitativeLimitTypes.Contains(spec.LimitType))
             {
-                if (string.IsNullOrWhiteSpace(input.Text) || input.Value.HasValue)
-                    throw new InvalidOperationException($"Enter the reported text for \"{spec.ParameterName}\".");
-                if (input.Text.Length > 500) throw new InvalidOperationException("Reported text cannot exceed 500 characters.");
-                var conforms = SingleResultRecorder.JudgeQualitativeText(spec, input.Text);
+                // the analyst decides conformity, as in-house entry; the lab's wording is kept as the observation
+                if (input.Value.HasValue || input.Conforms is not { } conforms)
+                    throw new InvalidOperationException($"Record whether \"{spec.ParameterName}\" conforms.");
+                var observation = input.Observation?.Trim();
+                if (!conforms && string.IsNullOrEmpty(observation))
+                    throw new InvalidOperationException("An observation is required when result does not conform.");
+                if (observation is { Length: > 500 }) throw new InvalidOperationException("Observation cannot exceed 500 characters.");
                 var (display, status, limit) = SingleResultRecorder.BuildQualitativeOutcome(spec, conforms);
                 pr = NewResult(order, spec, null, display, status, null, p, number, null);
                 pr.SpecLimit = limit;
-                pr.Readings.Add(new ResultReading { Kind = ReadingKind.Replicate, Index = 1, Text = input.Text.Trim(), Passed = conforms });
+                pr.Readings.Add(new ResultReading { Kind = ReadingKind.Replicate, Index = 1, Text = observation, Passed = conforms });
             }
             else
                 throw new InvalidOperationException($"Specification \"{spec.ParameterName}\" ({spec.LimitType}) cannot be reported from an external lab.");

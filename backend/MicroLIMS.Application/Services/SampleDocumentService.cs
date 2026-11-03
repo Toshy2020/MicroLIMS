@@ -61,27 +61,32 @@ public class SampleDocumentService
     }
 
     public Task<SampleDocumentDto> UploadAsync(int sampleId, string fileName, string contentType, byte[] content,
-        SampleDocumentType type, int userId, int? testOrderId = null, CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => UploadCoreAsync(sampleId, fileName, contentType, content, type, userId, testOrderId, ct));
-
-    private async Task<SampleDocumentDto> UploadCoreAsync(int sampleId, string fileName, string contentType, byte[] content,
-        SampleDocumentType type, int userId, int? testOrderId, CancellationToken ct)
-    {
-        if (type == SampleDocumentType.ExternalLabReport)
+        SampleDocumentType type, int userId, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, async () =>
         {
-            if (!testOrderId.HasValue)
-                throw new InvalidOperationException("An external lab report must specify a test order.");
-            var outsourcedTo = await _db.TestOrders.Where(t => t.Id == testOrderId.Value && t.SampleId == sampleId)
-                .Select(t => t.OutsourcedToLab).FirstOrDefaultAsync(ct)
-                ?? throw new InvalidOperationException($"Test order {testOrderId.Value} is not an outsourced test of sample {sampleId}.");
-            await _scope.EnsureTestOrderAccessAsync(userId, testOrderId.Value, ct);
-        }
-        else
-        {
-            if (testOrderId.HasValue)
-                throw new InvalidOperationException("Only an external lab report belongs to a test order.");
+            if (type == SampleDocumentType.ExternalLabReport)
+                throw new InvalidOperationException("An external lab report is uploaded from its outsourced test.");
             await EnsureAccessAsync(sampleId, userId, ct);
-        }
+            return await StoreAsync(sampleId, fileName, contentType, content, type, null, userId, ct);
+        });
+
+    // The report of an outsourced test: it belongs to that test order, so the test-order access rule applies.
+    public Task<SampleDocumentDto> UploadExternalReportAsync(int testOrderId, string fileName, string contentType, byte[] content,
+        int userId, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, async () =>
+        {
+            var order = await _db.TestOrders.AsNoTracking().Where(t => t.Id == testOrderId)
+                .Select(t => new { t.SampleId, t.OutsourcedToLab }).FirstOrDefaultAsync(ct)
+                ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            if (order.OutsourcedToLab == null)
+                throw new InvalidOperationException($"Test order {testOrderId} is not an outsourced test.");
+            await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+            return await StoreAsync(order.SampleId, fileName, contentType, content, SampleDocumentType.ExternalLabReport, testOrderId, userId, ct);
+        });
+
+    private async Task<SampleDocumentDto> StoreAsync(int sampleId, string fileName, string contentType, byte[] content,
+        SampleDocumentType type, int? testOrderId, int userId, CancellationToken ct)
+    {
         await EnsureSampleOpenAsync(sampleId, ct);
 
         var error = _validator.Validate(fileName, contentType, content.Length, content.Take(16).ToArray());
@@ -146,6 +151,8 @@ public class SampleDocumentService
             .FirstOrDefaultAsync(d => d.Id == documentId, ct)
             ?? throw new NotFoundException($"Document {documentId} not found.");
         await EnsureAccessAsync(document.SampleId, userId, ct);
+        if (document.TestOrderId.HasValue)
+            await _scope.EnsureTestOrderAccessAsync(userId, document.TestOrderId.Value, ct);
 
         byte[] content;
         try
@@ -174,12 +181,18 @@ public class SampleDocumentService
         var document = await _db.SampleDocuments.Include(d => d.UploadedByUser).FirstOrDefaultAsync(d => d.Id == documentId, ct)
             ?? throw new NotFoundException($"Document {documentId} not found.");
         await EnsureAccessAsync(document.SampleId, userId, ct);
+        if (document.TestOrderId.HasValue)
+            await _scope.EnsureTestOrderAccessAsync(userId, document.TestOrderId.Value, ct);
         await EnsureSampleOpenAsync(document.SampleId, ct);
 
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("A void reason is required.");
         if (document.Status == SampleDocumentStatus.Voided)
             throw new InvalidOperationException("This document is already voided.");
+        // a recorded result cites its external report: the test is returned first, so the evidence is never voided under a signed result
+        if (document.DocumentType == SampleDocumentType.ExternalLabReport
+            && await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == document.TestOrderId && a.IsActive, ct))
+            throw new InvalidOperationException("This external report supports a recorded result; return the test before voiding it.");
 
         _db.CurrentUserId = userId;
         document.Status = SampleDocumentStatus.Voided;

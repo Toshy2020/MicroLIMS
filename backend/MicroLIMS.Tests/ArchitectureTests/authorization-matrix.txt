@@ -486,7 +486,8 @@ SampleController.SelectTests(Int32, SelectSampleTestsRequest, CancellationToken)
 SampleController.Void(Int32, VoidSampleRequest): SystemAdministrator,SectionHead,Reviewer
 SampleDocumentController.GetContent(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SampleDocumentController.List(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SampleDocumentController.Upload(Int32, IFormFile, CancellationToken, SampleDocumentType, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SampleDocumentController.Upload(Int32, IFormFile, CancellationToken, SampleDocumentType): SystemAdministrator,SectionHead,Reviewer,Analyst
+SampleDocumentController.UploadExternalReport(Int32, IFormFile, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst
 SampleDocumentController.Void(Int32, VoidDocumentHttpRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer
 SamplePreparationController.BatchConfirm(BatchConfirmPreparationHttpRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SamplePreparationController.Confirm(ConfirmPreparationHttpRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager

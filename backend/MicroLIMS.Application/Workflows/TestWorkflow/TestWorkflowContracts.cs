@@ -241,7 +241,7 @@ public record BatchLocationObservation(int SampleLocationId, bool GrowthObserved
 public record SiblingPathogenOrderDto(int TestOrderId, string PathogenName, string TestCode);
 
 public record OutsourceTestPayload(string ExternalLab, string Reason, string Password);
-public record OutsourcedParameterInput(int SpecificationId, decimal? Value, string? Text);
+public record OutsourcedParameterInput(int SpecificationId, decimal? Value, bool? Conforms, string? Observation);
 public record RecordOutsourcedResultPayload(DateTime ReportedAt, string ExternalReportNumber, int ReportDocumentId, List<OutsourcedParameterInput> Parameters, string Password, string? Comment = null);
 
 public interface ITestWorkflowEngine : IStatefulWorkflowEngine

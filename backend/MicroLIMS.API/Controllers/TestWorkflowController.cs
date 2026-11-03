@@ -300,7 +300,7 @@ public class TestWorkflowController : ControllerBase
                 request.ReportedAt,
                 request.ExternalReportNumber,
                 request.ReportDocumentId,
-                request.Parameters?.Select(p => new OutsourcedParameterInput(p.SpecificationId, p.Value, p.Text)).ToList() ?? new List<OutsourcedParameterInput>(),
+                request.Parameters?.Select(p => new OutsourcedParameterInput(p.SpecificationId, p.Value, p.Conforms, p.Observation)).ToList() ?? new List<OutsourcedParameterInput>(),
                 request.Password,
                 request.Comment);
             return _engine.RecordOutsourcedResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);

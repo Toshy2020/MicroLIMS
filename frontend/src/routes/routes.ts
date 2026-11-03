@@ -252,6 +252,8 @@ export const PERMISSIONS = {
   MONITORING_PLAN_VIEW: "MonitoringPlan.View",
   MONITORING_PLAN_MANAGE: "MonitoringPlan.Manage",
   MONITORING_PLAN_APPROVE: "MonitoringPlan.Approve",
+  DASHBOARDS_LAB_OVERVIEW: "Dashboards.LabOverview",
+  DASHBOARDS_REVIEW: "Dashboards.Review",
   NOT_APPLICABLE_TESTS_MANAGE: "tests.not-applicable.manage",
   NOT_APPLICABLE_TESTS_FINAL_APPROVE: "tests.not-applicable.final-approve",
   TESTS_OUTSOURCE: "tests.outsource",

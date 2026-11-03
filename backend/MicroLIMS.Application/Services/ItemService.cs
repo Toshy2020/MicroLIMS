@@ -155,7 +155,7 @@ public class ItemService
         var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id);
         if (naCount > 0)
             throw new InvalidOperationException(
-                $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s) with signatures. Freeze it instead to keep that history.");
+                $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.");
 
         _db.Items.Remove(item);
         await _db.SaveChangesAsync();

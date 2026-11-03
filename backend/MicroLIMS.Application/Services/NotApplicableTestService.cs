@@ -276,20 +276,69 @@ public class NotApplicableTestService
     }
 
     // A loss-on-drying or water test feeds the dried or anhydrous basis assays of the item; declaring it not
-    // applicable would leave those assays with no moisture to correct by.
+    // applicable would leave those assays with no moisture to correct by. The checks below guard that from
+    // every side: record create/approve, spec save, and a moisture-role change.
+    private static ResultBasis? BasisFedBy(MoistureRole role) => role switch
+    {
+        MoistureRole.LossOnDrying => ResultBasis.PercentDriedBasis,
+        MoistureRole.Water => ResultBasis.PercentAnhydrousBasis,
+        _ => null
+    };
+
+    private static string DeclaredMessage(string testName, string itemName) =>
+        $"{testName} is declared not applicable for {itemName}; it cannot supply moisture for a dried/anhydrous assay. Withdraw the not-applicable record first.";
+
+    // True when a spec of the item (grade null on either side = all grades) reports on the basis this role feeds.
+    private static async Task<bool> SpecNeedsRoleAsync(IMicroLimsDbContext db, int itemId, MoistureRole role, string? grade)
+    {
+        var basis = BasisFedBy(role);
+        return basis != null && await db.Specifications.AsNoTracking().AnyAsync(s =>
+            s.ItemId == itemId && s.ResultBasis == basis
+            && (grade == null || s.Grade == null || s.Grade.ToLower() == grade.ToLower()));
+    }
+
     private async Task EnsureNotMoistureSupplierAsync(int itemId, string testCode, string? grade)
     {
         var role = await _db.TestDefinitions.Where(td => td.Code == testCode).Select(td => td.MoistureRole).FirstOrDefaultAsync();
-        if (role == MoistureRole.None) return;
-
-        var basis = role == MoistureRole.LossOnDrying ? ResultBasis.PercentDriedBasis : ResultBasis.PercentAnhydrousBasis;
-        var needed = await _db.Specifications.AsNoTracking().AnyAsync(s =>
-            s.ItemId == itemId && s.ResultBasis == basis
-            && (grade == null || s.Grade == null || s.Grade.ToLower() == grade.ToLower()));
-        if (needed)
+        if (await SpecNeedsRoleAsync(_db, itemId, role, grade))
             throw new InvalidOperationException(
                 $"{await ResolveDisplayNameAsync(itemId, testCode)} supplies the moisture for a dried/anhydrous assay of this item; it cannot be declared not applicable.");
     }
+
+    // Spec save: refuse a dried/anhydrous basis while a live record makes the matching moisture test not applicable.
+    public static async Task EnsureSpecBasisHasMoistureAsync(IMicroLimsDbContext db, int itemId, ResultBasis? basis, string? grade, CancellationToken ct = default)
+    {
+        var role = basis switch
+        {
+            ResultBasis.PercentDriedBasis => MoistureRole.LossOnDrying,
+            ResultBasis.PercentAnhydrousBasis => MoistureRole.Water,
+            _ => MoistureRole.None
+        };
+        if (role == MoistureRole.None) return;
+
+        var testName = await (from n in db.NotApplicableTests.AsNoTracking()
+                              join td in db.TestDefinitions.AsNoTracking() on n.TestCode equals td.Code
+                              where n.ItemId == itemId && n.Status != NotApplicableStatus.Withdrawn && td.MoistureRole == role
+                                    && (grade == null || n.Grade == null || n.Grade.ToLower() == grade.ToLower())
+                              select td.DisplayName).FirstOrDefaultAsync(ct);
+        if (testName != null)
+            throw new InvalidOperationException(DeclaredMessage(testName, await ItemNameAsync(db, itemId, ct)));
+    }
+
+    // Moisture-role change: refuse giving a test a role while a live record on it leaves a dried/anhydrous spec without it.
+    public static async Task EnsureRoleChangeKeepsMoistureAsync(IMicroLimsDbContext db, string testCode, string testName, MoistureRole newRole, CancellationToken ct = default)
+    {
+        if (newRole == MoistureRole.None) return;
+        var records = await db.NotApplicableTests.AsNoTracking()
+            .Where(n => n.TestCode == testCode && n.Status != NotApplicableStatus.Withdrawn)
+            .Select(n => new { n.ItemId, n.Grade }).ToListAsync(ct);
+        foreach (var r in records)
+            if (await SpecNeedsRoleAsync(db, r.ItemId, newRole, r.Grade))
+                throw new InvalidOperationException(DeclaredMessage(testName, await ItemNameAsync(db, r.ItemId, ct)));
+    }
+
+    private static async Task<string> ItemNameAsync(IMicroLimsDbContext db, int itemId, CancellationToken ct) =>
+        await db.Items.AsNoTracking().Where(i => i.Id == itemId).Select(i => i.Name).FirstOrDefaultAsync(ct) ?? $"item {itemId}";
 
     private async Task<string> ResolveDisplayNameAsync(int itemId, string testCode) =>
         await _db.SampleTests

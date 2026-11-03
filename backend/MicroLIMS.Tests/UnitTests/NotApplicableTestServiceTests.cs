@@ -646,4 +646,89 @@ public class NotApplicableTestServiceTests
         Assert.Contains("Freeze", ex.Message);
         Assert.Single(db.Items);
     }
+
+    private static void SeedNotApplicable(MicroLimsDbContext db, Item item, string testCode, NotApplicableStatus status, string? grade = null)
+    {
+        db.NotApplicableTests.Add(new NotApplicableTest
+        {
+            ItemId = item.Id, TestCode = testCode, Grade = grade, Status = status,
+            Justification = "j", Criticality = "c", ImmediateAction = "i", LongTermAction = "l"
+        });
+        db.SaveChanges();
+    }
+
+    private static Specification DriedAssaySpec(Item item, ResultBasis basis, string? grade = null) =>
+        new() { ItemId = item.Id, TestCode = "ASSAY", ParameterName = "Assay", Grade = grade, ResultBasis = basis, LimitType = LimitType.Range, LowerLimit = 98m, UpperLimit = 102m };
+
+    private static string NotApplicableMoistureMessage(Item item) =>
+        $"MOIST Name is declared not applicable for {item.Name}; it cannot supply moisture for a dried/anhydrous assay. Withdraw the not-applicable record first.";
+
+    [Theory]
+    [InlineData(MoistureRole.LossOnDrying, ResultBasis.PercentDriedBasis)]
+    [InlineData(MoistureRole.Water, ResultBasis.PercentAnhydrousBasis)]
+    public async Task SpecSave_RefusesADriedOrAnhydrousBasisWhileTheMoistureTestIsNotApplicable(MoistureRole role, ResultBasis basis)
+    {
+        using var db = NewDb();
+        var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
+        db.TestDefinitions.First(t => t.Code == "ASSAY").WorkflowType = WorkflowType.Titration;
+        db.TestDefinitions.First(t => t.Code == "MOIST").MoistureRole = role;
+        SeedNotApplicable(db, item, "MOIST", NotApplicableStatus.Approved);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(DriedAssaySpec(item, basis)));
+        Assert.Equal(NotApplicableMoistureMessage(item), ex.Message);
+    }
+
+    [Fact]
+    public async Task SpecSave_IsAllowedWhenTheRecordIsWithdrawn_ForAnotherGrade_OrTheBasisIsAsIs()
+    {
+        using var db = NewDb();
+        var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
+        db.TestDefinitions.First(t => t.Code == "ASSAY").WorkflowType = WorkflowType.Titration;
+        db.TestDefinitions.First(t => t.Code == "MOIST").MoistureRole = MoistureRole.LossOnDrying;
+        SeedNotApplicable(db, item, "MOIST", NotApplicableStatus.Withdrawn);
+        SeedNotApplicable(db, item, "MOIST", NotApplicableStatus.Approved, "USP");
+        var service = new SpecificationService(db);
+
+        await service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentDriedBasis, "BP"));
+        await service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentAsIs, "USP"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentDriedBasis, "usp")));
+    }
+
+    private static (Microsoft.EntityFrameworkCore.DbContext Unused, MicroLIMS.Application.Services.MasterData.TestDefinitionMasterDataService Svc, TestDefinition Moist, User Admin, Item Item)
+        SeedRoleChange(MicroLimsDbContext db, NotApplicableStatus status)
+    {
+        var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
+        var admin = CreateUser(db, RoleType.SystemAdministrator, "Admin", "admin");
+        db.Specifications.Add(DriedAssaySpec(item, ResultBasis.PercentDriedBasis));
+        var moist = db.TestDefinitions.First(t => t.Code == "MOIST");
+        moist.WorkflowType = WorkflowType.Gravimetric;
+        moist.EquationType = EquationType.GravimetricLoss;
+        moist.ReplicateCount = 1;
+        SeedNotApplicable(db, item, "MOIST", status);
+        var svc = new MicroLIMS.Application.Services.MasterData.TestDefinitionMasterDataService(
+            db, new UserSectionScopeService(db), new AuditEventService(db, new DatabaseSequenceHelper(db)));
+        return (db, svc, moist, admin, item);
+    }
+
+    [Fact]
+    public async Task MoistureRoleChange_IsRefusedWhileARecordLeavesADriedAssayWithoutItsMoistureTest()
+    {
+        using var db = NewDb();
+        var (_, svc, moist, admin, item) = SeedRoleChange(db, NotApplicableStatus.HeadApproved);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateTestDefinitionAsync(admin.Id, moist.Id,
+            new UpdateTestDefinitionRequest(moist.Code, moist.DisplayName, MoistureRole: MoistureRole.LossOnDrying) { ChangeReason = "Now the LOD" }));
+        Assert.Equal(NotApplicableMoistureMessage(item), ex.Message);
+    }
+
+    [Fact]
+    public async Task MoistureRoleChange_IsAllowedOnceTheRecordIsWithdrawn()
+    {
+        using var db = NewDb();
+        var (_, svc, moist, admin, _) = SeedRoleChange(db, NotApplicableStatus.Withdrawn);
+
+        var res = await svc.UpdateTestDefinitionAsync(admin.Id, moist.Id,
+            new UpdateTestDefinitionRequest(moist.Code, moist.DisplayName, MoistureRole: MoistureRole.LossOnDrying) { ChangeReason = "Now the LOD" });
+        Assert.Equal(MoistureRole.LossOnDrying, res.MoistureRole);
+    }
 }

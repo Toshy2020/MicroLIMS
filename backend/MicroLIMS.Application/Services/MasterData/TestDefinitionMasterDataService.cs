@@ -889,6 +889,8 @@ public class TestDefinitionMasterDataService
         ValidatePerContainerAndMoistureRole(entity.WorkflowType, entity.EquationType, entity.TitrationType, entity.PerContainer, entity.MoistureRole);
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
         await NormalizeUvStandardEntryAsync(entity);
+        if (entity.MoistureRole != moistureRoleBefore)
+            await NotApplicableTestService.EnsureRoleChangeKeepsMoistureAsync(_db, entity.Code, entity.DisplayName, entity.MoistureRole);
 
         (string? Before, string After, string Reason)? titrationAudit = null;
         if (entity.WorkflowType == WorkflowType.Titration || titrationBefore != null)

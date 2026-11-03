@@ -253,6 +253,8 @@ public class SpecificationService
         if (!testAssigned)
             throw new InvalidOperationException($"Test '{spec.TestCode}' is not assigned to item {spec.ItemId}.");
 
+        await NotApplicableTestService.EnsureSpecBasisHasMoistureAsync(_db, spec.ItemId, spec.ResultBasis, spec.Grade, cancellationToken);
+
         // A physicochemical test only takes specs for the item categories of its area.
         var testArea = await _db.TestDefinitions.Where(t => t.Code == spec.TestCode).Select(t => t.PhyschemArea).FirstOrDefaultAsync(cancellationToken);
         if (testArea is not null)

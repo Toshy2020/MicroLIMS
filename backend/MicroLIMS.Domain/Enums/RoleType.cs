@@ -5,5 +5,6 @@ public enum RoleType
     SystemAdministrator,
     SectionHead,
     Reviewer,
-    Analyst
+    Analyst,
+    QcManager
 }

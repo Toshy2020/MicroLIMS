@@ -72,6 +72,7 @@ interface HeaderProps {
 
 const ROLE_LABELS: Record<string, string> = {
   SectionHead: "Section Head",
+  QcManager: "QC Manager",
   SystemAdministrator: "System Administrator"
 };
 

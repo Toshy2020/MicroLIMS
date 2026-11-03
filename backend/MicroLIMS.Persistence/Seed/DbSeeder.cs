@@ -28,7 +28,8 @@ public static class DbSeeder
                 new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
-                new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true }
+                new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true }
             );
             db.SaveChanges();
         }
@@ -513,6 +514,9 @@ public static class DbSeeder
             (PermissionConstants.EquipmentPlanApprove, "Sign an equipment plan revision into force."),
             (PermissionConstants.EquipmentWorkRecord, "Record and sign calibrations and maintenance logbook entries."),
             (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
+            (PermissionConstants.NotApplicableTestsManage, "Mark a test not applicable to an item and manage that request until final approval."),
+            (PermissionConstants.NotApplicableTestsFinalApprove, "Give the final approval of a not-applicable test (QC Manager only)."),
+            (PermissionConstants.TestsOutsource, "Outsource a test to an outside laboratory."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -534,7 +538,8 @@ public static class DbSeeder
 
             var grants = new (RoleType Role, string[] Codes)[]
             {
-                (RoleType.SystemAdministrator, PermissionConstants.All.ToArray()),
+                // Final approval of a not-applicable test is the QC Manager's alone, so the administrator is left out of it.
+                (RoleType.SystemAdministrator, PermissionConstants.All.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove).ToArray()),
                 (RoleType.SectionHead, new[]
                 {
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
@@ -558,7 +563,8 @@ public static class DbSeeder
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
-                    PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+                    PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+                    PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -593,6 +599,11 @@ public static class DbSeeder
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord
                 })
             };
+
+            // QC Manager: final approval of a not-applicable test, plus only what Reviewer may view or read.
+            var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
+                .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
+            grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove).ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)
             {

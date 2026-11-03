@@ -118,6 +118,12 @@ public static class PermissionConstants
     public const string EquipmentWorkRecord = "EquipmentWork.Record";
     public const string CalendarEventManage = "CalendarEvent.Manage";
 
+    // Raw-material supporting records: a Section Head marks a test not applicable or outsources it;
+    // the QC Manager (and only the QC Manager) gives final approval to a not-applicable test.
+    public const string NotApplicableTestsManage = "tests.not-applicable.manage";
+    public const string NotApplicableTestsFinalApprove = "tests.not-applicable.final-approve";
+    public const string TestsOutsource = "tests.outsource";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -138,12 +144,14 @@ public static class PermissionConstants
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
-        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource
     };
 
     // The codes some endpoint or service actually checks. The rest are
     // declared for the Roles screen but not yet enforced anywhere; the
     // screen shows which is which (Permission.IsEnforced).
+    // tests.not-applicable.* and tests.outsource join this set with the endpoints that check them.
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,

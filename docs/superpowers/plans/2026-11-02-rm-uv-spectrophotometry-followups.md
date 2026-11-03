@@ -2,7 +2,7 @@
 
 Decisions for the user:
 
-- **Standard lot not tied to the analyte.** A standard-comparison test accepts any usable lot in the section. HPLC ties the lot to the method analyte and titration to a standard entry. No STM uses this mode yet. Decide on a Test Master "expected standard" field before the first such test is configured.
+- **Standard lot tied to its material:** decided and built 2026-11-03 (dd45ffc4). A standard-comparison test names its standard material in Test Master; the entry screen lists only its lots and the server refuses others (browser check passed). Existing standard-comparison tests are refused at signing until the material is set; run `select "Code" from "TestDefinitions" where "WorkflowType" = 15 and "UvCalculationMode" = 0` on Neon before merge.
 - **Standard stock not deducted on UV signing.** HPLC suitability does not deduct either, and no STM asks for it.
 - **No change reason on UV constants.** Editing A1 % or a volume is audited but needs no reason; titration asks for one.
 - **Replicates for RM HPLC tests:** decided 2026-11-03, the analyst chooses (at least one), as plates in a micro count test; a count on the test does not bind.

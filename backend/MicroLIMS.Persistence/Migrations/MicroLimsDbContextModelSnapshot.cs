@@ -9073,6 +9073,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<int?>("TestOrderId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -9096,6 +9099,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TestOrderId");
 
                     b.HasIndex("UploadedByUserId");
 
@@ -10479,6 +10484,16 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<bool>("IsSuperseded")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OutsourcedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OutsourcedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OutsourcedToLab")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("RoomId")
                         .HasColumnType("integer");
@@ -14330,12 +14345,19 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
+                        .WithMany()
+                        .HasForeignKey("TestOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.User", "UploadedByUser")
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Sample");
+
+                    b.Navigation("TestOrder");
 
                     b.Navigation("UploadedByUser");
                 });

@@ -350,14 +350,14 @@ public class SampleSummaryService
         dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
         dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();
         dto.CombinedCoaAvailable = sample.Status is SampleStatus.Approved or SampleStatus.Rejected;
-        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto, await SupportingRowsAsync(sample.ItemId, sample.Grade));
+        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto, await SupportingRowsAsync(sample.ItemId, sample.Grade), sectionIds);
 
         return dto;
     }
 
     // The sample item's approved not-applicable tests and supplier-stated
     // attributes for its grade, as the Certificate of Analysis prints them.
-    private async Task<List<(int? SectionId, CoaSimpleRowDto Row)>> SupportingRowsAsync(int? itemId, string? grade)
+    private async Task<List<CoaSimpleRowDto>> SupportingRowsAsync(int? itemId, string? grade)
     {
         if (itemId is not { } id) return new();
 
@@ -366,6 +366,9 @@ public class SampleSummaryService
         if (notApplicable.Count == 0 && supplier.Count == 0) return new();
 
         var codes = notApplicable.Select(n => n.TestCode).Distinct().ToList();
+        if (codes.Count == 0)
+            return CertificateOfAnalysisBuilder.BuildSupportingRows(grade, notApplicable, new Dictionary<string, (string, int?)>(), supplier);
+
         var sectionByCode = await _db.TestDefinitions.AsNoTracking()
             .Where(td => codes.Contains(td.Code))
             .ToDictionaryAsync(td => td.Code, td => (td.DisplayName, SectionId: (int?)td.SectionId));

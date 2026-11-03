@@ -60,6 +60,7 @@ export interface CoaMatrix {
 
 export interface CoaSimpleRow {
   kind: "Tested" | "NotApplicable" | "SupplierStated";
+  sectionId: number | null;
   testOrderId: number;
   testCode: string;
   testDisplayName: string;
@@ -75,12 +76,12 @@ export interface CoaSimpleRow {
 export interface CoaSimpleResult {
   rows: CoaSimpleRow[];
   overallComplies: boolean;
-  supportingRows: CoaSimpleRow[];
 }
 
 export interface CoaScope {
   matrix: CoaMatrix | null;
   simple: CoaSimpleResult | null;
+  supportingRows: CoaSimpleRow[];
   complies: boolean;
   conclusionText: string;
   resultDate: string | null;

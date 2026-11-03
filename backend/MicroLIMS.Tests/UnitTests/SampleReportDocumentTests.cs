@@ -118,13 +118,10 @@ public class SampleReportDocumentTests
     public void SupportingRecords_ListedAfterTheTestCards_FromTheCertificate()
     {
         var sample = FinishedProduct();
-        sample.Certificate.Sample.Simple = new CoaSimpleResultDto
+        sample.Certificate.Sample.SupportingRows = new List<CoaSimpleRowDto>
         {
-            SupportingRows =
-            {
-                new CoaSimpleRowDto { Kind = "NotApplicable", TestDisplayName = "Heavy metals", Result = "Not applicable (QC form NA-01)" },
-                new CoaSimpleRowDto { Kind = "SupplierStated", TestDisplayName = "Particle size", Result = "20 mesh (stated by supplier)" }
-            }
+            new CoaSimpleRowDto { Kind = "NotApplicable", TestDisplayName = "Heavy metals", Result = "Not applicable (QC form NA-01)" },
+            new CoaSimpleRowDto { Kind = "SupplierStated", TestDisplayName = "Particle size", Result = "20 mesh (stated by supplier)" }
         };
 
         var list = ReportDocumentMapper.ForSample(sample).Blocks.OfType<ListBlock>().Single(b => b.Label == "supporting records");

@@ -999,6 +999,7 @@
         "Units": []
       },
       "Simple": null,
+      "SupportingRows": [],
       "Complies": false,
       "ConclusionText": "This sample does not comply with the specified requirements. Exceptions: E. coli at Room 101, WTU-1, WTU-2, Location 7, Location 8.",
       "ResultDate": "2026-03-17T09:00:00Z"
@@ -1169,6 +1170,7 @@
             "Units": []
           },
           "Simple": null,
+          "SupportingRows": [],
           "Complies": false,
           "ConclusionText": "This sample does not comply with the specified requirements. Exceptions: E. coli at Room 101, WTU-1, WTU-2, Location 7, Location 8.",
           "ResultDate": "2026-03-17T09:00:00Z"
@@ -1180,6 +1182,7 @@
         "Scope": {
           "Matrix": null,
           "Simple": null,
+          "SupportingRows": [],
           "Complies": false,
           "ConclusionText": "Cannot certify because no results are recorded.",
           "ResultDate": null

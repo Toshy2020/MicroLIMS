@@ -152,7 +152,7 @@ public static class ReportDocumentMapper
 
         // Not-applicable tests and supplier-stated attributes, as the
         // Certificate of Analysis prints them: supporting records, never results.
-        var supporting = s.Certificate.Sample.Simple?.SupportingRows;
+        var supporting = s.Certificate.Sample.SupportingRows;
         if (supporting is { Count: > 0 })
         {
             doc.Blocks.Add(new HeadingBlock { Text = "supporting records" });

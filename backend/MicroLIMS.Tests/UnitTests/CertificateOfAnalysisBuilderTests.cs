@@ -159,7 +159,7 @@ public class CertificateOfAnalysisBuilderTests
     private static readonly IReadOnlyDictionary<string, (string Name, int? SectionId)> TestNames =
         new Dictionary<string, (string, int?)> { ["HM"] = ("Heavy metals", 1), ["PS"] = ("Particle size", 1) };
 
-    private static List<(int? SectionId, CoaSimpleRowDto Row)> Supporting(string? grade, NotApplicableTest[] na, params SupplierStatedAttributeDto[] supplier) =>
+    private static List<CoaSimpleRowDto> Supporting(string? grade, NotApplicableTest[] na, params SupplierStatedAttributeDto[] supplier) =>
         CertificateOfAnalysisBuilder.BuildSupportingRows(grade, na, TestNames, supplier);
 
     [Fact]
@@ -177,14 +177,14 @@ public class CertificateOfAnalysisBuilderTests
         Assert.Equal("Test results of the sample are Conform according to specification and decision rule.", coa.Sample.ConclusionText);
         Assert.True(coa.Sample.Simple!.OverallComplies);
         Assert.Single(coa.Sample.Simple.Rows);
-        Assert.Equal(2, coa.Sample.Simple.SupportingRows.Count);
-        var row = coa.Sample.Simple.SupportingRows[0];
+        Assert.Equal(2, coa.Sample.SupportingRows.Count);
+        var row = coa.Sample.SupportingRows[0];
         Assert.Equal("NotApplicable", row.Kind);
         Assert.Equal("Heavy metals", row.TestDisplayName);
         Assert.Null(row.Specification);
         Assert.Equal("Not applicable (QC form NA-01)", row.Result);
         Assert.Null(row.AnalystName);
-        Assert.Equal("Not applicable", coa.Sample.Simple.SupportingRows[1].Result);
+        Assert.Equal("Not applicable", coa.Sample.SupportingRows[1].Result);
         Assert.Equal("Tested", coa.Sample.Simple.Rows[0].Kind);
     }
 
@@ -196,7 +196,7 @@ public class CertificateOfAnalysisBuilderTests
 
         var coa = CertificateOfAnalysisBuilder.Build(Summary(AbsentBiochemical()), supporting);
 
-        var row = Assert.Single(coa.Sample.Simple!.SupportingRows);
+        var row = Assert.Single(coa.Sample.SupportingRows);
         Assert.Equal("SupplierStated", row.Kind);
         Assert.Equal("Particle size", row.TestDisplayName);
         Assert.Null(row.Specification);
@@ -220,7 +220,7 @@ public class CertificateOfAnalysisBuilderTests
 
         Assert.False(coa.Sample.Complies);
         Assert.Equal("Test results of the sample are Non-Conform according to specification and decision rule.", coa.Sample.ConclusionText);
-        Assert.Equal(2, coa.Sample.Simple!.SupportingRows.Count);
+        Assert.Equal(2, coa.Sample.SupportingRows.Count);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class CertificateOfAnalysisBuilderTests
 
         Assert.Equal(
             new[] { "Not applicable (usp-grade)", "Not applicable (case-insensitive)", "Not applicable (all-grades)" },
-            supporting.Select(s => s.Row.Result).ToArray());
+            supporting.Select(s => s.Result).ToArray());
 
         // An ungraded sample only takes the all-grade record.
         var ungraded = Supporting(null, new[]
@@ -247,7 +247,72 @@ public class CertificateOfAnalysisBuilderTests
             Na("HM", "USP", NotApplicableStatus.Approved, "usp-grade"),
             Na("HM", null, NotApplicableStatus.Approved, "all-grades")
         });
-        Assert.Equal("Not applicable (all-grades)", Assert.Single(ungraded).Row.Result);
+        Assert.Equal("Not applicable (all-grades)", Assert.Single(ungraded).Result);
+    }
+
+    private static SampleSummaryDto TwoLabSummary()
+    {
+        var summary = Summary(AbsentBiochemical());
+        summary.Sections.Add(new SampleSectionSummaryDto { SectionId = 2, SectionName = "Chemistry", Status = "Approved" });
+        return summary;
+    }
+
+    private static readonly IReadOnlyDictionary<string, (string Name, int? SectionId)> TwoLabTestNames =
+        new Dictionary<string, (string, int?)> { ["HM"] = ("Heavy metals", 2), ["MICRO_NA"] = ("Mould", 1) };
+
+    private static List<CoaSimpleRowDto> TwoLabSupporting() => CertificateOfAnalysisBuilder.BuildSupportingRows(
+        null,
+        new[]
+        {
+            Na("HM", null, NotApplicableStatus.Approved, "QC form NA-01"),      // Chemistry
+            Na("MICRO_NA", null, NotApplicableStatus.Approved, "QC form NA-02"), // Microbiology
+            Na("UNKNOWN", null, NotApplicableStatus.Approved, "QC form NA-03")   // no known section
+        },
+        TwoLabTestNames,
+        new[] { new SupplierStatedAttributeDto(1, 7, null, "Particle size", "20 mesh", 0) });
+
+    [Fact]
+    public void SupportingRows_CarryTheirSection_SoACombinedCertificateCanPrintUnscopedOnesOnce()
+    {
+        var rows = TwoLabSupporting();
+
+        Assert.Equal(2, rows.Single(r => r.TestDisplayName == "Heavy metals").SectionId);
+        Assert.Equal(1, rows.Single(r => r.TestDisplayName == "Mould").SectionId);
+        Assert.Null(rows.Single(r => r.TestCode == "UNKNOWN").SectionId);
+        Assert.Null(rows.Single(r => r.Kind == "SupplierStated").SectionId);
+    }
+
+    [Fact]
+    public void SectionScope_TakesItsOwnAndUnscopedRows_EvenWithNoTestedRows()
+    {
+        var coa = CertificateOfAnalysisBuilder.Build(TwoLabSummary(), TwoLabSupporting());
+
+        // Chemistry has no tested rows at all, yet keeps its own N/A row.
+        var chem = coa.Sections.Single(s => s.SectionId == 2).Scope;
+        Assert.Null(chem.Simple);
+        Assert.Equal(new[] { "Heavy metals", "Particle size", "UNKNOWN" }, chem.SupportingRows.Select(r => r.TestDisplayName).OrderBy(x => x).ToArray());
+        Assert.DoesNotContain(chem.SupportingRows, r => r.TestDisplayName == "Mould");
+        Assert.Contains(chem.SupportingRows, r => r.TestDisplayName == "Heavy metals");
+        // A lab with only supporting rows still has no verdict of its own.
+        Assert.False(chem.Complies);
+
+        var micro = coa.Sections.Single(s => s.SectionId == 1).Scope;
+        Assert.DoesNotContain(micro.SupportingRows, r => r.TestDisplayName == "Heavy metals");
+        Assert.Contains(micro.SupportingRows, r => r.TestDisplayName == "Mould");
+
+        Assert.Equal(4, coa.Sample.SupportingRows.Count);
+    }
+
+    [Fact]
+    public void RestrictedSections_ShowOnlyUnscopedAndTheirOwnSupportingRows()
+    {
+        var coa = CertificateOfAnalysisBuilder.Build(TwoLabSummary(), TwoLabSupporting(), sectionIds: new[] { 1 });
+
+        var names = coa.Sample.SupportingRows.Select(r => r.TestDisplayName).ToList();
+        Assert.DoesNotContain("Heavy metals", names);
+        Assert.Contains("Mould", names);
+        Assert.Contains("Particle size", names);
+        Assert.Equal(3, names.Count);
     }
 
     [Fact]

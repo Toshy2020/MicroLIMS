@@ -1182,6 +1182,7 @@
         "Units": []
       },
       "Simple": null,
+      "SupportingRows": [],
       "Complies": false,
       "ConclusionText": "This sample does not comply with the specified requirements. Exceptions: E. coli at Room 101, WTU-1, WTU-2, Location 7, Location 8.",
       "ResultDate": "2026-03-17T09:00:00Z"
@@ -1352,6 +1353,7 @@
             "Units": []
           },
           "Simple": null,
+          "SupportingRows": [],
           "Complies": false,
           "ConclusionText": "This sample does not comply with the specified requirements. Exceptions: E. coli at Room 101, WTU-1, WTU-2, Location 7, Location 8.",
           "ResultDate": "2026-03-17T09:00:00Z"
@@ -1366,6 +1368,7 @@
             "Rows": [
               {
                 "Kind": "Tested",
+                "SectionId": null,
                 "TestOrderId": 3,
                 "TestCode": "PH:pH",
                 "TestDisplayName": "pH",
@@ -1379,6 +1382,7 @@
               },
               {
                 "Kind": "Tested",
+                "SectionId": null,
                 "TestOrderId": 6,
                 "TestCode": "BCC",
                 "TestDisplayName": "BCC",
@@ -1391,9 +1395,9 @@
                 "NoResult": true
               }
             ],
-            "OverallComplies": false,
-            "SupportingRows": []
+            "OverallComplies": false
           },
+          "SupportingRows": [],
           "Complies": false,
           "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
           "ResultDate": "2026-03-05T10:00:00Z"

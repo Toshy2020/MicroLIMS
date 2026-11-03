@@ -18,9 +18,9 @@ public static class CertificateOfAnalysisBuilder
 {
     public const string SampleCompliesNoResultsText = "Cannot certify because no results are recorded.";
 
-    public static CertificateOfAnalysisDto Build(SampleSummaryDto summary, IReadOnlyList<(int? SectionId, CoaSimpleRowDto Row)>? supporting = null)
+    public static CertificateOfAnalysisDto Build(SampleSummaryDto summary, IReadOnlyList<CoaSimpleRowDto>? supporting = null, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: supporting?.Select(s => s.Row).ToList());
+        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: supporting?.Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value)).ToList());
 
         // A rejected sample still gets a certificate; it names the rejecting
         // laboratories instead of restating the result verdict.
@@ -40,7 +40,7 @@ public static class CertificateOfAnalysisBuilder
                     SectionId = s.SectionId,
                     SectionName = s.SectionName,
                     Scope = BuildScope(summary.TestOrders.Where(t => t.SectionId == s.SectionId).ToList(), noResultsText: SampleCompliesNoResultsText,
-                        supportingRows: supporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).Select(x => x.Row).ToList())
+                        supportingRows: supporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList())
                 })
                 .ToList()
         };
@@ -51,12 +51,12 @@ public static class CertificateOfAnalysisBuilder
     {
         var matrix = BuildMatrix(testOrders);
         var simple = matrix is null ? BuildSimpleRows(testOrders) : null;
-        if (simple is not null && supportingRows is not null) simple.SupportingRows = supportingRows.ToList();
 
         return new CoaScopeDto
         {
             Matrix = matrix,
             Simple = simple,
+            SupportingRows = supportingRows?.ToList() ?? new(),
             Complies = matrix?.OverallComplies ?? simple?.OverallComplies ?? false,
             ConclusionText = matrix is not null ? MatrixConclusionText(matrix)
                 : simple is not null ? SimpleConclusionText(simple)
@@ -307,35 +307,36 @@ public static class CertificateOfAnalysisBuilder
     // supplier-stated attributes (already filtered to the grade). The section
     // is the test's own laboratory; null (supplier rows, unknown test) shows
     // in every laboratory's certificate.
-    public static List<(int? SectionId, CoaSimpleRowDto Row)> BuildSupportingRows(
+    public static List<CoaSimpleRowDto> BuildSupportingRows(
         string? grade,
         IEnumerable<NotApplicableTest> notApplicable,
         IReadOnlyDictionary<string, (string Name, int? SectionId)> tests,
         IEnumerable<SupplierStatedAttributeDto> supplierAttributes)
     {
-        var rows = new List<(int? SectionId, CoaSimpleRowDto Row)>();
+        var rows = new List<CoaSimpleRowDto>();
 
         foreach (var na in notApplicable.Where(n => ProductWorkflowEngine.IsApprovedNotApplicableFor(n, grade)))
         {
             tests.TryGetValue(na.TestCode, out var test);
-            rows.Add((test.SectionId, new CoaSimpleRowDto
+            rows.Add(new CoaSimpleRowDto
             {
                 Kind = "NotApplicable",
+                SectionId = test.SectionId,
                 TestCode = na.TestCode,
                 TestDisplayName = test.Name ?? na.TestCode,
                 Result = string.IsNullOrWhiteSpace(na.Reference) ? "Not applicable" : $"Not applicable ({na.Reference})",
                 Conform = true
-            }));
+            });
         }
 
         foreach (var a in supplierAttributes)
-            rows.Add((null, new CoaSimpleRowDto
+            rows.Add(new CoaSimpleRowDto
             {
                 Kind = "SupplierStated",
                 TestDisplayName = a.Name,
                 Result = $"{a.StatedValue} (stated by supplier)",
                 Conform = true
-            }));
+            });
 
         return rows;
     }

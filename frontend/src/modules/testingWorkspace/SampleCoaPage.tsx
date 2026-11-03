@@ -8,6 +8,7 @@ import {
   sectionScope,
   CoaMatrix,
   CoaSimpleResult,
+  CoaSimpleRow,
   CoaColumn
 } from "./coaAggregation";
 import {
@@ -221,7 +222,36 @@ function CoaMatrixTable({ matrix }: { matrix: CoaMatrix }) {
   );
 }
 
-function CoaSimpleTable({ simple, testOrders }: { simple: CoaSimpleResult; testOrders: TestOrderSummaryDetail[] }) {
+function SupportingRowEls({ rows }: { rows: CoaSimpleRow[] }) {
+  return (
+    <>
+      {rows.map((r, i) => (
+        <tr key={`support-${i}`}>
+          <td>{r.testDisplayName || r.testCode}</td>
+          <td>—</td>
+          <td style={{ color: "var(--coa-ink3)", fontStyle: "italic" }}>{r.result}</td>
+          <td>—</td>
+        </tr>
+      ))}
+    </>
+  );
+}
+
+// Supporting records (not-applicable tests, supplier-stated attributes) on
+// their own, for a lab with no tested rows or once per combined certificate.
+function SupportingRowsTable({ rows }: { rows: CoaSimpleRow[] }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table className="coa-simple">
+        <tbody>
+          <SupportingRowEls rows={rows} />
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CoaSimpleTable({ simple, testOrders, supportingRows = [] }: { simple: CoaSimpleResult; testOrders: TestOrderSummaryDetail[]; supportingRows?: CoaSimpleRow[] }) {
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="coa-simple">
@@ -265,16 +295,9 @@ function CoaSimpleTable({ simple, testOrders }: { simple: CoaSimpleResult; testO
             );
           })}
           {/* Supporting records: not-applicable tests and supplier-stated
-              attributes. Listed after the results; the server's verdict
+              attributes. Listed after the results; the server verdict
               ignores them. */}
-          {simple.supportingRows?.map((r, i) => (
-            <tr key={`support-${i}`}>
-              <td>{r.testDisplayName || r.testCode}</td>
-              <td>—</td>
-              <td style={{ color: "var(--coa-ink3)", fontStyle: "italic" }}>{r.result}</td>
-              <td>—</td>
-            </tr>
-          ))}
+          <SupportingRowEls rows={supportingRows} />
         </tbody>
       </table>
     </div>
@@ -537,7 +560,7 @@ export function SampleCoaPage() {
                   </div>
 
                   <div className="coa-section-h">Test Results</div>
-                  <CoaSimpleTable simple={simple!} testOrders={s.testOrders} />
+                  <CoaSimpleTable simple={simple!} testOrders={s.testOrders} supportingRows={certificate.supportingRows} />
 
                   <div className="coa-section-h">Remarks</div>
                   {(() => {
@@ -609,6 +632,9 @@ export function SampleCoaPage() {
                       const groupScope = sectionScope(s.certificate, group.sectionId);
                       const groupMatrix = groupScope?.matrix ?? null;
                       const groupSimple = groupScope?.simple ?? null;
+                      // Only this lab's own not-applicable rows; supplier-stated and
+                      // unscoped rows print once, after the last lab (below).
+                      const groupSupporting = (groupScope?.supportingRows ?? []).filter((r) => r.sectionId != null);
                       const secDetail = sections.find((sec) => sec.sectionId === group.sectionId);
                       const secRemarks = secDetail?.certificateRemarks?.trim() || null;
                       // Closed lab (design.md §5.3): its still-open tests
@@ -625,8 +651,9 @@ export function SampleCoaPage() {
                             {group.sectionName} Test Results
                           </div>
                           {groupMatrix && <CoaMatrixTable matrix={groupMatrix} />}
-                          {groupSimple && <CoaSimpleTable simple={groupSimple} testOrders={group.testOrders} />}
-                          {!groupMatrix && !groupSimple && cancelledOrders.length === 0 && (
+                          {groupSimple && <CoaSimpleTable simple={groupSimple} testOrders={group.testOrders} supportingRows={groupSupporting} />}
+                          {!groupSimple && groupSupporting.length > 0 && <SupportingRowsTable rows={groupSupporting} />}
+                          {!groupMatrix && !groupSimple && groupSupporting.length === 0 && cancelledOrders.length === 0 && (
                             <div style={{ color: "var(--coa-ink3)", fontStyle: "italic", marginBottom: 12, fontSize: 12 }}>
                               No recorded results for this section.
                             </div>
@@ -655,6 +682,16 @@ export function SampleCoaPage() {
                         </div>
                       );
                     })}
+
+                    {(() => {
+                      // Supplier-stated attributes (and not-applicable rows whose
+                      // lab is unknown, or whose lab has no group above) belong to
+                      // the material, not to one lab:
+                      // once per combined certificate.
+                      const shown = new Set(groupTestOrdersBySection(s.testOrders, sections).map((g) => g.sectionId));
+                      const unscoped = certificate.supportingRows.filter((r) => r.sectionId == null || !shown.has(r.sectionId));
+                      return unscoped.length > 0 ? <SupportingRowsTable rows={unscoped} /> : null;
+                    })()}
 
                     {(() => {
                       const { complies, conclusionText: conclusion } = certificate;
@@ -756,7 +793,7 @@ export function SampleCoaPage() {
                       </div>
 
                       <div className="coa-section-h">Test Results</div>
-                      <CoaSimpleTable simple={secSimple} testOrders={secTests} />
+                      <CoaSimpleTable simple={secSimple} testOrders={secTests} supportingRows={secScope?.supportingRows} />
                     </>
                   ) : (
                     <div style={{ padding: 24, textAlign: "center", color: "var(--coa-ink3)", fontStyle: "italic" }}>

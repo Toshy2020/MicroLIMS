@@ -29,6 +29,10 @@ public class CoaScopeDto
     // is no Matrix.
     public CoaSimpleResultDto? Simple { get; set; }
 
+    // Not-applicable tests and supplier-stated attributes, printed below the
+    // results. They never enter Complies or the conclusion.
+    public List<CoaSimpleRowDto> SupportingRows { get; set; } = new();
+
     public bool Complies { get; set; }
     public string ConclusionText { get; set; } = string.Empty;
 
@@ -95,16 +99,15 @@ public class CoaSimpleResultDto
 {
     public List<CoaSimpleRowDto> Rows { get; set; } = new();
     public bool OverallComplies { get; set; }
-
-    // Not-applicable tests and supplier-stated attributes, printed below
-    // the tested rows. They never enter OverallComplies or the conclusion.
-    public List<CoaSimpleRowDto> SupportingRows { get; set; } = new();
 }
 
 public class CoaSimpleRowDto
 {
     // "Tested", "NotApplicable" or "SupplierStated".
     public string Kind { get; set; } = "Tested";
+    // The laboratory a not-applicable row belongs to; null when it is not
+    // tied to one (supplier-stated, or a test whose section is unknown).
+    public int? SectionId { get; set; }
     public int TestOrderId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;

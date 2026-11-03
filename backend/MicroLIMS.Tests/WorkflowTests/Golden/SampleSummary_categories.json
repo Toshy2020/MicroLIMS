@@ -46,6 +46,7 @@
       "Sample": {
         "Matrix": null,
         "Simple": null,
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because no results are recorded.",
         "ResultDate": null
@@ -100,6 +101,7 @@
       "Sample": {
         "Matrix": null,
         "Simple": null,
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because no results are recorded.",
         "ResultDate": null
@@ -259,6 +261,7 @@
           "Units": []
         },
         "Simple": null,
+        "SupportingRows": [],
         "Complies": true,
         "ConclusionText": "This sample complies with the specified requirements. All 1 test conform across all 1 sampling location.",
         "ResultDate": "2026-03-05T00:00:00Z"
@@ -311,6 +314,7 @@
               "Units": []
             },
             "Simple": null,
+            "SupportingRows": [],
             "Complies": true,
             "ConclusionText": "This sample complies with the specified requirements. All 1 test conform across all 1 sampling location.",
             "ResultDate": "2026-03-05T00:00:00Z"
@@ -366,6 +370,7 @@
       "Sample": {
         "Matrix": null,
         "Simple": null,
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because no results are recorded.",
         "ResultDate": null
@@ -711,6 +716,7 @@
           "Rows": [
             {
               "Kind": "Tested",
+              "SectionId": null,
               "TestOrderId": 12,
               "TestCode": "TAMC",
               "TestDisplayName": "Total Aerobic Microbial Count",
@@ -724,6 +730,7 @@
             },
             {
               "Kind": "Tested",
+              "SectionId": null,
               "TestOrderId": 17,
               "TestCode": "TYMC",
               "TestDisplayName": "Total Yeast and Mold Count",
@@ -737,6 +744,7 @@
             },
             {
               "Kind": "Tested",
+              "SectionId": null,
               "TestOrderId": 14,
               "TestCode": "ECOLI",
               "TestDisplayName": "E. coli",
@@ -749,9 +757,9 @@
               "NoResult": true
             }
           ],
-          "OverallComplies": false,
-          "SupportingRows": []
+          "OverallComplies": false
         },
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
         "ResultDate": null
@@ -766,6 +774,7 @@
               "Rows": [
                 {
                   "Kind": "Tested",
+                  "SectionId": null,
                   "TestOrderId": 12,
                   "TestCode": "TAMC",
                   "TestDisplayName": "Total Aerobic Microbial Count",
@@ -779,6 +788,7 @@
                 },
                 {
                   "Kind": "Tested",
+                  "SectionId": null,
                   "TestOrderId": 17,
                   "TestCode": "TYMC",
                   "TestDisplayName": "Total Yeast and Mold Count",
@@ -792,6 +802,7 @@
                 },
                 {
                   "Kind": "Tested",
+                  "SectionId": null,
                   "TestOrderId": 14,
                   "TestCode": "ECOLI",
                   "TestDisplayName": "E. coli",
@@ -804,9 +815,9 @@
                   "NoResult": true
                 }
               ],
-              "OverallComplies": false,
-              "SupportingRows": []
+              "OverallComplies": false
             },
+            "SupportingRows": [],
             "Complies": false,
             "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
             "ResultDate": null

@@ -10,7 +10,7 @@ export interface Item {
   sopNumber: string;
   isActive: boolean;
   assignedTests: { testCode: string; displayName: string }[];
-  specifications: { id?: number; testCode: string; alertLimit: string; actionLimit: string; specLimit: string; dilutionFactor?: number | null }[];
+  specifications: { id?: number; testCode: string; alertLimit: string; actionLimit: string; specLimit: string; dilutionFactor?: number | null; grade?: string | null }[];
   minSampleQuantity?: number | null;
   minRetestSampleQuantity?: number | null;
   minSampleQuantityUnit?: string | null;

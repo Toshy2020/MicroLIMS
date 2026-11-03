@@ -5,7 +5,7 @@ Decisions for the user:
 - **Standard lot not tied to the analyte.** A standard-comparison test accepts any usable lot in the section. HPLC ties the lot to the method analyte and titration to a standard entry. No STM uses this mode yet. Decide on a Test Master "expected standard" field before the first such test is configured.
 - **Standard stock not deducted on UV signing.** HPLC suitability does not deduct either, and no STM asks for it.
 - **No change reason on UV constants.** Editing A1 % or a volume is audited but needs no reason; titration asks for one.
-- **Replicates for RM HPLC tests.** Test Master has no such field for HPLC; the analyst enters at least one. Carried from Plan 3 to Plan 6.
+- **Replicates for RM HPLC tests:** decided 2026-11-03, the analyst chooses (at least one), as plates in a micro count test; a count on the test does not bind.
 
 Known limits:
 

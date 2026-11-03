@@ -63,16 +63,10 @@ public static class StageReplicateResolver
             .FirstOrDefaultAsync(cancellationToken);
         var productionStageId = sample?.ProductionStageId;
 
-        // Raw and packaging materials have no production stage. The test's own
-        // replicate count applies; with none set, the analyst decides (at least one).
+        // Raw and packaging materials have no production stage. The analyst decides
+        // how many replicates to run (at least one), as with plates in a micro count test.
         if (sample?.Category is SampleCategory.RawMaterial or SampleCategory.PackagingMaterial)
-        {
-            var replicateCount = await db.TestDefinitions
-                .Where(t => t.Id == testDefinitionId)
-                .Select(t => t.ReplicateCount)
-                .FirstOrDefaultAsync(cancellationToken);
-            return new StageReplicateResolution(StageReplicateResolutionStatus.Resolved, null, replicateCount, null);
-        }
+            return new StageReplicateResolution(StageReplicateResolutionStatus.Resolved, null, null, null);
 
         if (productionStageId is null)
         {

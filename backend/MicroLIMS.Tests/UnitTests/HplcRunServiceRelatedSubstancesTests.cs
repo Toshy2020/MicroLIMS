@@ -151,7 +151,8 @@ public partial class HplcRunServiceTests
     }
 
     [Fact]
-    public async Task StagelessMaterialSample_FollowsTheTestReplicateCount_AndNeedsOneReplicate()
+    // The analyst decides the replicate count, as plates in a micro count test; a count on the test does not bind.
+    public async Task StagelessMaterialSample_TakesAnyReplicateCount_AndNeedsOneReplicate()
     {
         await using var db = NewDb();
         var (_, clock) = NewClock(SepFirst);
@@ -164,9 +165,8 @@ public partial class HplcRunServiceTests
         (await db.TestDefinitions.FirstAsync(x => x.Code == "RS_SILD")).ReplicateCount = 2;
         await db.SaveChangesAsync();
         var entry = await f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, SildenafilPeaks(f)), f.S.UserId);
-        Assert.Equal(2, entry.RequiredReplicates);
-        Assert.Equal("Expected exactly 2 replicates, but 1 entered.", entry.CanSubmitReason);
-        Assert.Empty(entry.Preview);
+        Assert.Null(entry.RequiredReplicates);
+        Assert.NotEmpty(entry.Preview);
     }
 
     [Fact]

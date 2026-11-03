@@ -151,6 +151,12 @@ public class ItemService
             throw new InvalidOperationException(
                 $"Cannot delete '{item.Name}' - it has been used to receive {sampleCount} sample(s). Freeze it instead to stop new samples without losing history.");
 
+        // NotApplicableTest.ItemId is Restrict too; the signed records must survive, so refuse.
+        var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id);
+        if (naCount > 0)
+            throw new InvalidOperationException(
+                $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s) with signatures. Freeze it instead to keep that history.");
+
         _db.Items.Remove(item);
         await _db.SaveChangesAsync();
     }

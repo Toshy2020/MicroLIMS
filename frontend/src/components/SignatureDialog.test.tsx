@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SignatureDialog } from "./SignatureDialog";
@@ -70,5 +71,21 @@ describe("SignatureDialog", () => {
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText(/^Second signer password/) as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText(/^Second signer username/) as HTMLInputElement).value).toBe("approver");
+  });
+});
+
+describe("SignatureDialog required comment", () => {
+  it("labels the comment as required and keeps Sign disabled until it is filled", () => {
+    const Harness = () => {
+      const [c, setC] = useState("");
+      return <SignatureDialog open meaningStatement="I am withdrawing." showComment commentLabel="Reason (required)" commentRequired
+        comment={c} onCommentChange={setC} onCancel={() => {}} onConfirm={async () => {}} />;
+    };
+    render(<Harness />);
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "pw" } });
+    const sign = screen.getByRole("button", { name: "Sign" }) as HTMLButtonElement;
+    expect(sign.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/Reason \(required\)/), { target: { value: "Wrong item" } });
+    expect(sign.disabled).toBe(false);
   });
 });

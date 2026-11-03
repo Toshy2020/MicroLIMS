@@ -21,7 +21,12 @@ public static class CertificateOfAnalysisBuilder
     public static CertificateOfAnalysisDto Build(SampleSummaryDto summary, IReadOnlyList<CoaSimpleRowDto>? supporting = null, IReadOnlyCollection<int>? sectionIds = null)
     {
         // A restricted viewer never receives another lab's supporting rows, in any scope.
-        var visibleSupporting = supporting?.Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value)).ToList();
+        // A test the sample actually ordered is reported with its result, never also as not applicable.
+        var ordered = summary.TestOrders.Where(t => !t.IsSuperseded).Select(t => t.TestCode).ToHashSet();
+        var visibleSupporting = supporting?
+            .Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value))
+            .Where(x => x.Kind != "NotApplicable" || !ordered.Contains(x.TestCode))
+            .ToList();
         var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: visibleSupporting);
 
         // A rejected sample still gets a certificate; it names the rejecting

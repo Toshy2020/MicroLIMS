@@ -576,4 +576,74 @@ public class NotApplicableTestServiceTests
         Assert.NotEqual(first.Id, second.Id);
         Assert.Equal(NotApplicableStatus.Draft, second.Status);
     }
+
+    private static void SeedMoistureSupplier(MicroLimsDbContext db, Item item, MoistureRole role, ResultBasis basis, string? specGrade = null)
+    {
+        db.TestDefinitions.First(t => t.Code == "MOIST").MoistureRole = role;
+        db.Specifications.Add(new Specification { ItemId = item.Id, TestCode = "ASSAY", ParameterName = "Assay", Grade = specGrade, ResultBasis = basis });
+        db.SaveChanges();
+    }
+
+    [Theory]
+    [InlineData(MoistureRole.LossOnDrying, ResultBasis.PercentDriedBasis)]
+    [InlineData(MoistureRole.Water, ResultBasis.PercentAnhydrousBasis)]
+    public async Task Create_RefusesAMoistureTestADriedOrAnhydrousAssayDependsOn(MoistureRole role, ResultBasis basis)
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
+        SeedMoistureSupplier(db, item, role, basis, "BP");
+        var service = CreateService(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "MOIST")));
+        Assert.Equal("MOIST Name supplies the moisture for a dried/anhydrous assay of this item; it cannot be declared not applicable.", ex.Message);
+        Assert.Empty(db.NotApplicableTests);
+    }
+
+    [Fact]
+    public async Task Create_MoistureTest_IsAllowedWhenTheDependentAssayIsAnotherGrade_OrAsIsBasis()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
+        SeedMoistureSupplier(db, item, MoistureRole.LossOnDrying, ResultBasis.PercentDriedBasis, "USP");
+        db.Specifications.Add(new Specification { ItemId = item.Id, TestCode = "ASSAY", ParameterName = "Assay", Grade = "BP", ResultBasis = ResultBasis.PercentAsIs });
+        db.SaveChanges();
+        var service = CreateService(db);
+
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "MOIST", "BP"));
+        Assert.Equal(NotApplicableStatus.Draft, created.Status);
+    }
+
+    [Fact]
+    public async Task FinalApprove_RefusesAMoistureTestThatBecameNeededAfterCreate()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var qc = CreateUser(db, RoleType.QcManager, "QC Manager", "qcman");
+        var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
+        var service = CreateService(db);
+        var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "MOIST"));
+        await service.HeadApproveAsync(head.Id, created.Id, Password, null);
+        SeedMoistureSupplier(db, item, MoistureRole.LossOnDrying, ResultBasis.PercentDriedBasis);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.FinalApproveAsync(qc.Id, created.Id, Password, null));
+        Assert.Contains("supplies the moisture", ex.Message);
+        Assert.Equal(NotApplicableStatus.HeadApproved, db.NotApplicableTests.Single().Status);
+    }
+
+    [Fact]
+    public async Task ItemDelete_WithNotApplicableRecords_RefusesWithAClearMessage()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
+        await CreateService(db).CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
+        var items = new ItemService(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => items.DeleteAsync(item.Id));
+        Assert.Contains("not-applicable", ex.Message);
+        Assert.Contains("Freeze", ex.Message);
+        Assert.Single(db.Items);
+    }
 }

@@ -189,6 +189,27 @@ public class CertificateOfAnalysisBuilderTests
     }
 
     [Fact]
+    public void NotApplicableRow_IsDropped_WhenTheSampleActuallyOrderedThatTest()
+    {
+        var ordered = AbsentBiochemical();
+        ordered.TestCode = "HM";
+        var supporting = Supporting(null, new[]
+        {
+            Na("HM", null, NotApplicableStatus.Approved, "QC form NA-01"),
+            Na("PS", null, NotApplicableStatus.Approved, null)
+        });
+
+        var coa = CertificateOfAnalysisBuilder.Build(Summary(ordered), supporting);
+
+        Assert.Equal("Particle size", Assert.Single(coa.Sample.SupportingRows).TestDisplayName);
+
+        // A superseded order does not count as ordered.
+        ordered.IsSuperseded = true;
+        var coa2 = CertificateOfAnalysisBuilder.Build(Summary(ordered), supporting);
+        Assert.Equal(2, coa2.Sample.SupportingRows.Count);
+    }
+
+    [Fact]
     public void SupplierRow_PrintsStatedBySupplier()
     {
         var supporting = Supporting(null, Array.Empty<NotApplicableTest>(),

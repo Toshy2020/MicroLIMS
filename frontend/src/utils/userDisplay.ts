@@ -13,6 +13,7 @@ export function formatRoleFallback(role: string | null, labCodes: string[]): str
     case "SectionHead": return prefix ? `${prefix} Section Head` : "Section Head";
     case "Reviewer": return "Quality Reviewer";
     case "SystemAdministrator": return "System Administrator";
+    case "QcManager": return "QC Manager";
     default: return role;
   }
 }

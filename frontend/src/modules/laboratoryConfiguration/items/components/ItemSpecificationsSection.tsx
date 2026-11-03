@@ -40,6 +40,8 @@ import { IcpMethodService } from "../../masterDataSimple/services/IcpMethodServi
 interface ItemSpecificationsSectionProps {
   item: Item;
   onSpecsChanged?: () => void;
+  // A viewer who may not manage items (the QC Manager) sees the specifications without edit controls.
+  readOnly?: boolean;
 }
 
 // Limit types are categories, not states: the label carries the meaning, so
@@ -177,7 +179,8 @@ const formatResultBasis = (basis?: string | null, isIcp?: boolean) => {
 
 export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps> = ({
   item,
-  onSpecsChanged
+  onSpecsChanged,
+  readOnly = false
 }) => {
   const theme = useTheme();
 
@@ -382,7 +385,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
 
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           {loading && <CircularProgress size={16} />}
-          {assignedTests.length > 0 && (
+          {assignedTests.length > 0 && !readOnly && (
             <Button
               variant="contained"
               size="small"
@@ -621,7 +624,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               {spec.referenceStandard || "\u2014"}
                             </TableCell>
                             <TableCell align="right">
-                              {spec.canEdit === false ? (
+                              {readOnly || spec.canEdit === false ? (
                                 <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                                   Read-only
                                 </Typography>
@@ -851,7 +854,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   {spec.referenceStandard || "\u2014"}
                                 </TableCell>
                                 <TableCell align="right">
-                                  {spec.canEdit === false ? (
+                                  {readOnly || spec.canEdit === false ? (
                                     <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                                       Read-only
                                     </Typography>
@@ -926,7 +929,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                         {/* Add parameter link for this group - hidden for a
                             read-only (other lab's) test, same rule as the
                             per-row edit/delete buttons above */}
-                        {groupCanEdit && (
+                        {groupCanEdit && !readOnly && (
                           <TableRow sx={{ "&:hover": { bgcolor: "transparent" } }}>
                             <TableCell
                               colSpan={6}

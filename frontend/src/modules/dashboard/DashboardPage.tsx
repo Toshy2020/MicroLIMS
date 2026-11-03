@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { Tab, Tabs } from "@mui/material";
 import { useAuth } from "../../contexts/AuthContext";
 import { useMyLabs } from "../../hooks/useMyLabs";
@@ -25,6 +25,9 @@ export function DashboardPage() {
   const requested = params.get("lab")?.toUpperCase() as DashboardLabCode | undefined;
   const code: DashboardLabCode | null = requested && labs.includes(requested) ? requested : labs[0] ?? null;
   const lab = useMemo(() => makeDashboardLab(code, physchemAreas), [code, physchemAreas]);
+
+  // The QC Manager role gets no dashboard of its own: its work is the not-applicable approvals on the Items page.
+  if (role === "QcManager") return <Navigate to="/laboratory-configuration/items" replace />;
 
   if (loading) return <WorkspaceSkeleton tiles={4} rows={5} />;
 

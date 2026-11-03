@@ -242,16 +242,17 @@ describe("NotApplicableTestsSection", () => {
     // SignatureDialog is shown
     expect(screen.getByText("Electronic Signature")).toBeTruthy();
 
-    // Fill reason into comment field
-    const commentInput = screen.getByLabelText(/Comment \(optional\)/i);
-    fireEvent.change(commentInput, { target: { value: "Wrong specification declared" } });
-
-    // Fill password
+    // The reason is required: with a password but no reason, Sign stays disabled
     const passwordInput = screen.getByLabelText(/^Password/i);
     fireEvent.change(passwordInput, { target: { value: "ValidPassword123!" } });
+    const signBtn = screen.getByRole("button", { name: "Sign" }) as HTMLButtonElement;
+    expect(signBtn.disabled).toBe(true);
+
+    const commentInput = screen.getByLabelText(/Reason \(required\)/i);
+    fireEvent.change(commentInput, { target: { value: "Wrong specification declared" } });
+    expect(signBtn.disabled).toBe(false);
 
     // Click Sign
-    const signBtn = screen.getByRole("button", { name: "Sign" });
     fireEvent.click(signBtn);
 
     await waitFor(() => {

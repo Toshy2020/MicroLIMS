@@ -16,6 +16,9 @@ interface SignatureDialogProps {
   showComment?: boolean;
   comment?: string;
   onCommentChange?: (value: string) => void;
+  // Label for the comment box, and whether Sign stays disabled until it is filled (default: "Comment (optional)", not required).
+  commentLabel?: string;
+  commentRequired?: boolean;
   // Changes that need a second, different person (for example skipping a monitoring
   // occurrence) ask for their username and password as well.
   requireSecondSigner?: boolean;
@@ -30,7 +33,7 @@ interface SignatureDialogProps {
 // optional comment. On failure the server's message is shown and the
 // password is cleared, but the dialog stays open.
 export function SignatureDialog({
-  open, meaningStatement, showComment = false, comment, onCommentChange,
+  open, meaningStatement, showComment = false, comment, onCommentChange, commentLabel, commentRequired = false,
   requireSecondSigner = false, secondSignerHint, onCancel, onConfirm
 }: SignatureDialogProps) {
   const { fullName, username, role } = useAuth();
@@ -40,7 +43,7 @@ export function SignatureDialog({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const complete = !!password && (!requireSecondSigner || (!!secondUsername.trim() && !!secondPassword));
+  const complete = !!password && (!commentRequired || !!comment?.trim()) && (!requireSecondSigner || (!!secondUsername.trim() && !!secondPassword));
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -89,7 +92,7 @@ export function SignatureDialog({
           </Box>
           <Alert severity="info">{meaningStatement}</Alert>
           {showComment && (
-            <TextField label="Comment (optional)" multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
+            <TextField label={commentLabel ?? "Comment (optional)"} multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
           )}
           <TextField
             label="Password" type="password" value={password}

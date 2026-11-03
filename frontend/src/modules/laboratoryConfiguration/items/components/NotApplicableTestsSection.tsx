@@ -446,6 +446,8 @@ export function NotApplicableTestsSection({
         open={signingOpen}
         meaningStatement={getMeaningStatement()}
         showComment={true}
+        commentLabel={signingAction === "withdraw" ? "Reason (required)" : undefined}
+        commentRequired={signingAction === "withdraw"}
         comment={signingComment}
         onCommentChange={setSigningComment}
         onCancel={() => {

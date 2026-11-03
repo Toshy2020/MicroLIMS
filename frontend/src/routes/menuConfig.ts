@@ -221,7 +221,7 @@ const physchemConfigArea: MenuItem = {
 };
 
 // Shared across both labs, not tied to either one's membership.
-const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", description: "Items the labs test and the tests auto-assigned on receipt.", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.ITEMS_MANAGE };
+const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", description: "Items the labs test and the tests auto-assigned on receipt.", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: [PERMISSIONS.ITEMS_MANAGE, PERMISSIONS.NOT_APPLICABLE_TESTS_FINAL_APPROVE] };
 const receivingConfigItem: MenuItem = { label: "Receiving Configuration", description: "Reference lists offered on the sample receiving form.", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const masterDataWorkbookItem: MenuItem = { label: "Master Data Workbook", description: "Load master data and specifications from one Excel workbook.", path: "/laboratory-configuration/master-data-workbook", icon: TableViewOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 

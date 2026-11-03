@@ -134,3 +134,17 @@ describe("menuConfig area filtering", () => {
     expect(rmpmTestMasterTrail?.exact).toBe(true);
   });
 });
+
+describe("Items menu entry", () => {
+  const itemsFor = (permissions: string[]) =>
+    findItemByPath(getGroupedMenu({ role: "QcManager", permissions, labCodes: [] }).flatMap((g) => g.items), "/laboratory-configuration/items");
+
+  it("is shown to a user who can only give the final approval", () => {
+    expect(itemsFor([PERMISSIONS.NOT_APPLICABLE_TESTS_FINAL_APPROVE])).toBeDefined();
+  });
+
+  it("is shown to an item manager and hidden from everyone else", () => {
+    expect(itemsFor([PERMISSIONS.ITEMS_MANAGE])).toBeDefined();
+    expect(itemsFor([])).toBeUndefined();
+  });
+});

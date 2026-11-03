@@ -66,6 +66,8 @@ public class NotApplicableTestService
             normalizedGrade = matchingGrade;
         }
 
+        await EnsureNotMoistureSupplierAsync(r.ItemId, r.TestCode, normalizedGrade);
+
         var exists = await _db.NotApplicableTests.AnyAsync(x =>
             x.ItemId == r.ItemId &&
             x.TestCode == r.TestCode &&
@@ -179,6 +181,8 @@ public class NotApplicableTestService
         if (headSignerUserId == userId)
             throw new InvalidOperationException("The QC Manager approval must come from a different person than the Section Head approval.");
 
+        await EnsureNotMoistureSupplierAsync(entity.ItemId, entity.TestCode, entity.Grade);
+
         var signature = await _signatures.SignAsync(
             userId,
             password,
@@ -269,6 +273,22 @@ public class NotApplicableTestService
                 ?? r.TestCode;
             return MapToDto(r, name);
         }).ToList();
+    }
+
+    // A loss-on-drying or water test feeds the dried or anhydrous basis assays of the item; declaring it not
+    // applicable would leave those assays with no moisture to correct by.
+    private async Task EnsureNotMoistureSupplierAsync(int itemId, string testCode, string? grade)
+    {
+        var role = await _db.TestDefinitions.Where(td => td.Code == testCode).Select(td => td.MoistureRole).FirstOrDefaultAsync();
+        if (role == MoistureRole.None) return;
+
+        var basis = role == MoistureRole.LossOnDrying ? ResultBasis.PercentDriedBasis : ResultBasis.PercentAnhydrousBasis;
+        var needed = await _db.Specifications.AsNoTracking().AnyAsync(s =>
+            s.ItemId == itemId && s.ResultBasis == basis
+            && (grade == null || s.Grade == null || s.Grade.ToLower() == grade.ToLower()));
+        if (needed)
+            throw new InvalidOperationException(
+                $"{await ResolveDisplayNameAsync(itemId, testCode)} supplies the moisture for a dried/anhydrous assay of this item; it cannot be declared not applicable.");
     }
 
     private async Task<string> ResolveDisplayNameAsync(int itemId, string testCode) =>

@@ -9,6 +9,8 @@ import { ItemPreparationConfigurationService } from "../../../testPreparation/se
 import { NotApplicableTestService } from "../services/NotApplicableTestService";
 import { SupplierAttributeService } from "../services/SupplierAttributeService";
 
+let mockCanManageItems = true;
+
 vi.mock("../../../../contexts/AuthContext", () => ({
   useAuth: () => ({
     fullName: "QA Admin",
@@ -16,7 +18,7 @@ vi.mock("../../../../contexts/AuthContext", () => ({
     role: "Admin",
     permissions: ["tests.not-applicable.manage", "tests.not-applicable.final-approve", "MasterData.Manage"],
   }),
-  useHasPermission: () => true,
+  useHasPermission: (code: string | string[]) => code === "Items.Manage" ? mockCanManageItems : true,
 }));
 
 vi.mock("../services/ItemDocumentService", () => ({
@@ -53,7 +55,7 @@ vi.mock("../services/SupplierAttributeService", () => ({
 }));
 
 vi.mock("./ItemSpecificationsSection", () => ({
-  ItemSpecificationsSection: () => <div data-testid="item-specs-section">Specifications Content</div>,
+  ItemSpecificationsSection: ({ readOnly }: { readOnly?: boolean }) => <div data-testid="item-specs-section">Specifications Content {readOnly ? "read-only" : "editable"}</div>,
 }));
 
 vi.mock("./ItemPreparationConfigurationSection", () => ({
@@ -67,6 +69,7 @@ vi.mock("../../../../components/ItemStmPanel", () => ({
 describe("ItemWorkspace - Supporting Records Tab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCanManageItems = true;
   });
 
   afterEach(() => {
@@ -127,5 +130,36 @@ describe("ItemWorkspace - Supporting Records Tab", () => {
     // Verify service calls for itemId 42
     expect(NotApplicableTestService.listForItem).toHaveBeenCalledWith(42);
     expect(SupplierAttributeService.listForItem).toHaveBeenCalledWith(42);
+  });
+});
+
+describe("ItemWorkspace - without Items.Manage", () => {
+  afterEach(() => {
+    cleanup();
+    mockCanManageItems = true;
+  });
+
+  const item = { id: 1, name: "Riboflavin", code: "RM-1", category: "RawMaterial", sopNumber: "", isActive: true, assignedTests: [], specifications: [] } as unknown as Item;
+
+  it("opens the specifications read-only and hides the report upload", async () => {
+    mockCanManageItems = false;
+    render(<ThemeProvider theme={lightTheme}><ItemWorkspace item={item} onClose={() => {}} /></ThemeProvider>);
+
+    fireEvent.click(screen.getByRole("tab", { name: /Specifications/ }));
+    await waitFor(() => expect(screen.getByText("Specifications Content read-only")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("tab", { name: /Documents/ }));
+    await waitFor(() => expect(screen.getByText("Verification Report")).toBeTruthy());
+    expect(screen.queryByText("+ Upload Verification Report")).toBeNull();
+  });
+
+  it("keeps both for an item manager", async () => {
+    render(<ThemeProvider theme={lightTheme}><ItemWorkspace item={item} onClose={() => {}} /></ThemeProvider>);
+
+    fireEvent.click(screen.getByRole("tab", { name: /Specifications/ }));
+    await waitFor(() => expect(screen.getByText("Specifications Content editable")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("tab", { name: /Documents/ }));
+    await waitFor(() => expect(screen.getByText("+ Upload Verification Report")).toBeTruthy());
   });
 });

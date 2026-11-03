@@ -36,6 +36,8 @@ import {
   type ItemPreparationConfiguration
 } from "../../../testPreparation/services/ItemPreparationConfigurationService";
 import { clickable } from "../../../../utils/clickable";
+import { useHasPermission } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
 
 interface ItemWorkspaceProps {
   item: Item;
@@ -44,6 +46,8 @@ interface ItemWorkspaceProps {
 }
 
 export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspaceProps) {
+  // The QC Manager opens this workspace to approve not-applicable tests; changing the item needs Items.Manage.
+  const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   const [activeTab, setActiveTab] = useState(0);
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [_loadingDocs, setLoadingDocs] = useState(false);
@@ -434,6 +438,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         {activeTab === 2 && (
           <ItemSpecificationsSection
             item={item}
+            readOnly={!canManage}
             onSpecsChanged={() => {
               onItemUpdated?.();
             }}
@@ -479,6 +484,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   <VerifiedIcon fontSize="small" sx={{ color: "success.main" }} />
                   Verification Report
                 </Typography>
+                {canManage && (
                 <Button
                   size="small"
                   variant="outlined"
@@ -487,6 +493,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                 >
                   + Upload Verification Report
                 </Button>
+                )}
               </Stack>
 
               {currentVr ? (

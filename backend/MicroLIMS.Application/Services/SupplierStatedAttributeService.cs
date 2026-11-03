@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -43,48 +44,52 @@ public class SupplierStatedAttributeService
         if (!itemExists)
             throw new NotFoundException($"Item {r.ItemId} not found.");
 
-        if (string.IsNullOrWhiteSpace(r.Name))
-            throw new InvalidOperationException("Name is required.");
-        var trimmedName = r.Name.Trim();
-        if (trimmedName.Length > 200)
-            throw new InvalidOperationException("Name must be 200 characters or fewer.");
-
-        if (string.IsNullOrWhiteSpace(r.StatedValue))
-            throw new InvalidOperationException("Stated value is required.");
-        var trimmedValue = r.StatedValue.Trim();
-        if (trimmedValue.Length > 500)
-            throw new InvalidOperationException("Stated value must be 500 characters or fewer.");
-
+        var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
         var validatedGrade = await ValidateGradeAsync(r.ItemId, r.Grade);
 
-        var entity = new SupplierStatedAttribute
+        return await UnitOfWork.RunAsync(_db, async () =>
         {
-            ItemId = r.ItemId,
-            Grade = validatedGrade,
-            Name = trimmedName,
-            StatedValue = trimmedValue,
-            SortOrder = r.SortOrder
-        };
+            var entity = new SupplierStatedAttribute
+            {
+                ItemId = r.ItemId,
+                Grade = validatedGrade,
+                Name = trimmedName,
+                StatedValue = trimmedValue,
+                SortOrder = r.SortOrder
+            };
 
-        _db.SupplierStatedAttributes.Add(entity);
-        await _db.SaveChangesAsync();
+            _db.SupplierStatedAttributes.Add(entity);
+            await _db.SaveChangesAsync();
 
-        var changes = new List<AuditFieldChange>
-        {
-            new("Name", null, trimmedName),
-            new("StatedValue", null, trimmedValue),
-            new("Grade", null, validatedGrade),
-            new("SortOrder", null, r.SortOrder.ToString())
-        };
+            try
+            {
+                var changes = new List<AuditFieldChange>
+                {
+                    new("Name", null, trimmedName),
+                    new("StatedValue", null, trimmedValue),
+                    new("Grade", null, validatedGrade),
+                    new("SortOrder", null, r.SortOrder.ToString())
+                };
 
-        await _auditEventService.RecordUserEventAsync(
-            CreatedActionCode,
-            AuditActionCategory.Configuration,
-            RecordType,
-            changes: changes,
-            entityId: entity.Id.ToString());
+                await _auditEventService.RecordUserEventAsync(
+                    CreatedActionCode,
+                    AuditActionCategory.Configuration,
+                    RecordType,
+                    changes: changes,
+                    entityId: entity.Id.ToString());
 
-        return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
+                return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
+            }
+            catch
+            {
+                if (!_db.Database.IsRelational())
+                {
+                    _db.SupplierStatedAttributes.Remove(entity);
+                    await _db.SaveChangesAsync();
+                }
+                throw;
+            }
+        });
     }
 
     public async Task<SupplierStatedAttributeDto> UpdateAsync(int userId, int id, SupplierStatedAttributeRequest r)
@@ -94,18 +99,7 @@ public class SupplierStatedAttributeService
         var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
 
-        if (string.IsNullOrWhiteSpace(r.Name))
-            throw new InvalidOperationException("Name is required.");
-        var trimmedName = r.Name.Trim();
-        if (trimmedName.Length > 200)
-            throw new InvalidOperationException("Name must be 200 characters or fewer.");
-
-        if (string.IsNullOrWhiteSpace(r.StatedValue))
-            throw new InvalidOperationException("Stated value is required.");
-        var trimmedValue = r.StatedValue.Trim();
-        if (trimmedValue.Length > 500)
-            throw new InvalidOperationException("Stated value must be 500 characters or fewer.");
-
+        var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
         var validatedGrade = await ValidateGradeAsync(entity.ItemId, r.Grade);
 
         var changes = new List<AuditFieldChange>();
@@ -123,8 +117,6 @@ public class SupplierStatedAttributeService
         entity.Grade = validatedGrade;
         entity.SortOrder = r.SortOrder;
 
-        await _db.SaveChangesAsync();
-
         if (changes.Count > 0)
         {
             await _auditEventService.RecordUserEventAsync(
@@ -133,6 +125,10 @@ public class SupplierStatedAttributeService
                 RecordType,
                 changes: changes,
                 entityId: entity.Id.ToString());
+        }
+        else
+        {
+            await _db.SaveChangesAsync();
         }
 
         return new SupplierStatedAttributeDto(entity.Id, entity.ItemId, entity.Grade, entity.Name, entity.StatedValue, entity.SortOrder);
@@ -154,7 +150,6 @@ public class SupplierStatedAttributeService
         };
 
         _db.SupplierStatedAttributes.Remove(entity);
-        await _db.SaveChangesAsync();
 
         await _auditEventService.RecordUserEventAsync(
             DeletedActionCode,
@@ -188,6 +183,23 @@ public class SupplierStatedAttributeService
             .ThenBy(a => a.Id)
             .Select(a => new SupplierStatedAttributeDto(a.Id, a.ItemId, a.Grade, a.Name, a.StatedValue, a.SortOrder))
             .ToListAsync();
+    }
+
+    private static (string Name, string StatedValue) ValidateNameAndValue(string? name, string? statedValue)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException("Name is required.");
+        var trimmedName = name.Trim();
+        if (trimmedName.Length > 200)
+            throw new InvalidOperationException("Name must be 200 characters or fewer.");
+
+        if (string.IsNullOrWhiteSpace(statedValue))
+            throw new InvalidOperationException("Stated value is required.");
+        var trimmedValue = statedValue.Trim();
+        if (trimmedValue.Length > 500)
+            throw new InvalidOperationException("Stated value must be 500 characters or fewer.");
+
+        return (trimmedName, trimmedValue);
     }
 
     private async Task<string?> ValidateGradeAsync(int itemId, string? grade, CancellationToken ct = default)

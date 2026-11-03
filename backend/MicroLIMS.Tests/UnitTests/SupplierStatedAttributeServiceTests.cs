@@ -175,6 +175,10 @@ public class SupplierStatedAttributeServiceTests
             .ToListAsync());
 
         Assert.Equal(AuditActionCategory.Configuration, audit.ActionCategory);
+        Assert.Contains(audit.Changes, c => c.FieldName == "Name" && c.PreviousValue == "Refractive Index" && c.NewValue == null);
+        Assert.Contains(audit.Changes, c => c.FieldName == "StatedValue" && c.PreviousValue == "1.332" && c.NewValue == null);
+        Assert.Contains(audit.Changes, c => c.FieldName == "Grade" && c.PreviousValue == "BP" && c.NewValue == null);
+        Assert.Contains(audit.Changes, c => c.FieldName == "SortOrder" && c.PreviousValue == "1" && c.NewValue == null);
     }
 
     [Fact]
@@ -261,4 +265,75 @@ public class SupplierStatedAttributeServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(userId: 1, request));
     }
+
+    [Theory]
+    [InlineData(201, 10, "Name must be 200 characters or fewer.")]
+    [InlineData(10, 501, "Stated value must be 500 characters or fewer.")]
+    public async Task Create_RefusesOverlongNameAndValue(int nameLength, int valueLength, string expectedMessage)
+    {
+        using var db = NewDb();
+        var service = NewService(db);
+
+        var request = new SupplierStatedAttributeRequest(
+            ItemId: 1,
+            Grade: null,
+            Name: new string('a', nameLength),
+            StatedValue: new string('b', valueLength),
+            SortOrder: 0);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(userId: 1, request));
+        Assert.Equal(expectedMessage, ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_WhenAuditWriteThrows_NoAttributeRowRemains()
+    {
+        using var db = NewDb();
+        var throwingAudit = new ThrowingAuditEventService();
+        var service = new SupplierStatedAttributeService(db, throwingAudit);
+
+        var request = new SupplierStatedAttributeRequest(
+            ItemId: 1,
+            Grade: "BP",
+            Name: "Refractive Index",
+            StatedValue: "1.332",
+            SortOrder: 1);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(userId: 1, request));
+
+        Assert.Empty(await db.SupplierStatedAttributes.ToListAsync());
+    }
+}
+
+internal class ThrowingAuditEventService : IAuditEventService
+{
+    public Task<AuditLog> RecordUserEventAsync(
+        string actionCode,
+        AuditActionCategory actionCategory,
+        string recordType,
+        int? documentMasterId = null,
+        int? documentRevisionId = null,
+        string? reason = null,
+        Guid? correlationId = null,
+        string? sourceContext = null,
+        IEnumerable<AuditFieldChange>? changes = null,
+        string? entityId = null,
+        CancellationToken cancellationToken = default,
+        int? sampleId = null) =>
+        throw new InvalidOperationException("Simulated audit write failure.");
+
+    public Task<AuditLog> RecordSystemEventAsync(
+        string systemProcessName,
+        string actionCode,
+        AuditActionCategory actionCategory,
+        string recordType,
+        int? documentMasterId = null,
+        int? documentRevisionId = null,
+        string? reason = null,
+        Guid? correlationId = null,
+        string? sourceContext = null,
+        IEnumerable<AuditFieldChange>? changes = null,
+        string? entityId = null,
+        CancellationToken cancellationToken = default) =>
+        throw new InvalidOperationException("Simulated audit write failure.");
 }

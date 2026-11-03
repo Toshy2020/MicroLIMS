@@ -298,6 +298,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         displayName={displayName}
         testCode={testCode}
         outsourcedToLab={outsourcedLab}
+        sampleId={sampleId}
+        status={status}
       />
     );
   }

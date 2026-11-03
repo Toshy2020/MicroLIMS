@@ -12,7 +12,7 @@ import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
 import { ReceiveService } from "../receiving/services/ReceiveService";
 
 // An outsourced result cites its report in each parameter's calculation snapshot.
-function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis"]>): number | null {
+export function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis"]>): number | null {
   for (const p of a.parameterResults) {
     try {
       const id = p.calculationJson ? JSON.parse(p.calculationJson)?.reportDocumentId : null;
@@ -22,7 +22,7 @@ function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis"]>): n
   return null;
 }
 
-function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: number | null }) {
+export function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: number | null }) {
   const open = async (e: React.MouseEvent) => {
     e.stopPropagation(); // the card header toggles on click
     const url = URL.createObjectURL(await ReceiveService.getSampleDocumentContent(reportId!));

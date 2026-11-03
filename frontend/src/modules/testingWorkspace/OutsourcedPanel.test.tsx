@@ -30,14 +30,28 @@ vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ permissions: authState.permissions })
 }));
 
-vi.mock("../../components/SignatureDialog", () => ({
-  SignatureDialog: ({ open, onConfirm }: { open: boolean; onConfirm: (pw: string) => Promise<void> }) =>
-    open ? (
-      <div data-testid="signature-dialog">
-        <button onClick={() => void onConfirm("pw-123").catch(() => undefined)}>confirm-signature</button>
-      </div>
-    ) : null
-}));
+// Mirrors the real SignatureDialog contract: a rejected onConfirm leaves it open with the server's message.
+vi.mock("../../components/SignatureDialog", async () => {
+  const { useState } = await import("react");
+  return {
+    SignatureDialog: ({ open, onConfirm }: { open: boolean; onConfirm: (pw: string) => Promise<void> }) => {
+      const [error, setError] = useState<string | null>(null);
+      if (!open) return null;
+      return (
+        <div data-testid="signature-dialog">
+          {error && <div role="alert">{error}</div>}
+          <button
+            onClick={() =>
+              void onConfirm("pw-123").catch((e: { response?: { data?: { message?: string } } }) => setError(e?.response?.data?.message ?? "Signature failed."))
+            }
+          >
+            confirm-signature
+          </button>
+        </div>
+      );
+    }
+  };
+});
 
 const specs = [
   { id: 11, testCode: "ASSAY", parameterName: "Assay", limitType: "Range", lowerLimit: 98, upperLimit: 102, displayOrder: 1, unit: "%" },
@@ -45,10 +59,10 @@ const specs = [
   { id: 13, testCode: "OTHER", parameterName: "Not this test", limitType: "Range", displayOrder: 1 }
 ];
 
-const renderPanel = (onRecorded = vi.fn()) => {
+const renderPanel = (onRecorded = vi.fn(), status?: string) => {
   render(
     <PinnedLightTheme>
-      <OutsourcedPanel testOrderId={55} testCode="ASSAY" displayName="Assay" outsourcedToLab="Acme Labs" onRecorded={onRecorded} />
+      <OutsourcedPanel testOrderId={55} testCode="ASSAY" displayName="Assay" outsourcedToLab="Acme Labs" status={status} onRecorded={onRecorded} />
     </PinnedLightTheme>
   );
   return { onRecorded };
@@ -136,6 +150,39 @@ describe("OutsourcedPanel", () => {
   });
 });
 
+describe("OutsourcedPanel refusals and reopening", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSpecs.mockResolvedValue(specs);
+    mockUpload.mockResolvedValue({ id: 900, originalFileName: "acme-report.pdf" });
+  });
+  afterEach(cleanup);
+
+  it("shows the server's message in the open signature dialog when the record is refused", async () => {
+    mockRecord.mockRejectedValue({ response: { data: { message: "Every specification for this test must be supplied exactly once." } } });
+    renderPanel();
+    await uploadReport();
+    await fillRows();
+    fireEvent.click(screen.getByText("Sign and record result"));
+    fireEvent.click(await screen.findByText("confirm-signature"));
+    expect(await screen.findByText("Every specification for this test must be supplied exactly once.")).toBeTruthy();
+    expect(screen.getByTestId("signature-dialog")).toBeTruthy(); // still open: retry without re-entering the form
+    expect((screen.getByLabelText("External report number") as HTMLInputElement).value).toBe("AC-2026-17");
+  });
+
+  it("opens read-only, with the lab and no sign button, once a result is recorded", async () => {
+    renderPanel(vi.fn(), "ResultRecorded");
+    expect(await screen.findByText(/Acme Labs/)).toBeTruthy();
+    expect(screen.queryByText("Sign and record result")).toBeNull();
+    expect(screen.queryByLabelText("External report number")).toBeNull();
+  });
+
+  it("stays editable while the test is in progress", async () => {
+    renderPanel(vi.fn(), "InProgress");
+    expect(await screen.findByText("Sign and record result")).toBeTruthy();
+  });
+});
+
 describe("OutsourceTestAction", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
@@ -159,6 +206,19 @@ describe("OutsourceTestAction", () => {
     authState.permissions = [PERMISSIONS.TESTS_OUTSOURCE];
     renderAction("ResultRecorded");
     expect(screen.queryByText("Outsource test")).toBeNull();
+  });
+
+  it("shows the server's message in the signature dialog when outsourcing is refused", async () => {
+    authState.permissions = [PERMISSIONS.TESTS_OUTSOURCE];
+    mockOutsource.mockRejectedValue({ response: { data: { message: "Only physicochemical tests can be outsourced." } } });
+    const { onOutsourced } = renderAction();
+    fireEvent.click(screen.getByText("Outsource test"));
+    fireEvent.change(await screen.findByLabelText("External laboratory"), { target: { value: "Acme Labs" } });
+    fireEvent.change(screen.getByLabelText("Reason for outsourcing"), { target: { value: "No ICP-MS in house" } });
+    fireEvent.click(screen.getByText("Continue to signature"));
+    fireEvent.click(await screen.findByText("confirm-signature"));
+    expect(await screen.findByText("Only physicochemical tests can be outsourced.")).toBeTruthy();
+    expect(onOutsourced).not.toHaveBeenCalled();
   });
 
   it("collects lab and reason, signs, and reports the lab", async () => {

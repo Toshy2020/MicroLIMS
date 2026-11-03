@@ -12,6 +12,9 @@ import { PERMISSIONS } from "../../routes/routes";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
 import { ReceiveService } from "../receiving/services/ReceiveService";
+import { SampleSummaryService } from "./services/SampleSummaryService";
+import { ExternalLabSubtitle, externalReportId } from "./TestResultCards";
+import type { AnalysisDetail } from "./types/sampleSummaryTypes";
 import type { ExternalReportDocument, RecordOutsourcedParameterRequest } from "./types/testWorkflowTypes";
 
 const errorText = (err: unknown, fallback: string) =>
@@ -94,12 +97,16 @@ interface Props {
   displayName: string;
   testCode: string;
   outsourcedToLab: string;
+  sampleId?: number | null;
+  // The order's status: once it is past Pending/InProgress the result is already recorded.
+  status?: string | null;
   onRecorded?: () => Promise<void> | void;
 }
 
 // Result entry for a test an outside laboratory ran: upload its report, copy the reported values
 // per specification, sign. Conformity is the server's call and is shown after signing.
-export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourcedToLab, onRecorded }: Props) {
+export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourcedToLab, sampleId, status, onRecorded }: Props) {
+  const recorded = !!status && status !== "Pending" && status !== "InProgress";
   const [specs, setSpecs] = useState<SpecificationDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +120,7 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string | null } | null>(null);
 
   useEffect(() => {
+    if (recorded) return;
     let active = true;
     SpecificationService.getForTestOrder(testOrderId)
       .then((all) => {
@@ -124,7 +132,18 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
       .catch((e) => active && setError(errorText(e, "Could not load the specifications.")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [testOrderId, testCode]);
+  }, [testOrderId, testCode, recorded]);
+
+  // Recorded already: show what the server holds instead of a form.
+  const [analysis, setAnalysis] = useState<AnalysisDetail | null>(null);
+  useEffect(() => {
+    if (!recorded || sampleId == null) return;
+    let active = true;
+    SampleSummaryService.getSummary(sampleId)
+      .then((sum) => active && setAnalysis(sum.testOrders?.find((t) => t.testOrderId === testOrderId)?.analysis ?? null))
+      .catch(() => undefined); // the pointer text below still stands
+    return () => { active = false; };
+  }, [recorded, sampleId, testOrderId]);
 
   const rowOf = (id: number) => rows[id] ?? emptyRow;
   const setRow = (id: number, patch: Partial<RowState>) => setRows((r) => ({ ...r, [id]: { ...(r[id] ?? emptyRow), ...patch } }));
@@ -145,31 +164,45 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
   const canSign = !!report && reportNumber.trim() !== "" && reportDate !== "" && specs.length > 0 &&
     specs.every((s) => rowComplete(s, rowOf(s.id!)));
 
+  // A refusal propagates to the signature dialog, which stays open and shows the server's message.
   const submit = async (password: string) => {
     setError(null);
-    try {
-      const parameters = specs.map((s): RecordOutsourcedParameterRequest => {
-        const r = rowOf(s.id!);
-        return isQualitative(s)
-          ? { specificationId: s.id!, conforms: r.conforms, observation: r.observation.trim() || null }
-          : { specificationId: s.id!, value: Number(r.value) };
-      });
-      const res = await TestWorkflowService.recordOutsourcedResult(testOrderId, {
-        reportedAt: new Date(`${reportDate}T00:00:00`).toISOString(),
-        externalReportNumber: reportNumber.trim(),
-        reportDocumentId: report!.id,
-        parameters,
-        password,
-        comment: comment.trim() || null
-      });
-      setSigning(false);
-      setOutcome({ outcomeSummary: res?.outcomeSummary, status: res?.status });
-      await onRecorded?.();
-    } catch (e) {
-      setSigning(false);
-      setError(errorText(e, "Could not record the outsourced result."));
-    }
+    const parameters = specs.map((s): RecordOutsourcedParameterRequest => {
+      const r = rowOf(s.id!);
+      return isQualitative(s)
+        ? { specificationId: s.id!, conforms: r.conforms, observation: r.observation.trim() || null }
+        : { specificationId: s.id!, value: Number(r.value) };
+    });
+    const res = await TestWorkflowService.recordOutsourcedResult(testOrderId, {
+      reportedAt: new Date(`${reportDate}T00:00:00`).toISOString(),
+      externalReportNumber: reportNumber.trim(),
+      reportDocumentId: report!.id,
+      parameters,
+      password,
+      comment: comment.trim() || null
+    });
+    setSigning(false);
+    setOutcome({ outcomeSummary: res?.outcomeSummary, status: res?.status });
+    await onRecorded?.();
   };
+
+  if (recorded && !outcome) {
+    return (
+      <Stack spacing={2}>
+        <Alert severity="info">
+          Outsourced to <strong>{outsourcedToLab}</strong>. The result of {displayName} is recorded from the external laboratory's report; it is shown on the sample summary.
+        </Alert>
+        {analysis && (
+          <Box>
+            <ExternalLabSubtitle lab={outsourcedToLab} reportId={externalReportId(analysis)} />
+            {analysis.parameterResults.map((r) => (
+              <Typography key={r.id} variant="body2">{r.parameterName}: {r.reportedDisplay} ({r.comparisonStatus})</Typography>
+            ))}
+          </Box>
+        )}
+      </Stack>
+    );
+  }
 
   if (outcome) {
     const status = outcome.status ?? "";

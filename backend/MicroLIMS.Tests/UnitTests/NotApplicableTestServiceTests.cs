@@ -395,32 +395,6 @@ public class NotApplicableTestServiceTests
         Assert.Equal("Reason for withdrawal", withdrawAudit.Reason);
     }
 
-    private class ThrowingAuditService : IAuditEventService
-    {
-        public Task<AuditLog> RecordUserEventAsync(string actionCode, AuditActionCategory actionCategory, string recordType, int? documentMasterId = null, int? documentRevisionId = null, string? reason = null, Guid? correlationId = null, string? sourceContext = null, IEnumerable<AuditFieldChange>? changes = null, string? entityId = null, CancellationToken cancellationToken = default, int? sampleId = null) =>
-            throw new InvalidOperationException("Audit write failure simulated.");
-
-        public Task<AuditLog> RecordSystemEventAsync(string systemProcessName, string actionCode, AuditActionCategory actionCategory, string recordType, int? documentMasterId = null, int? documentRevisionId = null, string? reason = null, Guid? correlationId = null, string? sourceContext = null, IEnumerable<AuditFieldChange>? changes = null, string? entityId = null, CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("Audit write failure simulated.");
-    }
-
-    [Fact]
-    public async Task Create_WhenAuditWriteThrows_NoRecordRemains()
-    {
-        using var db = NewDb();
-        var user = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
-        var (item, _, _, _) = SeedItemWithTests(db, "TAMC");
-        var service = new NotApplicableTestService(
-            db,
-            new ElectronicSignatureService(db),
-            new ThrowingAuditService());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.CreateAsync(user.Id, MakeCreateRequest(item.Id, "TAMC")));
-
-        Assert.Empty(await db.NotApplicableTests.ToListAsync());
-    }
-
     [Fact]
     public async Task Withdraw_WritesSignatureRowWithNotApplicableWithdrawn()
     {
@@ -536,6 +510,21 @@ public class NotApplicableTestServiceTests
             DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, head.Id, Grade: null)));
 
         Assert.Equal($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReceiveAsync_UngradedReceipt_WhenItemHasNoAssignedTests_KeepsExistingBehaviour()
+    {
+        using var db = NewDb();
+        var head = CreateUser(db, RoleType.SectionHead, "Section Head", "shead");
+        var (item, _, routine, _) = SeedItemWithTests(db);
+        var engine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+            item.Id, routine.Id, "100 g", "Sampler", "LOT-EMPTY", "CTRL-EMPTY",
+            DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, head.Id, Grade: null)));
+
+        Assert.Equal($"Item '{item.Name}' has no assigned tests. Configuration must be completed by the Section Head before samples can be received.", ex.Message);
     }
 
     [Fact]

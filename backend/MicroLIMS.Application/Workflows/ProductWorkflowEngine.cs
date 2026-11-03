@@ -116,7 +116,8 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         {
             if (grade is not null)
                 throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
-            throw new InvalidOperationException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
+            if (item.AssignedTests.Count > 0)
+                throw new InvalidOperationException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
         }
         if (request.TargetSectionIds is { } targets)
         {

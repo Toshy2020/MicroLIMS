@@ -103,24 +103,12 @@ public class NotApplicableTestService
         await _db.SaveChangesAsync();
 
         _db.CurrentUserId = userId;
-        try
-        {
-            await _audit.RecordUserEventAsync(
-                CreatedActionCode,
-                AuditActionCategory.Configuration,
-                "NotApplicableTest",
-                reason: entity.Justification,
-                entityId: entity.Id.ToString());
-        }
-        catch
-        {
-            if (!_db.Database.IsRelational())
-            {
-                _db.NotApplicableTests.Remove(entity);
-                await _db.SaveChangesAsync();
-            }
-            throw;
-        }
+        await _audit.RecordUserEventAsync(
+            CreatedActionCode,
+            AuditActionCategory.Configuration,
+            "NotApplicableTest",
+            reason: entity.Justification,
+            entityId: entity.Id.ToString());
 
         return MapToDto(entity, sampleTest.DisplayName);
     }

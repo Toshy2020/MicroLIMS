@@ -45,8 +45,9 @@ public class AddLaboratoryService
         var item = await _db.Items.Include(i => i.AssignedTests).FirstAsync(i => i.Id == itemId);
         var sections = await TestSectionLookup.ResolveAsync(_db, item.AssignedTests.Select(t => t.TestCode));
         var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync();
+        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, itemId);
         var tests = item.AssignedTests
-            .Where(t => sections[t.TestCode] == sectionId && ProductWorkflowEngine.AppliesToGrade(itemSpecs, t.TestCode, sample.Grade))
+            .Where(t => sections[t.TestCode] == sectionId && ProductWorkflowEngine.AppliesToGrade(itemSpecs, notApplicable, t.TestCode, sample.Grade))
             .ToList();
         if (tests.Count == 0)
         {

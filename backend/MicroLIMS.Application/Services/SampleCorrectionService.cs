@@ -143,9 +143,10 @@ public class SampleCorrectionService
             if (effectiveItem is not null && (structural is not null || request.Grade is not null))
             {
                 var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id).ToListAsync();
+                var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, effectiveItem.Id);
                 var newGrade = ProductWorkflowEngine.ResolveGrade(
                     itemSpecs, structural is null ? request.Grade ?? sample.Grade : request.Grade);
-                gradeContext = new GradeContext(itemSpecs, newGrade);
+                gradeContext = new GradeContext(itemSpecs, notApplicable, newGrade);
                 if (newGrade != sample.Grade)
                 {
                     // A new item rebuilds every test (and is locked once work exists);
@@ -491,9 +492,9 @@ public class SampleCorrectionService
     }
 
     // The item's specifications read for one grade (see SpecificationLookup).
-    private sealed record GradeContext(IReadOnlyList<Specification> Specs, string? Grade)
+    private sealed record GradeContext(IReadOnlyList<Specification> Specs, IReadOnlyCollection<NotApplicableTest> NotApplicable, string? Grade)
     {
-        public bool Applies(string testCode) => ProductWorkflowEngine.AppliesToGrade(Specs, testCode, Grade);
+        public bool Applies(string testCode) => ProductWorkflowEngine.AppliesToGrade(Specs, NotApplicable, testCode, Grade);
     }
 
     // What a grade change does to the test orders (nothing has started):

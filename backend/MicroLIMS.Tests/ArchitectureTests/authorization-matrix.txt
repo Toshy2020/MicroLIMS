@@ -395,6 +395,11 @@ MonitoringSettingsController.GetSettings(): SystemAdministrator,SectionHead,Revi
 MonitoringSettingsController.ImportLegacyFrequencies(): SystemAdministrator,SectionHead
 MonitoringSettingsController.RemoveCalendarDate(Int32): SystemAdministrator,SectionHead
 MonitoringSettingsController.SaveSettings(MonitoringSettingsRequest): SystemAdministrator,SectionHead
+NotApplicableTestController.Create(Int32, CreateNotApplicableTestRequest): SystemAdministrator,SectionHead
+NotApplicableTestController.FinalApprove(Int32, NotApplicableSignRequest): QcManager
+NotApplicableTestController.HeadApprove(Int32, NotApplicableSignRequest): SystemAdministrator,SectionHead
+NotApplicableTestController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+NotApplicableTestController.Withdraw(Int32, NotApplicableWithdrawRequest): SystemAdministrator,SectionHead
 OosInvestigationDocumentController.GetContent(Int32, String): SystemAdministrator,SectionHead
 OosInvestigationDocumentController.GetDocuments(String): SystemAdministrator,SectionHead
 OosInvestigationDocumentController.Supersede(Int32, String, IFormFile, String): SystemAdministrator,SectionHead

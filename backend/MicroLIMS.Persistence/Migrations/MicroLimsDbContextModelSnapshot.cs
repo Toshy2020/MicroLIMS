@@ -7338,6 +7338,83 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Neutralizers");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.NotApplicableTest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Criticality")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("FinalSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("HeadSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ImmediateAction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Justification")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LongTermAction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TestCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinalSignatureId");
+
+                    b.HasIndex("HeadSignatureId");
+
+                    b.HasIndex("ItemId", "Grade", "TestCode")
+                        .IsUnique()
+                        .HasFilter("\"Status\" != 3");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "Grade", "TestCode"), false);
+
+                    b.ToTable("NotApplicableTests");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.NotificationLog", b =>
                 {
                     b.Property<int>("Id")
@@ -13733,6 +13810,31 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ApprovalSignature");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.NotApplicableTest", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "FinalSignature")
+                        .WithMany()
+                        .HasForeignKey("FinalSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "HeadSignature")
+                        .WithMany()
+                        .HasForeignKey("HeadSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FinalSignature");
+
+                    b.Navigation("HeadSignature");
+
+                    b.Navigation("Item");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.OosInvestigationDocument", b =>

@@ -261,5 +261,6 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(CalendarEvent), nameof(CalendarEvent.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - calendar event last modifier"),
         new UserReferenceEntry(typeof(CalendarEventDocument), nameof(CalendarEventDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - uploaded a calendar event document"),
         new UserReferenceEntry(typeof(CalendarEventDocument), nameof(CalendarEventDocument.VoidedByUserId), UserReferenceDisposition.Blocks, "No DB FK - calendar event document void provenance"),
+        new UserReferenceEntry(typeof(NotApplicableTest), nameof(NotApplicableTest.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, author of a not-applicable test record"),
     };
 }

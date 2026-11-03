@@ -175,6 +175,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<HplcRunService>();
         services.AddScoped<IcpRunService>();
         services.AddScoped<WorkingStandardService>();
+        services.AddScoped<NotApplicableTestService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();

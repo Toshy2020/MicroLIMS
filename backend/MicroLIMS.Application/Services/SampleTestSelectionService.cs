@@ -150,13 +150,14 @@ public class SampleTestSelectionService
 
         var assigned = await _db.SampleTests.AsNoTracking().Where(t => t.ItemId == itemId).ToListAsync(ct);
         var specs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync(ct);
+        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, itemId, ct);
         var testSections = await TestSectionLookup.ResolveAsync(_db, assigned.Select(t => t.TestCode), ct);
         var sectionNames = await _db.DocumentSections.AsNoTracking().Where(s => sectionIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.Name, ct);
 
         return assigned
             .Where(t => sectionIds.Contains(testSections[t.TestCode])
-                && ProductWorkflowEngine.AppliesToGrade(specs, t.TestCode, sample.Grade))
+                && ProductWorkflowEngine.AppliesToGrade(specs, notApplicable, t.TestCode, sample.Grade))
             .Select(t => new RetestEligibleTestDto(t.TestCode, t.DisplayName, testSections[t.TestCode],
                 sectionNames.GetValueOrDefault(testSections[t.TestCode], string.Empty)))
             .OrderBy(e => e.SectionName).ThenBy(e => e.TestCode, StringComparer.Ordinal)

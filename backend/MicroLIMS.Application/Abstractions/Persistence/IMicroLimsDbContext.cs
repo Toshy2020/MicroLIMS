@@ -213,6 +213,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentEscalationRecord> DocumentEscalationRecords { get; }
     DbSet<Incident> Incidents { get; }
     DbSet<ErrorLog> ErrorLogs { get; }
+    DbSet<NotApplicableTest> NotApplicableTests { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     DatabaseFacade Database { get; }

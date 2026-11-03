@@ -163,6 +163,7 @@ public static class PermissionConstants
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
-        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage
+        EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove
     };
 }

@@ -236,6 +236,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // record. Excluded from CaptureAuditEntries below and prunable.
     public DbSet<Incident> Incidents => Set<Incident>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<NotApplicableTest> NotApplicableTests => Set<NotApplicableTest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

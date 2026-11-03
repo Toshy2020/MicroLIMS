@@ -110,7 +110,8 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         // from inside its own workspace must never silently create the
         // other lab's work. Null keeps every assigned test (internal
         // callers that predate this).
-        var assigned = item.AssignedTests.Where(t => AppliesToGrade(itemSpecs, t.TestCode, grade)).ToList();
+        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, item.Id);
+        var assigned = item.AssignedTests.Where(t => AppliesToGrade(itemSpecs, notApplicable, t.TestCode, grade)).ToList();
         if (assigned.Count == 0 && grade is not null)
             throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
         if (request.TargetSectionIds is { } targets)
@@ -318,8 +319,21 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             || (grade != null && rows.Any(r => string.Equals(r.Grade, grade, StringComparison.OrdinalIgnoreCase)));
     }
 
-    public static bool AppliesToGrade(IEnumerable<Specification> itemSpecs, string testCode, string? grade) =>
-        TestAppliesToGrade(itemSpecs.Where(s => s.TestCode == testCode), grade);
+    public static bool AppliesToGrade(
+        IEnumerable<Specification> itemSpecs,
+        IReadOnlyCollection<NotApplicableTest> notApplicable,
+        string testCode,
+        string? grade)
+    {
+        if (notApplicable.Any(na => na.Status == NotApplicableStatus.Approved
+            && string.Equals(na.TestCode, testCode, StringComparison.OrdinalIgnoreCase)
+            && (na.Grade == null || (grade != null && string.Equals(na.Grade, grade, StringComparison.OrdinalIgnoreCase)))))
+        {
+            return false;
+        }
+
+        return TestAppliesToGrade(itemSpecs.Where(s => s.TestCode == testCode), grade);
+    }
 
     // The grade to store for a receipt / correction: required (and must match
     // one of the item's grades, case-insensitively) when the item has graded

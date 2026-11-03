@@ -30,5 +30,7 @@ public enum SignatureMeaning
     CalibrationRecorded,
     MaintenanceEntryRecorded,
     MaintenanceEntryVoided,
-    TestsSelected
+    TestsSelected,
+    NotApplicableHeadApproved,
+    NotApplicableFinalApproved
 }

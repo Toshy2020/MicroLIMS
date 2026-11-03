@@ -161,6 +161,10 @@ public static class TestServiceFactory
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)),
             new UserSectionScopeService(db));
 
+    public static NotApplicableTestService NotApplicableTest(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)), time);
+
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 

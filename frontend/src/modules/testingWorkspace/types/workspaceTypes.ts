@@ -21,6 +21,8 @@ export interface TestOrderSummary {
   locationCount: number;
   assignedAnalystId: number | null;
   assignedAnalystName: string | null;
+  // Set when the test was sent to an outside laboratory; its result is entered from that lab's report.
+  outsourcedToLab?: string | null;
   // FP tests skip the sample preparation gate (backend PreparationRules).
   skipsPreparation?: boolean;
 }

@@ -117,6 +117,8 @@ export interface TestOrderSummaryDetail {
   isResultEntryAllowed?: boolean;
   resultLockReason?: string | null;
   isSuperseded: boolean;
+  // Set when an outside laboratory ran this test; the result comes from its report.
+  outsourcedToLab?: string | null;
   sectionId?: number;
   sectionName?: string;
   // Set only when this TestOrder's section closed testing after another

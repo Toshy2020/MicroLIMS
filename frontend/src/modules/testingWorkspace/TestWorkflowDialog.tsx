@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -20,6 +20,7 @@ import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
 import { WeightVariationPanel } from "./WeightVariationPanel";
+import { OutsourcedPanel, OutsourceTestAction } from "./OutsourcedPanel";
 import {
   StepActionBar, StepDetailList, StepHeading, StepChipTone, IncubationTimeline, FixedMediumRow,
   MediaLotIncubatorFields, IncubatorField
@@ -41,6 +42,9 @@ interface Props {
   displayName: string;
   itemId?: number | null;
   sampleId?: number | null;
+  // The order's status and external lab, from the workspace list.
+  status?: string | null;
+  outsourcedToLab?: string | null;
   onClose?: () => void;
 }
 
@@ -59,13 +63,14 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // samples, which still incubate through this component's phases and
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
-export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, itemId, sampleId, onClose }: Props) {
+export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose }: Props) {
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
   const [current, setCurrent] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showLocationGrid, setShowLocationGrid] = useState(false);
+  const [outsourcedLab, setOutsourcedLab] = useState<string | null>(outsourcedToLab ?? null);
 
   const [mediaId, setMediaId] = useState<number | "">("");
   const [incubatorId, setIncubatorId] = useState<number | "">("");
@@ -284,6 +289,19 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     }
   };
 
+  // An outsourced test is reported from the external lab's report, whatever its workflow type.
+  if (outsourcedLab) {
+    return (
+      <OutsourcedPanel
+        key={testOrderId}
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        outsourcedToLab={outsourcedLab}
+      />
+    );
+  }
+
   if (phase === "loading" || !current) {
     return (
       <Box sx={{ py: 4 }}>
@@ -292,9 +310,17 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     );
   }
 
+  // Physicochemical tests can be sent to an outside laboratory instead.
+  const withOutsource = (panel: ReactNode) => (
+    <>
+      <OutsourceTestAction testOrderId={testOrderId} status={status} onOutsourced={setOutsourcedLab} />
+      {panel}
+    </>
+  );
+
   // Measurement workflow (pH, density, etc.)
   if (current.workflowType === "Measurement") {
-    return (
+    return withOutsource(
       <MeasurementPanel
         testOrderId={testOrderId}
         displayName={displayName}
@@ -310,7 +336,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // Gravimetric workflow (loss on drying, ash/residue)
   if (current.workflowType === "Gravimetric") {
-    return (
+    return withOutsource(
       <GravimetricPanel
         testOrderId={testOrderId}
         displayName={displayName}
@@ -326,7 +352,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // Titration assay (volumetric titrimetry, USP <541>)
   if (current.workflowType === "Titration") {
-    return (
+    return withOutsource(
       <TitrationPanel
         testOrderId={testOrderId}
         displayName={displayName}
@@ -342,7 +368,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // UV Spectrophotometry (Plan 4)
   if (current.workflowType === "UvSpectrophotometry") {
-    return (
+    return withOutsource(
       <UvPanel
         key={testOrderId}
         testOrderId={testOrderId}
@@ -359,7 +385,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // Qualitative workflow (appearance, identification, etc.)
   if (current.workflowType === "Qualitative") {
-    return (
+    return withOutsource(
       <QualitativePanel
         testOrderId={testOrderId}
         displayName={displayName}
@@ -375,7 +401,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // Dissolution workflow (HPLC finish, staged S1-S3)
   if (current.workflowType === "Dissolution") {
-    return (
+    return withOutsource(
       <DissolutionPanel
         testOrderId={testOrderId}
         displayName={displayName}
@@ -391,7 +417,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // Disintegration workflow (time per unit, staged S1-S2)
   if (current.workflowType === "Disintegration") {
-    return (
+    return withOutsource(
       <DisintegrationPanel
         testOrderId={testOrderId}
         displayName={displayName}
@@ -407,7 +433,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   // Weight Variation workflow (tablet/capsule weight variation, staged S1-S2)
   if (current.workflowType === "WeightVariation") {
-    return (
+    return withOutsource(
       <WeightVariationPanel
         testOrderId={testOrderId}
         displayName={displayName}

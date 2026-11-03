@@ -413,3 +413,25 @@ export interface RecordUvResultRequest {
   password: string;
   comment?: string | null;
 }
+
+export interface ExternalReportDocument {
+  id: number;
+  originalFileName: string;
+}
+
+// Numeric specs (Range, NMT, NLT) send value; Qualitative and PresenceAbsence send conforms (+ observation).
+export interface RecordOutsourcedParameterRequest {
+  specificationId: number;
+  value?: number | null;
+  conforms?: boolean | null;
+  observation?: string | null;
+}
+
+export interface RecordOutsourcedResultRequest {
+  reportedAt: string;
+  externalReportNumber: string;
+  reportDocumentId: number;
+  parameters: RecordOutsourcedParameterRequest[];
+  password: string;
+  comment?: string | null;
+}

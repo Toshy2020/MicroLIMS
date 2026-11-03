@@ -575,7 +575,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 ResultLockReason = stateResult.LockReason,
                 LocationCount = locationCounts.GetValueOrDefault(t.Id),
                 AssignedAnalystId = t.AssignedAnalystId,
-                AssignedAnalystName = t.AssignedAnalystId is { } id ? analystNames.GetValueOrDefault(id) : null
+                AssignedAnalystName = t.AssignedAnalystId is { } id ? analystNames.GetValueOrDefault(id) : null,
+                OutsourcedToLab = t.OutsourcedToLab
             };
         }).ToList();
 

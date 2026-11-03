@@ -9,6 +9,34 @@ import { IcpReviewPanel } from "./icp/IcpReviewPanel";
 import { isIcpCalculation } from "./icp/icpReviewTypes";
 import { UvReviewPanel, isUvCalculation } from "./uv/UvReviewPanel";
 import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
+import { ReceiveService } from "../receiving/services/ReceiveService";
+
+// An outsourced result cites its report in each parameter's calculation snapshot.
+function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis"]>): number | null {
+  for (const p of a.parameterResults) {
+    try {
+      const id = p.calculationJson ? JSON.parse(p.calculationJson)?.reportDocumentId : null;
+      if (typeof id === "number") return id;
+    } catch { /* not JSON: no report to link */ }
+  }
+  return null;
+}
+
+function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: number | null }) {
+  const open = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // the card header toggles on click
+    const url = URL.createObjectURL(await ReceiveService.getSampleDocumentContent(reportId!));
+    window.open(url, "_blank", "noopener,noreferrer");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+  return (
+    <>
+      <span className="location-status-chip" style={{ background: "#6b7280" }}>External lab: {lab}</span>
+      {reportId != null && <>{" "}<a href="#" onClick={(e) => { e.preventDefault(); void open(e); }}>External report</a></>}
+      {" · "}
+    </>
+  );
+}
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 const isConforming = (status: string | null) => !status || CONFORMING_STATUSES.has(status);
@@ -70,6 +98,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
       subtitle={
         <>
           {test.isSuperseded && <strong>Superseded by retest · </strong>}
+          {test.outsourcedToLab && <ExternalLabSubtitle lab={test.outsourcedToLab} reportId={externalReportId(a)} />}
           {a.equipmentCode ? `Instrument: ${a.equipmentCode} · ` : ""}
           Analysed: {dt(a.analysedAt)}
         </>

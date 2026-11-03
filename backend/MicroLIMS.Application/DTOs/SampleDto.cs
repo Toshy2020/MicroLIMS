@@ -30,6 +30,8 @@ public class TestOrderSummaryDto
     // name here so the frontend never needs its own user-list call.
     public int? AssignedAnalystId { get; set; }
     public string? AssignedAnalystName { get; set; }
+    // The external laboratory when this test was outsourced; its result is entered from that lab's report.
+    public string? OutsourcedToLab { get; set; }
 }
 
 // Object transferred between API and Frontend - never exposes internal

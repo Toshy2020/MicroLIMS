@@ -6,6 +6,7 @@ import {
   Chip,
   CircularProgress,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -70,6 +71,7 @@ export interface StandardMaterialOption {
   purity?: number | null;
   moisturePercent?: number | null;
   materialType?: string | null;
+  materialMasterEntryId?: number | null;
   code?: string | null;
 }
 
@@ -209,9 +211,11 @@ export function UvPanel({
         const mode = matchedDef?.uvCalculationMode;
         if (mode === "StandardComparison") {
           try {
-            const lots = await MaterialService.getUsableReferenceStandards();
-            if (active && Array.isArray(lots)) {
-              setStandardLots(lots as StandardMaterialOption[]);
+            // only lots of the test's standard material; the server refuses any other lot
+            const all = await MaterialService.getUsableReferenceStandards();
+            if (active && Array.isArray(all)) {
+              const lots = (all as StandardMaterialOption[]).filter((l) => l.materialMasterEntryId === matchedDef?.uvStandardEntryId);
+              setStandardLots(lots);
               if (lots.length === 1) {
                 setStandardMaterialId(lots[0].id);
               }
@@ -703,6 +707,7 @@ export function UvPanel({
                       </MenuItem>
                     ))}
                   </Select>
+                  {standardLots.length === 0 && <FormHelperText error>No usable lot of the standard material.</FormHelperText>}
                 </FormControl>
 
                 <TextField

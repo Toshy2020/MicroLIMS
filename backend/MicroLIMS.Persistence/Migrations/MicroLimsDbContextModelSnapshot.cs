@@ -10216,6 +10216,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasPrecision(10, 4)
                         .HasColumnType("numeric(10,4)");
 
+                    b.Property<int?>("UvStandardEntryId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("UvStandardVolumeMl")
                         .HasPrecision(14, 4)
                         .HasColumnType("numeric(14,4)");
@@ -10297,6 +10300,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("TitrationIndicatorEntryId");
 
                     b.HasIndex("TitrationStandardEntryId");
+
+                    b.HasIndex("UvStandardEntryId");
 
                     b.ToTable("TestDefinitions");
                 });
@@ -14584,6 +14589,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("TitrationStandardEntryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.MaterialMasterEntry", "UvStandardEntry")
+                        .WithMany()
+                        .HasForeignKey("UvStandardEntryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("HplcMethod");
 
                     b.Navigation("IcpMethod");
@@ -14597,6 +14607,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("TitrationIndicatorEntry");
 
                     b.Navigation("TitrationStandardEntry");
+
+                    b.Navigation("UvStandardEntry");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestDefinitionStageReplicate", b =>

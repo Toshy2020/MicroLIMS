@@ -48,6 +48,7 @@ public class UvRecorderTests
             },
             UvStandardVolumeMl = mode == UvCalculationMode.StandardComparison ? 100m : null,
         };
+        if (mode == UvCalculationMode.StandardComparison) c.Test.UvStandardEntryId = s.StandardEntry?.Id;
         tweakTest?.Invoke(c.Test);
         db.TestDefinitions.Add(c.Test);
 
@@ -318,6 +319,38 @@ public class UvRecorderTests
         Assert.Contains("standard lot", ex2.Message);
         var ex3 = await Refused(db, c, StandardPayload(c) with { StandardWeightG = 0m });
         Assert.Contains("Standard weight", ex3.Message);
+    }
+
+
+    [Fact]
+    public async Task StandardComparison_RefusesALotOfAnotherMaterial_AcceptsTheRightOne()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.StandardComparison, 1, null, WithStandard(), Wide);
+        var otherEntry = db.MaterialMasterEntries.Add(new MaterialMasterEntry
+        {
+            SectionId = c.S.Section.Id, Code = "STD-OTHER", Name = "Other standard", Category = MaterialMasterCategory.ReferenceStandard,
+            BaseUnit = MaterialUnit.Gram, IsActive = true, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,
+        }).Entity;
+        db.SaveChanges();
+        var lot = c.S.StandardLot!;
+        lot.MaterialMasterEntryId = otherEntry.Id; db.SaveChanges();
+
+        var ex = await Refused(db, c, StandardPayload(c));
+        Assert.Equal($"Standard lot {lot.LotLabel} is not a lot of {c.S.StandardEntry!.Name}.", ex.Message);
+
+        lot.MaterialMasterEntryId = c.S.StandardEntry!.Id; db.SaveChanges();
+        var result = await Record(db, c, StandardPayload(c));
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
+    }
+
+    [Fact]
+    public async Task StandardComparison_OldRowWithoutAStandardMaterial_IsRefused()
+    {
+        using var db = NewDb();
+        var c = Arrange(db, UvCalculationMode.StandardComparison, 1, t => t.UvStandardEntryId = null, WithStandard(), Wide);
+        var ex = await Refused(db, c, StandardPayload(c));
+        Assert.Equal("A UV assay against standard needs its standard material set in Test Master.", ex.Message);
     }
 
     // ---- input rules ----

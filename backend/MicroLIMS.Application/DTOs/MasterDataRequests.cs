@@ -237,7 +237,8 @@ public record CreateTestDefinitionRequest(
     UvCalculationMode? UvCalculationMode = null,
     decimal? UvSpecificAbsorbance = null,
     decimal? UvTotalVolumeMl = null,
-    decimal? UvStandardVolumeMl = null)
+    decimal? UvStandardVolumeMl = null,
+    int? UvStandardEntryId = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
@@ -307,7 +308,8 @@ public record UpdateTestDefinitionRequest(
     UvCalculationMode? UvCalculationMode = null,
     decimal? UvSpecificAbsorbance = null,
     decimal? UvTotalVolumeMl = null,
-    decimal? UvStandardVolumeMl = null)
+    decimal? UvStandardVolumeMl = null,
+    int? UvStandardEntryId = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and

@@ -376,6 +376,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
               ["Specific Absorbance (A1%)", test.uvSpecificAbsorbance],
               ["Total Volume (mL)", test.uvTotalVolumeMl],
               ["Standard Volume (mL)", test.uvStandardVolumeMl],
+              ["Standard Material", test.uvStandardEntryName],
               ["Replicates", test.replicateCount]
             ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
               <Box key={String(label)}>

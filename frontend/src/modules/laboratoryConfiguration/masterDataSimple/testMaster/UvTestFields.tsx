@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import {
   Box,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -9,6 +11,7 @@ import {
   Typography
 } from "@mui/material";
 import type { UvCalculationMode } from "../../../../services/masterDataOptions";
+import { MaterialMasterService, MaterialMasterEntry } from "../services/MaterialMasterService";
 
 export interface UvTestFieldsProps {
   mode: UvCalculationMode | "";
@@ -19,6 +22,9 @@ export interface UvTestFieldsProps {
   onTotalVolumeMlChange: (val: string) => void;
   standardVolumeMl: string;
   onStandardVolumeMlChange: (val: string) => void;
+  standardEntryId: number | "";
+  onStandardEntryIdChange: (id: number | "") => void;
+  sectionId: number | "" | null;
   replicateCount: string;
   onReplicateCountChange: (val: string) => void;
   disabled?: boolean;
@@ -56,6 +62,9 @@ export function UvTestFields({
   onTotalVolumeMlChange,
   standardVolumeMl,
   onStandardVolumeMlChange,
+  standardEntryId,
+  onStandardEntryIdChange,
+  sectionId,
   replicateCount,
   onReplicateCountChange,
   disabled = false
@@ -66,6 +75,20 @@ export function UvTestFields({
     mode === "SpecificAbsorbanceValue" ||
     mode === "StandardComparison";
   const needsStandardVolume = mode === "StandardComparison";
+
+  const [standards, setStandards] = useState<MaterialMasterEntry[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  useEffect(() => {
+    if (!needsStandardVolume) return;
+    let active = true;
+    MaterialMasterService.getAll("ReferenceStandard", true)
+      .then((s) => active && setStandards(s))
+      .catch(() => active && setLoadError(true));
+    return () => {
+      active = false;
+    };
+  }, [needsStandardVolume]);
+  const standardOptions = standards.filter((s) => sectionId == null || sectionId === "" || s.sectionId === sectionId);
 
   return (
     <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
@@ -96,6 +119,29 @@ export function UvTestFields({
             ))}
           </Select>
         </FormControl>
+
+        {needsStandardVolume && (
+          <FormControl size="small" fullWidth required disabled={disabled} error={loadError}>
+            <InputLabel id="uv-standard-entry-label">Standard material</InputLabel>
+            <Select
+              labelId="uv-standard-entry-label"
+              label="Standard material"
+              value={standardOptions.some((s) => s.id === standardEntryId) ? standardEntryId : ""}
+              onChange={(e) => onStandardEntryIdChange(String(e.target.value) === "" ? "" : Number(e.target.value))}
+            >
+              {standardOptions.map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.name} ({s.code})
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>
+              {loadError
+                ? "Could not load the standard materials."
+                : "Only lots (reference standard or approved working standard) of this material are picked at analysis time"}
+            </FormHelperText>
+          </FormControl>
+        )}
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           {needsSpecificAbsorbance && (

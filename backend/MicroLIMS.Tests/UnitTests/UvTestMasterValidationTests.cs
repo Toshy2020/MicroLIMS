@@ -23,6 +23,19 @@ public class UvTestMasterValidationTests
         return new MicroLimsDbContext(options);
     }
 
+    private static MaterialMasterEntry StdEntry(MicroLimsDbContext db, int sectionId)
+    {
+        var uid = Guid.NewGuid().ToString("N")[..6];
+        var e = new MaterialMasterEntry
+        {
+            SectionId = sectionId, Code = $"STD-{uid}", Name = $"Std {uid}", Category = MaterialMasterCategory.ReferenceStandard,
+            BaseUnit = MaterialUnit.Gram, IsActive = true, CreatedAt = DateTime.UtcNow, LastModifiedAt = DateTime.UtcNow,
+        };
+        db.MaterialMasterEntries.Add(e);
+        db.SaveChanges();
+        return e;
+    }
+
     private static (DocumentSection fpSec, User fpHead, MasterDataControllers controller) SetupController(MicroLimsDbContext db)
     {
         var microSec = TestServiceFactory.EnsureMicroSection(db);
@@ -149,6 +162,7 @@ public class UvTestMasterValidationTests
             UvCalculationMode: UvCalculationMode.StandardComparison,
             UvTotalVolumeMl: 100m,
             UvStandardVolumeMl: 100m,
+            UvStandardEntryId: StdEntry(db, fpSec.Id).Id,
             PhyschemArea: PhyschemArea.Both);
 
         var resStd = Assert.IsType<TestDefinitionResponse>(
@@ -158,6 +172,8 @@ public class UvTestMasterValidationTests
         Assert.Equal(UvCalculationMode.StandardComparison, resStd.UvCalculationMode);
         Assert.Equal(100m, resStd.UvTotalVolumeMl);
         Assert.Equal(100m, resStd.UvStandardVolumeMl);
+        Assert.Equal(reqStd.UvStandardEntryId, resStd.UvStandardEntryId);
+        Assert.StartsWith("Std ", resStd.UvStandardEntryName);
 
         // 4. AbsorbanceLimit
         var reqLimit = new CreateTestDefinitionRequest(
@@ -469,5 +485,57 @@ public class UvTestMasterValidationTests
         Assert.Equal(UvCalculationMode.SpecificAbsorbanceAssay, updated.UvCalculationMode);
         Assert.Equal(328m, updated.UvSpecificAbsorbance);
         Assert.Equal(5000m, updated.UvTotalVolumeMl);
+    }
+
+    private static CreateTestDefinitionRequest StdReq(int sectionId, string code, int? entryId) => new(
+        Code: code, DisplayName: code, SectionId: sectionId,
+        WorkflowType: WorkflowType.UvSpectrophotometry, EquationType: EquationType.UvSpectrophotometry, ReplicateCount: 1,
+        UvCalculationMode: UvCalculationMode.StandardComparison, UvTotalVolumeMl: 100m, UvStandardVolumeMl: 100m,
+        UvStandardEntryId: entryId, PhyschemArea: PhyschemArea.Both);
+
+    [Fact]
+    public async Task Uv_StandardComparison_RequiresAStandardMaterialInTheTestsSection()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+
+        var none = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-NOENTRY", null)));
+        Assert.Equal("The standard material is required for an assay against standard.", none.Message);
+
+        var missing = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-GHOST", 99999)));
+        Assert.Equal("Standard material master entry not found.", missing.Message);
+
+        var other = db.DocumentSections.Add(new DocumentSection { Name = "Other lab", Code = "OTH", DepartmentId = fpSec.DepartmentId, IsActive = true }).Entity;
+        db.SaveChanges();
+        var foreign = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-FOREIGN", StdEntry(db, other.Id).Id)));
+        Assert.Equal("The standard material belongs to another laboratory.", foreign.Message);
+
+        var entry = StdEntry(db, fpSec.Id);
+        var ok = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(
+            Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-OKENTRY", entry.Id))).Value).Data);
+        Assert.Equal(entry.Id, ok.UvStandardEntryId);
+        Assert.Equal(entry.Name, ok.UvStandardEntryName);
+    }
+
+    [Fact]
+    public async Task Uv_SwitchingAwayFromStandardComparison_ClearsTheStandardMaterial()
+    {
+        using var db = NewDb();
+        var (fpSec, _, controller) = SetupController(db);
+        var created = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(
+            Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-SWITCH", StdEntry(db, fpSec.Id).Id))).Value).Data);
+        Assert.NotNull(created.UvStandardEntryId);
+
+        var updated = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(
+            Assert.IsType<OkObjectResult>(await controller.TestDefinition.UpdateTestDefinition(created.Id,
+                new UpdateTestDefinitionRequest(Code: "UV-SWITCH", DisplayName: "UV-SWITCH", UvCalculationMode: UvCalculationMode.AbsorbanceLimit))).Value).Data);
+        Assert.Null(updated.UvStandardEntryId);
+        Assert.Null((await db.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == created.Id)).UvStandardEntryId);
+
+        // a create in another mode ignores a stray entry
+        var limit = Assert.IsType<TestDefinitionResponse>(Assert.IsType<ApiResponse<object>>(
+            Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(
+                StdReq(fpSec.Id, "UV-STRAY", StdEntry(db, fpSec.Id).Id) with { UvCalculationMode = UvCalculationMode.AbsorbanceLimit, UvTotalVolumeMl = null, UvStandardVolumeMl = null })).Value).Data);
+        Assert.Null(limit.UvStandardEntryId);
     }
 }

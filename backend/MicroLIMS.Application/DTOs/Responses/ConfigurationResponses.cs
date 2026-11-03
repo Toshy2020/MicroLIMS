@@ -232,6 +232,8 @@ public class TestDefinitionResponse
     public decimal? UvSpecificAbsorbance { get; init; }
     public decimal? UvTotalVolumeMl { get; init; }
     public decimal? UvStandardVolumeMl { get; init; }
+    public int? UvStandardEntryId { get; init; }
+    public string? UvStandardEntryName { get; init; }
 
     public static TestDefinitionResponse From(TestDefinition e) => new()
     {
@@ -300,6 +302,8 @@ public class TestDefinitionResponse
         UvSpecificAbsorbance = e.UvSpecificAbsorbance,
         UvTotalVolumeMl = e.UvTotalVolumeMl,
         UvStandardVolumeMl = e.UvStandardVolumeMl,
+        UvStandardEntryId = e.UvStandardEntryId,
+        UvStandardEntryName = e.UvStandardEntry?.Name,
     };
 }
 

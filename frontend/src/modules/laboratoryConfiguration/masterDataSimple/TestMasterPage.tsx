@@ -101,6 +101,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [uvSpecificAbsorbance, setUvSpecificAbsorbance] = useState<string>("");
   const [uvTotalVolumeMl, setUvTotalVolumeMl] = useState<string>("");
   const [uvStandardVolumeMl, setUvStandardVolumeMl] = useState<string>("");
+  const [uvStandardEntryId, setUvStandardEntryId] = useState<number | "">("");
 
   const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>("5");
   const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>("15");
@@ -190,6 +191,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setUvSpecificAbsorbance("");
     setUvTotalVolumeMl("");
     setUvStandardVolumeMl("");
+    setUvStandardEntryId("");
     setPhyschemArea(area ? defaultAreaFor(area) : null);
     setChangeReason("");
     setChangeReasonError(null);
@@ -221,6 +223,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setUvSpecificAbsorbance(t.uvSpecificAbsorbance != null ? String(t.uvSpecificAbsorbance) : "");
     setUvTotalVolumeMl(t.uvTotalVolumeMl != null ? String(t.uvTotalVolumeMl) : "");
     setUvStandardVolumeMl(t.uvStandardVolumeMl != null ? String(t.uvStandardVolumeMl) : "");
+    setUvStandardEntryId(t.uvStandardEntryId ?? "");
     setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : "5");
     setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
     setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : "25");
@@ -433,6 +436,10 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           setDialogError("A UV test against a standard needs a standard volume above 0.");
           return;
         }
+        if (uvStandardEntryId === "") {
+          setDialogError("The standard material is required for an assay against standard.");
+          return;
+        }
       }
     }
 
@@ -564,7 +571,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
           uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
           uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
-          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null
+          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
+          uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -615,7 +623,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
           uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
           uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
-          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null
+          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
+          uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1250,6 +1259,9 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               onTotalVolumeMlChange={setUvTotalVolumeMl}
               standardVolumeMl={uvStandardVolumeMl}
               onStandardVolumeMlChange={setUvStandardVolumeMl}
+              standardEntryId={uvStandardEntryId}
+              onStandardEntryIdChange={setUvStandardEntryId}
+              sectionId={sectionId}
               replicateCount={replicateCount}
               onReplicateCountChange={setReplicateCount}
             />

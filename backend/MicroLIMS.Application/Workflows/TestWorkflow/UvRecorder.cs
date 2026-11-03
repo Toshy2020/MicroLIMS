@@ -64,6 +64,7 @@ public sealed class UvRecorder : TestWorkflowSupport
         {
             if (!(t.UvStandardVolumeMl > 0m)) throw new InvalidOperationException("A UV test against a standard needs a standard volume above 0.");
             stdVolume = t.UvStandardVolumeMl;
+            if (!t.UvStandardEntryId.HasValue) throw new InvalidOperationException("A UV assay against standard needs its standard material set in Test Master.");
         }
 
         // ---- request shape ----
@@ -150,6 +151,11 @@ public sealed class UvRecorder : TestWorkflowSupport
         {
             lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == p.StandardMaterialId!.Value)
                 ?? throw new InvalidOperationException("Standard material not found.");
+            if (lot.MaterialMasterEntryId != t.UvStandardEntryId)
+            {
+                var entryName = await _db.MaterialMasterEntries.Where(e => e.Id == t.UvStandardEntryId).Select(e => e.Name).FirstAsync();
+                throw new InvalidOperationException($"Standard lot {lot.LotLabel} is not a lot of {entryName}.");
+            }
             var accessible = await _sectionScope.GetAccessibleSectionIdsAsync(userId);
             if (accessible != null && !accessible.Contains(lot.SectionId))
                 throw new InvalidOperationException($"Standard lot {lot.LotLabel} belongs to another laboratory.");

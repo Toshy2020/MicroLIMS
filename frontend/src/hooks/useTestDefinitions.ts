@@ -66,6 +66,8 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
   uvStandardVolumeMl?: number | null;
+  uvStandardEntryId?: number | null;
+  uvStandardEntryName?: string | null;
 }
 
 // Backs every TestCode picker in the app (Items, Water Sampling Points,

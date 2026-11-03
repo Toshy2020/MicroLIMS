@@ -33,7 +33,7 @@ public class TestDefinitionMasterDataService
     // Machine Part Configurations). See TestDefinition.cs for why this
     // exists.
     public async Task<List<TestDefinitionResponse>> GetTestDefinitionsAsync() =>
-        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
+        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).Include(t => t.UvStandardEntry).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
 
     public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
@@ -151,7 +151,7 @@ public class TestDefinitionMasterDataService
                     throw new InvalidOperationException("A UV test against a standard needs a standard volume above 0.");
             }
         }
-        else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue)
+        else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue || request.UvStandardEntryId.HasValue)
         {
             throw new InvalidOperationException("UV fields are only allowed for UV spectrophotometry tests.");
         }
@@ -421,9 +421,11 @@ public class TestDefinitionMasterDataService
             UvCalculationMode = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvCalculationMode : null,
             UvSpecificAbsorbance = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvSpecificAbsorbance : null,
             UvTotalVolumeMl = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvTotalVolumeMl : null,
-            UvStandardVolumeMl = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvStandardVolumeMl : null
+            UvStandardVolumeMl = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvStandardVolumeMl : null,
+            UvStandardEntryId = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvStandardEntryId : null
         };
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
+        await NormalizeUvStandardEntryAsync(entity);
         await ApplyPhyschemAreaAsync(entity, request.PhyschemArea);
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -574,7 +576,7 @@ public class TestDefinitionMasterDataService
                     throw new InvalidOperationException("A UV test against a standard needs a standard volume above 0.");
             }
         }
-        else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue)
+        else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue || request.UvStandardEntryId.HasValue)
         {
             throw new InvalidOperationException("UV fields are only allowed for UV spectrophotometry tests.");
         }
@@ -874,6 +876,7 @@ public class TestDefinitionMasterDataService
             if (request.UvSpecificAbsorbance.HasValue) entity.UvSpecificAbsorbance = request.UvSpecificAbsorbance;
             if (request.UvTotalVolumeMl.HasValue) entity.UvTotalVolumeMl = request.UvTotalVolumeMl;
             if (request.UvStandardVolumeMl.HasValue) entity.UvStandardVolumeMl = request.UvStandardVolumeMl;
+            if (request.UvStandardEntryId.HasValue) entity.UvStandardEntryId = request.UvStandardEntryId;
         }
         else
         {
@@ -881,9 +884,11 @@ public class TestDefinitionMasterDataService
             entity.UvSpecificAbsorbance = null;
             entity.UvTotalVolumeMl = null;
             entity.UvStandardVolumeMl = null;
+            entity.UvStandardEntryId = null;
         }
         ValidatePerContainerAndMoistureRole(entity.WorkflowType, entity.EquationType, entity.TitrationType, entity.PerContainer, entity.MoistureRole);
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
+        await NormalizeUvStandardEntryAsync(entity);
 
         (string? Before, string After, string Reason)? titrationAudit = null;
         if (entity.WorkflowType == WorkflowType.Titration || titrationBefore != null)
@@ -928,6 +933,25 @@ public class TestDefinitionMasterDataService
         }
 
         return TestDefinitionResponse.From(entity);
+    }
+
+    // StandardComparison names its standard material (a master entry of the test's own section);
+    // every other mode / workflow carries none. Messages mirror TitrationDefinitionRules.
+    private async Task NormalizeUvStandardEntryAsync(TestDefinition t)
+    {
+        if (t.WorkflowType != WorkflowType.UvSpectrophotometry || t.UvCalculationMode != UvCalculationMode.StandardComparison)
+        {
+            t.UvStandardEntryId = null;
+            t.UvStandardEntry = null;
+            return;
+        }
+        if (!t.UvStandardEntryId.HasValue)
+            throw new InvalidOperationException("The standard material is required for an assay against standard.");
+        var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == t.UvStandardEntryId.Value)
+            ?? throw new InvalidOperationException("Standard material master entry not found.");
+        if (entry.SectionId != t.SectionId)
+            throw new InvalidOperationException("The standard material belongs to another laboratory.");
+        t.UvStandardEntry = entry;
     }
 
     private static void ValidatePerContainerAndMoistureRole(WorkflowType workflowType, EquationType equationType, TitrationType? titrationType, bool perContainer, MoistureRole role)

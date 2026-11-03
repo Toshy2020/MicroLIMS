@@ -126,6 +126,8 @@ public class TestDefinition : IVersionedEntity
     public decimal? UvSpecificAbsorbance { get; set; }
     public decimal? UvTotalVolumeMl { get; set; }
     public decimal? UvStandardVolumeMl { get; set; }
+    public int? UvStandardEntryId { get; set; }                // StandardComparison: the standard material entry; only its lots are accepted
+    public MaterialMasterEntry? UvStandardEntry { get; set; }
 
     // Finished Product / Standard-Comparison Assay - per-stage-role
     // standard/sample replicate counts. See TestDefinitionStageReplicate.

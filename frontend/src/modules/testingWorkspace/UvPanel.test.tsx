@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { UvPanel } from "./UvPanel";
@@ -46,7 +46,18 @@ const {
       lotLabel: "STD-RIB-01",
       purity: 99.8,
       moisturePercent: 0.1,
-      materialType: "ReferenceStandard"
+      materialType: "ReferenceStandard",
+      materialMasterEntryId: 5
+    },
+    {
+      id: 102,
+      materialName: "Other Reference Standard",
+      batchNumber: "STD-OTH-01",
+      lotLabel: "STD-OTH-01",
+      purity: 99.0,
+      moisturePercent: 0.2,
+      materialType: "ReferenceStandard",
+      materialMasterEntryId: 6
     }
   ];
 
@@ -89,7 +100,8 @@ const {
     uvCalculationMode: "StandardComparison",
     uvSpecificAbsorbance: null,
     uvTotalVolumeMl: 100,
-    uvStandardVolumeMl: 100
+    uvStandardVolumeMl: 100,
+    uvStandardEntryId: 5
   };
 
   const riboflavinSpec: SpecificationDto = {
@@ -653,5 +665,32 @@ describe("UvPanel", () => {
     expect(payload.standardAbsorbance).toBe(0.45);
     expect(payload.parameters[0].replicates[0].weightG).toBe(0.05);
     expect(payload.parameters[0].replicates[0].absorbance).toBe(0.45);
+  });
+
+  it("offers only lots of the test's standard material", async () => {
+    const user = userEvent.setup();
+    mockGetForTestOrder.mockResolvedValue([mockStdCompSpec]);
+    mockGetUsableReferenceStandards.mockResolvedValue(
+      mockStableStandards.concat([{ ...mockStableStandards[0], id: 103, materialName: "Second lot of entry", batchNumber: "STD-RIB-02", lotLabel: "STD-RIB-02" }])
+    );
+
+    renderUvPanel({ testCode: "UV-STD-COMP" });
+
+    await waitFor(() => expect(screen.getByLabelText(/Standard lot/i)).toBeTruthy());
+    await user.click(screen.getByLabelText(/Standard lot/i));
+    const list = await screen.findByRole("listbox");
+    expect(within(list).getByText(/Riboflavin Reference Standard/)).toBeTruthy();
+    expect(within(list).getByText(/Second lot of entry/)).toBeTruthy();
+    expect(within(list).queryByText(/Other Reference Standard/)).toBeNull();
+  });
+
+  it("with no usable lot of the standard material it says so and keeps signing disabled", async () => {
+    mockGetForTestOrder.mockResolvedValue([mockStdCompSpec]);
+    mockGetUsableReferenceStandards.mockResolvedValue([mockStableStandards[1]]);
+
+    renderUvPanel({ testCode: "UV-STD-COMP" });
+
+    await waitFor(() => expect(screen.getByText("No usable lot of the standard material.")).toBeTruthy());
+    expect(screen.getByRole("button", { name: /Sign and record result/i })).toHaveProperty("disabled", true);
   });
 });

@@ -147,6 +147,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
   uvStandardVolumeMl?: number | null;
+  uvStandardEntryId?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -196,6 +197,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
   uvStandardVolumeMl?: number | null;
+  uvStandardEntryId?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master
